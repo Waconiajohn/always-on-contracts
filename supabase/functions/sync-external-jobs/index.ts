@@ -186,6 +186,103 @@ serve(async (req) => {
       console.error('Error fetching FlexJobs:', error);
     }
 
+    // Phase 3: Niche Contract Platforms
+    
+    // Toptal (via RSS/scraping - no official API)
+    try {
+      const jobs = await fetchToptal();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Toptal`);
+    } catch (error) {
+      console.error('Error fetching Toptal:', error);
+    }
+
+    // Gun.io (public job board)
+    try {
+      const jobs = await fetchGunio();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Gun.io`);
+    } catch (error) {
+      console.error('Error fetching Gun.io:', error);
+    }
+
+    // Braintrust (blockchain-based freelance platform)
+    try {
+      const jobs = await fetchBraintrust();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Braintrust`);
+    } catch (error) {
+      console.error('Error fetching Braintrust:', error);
+    }
+
+    // Catalant (enterprise consulting marketplace)
+    try {
+      const jobs = await fetchCatalant();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Catalant`);
+    } catch (error) {
+      console.error('Error fetching Catalant:', error);
+    }
+
+    // Phase 4: Industry-Specific Sources
+    
+    // AngelList (startup jobs)
+    try {
+      const jobs = await fetchAngelList();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from AngelList`);
+    } catch (error) {
+      console.error('Error fetching AngelList:', error);
+    }
+
+    // Built In (tech hub jobs - NYC, SF, Austin, etc.)
+    const builtInCities = ['national', 'newyork', 'sanfrancisco', 'austin', 'boston', 'chicago', 'colorado', 'la', 'seattle'];
+    for (const city of builtInCities) {
+      try {
+        const jobs = await fetchBuiltIn(city);
+        allJobs.push(...jobs);
+        console.log(`Fetched ${jobs.length} jobs from Built In ${city}`);
+      } catch (error) {
+        console.error(`Error fetching Built In ${city}:`, error);
+      }
+    }
+
+    // Dice (tech job board)
+    try {
+      const jobs = await fetchDice();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Dice`);
+    } catch (error) {
+      console.error('Error fetching Dice:', error);
+    }
+
+    // Stack Overflow Jobs (tech-focused)
+    try {
+      const jobs = await fetchStackOverflow();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Stack Overflow`);
+    } catch (error) {
+      console.error('Error fetching Stack Overflow:', error);
+    }
+
+    // Authentic Jobs (design/dev jobs)
+    try {
+      const jobs = await fetchAuthenticJobs();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Authentic Jobs`);
+    } catch (error) {
+      console.error('Error fetching Authentic Jobs:', error);
+    }
+
+    // Krop (creative/design jobs)
+    try {
+      const jobs = await fetchKrop();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Krop`);
+    } catch (error) {
+      console.error('Error fetching Krop:', error);
+    }
+
     console.log(`Total jobs fetched: ${allJobs.length}`);
 
     // Enhanced filter for contract-related opportunities
@@ -639,6 +736,365 @@ async function fetchFlexJobs(): Promise<ExternalJob[]> {
     return jobs;
   } catch (error) {
     console.error('FlexJobs fetch error:', error);
+    return [];
+  }
+}
+
+// Phase 3: Niche Contract Platforms
+
+async function fetchToptal(): Promise<ExternalJob[]> {
+  try {
+    // Toptal doesn't have a public API, using RSS feed approach
+    const res = await fetch('https://www.toptal.com/jobs.rss');
+    if (!res.ok) return [];
+    
+    const text = await res.text();
+    const jobs: ExternalJob[] = [];
+    
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+    const descRegex = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/;
+    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    
+    let match;
+    while ((match = itemRegex.exec(text)) !== null) {
+      const item = match[1];
+      const titleMatch = item.match(titleRegex);
+      const linkMatch = item.match(linkRegex);
+      const descMatch = item.match(descRegex);
+      const dateMatch = item.match(dateRegex);
+      
+      if (titleMatch && linkMatch) {
+        const jobId = linkMatch[1].split('/').pop() || Math.random().toString(36).substring(7);
+        jobs.push({
+          title: titleMatch[1],
+          company: 'Toptal Client',
+          location: 'Remote',
+          type: 'contract',
+          remote: true,
+          postedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          url: linkMatch[1],
+          source: 'toptal',
+          externalId: `tt-${jobId}`,
+          description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '') : titleMatch[1],
+          skills: [],
+        });
+      }
+    }
+    
+    return jobs;
+  } catch (error) {
+    console.error('Toptal fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchGunio(): Promise<ExternalJob[]> {
+  try {
+    // Gun.io job board scraping (they have a public jobs page)
+    const res = await fetch('https://gun.io/find-work/');
+    if (!res.ok) return [];
+    
+    // For now, return empty array as Gun.io requires specific scraping
+    // In production, this would parse their HTML job listings
+    return [];
+  } catch (error) {
+    console.error('Gun.io fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchBraintrust(): Promise<ExternalJob[]> {
+  try {
+    // Braintrust public job board
+    const res = await fetch('https://app.usebraintrust.com/api/jobs');
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const jobs = data.jobs || [];
+    
+    return jobs.map((j: any) => ({
+      title: j.title || j.name,
+      company: j.company || 'Braintrust Client',
+      location: j.location || 'Remote',
+      type: 'contract',
+      remote: true,
+      postedAt: j.created_at || j.posted_date,
+      url: `https://app.usebraintrust.com/jobs/${j.id}`,
+      source: 'braintrust',
+      externalId: `bt-${j.id}`,
+      description: j.description || j.title,
+      skills: j.skills || [],
+      hourlyRateMin: j.min_rate,
+      hourlyRateMax: j.max_rate,
+    }));
+  } catch (error) {
+    console.error('Braintrust fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchCatalant(): Promise<ExternalJob[]> {
+  try {
+    // Catalant (formerly HourlyNerd) - enterprise consulting
+    // No public API available, would require scraping or partnership
+    return [];
+  } catch (error) {
+    console.error('Catalant fetch error:', error);
+    return [];
+  }
+}
+
+// Phase 4: Industry-Specific Sources
+
+async function fetchAngelList(): Promise<ExternalJob[]> {
+  try {
+    // AngelList (Wellfound) jobs API
+    const res = await fetch('https://api.wellfound.com/v1/jobs?contract=true', {
+      headers: { 'Accept': 'application/json' },
+    });
+    
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const jobs = data.jobs || [];
+    
+    return jobs.map((j: any) => ({
+      title: j.title,
+      company: j.company?.name || 'Startup',
+      location: j.location || 'Remote',
+      type: 'contract',
+      remote: j.remote || false,
+      postedAt: j.created_at,
+      url: j.url || `https://wellfound.com/jobs/${j.id}`,
+      source: 'angellist',
+      externalId: `al-${j.id}`,
+      description: j.description || j.title,
+      skills: j.skills || [],
+    }));
+  } catch (error) {
+    console.error('AngelList fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchBuiltIn(city: string): Promise<ExternalJob[]> {
+  try {
+    // Built In tech hub job boards
+    const res = await fetch(`https://builtin.com/api/jobs?location=${city}&contract=true`);
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const jobs = data.jobs || [];
+    
+    return jobs.map((j: any) => ({
+      title: j.title,
+      company: j.company_name || 'Unknown',
+      location: j.location || city,
+      type: 'contract',
+      remote: j.remote || false,
+      postedAt: j.posted_date,
+      url: j.url || `https://builtin.com/${city}/job/${j.id}`,
+      source: `builtin-${city}`,
+      externalId: `bi-${city}-${j.id}`,
+      description: j.description || j.title,
+      skills: j.skills || [],
+    }));
+  } catch (error) {
+    console.error(`Built In ${city} fetch error:`, error);
+    return [];
+  }
+}
+
+async function fetchDice(): Promise<ExternalJob[]> {
+  try {
+    // Dice tech job board - RSS feed
+    const res = await fetch('https://www.dice.com/jobs/rss?q=contract');
+    if (!res.ok) return [];
+    
+    const text = await res.text();
+    const jobs: ExternalJob[] = [];
+    
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+    const descRegex = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/;
+    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    
+    let match;
+    while ((match = itemRegex.exec(text)) !== null) {
+      const item = match[1];
+      const titleMatch = item.match(titleRegex);
+      const linkMatch = item.match(linkRegex);
+      const descMatch = item.match(descRegex);
+      const dateMatch = item.match(dateRegex);
+      
+      if (titleMatch && linkMatch) {
+        const jobId = linkMatch[1].split('/').pop() || Math.random().toString(36).substring(7);
+        jobs.push({
+          title: titleMatch[1],
+          company: 'Dice Listing',
+          location: 'Various',
+          type: 'contract',
+          remote: /remote/i.test(item),
+          postedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          url: linkMatch[1],
+          source: 'dice',
+          externalId: `dc-${jobId}`,
+          description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '') : titleMatch[1],
+          skills: [],
+        });
+      }
+    }
+    
+    return jobs;
+  } catch (error) {
+    console.error('Dice fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchStackOverflow(): Promise<ExternalJob[]> {
+  try {
+    // Stack Overflow Jobs RSS feed
+    const res = await fetch('https://stackoverflow.com/jobs/feed?q=contract');
+    if (!res.ok) return [];
+    
+    const text = await res.text();
+    const jobs: ExternalJob[] = [];
+    
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+    const descRegex = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/;
+    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    
+    let match;
+    while ((match = itemRegex.exec(text)) !== null) {
+      const item = match[1];
+      const titleMatch = item.match(titleRegex);
+      const linkMatch = item.match(linkRegex);
+      const descMatch = item.match(descRegex);
+      const dateMatch = item.match(dateRegex);
+      
+      if (titleMatch && linkMatch) {
+        const jobId = linkMatch[1].split('/').pop() || Math.random().toString(36).substring(7);
+        jobs.push({
+          title: titleMatch[1],
+          company: 'Stack Overflow Listing',
+          location: 'Various',
+          type: 'contract',
+          remote: /remote/i.test(item),
+          postedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          url: linkMatch[1],
+          source: 'stackoverflow',
+          externalId: `so-${jobId}`,
+          description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '') : titleMatch[1],
+          skills: [],
+        });
+      }
+    }
+    
+    return jobs;
+  } catch (error) {
+    console.error('Stack Overflow fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchAuthenticJobs(): Promise<ExternalJob[]> {
+  try {
+    // Authentic Jobs - design and development jobs
+    const res = await fetch('https://authenticjobs.com/rss/custom.php?contract=1');
+    if (!res.ok) return [];
+    
+    const text = await res.text();
+    const jobs: ExternalJob[] = [];
+    
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+    const descRegex = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/;
+    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    
+    let match;
+    while ((match = itemRegex.exec(text)) !== null) {
+      const item = match[1];
+      const titleMatch = item.match(titleRegex);
+      const linkMatch = item.match(linkRegex);
+      const descMatch = item.match(descRegex);
+      const dateMatch = item.match(dateRegex);
+      
+      if (titleMatch && linkMatch) {
+        const jobId = linkMatch[1].split('/').pop() || Math.random().toString(36).substring(7);
+        jobs.push({
+          title: titleMatch[1],
+          company: 'Authentic Jobs Listing',
+          location: 'Various',
+          type: 'contract',
+          remote: /remote/i.test(item),
+          postedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          url: linkMatch[1],
+          source: 'authenticjobs',
+          externalId: `aj-${jobId}`,
+          description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '') : titleMatch[1],
+          skills: [],
+        });
+      }
+    }
+    
+    return jobs;
+  } catch (error) {
+    console.error('Authentic Jobs fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchKrop(): Promise<ExternalJob[]> {
+  try {
+    // Krop - creative and design jobs
+    const res = await fetch('https://www.krop.com/creative-jobs/feeds/jobs.rss?contract=true');
+    if (!res.ok) return [];
+    
+    const text = await res.text();
+    const jobs: ExternalJob[] = [];
+    
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+    const descRegex = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/;
+    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    
+    let match;
+    while ((match = itemRegex.exec(text)) !== null) {
+      const item = match[1];
+      const titleMatch = item.match(titleRegex);
+      const linkMatch = item.match(linkRegex);
+      const descMatch = item.match(descRegex);
+      const dateMatch = item.match(dateRegex);
+      
+      if (titleMatch && linkMatch) {
+        const jobId = linkMatch[1].split('/').pop() || Math.random().toString(36).substring(7);
+        jobs.push({
+          title: titleMatch[1],
+          company: 'Krop Listing',
+          location: 'Various',
+          type: 'contract',
+          remote: /remote/i.test(item),
+          postedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          url: linkMatch[1],
+          source: 'krop',
+          externalId: `kr-${jobId}`,
+          description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '') : titleMatch[1],
+          skills: [],
+        });
+      }
+    }
+    
+    return jobs;
+  } catch (error) {
+    console.error('Krop fetch error:', error);
     return [];
   }
 }
