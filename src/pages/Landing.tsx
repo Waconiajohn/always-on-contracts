@@ -6,7 +6,7 @@ const Landing = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background animate-fade-in">
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center space-y-8">
@@ -224,6 +224,68 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-card border-t py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold">ContractCareer Pro</h3>
+              <p className="text-muted-foreground">
+                The always-on career management system for contract professionals.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold">Product</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>
+                  <button onClick={() => navigate('/pricing')} className="hover:text-foreground transition-colors">
+                    Pricing
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => navigate('/auth')} className="hover:text-foreground transition-colors">
+                    Sign Up
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold">Resources</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>
+                  <button className="hover:text-foreground transition-colors">
+                    Help Center
+                  </button>
+                </li>
+                <li>
+                  <button className="hover:text-foreground transition-colors">
+                    Documentation
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold">Legal</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>
+                  <button className="hover:text-foreground transition-colors">
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button className="hover:text-foreground transition-colors">
+                    Terms of Service
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t pt-8 text-center text-muted-foreground">
+            <p>&copy; 2025 ContractCareer Pro. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

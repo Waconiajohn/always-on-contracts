@@ -98,7 +98,7 @@ const DashboardContent = () => {
               <Button variant="ghost" size="lg">
                 <Bell className="h-6 w-6" />
               </Button>
-              <Button variant="ghost" size="lg">
+              <Button variant="ghost" size="lg" onClick={() => navigate('/profile')}>
                 <Settings className="h-6 w-6" />
               </Button>
               <Button variant="outline" onClick={handleSignOut}>
