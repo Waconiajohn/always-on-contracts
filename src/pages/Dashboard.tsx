@@ -156,7 +156,7 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/rate-calculator')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <DollarSign className="h-6 w-6 text-primary" />
@@ -167,8 +167,8 @@ const DashboardContent = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full text-lg py-6" disabled>
-                Coming Soon
+              <Button className="w-full text-lg py-6">
+                Calculate Rate
               </Button>
             </CardContent>
           </Card>
