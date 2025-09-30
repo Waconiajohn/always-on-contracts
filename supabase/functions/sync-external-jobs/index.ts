@@ -163,48 +163,43 @@ serve(async (req) => {
 
     console.log(`Filtered to ${contractJobs.length} contract opportunities`);
 
-    // Upsert jobs into database
-    let insertedCount = 0;
-    let updatedCount = 0;
+    // Batch upsert jobs into database using Supabase upsert
+    const jobsToUpsert = contractJobs.map(job => ({
+      job_title: job.title,
+      job_description: job.description || `${job.title} at ${job.company}`,
+      location: job.location,
+      hourly_rate_min: job.hourlyRateMin,
+      hourly_rate_max: job.hourlyRateMax,
+      required_skills: job.skills || [],
+      external_url: job.url,
+      status: 'active',
+      source: job.company,
+      is_external: true,
+      external_id: job.externalId,
+      external_source: job.source,
+      last_synced_at: new Date().toISOString(),
+      raw_data: job,
+      posted_date: job.postedAt || new Date().toISOString(),
+    }));
 
-    for (const job of contractJobs) {
-      // Check if job already exists
-      const { data: existing } = await supabaseClient
+    // Upsert in batches of 100 to avoid payload limits
+    const batchSize = 100;
+    let totalUpserted = 0;
+    
+    for (let i = 0; i < jobsToUpsert.length; i += batchSize) {
+      const batch = jobsToUpsert.slice(i, i + batchSize);
+      const { error } = await supabaseClient
         .from('job_opportunities')
-        .select('id')
-        .eq('external_source', job.source)
-        .eq('external_id', job.externalId)
-        .single();
-
-      const jobData = {
-        job_title: job.title,
-        job_description: job.description || `${job.title} at ${job.company}`,
-        location: job.location,
-        hourly_rate_min: job.hourlyRateMin,
-        hourly_rate_max: job.hourlyRateMax,
-        required_skills: job.skills || [],
-        external_url: job.url,
-        status: 'active',
-        source: job.company,
-        is_external: true,
-        external_id: job.externalId,
-        external_source: job.source,
-        last_synced_at: new Date().toISOString(),
-        raw_data: job,
-        posted_date: job.postedAt || new Date().toISOString(),
-      };
-
-      if (existing) {
-        await supabaseClient
-          .from('job_opportunities')
-          .update(jobData)
-          .eq('id', existing.id);
-        updatedCount++;
+        .upsert(batch, {
+          onConflict: 'external_source,external_id',
+          ignoreDuplicates: false
+        });
+      
+      if (error) {
+        console.error(`Error upserting batch ${i / batchSize + 1}:`, error);
       } else {
-        await supabaseClient
-          .from('job_opportunities')
-          .insert(jobData);
-        insertedCount++;
+        totalUpserted += batch.length;
+        console.log(`Upserted batch ${i / batchSize + 1}: ${batch.length} jobs`);
       }
     }
 
@@ -223,8 +218,7 @@ serve(async (req) => {
         success: true,
         totalFetched: allJobs.length,
         contractFiltered: contractJobs.length,
-        inserted: insertedCount,
-        updated: updatedCount,
+        upserted: totalUpserted,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
