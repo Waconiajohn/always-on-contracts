@@ -37,10 +37,18 @@ serve(async (req) => {
     
     const allJobs: ExternalJob[] = [];
 
-    // Fetch from Greenhouse boards (major tech companies)
+    // Fetch from Greenhouse boards (major tech companies + contractors)
     const greenhouseBoards = [
       'openai', 'anthropic', 'stripe', 'figma', 'notion', 'linear',
-      'vercel', 'cloudflare', 'databricks', 'scale', 'rippling'
+      'vercel', 'cloudflare', 'databricks', 'scale', 'rippling',
+      'meta', 'adobe', 'palantir', 'shopify', 'gitlab', 'docusign',
+      'twilio', 'salesforce', 'zoom', 'slack', 'dropbox', 'atlassian',
+      'pinterest', 'snap', 'reddit', 'discord', 'instacart', 'doordash',
+      'postmates', 'grubhub', 'wayfair', 'etsy', 'wayfair', 'peloton',
+      'robinhood', 'chime', 'nubank', 'revolut', 'wise', 'checkout',
+      'brex', 'deel', 'remote', 'lattice', 'workday', 'servicenow',
+      'datadog', 'elastic', 'confluent', 'snowflake', 'mongodb',
+      'redis', 'cockroach', 'planetscale', 'neon', 'supabase'
     ];
     
     for (const boardToken of greenhouseBoards) {
@@ -56,7 +64,12 @@ serve(async (req) => {
     // Fetch from Lever boards
     const leverBoards = [
       'doordash', 'netflix', 'uber', 'lyft', 'airbnb', 'square',
-      'coinbase', 'robinhood', 'plaid', 'affirm', 'reddit'
+      'coinbase', 'robinhood', 'plaid', 'affirm', 'reddit',
+      'spotify', 'coursera', 'udemy', 'duolingo', 'canva', 'miro',
+      'figma', 'airtable', 'zapier', 'hubspot', 'mailchimp', 'sendgrid',
+      'twitch', 'roblox', 'unity', 'epic', 'riot', 'blizzard',
+      'booking', 'expedia', 'kayak', 'tripadvisor', 'hopper',
+      'indeed', 'glassdoor', 'ziprecruiter', 'greenhouse', 'lever'
     ];
     
     for (const boardKey of leverBoards) {
@@ -72,7 +85,11 @@ serve(async (req) => {
     // Fetch from Ashby boards
     const ashbyBoards = [
       'retool', 'ramp', 'vanta', 'anduril', 'secureframe',
-      'census', 'hightouch', 'hex', 'modal', 'replicate'
+      'census', 'hightouch', 'hex', 'modal', 'replicate',
+      'anthropic', 'perplexity', 'mistral', 'cohere', 'together',
+      'runway', 'midjourney', 'stability', 'huggingface', 'weights-biases',
+      'scale', 'labelbox', 'snorkel', 'roboflow', 'landing',
+      'mercury', 'column', 'unit', 'increase', 'modern-treasury'
     ];
     
     for (const orgSlug of ashbyBoards) {
@@ -97,18 +114,51 @@ serve(async (req) => {
       }
     }
 
+    // Fetch from RemoteOK (public JSON API)
+    try {
+      const jobs = await fetchRemoteOK();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from RemoteOK`);
+    } catch (error) {
+      console.error('Error fetching RemoteOK:', error);
+    }
+
+    // Fetch from We Work Remotely RSS feed
+    try {
+      const jobs = await fetchWeWorkRemotely();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from We Work Remotely`);
+    } catch (error) {
+      console.error('Error fetching We Work Remotely:', error);
+    }
+
+    // Fetch from Remotive API
+    try {
+      const jobs = await fetchRemotive();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Remotive`);
+    } catch (error) {
+      console.error('Error fetching Remotive:', error);
+    }
+
     console.log(`Total jobs fetched: ${allJobs.length}`);
 
-    // Filter for contract-related opportunities
+    // Enhanced filter for contract-related opportunities
     const contractJobs = allJobs.filter(job => {
       const searchText = JSON.stringify(job).toLowerCase();
-      return searchText.includes('contract') || 
-             searchText.includes('contractor') ||
-             searchText.includes('freelance') ||
-             searchText.includes('temporary') ||
-             searchText.includes('temp') ||
-             searchText.includes('1099') ||
-             job.type?.toLowerCase().includes('contract');
+      const contractKeywords = [
+        'contract', 'contractor', 'freelance', 'freelancer',
+        'temporary', 'temp', '1099', 'w2', 'corp-to-corp', 'c2c',
+        'consulting', 'consultant', 'project-based', 'project based',
+        'interim', 'fractional', 'part-time', 'part time',
+        'hourly', 'per diem', 'independent', 'gig',
+        'short-term', 'short term', 'term position', 'seasonal'
+      ];
+      
+      return contractKeywords.some(keyword => searchText.includes(keyword)) ||
+             job.type?.toLowerCase().includes('contract') ||
+             job.type?.toLowerCase().includes('freelance') ||
+             job.type?.toLowerCase().includes('temporary');
     });
 
     console.log(`Filtered to ${contractJobs.length} contract opportunities`);
@@ -280,4 +330,103 @@ async function fetchUSAJobs(apiKey: string): Promise<ExternalJob[]> {
       description: j.UserArea?.Details?.JobSummary || j.PositionTitle,
     };
   });
+}
+
+async function fetchRemoteOK(): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://remoteok.com/api');
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    // First item is metadata, skip it
+    const jobs = data.slice(1);
+    
+    return jobs.map((j: any) => ({
+      title: j.position,
+      company: j.company,
+      location: j.location || 'Remote',
+      type: 'contract',
+      remote: true,
+      postedAt: j.date ? new Date(j.date).toISOString() : undefined,
+      url: `https://remoteok.com/remote-jobs/${j.id}`,
+      source: 'remoteok',
+      externalId: `rok-${j.id}`,
+      description: j.description || j.position,
+      skills: j.tags || [],
+    }));
+  } catch (error) {
+    console.error('RemoteOK fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchWeWorkRemotely(): Promise<ExternalJob[]> {
+  try {
+    // We Work Remotely has category-based feeds
+    const categories = ['programming', 'devops', 'product', 'design', 'customer-support', 'marketing', 'sales'];
+    const allJobs: ExternalJob[] = [];
+    
+    for (const category of categories) {
+      const res = await fetch(`https://weworkremotely.com/categories/remote-${category}-jobs.rss`);
+      if (!res.ok) continue;
+      
+      const text = await res.text();
+      // Basic RSS parsing
+      const items = text.match(/<item>[\s\S]*?<\/item>/g) || [];
+      
+      for (const item of items) {
+        const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1] || '';
+        const link = item.match(/<link>(.*?)<\/link>/)?.[1] || '';
+        const description = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1] || '';
+        const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
+        
+        if (title && link) {
+          allJobs.push({
+            title,
+            company: title.split(':')[0]?.trim() || 'Unknown',
+            location: 'Remote',
+            type: 'contract',
+            remote: true,
+            postedAt: pubDate ? new Date(pubDate).toISOString() : undefined,
+            url: link,
+            source: 'weworkremotely',
+            externalId: `wwr-${link.split('/').pop()}`,
+            description,
+          });
+        }
+      }
+    }
+    
+    return allJobs;
+  } catch (error) {
+    console.error('We Work Remotely fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchRemotive(): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://remotive.com/api/remote-jobs?category=software-dev');
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const jobs = data.jobs || [];
+    
+    return jobs.map((j: any) => ({
+      title: j.title,
+      company: j.company_name,
+      location: 'Remote',
+      type: j.job_type || 'contract',
+      remote: true,
+      postedAt: j.publication_date,
+      url: j.url,
+      source: 'remotive',
+      externalId: `rem-${j.id}`,
+      description: j.description || j.title,
+      skills: j.tags || [],
+    }));
+  } catch (error) {
+    console.error('Remotive fetch error:', error);
+    return [];
+  }
 }
