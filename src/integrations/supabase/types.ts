@@ -14,7 +14,279 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      outreach_tracking: {
+        Row: {
+          agency_id: string | null
+          created_at: string | null
+          id: string
+          last_contact_date: string | null
+          notes: string | null
+          outreach_type: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          agency_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_contact_date?: string | null
+          notes?: string | null
+          outreach_type?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          agency_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_contact_date?: string | null
+          notes?: string | null
+          outreach_type?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_tracking_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "staffing_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          current_employment_status: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          subscription_tier: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_employment_status?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_employment_status?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rate_history: {
+        Row: {
+          contract_length_months: number | null
+          hourly_rate: number | null
+          id: string
+          industry: string | null
+          location: string | null
+          position_title: string
+          recorded_date: string | null
+        }
+        Insert: {
+          contract_length_months?: number | null
+          hourly_rate?: number | null
+          id?: string
+          industry?: string | null
+          location?: string | null
+          position_title: string
+          recorded_date?: string | null
+        }
+        Update: {
+          contract_length_months?: number | null
+          hourly_rate?: number | null
+          id?: string
+          industry?: string | null
+          location?: string | null
+          position_title?: string
+          recorded_date?: string | null
+        }
+        Relationships: []
+      }
+      resume_analysis: {
+        Row: {
+          analysis_summary: string | null
+          created_at: string | null
+          id: string
+          industry_expertise: string[] | null
+          key_achievements: string[] | null
+          management_capabilities: string[] | null
+          recommended_positions: string[] | null
+          resume_id: string
+          skills: string[] | null
+          target_hourly_rate_max: number | null
+          target_hourly_rate_min: number | null
+          user_id: string
+          years_experience: number | null
+        }
+        Insert: {
+          analysis_summary?: string | null
+          created_at?: string | null
+          id?: string
+          industry_expertise?: string[] | null
+          key_achievements?: string[] | null
+          management_capabilities?: string[] | null
+          recommended_positions?: string[] | null
+          resume_id: string
+          skills?: string[] | null
+          target_hourly_rate_max?: number | null
+          target_hourly_rate_min?: number | null
+          user_id: string
+          years_experience?: number | null
+        }
+        Update: {
+          analysis_summary?: string | null
+          created_at?: string | null
+          id?: string
+          industry_expertise?: string[] | null
+          key_achievements?: string[] | null
+          management_capabilities?: string[] | null
+          recommended_positions?: string[] | null
+          resume_id?: string
+          skills?: string[] | null
+          target_hourly_rate_max?: number | null
+          target_hourly_rate_min?: number | null
+          user_id?: string
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_analysis_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resumes: {
+        Row: {
+          file_name: string
+          file_url: string
+          id: string
+          parsed_content: Json | null
+          upload_date: string | null
+          user_id: string
+        }
+        Insert: {
+          file_name: string
+          file_url: string
+          id?: string
+          parsed_content?: Json | null
+          upload_date?: string | null
+          user_id: string
+        }
+        Update: {
+          file_name?: string
+          file_url?: string
+          id?: string
+          parsed_content?: Json | null
+          upload_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staffing_agencies: {
+        Row: {
+          agency_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          specialization: string[] | null
+          website: string | null
+        }
+        Insert: {
+          agency_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          specialization?: string[] | null
+          website?: string | null
+        }
+        Update: {
+          agency_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          specialization?: string[] | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      strategies: {
+        Row: {
+          analysis_id: string | null
+          created_at: string | null
+          geographic_markets: string[] | null
+          id: string
+          positioning_strategy: string | null
+          target_industries: string[] | null
+          target_positions: string[] | null
+          timeline_weeks: number | null
+          user_id: string
+          value_proposition: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string | null
+          geographic_markets?: string[] | null
+          id?: string
+          positioning_strategy?: string | null
+          target_industries?: string[] | null
+          target_positions?: string[] | null
+          timeline_weeks?: number | null
+          user_id: string
+          value_proposition?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string | null
+          geographic_markets?: string[] | null
+          id?: string
+          positioning_strategy?: string | null
+          target_industries?: string[] | null
+          target_positions?: string[] | null
+          timeline_weeks?: number | null
+          user_id?: string
+          value_proposition?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategies_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "resume_analysis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
