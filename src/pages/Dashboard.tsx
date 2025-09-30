@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 const DashboardContent = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [hasAnalysis, setHasAnalysis] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -19,6 +20,7 @@ const DashboardContent = () => {
       setSession(session);
       if (session) {
         fetchProfile(session.user.id);
+        checkAnalysis(session.user.id);
       }
     });
 
@@ -26,6 +28,7 @@ const DashboardContent = () => {
       setSession(session);
       if (session) {
         fetchProfile(session.user.id);
+        checkAnalysis(session.user.id);
       }
     });
 
@@ -46,6 +49,21 @@ const DashboardContent = () => {
       console.error("Error fetching profile:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkAnalysis = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("resume_analysis")
+        .select("id")
+        .eq("user_id", userId)
+        .limit(1);
+
+      if (error) throw error;
+      setHasAnalysis(data && data.length > 0);
+    } catch (error) {
+      console.error("Error checking analysis:", error);
     }
   };
 
@@ -121,7 +139,7 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/agencies')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-primary" />
@@ -132,8 +150,8 @@ const DashboardContent = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full text-lg py-6" disabled>
-                Coming Soon
+              <Button className="w-full text-lg py-6">
+                Browse Agencies
               </Button>
             </CardContent>
           </Card>
@@ -196,18 +214,23 @@ const DashboardContent = () => {
             <CardDescription className="text-lg">Complete these steps to activate your Always-On system</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-4 p-4 bg-card rounded-lg">
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                1
+            <div className={`flex items-start gap-4 p-4 bg-card rounded-lg ${hasAnalysis ? 'opacity-60' : ''}`}>
+              <div className={`w-8 h-8 ${hasAnalysis ? 'bg-primary text-primary-foreground' : 'bg-primary text-primary-foreground'} rounded-full flex items-center justify-center font-bold flex-shrink-0`}>
+                {hasAnalysis ? '✓' : '1'}
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-xl font-semibold mb-2">Upload Your Resume</h3>
                 <p className="text-lg text-muted-foreground">Let our AI analyze your experience and create a personalized strategy</p>
+                {hasAnalysis && (
+                  <Button onClick={() => navigate('/strategy')} className="mt-3">
+                    View Your Strategy
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-card rounded-lg opacity-60">
-              <div className="w-8 h-8 bg-muted-foreground text-card rounded-full flex items-center justify-center font-bold flex-shrink-0">
+            <div className={`flex items-start gap-4 p-4 bg-card rounded-lg ${!hasAnalysis ? 'opacity-60' : ''}`}>
+              <div className={`w-8 h-8 ${hasAnalysis ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground text-card'} rounded-full flex items-center justify-center font-bold flex-shrink-0`}>
                 2
               </div>
               <div>
