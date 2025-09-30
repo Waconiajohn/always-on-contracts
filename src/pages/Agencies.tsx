@@ -395,6 +395,43 @@ const AgenciesContent = () => {
                     )}
                   </div>
 
+                  {/* Contract-specific details */}
+                  {(agency.contract_focus_rating || agency.typical_contract_duration_min || agency.typical_rate_min || agency.contract_permanent_split) && (
+                    <div className="pt-4 border-t space-y-3">
+                      <h4 className="font-semibold">Contract Details:</h4>
+                      
+                      {agency.contract_focus_rating && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Contract Focus:</span>
+                          <Badge variant={agency.contract_focus_rating >= 4 ? "default" : "secondary"}>
+                            {agency.contract_focus_rating}/5 - {agency.contract_focus_rating >= 4 ? "High" : agency.contract_focus_rating >= 3 ? "Medium" : "Low"}
+                          </Badge>
+                        </div>
+                      )}
+
+                      {agency.typical_contract_duration_min && agency.typical_contract_duration_max && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Typical Duration:</span>
+                          <span className="text-sm font-medium">{agency.typical_contract_duration_min}-{agency.typical_contract_duration_max} months</span>
+                        </div>
+                      )}
+
+                      {agency.typical_rate_min && agency.typical_rate_max && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Rate Range:</span>
+                          <span className="text-sm font-medium">${agency.typical_rate_min}-${agency.typical_rate_max}/hr</span>
+                        </div>
+                      )}
+
+                      {agency.contract_permanent_split && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Contract Split:</span>
+                          <span className="text-sm font-medium">{agency.contract_permanent_split}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {agency.notes && (
                     <div className="pt-4 border-t">
                       <p className="text-muted-foreground">{agency.notes}</p>

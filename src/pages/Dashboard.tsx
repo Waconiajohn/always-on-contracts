@@ -139,6 +139,23 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/opportunities')}>
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <TrendingUp className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Contract Opportunities</CardTitle>
+              <CardDescription className="text-lg">
+                AI-matched contract positions based on your profile
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full text-lg py-6">
+                Find Opportunities
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/agencies')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">

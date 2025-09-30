@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      agency_ratings: {
+        Row: {
+          agency_id: string
+          contract_obtained: boolean | null
+          created_at: string | null
+          id: string
+          professionalism_rating: number | null
+          rating: number
+          response_time_rating: number | null
+          review_text: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          contract_obtained?: boolean | null
+          created_at?: string | null
+          id?: string
+          professionalism_rating?: number | null
+          rating: number
+          response_time_rating?: number | null
+          review_text?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          contract_obtained?: boolean | null
+          created_at?: string | null
+          id?: string
+          professionalism_rating?: number | null
+          rating?: number
+          response_time_rating?: number | null
+          review_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_ratings_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "staffing_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_templates: {
         Row: {
           body_content: string
@@ -47,34 +94,161 @@ export type Database = {
         }
         Relationships: []
       }
+      job_opportunities: {
+        Row: {
+          agency_id: string | null
+          contract_duration_months: number | null
+          created_at: string | null
+          expiry_date: string | null
+          external_url: string | null
+          hourly_rate_max: number | null
+          hourly_rate_min: number | null
+          id: string
+          job_description: string | null
+          job_title: string
+          location: string | null
+          posted_date: string | null
+          required_skills: string[] | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agency_id?: string | null
+          contract_duration_months?: number | null
+          created_at?: string | null
+          expiry_date?: string | null
+          external_url?: string | null
+          hourly_rate_max?: number | null
+          hourly_rate_min?: number | null
+          id?: string
+          job_description?: string | null
+          job_title: string
+          location?: string | null
+          posted_date?: string | null
+          required_skills?: string[] | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agency_id?: string | null
+          contract_duration_months?: number | null
+          created_at?: string | null
+          expiry_date?: string | null
+          external_url?: string | null
+          hourly_rate_max?: number | null
+          hourly_rate_min?: number | null
+          id?: string
+          job_description?: string | null
+          job_title?: string
+          location?: string | null
+          posted_date?: string | null
+          required_skills?: string[] | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_opportunities_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "staffing_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunity_matches: {
+        Row: {
+          ai_recommendation: string | null
+          applied_date: string | null
+          created_at: string | null
+          id: string
+          match_score: number | null
+          matching_skills: string[] | null
+          opportunity_id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_recommendation?: string | null
+          applied_date?: string | null
+          created_at?: string | null
+          id?: string
+          match_score?: number | null
+          matching_skills?: string[] | null
+          opportunity_id: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_recommendation?: string | null
+          applied_date?: string | null
+          created_at?: string | null
+          id?: string
+          match_score?: number | null
+          matching_skills?: string[] | null
+          opportunity_id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_matches_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "job_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outreach_tracking: {
         Row: {
           agency_id: string | null
+          campaign_id: string | null
           created_at: string | null
+          email_sent_count: number | null
           id: string
           last_contact_date: string | null
+          last_email_sent_date: string | null
+          next_follow_up_date: string | null
           notes: string | null
           outreach_type: string | null
+          response_date: string | null
+          response_received: boolean | null
           status: string | null
           user_id: string
         }
         Insert: {
           agency_id?: string | null
+          campaign_id?: string | null
           created_at?: string | null
+          email_sent_count?: number | null
           id?: string
           last_contact_date?: string | null
+          last_email_sent_date?: string | null
+          next_follow_up_date?: string | null
           notes?: string | null
           outreach_type?: string | null
+          response_date?: string | null
+          response_received?: boolean | null
           status?: string | null
           user_id: string
         }
         Update: {
           agency_id?: string | null
+          campaign_id?: string | null
           created_at?: string | null
+          email_sent_count?: number | null
           id?: string
           last_contact_date?: string | null
+          last_email_sent_date?: string | null
+          next_follow_up_date?: string | null
           notes?: string | null
           outreach_type?: string | null
+          response_date?: string | null
+          response_received?: boolean | null
           status?: string | null
           user_id?: string
         }
@@ -242,33 +416,51 @@ export type Database = {
           agency_name: string
           contact_email: string | null
           contact_phone: string | null
+          contract_focus_rating: number | null
+          contract_permanent_split: string | null
           created_at: string | null
           id: string
           location: string | null
           notes: string | null
           specialization: string[] | null
+          typical_contract_duration_max: number | null
+          typical_contract_duration_min: number | null
+          typical_rate_max: number | null
+          typical_rate_min: number | null
           website: string | null
         }
         Insert: {
           agency_name: string
           contact_email?: string | null
           contact_phone?: string | null
+          contract_focus_rating?: number | null
+          contract_permanent_split?: string | null
           created_at?: string | null
           id?: string
           location?: string | null
           notes?: string | null
           specialization?: string[] | null
+          typical_contract_duration_max?: number | null
+          typical_contract_duration_min?: number | null
+          typical_rate_max?: number | null
+          typical_rate_min?: number | null
           website?: string | null
         }
         Update: {
           agency_name?: string
           contact_email?: string | null
           contact_phone?: string | null
+          contract_focus_rating?: number | null
+          contract_permanent_split?: string | null
           created_at?: string | null
           id?: string
           location?: string | null
           notes?: string | null
           specialization?: string[] | null
+          typical_contract_duration_max?: number | null
+          typical_contract_duration_min?: number | null
+          typical_rate_max?: number | null
+          typical_rate_min?: number | null
           website?: string | null
         }
         Relationships: []
