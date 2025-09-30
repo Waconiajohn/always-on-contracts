@@ -141,6 +141,51 @@ serve(async (req) => {
       console.error('Error fetching Remotive:', error);
     }
 
+    // Fetch from SAM.gov (Government contracts)
+    const samApiKey = Deno.env.get('SAM_GOV_API_KEY');
+    if (samApiKey) {
+      try {
+        const jobs = await fetchSAMGov(samApiKey);
+        allJobs.push(...jobs);
+        console.log(`Fetched ${jobs.length} jobs from SAM.gov`);
+      } catch (error) {
+        console.error('Error fetching SAM.gov:', error);
+      }
+    }
+
+    // Fetch from TheirStack
+    const theirStackApiKey = Deno.env.get('THEIRSTACK_API_KEY');
+    if (theirStackApiKey) {
+      try {
+        const jobs = await fetchTheirStack(theirStackApiKey);
+        allJobs.push(...jobs);
+        console.log(`Fetched ${jobs.length} jobs from TheirStack`);
+      } catch (error) {
+        console.error('Error fetching TheirStack:', error);
+      }
+    }
+
+    // Fetch from Indeed
+    const indeedApiKey = Deno.env.get('INDEED_API_KEY');
+    if (indeedApiKey) {
+      try {
+        const jobs = await fetchIndeed(indeedApiKey);
+        allJobs.push(...jobs);
+        console.log(`Fetched ${jobs.length} jobs from Indeed`);
+      } catch (error) {
+        console.error('Error fetching Indeed:', error);
+      }
+    }
+
+    // Fetch from FlexJobs RSS
+    try {
+      const jobs = await fetchFlexJobs();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from FlexJobs`);
+    } catch (error) {
+      console.error('Error fetching FlexJobs:', error);
+    }
+
     console.log(`Total jobs fetched: ${allJobs.length}`);
 
     // Enhanced filter for contract-related opportunities
@@ -163,8 +208,17 @@ serve(async (req) => {
 
     console.log(`Filtered to ${contractJobs.length} contract opportunities`);
 
+    // Deduplicate jobs by external_source and external_id
+    const uniqueJobs = new Map();
+    for (const job of contractJobs) {
+      const key = `${job.source}_${job.externalId}`;
+      if (!uniqueJobs.has(key)) {
+        uniqueJobs.set(key, job);
+      }
+    }
+    
     // Batch upsert jobs into database using Supabase upsert
-    const jobsToUpsert = contractJobs.map(job => ({
+    const jobsToUpsert = Array.from(uniqueJobs.values()).map(job => ({
       job_title: job.title,
       job_description: job.description || `${job.title} at ${job.company}`,
       location: job.location,
@@ -181,6 +235,8 @@ serve(async (req) => {
       raw_data: job,
       posted_date: job.postedAt || new Date().toISOString(),
     }));
+
+    console.log(`Deduped to ${jobsToUpsert.length} unique jobs`);
 
     // Upsert in batches of 100 to avoid payload limits
     const batchSize = 100;
@@ -421,6 +477,168 @@ async function fetchRemotive(): Promise<ExternalJob[]> {
     }));
   } catch (error) {
     console.error('Remotive fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchSAMGov(apiKey: string): Promise<ExternalJob[]> {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const url = `https://api.sam.gov/opportunities/v2/search?api_key=${apiKey}&postedFrom=${thirtyDaysAgo}&limit=1000&ptype=o,k`;
+    
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+    });
+    
+    if (!res.ok) {
+      console.error(`SAM.gov API error: ${res.status}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    const opportunities = data.opportunitiesData || [];
+    
+    return opportunities.map((opp: any) => ({
+      title: opp.title,
+      company: opp.department || opp.subtier || 'Federal Government',
+      location: opp.placeOfPerformance?.city?.name || 'Various Locations',
+      type: 'contract',
+      remote: false,
+      postedAt: opp.postedDate,
+      url: `https://sam.gov/opp/${opp.noticeId}/view`,
+      source: 'sam.gov',
+      externalId: `sam-${opp.noticeId}`,
+      description: opp.description || opp.title,
+      skills: opp.naicsCode ? [`NAICS: ${opp.naicsCode}`] : [],
+    }));
+  } catch (error) {
+    console.error('SAM.gov fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchTheirStack(apiKey: string): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://api.theirstack.com/v1/jobs/search', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        job_types: ['contract', 'freelance', 'temporary'],
+        limit: 1000,
+      }),
+    });
+    
+    if (!res.ok) {
+      console.error(`TheirStack API error: ${res.status}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    const jobs = data.data || [];
+    
+    return jobs.map((j: any) => ({
+      title: j.title,
+      company: j.company?.name || 'Unknown Company',
+      location: j.location || 'Remote',
+      type: 'contract',
+      remote: j.remote_allowed || false,
+      postedAt: j.posted_at,
+      url: j.url || j.apply_url,
+      source: 'theirstack',
+      externalId: `ts-${j.id}`,
+      description: j.description || j.title,
+      skills: j.skills || [],
+      hourlyRateMin: j.salary_min ? Math.round(j.salary_min / 2080) : undefined,
+      hourlyRateMax: j.salary_max ? Math.round(j.salary_max / 2080) : undefined,
+    }));
+  } catch (error) {
+    console.error('TheirStack fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchIndeed(apiKey: string): Promise<ExternalJob[]> {
+  try {
+    const url = `https://api.indeed.com/ads/apisearch?publisher=${apiKey}&q=contract&jt=contract&limit=1000&format=json&v=2`;
+    
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+    });
+    
+    if (!res.ok) {
+      console.error(`Indeed API error: ${res.status}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    const results = data.results || [];
+    
+    return results.map((j: any) => ({
+      title: j.jobtitle,
+      company: j.company,
+      location: j.formattedLocation || 'Unknown',
+      type: 'contract',
+      remote: /remote/i.test(JSON.stringify(j)),
+      postedAt: j.date,
+      url: j.url,
+      source: 'indeed',
+      externalId: `ind-${j.jobkey}`,
+      description: j.snippet || j.jobtitle,
+      skills: [],
+    }));
+  } catch (error) {
+    console.error('Indeed fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchFlexJobs(): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://www.flexjobs.com/jobs.rss');
+    if (!res.ok) return [];
+    
+    const text = await res.text();
+    const jobs: ExternalJob[] = [];
+    
+    // Simple RSS parsing
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+    const descRegex = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/;
+    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    
+    let match;
+    while ((match = itemRegex.exec(text)) !== null) {
+      const item = match[1];
+      const titleMatch = item.match(titleRegex);
+      const linkMatch = item.match(linkRegex);
+      const descMatch = item.match(descRegex);
+      const dateMatch = item.match(dateRegex);
+      
+      if (titleMatch && linkMatch) {
+        const jobId = linkMatch[1].split('/').pop() || Math.random().toString(36).substring(7);
+        jobs.push({
+          title: titleMatch[1],
+          company: 'FlexJobs Listing',
+          location: 'Remote',
+          type: 'contract',
+          remote: true,
+          postedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          url: linkMatch[1],
+          source: 'flexjobs',
+          externalId: `fj-${jobId}`,
+          description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '') : titleMatch[1],
+          skills: [],
+        });
+      }
+    }
+    
+    return jobs;
+  } catch (error) {
+    console.error('FlexJobs fetch error:', error);
     return [];
   }
 }
