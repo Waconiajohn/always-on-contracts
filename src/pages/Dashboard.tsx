@@ -1,10 +1,70 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, Users, DollarSign, Briefcase, Settings, Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { FileText, TrendingUp, Users, DollarSign, LogOut, Bell, Settings, Upload } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
-const Dashboard = () => {
+const DashboardContent = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        fetchProfile(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        fetchProfile(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+    toast({
+      title: "Signed out",
+      description: "You've been successfully signed out.",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-2xl">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -14,7 +74,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">ContractCareer Pro</h1>
-              <p className="text-lg text-muted-foreground">Your Always-On Career Management System</p>
+              <p className="text-lg text-muted-foreground">Welcome, {profile?.full_name || session?.user?.email}</p>
             </div>
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="lg">
@@ -22,6 +82,10 @@ const Dashboard = () => {
               </Button>
               <Button variant="ghost" size="lg">
                 <Settings className="h-6 w-6" />
+              </Button>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="mr-2 h-5 w-5" />
+                Sign Out
               </Button>
             </div>
           </div>
@@ -165,6 +229,14 @@ const Dashboard = () => {
         </Card>
       </main>
     </div>
+  );
+};
+
+const Dashboard = () => {
+  return (
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
   );
 };
 

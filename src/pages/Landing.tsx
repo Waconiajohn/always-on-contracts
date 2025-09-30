@@ -24,7 +24,7 @@ const Landing = () => {
             <Button 
               size="lg" 
               className="text-xl px-8 py-6 h-auto"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/auth')}
             >
               Start Your Free Trial
               <ArrowRight className="ml-2 h-6 w-6" />
@@ -216,7 +216,7 @@ const Landing = () => {
               size="lg" 
               variant="secondary"
               className="text-xl px-8 py-6 h-auto"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/auth')}
             >
               Start Your Free Trial
               <ArrowRight className="ml-2 h-6 w-6" />

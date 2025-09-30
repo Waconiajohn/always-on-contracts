@@ -1,52 +1,127 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { toast } from "@/hooks/use-toast";
 import { Upload, FileText, ArrowLeft, CheckCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
-const ResumeUpload = () => {
-  const navigate = useNavigate();
+const ResumeUploadContent = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [uploadComplete, setUploadComplete] = useState(false);
+  const navigate = useNavigate();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      // Check file type
-      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
       if (!validTypes.includes(selectedFile.type)) {
-        toast.error("Please upload a PDF or Word document");
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a PDF, DOC, DOCX, or TXT file",
+          variant: "destructive",
+        });
         return;
       }
       
-      // Check file size (max 5MB)
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB");
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please upload a file smaller than 10MB",
+          variant: "destructive",
+        });
         return;
       }
       
       setFile(selectedFile);
-      toast.success("Resume loaded successfully!");
+      toast({
+        title: "File loaded",
+        description: "Resume ready to upload",
+      });
     }
   };
 
   const handleUpload = async () => {
     if (!file) return;
     
-    setIsUploading(true);
-    
-    // Simulate upload and processing
-    setTimeout(() => {
-      setIsUploading(false);
-      toast.success("Resume analyzed successfully!");
-      navigate('/strategy-results');
-    }, 2000);
+    try {
+      setUploading(true);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const filePath = `${session.user.id}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("resumes")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("resumes")
+        .getPublicUrl(filePath);
+
+      const { data: resumeData, error: resumeError } = await supabase
+        .from("resumes")
+        .insert({
+          user_id: session.user.id,
+          file_name: file.name,
+          file_url: publicUrl,
+        })
+        .select()
+        .single();
+
+      if (resumeError) throw resumeError;
+
+      setUploadComplete(true);
+      toast({
+        title: "Resume uploaded",
+        description: "Starting AI analysis...",
+      });
+
+      setAnalyzing(true);
+
+      const fileText = await file.text();
+
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke(
+        "analyze-resume",
+        {
+          body: {
+            resumeText: fileText,
+            resumeId: resumeData.id,
+          },
+        }
+      );
+
+      if (analysisError) throw analysisError;
+
+      toast({
+        title: "Analysis complete!",
+        description: "Redirecting to dashboard...",
+      });
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 2000);
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload resume",
+        variant: "destructive",
+      });
+      setUploadComplete(false);
+    } finally {
+      setUploading(false);
+      setAnalyzing(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
           <Button variant="ghost" size="lg" onClick={() => navigate('/dashboard')}>
@@ -56,7 +131,6 @@ const ResumeUpload = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           <div className="mb-12">
@@ -111,63 +185,79 @@ const ResumeUpload = () => {
             <CardHeader>
               <CardTitle className="text-2xl">Upload Your Resume</CardTitle>
               <CardDescription className="text-lg">
-                Accepted formats: PDF, DOC, DOCX (Max 5MB)
+                Accepted formats: PDF, DOC, DOCX, TXT (Max 10MB)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div 
-                className="border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary transition-colors cursor-pointer"
-                onClick={() => document.getElementById('file-upload')?.click()}
-              >
-                {file ? (
-                  <div className="space-y-4">
-                    <FileText className="h-16 w-16 text-primary mx-auto" />
-                    <div>
-                      <p className="text-xl font-semibold">{file.name}</p>
-                      <p className="text-lg text-muted-foreground">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="lg"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFile(null);
-                      }}
-                    >
-                      Choose Different File
-                    </Button>
+              {!uploadComplete ? (
+                <>
+                  <div 
+                    className="border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary transition-colors cursor-pointer"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    {file ? (
+                      <div className="space-y-4">
+                        <FileText className="h-16 w-16 text-primary mx-auto" />
+                        <div>
+                          <p className="text-xl font-semibold">{file.name}</p>
+                          <p className="text-lg text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFile(null);
+                          }}
+                        >
+                          Choose Different File
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Upload className="h-16 w-16 text-muted-foreground mx-auto" />
+                        <div>
+                          <p className="text-xl font-semibold mb-2">Click to upload or drag and drop</p>
+                          <p className="text-lg text-muted-foreground">
+                            PDF, DOC, DOCX, or TXT up to 10MB
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={handleFileChange}
+                    />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Upload className="h-16 w-16 text-muted-foreground mx-auto" />
-                    <div>
-                      <p className="text-xl font-semibold mb-2">Click to upload or drag and drop</p>
-                      <p className="text-lg text-muted-foreground">
-                        PDF, DOC, or DOCX up to 5MB
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <input
-                  id="file-upload"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                />
-              </div>
 
-              {file && (
-                <Button 
-                  className="w-full text-lg py-6" 
-                  size="lg"
-                  onClick={handleUpload}
-                  disabled={isUploading}
-                >
-                  {isUploading ? "Analyzing Resume..." : "Analyze Resume"}
-                </Button>
+                  {file && (
+                    <Button 
+                      className="w-full text-lg py-6" 
+                      size="lg"
+                      onClick={handleUpload}
+                      disabled={uploading || analyzing}
+                    >
+                      {uploading ? "Uploading..." : analyzing ? "Analyzing..." : "Upload & Analyze"}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <div className="text-center space-y-4 py-8">
+                  <CheckCircle className="h-16 w-16 text-primary mx-auto" />
+                  <h3 className="text-2xl font-bold">
+                    {analyzing ? "Analyzing Your Resume..." : "Analysis Complete!"}
+                  </h3>
+                  <p className="text-lg text-muted-foreground">
+                    {analyzing
+                      ? "Our AI is extracting insights..."
+                      : "Redirecting to dashboard..."}
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -191,6 +281,14 @@ const ResumeUpload = () => {
         </div>
       </main>
     </div>
+  );
+};
+
+const ResumeUpload = () => {
+  return (
+    <ProtectedRoute>
+      <ResumeUploadContent />
+    </ProtectedRoute>
   );
 };
 
