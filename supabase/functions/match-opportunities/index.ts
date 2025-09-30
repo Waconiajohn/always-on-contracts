@@ -73,21 +73,75 @@ serve(async (req) => {
     const matches = [];
 
     for (const opp of opportunities) {
-      // Calculate basic skill match score
       const requiredSkills = opp.required_skills || [];
-      const matchingSkills = userProfile.skills.filter((skill: string) => 
-        requiredSkills.some((reqSkill: string) => 
-          reqSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(reqSkill.toLowerCase())
-        )
+      
+      // Enhanced fuzzy skill matching - check for partial matches and related terms
+      const matchingSkills = userProfile.skills.filter((skill: string) => {
+        const skillLower = skill.toLowerCase();
+        return requiredSkills.some((reqSkill: string) => {
+          const reqSkillLower = reqSkill.toLowerCase();
+          // Direct matches or partial matches
+          if (reqSkillLower.includes(skillLower) || skillLower.includes(reqSkillLower)) {
+            return true;
+          }
+          // Check for related terms (operations/operational, management/manager, etc.)
+          const skillWords = skillLower.split(/\s+/);
+          const reqWords = reqSkillLower.split(/\s+/);
+          return skillWords.some(sw => reqWords.some(rw => 
+            (sw.length > 4 && rw.includes(sw.slice(0, -1))) || 
+            (rw.length > 4 && sw.includes(rw.slice(0, -1)))
+          ));
+        });
+      });
+
+      // Check if job title matches recommended positions
+      const titleMatch = userProfile.positions.some((pos: string) => {
+        const posLower = pos.toLowerCase();
+        const titleLower = opp.job_title.toLowerCase();
+        return titleLower.includes(posLower) || posLower.includes(titleLower) ||
+          titleLower.split(/\s+/).some((word: string) => posLower.includes(word) && word.length > 4);
+      });
+
+      // Check industry alignment
+      const industryMatch = userProfile.industries.some((ind: string) => {
+        const indLower = ind.toLowerCase();
+        const descLower = (opp.job_description || '').toLowerCase();
+        const titleLower = opp.job_title.toLowerCase();
+        return descLower.includes(indLower) || titleLower.includes(indLower);
+      });
+
+      // Calculate comprehensive match score
+      let matchScore = 0;
+      
+      // Skill matching (0-50 points)
+      if (requiredSkills.length > 0) {
+        matchScore += (matchingSkills.length / requiredSkills.length) * 50;
+      } else {
+        matchScore += 25; // No specific skills required = medium score
+      }
+      
+      // Title/position match (0-30 points)
+      if (titleMatch) {
+        matchScore += 30;
+      }
+      
+      // Industry match (0-20 points)
+      if (industryMatch) {
+        matchScore += 20;
+      }
+
+      // Experience level consideration - senior roles need senior candidates
+      const isSeniorRole = ['director', 'vp', 'chief', 'head', 'senior'].some(term => 
+        opp.job_title.toLowerCase().includes(term)
       );
+      if (isSeniorRole && userProfile.experience >= 10) {
+        matchScore += 10; // Bonus for senior candidates in senior roles
+      }
 
-      const skillMatchScore = requiredSkills.length > 0 
-        ? (matchingSkills.length / requiredSkills.length) * 100 
-        : 50;
-
-      // Only process opportunities with some skill match
-      if (skillMatchScore > 30 || matchingSkills.length > 0) {
+      // Lower threshold - consider more opportunities
+      const shouldProcess = matchScore > 20 || matchingSkills.length > 0 || titleMatch || industryMatch;
+      
+      if (shouldProcess) {
         // Use AI to generate personalized recommendation
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -100,36 +154,43 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are a career advisor helping match contractors with opportunities. Provide concise, actionable recommendations.'
+                content: 'You are an executive career advisor specializing in contract and interim placements. Be persuasive and highlight the candidate\'s strengths. Focus on why they\'re an excellent fit.'
               },
               {
                 role: 'user',
-                content: `Match analysis needed:
+                content: `Analyze this opportunity match:
 
-Job: ${opp.job_title}
-Description: ${opp.job_description || 'Not provided'}
-Required Skills: ${requiredSkills.join(', ')}
+OPPORTUNITY:
+Title: ${opp.job_title}
+Description: ${opp.job_description || 'Senior-level contract role'}
+Required Skills: ${requiredSkills.join(', ') || 'Not specified'}
 Location: ${opp.location || 'Remote'}
-Rate: $${opp.hourly_rate_min}-$${opp.hourly_rate_max}/hr
+Rate: $${opp.hourly_rate_min}-${opp.hourly_rate_max}/hour
 Duration: ${opp.contract_duration_months} months
 
-Candidate Profile:
+CANDIDATE PROFILE:
+${userProfile.experience} years experience
 Skills: ${userProfile.skills.join(', ')}
-Experience: ${userProfile.experience} years
 Industries: ${userProfile.industries.join(', ')}
-Matching Skills Found: ${matchingSkills.join(', ')}
+Target Roles: ${userProfile.positions.join(', ')}
 
-Provide a 2-3 sentence recommendation on why this is a good match and what the candidate should emphasize in their outreach.`
+MATCH ANALYSIS:
+Direct Skill Matches: ${matchingSkills.join(', ') || 'Transferable skills applicable'}
+Match Score: ${Math.round(matchScore)}%
+
+Write 2-3 compelling sentences explaining why this candidate is an excellent fit for this contract role. Focus on their relevant experience, transferable skills, and what unique value they bring. Be enthusiastic and professional.`
               }
             ],
           }),
         });
 
-        let aiRecommendation = 'Good potential match based on your skills.';
+        let aiRecommendation = 'Your extensive experience makes you a strong candidate for this contract opportunity.';
         
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
           aiRecommendation = aiData.choices?.[0]?.message?.content || aiRecommendation;
+        } else {
+          console.error('AI recommendation failed:', await aiResponse.text());
         }
 
         // Check if match already exists
@@ -140,23 +201,29 @@ Provide a 2-3 sentence recommendation on why this is a good match and what the c
           .eq('opportunity_id', opp.id)
           .single();
 
+        const finalMatchScore = Math.round(matchScore);
+
         if (!existingMatch) {
           // Insert new match
-          await supabase
+          const { error: insertError } = await supabase
             .from('opportunity_matches')
             .insert({
               user_id: user.id,
               opportunity_id: opp.id,
-              match_score: Math.round(skillMatchScore),
+              match_score: finalMatchScore,
               matching_skills: matchingSkills,
               ai_recommendation: aiRecommendation,
               status: 'new'
             });
+          
+          if (insertError) {
+            console.error('Error inserting match:', insertError);
+          }
         }
 
         matches.push({
           opportunity: opp,
-          match_score: Math.round(skillMatchScore),
+          match_score: finalMatchScore,
           matching_skills: matchingSkills,
           ai_recommendation: aiRecommendation
         });
