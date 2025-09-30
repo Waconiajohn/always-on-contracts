@@ -6,21 +6,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, Building, Globe, Mail, Phone, CheckCircle } from "lucide-react";
+import { ArrowLeft, Search, Building, Globe, Mail, Phone, CheckCircle, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const AgenciesContent = () => {
   const [agencies, setAgencies] = useState<any[]>([]);
   const [filteredAgencies, setFilteredAgencies] = useState<any[]>([]);
+  const [suggestedAgencies, setSuggestedAgencies] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [trackedAgencies, setTrackedAgencies] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [userIndustries, setUserIndustries] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
+    fetchResumeAnalysis();
     fetchAgencies();
     fetchTrackedAgencies();
   }, []);
+
+  const fetchResumeAnalysis = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: analysis } = await supabase
+        .from("resume_analysis")
+        .select("industry_expertise")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (analysis?.industry_expertise) {
+        setUserIndustries(analysis.industry_expertise);
+      }
+    } catch (error) {
+      console.error("Error fetching resume analysis:", error);
+    }
+  };
 
   useEffect(() => {
     if (searchTerm) {
@@ -35,7 +59,26 @@ const AgenciesContent = () => {
     } else {
       setFilteredAgencies(agencies);
     }
-  }, [searchTerm, agencies]);
+
+    // Calculate suggested agencies based on user's industry expertise
+    if (userIndustries.length > 0 && agencies.length > 0) {
+      const suggested = agencies
+        .map(agency => {
+          const matchScore = agency.specialization?.filter((spec: string) =>
+            userIndustries.some(industry =>
+              spec.toLowerCase().includes(industry.toLowerCase()) ||
+              industry.toLowerCase().includes(spec.toLowerCase())
+            )
+          ).length || 0;
+          return { ...agency, matchScore };
+        })
+        .filter(agency => agency.matchScore > 0)
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 5);
+      
+      setSuggestedAgencies(suggested);
+    }
+  }, [searchTerm, agencies, userIndustries]);
 
   const fetchAgencies = async () => {
     try {
@@ -144,6 +187,13 @@ const AgenciesContent = () => {
             <p className="text-xl text-muted-foreground">
               200+ recruiting firms specializing in interim executive and contract placements
             </p>
+            {userIndustries.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-muted-foreground">
+                  Your expertise: <span className="font-medium">{userIndustries.join(", ")}</span>
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Search */}
@@ -162,7 +212,7 @@ const AgenciesContent = () => {
           </Card>
 
           {/* Stats */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-4 gap-6">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Total Agencies</CardTitle>
@@ -181,6 +231,14 @@ const AgenciesContent = () => {
             </Card>
             <Card>
               <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Suggested</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{suggestedAgencies.length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Showing</CardTitle>
               </CardHeader>
               <CardContent>
@@ -188,6 +246,72 @@ const AgenciesContent = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* AI Suggested Agencies */}
+          {suggestedAgencies.length > 0 && (
+            <Card className="border-2 border-primary">
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <TrendingUp className="h-6 w-6 text-primary" />
+                  Recommended for Your Profile
+                </CardTitle>
+                <CardDescription className="text-lg">
+                  Based on your resume analysis, these agencies match your expertise
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  {suggestedAgencies.map((agency) => (
+                    <Card key={agency.id} className="bg-muted">
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                              <Building className="h-5 w-5 text-primary" />
+                              {agency.agency_name}
+                            </h3>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {agency.specialization?.map((spec: string) => (
+                                <Badge key={spec} variant="secondary">
+                                  {spec}
+                                </Badge>
+                              ))}
+                            </div>
+                            {agency.location && (
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Globe className="h-4 w-4" />
+                                {agency.location}
+                              </p>
+                            )}
+                          </div>
+                          <Badge className="bg-primary">
+                            Match
+                          </Badge>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleTrackAgency(agency.id)}
+                            disabled={trackedAgencies.has(agency.id)}
+                            className="flex-1"
+                          >
+                            {trackedAgencies.has(agency.id) ? "Already Tracking" : "Track This Agency"}
+                          </Button>
+                          {agency.website && (
+                            <Button
+                              variant="outline"
+                              onClick={() => window.open(agency.website, '_blank')}
+                            >
+                              <Globe className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Agencies List */}
           <div className="space-y-4">

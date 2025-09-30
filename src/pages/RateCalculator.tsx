@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -11,11 +13,89 @@ import { Badge } from "@/components/ui/badge";
 
 const RateCalculatorContent = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [yearsExperience, setYearsExperience] = useState("10");
   const [industry, setIndustry] = useState("operations");
   const [location, setLocation] = useState("national");
   const [certifications, setCertifications] = useState("yes");
   const [calculatedRate, setCalculatedRate] = useState<{ min: number; max: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadResumeData();
+  }, []);
+
+  const loadResumeData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: analysis } = await supabase
+        .from("resume_analysis")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (analysis) {
+        setYearsExperience(analysis.years_experience?.toString() || "10");
+        
+        // Try to match industry from expertise
+        if (analysis.industry_expertise && analysis.industry_expertise.length > 0) {
+          const expertise = analysis.industry_expertise[0].toLowerCase();
+          const industryMap: Record<string, string> = {
+            "oil": "oil_gas",
+            "gas": "oil_gas",
+            "energy": "oil_gas",
+            "petroleum": "oil_gas",
+            "finance": "finance",
+            "banking": "finance",
+            "technology": "technology",
+            "tech": "technology",
+            "software": "technology",
+            "healthcare": "healthcare",
+            "medical": "healthcare",
+            "manufacturing": "manufacturing",
+            "retail": "retail",
+            "consulting": "consulting",
+            "construction": "construction",
+            "real estate": "real_estate",
+            "telecommunications": "telecommunications",
+            "pharmaceutical": "pharmaceutical",
+            "automotive": "automotive",
+            "aerospace": "aerospace",
+            "logistics": "logistics",
+            "transportation": "transportation",
+          };
+          
+          for (const [key, value] of Object.entries(industryMap)) {
+            if (expertise.includes(key)) {
+              setIndustry(value);
+              break;
+            }
+          }
+        }
+        
+        // Auto-calculate if we have rate data
+        if (analysis.target_hourly_rate_min && analysis.target_hourly_rate_max) {
+          setCalculatedRate({
+            min: analysis.target_hourly_rate_min,
+            max: analysis.target_hourly_rate_max
+          });
+        }
+
+        toast({
+          title: "Resume data loaded",
+          description: "Pre-filled calculator with your resume information",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading resume data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const calculateRate = () => {
     // Base rate calculation algorithm
@@ -29,15 +109,44 @@ const RateCalculatorContent = () => {
     else if (years >= 20 && years < 25) baseRate = 125;
     else if (years >= 25) baseRate = 140;
 
-    // Industry adjustment
+    // Industry adjustment - expanded list
     const industryMultipliers: Record<string, number> = {
       operations: 1.0,
       finance: 1.15,
+      banking: 1.18,
+      investment_banking: 1.30,
       technology: 1.2,
+      software: 1.22,
       healthcare: 1.1,
+      pharmaceutical: 1.18,
+      biotechnology: 1.20,
       manufacturing: 0.95,
       retail: 0.9,
       consulting: 1.25,
+      management_consulting: 1.28,
+      oil_gas: 1.22,
+      energy: 1.18,
+      utilities: 1.05,
+      construction: 1.08,
+      real_estate: 1.12,
+      telecommunications: 1.15,
+      media: 1.05,
+      entertainment: 1.08,
+      hospitality: 0.88,
+      food_beverage: 0.92,
+      automotive: 1.10,
+      aerospace: 1.18,
+      defense: 1.20,
+      logistics: 1.02,
+      transportation: 0.98,
+      legal: 1.25,
+      accounting: 1.15,
+      insurance: 1.12,
+      mining: 1.15,
+      agriculture: 0.95,
+      education: 0.85,
+      nonprofit: 0.80,
+      government: 0.95,
     };
     baseRate *= industryMultipliers[industry] || 1.0;
 
@@ -60,6 +169,14 @@ const RateCalculatorContent = () => {
 
     setCalculatedRate({ min, max });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-xl text-muted-foreground">Loading your data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -113,14 +230,41 @@ const RateCalculatorContent = () => {
                   <SelectTrigger className="text-lg h-12">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px]">
                     <SelectItem value="operations">Operations</SelectItem>
-                    <SelectItem value="finance">Finance</SelectItem>
-                    <SelectItem value="technology">Technology</SelectItem>
+                    <SelectItem value="finance">Finance & Banking</SelectItem>
+                    <SelectItem value="banking">Investment Banking</SelectItem>
+                    <SelectItem value="technology">Technology & Software</SelectItem>
+                    <SelectItem value="software">Software Development</SelectItem>
                     <SelectItem value="healthcare">Healthcare</SelectItem>
+                    <SelectItem value="pharmaceutical">Pharmaceutical</SelectItem>
+                    <SelectItem value="biotechnology">Biotechnology</SelectItem>
                     <SelectItem value="manufacturing">Manufacturing</SelectItem>
                     <SelectItem value="retail">Retail</SelectItem>
                     <SelectItem value="consulting">Consulting</SelectItem>
+                    <SelectItem value="management_consulting">Management Consulting</SelectItem>
+                    <SelectItem value="oil_gas">Oil & Gas</SelectItem>
+                    <SelectItem value="energy">Energy & Utilities</SelectItem>
+                    <SelectItem value="utilities">Utilities</SelectItem>
+                    <SelectItem value="construction">Construction</SelectItem>
+                    <SelectItem value="real_estate">Real Estate</SelectItem>
+                    <SelectItem value="telecommunications">Telecommunications</SelectItem>
+                    <SelectItem value="media">Media & Entertainment</SelectItem>
+                    <SelectItem value="hospitality">Hospitality</SelectItem>
+                    <SelectItem value="food_beverage">Food & Beverage</SelectItem>
+                    <SelectItem value="automotive">Automotive</SelectItem>
+                    <SelectItem value="aerospace">Aerospace & Defense</SelectItem>
+                    <SelectItem value="defense">Defense</SelectItem>
+                    <SelectItem value="logistics">Logistics & Supply Chain</SelectItem>
+                    <SelectItem value="transportation">Transportation</SelectItem>
+                    <SelectItem value="legal">Legal Services</SelectItem>
+                    <SelectItem value="accounting">Accounting</SelectItem>
+                    <SelectItem value="insurance">Insurance</SelectItem>
+                    <SelectItem value="mining">Mining & Metals</SelectItem>
+                    <SelectItem value="agriculture">Agriculture</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="nonprofit">Nonprofit</SelectItem>
+                    <SelectItem value="government">Government</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
