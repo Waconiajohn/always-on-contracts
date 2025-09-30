@@ -13,6 +13,7 @@ import Agencies from "./pages/Agencies";
 import Outreach from "./pages/Outreach";
 import RateCalculator from "./pages/RateCalculator";
 import Profile from "./pages/Profile";
+import Templates from "./pages/Templates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/outreach" element={<Outreach />} />
           <Route path="/rate-calculator" element={<RateCalculator />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/templates" element={<Templates />} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

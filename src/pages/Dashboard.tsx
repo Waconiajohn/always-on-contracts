@@ -189,6 +189,23 @@ const DashboardContent = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/templates')}>
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Templates</CardTitle>
+              <CardDescription className="text-lg">
+                Customize your outreach communication templates
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full text-lg py-6">
+                Manage Templates
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Status Cards */}

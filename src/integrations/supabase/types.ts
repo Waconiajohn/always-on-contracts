@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      communication_templates: {
+        Row: {
+          body_content: string
+          created_at: string
+          id: string
+          subject_line: string | null
+          template_name: string
+          template_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_content: string
+          created_at?: string
+          id?: string
+          subject_line?: string | null
+          template_name: string
+          template_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_content?: string
+          created_at?: string
+          id?: string
+          subject_line?: string | null
+          template_name?: string
+          template_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       outreach_tracking: {
         Row: {
           agency_id: string | null
