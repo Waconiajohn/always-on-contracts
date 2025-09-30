@@ -100,14 +100,19 @@ export type Database = {
           contract_duration_months: number | null
           created_at: string | null
           expiry_date: string | null
+          external_id: string | null
+          external_source: string | null
           external_url: string | null
           hourly_rate_max: number | null
           hourly_rate_min: number | null
           id: string
+          is_external: boolean | null
           job_description: string | null
           job_title: string
+          last_synced_at: string | null
           location: string | null
           posted_date: string | null
+          raw_data: Json | null
           required_skills: string[] | null
           source: string | null
           status: string | null
@@ -118,14 +123,19 @@ export type Database = {
           contract_duration_months?: number | null
           created_at?: string | null
           expiry_date?: string | null
+          external_id?: string | null
+          external_source?: string | null
           external_url?: string | null
           hourly_rate_max?: number | null
           hourly_rate_min?: number | null
           id?: string
+          is_external?: boolean | null
           job_description?: string | null
           job_title: string
+          last_synced_at?: string | null
           location?: string | null
           posted_date?: string | null
+          raw_data?: Json | null
           required_skills?: string[] | null
           source?: string | null
           status?: string | null
@@ -136,14 +146,19 @@ export type Database = {
           contract_duration_months?: number | null
           created_at?: string | null
           expiry_date?: string | null
+          external_id?: string | null
+          external_source?: string | null
           external_url?: string | null
           hourly_rate_max?: number | null
           hourly_rate_min?: number | null
           id?: string
+          is_external?: boolean | null
           job_description?: string | null
           job_title?: string
+          last_synced_at?: string | null
           location?: string | null
           posted_date?: string | null
+          raw_data?: Json | null
           required_skills?: string[] | null
           source?: string | null
           status?: string | null

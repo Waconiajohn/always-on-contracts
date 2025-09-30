@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink } from "lucide-react";
+import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 interface OpportunityMatch {
@@ -35,6 +35,7 @@ const OpportunitiesContent = () => {
   const [opportunities, setOpportunities] = useState<OpportunityMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [matching, setMatching] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -73,6 +74,29 @@ const OpportunitiesContent = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncExternalJobs = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-external-jobs');
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Synced ${data.inserted} new jobs, updated ${data.updated} existing jobs`,
+      });
+    } catch (error: any) {
+      console.error('Error syncing external jobs:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sync external jobs",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -174,10 +198,16 @@ const OpportunitiesContent = () => {
               <p className="text-muted-foreground">AI-matched opportunities based on your profile</p>
             </div>
           </div>
-          <Button onClick={runAIMatching} disabled={matching}>
-            <Sparkles className="w-4 h-4 mr-2" />
-            {matching ? 'Matching...' : 'Run AI Matching'}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={syncExternalJobs} disabled={syncing} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {syncing ? 'Syncing...' : 'Sync External Jobs'}
+            </Button>
+            <Button onClick={runAIMatching} disabled={matching}>
+              <Sparkles className="w-4 h-4 mr-2" />
+              {matching ? 'Matching...' : 'Run AI Matching'}
+            </Button>
+          </div>
         </div>
 
         {opportunities.length === 0 ? (
