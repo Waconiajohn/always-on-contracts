@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, FileText } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedQueueItem } from "@/components/EnhancedQueueItem";
+import { AppNav } from "@/components/AppNav";
 
 interface QueueItem {
   id: string;
@@ -143,23 +144,16 @@ export default function ApplicationQueue() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <Button
-        variant="ghost"
-        onClick={() => navigate("/dashboard")}
-        className="mb-6"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Dashboard
-      </Button>
-
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Application Queue</h1>
-          <p className="text-muted-foreground mt-2">
-            Review and approve automated job applications
-          </p>
-        </div>
+    <div className="min-h-screen bg-background">
+      <AppNav />
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Application Queue</h1>
+            <p className="text-muted-foreground mt-2">
+              Review and approve automated job applications
+            </p>
+          </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
@@ -190,6 +184,7 @@ export default function ApplicationQueue() {
             )}
           </TabsContent>
         </Tabs>
+      </div>
       </div>
     </div>
   );

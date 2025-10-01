@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { ArrowLeft, TrendingUp, Briefcase, Target, Save, Plus, X, Sparkles, Loader2 } from "lucide-react";
+import { TrendingUp, Briefcase, Target, Save, Plus, X, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { WhyMeBuilder } from "@/components/WhyMeBuilder";
+import { AppNav } from "@/components/AppNav";
 
 const StrategyContent = () => {
   const [analysis, setAnalysis] = useState<any>(null);
@@ -299,15 +300,8 @@ const StrategyContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <Button variant="ghost" size="lg" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="mr-2 h-6 w-6" />
-            Back to Dashboard
-          </Button>
-        </div>
-      </header>
-
+      <AppNav />
+      
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-5xl mx-auto space-y-8">
           {/* Header */}

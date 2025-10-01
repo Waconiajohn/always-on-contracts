@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
+import { Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AppNav } from "@/components/AppNav";
 
 interface OpportunityMatch {
   id: string;
@@ -259,18 +260,13 @@ const OpportunitiesContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <AppNav />
+      <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-            <div>
-              <h1 className="text-4xl font-bold">Contract Opportunities</h1>
-              <p className="text-muted-foreground">AI-matched opportunities based on your profile</p>
-            </div>
+          <div>
+            <h1 className="text-4xl font-bold">Contract Opportunities</h1>
+            <p className="text-muted-foreground">AI-matched opportunities based on your profile</p>
           </div>
           <TooltipProvider delayDuration={300}>
             <div className="flex gap-2">

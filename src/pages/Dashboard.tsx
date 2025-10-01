@@ -5,8 +5,9 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { FileText, TrendingUp, Users, DollarSign, LogOut, Bell, Settings, Upload } from "lucide-react";
+import { FileText, TrendingUp, Users, DollarSign, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { AppNav } from "@/components/AppNav";
 
 const DashboardContent = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -179,29 +180,17 @@ const DashboardContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
+      <AppNav />
+      
+      {/* Greeting Section */}
+      <div className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">ContractCareer Pro</h1>
-              <p className="text-lg text-muted-foreground">Welcome, {profile?.full_name || session?.user?.email}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="lg">
-                <Bell className="h-6 w-6" />
-              </Button>
-              <Button variant="ghost" size="lg" onClick={() => navigate('/profile')}>
-                <Settings className="h-6 w-6" />
-              </Button>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-5 w-5" />
-                Sign Out
-              </Button>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.full_name || session?.user?.email?.split('@')[0]}</h1>
+            <p className="text-lg text-muted-foreground">Here's your career management overview</p>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Dashboard */}
       <main className="container mx-auto px-4 py-8">
