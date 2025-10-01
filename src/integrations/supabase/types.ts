@@ -61,6 +61,56 @@ export type Database = {
           },
         ]
       }
+      application_queue: {
+        Row: {
+          ai_customization_notes: string | null
+          applied_at: string | null
+          created_at: string | null
+          customized_resume_content: Json | null
+          customized_resume_url: string | null
+          id: string
+          match_score: number
+          opportunity_id: string
+          reviewed_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          ai_customization_notes?: string | null
+          applied_at?: string | null
+          created_at?: string | null
+          customized_resume_content?: Json | null
+          customized_resume_url?: string | null
+          id?: string
+          match_score: number
+          opportunity_id: string
+          reviewed_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          ai_customization_notes?: string | null
+          applied_at?: string | null
+          created_at?: string | null
+          customized_resume_content?: Json | null
+          customized_resume_url?: string | null
+          id?: string
+          match_score?: number
+          opportunity_id?: string
+          reviewed_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_queue_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "job_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_templates: {
         Row: {
           body_content: string
@@ -318,6 +368,8 @@ export type Database = {
         Row: {
           automation_activated_at: string | null
           automation_enabled: boolean | null
+          automation_mode: string | null
+          core_skills: string[] | null
           created_at: string | null
           current_employment_status: string | null
           custom_target_rate_max: number | null
@@ -325,6 +377,10 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          key_achievements: string[] | null
+          match_threshold_auto_apply: number | null
+          match_threshold_queue: number | null
+          max_daily_applications: number | null
           phone: string | null
           strategy_customized: boolean | null
           subscription_tier: string | null
@@ -336,6 +392,8 @@ export type Database = {
         Insert: {
           automation_activated_at?: string | null
           automation_enabled?: boolean | null
+          automation_mode?: string | null
+          core_skills?: string[] | null
           created_at?: string | null
           current_employment_status?: string | null
           custom_target_rate_max?: number | null
@@ -343,6 +401,10 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          key_achievements?: string[] | null
+          match_threshold_auto_apply?: number | null
+          match_threshold_queue?: number | null
+          max_daily_applications?: number | null
           phone?: string | null
           strategy_customized?: boolean | null
           subscription_tier?: string | null
@@ -354,6 +416,8 @@ export type Database = {
         Update: {
           automation_activated_at?: string | null
           automation_enabled?: boolean | null
+          automation_mode?: string | null
+          core_skills?: string[] | null
           created_at?: string | null
           current_employment_status?: string | null
           custom_target_rate_max?: number | null
@@ -361,6 +425,10 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          key_achievements?: string[] | null
+          match_threshold_auto_apply?: number | null
+          match_threshold_queue?: number | null
+          max_daily_applications?: number | null
           phone?: string | null
           strategy_customized?: boolean | null
           subscription_tier?: string | null

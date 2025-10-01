@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { ArrowLeft, TrendingUp, Briefcase, Target, Save, Plus, X, Sparkles } from "lucide-react";
+import { ArrowLeft, TrendingUp, Briefcase, Target, Save, Plus, X, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,17 @@ const StrategyContent = () => {
   const [customPositions, setCustomPositions] = useState<string[]>([]);
   const [newPosition, setNewPosition] = useState("");
   const [generatingTitles, setGeneratingTitles] = useState(false);
+  
+  const [customAchievements, setCustomAchievements] = useState<string[]>([]);
+  const [newAchievement, setNewAchievement] = useState("");
+  const [generatingAchievements, setGeneratingAchievements] = useState(false);
+  
+  const [customSkills, setCustomSkills] = useState<string[]>([]);
+  const [newSkill, setNewSkill] = useState("");
+  const [generatingSkills, setGeneratingSkills] = useState(false);
+  
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [customSummary, setCustomSummary] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,6 +71,8 @@ const StrategyContent = () => {
       setCustomRateMax(profileData.custom_target_rate_max?.toString() || analysisData.target_hourly_rate_max?.toString() || "");
       setSelectedIndustries(profileData.target_industries || analysisData.industry_expertise || []);
       setCustomPositions(profileData.target_positions || analysisData.recommended_positions || []);
+      setCustomAchievements(profileData.key_achievements || []);
+      setCustomSkills(profileData.core_skills || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -118,6 +131,96 @@ const StrategyContent = () => {
     }
   };
 
+  const addAchievement = () => {
+    if (newAchievement.trim()) {
+      const current = customAchievements.length > 0 ? customAchievements : analysis.key_achievements || [];
+      setCustomAchievements([...current, newAchievement.trim()]);
+      setNewAchievement("");
+    }
+  };
+
+  const removeAchievement = (achievement: string) => {
+    setCustomAchievements(customAchievements.filter(a => a !== achievement));
+  };
+
+  const generateAchievements = async () => {
+    setGeneratingAchievements(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-achievements', {
+        body: { 
+          resumeAnalysis: analysis,
+          currentAchievements: customAchievements.length > 0 ? customAchievements : analysis.key_achievements || []
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.achievements) {
+        const current = customAchievements.length > 0 ? customAchievements : analysis.key_achievements || [];
+        const newAchievements = data.achievements.filter((a: string) => !current.includes(a));
+        setCustomAchievements([...current, ...newAchievements]);
+        toast({
+          title: "Achievements Generated",
+          description: `Added ${newAchievements.length} new achievement suggestions`,
+        });
+      }
+    } catch (error) {
+      console.error("Error generating achievements:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate achievements. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingAchievements(false);
+    }
+  };
+
+  const addSkill = () => {
+    if (newSkill.trim()) {
+      const current = customSkills.length > 0 ? customSkills : analysis.skills || [];
+      setCustomSkills([...current, newSkill.trim()]);
+      setNewSkill("");
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setCustomSkills(customSkills.filter(s => s !== skill));
+  };
+
+  const generateSkills = async () => {
+    setGeneratingSkills(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-skills', {
+        body: { 
+          resumeAnalysis: analysis,
+          currentSkills: customSkills.length > 0 ? customSkills : analysis.skills || []
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.skills) {
+        const current = customSkills.length > 0 ? customSkills : analysis.skills || [];
+        const newSkills = data.skills.filter((s: string) => !current.includes(s));
+        setCustomSkills([...current, ...newSkills]);
+        toast({
+          title: "Skills Generated",
+          description: `Added ${newSkills.length} new skill suggestions`,
+        });
+      }
+    } catch (error) {
+      console.error("Error generating skills:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate skills. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingSkills(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -131,6 +234,8 @@ const StrategyContent = () => {
           custom_target_rate_max: parseFloat(customRateMax) || null,
           target_industries: selectedIndustries,
           target_positions: customPositions,
+          key_achievements: customAchievements.length > 0 ? customAchievements : analysis.key_achievements,
+          core_skills: customSkills.length > 0 ? customSkills : analysis.skills,
           strategy_customized: true,
         })
         .eq("user_id", session.user.id);
@@ -291,16 +396,40 @@ const StrategyContent = () => {
                 </CardContent>
               </Card>
 
-          {/* Analysis Summary */}
+          {/* Executive Summary */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Executive Summary</CardTitle>
+              <CardTitle className="text-2xl flex items-center justify-between">
+                <span>Executive Summary</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!editingSummary) {
+                      setCustomSummary(analysis.analysis_summary || "");
+                    }
+                    setEditingSummary(!editingSummary);
+                  }}
+                >
+                  {editingSummary ? "Cancel" : "Edit"}
+                </Button>
+              </CardTitle>
               <CardDescription className="text-lg">
                 Your professional summary for automated communications
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-lg leading-relaxed">{analysis.analysis_summary}</p>
+              {editingSummary ? (
+                <Textarea
+                  value={customSummary}
+                  onChange={(e) => setCustomSummary(e.target.value)}
+                  rows={6}
+                  className="text-lg"
+                  placeholder="Edit your executive summary..."
+                />
+              ) : (
+                <p className="text-lg leading-relaxed">{customSummary || analysis.analysis_summary}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -392,20 +521,52 @@ const StrategyContent = () => {
           {/* Key Achievements */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Key Achievements</CardTitle>
+              <CardTitle className="text-2xl flex items-center gap-3">
+                Key Achievements
+                {customAchievements.length !== analysis.key_achievements?.length && (
+                  <Badge variant="secondary" className="ml-auto">Customized</Badge>
+                )}
+              </CardTitle>
               <CardDescription className="text-lg">
-                These will be used in automated outreach to highlight your value
+                These will be used in automated outreach to highlight your value (click X to remove)
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <ul className="space-y-3">
-                {analysis.key_achievements?.map((achievement: string, index: number) => (
-                  <li key={index} className="flex items-start gap-3">
+                {(customAchievements.length > 0 ? customAchievements : analysis.key_achievements || []).map((achievement: string, index: number) => (
+                  <li key={index} className="flex items-start gap-3 group">
                     <span className="text-primary text-2xl">•</span>
-                    <span className="text-lg">{achievement}</span>
+                    <span className="text-lg flex-1">{achievement}</span>
+                    <X 
+                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-muted-foreground hover:text-destructive" 
+                      onClick={() => removeAchievement(achievement)}
+                    />
                   </li>
                 ))}
               </ul>
+              
+              <div className="flex gap-2 pt-4 border-t">
+                <Input
+                  placeholder="Add an achievement..."
+                  value={newAchievement}
+                  onChange={(e) => setNewAchievement(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addAchievement()}
+                  className="text-base"
+                />
+                <Button onClick={addAchievement} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+                <Button 
+                  onClick={generateAchievements} 
+                  disabled={generatingAchievements}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  {generatingAchievements ? "Generating..." : "AI Suggest"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -434,18 +595,50 @@ const StrategyContent = () => {
           {/* Core Skills */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Core Skills</CardTitle>
+              <CardTitle className="text-2xl flex items-center gap-3">
+                Core Skills
+                {customSkills.length !== analysis.skills?.length && (
+                  <Badge variant="secondary" className="ml-auto">Customized</Badge>
+                )}
+              </CardTitle>
               <CardDescription className="text-lg">
-                Technical and professional competencies
+                Technical and professional competencies for job matching (click X to remove)
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
-                {analysis.skills?.map((skill: string, index: number) => (
-                  <Badge key={index} variant="outline" className="text-base px-3 py-1">
+                {(customSkills.length > 0 ? customSkills : analysis.skills || []).map((skill: string, index: number) => (
+                  <Badge key={index} variant="outline" className="text-base px-3 py-1 group cursor-pointer">
                     {skill}
+                    <X 
+                      className="ml-2 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" 
+                      onClick={() => removeSkill(skill)}
+                    />
                   </Badge>
                 ))}
+              </div>
+              
+              <div className="flex gap-2 pt-4 border-t">
+                <Input
+                  placeholder="Add a skill..."
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                  className="text-base"
+                />
+                <Button onClick={addSkill} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+                <Button 
+                  onClick={generateSkills} 
+                  disabled={generatingSkills}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  {generatingSkills ? "Generating..." : "AI Suggest"}
+                </Button>
               </div>
             </CardContent>
           </Card>
