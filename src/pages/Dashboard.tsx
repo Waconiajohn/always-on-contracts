@@ -381,11 +381,6 @@ const DashboardContent = () => {
               <div className="flex-1">
                 <h3 className="text-xl font-semibold mb-2">Upload Your Resume</h3>
                 <p className="text-lg text-muted-foreground">Let our AI analyze your experience and create a personalized strategy</p>
-                {hasAnalysis && (
-                  <Button onClick={() => navigate('/strategy')} className="mt-3">
-                    View Your Strategy
-                  </Button>
-                )}
               </div>
             </div>
 
@@ -395,15 +390,10 @@ const DashboardContent = () => {
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-semibold mb-2">Review Your Strategy</h3>
-                <p className="text-lg text-muted-foreground">Customize your target rate, industries, and communication templates</p>
-                {hasAnalysis && !profile?.strategy_customized && (
-                  <Button onClick={() => navigate('/strategy/customize')} className="mt-3">
-                    Customize Strategy
-                  </Button>
-                )}
-                {profile?.strategy_customized && (
-                  <Button onClick={() => navigate('/strategy/customize')} variant="outline" className="mt-3">
-                    Edit Preferences
+                <p className="text-lg text-muted-foreground">View AI recommendations and customize your target rate and industries</p>
+                {hasAnalysis && (
+                  <Button onClick={() => navigate('/strategy')} className="mt-3">
+                    {profile?.strategy_customized ? 'Review & Edit Strategy' : 'Review Your Strategy'}
                   </Button>
                 )}
               </div>
