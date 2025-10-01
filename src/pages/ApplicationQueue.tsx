@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, CheckCircle, XCircle, ExternalLink, FileText } from "lucide-react";
+import { Loader2, ArrowLeft, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedQueueItem } from "@/components/EnhancedQueueItem";
 
 interface QueueItem {
   id: string;
@@ -178,97 +178,13 @@ export default function ApplicationQueue() {
               </Card>
             ) : (
               queueItems.map((item) => (
-                <Card key={item.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2">
-                          {item.job_opportunities.job_title}
-                          <Badge variant="secondary">{Math.round(item.match_score)}% Match</Badge>
-                        </CardTitle>
-                        <CardDescription>
-                          {item.job_opportunities.staffing_agencies?.agency_name} • {item.job_opportunities.location}
-                        </CardDescription>
-                      </div>
-                      {activeTab === "pending" && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleReject(item.id)}
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Reject
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleApprove(item.id)}
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-semibold">Rate:</span> $
-                        {item.job_opportunities.hourly_rate_min}-
-                        {item.job_opportunities.hourly_rate_max}/hr
-                      </div>
-                      <div>
-                        <span className="font-semibold">Queued:</span>{" "}
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    {item.ai_customization_notes && (
-                      <div className="bg-muted p-4 rounded-md">
-                        <p className="font-semibold text-sm mb-2">AI Customization Notes:</p>
-                        <p className="text-sm">{item.ai_customization_notes}</p>
-                      </div>
-                    )}
-
-                    {item.customized_resume_content && (
-                      <div className="space-y-2">
-                        <p className="font-semibold text-sm">Customized Resume Preview:</p>
-                        <div className="bg-muted p-4 rounded-md space-y-2 text-sm">
-                          {item.customized_resume_content.executive_summary && (
-                            <div>
-                              <span className="font-semibold">Summary:</span>{" "}
-                              {item.customized_resume_content.executive_summary}
-                            </div>
-                          )}
-                          {item.customized_resume_content.keywords && (
-                            <div>
-                              <span className="font-semibold">Keywords:</span>{" "}
-                              {item.customized_resume_content.keywords.join(", ")}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {item.job_opportunities.external_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                      >
-                        <a
-                          href={item.job_opportunities.external_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          View Original Posting
-                        </a>
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+                <EnhancedQueueItem
+                  key={item.id}
+                  item={item}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  isPending={activeTab === "pending"}
+                />
               ))
             )}
           </TabsContent>

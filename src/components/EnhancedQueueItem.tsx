@@ -1,0 +1,266 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, XCircle, ExternalLink, MessageSquare, TrendingUp } from 'lucide-react';
+import { JobConversation } from './JobConversation';
+import { KeywordScoreCard } from './KeywordScoreCard';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface QueueItemProps {
+  item: any;
+  onApprove: (itemId: string) => void;
+  onReject: (itemId: string) => void;
+  isPending: boolean;
+}
+
+export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
+  item,
+  onApprove,
+  onReject,
+  isPending,
+}) => {
+  const { toast } = useToast();
+  const [showConversation, setShowConversation] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [qualifications, setQualifications] = useState(item.critical_qualifications || []);
+  const [keywordAnalysis, setKeywordAnalysis] = useState(item.keyword_analysis);
+
+  const startConversation = async () => {
+    if (qualifications.length === 0) {
+      setIsAnalyzing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-job-qualifications', {
+          body: { opportunityId: item.opportunity_id }
+        });
+
+        if (error) throw error;
+
+        setQualifications(data.critical_qualifications || []);
+        setShowConversation(true);
+      } catch (error) {
+        console.error('Error analyzing qualifications:', error);
+        toast({
+          title: "Error",
+          description: "Failed to analyze job qualifications",
+          variant: "destructive",
+        });
+      } finally {
+        setIsAnalyzing(false);
+      }
+    } else {
+      setShowConversation(true);
+    }
+  };
+
+  const handleConversationComplete = async (responses: Record<string, string>) => {
+    try {
+      // Save conversation responses
+      await supabase
+        .from('application_queue')
+        .update({ 
+          conversation_data: responses,
+        })
+        .eq('id', item.id);
+
+      // Regenerate resume with conversation context
+      const { data, error } = await supabase.functions.invoke('customize-resume', {
+        body: { 
+          opportunityId: item.opportunity_id,
+          conversationResponses: responses,
+        }
+      });
+
+      if (error) throw error;
+
+      // Score the new resume
+      const { data: scoreData, error: scoreError } = await supabase.functions.invoke('score-resume-match', {
+        body: {
+          keywords: data.keywords || [],
+          resumeContent: data,
+        }
+      });
+
+      if (!scoreError && scoreData) {
+        setKeywordAnalysis(scoreData);
+        await supabase
+          .from('application_queue')
+          .update({ 
+            customized_resume_content: data,
+            keyword_analysis: scoreData,
+            ai_customization_notes: data.customization_notes,
+          })
+          .eq('id', item.id);
+      }
+
+      setShowConversation(false);
+      
+      toast({
+        title: "Resume Optimized",
+        description: "Your resume has been customized based on your responses",
+      });
+    } catch (error) {
+      console.error('Error completing conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to optimize resume",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isHighMatch = item.match_score >= 85;
+
+  if (showConversation) {
+    return (
+      <JobConversation
+        qualifications={qualifications}
+        onComplete={handleConversationComplete}
+        matchScore={Math.round(item.match_score)}
+      />
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="flex items-center gap-2 flex-wrap">
+              {item.job_opportunities.job_title}
+              <Badge variant={isHighMatch ? "default" : "secondary"}>
+                {Math.round(item.match_score)}% Match
+              </Badge>
+              {isHighMatch && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                  Top Match
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              {item.job_opportunities.staffing_agencies?.agency_name} • {item.job_opportunities.location}
+            </CardDescription>
+          </div>
+          {isPending && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onReject(item.id)}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                Reject
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => onApprove(item.id)}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Approve
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Rate and Date Info */}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="font-semibold">Rate:</span> $
+            {item.job_opportunities.hourly_rate_min}-
+            {item.job_opportunities.hourly_rate_max}/hr
+          </div>
+          <div>
+            <span className="font-semibold">Queued:</span>{" "}
+            {new Date(item.created_at).toLocaleDateString()}
+          </div>
+        </div>
+
+        {/* High Match CTA */}
+        {isHighMatch && !item.conversation_data && isPending && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <TrendingUp className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-sm mb-1">This is an excellent match!</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Answer a few questions to create a perfectly tailored resume that highlights your most relevant qualifications.
+                  </p>
+                  <Button 
+                    size="sm" 
+                    onClick={startConversation}
+                    disabled={isAnalyzing}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {isAnalyzing ? 'Analyzing...' : 'Optimize Resume'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Keyword Analysis */}
+        {keywordAnalysis && (
+          <KeywordScoreCard
+            analysis={keywordAnalysis}
+            totalKeywords={keywordAnalysis.keywords_found.length + keywordAnalysis.keywords_missing.length}
+          />
+        )}
+
+        {/* AI Customization Notes */}
+        {item.ai_customization_notes && (
+          <div className="bg-muted p-4 rounded-md">
+            <p className="font-semibold text-sm mb-2">AI Customization Notes:</p>
+            <p className="text-sm">{item.ai_customization_notes}</p>
+          </div>
+        )}
+
+        {/* Resume Preview */}
+        {item.customized_resume_content && (
+          <div className="space-y-2">
+            <p className="font-semibold text-sm">Customized Resume Preview:</p>
+            <div className="bg-muted p-4 rounded-md space-y-2 text-sm">
+              {item.customized_resume_content.executive_summary && (
+                <div>
+                  <span className="font-semibold">Summary:</span>{" "}
+                  {item.customized_resume_content.executive_summary}
+                </div>
+              )}
+              {item.customized_resume_content.key_achievements && (
+                <div>
+                  <span className="font-semibold">Key Achievements:</span>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    {item.customized_resume_content.key_achievements.slice(0, 3).map((achievement: string, idx: number) => (
+                      <li key={idx}>{achievement}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* External Link */}
+        {item.job_opportunities.external_url && (
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+          >
+            <a
+              href={item.job_opportunities.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              View Original Posting
+            </a>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+};

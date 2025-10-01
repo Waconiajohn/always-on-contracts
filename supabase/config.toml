@@ -3,11 +3,32 @@ project_id = "ubcghjlfxkamyyefnbkf"
 [functions.analyze-resume]
 verify_jwt = true
 
+[functions.analyze-job-qualifications]
+verify_jwt = true
+
+[functions.customize-resume]
+verify_jwt = true
+
+[functions.generate-achievements]
+verify_jwt = true
+
+[functions.generate-job-titles]
+verify_jwt = true
+
+[functions.generate-skills]
+verify_jwt = true
+
+[functions.generate-why-me-questions]
+verify_jwt = true
+
 [functions.match-opportunities]
 verify_jwt = true
 
 [functions.mcp-server]
 verify_jwt = false
+
+[functions.score-resume-match]
+verify_jwt = true
 
 [functions.sync-external-jobs]
 verify_jwt = false

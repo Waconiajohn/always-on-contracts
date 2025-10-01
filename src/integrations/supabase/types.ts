@@ -65,10 +65,13 @@ export type Database = {
         Row: {
           ai_customization_notes: string | null
           applied_at: string | null
+          conversation_data: Json | null
           created_at: string | null
+          critical_qualifications: string[] | null
           customized_resume_content: Json | null
           customized_resume_url: string | null
           id: string
+          keyword_analysis: Json | null
           match_score: number
           opportunity_id: string
           reviewed_at: string | null
@@ -78,10 +81,13 @@ export type Database = {
         Insert: {
           ai_customization_notes?: string | null
           applied_at?: string | null
+          conversation_data?: Json | null
           created_at?: string | null
+          critical_qualifications?: string[] | null
           customized_resume_content?: Json | null
           customized_resume_url?: string | null
           id?: string
+          keyword_analysis?: Json | null
           match_score: number
           opportunity_id: string
           reviewed_at?: string | null
@@ -91,10 +97,13 @@ export type Database = {
         Update: {
           ai_customization_notes?: string | null
           applied_at?: string | null
+          conversation_data?: Json | null
           created_at?: string | null
+          critical_qualifications?: string[] | null
           customized_resume_content?: Json | null
           customized_resume_url?: string | null
           id?: string
+          keyword_analysis?: Json | null
           match_score?: number
           opportunity_id?: string
           reviewed_at?: string | null
@@ -388,6 +397,7 @@ export type Database = {
           target_positions: string[] | null
           updated_at: string | null
           user_id: string
+          why_me_narratives: Json | null
         }
         Insert: {
           automation_activated_at?: string | null
@@ -412,6 +422,7 @@ export type Database = {
           target_positions?: string[] | null
           updated_at?: string | null
           user_id: string
+          why_me_narratives?: Json | null
         }
         Update: {
           automation_activated_at?: string | null
@@ -436,6 +447,7 @@ export type Database = {
           target_positions?: string[] | null
           updated_at?: string | null
           user_id?: string
+          why_me_narratives?: Json | null
         }
         Relationships: []
       }

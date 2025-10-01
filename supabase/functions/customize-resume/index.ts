@@ -133,7 +133,16 @@ Return ONLY a JSON object with this structure:
       throw new Error("Failed to parse AI response");
     }
 
-    return new Response(JSON.stringify(customizedResume), {
+    // Extract keywords from job description for scoring
+    const keywords = [
+      ...(opportunity.required_skills || []),
+      ...customizedResume.keywords
+    ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+
+    return new Response(JSON.stringify({ 
+      ...customizedResume,
+      keywords 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

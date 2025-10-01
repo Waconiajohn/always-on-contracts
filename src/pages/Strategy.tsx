@@ -10,10 +10,12 @@ import { ArrowLeft, TrendingUp, Briefcase, Target, Save, Plus, X, Sparkles, Load
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import { WhyMeBuilder } from "@/components/WhyMeBuilder";
 
 const StrategyContent = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [userId, setUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [customRateMin, setCustomRateMin] = useState<string>("");
@@ -43,6 +45,8 @@ const StrategyContent = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
+
+      setUserId(session.user.id);
 
       // Fetch analysis
       const { data: analysisData, error: analysisError } = await supabase
@@ -619,6 +623,13 @@ const StrategyContent = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Why Me Builder */}
+          <WhyMeBuilder
+            userId={userId}
+            narratives={profile?.why_me_narratives || []}
+            onUpdate={fetchData}
+          />
 
           {/* Save Preferences */}
           <Card className="bg-muted">
