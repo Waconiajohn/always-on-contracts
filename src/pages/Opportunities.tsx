@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2, MessageSquare } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -216,6 +216,52 @@ const OpportunitiesContent = () => {
       toast({
         title: "Error",
         description: "Failed to update opportunity status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const trackOutreach = async (matchId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create new outreach tracking record
+      const { error } = await supabase
+        .from('outreach_tracking')
+        .insert({
+          user_id: user.id,
+          opportunity_match_id: matchId,
+          status: 'pending',
+          outreach_type: 'email',
+          last_contact_date: new Date().toISOString(),
+          notes: 'Added from opportunities page',
+        });
+
+      if (error) {
+        // Check if it's a duplicate error
+        if (error.code === '23505') {
+          toast({
+            title: "Already Tracking",
+            description: "This opportunity is already in your outreach list",
+          });
+          navigate('/outreach');
+          return;
+        }
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Added to your outreach tracking",
+      });
+      
+      navigate('/outreach');
+    } catch (error) {
+      console.error('Error tracking outreach:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add to outreach tracking",
         variant: "destructive",
       });
     }
@@ -435,7 +481,7 @@ const OpportunitiesContent = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2 pt-4">
+                  <div className="flex gap-2 pt-4 flex-wrap">
                     {match.status === 'new' && (
                       <Button onClick={() => updateOpportunityStatus(match.id, 'viewed')}>
                         Mark as Viewed
@@ -451,6 +497,10 @@ const OpportunitiesContent = () => {
                         </Button>
                       </>
                     )}
+                    <Button variant="outline" onClick={() => trackOutreach(match.id)}>
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Track Outreach
+                    </Button>
                     {match.job_opportunities.external_url && (
                       <Button variant="outline" asChild>
                         <a href={match.job_opportunities.external_url} target="_blank" rel="noopener noreferrer">
