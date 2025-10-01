@@ -138,6 +138,9 @@ serve(async (req) => {
         matchScore += 10; // Bonus for senior candidates in senior roles
       }
 
+      // Cap the score at 100 to comply with database constraint
+      matchScore = Math.min(matchScore, 100);
+
       // Lower threshold - consider more opportunities
       const shouldProcess = matchScore > 20 || matchingSkills.length > 0 || titleMatch || industryMatch;
       
