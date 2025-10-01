@@ -105,8 +105,15 @@ const OpportunitiesContent = () => {
   const runAIMatching = async () => {
     setMatching(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Please sign in to continue');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+      if (!session) {
+        throw new Error('Authentication session expired. Please refresh the page.');
+      }
 
       const { data, error } = await supabase.functions.invoke('match-opportunities', {
         headers: {
@@ -138,14 +145,21 @@ const OpportunitiesContent = () => {
   const clearAndRematch = async () => {
     setMatching(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Please sign in to continue');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+      if (!session) {
+        throw new Error('Authentication session expired. Please refresh the page.');
+      }
 
       // Clear existing matches
       const { error: deleteError } = await supabase
         .from('opportunity_matches')
         .delete()
-        .eq('user_id', session.user.id);
+        .eq('user_id', user.id);
 
       if (deleteError) throw deleteError;
 
