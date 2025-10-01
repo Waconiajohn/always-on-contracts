@@ -439,29 +439,27 @@ const OpportunitiesContent = () => {
                   <div className="flex gap-2 pt-4 flex-wrap">
                     {/* Primary CTA - Apply to Job */}
                     {match.job_opportunities.external_url && (match.status === 'new' || match.status === 'viewed') && (
-                      <Button asChild>
-                        <a 
-                          href={match.job_opportunities.external_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          onClick={() => {
-                            // Mark as applied when user clicks to apply
-                            setTimeout(() => updateOpportunityStatus(match.id, 'applied'), 100);
-                          }}
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Apply to Job
-                        </a>
+                      <Button 
+                        onClick={() => {
+                          // Open job posting in new tab
+                          window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer');
+                          // Mark as applied
+                          updateOpportunityStatus(match.id, 'applied');
+                        }}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Apply to Job
                       </Button>
                     )}
                     
                     {/* Alternative: View posting without marking as applied */}
                     {match.job_opportunities.external_url && match.status === 'applied' && (
-                      <Button variant="outline" asChild>
-                        <a href={match.job_opportunities.external_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          View Posting Again
-                        </a>
+                      <Button 
+                        variant="outline"
+                        onClick={() => window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer')}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View Posting Again
                       </Button>
                     )}
                     
