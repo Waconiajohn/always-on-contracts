@@ -37,6 +37,7 @@ const OpportunitiesContent = () => {
   const [loading, setLoading] = useState(true);
   const [matching, setMatching] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(20);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -258,8 +259,33 @@ const OpportunitiesContent = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6">
-            {opportunities.map((match) => (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between bg-muted p-4 rounded-lg">
+              <div className="text-sm">
+                <span className="font-semibold">{opportunities.length}</span> total matches found
+                <span className="text-muted-foreground ml-2">
+                  (showing {Math.min(displayLimit, opportunities.length)})
+                </span>
+              </div>
+              {opportunities.length > displayLimit && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDisplayLimit(prev => prev + 20)}
+                >
+                  Load More ({opportunities.length - displayLimit} remaining)
+                </Button>
+              )}
+              {displayLimit > 20 && opportunities.length > 20 && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setDisplayLimit(20)}
+                >
+                  Show Less
+                </Button>
+              )}
+            </div>
+            <div className="grid gap-6">
+            {opportunities.slice(0, displayLimit).map((match) => (
               <Card key={match.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -360,6 +386,18 @@ const OpportunitiesContent = () => {
                 </CardContent>
               </Card>
             ))}
+            </div>
+            {opportunities.length > displayLimit && (
+              <div className="flex justify-center mt-6">
+                <Button 
+                  onClick={() => setDisplayLimit(prev => prev + 20)}
+                  variant="outline"
+                  size="lg"
+                >
+                  Load More Opportunities ({opportunities.length - displayLimit} remaining)
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
