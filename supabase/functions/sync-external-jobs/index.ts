@@ -283,6 +283,20 @@ serve(async (req) => {
       console.error('Error fetching Krop:', error);
     }
 
+    // Fetch from LinkedIn via Apify
+    const apifyApiKey = Deno.env.get('APIFY_API_KEY');
+    if (apifyApiKey) {
+      try {
+        const jobs = await fetchLinkedInViaApify(apifyApiKey);
+        allJobs.push(...jobs);
+        console.log(`Fetched ${jobs.length} jobs from LinkedIn (Apify)`);
+      } catch (error) {
+        console.error('Error fetching LinkedIn via Apify:', error);
+      }
+    } else {
+      console.log('APIFY_API_KEY not configured, skipping LinkedIn scraping');
+    }
+
     console.log(`Total jobs fetched: ${allJobs.length}`);
 
     // Enhanced filter for contract-related opportunities
@@ -1155,6 +1169,104 @@ async function fetchKrop(): Promise<ExternalJob[]> {
     return jobs;
   } catch (error) {
     console.error('Krop fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchLinkedInViaApify(apiKey: string): Promise<ExternalJob[]> {
+  try {
+    console.log('Starting LinkedIn job scrape via Apify...');
+    
+    // Configure the Apify actor for LinkedIn job scraping
+    const actorInput = {
+      searchUrls: [
+        'https://www.linkedin.com/jobs/search/?keywords=contract&f_JT=C&f_WT=2',
+        'https://www.linkedin.com/jobs/search/?keywords=freelance&f_JT=C',
+        'https://www.linkedin.com/jobs/search/?keywords=consultant&f_JT=C',
+      ],
+      maxItems: 100, // Limit to avoid excessive API usage
+    };
+
+    // Start the Apify actor
+    const runResponse = await fetch('https://api.apify.com/v2/acts/voyager~linkedin-jobs-scraper/runs?token=' + apiKey, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(actorInput),
+    });
+
+    if (!runResponse.ok) {
+      console.error('Failed to start Apify actor:', runResponse.status, await runResponse.text());
+      return [];
+    }
+
+    const runData = await runResponse.json();
+    const runId = runData.data.id;
+    console.log('Apify run started:', runId);
+
+    // Poll for completion (with timeout)
+    const maxWaitTime = 120000; // 2 minutes
+    const pollInterval = 5000; // 5 seconds
+    const startTime = Date.now();
+
+    let runStatus;
+    while (Date.now() - startTime < maxWaitTime) {
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      
+      const statusResponse = await fetch(`https://api.apify.com/v2/acts/voyager~linkedin-jobs-scraper/runs/${runId}?token=${apiKey}`);
+      if (!statusResponse.ok) continue;
+      
+      runStatus = await statusResponse.json();
+      const status = runStatus.data.status;
+      
+      console.log('Apify run status:', status);
+      
+      if (status === 'SUCCEEDED') break;
+      if (status === 'FAILED' || status === 'ABORTED' || status === 'TIMED-OUT') {
+        console.error('Apify run failed with status:', status);
+        return [];
+      }
+    }
+
+    if (!runStatus || runStatus.data.status !== 'SUCCEEDED') {
+      console.error('Apify run did not complete in time');
+      return [];
+    }
+
+    // Fetch the results
+    const datasetId = runStatus.data.defaultDatasetId;
+    const resultsResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items?token=${apiKey}`);
+    
+    if (!resultsResponse.ok) {
+      console.error('Failed to fetch Apify results:', resultsResponse.status);
+      return [];
+    }
+
+    const results = await resultsResponse.json();
+    console.log(`Retrieved ${results.length} LinkedIn jobs from Apify`);
+
+    // Transform Apify results to our format
+    return results.map((job: any) => {
+      const jobId = job.jobId || job.id || Math.random().toString(36).substring(7);
+      const skills = job.skills || job.requiredSkills || [];
+      
+      return {
+        title: cleanText(job.title || job.jobTitle || 'Untitled Position'),
+        company: cleanText(job.company || job.companyName || 'Unknown Company'),
+        location: cleanText(job.location || job.jobLocation) || 'Remote',
+        type: 'contract',
+        remote: /remote/i.test(JSON.stringify(job)),
+        postedAt: job.postedAt || job.listedAt || new Date().toISOString(),
+        url: job.url || job.jobUrl || `https://www.linkedin.com/jobs/view/${jobId}`,
+        source: 'linkedin-apify',
+        externalId: `li-${jobId}`,
+        description: cleanText(job.description || job.jobDescription || job.title),
+        skills: Array.isArray(skills) ? skills.map((s: any) => typeof s === 'string' ? s : s.name || s.title) : [],
+        hourlyRateMin: job.salary?.min || undefined,
+        hourlyRateMax: job.salary?.max || undefined,
+      };
+    });
+  } catch (error) {
+    console.error('LinkedIn Apify fetch error:', error);
     return [];
   }
 }
