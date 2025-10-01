@@ -97,8 +97,11 @@ export type Database = {
       job_opportunities: {
         Row: {
           agency_id: string | null
+          ai_analysis: Json | null
           contract_duration_months: number | null
+          contract_type: string | null
           created_at: string | null
+          duplicate_of: string | null
           expiry_date: string | null
           external_id: string | null
           external_source: string | null
@@ -106,22 +109,32 @@ export type Database = {
           hourly_rate_max: number | null
           hourly_rate_min: number | null
           id: string
+          is_duplicate: boolean | null
           is_external: boolean | null
+          is_verified_contract: boolean | null
           job_description: string | null
           job_title: string
           last_synced_at: string | null
           location: string | null
+          market_rate_max: number | null
+          market_rate_min: number | null
+          market_rate_percentile: number | null
           posted_date: string | null
+          quality_score: number | null
           raw_data: Json | null
           required_skills: string[] | null
+          scraped_salary_data: Json | null
           source: string | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
           agency_id?: string | null
+          ai_analysis?: Json | null
           contract_duration_months?: number | null
+          contract_type?: string | null
           created_at?: string | null
+          duplicate_of?: string | null
           expiry_date?: string | null
           external_id?: string | null
           external_source?: string | null
@@ -129,22 +142,32 @@ export type Database = {
           hourly_rate_max?: number | null
           hourly_rate_min?: number | null
           id?: string
+          is_duplicate?: boolean | null
           is_external?: boolean | null
+          is_verified_contract?: boolean | null
           job_description?: string | null
           job_title: string
           last_synced_at?: string | null
           location?: string | null
+          market_rate_max?: number | null
+          market_rate_min?: number | null
+          market_rate_percentile?: number | null
           posted_date?: string | null
+          quality_score?: number | null
           raw_data?: Json | null
           required_skills?: string[] | null
+          scraped_salary_data?: Json | null
           source?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
           agency_id?: string | null
+          ai_analysis?: Json | null
           contract_duration_months?: number | null
+          contract_type?: string | null
           created_at?: string | null
+          duplicate_of?: string | null
           expiry_date?: string | null
           external_id?: string | null
           external_source?: string | null
@@ -152,14 +175,21 @@ export type Database = {
           hourly_rate_max?: number | null
           hourly_rate_min?: number | null
           id?: string
+          is_duplicate?: boolean | null
           is_external?: boolean | null
+          is_verified_contract?: boolean | null
           job_description?: string | null
           job_title?: string
           last_synced_at?: string | null
           location?: string | null
+          market_rate_max?: number | null
+          market_rate_min?: number | null
+          market_rate_percentile?: number | null
           posted_date?: string | null
+          quality_score?: number | null
           raw_data?: Json | null
           required_skills?: string[] | null
+          scraped_salary_data?: Json | null
           source?: string | null
           status?: string | null
           updated_at?: string | null
@@ -170,6 +200,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "staffing_agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_opportunities_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "job_opportunities"
             referencedColumns: ["id"]
           },
         ]
