@@ -373,29 +373,6 @@ const StrategyContent = () => {
             </CardContent>
           </Card>
 
-          {/* Analysis Summary */}
-          <Card>
-                <CardHeader>
-                  <CardTitle className="text-2xl flex items-center gap-3">
-                    <TrendingUp className="h-7 w-7 text-primary" />
-                    Your Target Hourly Rate
-                    {profile?.strategy_customized && (
-                      <Badge variant="secondary" className="ml-auto">Customized</Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-5xl font-bold text-primary mb-4">
-                    ${displayRateMin} - ${displayRateMax}
-                  </div>
-                  <p className="text-lg text-muted-foreground">
-                    {profile?.strategy_customized 
-                      ? "Your customized target rate range"
-                      : "AI-recommended rate based on your experience level and industry expertise"}
-                  </p>
-                </CardContent>
-              </Card>
-
           {/* Executive Summary */}
           <Card>
             <CardHeader>
