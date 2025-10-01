@@ -440,11 +440,30 @@ const OpportunitiesContent = () => {
                     {/* Primary CTA - Apply to Job */}
                     {match.job_opportunities.external_url && (match.status === 'new' || match.status === 'viewed') && (
                       <Button 
-                        onClick={() => {
-                          // Open job posting in new tab
-                          window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer');
-                          // Mark as applied
-                          updateOpportunityStatus(match.id, 'applied');
+                        onClick={async () => {
+                          try {
+                            // Open job posting in new tab - do this FIRST before async operations
+                            const newWindow = window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer');
+                            
+                            if (!newWindow) {
+                              toast({
+                                title: "Popup Blocked",
+                                description: "Please allow popups to open job postings",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Then mark as applied
+                            await updateOpportunityStatus(match.id, 'applied');
+                          } catch (error) {
+                            console.error('Error opening job:', error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to open job posting",
+                              variant: "destructive",
+                            });
+                          }
                         }}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
@@ -452,14 +471,23 @@ const OpportunitiesContent = () => {
                       </Button>
                     )}
                     
-                    {/* Alternative: View posting without marking as applied */}
+                    {/* View posting for already applied jobs */}
                     {match.job_opportunities.external_url && match.status === 'applied' && (
                       <Button 
                         variant="outline"
-                        onClick={() => window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer')}
+                        onClick={() => {
+                          const newWindow = window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer');
+                          if (!newWindow) {
+                            toast({
+                              title: "Popup Blocked",
+                              description: "Please allow popups to open job postings",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
-                        View Posting Again
+                        View Posting
                       </Button>
                     )}
                     
