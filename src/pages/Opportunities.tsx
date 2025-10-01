@@ -482,33 +482,54 @@ const OpportunitiesContent = () => {
                   )}
 
                   <div className="flex gap-2 pt-4 flex-wrap">
+                    {/* Primary CTA - Apply to Job */}
+                    {match.job_opportunities.external_url && (match.status === 'new' || match.status === 'viewed') && (
+                      <Button asChild>
+                        <a 
+                          href={match.job_opportunities.external_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          onClick={() => {
+                            // Mark as applied when user clicks to apply
+                            setTimeout(() => updateOpportunityStatus(match.id, 'applied'), 100);
+                          }}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Apply to Job
+                        </a>
+                      </Button>
+                    )}
+                    
+                    {/* Alternative: View posting without marking as applied */}
+                    {match.job_opportunities.external_url && match.status === 'applied' && (
+                      <Button variant="outline" asChild>
+                        <a href={match.job_opportunities.external_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View Posting Again
+                        </a>
+                      </Button>
+                    )}
+                    
+                    {/* Status management buttons */}
                     {match.status === 'new' && (
-                      <Button onClick={() => updateOpportunityStatus(match.id, 'viewed')}>
+                      <Button variant="outline" onClick={() => updateOpportunityStatus(match.id, 'viewed')}>
                         Mark as Viewed
                       </Button>
                     )}
+                    
                     {(match.status === 'new' || match.status === 'viewed') && (
                       <>
-                        <Button onClick={() => updateOpportunityStatus(match.id, 'applied')}>
-                          Mark as Applied
-                        </Button>
                         <Button variant="outline" onClick={() => updateOpportunityStatus(match.id, 'not_interested')}>
                           Not Interested
                         </Button>
                       </>
                     )}
-                    <Button variant="outline" onClick={() => trackOutreach(match.id)}>
+                    
+                    {/* Track communications */}
+                    <Button variant="ghost" size="sm" onClick={() => trackOutreach(match.id)}>
                       <MessageSquare className="w-4 h-4 mr-2" />
-                      Track Outreach
+                      Track Communication
                     </Button>
-                    {match.job_opportunities.external_url && (
-                      <Button variant="outline" asChild>
-                        <a href={match.job_opportunities.external_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          View Posting
-                        </a>
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
