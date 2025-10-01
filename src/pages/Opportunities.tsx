@@ -437,8 +437,10 @@ const OpportunitiesContent = () => {
                   )}
 
                   <div className="flex gap-2 pt-4 flex-wrap">
-                    {/* Primary CTA - Apply to Job */}
-                    {match.job_opportunities.external_url && (match.status === 'new' || match.status === 'viewed') && (
+                    {/* Primary CTA - Apply to Job - Only show for real job URLs */}
+                    {match.job_opportunities.external_url && 
+                     !match.job_opportunities.external_url.includes('example.com') && 
+                     (match.status === 'new' || match.status === 'viewed') && (
                       <Button 
                         onClick={async () => {
                           try {
@@ -472,7 +474,9 @@ const OpportunitiesContent = () => {
                     )}
                     
                     {/* View posting for already applied jobs */}
-                    {match.job_opportunities.external_url && match.status === 'applied' && (
+                    {match.job_opportunities.external_url && 
+                     !match.job_opportunities.external_url.includes('example.com') && 
+                     match.status === 'applied' && (
                       <Button 
                         variant="outline"
                         onClick={() => {
@@ -489,6 +493,14 @@ const OpportunitiesContent = () => {
                         <ExternalLink className="w-4 h-4 mr-2" />
                         View Posting
                       </Button>
+                    )}
+                    
+                    {/* Show info for placeholder jobs */}
+                    {match.job_opportunities.external_url && 
+                     match.job_opportunities.external_url.includes('example.com') && (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        Application link not available
+                      </Badge>
                     )}
                     
                     {/* Status management buttons */}
