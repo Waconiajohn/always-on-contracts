@@ -1177,16 +1177,16 @@ async function fetchLinkedInViaApify(apiKey: string): Promise<ExternalJob[]> {
   try {
     console.log('Starting LinkedIn job scrape via Apify...');
     
-    // Configure the Apify actor for LinkedIn job scraping (using bebity/linkedin-jobs-scraper)
+    // Configure the Apify actor for LinkedIn job scraping (using valig/linkedin-jobs-scraper - FREE)
     const actorInput = {
-      title: 'contract',
+      title: 'contract OR freelance OR consultant',
       location: 'United States',
-      rows: 100,
-      contractType: 'C', // C = Contract
+      limit: 100,
+      contractType: ['C', 'T'], // C = Contract, T = Temporary
     };
 
     // Start the Apify actor
-    const runResponse = await fetch('https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/runs?token=' + apiKey, {
+    const runResponse = await fetch('https://api.apify.com/v2/acts/valig~linkedin-jobs-scraper/runs?token=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(actorInput),
@@ -1210,7 +1210,7 @@ async function fetchLinkedInViaApify(apiKey: string): Promise<ExternalJob[]> {
     while (Date.now() - startTime < maxWaitTime) {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
       
-      const statusResponse = await fetch(`https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/runs/${runId}?token=${apiKey}`);
+      const statusResponse = await fetch(`https://api.apify.com/v2/acts/valig~linkedin-jobs-scraper/runs/${runId}?token=${apiKey}`);
       if (!statusResponse.ok) continue;
       
       runStatus = await statusResponse.json();
