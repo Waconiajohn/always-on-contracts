@@ -485,17 +485,26 @@ async function fetchUSAJobs(apiKey: string): Promise<ExternalJob[]> {
   });
 }
 
-// Helper function to decode and clean text with proper UTF-8 handling
+// Helper function to fix UTF-8 mojibake and clean text
 function cleanText(text: string): string {
   if (!text) return text;
   try {
-    // Decode any HTML entities
+    // Fix UTF-8 mojibake (when UTF-8 is interpreted as Latin-1)
+    // Convert string back to bytes treating each char as Latin-1, then decode as UTF-8
+    const bytes = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) {
+      bytes[i] = text.charCodeAt(i) & 0xFF; // Get the byte value
+    }
     const decoder = new TextDecoder('utf-8', { fatal: false });
-    const encoder = new TextEncoder();
-    const decoded = decoder.decode(encoder.encode(text));
+    let decoded = decoder.decode(bytes);
     
-    // Remove any HTML tags and normalize whitespace
-    return decoded
+    // If decoding made it worse or didn't help, use original
+    if (decoded.includes('�') || decoded.length === 0) {
+      decoded = text;
+    }
+    
+    // Remove any HTML tags and decode HTML entities
+    decoded = decoded
       .replace(/<[^>]*>/g, '')
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
@@ -503,9 +512,19 @@ function cleanText(text: string): string {
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+      .replace(/&auml;/g, 'ä')
+      .replace(/&ouml;/g, 'ö')
+      .replace(/&uuml;/g, 'ü')
+      .replace(/&Auml;/g, 'Ä')
+      .replace(/&Ouml;/g, 'Ö')
+      .replace(/&Uuml;/g, 'Ü')
+      .replace(/&szlig;/g, 'ß')
       .replace(/\s+/g, ' ')
       .trim();
+    
+    return decoded;
   } catch (e) {
+    console.error('Error cleaning text:', e);
     return text;
   }
 }
