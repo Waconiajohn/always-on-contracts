@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw } from "lucide-react";
+import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 interface OpportunityMatch {
@@ -179,7 +179,10 @@ const OpportunitiesContent = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-2xl">Loading opportunities...</div>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <div className="text-2xl">Loading opportunities...</div>
+        </div>
       </div>
     );
   }
@@ -200,12 +203,20 @@ const OpportunitiesContent = () => {
           </div>
           <div className="flex gap-2">
             <Button onClick={syncExternalJobs} disabled={syncing} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              {syncing ? 'Syncing...' : 'Sync External Jobs'}
+              {syncing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              {syncing ? 'Syncing Jobs...' : 'Sync External Jobs'}
             </Button>
             <Button onClick={runAIMatching} disabled={matching}>
-              <Sparkles className="w-4 h-4 mr-2" />
-              {matching ? 'Matching...' : 'Run AI Matching'}
+              {matching ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              {matching ? 'AI Matching in Progress...' : 'Run AI Matching'}
             </Button>
           </div>
         </div>
@@ -219,8 +230,12 @@ const OpportunitiesContent = () => {
                 Click "Run AI Matching" to find contract opportunities that match your skills and experience.
               </p>
               <Button onClick={runAIMatching} disabled={matching}>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Find Matches
+                {matching ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                {matching ? 'Matching in Progress...' : 'Find Matches'}
               </Button>
             </CardContent>
           </Card>

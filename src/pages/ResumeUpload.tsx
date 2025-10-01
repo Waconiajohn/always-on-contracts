@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { toast } from "@/hooks/use-toast";
-import { Upload, FileText, ArrowLeft, CheckCircle } from "lucide-react";
+import { Upload, FileText, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 
 const ResumeUploadContent = () => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
+  const [savedFilename, setSavedFilename] = useState<string>("");
   const navigate = useNavigate();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,9 +78,10 @@ const ResumeUploadContent = () => {
       if (resumeError) throw resumeError;
 
       setUploadComplete(true);
+      setSavedFilename(file.name);
       toast({
         title: "Resume uploaded",
-        description: "Starting AI analysis...",
+        description: `${file.name} saved successfully. Starting AI analysis...`,
       });
 
       setAnalyzing(true);
@@ -242,21 +244,31 @@ const ResumeUploadContent = () => {
                       onClick={handleUpload}
                       disabled={uploading || analyzing}
                     >
-                      {uploading ? "Uploading..." : analyzing ? "Analyzing..." : "Upload & Analyze"}
+                      {uploading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                      {analyzing && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                      {uploading ? "Uploading Resume..." : analyzing ? "AI Analysis in Progress..." : "Upload & Analyze"}
                     </Button>
                   )}
                 </>
               ) : (
                 <div className="text-center space-y-4 py-8">
-                  <CheckCircle className="h-16 w-16 text-primary mx-auto" />
-                  <h3 className="text-2xl font-bold">
-                    {analyzing ? "Analyzing Your Resume..." : "Analysis Complete!"}
-                  </h3>
-                  <p className="text-lg text-muted-foreground">
-                    {analyzing
-                      ? "Our AI is extracting insights..."
-                      : "Redirecting to dashboard..."}
-                  </p>
+                  {analyzing ? (
+                    <>
+                      <Loader2 className="h-16 w-16 text-primary mx-auto animate-spin" />
+                      <h3 className="text-2xl font-bold">Analyzing Your Resume...</h3>
+                      <p className="text-lg text-muted-foreground">
+                        Our AI is extracting insights from {savedFilename}...
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-16 w-16 text-primary mx-auto" />
+                      <h3 className="text-2xl font-bold">Analysis Complete!</h3>
+                      <p className="text-lg text-muted-foreground">
+                        Successfully analyzed {savedFilename}. Redirecting to dashboard...
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>
