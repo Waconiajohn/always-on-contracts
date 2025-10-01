@@ -257,7 +257,7 @@ export type Database = {
       }
       outreach_tracking: {
         Row: {
-          agency_id: string | null
+          agency_id: string
           campaign_id: string | null
           created_at: string | null
           email_sent_count: number | null
@@ -273,7 +273,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          agency_id?: string | null
+          agency_id: string
           campaign_id?: string | null
           created_at?: string | null
           email_sent_count?: number | null
@@ -289,7 +289,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          agency_id?: string | null
+          agency_id?: string
           campaign_id?: string | null
           created_at?: string | null
           email_sent_count?: number | null

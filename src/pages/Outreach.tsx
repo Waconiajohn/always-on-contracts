@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Calendar, Mail, Phone, Globe, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Mail, Phone, Globe, Trash2, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -23,36 +23,25 @@ import {
 
 interface OutreachRecord {
   id: string;
-  agency_id: string | null;
-  opportunity_match_id: string | null;
+  user_id: string;
+  agency_id: string;
   status: string;
-  outreach_type: string;
-  notes: string;
+  outreach_type: string | null;
+  notes: string | null;
   last_contact_date: string;
-  agency: {
+  response_received: boolean;
+  response_date: string | null;
+  next_follow_up_date: string | null;
+  email_sent_count: number;
+  last_email_sent_date: string | null;
+  created_at: string;
+  staffing_agencies: {
     agency_name: string;
-    contact_email: string;
-    contact_phone: string;
-    website: string;
-    specialization: string[];
-    location: string;
-  } | null;
-  opportunity_match: {
-    id: string;
-    job_opportunities: {
-      job_title: string;
-      location: string;
-      hourly_rate_min: number;
-      hourly_rate_max: number;
-      external_url: string;
-      staffing_agencies: {
-        agency_name: string;
-        contact_email: string;
-        contact_phone: string;
-        website: string;
-      } | null;
-    };
-  } | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    website: string | null;
+    specialization: string[] | null;
+  };
 }
 
 const OutreachContent = () => {
@@ -77,39 +66,27 @@ const OutreachContent = () => {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from("outreach_tracking")
+        .from('outreach_tracking')
         .select(`
           *,
-          agency:staffing_agencies!outreach_tracking_agency_id_fkey(
+          staffing_agencies (
             agency_name,
             contact_email,
             contact_phone,
             website,
-            specialization,
-            location
-          ),
-          opportunity_match:opportunity_matches!outreach_tracking_opportunity_match_id_fkey(
-            id,
-            job_opportunities(
-              job_title,
-              location,
-              hourly_rate_min,
-              hourly_rate_max,
-              external_url,
-              staffing_agencies(
-                agency_name,
-                contact_email,
-                contact_phone,
-                website
-              )
-            )
+            specialization
           )
         `)
-        .eq("user_id", user.id)
-        .order("last_contact_date", { ascending: false });
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOutreach((data as any) || []);
+      
+      setOutreach(data.map(item => ({
+        ...item,
+        agency_id: item.agency_id!,
+        staffing_agencies: item.staffing_agencies!
+      })));
     } catch (error) {
       console.error("Error fetching outreach:", error);
       toast({
@@ -223,9 +200,9 @@ const OutreachContent = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Outreach Management</h1>
+          <h1 className="text-4xl font-bold mb-2">My Outreach</h1>
           <p className="text-xl text-muted-foreground">
-            Track and manage communications with agencies and contract opportunities
+            Manage and track your agency communications
           </p>
         </div>
 
@@ -244,112 +221,61 @@ const OutreachContent = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {outreach.map((record) => {
-              const isAgency = record.agency_id !== null;
-              const isOpportunity = record.opportunity_match_id !== null;
-              
-              return (
-                <Card key={record.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {isAgency ? 'Agency' : 'Opportunity'}
+            {outreach.map((record) => (
+              <Card key={record.id} className="overflow-hidden">
+                <CardHeader className="bg-muted/50">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1 flex-1">
+                      <CardTitle className="text-lg">
+                        <Building2 className="inline w-4 h-4 mr-2" />
+                        {record.staffing_agencies.agency_name}
+                      </CardTitle>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        Last Contact: {new Date(record.last_contact_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Badge variant={getStatusColor(record.status)}>
+                      {record.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="space-y-2">
+                    {record.staffing_agencies.contact_email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <a href={`mailto:${record.staffing_agencies.contact_email}`} className="text-primary hover:underline">
+                          {record.staffing_agencies.contact_email}
+                        </a>
+                      </div>
+                    )}
+                    {record.staffing_agencies.contact_phone && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <a href={`tel:${record.staffing_agencies.contact_phone}`} className="hover:underline">
+                          {record.staffing_agencies.contact_phone}
+                        </a>
+                      </div>
+                    )}
+                    {record.staffing_agencies.website && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        <a href={record.staffing_agencies.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          Agency Website
+                        </a>
+                      </div>
+                    )}
+                    {record.staffing_agencies.specialization && record.staffing_agencies.specialization.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {record.staffing_agencies.specialization.map((spec, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {spec}
                           </Badge>
-                        </div>
-                        <CardTitle className="text-2xl mb-2">
-                          {isAgency 
-                            ? record.agency?.agency_name 
-                            : record.opportunity_match?.job_opportunities?.job_title}
-                        </CardTitle>
-                        {isAgency && record.agency?.specialization && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {record.agency.specialization.map((spec) => (
-                              <Badge key={spec} variant="outline">
-                                {spec}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        {isOpportunity && (
-                          <p className="text-muted-foreground">
-                            {record.opportunity_match?.job_opportunities?.staffing_agencies?.agency_name || 'Direct Hire'}
-                            {' • '}
-                            ${record.opportunity_match?.job_opportunities?.hourly_rate_min}-
-                            ${record.opportunity_match?.job_opportunities?.hourly_rate_max}/hr
-                          </p>
-                        )}
+                        ))}
                       </div>
-                      <Badge variant={getStatusColor(record.status)}>
-                        {record.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Contact Details */}
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      {isAgency && record.agency?.contact_email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <a
-                            href={`mailto:${record.agency.contact_email}`}
-                            className="text-primary hover:underline"
-                          >
-                            {record.agency.contact_email}
-                          </a>
-                        </div>
-                      )}
-                      {isAgency && record.agency?.contact_phone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span>{record.agency.contact_phone}</span>
-                        </div>
-                      )}
-                      {isAgency && record.agency?.website && (
-                        <div className="flex items-center gap-2">
-                          <Globe className="h-4 w-4 text-muted-foreground" />
-                          <a
-                            href={record.agency.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            {record.agency.website}
-                          </a>
-                        </div>
-                      )}
-                      {isOpportunity && record.opportunity_match?.job_opportunities?.external_url && (
-                        <div className="flex items-center gap-2">
-                          <Globe className="h-4 w-4 text-muted-foreground" />
-                          <a
-                            href={record.opportunity_match.job_opportunities.external_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            View Job Posting
-                          </a>
-                        </div>
-                      )}
-                      {isOpportunity && record.opportunity_match?.job_opportunities?.staffing_agencies?.contact_email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <a
-                            href={`mailto:${record.opportunity_match.job_opportunities.staffing_agencies.contact_email}`}
-                            className="text-primary hover:underline"
-                          >
-                            {record.opportunity_match.job_opportunities.staffing_agencies.contact_email}
-                          </a>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          Last Contact: {new Date(record.last_contact_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
+                    )}
+                  </div>
 
                   {/* Edit Form or Display */}
                   {editingId === record.id ? (
@@ -442,8 +368,7 @@ const OutreachContent = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Remove Outreach Record?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will remove {isAgency ? record.agency?.agency_name : record.opportunity_match?.job_opportunities?.job_title} from your tracked
-                                {isAgency ? ' agencies' : ' opportunities'}. This action cannot be undone.
+                                This will remove {record.staffing_agencies.agency_name} from your tracked agencies. This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -459,8 +384,7 @@ const OutreachContent = () => {
                   )}
                 </CardContent>
               </Card>
-            );
-          })}
+            ))}
           </div>
         )}
       </main>
