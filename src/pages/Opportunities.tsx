@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface OpportunityMatch {
   id: string;
@@ -201,24 +202,41 @@ const OpportunitiesContent = () => {
               <p className="text-muted-foreground">AI-matched opportunities based on your profile</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={syncExternalJobs} disabled={syncing} variant="outline">
-              {syncing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              {syncing ? 'Syncing Jobs...' : 'Sync External Jobs'}
-            </Button>
-            <Button onClick={runAIMatching} disabled={matching}>
-              {matching ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              {matching ? 'AI Matching in Progress...' : 'Run AI Matching'}
-            </Button>
-          </div>
+          <TooltipProvider>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={syncExternalJobs} disabled={syncing} variant="outline">
+                    {syncing ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    {syncing ? 'Syncing Jobs...' : 'Sync External Jobs'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">Fetch fresh contract jobs from 30+ job boards (Greenhouse, Lever, RemoteOK, etc.) and store them in your database</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={runAIMatching} disabled={matching}>
+                    {matching ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    {matching ? 'AI Matching in Progress...' : 'Run AI Matching'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">Analyze your resume and profile to find the best job matches with personalized AI recommendations</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </div>
 
         {opportunities.length === 0 ? (
