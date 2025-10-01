@@ -92,6 +92,27 @@ Get complete information about a specific opportunity match.
 **Example prompt:**
 > "Show me full details on match ID abc-123-def"
 
+### `update_match_status`
+Update the status of an opportunity match.
+
+**Parameters:**
+- `match_id` (string): UUID of the opportunity match
+- `status` (string): New status - "new", "reviewing", "applied", "rejected", or "interested"
+
+**Example prompts:**
+> "Mark match abc-123 as reviewing"
+> "Update match xyz-456 status to interested"
+
+### `apply_to_match`
+Mark an opportunity as applied (sets status to "applied" and records the date).
+
+**Parameters:**
+- `match_id` (string): UUID of the opportunity match
+
+**Example prompts:**
+> "Mark match abc-123 as applied"
+> "I applied to this job: xyz-456"
+
 ## Example Conversations
 
 ### Finding Opportunities
@@ -158,10 +179,23 @@ For issues or questions:
 2. Review Claude Desktop MCP documentation
 3. Contact support via the app
 
+## Managing Your Applications
+
+You can now use Claude to track your application status:
+
+**Track applications:**
+> "Mark the Supply Chain Lead position as applied"
+
+**Update status:**
+> "I'm reviewing the VP of Operations role, update the status"
+
+**Manage pipeline:**
+> "Show me all my matches marked as 'interested'"
+
 ---
 
 **What's Next?** We're planning to add:
-- Write capabilities (apply to jobs, update status)
 - Saved searches and alerts
 - Resume analysis via MCP
 - Agency contact tracking
+- Application notes and reminders

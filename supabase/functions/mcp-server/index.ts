@@ -246,6 +246,39 @@ serve(async (req) => {
               required: ['match_id'],
             },
           },
+          {
+            name: 'update_match_status',
+            description: 'Update the status of an opportunity match (e.g., mark as reviewing, applied, rejected)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                match_id: {
+                  type: 'string',
+                  description: 'The UUID of the opportunity match',
+                },
+                status: {
+                  type: 'string',
+                  description: 'New status: "new", "reviewing", "applied", "rejected", "interested"',
+                  enum: ['new', 'reviewing', 'applied', 'rejected', 'interested'],
+                },
+              },
+              required: ['match_id', 'status'],
+            },
+          },
+          {
+            name: 'apply_to_match',
+            description: 'Mark an opportunity match as applied (sets status to "applied" and records applied date)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                match_id: {
+                  type: 'string',
+                  description: 'The UUID of the opportunity match',
+                },
+              },
+              required: ['match_id'],
+            },
+          },
         ];
 
         return new Response(JSON.stringify({
@@ -342,6 +375,67 @@ serve(async (req) => {
               content: [{
                 type: 'text',
                 text: JSON.stringify(match, null, 2),
+              }],
+            },
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (name === 'update_match_status') {
+          const { data: match, error } = await supabaseClient
+            .from('opportunity_matches')
+            .update({ status: args.status })
+            .eq('id', args.match_id)
+            .eq('user_id', userId)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  success: true,
+                  message: `Match status updated to "${args.status}"`,
+                  match,
+                }, null, 2),
+              }],
+            },
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (name === 'apply_to_match') {
+          const { data: match, error } = await supabaseClient
+            .from('opportunity_matches')
+            .update({ 
+              status: 'applied',
+              applied_date: new Date().toISOString(),
+            })
+            .eq('id', args.match_id)
+            .eq('user_id', userId)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  success: true,
+                  message: 'Successfully marked as applied',
+                  match,
+                }, null, 2),
               }],
             },
           }), {
