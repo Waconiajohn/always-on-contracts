@@ -5,7 +5,7 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { FileText, TrendingUp, Users, DollarSign, LogOut, Bell, Settings, Upload, Building2 } from "lucide-react";
+import { FileText, TrendingUp, Users, DollarSign, LogOut, Bell, Settings, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const DashboardContent = () => {
@@ -206,22 +206,6 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/outreach')}>
-            <CardHeader>
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="text-2xl">My Outreach</CardTitle>
-              <CardDescription className="text-lg">
-                Manage and track your agency communications
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full text-lg py-6">
-                View Outreach
-              </Button>
-            </CardContent>
-          </Card>
 
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/rate-calculator')}>
             <CardHeader>
