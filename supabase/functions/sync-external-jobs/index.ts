@@ -1179,16 +1179,13 @@ async function fetchLinkedInViaApify(apiKey: string): Promise<ExternalJob[]> {
     
     // Configure the Apify actor for LinkedIn job scraping
     const actorInput = {
-      searchUrls: [
-        'https://www.linkedin.com/jobs/search/?keywords=contract&f_JT=C&f_WT=2',
-        'https://www.linkedin.com/jobs/search/?keywords=freelance&f_JT=C',
-        'https://www.linkedin.com/jobs/search/?keywords=consultant&f_JT=C',
-      ],
-      maxItems: 100, // Limit to avoid excessive API usage
+      keywords: ['contract', 'freelance', 'consultant'],
+      jobType: 'Contract',
+      maxResults: 100,
     };
 
-    // Start the Apify actor
-    const runResponse = await fetch('https://api.apify.com/v2/acts/voyager~linkedin-jobs-scraper/runs?token=' + apiKey, {
+    // Start the Apify actor (using ramman/linkedin-jobs-scraper)
+    const runResponse = await fetch('https://api.apify.com/v2/acts/ramman~linkedin-jobs-scraper/runs?token=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(actorInput),
