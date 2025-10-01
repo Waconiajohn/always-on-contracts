@@ -135,6 +135,53 @@ const OpportunitiesContent = () => {
     }
   };
 
+  const clearAndRematch = async () => {
+    setMatching(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      // Clear existing matches
+      const { error: deleteError } = await supabase
+        .from('opportunity_matches')
+        .delete()
+        .eq('user_id', session.user.id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: "Matches cleared",
+        description: "Re-matching opportunities...",
+      });
+
+      // Re-run matching
+      const { data, error } = await supabase.functions.invoke('match-opportunities', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Re-matching complete!",
+        description: data.message || "AI matching completed with fresh results",
+      });
+
+      // Refresh opportunities
+      await fetchOpportunities();
+    } catch (error: any) {
+      console.error('Error clearing and re-matching:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to clear and re-match",
+        variant: "destructive",
+      });
+    } finally {
+      setMatching(false);
+    }
+  };
+
   const updateOpportunityStatus = async (matchId: string, status: string) => {
     try {
       const { error } = await supabase
@@ -234,6 +281,22 @@ const OpportunitiesContent = () => {
                 </TooltipTrigger>
                 <TooltipContent side="bottom" sideOffset={5}>
                   <p className="max-w-xs">Analyze your resume and profile to find the best job matches with personalized AI recommendations</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={clearAndRematch} disabled={matching} variant="outline">
+                    {matching ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Clear & Re-match
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={5}>
+                  <p className="max-w-xs">Clear all existing matches and run AI matching again from scratch</p>
                 </TooltipContent>
               </Tooltip>
             </div>

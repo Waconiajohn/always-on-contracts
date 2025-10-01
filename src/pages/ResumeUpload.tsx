@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { toast } from "@/hooks/use-toast";
-import { Upload, FileText, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { Upload, FileText, ArrowLeft, CheckCircle, Loader2, Trash2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ResumeUploadContent = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -13,7 +14,52 @@ const ResumeUploadContent = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [savedFilename, setSavedFilename] = useState<string>("");
+  const [existingResumes, setExistingResumes] = useState<any[]>([]);
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchExistingResumes();
+  }, []);
+
+  const fetchExistingResumes = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data, error } = await supabase
+      .from("resumes")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("upload_date", { ascending: false });
+
+    if (!error && data) {
+      setExistingResumes(data);
+    }
+  };
+
+  const handleDeleteResume = async (resumeId: string, fileName: string) => {
+    try {
+      const { error } = await supabase
+        .from("resumes")
+        .delete()
+        .eq("id", resumeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Resume deleted",
+        description: `${fileName} has been removed`,
+      });
+
+      fetchExistingResumes();
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -36,11 +82,18 @@ const ResumeUploadContent = () => {
         });
         return;
       }
+
+      // Check for duplicate filename
+      const isDuplicate = existingResumes.some(r => r.file_name === selectedFile.name);
+      setDuplicateWarning(isDuplicate);
       
       setFile(selectedFile);
       toast({
-        title: "File loaded",
-        description: "Resume ready to upload",
+        title: isDuplicate ? "Duplicate filename detected" : "File loaded",
+        description: isDuplicate 
+          ? "A resume with this filename already exists. You can still upload it."
+          : "Resume ready to upload",
+        variant: isDuplicate ? "default" : "default",
       });
     }
   };
@@ -105,6 +158,8 @@ const ResumeUploadContent = () => {
         description: "Redirecting to dashboard...",
       });
 
+      fetchExistingResumes();
+      
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
@@ -141,6 +196,43 @@ const ResumeUploadContent = () => {
               Our AI will analyze your experience and create a personalized contract career strategy in minutes.
             </p>
           </div>
+
+          {existingResumes.length > 0 && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-2xl">Your Resumes</CardTitle>
+                <CardDescription className="text-lg">
+                  {existingResumes.length} resume{existingResumes.length > 1 ? 's' : ''} uploaded. The most recent is used for matching.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {existingResumes.map((resume, index) => (
+                    <div key={resume.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 flex-1">
+                        <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{resume.file_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(resume.upload_date).toLocaleDateString()} 
+                            {index === 0 && <span className="ml-2 text-primary font-medium">(Active)</span>}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteResume(resume.id, resume.file_name)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="mb-8">
             <CardHeader>
@@ -193,7 +285,15 @@ const ResumeUploadContent = () => {
             <CardContent className="space-y-6">
               {!uploadComplete ? (
                 <>
-                  <div 
+                  {duplicateWarning && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        A resume with this filename already exists. Uploading will create a duplicate entry. Consider deleting the old one first.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <div
                     className="border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary transition-colors cursor-pointer"
                     onClick={() => document.getElementById('file-upload')?.click()}
                   >
