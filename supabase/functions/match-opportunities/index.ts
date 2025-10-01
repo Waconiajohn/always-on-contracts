@@ -12,9 +12,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting match-opportunities function');
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+    
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY not configured');
+    }
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -29,38 +35,56 @@ serve(async (req) => {
     if (authError || !user) {
       throw new Error('Unauthorized');
     }
+    
+    console.log('User authenticated:', user.id);
 
     // Fetch user's resume analysis for skills matching
-    const { data: resumeAnalysis } = await supabase
+    console.log('Fetching resume analysis');
+    const { data: resumeAnalysis, error: resumeError } = await supabase
       .from('resume_analysis')
       .select('skills, industry_expertise, years_experience, recommended_positions')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    if (resumeError) {
+      console.error('Resume fetch error:', resumeError);
+      throw resumeError;
+    }
 
     if (!resumeAnalysis) {
+      console.log('No resume analysis found');
       return new Response(
         JSON.stringify({ error: 'No resume analysis found. Please upload your resume first.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log('Resume analysis found, fetching opportunities');
 
-    // Fetch active job opportunities
+    // Fetch active job opportunities - limit to 50 most recent
     const { data: opportunities, error: oppError } = await supabase
       .from('job_opportunities')
       .select('*, staffing_agencies(agency_name, location)')
       .eq('status', 'active')
-      .order('posted_date', { ascending: false });
+      .order('posted_date', { ascending: false })
+      .limit(50);
 
-    if (oppError) throw oppError;
+    if (oppError) {
+      console.error('Opportunities fetch error:', oppError);
+      throw oppError;
+    }
 
     if (!opportunities || opportunities.length === 0) {
+      console.log('No opportunities found');
       return new Response(
         JSON.stringify({ message: 'No active opportunities found', matches: [] }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log(`Processing ${opportunities.length} opportunities`);
 
     // Use AI to match opportunities with user skills
     const userProfile = {
@@ -71,8 +95,14 @@ serve(async (req) => {
     };
 
     const matches = [];
+    let processedCount = 0;
 
     for (const opp of opportunities) {
+      try {
+        processedCount++;
+        if (processedCount % 10 === 0) {
+          console.log(`Processed ${processedCount}/${opportunities.length} opportunities`);
+        }
       const requiredSkills = opp.required_skills || [];
       
       // Enhanced fuzzy skill matching - check for partial matches and related terms
@@ -145,23 +175,27 @@ serve(async (req) => {
       const shouldProcess = matchScore > 20 || matchingSkills.length > 0 || titleMatch || industryMatch;
       
       if (shouldProcess) {
-        // Use AI to generate personalized recommendation
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an executive career advisor specializing in contract and interim placements. Be persuasive and highlight the candidate\'s strengths. Focus on why they\'re an excellent fit.'
+        // Use AI to generate personalized recommendation with timeout
+        let aiRecommendation = 'Your extensive experience makes you a strong candidate for this contract opportunity.';
+        
+        try {
+          const aiResponse = await Promise.race([
+            fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
               },
-              {
-                role: 'user',
-                content: `Analyze this opportunity match:
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are an executive career advisor specializing in contract and interim placements. Be persuasive and highlight the candidate\'s strengths. Focus on why they\'re an excellent fit.'
+                  },
+                  {
+                    role: 'user',
+                    content: `Analyze this opportunity match:
 
 OPPORTUNITY:
 Title: ${opp.job_title}
@@ -182,18 +216,22 @@ Direct Skill Matches: ${matchingSkills.join(', ') || 'Transferable skills applic
 Match Score: ${Math.round(matchScore)}%
 
 Write 2-3 compelling sentences explaining why this candidate is an excellent fit for this contract role. Focus on their relevant experience, transferable skills, and what unique value they bring. Be enthusiastic and professional.`
-              }
-            ],
-          }),
-        });
+                  }
+                ],
+              }),
+            }),
+            new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('AI timeout')), 8000))
+          ]) as Response;
 
-        let aiRecommendation = 'Your extensive experience makes you a strong candidate for this contract opportunity.';
-        
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          aiRecommendation = aiData.choices?.[0]?.message?.content || aiRecommendation;
-        } else {
-          console.error('AI recommendation failed:', await aiResponse.text());
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            aiRecommendation = aiData.choices?.[0]?.message?.content || aiRecommendation;
+          } else {
+            console.error('AI recommendation failed:', await aiResponse.text());
+          }
+        } catch (aiError) {
+          console.error('AI call error:', aiError);
+          // Use default recommendation on error
         }
 
         // Check if match already exists
@@ -231,7 +269,13 @@ Write 2-3 compelling sentences explaining why this candidate is an excellent fit
           ai_recommendation: aiRecommendation
         });
       }
+    } catch (oppError) {
+      console.error(`Error processing opportunity ${opp.id}:`, oppError);
+      // Continue with next opportunity
     }
+  }
+  
+  console.log(`Successfully processed ${matches.length} matches`);
 
     // Sort by match score
     matches.sort((a, b) => b.match_score - a.match_score);
