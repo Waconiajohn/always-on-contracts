@@ -176,15 +176,31 @@ const OpportunitiesContent = () => {
       }
 
       // Clear existing matches
-      const { error: deleteError } = await supabase
+      const { error: deleteMatchesError } = await supabase
         .from('opportunity_matches')
         .delete()
         .eq('user_id', user.id);
 
-      if (deleteError) throw deleteError;
+      if (deleteMatchesError) throw deleteMatchesError;
+
+      // Clear existing jobs to force fresh data
+      const { error: deleteJobsError } = await supabase
+        .from('job_opportunities')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (deleteJobsError) throw deleteJobsError;
 
       toast({
-        title: "Matches cleared",
+        title: "Cleared all data",
+        description: "Syncing fresh jobs...",
+      });
+
+      // Sync fresh jobs
+      await syncExternalJobs();
+
+      toast({
+        title: "Jobs synced",
         description: "Re-matching opportunities...",
       });
 
@@ -461,7 +477,7 @@ const OpportunitiesContent = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm font-medium">
                         Posted {new Date(match.job_opportunities.posted_date).toLocaleDateString()}
                       </span>
                     </div>
