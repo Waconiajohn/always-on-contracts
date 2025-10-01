@@ -12,6 +12,7 @@ const DashboardContent = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [hasAnalysis, setHasAnalysis] = useState(false);
+  const [resumes, setResumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -21,6 +22,7 @@ const DashboardContent = () => {
       if (session) {
         fetchProfile(session.user.id);
         checkAnalysis(session.user.id);
+        fetchResumes(session.user.id);
       }
     });
 
@@ -29,6 +31,7 @@ const DashboardContent = () => {
       if (session) {
         fetchProfile(session.user.id);
         checkAnalysis(session.user.id);
+        fetchResumes(session.user.id);
       }
     });
 
@@ -64,6 +67,21 @@ const DashboardContent = () => {
       setHasAnalysis(data && data.length > 0);
     } catch (error) {
       console.error("Error checking analysis:", error);
+    }
+  };
+
+  const fetchResumes = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("resumes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("upload_date", { ascending: false });
+
+      if (error) throw error;
+      setResumes(data || []);
+    } catch (error) {
+      console.error("Error fetching resumes:", error);
     }
   };
 
@@ -129,13 +147,28 @@ const DashboardContent = () => {
               </div>
               <CardTitle className="text-2xl">Upload Resume</CardTitle>
               <CardDescription className="text-lg">
-                Get AI-powered analysis and strategy recommendations
+                {resumes.length > 0 
+                  ? `${resumes.length} resume${resumes.length > 1 ? 's' : ''} uploaded`
+                  : 'Get AI-powered analysis and strategy recommendations'
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full text-lg py-6">
-                Start Here
-              </Button>
+              {resumes.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate">{resumes[0].file_name}</span>
+                  </div>
+                  <Button className="w-full text-lg py-6">
+                    Upload New Resume
+                  </Button>
+                </div>
+              ) : (
+                <Button className="w-full text-lg py-6">
+                  Start Here
+                </Button>
+              )}
             </CardContent>
           </Card>
 
