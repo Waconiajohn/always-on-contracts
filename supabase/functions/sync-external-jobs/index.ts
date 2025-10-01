@@ -385,62 +385,68 @@ serve(async (req) => {
 });
 
 async function fetchGreenhouseJobs(boardToken: string): Promise<ExternalJob[]> {
-  const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${boardToken}/jobs`);
+  const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${boardToken}/jobs`, {
+    headers: { 'Accept': 'application/json; charset=utf-8' }
+  });
   if (!res.ok) return [];
   
   const data = await res.json();
   return (data.jobs || []).map((j: any) => ({
-    title: j.title,
-    company: data.meta?.company || boardToken,
-    location: j.location?.name ?? null,
+    title: cleanText(j.title),
+    company: cleanText(data.meta?.company || boardToken),
+    location: cleanText(j.location?.name) ?? null,
     type: j.metadata?.employment_type || 'unknown',
     remote: /remote/i.test(JSON.stringify(j)),
     postedAt: j.updated_at,
     url: j.absolute_url,
     source: 'greenhouse',
     externalId: `gh-${boardToken}-${j.id}`,
-    description: j.content || j.title,
+    description: cleanText(j.content) || cleanText(j.title),
   }));
 }
 
 async function fetchLeverJobs(boardKey: string): Promise<ExternalJob[]> {
-  const res = await fetch(`https://api.lever.co/v0/postings/${boardKey}?mode=json`);
+  const res = await fetch(`https://api.lever.co/v0/postings/${boardKey}?mode=json`, {
+    headers: { 'Accept': 'application/json; charset=utf-8' }
+  });
   if (!res.ok) return [];
   
   const data = await res.json();
   return (data || []).map((j: any) => ({
-    title: j.text,
-    company: boardKey,
-    location: j.categories?.location ?? null,
+    title: cleanText(j.text),
+    company: cleanText(boardKey),
+    location: cleanText(j.categories?.location) ?? null,
     type: j.categories?.commitment ?? 'unknown',
     remote: /remote/i.test(JSON.stringify(j)),
     postedAt: j.createdAt ? new Date(j.createdAt).toISOString() : undefined,
     url: j.hostedUrl,
     source: 'lever',
     externalId: `lv-${boardKey}-${j.id}`,
-    description: j.description || j.descriptionPlain || j.text,
+    description: cleanText(j.description || j.descriptionPlain || j.text),
   }));
 }
 
 async function fetchAshbyJobs(orgSlug: string): Promise<ExternalJob[]> {
   const url = `https://api.ashbyhq.com/posting-api/job-board/${orgSlug}`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: { 'Accept': 'application/json; charset=utf-8' }
+  });
   if (!res.ok) return [];
   
   const data = await res.json();
   const postings = (data.jobs ?? data) || [];
   
   return postings.map((j: any) => ({
-    title: j.title,
-    company: orgSlug,
-    location: j.location?.name ?? null,
+    title: cleanText(j.title),
+    company: cleanText(orgSlug),
+    location: cleanText(j.location?.name) ?? null,
     type: j.employmentType ?? 'unknown',
     remote: /remote/i.test(JSON.stringify(j)),
     postedAt: j.publishedAt,
     url: j.jobUrl,
     source: 'ashby',
     externalId: `ab-${orgSlug}-${j.id}`,
-    description: j.description || j.title,
+    description: cleanText(j.description) || cleanText(j.title),
   }));
 }
 
@@ -479,9 +485,36 @@ async function fetchUSAJobs(apiKey: string): Promise<ExternalJob[]> {
   });
 }
 
+// Helper function to decode and clean text with proper UTF-8 handling
+function cleanText(text: string): string {
+  if (!text) return text;
+  try {
+    // Decode any HTML entities
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    const encoder = new TextEncoder();
+    const decoded = decoder.decode(encoder.encode(text));
+    
+    // Remove any HTML tags and normalize whitespace
+    return decoded
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+  } catch (e) {
+    return text;
+  }
+}
+
 async function fetchRemoteOK(): Promise<ExternalJob[]> {
   try {
-    const res = await fetch('https://remoteok.com/api');
+    const res = await fetch('https://remoteok.com/api', {
+      headers: { 'Accept': 'application/json; charset=utf-8' }
+    });
     if (!res.ok) return [];
     
     const data = await res.json();
@@ -489,16 +522,16 @@ async function fetchRemoteOK(): Promise<ExternalJob[]> {
     const jobs = data.slice(1);
     
     return jobs.map((j: any) => ({
-      title: j.position,
-      company: j.company,
-      location: j.location || 'Remote',
+      title: cleanText(j.position),
+      company: cleanText(j.company),
+      location: cleanText(j.location) || 'Remote',
       type: 'contract',
       remote: true,
       postedAt: j.date ? new Date(j.date).toISOString() : undefined,
-      url: `https://remoteok.com/remote-jobs/${j.id}`,
+      url: j.url || `https://remoteok.com/remote-jobs/${j.id}`,
       source: 'remoteok',
       externalId: `rok-${j.id}`,
-      description: j.description || j.position,
+      description: cleanText(j.description) || cleanText(j.position),
       skills: j.tags || [],
     }));
   } catch (error) {
@@ -514,17 +547,23 @@ async function fetchWeWorkRemotely(): Promise<ExternalJob[]> {
     const allJobs: ExternalJob[] = [];
     
     for (const category of categories) {
-      const res = await fetch(`https://weworkremotely.com/categories/remote-${category}-jobs.rss`);
+      const res = await fetch(`https://weworkremotely.com/categories/remote-${category}-jobs.rss`, {
+        headers: { 'Accept': 'application/rss+xml; charset=utf-8' }
+      });
       if (!res.ok) continue;
       
-      const text = await res.text();
+      // Explicitly decode as UTF-8
+      const arrayBuffer = await res.arrayBuffer();
+      const decoder = new TextDecoder('utf-8');
+      const text = decoder.decode(arrayBuffer);
+      
       // Basic RSS parsing
       const items = text.match(/<item>[\s\S]*?<\/item>/g) || [];
       
       for (const item of items) {
-        const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1] || '';
+        const title = cleanText(item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1] || '');
         const link = item.match(/<link>(.*?)<\/link>/)?.[1] || '';
-        const description = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1] || '';
+        const description = cleanText(item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1] || '');
         const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
         
         if (title && link) {
@@ -553,15 +592,17 @@ async function fetchWeWorkRemotely(): Promise<ExternalJob[]> {
 
 async function fetchRemotive(): Promise<ExternalJob[]> {
   try {
-    const res = await fetch('https://remotive.com/api/remote-jobs?category=software-dev');
+    const res = await fetch('https://remotive.com/api/remote-jobs?category=software-dev', {
+      headers: { 'Accept': 'application/json; charset=utf-8' }
+    });
     if (!res.ok) return [];
     
     const data = await res.json();
     const jobs = data.jobs || [];
     
     return jobs.map((j: any) => ({
-      title: j.title,
-      company: j.company_name,
+      title: cleanText(j.title),
+      company: cleanText(j.company_name),
       location: 'Remote',
       type: j.job_type || 'contract',
       remote: true,
@@ -569,7 +610,7 @@ async function fetchRemotive(): Promise<ExternalJob[]> {
       url: j.url,
       source: 'remotive',
       externalId: `rem-${j.id}`,
-      description: j.description || j.title,
+      description: cleanText(j.description) || cleanText(j.title),
       skills: j.tags || [],
     }));
   } catch (error) {
