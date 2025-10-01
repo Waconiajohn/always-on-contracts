@@ -15,6 +15,7 @@ import Opportunities from "./pages/Opportunities";
 import RateCalculator from "./pages/RateCalculator";
 import Profile from "./pages/Profile";
 import Templates from "./pages/Templates";
+import APIKeys from "./pages/APIKeys";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/rate-calculator" element={<RateCalculator />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/templates" element={<Templates />} />
+          <Route path="/api-keys" element={<APIKeys />} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -256,6 +256,23 @@ const DashboardContent = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/api-keys')}>
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">API Keys</CardTitle>
+              <CardDescription className="text-lg">
+                Connect with AI assistants via MCP protocol
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full text-lg py-6">
+                Manage API Keys
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Status Cards */}

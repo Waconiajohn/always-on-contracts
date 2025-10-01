@@ -527,12 +527,45 @@ export type Database = {
           },
         ]
       }
+      user_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          key_name: string
+          last_used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name: string
+          last_used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name?: string
+          last_used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_api_key: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
