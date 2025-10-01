@@ -316,35 +316,53 @@ export type Database = {
       }
       profiles: {
         Row: {
+          automation_activated_at: string | null
+          automation_enabled: boolean | null
           created_at: string | null
           current_employment_status: string | null
+          custom_target_rate_max: number | null
+          custom_target_rate_min: number | null
           email: string | null
           full_name: string | null
           id: string
           phone: string | null
+          strategy_customized: boolean | null
           subscription_tier: string | null
+          target_industries: string[] | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          automation_activated_at?: string | null
+          automation_enabled?: boolean | null
           created_at?: string | null
           current_employment_status?: string | null
+          custom_target_rate_max?: number | null
+          custom_target_rate_min?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
+          strategy_customized?: boolean | null
           subscription_tier?: string | null
+          target_industries?: string[] | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          automation_activated_at?: string | null
+          automation_enabled?: boolean | null
           created_at?: string | null
           current_employment_status?: string | null
+          custom_target_rate_max?: number | null
+          custom_target_rate_min?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
+          strategy_customized?: boolean | null
           subscription_tier?: string | null
+          target_industries?: string[] | null
           updated_at?: string | null
           user_id?: string
         }

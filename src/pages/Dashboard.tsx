@@ -14,6 +14,7 @@ const DashboardContent = () => {
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [resumes, setResumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activatingAutomation, setActivatingAutomation] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,6 +93,80 @@ const DashboardContent = () => {
       title: "Signed out",
       description: "You've been successfully signed out.",
     });
+  };
+
+  const handleActivateAutomation = async () => {
+    if (!profile?.strategy_customized) {
+      toast({
+        title: "Complete Step 2 First",
+        description: "Please customize your strategy before activating automation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setActivatingAutomation(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          automation_enabled: true,
+          automation_activated_at: new Date().toISOString(),
+        })
+        .eq("user_id", session.user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, automation_enabled: true });
+      toast({
+        title: "🚀 Automation Activated!",
+        description: "Your Always-On system is now working for you in the background",
+      });
+    } catch (error) {
+      console.error("Error activating automation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to activate automation",
+        variant: "destructive",
+      });
+    } finally {
+      setActivatingAutomation(false);
+    }
+  };
+
+  const handleDeactivateAutomation = async () => {
+    setActivatingAutomation(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          automation_enabled: false,
+        })
+        .eq("user_id", session.user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, automation_enabled: false });
+      toast({
+        title: "Automation Paused",
+        description: "You can reactivate it anytime from this dashboard",
+      });
+    } catch (error) {
+      console.error("Error deactivating automation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to deactivate automation",
+        variant: "destructive",
+      });
+    } finally {
+      setActivatingAutomation(false);
+    }
   };
 
   if (loading) {
@@ -315,22 +390,54 @@ const DashboardContent = () => {
             </div>
 
             <div className={`flex items-start gap-4 p-4 bg-card rounded-lg ${!hasAnalysis ? 'opacity-60' : ''}`}>
-              <div className={`w-8 h-8 ${hasAnalysis ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground text-card'} rounded-full flex items-center justify-center font-bold flex-shrink-0`}>
-                2
+              <div className={`w-8 h-8 ${profile?.strategy_customized ? 'bg-primary text-primary-foreground' : hasAnalysis ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground text-card'} rounded-full flex items-center justify-center font-bold flex-shrink-0`}>
+                {profile?.strategy_customized ? '✓' : '2'}
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-xl font-semibold mb-2">Review Your Strategy</h3>
                 <p className="text-lg text-muted-foreground">Customize your target rate, industries, and communication templates</p>
+                {hasAnalysis && !profile?.strategy_customized && (
+                  <Button onClick={() => navigate('/strategy/customize')} className="mt-3">
+                    Customize Strategy
+                  </Button>
+                )}
+                {profile?.strategy_customized && (
+                  <Button onClick={() => navigate('/strategy/customize')} variant="outline" className="mt-3">
+                    Edit Preferences
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-card rounded-lg opacity-60">
-              <div className="w-8 h-8 bg-muted-foreground text-card rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                3
+            <div className={`flex items-start gap-4 p-4 bg-card rounded-lg ${!profile?.strategy_customized ? 'opacity-60' : ''}`}>
+              <div className={`w-8 h-8 ${profile?.automation_enabled ? 'bg-primary text-primary-foreground' : profile?.strategy_customized ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground text-card'} rounded-full flex items-center justify-center font-bold flex-shrink-0`}>
+                {profile?.automation_enabled ? '✓' : '3'}
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-xl font-semibold mb-2">Activate Automation</h3>
                 <p className="text-lg text-muted-foreground">Turn on the Always-On system and let it work for you</p>
+                {profile?.strategy_customized && !profile?.automation_enabled && (
+                  <Button
+                    onClick={handleActivateAutomation}
+                    disabled={activatingAutomation}
+                    className="mt-3"
+                  >
+                    {activatingAutomation ? "Activating..." : "🚀 Activate Now"}
+                  </Button>
+                )}
+                {profile?.automation_enabled && (
+                  <div className="mt-3 space-y-2">
+                    <div className="text-sm text-primary font-semibold">✓ Automation Active</div>
+                    <Button
+                      onClick={handleDeactivateAutomation}
+                      disabled={activatingAutomation}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Pause Automation
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
