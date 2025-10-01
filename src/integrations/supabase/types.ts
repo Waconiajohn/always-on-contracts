@@ -329,6 +329,7 @@ export type Database = {
           strategy_customized: boolean | null
           subscription_tier: string | null
           target_industries: string[] | null
+          target_positions: string[] | null
           updated_at: string | null
           user_id: string
         }
@@ -346,6 +347,7 @@ export type Database = {
           strategy_customized?: boolean | null
           subscription_tier?: string | null
           target_industries?: string[] | null
+          target_positions?: string[] | null
           updated_at?: string | null
           user_id: string
         }
@@ -363,6 +365,7 @@ export type Database = {
           strategy_customized?: boolean | null
           subscription_tier?: string | null
           target_industries?: string[] | null
+          target_positions?: string[] | null
           updated_at?: string | null
           user_id?: string
         }

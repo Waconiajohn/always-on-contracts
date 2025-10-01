@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { ArrowLeft, TrendingUp, Briefcase, Target, Save } from "lucide-react";
+import { ArrowLeft, TrendingUp, Briefcase, Target, Save, Plus, X, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 const StrategyContent = () => {
   const [analysis, setAnalysis] = useState<any>(null);
@@ -18,6 +19,9 @@ const StrategyContent = () => {
   const [customRateMin, setCustomRateMin] = useState<string>("");
   const [customRateMax, setCustomRateMax] = useState<string>("");
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const [customPositions, setCustomPositions] = useState<string[]>([]);
+  const [newPosition, setNewPosition] = useState("");
+  const [generatingTitles, setGeneratingTitles] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,6 +59,7 @@ const StrategyContent = () => {
       setCustomRateMin(profileData.custom_target_rate_min?.toString() || analysisData.target_hourly_rate_min?.toString() || "");
       setCustomRateMax(profileData.custom_target_rate_max?.toString() || analysisData.target_hourly_rate_max?.toString() || "");
       setSelectedIndustries(profileData.target_industries || analysisData.industry_expertise || []);
+      setCustomPositions(profileData.target_positions || analysisData.recommended_positions || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -70,6 +75,49 @@ const StrategyContent = () => {
     );
   };
 
+  const addPosition = () => {
+    if (newPosition.trim() && !customPositions.includes(newPosition.trim())) {
+      setCustomPositions(prev => [...prev, newPosition.trim()]);
+      setNewPosition("");
+    }
+  };
+
+  const removePosition = (position: string) => {
+    setCustomPositions(prev => prev.filter(p => p !== position));
+  };
+
+  const generateJobTitles = async () => {
+    setGeneratingTitles(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-job-titles', {
+        body: { 
+          resumeAnalysis: analysis,
+          currentPositions: customPositions 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.titles) {
+        const newTitles = data.titles.filter((title: string) => !customPositions.includes(title));
+        setCustomPositions(prev => [...prev, ...newTitles]);
+        toast({
+          title: "Job Titles Generated",
+          description: `Added ${newTitles.length} new job title suggestions`,
+        });
+      }
+    } catch (error) {
+      console.error("Error generating job titles:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate job titles. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingTitles(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -82,6 +130,7 @@ const StrategyContent = () => {
           custom_target_rate_min: parseFloat(customRateMin) || null,
           custom_target_rate_max: parseFloat(customRateMax) || null,
           target_industries: selectedIndustries,
+          target_positions: customPositions,
           strategy_customized: true,
         })
         .eq("user_id", session.user.id);
@@ -155,9 +204,16 @@ const StrategyContent = () => {
           {/* Header */}
           <div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Contract Career Strategy</h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-muted-foreground mb-4">
               Personalized recommendations based on your {analysis.years_experience} years of experience
             </p>
+            <Card className="bg-muted/50 border-primary/20">
+              <CardContent className="pt-6">
+                <p className="text-base text-muted-foreground">
+                  💡 <strong>What's this for?</strong> This strategy profile will be used to automatically match you with relevant opportunities and craft personalized outreach to agencies. Customize your target rates, positions, and industries to improve your matches.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Target Rate Card with Customization */}
@@ -239,30 +295,63 @@ const StrategyContent = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">Executive Summary</CardTitle>
+              <CardDescription className="text-lg">
+                Your professional summary for automated communications
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-lg leading-relaxed">{analysis.analysis_summary}</p>
             </CardContent>
           </Card>
 
-          {/* Recommended Positions */}
+          {/* Target Job Titles */}
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl flex items-center gap-3">
                 <Briefcase className="h-7 w-7 text-primary" />
-                Recommended Positions
+                Target Job Titles
+                {customPositions.length !== analysis.recommended_positions?.length && (
+                  <Badge variant="secondary" className="ml-auto">Customized</Badge>
+                )}
               </CardTitle>
               <CardDescription className="text-lg">
-                High-value contract roles that match your expertise
+                Job titles the system will search for and match you with (click X to remove)
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">
-                {analysis.recommended_positions?.map((position: string, index: number) => (
-                  <Badge key={index} variant="secondary" className="text-lg px-4 py-2">
+                {customPositions.map((position: string, index: number) => (
+                  <Badge key={index} variant="secondary" className="text-base px-4 py-2 group cursor-pointer">
                     {position}
+                    <X 
+                      className="ml-2 h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" 
+                      onClick={() => removePosition(position)}
+                    />
                   </Badge>
                 ))}
+              </div>
+              
+              <div className="flex gap-2 pt-4 border-t">
+                <Input
+                  placeholder="Add a job title..."
+                  value={newPosition}
+                  onChange={(e) => setNewPosition(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addPosition()}
+                  className="text-base"
+                />
+                <Button onClick={addPosition} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+                <Button 
+                  onClick={generateJobTitles} 
+                  disabled={generatingTitles}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  {generatingTitles ? "Generating..." : "AI Suggest"}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -278,7 +367,7 @@ const StrategyContent = () => {
                 )}
               </CardTitle>
               <CardDescription className="text-lg">
-                Click industries to select/deselect your target focus areas
+                Click to select/deselect industries for opportunity matching (outlined = disabled)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -305,7 +394,7 @@ const StrategyContent = () => {
             <CardHeader>
               <CardTitle className="text-2xl">Key Achievements</CardTitle>
               <CardDescription className="text-lg">
-                Quantifiable results that demonstrate your value
+                These will be used in automated outreach to highlight your value
               </CardDescription>
             </CardHeader>
             <CardContent>
