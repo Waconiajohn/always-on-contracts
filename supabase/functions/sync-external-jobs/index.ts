@@ -380,12 +380,55 @@ serve(async (req) => {
       .eq('is_external', true)
       .lt('last_synced_at', sevenDaysAgo.toISOString());
 
+    // AI analysis for newly synced jobs (that haven't been analyzed yet)
+    console.log('Starting AI analysis for jobs without verification...');
+    const { data: unanalyzedJobs, error: fetchError } = await supabaseClient
+      .from('job_opportunities')
+      .select('id, job_title, job_description, location')
+      .is('ai_verified_at', null)
+      .eq('is_external', true)
+      .limit(50); // Analyze up to 50 jobs per sync to avoid rate limits
+
+    if (!fetchError && unanalyzedJobs && unanalyzedJobs.length > 0) {
+      console.log(`Found ${unanalyzedJobs.length} jobs to analyze`);
+      let analyzedCount = 0;
+
+      // Analyze in smaller batches with delays to avoid rate limits
+      for (const job of unanalyzedJobs) {
+        try {
+          const analysisResponse = await supabaseClient.functions.invoke('analyze-job-quality', {
+            body: {
+              jobId: job.id,
+              jobTitle: job.job_title,
+              jobDescription: job.job_description,
+              location: job.location,
+            }
+          });
+
+          if (!analysisResponse.error) {
+            analyzedCount++;
+            if (analyzedCount % 10 === 0) {
+              console.log(`Analyzed ${analyzedCount}/${unanalyzedJobs.length} jobs`);
+            }
+          }
+
+          // Small delay between requests to avoid rate limits
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Error analyzing job ${job.id}:`, error);
+        }
+      }
+
+      console.log(`AI analysis complete: ${analyzedCount} jobs analyzed`);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         totalFetched: allJobs.length,
         contractFiltered: contractJobs.length,
         upserted: totalUpserted,
+        analyzed: unanalyzedJobs?.length || 0,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
