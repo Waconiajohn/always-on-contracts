@@ -120,6 +120,65 @@ export type Database = {
           },
         ]
       }
+      application_tracking: {
+        Row: {
+          apify_run_id: string | null
+          application_method: string | null
+          cover_letter_text: string | null
+          created_at: string | null
+          customized_resume_url: string | null
+          error_message: string | null
+          id: string
+          opportunity_id: string
+          response_data: Json | null
+          response_received_at: string | null
+          status: string | null
+          submitted_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          apify_run_id?: string | null
+          application_method?: string | null
+          cover_letter_text?: string | null
+          created_at?: string | null
+          customized_resume_url?: string | null
+          error_message?: string | null
+          id?: string
+          opportunity_id: string
+          response_data?: Json | null
+          response_received_at?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          apify_run_id?: string | null
+          application_method?: string | null
+          cover_letter_text?: string | null
+          created_at?: string | null
+          customized_resume_url?: string | null
+          error_message?: string | null
+          id?: string
+          opportunity_id?: string
+          response_data?: Json | null
+          response_received_at?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_tracking_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "job_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_templates: {
         Row: {
           body_content: string
@@ -153,10 +212,50 @@ export type Database = {
         }
         Relationships: []
       }
+      job_feedback: {
+        Row: {
+          created_at: string | null
+          feedback_text: string | null
+          feedback_type: string
+          id: string
+          opportunity_id: string
+          suggested_correction: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          feedback_text?: string | null
+          feedback_type: string
+          id?: string
+          opportunity_id: string
+          suggested_correction?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          feedback_text?: string | null
+          feedback_type?: string
+          id?: string
+          opportunity_id?: string
+          suggested_correction?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_feedback_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "job_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_opportunities: {
         Row: {
           agency_id: string | null
           ai_analysis: Json | null
+          ai_verified_at: string | null
+          contract_confidence_score: number | null
           contract_duration_months: number | null
           contract_type: string | null
           created_at: string | null
@@ -165,6 +264,9 @@ export type Database = {
           external_id: string | null
           external_source: string | null
           external_url: string | null
+          extracted_duration_months: number | null
+          extracted_rate_max: number | null
+          extracted_rate_min: number | null
           hourly_rate_max: number | null
           hourly_rate_min: number | null
           id: string
@@ -180,16 +282,20 @@ export type Database = {
           market_rate_percentile: number | null
           posted_date: string | null
           quality_score: number | null
+          quality_score_details: Json | null
           raw_data: Json | null
           required_skills: string[] | null
           scraped_salary_data: Json | null
           source: string | null
           status: string | null
           updated_at: string | null
+          user_feedback: Json | null
         }
         Insert: {
           agency_id?: string | null
           ai_analysis?: Json | null
+          ai_verified_at?: string | null
+          contract_confidence_score?: number | null
           contract_duration_months?: number | null
           contract_type?: string | null
           created_at?: string | null
@@ -198,6 +304,9 @@ export type Database = {
           external_id?: string | null
           external_source?: string | null
           external_url?: string | null
+          extracted_duration_months?: number | null
+          extracted_rate_max?: number | null
+          extracted_rate_min?: number | null
           hourly_rate_max?: number | null
           hourly_rate_min?: number | null
           id?: string
@@ -213,16 +322,20 @@ export type Database = {
           market_rate_percentile?: number | null
           posted_date?: string | null
           quality_score?: number | null
+          quality_score_details?: Json | null
           raw_data?: Json | null
           required_skills?: string[] | null
           scraped_salary_data?: Json | null
           source?: string | null
           status?: string | null
           updated_at?: string | null
+          user_feedback?: Json | null
         }
         Update: {
           agency_id?: string | null
           ai_analysis?: Json | null
+          ai_verified_at?: string | null
+          contract_confidence_score?: number | null
           contract_duration_months?: number | null
           contract_type?: string | null
           created_at?: string | null
@@ -231,6 +344,9 @@ export type Database = {
           external_id?: string | null
           external_source?: string | null
           external_url?: string | null
+          extracted_duration_months?: number | null
+          extracted_rate_max?: number | null
+          extracted_rate_min?: number | null
           hourly_rate_max?: number | null
           hourly_rate_min?: number | null
           id?: string
@@ -246,12 +362,14 @@ export type Database = {
           market_rate_percentile?: number | null
           posted_date?: string | null
           quality_score?: number | null
+          quality_score_details?: Json | null
           raw_data?: Json | null
           required_skills?: string[] | null
           scraped_salary_data?: Json | null
           source?: string | null
           status?: string | null
           updated_at?: string | null
+          user_feedback?: Json | null
         }
         Relationships: [
           {
@@ -691,6 +809,87 @@ export type Database = {
           is_active?: boolean | null
           key_name?: string
           last_used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_search_profiles: {
+        Row: {
+          company_size_preferences: string[] | null
+          created_at: string | null
+          excluded_companies: string[] | null
+          excluded_keywords: string[] | null
+          hybrid_acceptable: boolean | null
+          id: string
+          is_active: boolean | null
+          location_radius_miles: number | null
+          max_contract_months: number | null
+          max_hourly_rate: number | null
+          min_contract_months: number | null
+          min_hourly_rate: number | null
+          minimum_match_score: number | null
+          onsite_acceptable: boolean | null
+          preferred_locations: string[] | null
+          preferred_skills: string[] | null
+          profile_name: string
+          remote_only: boolean | null
+          required_skills: string[] | null
+          skill_weights: Json | null
+          target_industries: string[] | null
+          target_positions: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_size_preferences?: string[] | null
+          created_at?: string | null
+          excluded_companies?: string[] | null
+          excluded_keywords?: string[] | null
+          hybrid_acceptable?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          location_radius_miles?: number | null
+          max_contract_months?: number | null
+          max_hourly_rate?: number | null
+          min_contract_months?: number | null
+          min_hourly_rate?: number | null
+          minimum_match_score?: number | null
+          onsite_acceptable?: boolean | null
+          preferred_locations?: string[] | null
+          preferred_skills?: string[] | null
+          profile_name: string
+          remote_only?: boolean | null
+          required_skills?: string[] | null
+          skill_weights?: Json | null
+          target_industries?: string[] | null
+          target_positions?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_size_preferences?: string[] | null
+          created_at?: string | null
+          excluded_companies?: string[] | null
+          excluded_keywords?: string[] | null
+          hybrid_acceptable?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          location_radius_miles?: number | null
+          max_contract_months?: number | null
+          max_hourly_rate?: number | null
+          min_contract_months?: number | null
+          min_hourly_rate?: number | null
+          minimum_match_score?: number | null
+          onsite_acceptable?: boolean | null
+          preferred_locations?: string[] | null
+          preferred_skills?: string[] | null
+          profile_name?: string
+          remote_only?: boolean | null
+          required_skills?: string[] | null
+          skill_weights?: Json | null
+          target_industries?: string[] | null
+          target_positions?: string[] | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

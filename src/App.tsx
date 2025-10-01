@@ -18,6 +18,7 @@ import Templates from "./pages/Templates";
 import APIKeys from "./pages/APIKeys";
 import AutomationSettings from "./pages/AutomationSettings";
 import ApplicationQueue from "./pages/ApplicationQueue";
+import SearchProfiles from "./pages/SearchProfiles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/api-keys" element={<APIKeys />} />
           <Route path="/automation-settings" element={<AutomationSettings />} />
           <Route path="/application-queue" element={<ApplicationQueue />} />
+          <Route path="/search-profiles" element={<SearchProfiles />} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

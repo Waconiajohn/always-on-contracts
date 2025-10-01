@@ -5,31 +5,43 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
+import { Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2, AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AppNav } from "@/components/AppNav";
+import { JobFeedbackDialog } from "@/components/JobFeedbackDialog";
 
 interface OpportunityMatch {
   id: string;
+  opportunity_id: string;
   match_score: number;
+  status: string;
   matching_skills: string[];
   ai_recommendation: string;
-  status: string;
+  created_at: string;
   job_opportunities: {
     id: string;
     job_title: string;
-    job_description: string;
+    agency_id: string | null;
     location: string;
-    hourly_rate_min: number;
-    hourly_rate_max: number;
-    contract_duration_months: number;
-    external_url: string;
+    job_description: string;
+    required_skills: string[];
+    hourly_rate_min: number | null;
+    hourly_rate_max: number | null;
+    contract_type: string | null;
+    contract_duration_months: number | null;
     posted_date: string;
+    external_url: string | null;
+    contract_confidence_score: number | null;
+    extracted_rate_min: number | null;
+    extracted_rate_max: number | null;
+    extracted_duration_months: number | null;
+    quality_score: number | null;
+    ai_verified_at: string | null;
     staffing_agencies: {
       agency_name: string;
       location: string;
-    };
+    } | null;
   };
 }
 
@@ -387,6 +399,36 @@ const OpportunitiesContent = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* AI Quality Indicators */}
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {match.job_opportunities.contract_confidence_score !== null && (
+                      <Badge 
+                        variant={match.job_opportunities.contract_confidence_score >= 80 ? "default" : "secondary"}
+                        className="gap-1"
+                      >
+                        {match.job_opportunities.contract_confidence_score >= 80 ? (
+                          <CheckCircle className="h-3 w-3" />
+                        ) : (
+                          <AlertCircle className="h-3 w-3" />
+                        )}
+                        {match.job_opportunities.contract_confidence_score}% Contract Verified
+                      </Badge>
+                    )}
+                    
+                    {match.job_opportunities.quality_score !== null && (
+                      <Badge variant="outline" className="gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        Quality: {match.job_opportunities.quality_score}/100
+                      </Badge>
+                    )}
+                    
+                    {match.job_opportunities.ai_verified_at && (
+                      <Badge variant="secondary">
+                        AI Verified
+                      </Badge>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
@@ -395,12 +437,27 @@ const OpportunitiesContent = () => {
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm">
-                        ${match.job_opportunities.hourly_rate_min}-${match.job_opportunities.hourly_rate_max}/hr
+                        {match.job_opportunities.extracted_rate_min && match.job_opportunities.extracted_rate_max ? (
+                          <span className="font-medium">
+                            ${match.job_opportunities.extracted_rate_min}-${match.job_opportunities.extracted_rate_max}/hr
+                          </span>
+                        ) : match.job_opportunities.hourly_rate_min && match.job_opportunities.hourly_rate_max ? (
+                          `$${match.job_opportunities.hourly_rate_min}-${match.job_opportunities.hourly_rate_max}/hr`
+                        ) : (
+                          'Rate not specified'
+                        )}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{match.job_opportunities.contract_duration_months} months</span>
+                      <span className="text-sm">
+                        {match.job_opportunities.extracted_duration_months 
+                          ? `${match.job_opportunities.extracted_duration_months} months`
+                          : match.job_opportunities.contract_duration_months
+                          ? `${match.job_opportunities.contract_duration_months} months`
+                          : 'Duration not specified'
+                        }
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-muted-foreground" />
