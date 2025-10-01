@@ -202,7 +202,7 @@ const OpportunitiesContent = () => {
               <p className="text-muted-foreground">AI-matched opportunities based on your profile</p>
             </div>
           </div>
-          <TooltipProvider>
+          <TooltipProvider delayDuration={300}>
             <div className="flex gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -215,7 +215,7 @@ const OpportunitiesContent = () => {
                     {syncing ? 'Syncing Jobs...' : 'Sync External Jobs'}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent side="bottom" sideOffset={5}>
                   <p className="max-w-xs">Fetch fresh contract jobs from 30+ job boards (Greenhouse, Lever, RemoteOK, etc.) and store them in your database</p>
                 </TooltipContent>
               </Tooltip>
@@ -231,7 +231,7 @@ const OpportunitiesContent = () => {
                     {matching ? 'AI Matching in Progress...' : 'Run AI Matching'}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent side="bottom" sideOffset={5}>
                   <p className="max-w-xs">Analyze your resume and profile to find the best job matches with personalized AI recommendations</p>
                 </TooltipContent>
               </Tooltip>
