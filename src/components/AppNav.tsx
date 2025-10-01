@@ -37,12 +37,13 @@ export const AppNav = () => {
   };
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: Home },
+    { path: "/", label: "Home", icon: Home },
+    { path: "/dashboard", label: "Dashboard", icon: FileText },
     { path: "/resume-upload", label: "Resume", icon: FileText },
-    { path: "/strategy", label: "Strategy", icon: Target },
+    { path: "/strategy", label: "Job Preferences", icon: Target },
     { path: "/opportunities", label: "Opportunities", icon: Briefcase },
     { path: "/application-queue", label: "Queue", icon: ListChecks },
-    { path: "/automation-settings", label: "Automation", icon: Settings },
+    { path: "/automation-settings", label: "Settings", icon: Settings },
   ];
 
   const NavButton = ({ item, onClick }: { item: typeof navItems[0]; onClick?: () => void }) => {
