@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, FileText, Sparkles } from "lucide-react";
+import { Loader2, ArrowLeft, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedQueueItem } from "@/components/EnhancedQueueItem";
 
@@ -133,58 +133,6 @@ export default function ApplicationQueue() {
     }
   };
 
-  const createDemoApplication = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Create a demo job opportunity
-      const { data: demoJob, error: jobError } = await supabase
-        .from("job_opportunities")
-        .insert({
-          job_title: "Senior Software Engineer - Full Stack",
-          job_description: "We're seeking an experienced Full Stack Engineer to lead development of our cloud-based platform. Must have deep expertise in React, TypeScript, Node.js, and PostgreSQL. Experience with microservices architecture, CI/CD pipelines, and Agile methodologies required. Strong problem-solving skills and ability to mentor junior developers essential.",
-          location: "Remote (US)",
-          hourly_rate_min: 150,
-          hourly_rate_max: 200,
-          contract_duration_months: 12,
-          contract_type: "contract",
-          required_skills: ["React", "TypeScript", "Node.js", "PostgreSQL", "AWS", "Docker", "Kubernetes", "CI/CD", "Agile", "Microservices"],
-          status: "active",
-          source: "demo",
-        })
-        .select()
-        .single();
-
-      if (jobError) throw jobError;
-
-      // Add to queue with high match score
-      const { error: queueError } = await supabase
-        .from("application_queue")
-        .insert({
-          user_id: user.id,
-          opportunity_id: demoJob.id,
-          match_score: 93,
-          status: "pending",
-        });
-
-      if (queueError) throw queueError;
-
-      toast({
-        title: "Demo Added!",
-        description: "A sample 93% match job has been added to test the conversational features",
-      });
-
-      fetchQueue();
-    } catch (error) {
-      console.error("Error creating demo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create demo application",
-        variant: "destructive",
-      });
-    }
-  };
 
   if (loading) {
     return (
@@ -206,19 +154,11 @@ export default function ApplicationQueue() {
       </Button>
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Application Queue</h1>
-            <p className="text-muted-foreground mt-2">
-              Review and approve automated job applications
-            </p>
-          </div>
-          {queueItems.length === 0 && activeTab === "pending" && (
-            <Button onClick={createDemoApplication} variant="outline">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Try Demo Features
-            </Button>
-          )}
+        <div>
+          <h1 className="text-3xl font-bold">Application Queue</h1>
+          <p className="text-muted-foreground mt-2">
+            Review and approve automated job applications
+          </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
