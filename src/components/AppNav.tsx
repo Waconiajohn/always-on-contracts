@@ -40,9 +40,8 @@ export const AppNav = () => {
     { path: "/", label: "Home", icon: Home },
     { path: "/dashboard", label: "Dashboard", icon: FileText },
     { path: "/resume-upload", label: "Resume", icon: FileText },
-    { path: "/strategy", label: "Job Preferences", icon: Target },
     { path: "/opportunities", label: "Opportunities", icon: Briefcase },
-    { path: "/search-profiles", label: "Search Profiles", icon: Target },
+    { path: "/search-profiles", label: "Job Search", icon: Target },
     { path: "/application-queue", label: "Queue", icon: ListChecks },
     { path: "/automation-settings", label: "Settings", icon: Settings },
   ];

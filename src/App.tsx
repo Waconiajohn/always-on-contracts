@@ -8,7 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import ResumeUpload from "./pages/ResumeUpload";
 import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
-import Strategy from "./pages/Strategy";
+
 import Agencies from "./pages/Agencies";
 
 import Opportunities from "./pages/Opportunities";
@@ -34,7 +34,6 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/resume-upload" element={<ResumeUpload />} />
-          <Route path="/strategy" element={<Strategy />} />
           <Route path="/agencies" element={<Agencies />} />
           
           <Route path="/opportunities" element={<Opportunities />} />
