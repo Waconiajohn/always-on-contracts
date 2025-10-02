@@ -11,13 +11,12 @@ const Landing = () => {
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground">
-            Your Contract Career,
-            <span className="block text-primary">Always Running</span>
+            Smart Contract Job Search
+            <span className="block text-primary">Made Simple</span>
           </h1>
           
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-            The first career management system that works <strong>while you work</strong>. 
-            Never scramble between contracts again.
+            AI-powered tools to help you find and manage contract opportunities faster.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -61,30 +60,30 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-              The Contract Career Problem
+              Finding Contract Work Takes Too Long
             </h2>
             <p className="text-xl md:text-2xl text-muted-foreground">
-              Traditional contract work has a fatal flaw: <strong>What happens when your contract ends?</strong>
+              Stop wasting time on manual job searches and application tracking.
             </p>
             <div className="grid md:grid-cols-2 gap-8 pt-8 text-left">
               <div className="bg-card p-6 rounded-lg border-2 border-destructive/20">
-                <h3 className="text-2xl font-semibold mb-4 text-destructive">❌ The Old Way</h3>
+                <h3 className="text-2xl font-semibold mb-4 text-destructive">❌ Manual Search</h3>
                 <ul className="space-y-3 text-lg text-muted-foreground">
-                  <li>• Contract ends → Panic begins</li>
-                  <li>• Restart relationships from scratch</li>
-                  <li>• 90+ day gaps between contracts</li>
-                  <li>• Age bias increases with each search</li>
-                  <li>• Manual follow-ups constantly needed</li>
+                  <li>• Hours spent browsing job boards</li>
+                  <li>• Forgetting to follow up with recruiters</li>
+                  <li>• Losing track of applications</li>
+                  <li>• Manually customizing each resume</li>
+                  <li>• Unclear what your rate should be</li>
                 </ul>
               </div>
               <div className="bg-card p-6 rounded-lg border-2 border-primary/20">
-                <h3 className="text-2xl font-semibold mb-4 text-primary">✓ The New Way</h3>
+                <h3 className="text-2xl font-semibold mb-4 text-primary">✓ With ContractCareer Pro</h3>
                 <ul className="space-y-3 text-lg text-muted-foreground">
-                  <li>• System works while you work</li>
-                  <li>• 200+ recruiters always engaged</li>
-                  <li>• &lt;30 day transitions guaranteed</li>
-                  <li>• Position as premium executive</li>
-                  <li>• Zero manual effort required</li>
+                  <li>• AI matches jobs to your profile</li>
+                  <li>• Track recruiter conversations in one place</li>
+                  <li>• Manage your application pipeline</li>
+                  <li>• Get resume customization suggestions</li>
+                  <li>• Calculate fair market rates instantly</li>
                 </ul>
               </div>
             </div>
@@ -97,16 +96,16 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-center mb-16">
-              The Always-On System
+              Everything You Need to Manage Your Contract Career
             </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <Zap className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-2xl font-semibold">Continuous Automation</h3>
+                <h3 className="text-2xl font-semibold">AI-Powered Matching</h3>
                 <p className="text-lg text-muted-foreground">
-                  AI scans 50+ job boards daily, maintains recruiter relationships, and monitors market rates—all in the background.
+                  Upload your resume and get AI-powered job matches based on your skills, experience, and preferences.
                 </p>
               </div>
               
@@ -114,9 +113,9 @@ const Landing = () => {
                 <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <Shield className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-2xl font-semibold">Anonymous Applications</h3>
+                <h3 className="text-2xl font-semibold">Application Queue</h3>
                 <p className="text-lg text-muted-foreground">
-                  Explore opportunities discretely while employed. Your identity revealed only when there's mutual interest.
+                  Review matched opportunities, get resume customization suggestions, and track your applications in one place.
                 </p>
               </div>
               
@@ -124,9 +123,9 @@ const Landing = () => {
                 <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <Users className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-2xl font-semibold">60-Day Transition Prep</h3>
+                <h3 className="text-2xl font-semibold">Recruiter Network</h3>
                 <p className="text-lg text-muted-foreground">
-                  AI predicts contract end dates and automatically activates full search mode 60 days before expiration.
+                  Access 200+ staffing agencies, track your outreach, and use templates to streamline communication.
                 </p>
               </div>
             </div>
@@ -207,10 +206,10 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-8 bg-primary text-primary-foreground p-12 rounded-2xl">
             <h2 className="text-4xl md:text-5xl font-bold">
-              Never Experience a Contract Gap Again
+              Ready to Simplify Your Contract Job Search?
             </h2>
             <p className="text-xl md:text-2xl opacity-90">
-              Join thousands of professionals who've automated their contract career success.
+              Get started in minutes and find your next contract opportunity faster.
             </p>
             <Button 
               size="lg" 
@@ -232,7 +231,7 @@ const Landing = () => {
             <div className="space-y-4">
               <h3 className="text-xl font-bold">ContractCareer Pro</h3>
               <p className="text-muted-foreground">
-                The always-on career management system for contract professionals.
+                Smart tools to help contract professionals find their next opportunity.
               </p>
             </div>
             <div className="space-y-4">
