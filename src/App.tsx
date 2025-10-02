@@ -9,6 +9,7 @@ import ResumeUpload from "./pages/ResumeUpload";
 import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
 import Coaching from "./pages/Coaching";
+import ResumeOptimizer from "./pages/ResumeOptimizer";
 
 import Agencies from "./pages/Agencies";
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/resume-upload" element={<ResumeUpload />} />
           <Route path="/coaching" element={<Coaching />} />
+          <Route path="/resume-optimizer" element={<ResumeOptimizer />} />
           <Route path="/agencies" element={<Agencies />} />
           
           <Route path="/opportunities" element={<Opportunities />} />
