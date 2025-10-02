@@ -297,6 +297,48 @@ export type Database = {
           },
         ]
       }
+      career_war_chest: {
+        Row: {
+          created_at: string
+          id: string
+          initial_analysis: Json | null
+          interview_completion_percentage: number | null
+          last_updated_at: string
+          overall_strength_score: number | null
+          resume_raw_text: string | null
+          total_hidden_competencies: number | null
+          total_power_phrases: number | null
+          total_transferable_skills: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initial_analysis?: Json | null
+          interview_completion_percentage?: number | null
+          last_updated_at?: string
+          overall_strength_score?: number | null
+          resume_raw_text?: string | null
+          total_hidden_competencies?: number | null
+          total_power_phrases?: number | null
+          total_transferable_skills?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initial_analysis?: Json | null
+          interview_completion_percentage?: number | null
+          last_updated_at?: string
+          overall_strength_score?: number | null
+          resume_raw_text?: string | null
+          total_hidden_competencies?: number | null
+          total_power_phrases?: number | null
+          total_transferable_skills?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       communication_templates: {
         Row: {
           body_content: string
@@ -631,6 +673,56 @@ export type Database = {
           {
             foreignKeyName: "job_opportunities_duplicate_of_fkey"
             columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "job_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_projects: {
+        Row: {
+          created_at: string
+          id: string
+          interview_prep_data: Json | null
+          metadata: Json | null
+          notes: string | null
+          opportunity_id: string | null
+          project_name: string
+          resume_version_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interview_prep_data?: Json | null
+          metadata?: Json | null
+          notes?: string | null
+          opportunity_id?: string | null
+          project_name: string
+          resume_version_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interview_prep_data?: Json | null
+          metadata?: Json | null
+          notes?: string | null
+          opportunity_id?: string | null
+          project_name?: string
+          resume_version_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_projects_opportunity_id_fkey"
+            columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "job_opportunities"
             referencedColumns: ["id"]
@@ -1291,6 +1383,185 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      war_chest_hidden_competencies: {
+        Row: {
+          certification_equivalent: string | null
+          competency_area: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          inferred_capability: string
+          supporting_evidence: string[]
+          user_id: string
+          war_chest_id: string
+        }
+        Insert: {
+          certification_equivalent?: string | null
+          competency_area: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          inferred_capability: string
+          supporting_evidence?: string[]
+          user_id: string
+          war_chest_id: string
+        }
+        Update: {
+          certification_equivalent?: string | null
+          competency_area?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          inferred_capability?: string
+          supporting_evidence?: string[]
+          user_id?: string
+          war_chest_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_chest_hidden_competencies_war_chest_id_fkey"
+            columns: ["war_chest_id"]
+            isOneToOne: false
+            referencedRelation: "career_war_chest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      war_chest_interview_responses: {
+        Row: {
+          created_at: string
+          extracted_insights: Json | null
+          follow_up_questions: Json | null
+          id: string
+          phase: string
+          question: string
+          response: string
+          user_id: string
+          war_chest_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_insights?: Json | null
+          follow_up_questions?: Json | null
+          id?: string
+          phase: string
+          question: string
+          response: string
+          user_id: string
+          war_chest_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_insights?: Json | null
+          follow_up_questions?: Json | null
+          id?: string
+          phase?: string
+          question?: string
+          response?: string
+          user_id?: string
+          war_chest_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_chest_interview_responses_war_chest_id_fkey"
+            columns: ["war_chest_id"]
+            isOneToOne: false
+            referencedRelation: "career_war_chest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      war_chest_power_phrases: {
+        Row: {
+          category: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          impact_metrics: Json | null
+          keywords: string[] | null
+          original_text: string | null
+          power_phrase: string
+          source: string | null
+          user_id: string
+          war_chest_id: string
+        }
+        Insert: {
+          category: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          impact_metrics?: Json | null
+          keywords?: string[] | null
+          original_text?: string | null
+          power_phrase: string
+          source?: string | null
+          user_id: string
+          war_chest_id: string
+        }
+        Update: {
+          category?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          impact_metrics?: Json | null
+          keywords?: string[] | null
+          original_text?: string | null
+          power_phrase?: string
+          source?: string | null
+          user_id?: string
+          war_chest_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_chest_power_phrases_war_chest_id_fkey"
+            columns: ["war_chest_id"]
+            isOneToOne: false
+            referencedRelation: "career_war_chest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      war_chest_transferable_skills: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          equivalent_skills: string[]
+          evidence: string
+          id: string
+          stated_skill: string
+          user_id: string
+          war_chest_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          equivalent_skills?: string[]
+          evidence: string
+          id?: string
+          stated_skill: string
+          user_id: string
+          war_chest_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          equivalent_skills?: string[]
+          evidence?: string
+          id?: string
+          stated_skill?: string
+          user_id?: string
+          war_chest_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_chest_transferable_skills_war_chest_id_fkey"
+            columns: ["war_chest_id"]
+            isOneToOne: false
+            referencedRelation: "career_war_chest"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

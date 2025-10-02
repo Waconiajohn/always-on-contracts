@@ -23,8 +23,10 @@ import ApplicationQueue from "./pages/ApplicationQueue";
 import SearchProfiles from "./pages/SearchProfiles";
 import AIAgents from "./pages/AIAgents";
 import JobSearch from "./pages/JobSearch";
+import CorporateAssistant from "./pages/agents/CorporateAssistant";
 import JobSearchAgent from "./pages/agents/JobSearchAgent";
 import ResumeBuilderAgent from "./pages/agents/ResumeBuilderAgent";
+import WarChestDashboard from "./pages/WarChestDashboard";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -56,8 +58,10 @@ const App = () => (
           <Route path="/search-profiles" element={<ProtectedRoute><SearchProfiles /></ProtectedRoute>} />
           <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
-          <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />
-          <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
+        <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
+        <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />
+        <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
+        <Route path="/war-chest-dashboard" element={<ProtectedRoute><WarChestDashboard /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
