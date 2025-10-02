@@ -39,10 +39,11 @@ export const AppNav = () => {
   const navItems = [
     { path: "/", label: "Home", icon: Home },
     { path: "/dashboard", label: "Dashboard", icon: FileText },
+    { path: "/ai-agents", label: "AI Agents", icon: Brain },
     { path: "/resume-upload", label: "Resume", icon: FileText },
     { path: "/resume-optimizer", label: "Optimizer", icon: Sparkles },
     { path: "/coaching", label: "Coaching", icon: Brain },
-    { path: "/opportunities", label: "Opportunities", icon: Briefcase },
+    { path: "/opportunities", label: "Jobs", icon: Briefcase },
     { path: "/search-profiles", label: "Job Search", icon: Target },
     { path: "/application-queue", label: "Queue", icon: ListChecks },
     { path: "/automation-settings", label: "Settings", icon: Settings },
@@ -75,8 +76,9 @@ export const AppNav = () => {
             onClick={() => navigate("/dashboard")}
             className="font-bold text-xl hover:text-primary transition-colors"
           >
-            ContractCareer Pro
+            Max Job Offers
           </button>
+          <p className="text-xs text-muted-foreground hidden md:block">Your AI powered career assistant</p>
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">

@@ -10,9 +10,7 @@ import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
 import Coaching from "./pages/Coaching";
 import ResumeOptimizer from "./pages/ResumeOptimizer";
-
 import Agencies from "./pages/Agencies";
-
 import Opportunities from "./pages/Opportunities";
 import RateCalculator from "./pages/RateCalculator";
 import Profile from "./pages/Profile";
@@ -21,7 +19,9 @@ import APIKeys from "./pages/APIKeys";
 import AutomationSettings from "./pages/AutomationSettings";
 import ApplicationQueue from "./pages/ApplicationQueue";
 import SearchProfiles from "./pages/SearchProfiles";
+import AIAgents from "./pages/AIAgents";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -34,20 +34,20 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/resume-upload" element={<ResumeUpload />} />
-          <Route path="/coaching" element={<Coaching />} />
-          <Route path="/resume-optimizer" element={<ResumeOptimizer />} />
-          <Route path="/agencies" element={<Agencies />} />
-          
-          <Route path="/opportunities" element={<Opportunities />} />
-          <Route path="/rate-calculator" element={<RateCalculator />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/api-keys" element={<APIKeys />} />
-          <Route path="/automation-settings" element={<AutomationSettings />} />
-          <Route path="/application-queue" element={<ApplicationQueue />} />
-          <Route path="/search-profiles" element={<SearchProfiles />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/resume-upload" element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>} />
+          <Route path="/coaching" element={<ProtectedRoute><Coaching /></ProtectedRoute>} />
+          <Route path="/resume-optimizer" element={<ProtectedRoute><ResumeOptimizer /></ProtectedRoute>} />
+          <Route path="/agencies" element={<ProtectedRoute><Agencies /></ProtectedRoute>} />
+          <Route path="/opportunities" element={<ProtectedRoute><Opportunities /></ProtectedRoute>} />
+          <Route path="/rate-calculator" element={<ProtectedRoute><RateCalculator /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+          <Route path="/api-keys" element={<ProtectedRoute><APIKeys /></ProtectedRoute>} />
+          <Route path="/automation-settings" element={<ProtectedRoute><AutomationSettings /></ProtectedRoute>} />
+          <Route path="/application-queue" element={<ProtectedRoute><ApplicationQueue /></ProtectedRoute>} />
+          <Route path="/search-profiles" element={<ProtectedRoute><SearchProfiles /></ProtectedRoute>} />
+          <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
