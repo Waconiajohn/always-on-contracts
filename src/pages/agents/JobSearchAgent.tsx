@@ -5,11 +5,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, BookmarkCheck, TrendingUp, Brain, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, BookmarkCheck, TrendingUp, Brain, AlertTriangle, FileText, BookmarkPlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const JobSearchAgentContent = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("search");
   const [useTransferableSkills, setUseTransferableSkills] = useState(false);
   const [warChestStats, setWarChestStats] = useState<any>(null);
@@ -124,9 +127,37 @@ const JobSearchAgentContent = () => {
 
               <TabsContent value="search" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-350px)]">
-                  <div className="text-center text-muted-foreground py-12">
-                    <Search className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p>Start a search to see results here</p>
+                  <div className="space-y-4">
+                    {/* Example job card - will be replaced with real results */}
+                    <div className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold">Senior Software Engineer</h3>
+                          <p className="text-sm text-muted-foreground">Tech Corp • San Francisco, CA</p>
+                        </div>
+                        <Button 
+                          size="sm"
+                          onClick={() => navigate('/agents/resume-builder')}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Apply
+                        </Button>
+                      </div>
+                      <p className="text-sm">
+                        Looking for an experienced engineer to join our team building scalable cloud infrastructure...
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm">
+                          <BookmarkPlus className="w-4 h-4 mr-2" />
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center text-muted-foreground py-8">
+                      <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">More results will appear here after search</p>
+                    </div>
                   </div>
                 </ScrollArea>
               </TabsContent>

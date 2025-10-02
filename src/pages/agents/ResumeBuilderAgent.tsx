@@ -5,14 +5,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Brain, History, GitCompare, Zap, Target, Plus } from "lucide-react";
+import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { JobImportDialog } from "@/components/JobImportDialog";
 
 const ResumeBuilderAgentContent = () => {
   const [activeTab, setActiveTab] = useState("current");
   const [jobDescription, setJobDescription] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [warChestData, setWarChestData] = useState<any>(null);
   const [selectedPhrases, setSelectedPhrases] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -169,15 +173,32 @@ const ResumeBuilderAgentContent = () => {
               </TabsList>
 
               <TabsContent value="current" className="mt-4 space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Job Description</label>
-                  <Textarea 
-                    placeholder="Paste the job description here..."
-                    className="min-h-[200px]"
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                  />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium">Job Description</label>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setImportDialogOpen(true)}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import Job
+                  </Button>
                 </div>
+                
+                {jobTitle && (
+                  <div className="p-3 bg-muted rounded-md space-y-1">
+                    <p className="text-sm font-semibold">{jobTitle}</p>
+                    {companyName && <p className="text-sm text-muted-foreground">{companyName}</p>}
+                  </div>
+                )}
+                
+                <Textarea 
+                  placeholder="Paste the job description here, or click 'Import Job' to upload from file/URL..."
+                  className="min-h-[200px]"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                />
+                
                 <Button onClick={handleGenerateResume} className="w-full">
                   <Plus className="h-4 w-4 mr-2" />
                   Generate Custom Resume
@@ -208,6 +229,20 @@ const ResumeBuilderAgentContent = () => {
           </Card>
         </div>
       </div>
+
+      <JobImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onJobImported={(jobData) => {
+          setJobDescription(jobData.jobDescription);
+          setJobTitle(jobData.jobTitle);
+          setCompanyName(jobData.companyName || "");
+          toast({
+            title: "Job Imported",
+            description: `Successfully imported: ${jobData.jobTitle}`,
+          });
+        }}
+      />
     </div>
   );
 };

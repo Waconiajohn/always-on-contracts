@@ -681,9 +681,15 @@ export type Database = {
       }
       job_projects: {
         Row: {
+          company_name: string | null
           created_at: string
+          external_job_url: string | null
           id: string
           interview_prep_data: Json | null
+          job_description: string | null
+          job_listing_id: string | null
+          job_source: string | null
+          job_title: string | null
           metadata: Json | null
           notes: string | null
           opportunity_id: string | null
@@ -694,9 +700,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_name?: string | null
           created_at?: string
+          external_job_url?: string | null
           id?: string
           interview_prep_data?: Json | null
+          job_description?: string | null
+          job_listing_id?: string | null
+          job_source?: string | null
+          job_title?: string | null
           metadata?: Json | null
           notes?: string | null
           opportunity_id?: string | null
@@ -707,9 +719,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_name?: string | null
           created_at?: string
+          external_job_url?: string | null
           id?: string
           interview_prep_data?: Json | null
+          job_description?: string | null
+          job_listing_id?: string | null
+          job_source?: string | null
+          job_title?: string | null
           metadata?: Json | null
           notes?: string | null
           opportunity_id?: string | null
@@ -720,6 +738,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "job_projects_job_listing_id_fkey"
+            columns: ["job_listing_id"]
+            isOneToOne: false
+            referencedRelation: "job_listings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_projects_opportunity_id_fkey"
             columns: ["opportunity_id"]
