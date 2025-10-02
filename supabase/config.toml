@@ -45,5 +45,8 @@ verify_jwt = true
 [functions.score-resume-match]
 verify_jwt = true
 
+[functions.scrape-jobs]
+verify_jwt = true
+
 [functions.sync-external-jobs]
 verify_jwt = false
