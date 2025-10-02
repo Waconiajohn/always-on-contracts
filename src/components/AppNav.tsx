@@ -38,10 +38,11 @@ export const AppNav = () => {
 
   const navItems = [
     { path: "/home", label: "Home", icon: Home },
+    { path: "/onboarding", label: "Getting Started", icon: Target },
     { path: "/agents/corporate-assistant", label: "Corporate Assistant", icon: Sparkles },
-    { path: "/war-chest-dashboard", label: "War Chest", icon: Target },
+    { path: "/war-chest-dashboard", label: "War Chest", icon: FileText },
+    { path: "/agents/interview-prep", label: "Interview Prep", icon: Brain },
     { path: "/projects", label: "Projects", icon: Briefcase },
-    { path: "/ai-agents", label: "AI Hub", icon: Brain },
     { path: "/application-queue", label: "Queue", icon: ListChecks },
   ];
 

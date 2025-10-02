@@ -2,18 +2,41 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Brain, Search, Bookmark, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Search, BookmarkCheck, TrendingUp, Brain, AlertTriangle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const JobSearchAgentContent = () => {
-  const [activeSearch, setActiveSearch] = useState("search1");
+  const [activeTab, setActiveTab] = useState("search");
+  const [useTransferableSkills, setUseTransferableSkills] = useState(false);
+  const [warChestStats, setWarChestStats] = useState<any>(null);
+
+  useEffect(() => {
+    fetchWarChestStats();
+  }, []);
+
+  const fetchWarChestStats = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: warChest } = await supabase
+      .from('career_war_chest')
+      .select('total_transferable_skills')
+      .eq('user_id', user.id)
+      .single();
+
+    setWarChestStats(warChest);
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Job Search Agent</h1>
-          <p className="text-muted-foreground">Let AI help you find the perfect opportunities</p>
+          <p className="text-muted-foreground">War Chest-powered job discovery</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
@@ -33,22 +56,49 @@ const JobSearchAgentContent = () => {
               <div className="space-y-4">
                 <div className="bg-muted p-4 rounded-lg">
                   <p className="text-sm">
-                    👋 Hi! I'm your job search assistant. I can help you find opportunities that match your skills and preferences.
-                  </p>
-                  <p className="text-sm mt-2">
-                    Try asking me to:
+                    📋 Search powered by your War Chest:
                   </p>
                   <ul className="text-sm mt-2 space-y-1 list-disc list-inside">
-                    <li>Search for specific job titles</li>
-                    <li>Find remote positions</li>
-                    <li>Filter by location or salary</li>
-                    <li>Compare similar roles</li>
+                    <li>Find matching opportunities</li>
+                    <li>Filter by location, rate, skills</li>
+                    <li>Save interesting positions</li>
+                    <li>Track market trends</li>
+                    <li>Get personalized recommendations</li>
                   </ul>
                 </div>
 
-                {/* Placeholder for chat messages */}
-                <div className="text-center text-muted-foreground text-sm py-8">
-                  Chat functionality coming soon...
+                <div className="bg-muted p-4 rounded-lg border-l-4 border-yellow-500">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                    <h3 className="font-semibold text-sm">Advanced Search Options</h3>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="transferable-skills" className="text-xs">
+                        Include Transferable Skills
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Search outside your industry (use as last resort)
+                      </p>
+                      {warChestStats && (
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {warChestStats.total_transferable_skills} skills available
+                        </Badge>
+                      )}
+                    </div>
+                    <Switch 
+                      id="transferable-skills"
+                      checked={useTransferableSkills}
+                      onCheckedChange={setUseTransferableSkills}
+                    />
+                  </div>
+                  <p className="text-xs text-yellow-600 mt-2">
+                    ⚠️ Companies prefer hiring within their industry. Enable only if limited options.
+                  </p>
+                </div>
+
+                <div className="text-center text-muted-foreground text-sm py-4">
+                  Search functionality coming soon...
                 </div>
               </div>
             </ScrollArea>
@@ -56,14 +106,14 @@ const JobSearchAgentContent = () => {
 
           {/* Right: Search Results Workspace */}
           <Card className="lg:col-span-2 p-6">
-            <Tabs value={activeSearch} onValueChange={setActiveSearch} className="h-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="search1" className="gap-2">
+                <TabsTrigger value="search" className="gap-2">
                   <Search className="h-4 w-4" />
                   Latest Search
                 </TabsTrigger>
                 <TabsTrigger value="saved" className="gap-2">
-                  <Bookmark className="h-4 w-4" />
+                  <BookmarkCheck className="h-4 w-4" />
                   Saved
                 </TabsTrigger>
                 <TabsTrigger value="trending" className="gap-2">
@@ -72,7 +122,7 @@ const JobSearchAgentContent = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="search1" className="mt-4">
+              <TabsContent value="search" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-350px)]">
                   <div className="text-center text-muted-foreground py-12">
                     <Search className="h-16 w-16 mx-auto mb-4 opacity-50" />
@@ -84,7 +134,7 @@ const JobSearchAgentContent = () => {
               <TabsContent value="saved" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-350px)]">
                   <div className="text-center text-muted-foreground py-12">
-                    <Bookmark className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <BookmarkCheck className="h-16 w-16 mx-auto mb-4 opacity-50" />
                     <p>Your saved jobs will appear here</p>
                   </div>
                 </ScrollArea>

@@ -26,7 +26,9 @@ import JobSearch from "./pages/JobSearch";
 import CorporateAssistant from "./pages/agents/CorporateAssistant";
 import JobSearchAgent from "./pages/agents/JobSearchAgent";
 import ResumeBuilderAgent from "./pages/agents/ResumeBuilderAgent";
+import InterviewPrepAgent from "./pages/agents/InterviewPrepAgent";
 import WarChestDashboard from "./pages/WarChestDashboard";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -61,7 +63,9 @@ const App = () => (
         <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
         <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />
         <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
+        <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
         <Route path="/war-chest-dashboard" element={<ProtectedRoute><WarChestDashboard /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
