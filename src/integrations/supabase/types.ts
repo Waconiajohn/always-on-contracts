@@ -61,6 +61,71 @@ export type Database = {
           },
         ]
       }
+      agent_sessions: {
+        Row: {
+          coach_personality: string
+          configuration: Json
+          context_data: string | null
+          context_digest: string | null
+          created_at: string | null
+          current_phase: string | null
+          expires_at: string
+          id: string
+          intensity_level: string
+          job_run_id: string | null
+          last_accessed: string | null
+          metadata: Json | null
+          session_state: Json | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coach_personality: string
+          configuration?: Json
+          context_data?: string | null
+          context_digest?: string | null
+          created_at?: string | null
+          current_phase?: string | null
+          expires_at?: string
+          id?: string
+          intensity_level: string
+          job_run_id?: string | null
+          last_accessed?: string | null
+          metadata?: Json | null
+          session_state?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coach_personality?: string
+          configuration?: Json
+          context_data?: string | null
+          context_digest?: string | null
+          created_at?: string | null
+          current_phase?: string | null
+          expires_at?: string
+          id?: string
+          intensity_level?: string
+          job_run_id?: string | null
+          last_accessed?: string | null
+          metadata?: Json | null
+          session_state?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_sessions_job_run_id_fkey"
+            columns: ["job_run_id"]
+            isOneToOne: false
+            referencedRelation: "application_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_queue: {
         Row: {
           ai_customization_notes: string | null
@@ -175,6 +240,59 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "job_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artifacts: {
+        Row: {
+          ats_score: number | null
+          competitiveness_score: number | null
+          content: string
+          created_at: string | null
+          id: string
+          job_run_id: string | null
+          kind: string
+          metadata: Json | null
+          quality_score: number | null
+          updated_at: string | null
+          user_id: string
+          version: number | null
+        }
+        Insert: {
+          ats_score?: number | null
+          competitiveness_score?: number | null
+          content: string
+          created_at?: string | null
+          id?: string
+          job_run_id?: string | null
+          kind: string
+          metadata?: Json | null
+          quality_score?: number | null
+          updated_at?: string | null
+          user_id: string
+          version?: number | null
+        }
+        Update: {
+          ats_score?: number | null
+          competitiveness_score?: number | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          job_run_id?: string | null
+          kind?: string
+          metadata?: Json | null
+          quality_score?: number | null
+          updated_at?: string | null
+          user_id?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifacts_job_run_id_fkey"
+            columns: ["job_run_id"]
+            isOneToOne: false
+            referencedRelation: "application_queue"
             referencedColumns: ["id"]
           },
         ]
@@ -496,76 +614,103 @@ export type Database = {
           automation_activated_at: string | null
           automation_enabled: boolean | null
           automation_mode: string | null
+          base_resume: string | null
+          career_goals: string | null
           core_skills: string[] | null
           created_at: string | null
           current_employment_status: string | null
+          current_title: string | null
           custom_target_rate_max: number | null
           custom_target_rate_min: number | null
           email: string | null
           full_name: string | null
           id: string
+          industry_preferences: Json | null
           key_achievements: string[] | null
           match_threshold_auto_apply: number | null
           match_threshold_queue: number | null
           max_daily_applications: number | null
           phone: string | null
+          preferred_location: string | null
+          role_preferences: Json | null
           strategy_customized: boolean | null
           subscription_tier: string | null
           target_industries: string[] | null
           target_positions: string[] | null
+          target_salary: string | null
           updated_at: string | null
           user_id: string
           why_me_narratives: Json | null
+          work_style_preferences: Json | null
+          years_experience: number | null
         }
         Insert: {
           automation_activated_at?: string | null
           automation_enabled?: boolean | null
           automation_mode?: string | null
+          base_resume?: string | null
+          career_goals?: string | null
           core_skills?: string[] | null
           created_at?: string | null
           current_employment_status?: string | null
+          current_title?: string | null
           custom_target_rate_max?: number | null
           custom_target_rate_min?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
+          industry_preferences?: Json | null
           key_achievements?: string[] | null
           match_threshold_auto_apply?: number | null
           match_threshold_queue?: number | null
           max_daily_applications?: number | null
           phone?: string | null
+          preferred_location?: string | null
+          role_preferences?: Json | null
           strategy_customized?: boolean | null
           subscription_tier?: string | null
           target_industries?: string[] | null
           target_positions?: string[] | null
+          target_salary?: string | null
           updated_at?: string | null
           user_id: string
           why_me_narratives?: Json | null
+          work_style_preferences?: Json | null
+          years_experience?: number | null
         }
         Update: {
           automation_activated_at?: string | null
           automation_enabled?: boolean | null
           automation_mode?: string | null
+          base_resume?: string | null
+          career_goals?: string | null
           core_skills?: string[] | null
           created_at?: string | null
           current_employment_status?: string | null
+          current_title?: string | null
           custom_target_rate_max?: number | null
           custom_target_rate_min?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
+          industry_preferences?: Json | null
           key_achievements?: string[] | null
           match_threshold_auto_apply?: number | null
           match_threshold_queue?: number | null
           max_daily_applications?: number | null
           phone?: string | null
+          preferred_location?: string | null
+          role_preferences?: Json | null
           strategy_customized?: boolean | null
           subscription_tier?: string | null
           target_industries?: string[] | null
           target_positions?: string[] | null
+          target_salary?: string | null
           updated_at?: string | null
           user_id?: string
           why_me_narratives?: Json | null
+          work_style_preferences?: Json | null
+          years_experience?: number | null
         }
         Relationships: []
       }
@@ -733,6 +878,54 @@ export type Database = {
           typical_rate_max?: number | null
           typical_rate_min?: number | null
           website?: string | null
+        }
+        Relationships: []
+      }
+      star_stories: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          industry: string | null
+          metrics: Json | null
+          result: string
+          situation: string
+          skills: Json | null
+          task: string
+          timeframe: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          industry?: string | null
+          metrics?: Json | null
+          result: string
+          situation: string
+          skills?: Json | null
+          task: string
+          timeframe?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          industry?: string | null
+          metrics?: Json | null
+          result?: string
+          situation?: string
+          skills?: Json | null
+          task?: string
+          timeframe?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
