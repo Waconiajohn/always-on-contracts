@@ -114,11 +114,27 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
 
   if (showConversation) {
     return (
-      <JobConversation
-        qualifications={qualifications}
-        onComplete={handleConversationComplete}
-        matchScore={Math.round(item.match_score)}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Resume Optimization Questions</CardTitle>
+          <CardDescription>
+            Answer these questions to customize your resume for this {Math.round(item.match_score)}% match opportunity
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Interactive resume optimization coming soon. For now, your resume will be automatically customized.
+          </p>
+          <div className="flex gap-2">
+            <Button onClick={() => handleConversationComplete({})}>
+              Continue with Auto-Optimization
+            </Button>
+            <Button variant="outline" onClick={() => setShowConversation(false)}>
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 

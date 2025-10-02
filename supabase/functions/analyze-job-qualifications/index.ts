@@ -48,104 +48,50 @@ serve(async (req) => {
 
     console.log('Analyzing job description...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://gateway.ai.cloudflare.com/v1/b8610e58b86f9d6e14e7c1c313e8c9e0/lovable/openai/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are an expert at analyzing job descriptions. Even when job descriptions are poorly written or vague, you can identify the standardized requirements for that profession and industry.
+            content: `You are an expert at analyzing job descriptions. Extract and return a JSON object with the following structure:
 
-Your task is to analyze job descriptions and extract:
-1. The professional title and industry
-2. Standardized qualifications for this role/industry (required, preferred, technical skills, soft skills)
-3. What a hiring manager is really looking for (priorities, red flags, ideal candidate profile)
-4. ATS-friendly keywords that should appear in a resume
-5. Compensation range if mentioned
-
-Respond with a JSON object following this structure:
 {
-  "professionalTitle": "string",
-  "industry": "string",
+  "professionalTitle": "the job title",
+  "industry": "the industry",
   "standardizedQualifications": {
-    "required": ["string"],
-    "preferred": ["string"],
-    "technical": ["string"],
-    "soft": ["string"]
+    "required": ["list of required qualifications"],
+    "preferred": ["list of preferred qualifications"],
+    "technical": ["list of technical skills"],
+    "soft": ["list of soft skills"]
   },
   "hiringManagerPerspective": {
-    "keyPriorities": ["string"],
-    "redFlags": ["string"],
-    "idealCandidate": "string"
+    "keyPriorities": ["what matters most to the hiring manager"],
+    "redFlags": ["what would disqualify a candidate"],
+    "idealCandidate": "description of the ideal candidate"
   },
-  "atsKeywords": ["string"],
+  "atsKeywords": ["important keywords for ATS"],
   "compensationRange": {
-    "min": number,
-    "max": number,
+    "min": 80000,
+    "max": 120000,
     "currency": "USD"
-  } or null
-}`
+  }
+}
+
+If compensation is not mentioned, set compensationRange to null.`
           },
           {
             role: 'user',
-            content: `Analyze this job description:\n\n${jobDescription}`
+            content: `Analyze this job description and return ONLY valid JSON:\n\n${jobDescription}`
           }
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "analyze_job",
-              description: "Analyze a job description and extract structured data",
-              parameters: {
-                type: "object",
-                properties: {
-                  professionalTitle: { type: "string" },
-                  industry: { type: "string" },
-                  standardizedQualifications: {
-                    type: "object",
-                    properties: {
-                      required: { type: "array", items: { type: "string" } },
-                      preferred: { type: "array", items: { type: "string" } },
-                      technical: { type: "array", items: { type: "string" } },
-                      soft: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["required", "preferred", "technical", "soft"],
-                    additionalProperties: false
-                  },
-                  hiringManagerPerspective: {
-                    type: "object",
-                    properties: {
-                      keyPriorities: { type: "array", items: { type: "string" } },
-                      redFlags: { type: "array", items: { type: "string" } },
-                      idealCandidate: { type: "string" }
-                    },
-                    required: ["keyPriorities", "redFlags", "idealCandidate"],
-                    additionalProperties: false
-                  },
-                  atsKeywords: { type: "array", items: { type: "string" } },
-                  compensationRange: {
-                    type: "object",
-                    properties: {
-                      min: { type: "number" },
-                      max: { type: "number" },
-                      currency: { type: "string" }
-                    },
-                    nullable: true
-                  }
-                },
-                required: ["professionalTitle", "industry", "standardizedQualifications", "hiringManagerPerspective", "atsKeywords"],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "analyze_job" } }
+        response_format: { type: "json_object" },
+        temperature: 0.7
       }),
     });
 
@@ -162,13 +108,13 @@ Respond with a JSON object following this structure:
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const content = data.choices?.[0]?.message?.content;
     
-    if (!toolCall || !toolCall.function?.arguments) {
+    if (!content) {
       throw new Error('No analysis data returned from AI');
     }
 
-    const analysis = JSON.parse(toolCall.function.arguments);
+    const analysis = JSON.parse(content);
 
     const result: JobAnalysisResult = {
       success: true,
