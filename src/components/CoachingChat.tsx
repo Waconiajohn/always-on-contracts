@@ -37,20 +37,52 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
   }, [messages]);
 
   useEffect(() => {
-    // Send initial greeting
-    if (messages.length === 0) {
-      const greetings: Record<string, string> = {
-        robert: "Hello, I'm Robert. I'm here to help you position yourself strategically for your next executive role. What brings you here today?",
-        sophia: "Hi there, I'm Sophia. I help executives like you develop authentic narratives that resonate. What would you like to work on?",
-        nexus: "Greetings, I'm Nexus. I use data-driven insights to optimize your career strategy. What can I analyze for you today?"
-      };
-      
-      setMessages([{ 
-        role: 'assistant', 
-        content: greetings[coachPersonality] || greetings.robert 
-      }]);
-    }
-  }, []);
+    const loadSession = async () => {
+      try {
+        // Load existing session for this coach
+        const { data: sessions, error } = await supabase
+          .from('agent_sessions')
+          .select('*')
+          .eq('coach_personality', coachPersonality)
+          .eq('status', 'active')
+          .order('last_accessed', { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+
+        if (sessions && sessions.length > 0) {
+          const session = sessions[0];
+          setSessionId(session.id);
+          
+          // Load conversation history
+          const config = session.configuration as any;
+          const history = config?.conversationHistory || [];
+          if (history.length > 0) {
+            setMessages(history);
+            return;
+          }
+        }
+
+        // If no session or history, send initial greeting
+        const greetings: Record<string, string> = {
+          robert: "Hello, I'm Robert. I'm here to help you position yourself strategically for your next executive role. What brings you here today?",
+          sophia: "Hi there, I'm Sophia. I help executives like you develop authentic narratives that resonate. What would you like to work on?",
+          nexus: "Greetings, I'm Nexus. I use data-driven insights to optimize your career strategy. What can I analyze for you today?"
+        };
+        
+        setMessages([{ 
+          role: 'assistant', 
+          content: greetings[coachPersonality] || greetings.robert 
+        }]);
+
+      } catch (error) {
+        console.error('Error loading session:', error);
+        toast.error("Failed to load previous conversation");
+      }
+    };
+
+    loadSession();
+  }, [coachPersonality]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
