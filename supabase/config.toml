@@ -36,6 +36,9 @@ verify_jwt = true
 [functions.mcp-server]
 verify_jwt = false
 
+[functions.optimize-resume-detailed]
+verify_jwt = true
+
 [functions.score-resume-match]
 verify_jwt = true
 
