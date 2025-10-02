@@ -32,10 +32,31 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
       setIsAnalyzing(true);
       try {
         const { data, error } = await supabase.functions.invoke('analyze-job-qualifications', {
-          body: { opportunityId: item.opportunity_id }
+          body: { 
+            opportunityId: item.opportunity_id,
+            jobDescription: item.job_opportunities?.job_description
+          }
         });
 
-        if (error) throw error;
+        if (error) {
+          // Handle specific error codes
+          if (error.message?.includes('Rate limit')) {
+            toast({
+              title: "Rate Limit Exceeded",
+              description: "Too many requests. Please try again in a moment.",
+              variant: "destructive",
+            });
+          } else if (error.message?.includes('credits')) {
+            toast({
+              title: "Credits Exhausted",
+              description: "Please add more credits to your workspace to continue.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
+          return;
+        }
 
         setQualifications(data.critical_qualifications || []);
         setShowConversation(true);
@@ -43,7 +64,7 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
         console.error('Error analyzing qualifications:', error);
         toast({
           title: "Error",
-          description: "Failed to analyze job qualifications",
+          description: "Failed to analyze job qualifications. Please try again.",
           variant: "destructive",
         });
       } finally {

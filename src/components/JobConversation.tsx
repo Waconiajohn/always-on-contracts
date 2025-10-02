@@ -52,11 +52,17 @@ export function JobConversation({ jobDescription, onAnalysisComplete }: JobConve
         }
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to analyze job');
-      }
-
       const data = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again in a moment.');
+        }
+        if (response.status === 402) {
+          throw new Error('AI credits exhausted. Please add more credits to continue.');
+        }
+        throw new Error(data.error || 'Failed to analyze job');
+      }
       
       if (!data.success) {
         throw new Error(data.error || 'Analysis failed');
