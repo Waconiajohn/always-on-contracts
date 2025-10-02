@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
+import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import Projects from "./pages/Projects";
 import ResumeUpload from "./pages/ResumeUpload";
 import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
@@ -21,6 +23,8 @@ import ApplicationQueue from "./pages/ApplicationQueue";
 import SearchProfiles from "./pages/SearchProfiles";
 import AIAgents from "./pages/AIAgents";
 import JobSearch from "./pages/JobSearch";
+import JobSearchAgent from "./pages/agents/JobSearchAgent";
+import ResumeBuilderAgent from "./pages/agents/ResumeBuilderAgent";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -34,8 +38,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
           <Route path="/resume-upload" element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>} />
           <Route path="/coaching" element={<ProtectedRoute><Coaching /></ProtectedRoute>} />
           <Route path="/resume-optimizer" element={<ProtectedRoute><ResumeOptimizer /></ProtectedRoute>} />
@@ -50,6 +56,8 @@ const App = () => (
           <Route path="/search-profiles" element={<ProtectedRoute><SearchProfiles /></ProtectedRoute>} />
           <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
+          <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />
+          <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -37,15 +37,13 @@ export const AppNav = () => {
   };
 
   const navItems = [
-    { path: "/", label: "Home", icon: Home },
+    { path: "/home", label: "Home", icon: Home },
+    { path: "/projects", label: "Projects", icon: Briefcase },
+    { path: "/ai-agents", label: "AI Hub", icon: Brain },
     { path: "/dashboard", label: "Dashboard", icon: FileText },
-    { path: "/ai-agents", label: "AI Agents", icon: Brain },
     { path: "/job-search", label: "Job Search", icon: Target },
-    { path: "/resume-upload", label: "Resume", icon: FileText },
-    { path: "/resume-optimizer", label: "Optimizer", icon: Sparkles },
     { path: "/coaching", label: "Coaching", icon: Brain },
     { path: "/application-queue", label: "Queue", icon: ListChecks },
-    { path: "/automation-settings", label: "Settings", icon: Settings },
   ];
 
   const NavButton = ({ item, onClick }: { item: typeof navItems[0]; onClick?: () => void }) => {
