@@ -7,14 +7,32 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Sparkles, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, Sparkles, TrendingUp, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { JobConversation } from './JobConversation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+interface JobAnalysis {
+  professionalTitle: string;
+  industry: string;
+  standardizedQualifications: any;
+  hiringManagerPerspective: any;
+  atsKeywords: string[];
+  compensationRange: any;
+}
 
 export function ResumeOptimizer() {
+  const [step, setStep] = useState<'input' | 'analysis' | 'optimization'>('input');
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [jobAnalysis, setJobAnalysis] = useState<JobAnalysis | null>(null);
   const [result, setResult] = useState<ResumeOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+
+  const handleAnalysisComplete = (analysis: JobAnalysis) => {
+    setJobAnalysis(analysis);
+    setStep('optimization');
+  };
 
   const handleOptimize = async () => {
     if (!resumeText || !jobDescription) {
@@ -35,75 +53,125 @@ export function ResumeOptimizer() {
     }
   };
 
+  const handleStartAnalysis = () => {
+    if (!jobDescription) {
+      toast.error('Please provide a job description');
+      return;
+    }
+    setStep('analysis');
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
     return 'text-red-600';
   };
 
+  if (step === 'input') {
+    return (
+      <div className="container mx-auto py-8 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">AI Resume Rewriter</h1>
+          <p className="text-muted-foreground">
+            Our most powerful feature - transform your resume with AI coaching, hiring manager insights, and precision targeting
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Resume</CardTitle>
+              <CardDescription>Paste your current resume text</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+                className="min-h-[300px] font-mono text-sm"
+                placeholder="Paste your resume text here..."
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                {resumeText.length} characters
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Job Description</CardTitle>
+              <CardDescription>Paste the target job description</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                className="min-h-[300px] font-mono text-sm"
+                placeholder="Paste the job description here..."
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                {jobDescription.length} characters
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex justify-center">
+          <Button
+            onClick={handleStartAnalysis}
+            disabled={!resumeText || !jobDescription}
+            size="lg"
+            className="w-full md:w-auto"
+          >
+            <ArrowRight className="mr-2 h-5 w-5" />
+            Start Deep Analysis
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'analysis') {
+    return (
+      <div className="container mx-auto py-8 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Job Analysis</h1>
+          <p className="text-muted-foreground">
+            Understanding what the hiring manager really wants
+          </p>
+        </div>
+
+        <JobConversation 
+          jobDescription={jobDescription}
+          onAnalysisComplete={handleAnalysisComplete}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">AI Resume Optimizer</h1>
+        <h1 className="text-3xl font-bold mb-2">Resume Optimization</h1>
         <p className="text-muted-foreground">
-          Optimize your resume to match job descriptions with AI-powered analysis
+          AI-powered resume rewriting with coaching personas and hiring manager insights
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Resume</CardTitle>
-            <CardDescription>Paste your current resume text</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
-              className="min-h-[300px] font-mono text-sm"
-              placeholder="Paste your resume text here..."
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              {resumeText.length} characters
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Description</CardTitle>
-            <CardDescription>Paste the target job description</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              className="min-h-[300px] font-mono text-sm"
-              placeholder="Paste the job description here..."
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              {jobDescription.length} characters
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex justify-center">
+      <div className="flex justify-center mb-6">
         <Button
           onClick={handleOptimize}
-          disabled={isOptimizing || !resumeText || !jobDescription}
+          disabled={isOptimizing}
           size="lg"
-          className="w-full md:w-auto"
         >
           {isOptimizing ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Optimizing Resume...
+              Optimizing with AI Coaches...
             </>
           ) : (
             <>
               <Sparkles className="mr-2 h-5 w-5" />
-              Optimize Resume
+              Start AI Optimization
             </>
           )}
         </Button>
