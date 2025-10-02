@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import ResumeUpload from "./pages/ResumeUpload";
 import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
+import Coaching from "./pages/Coaching";
 
 import Agencies from "./pages/Agencies";
 
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/resume-upload" element={<ResumeUpload />} />
+          <Route path="/coaching" element={<Coaching />} />
           <Route path="/agencies" element={<Agencies />} />
           
           <Route path="/opportunities" element={<Opportunities />} />
