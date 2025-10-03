@@ -44,66 +44,16 @@ serve(async (req) => {
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
     } 
-    // For PDF and DOC files, use Lovable AI to extract text
+    // For PDF and DOC files, inform user to paste text instead
     else if (fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'PDF parsing not configured. Please copy and paste your resume text instead.' 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-
-      // Use AI to extract text from PDF
-      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'system',
-              content: 'Extract all text content from the provided document. Return only the raw text without any formatting, explanations, or additional comments. Preserve the original structure and line breaks where appropriate.'
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: `Please extract all text from this ${fileName.split('.').pop()?.toUpperCase()} resume file:`
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:application/${fileName.endsWith('.pdf') ? 'pdf' : 'vnd.openxmlformats-officedocument.wordprocessingml.document'};base64,${fileData}`
-                  }
-                }
-              ]
-            }
-          ],
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'PDF and Word document parsing is not yet supported. Please open your resume, select all text (Ctrl+A or Cmd+A), copy it, and paste into the text area below instead.',
+          shouldShowTextArea: true
         }),
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error('AI extraction error:', errorText);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Failed to extract text from document. Please try copying and pasting the text instead.' 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-
-      const aiResult = await aiResponse.json();
-      extractedText = aiResult.choices?.[0]?.message?.content || '';
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     } else {
       return new Response(
         JSON.stringify({ 

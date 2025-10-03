@@ -72,36 +72,27 @@ const CorporateAssistantContent = () => {
     setResumeFile(file);
     
     try {
-      // For PDF and DOC files, use the parse function
-      if (file.name.toLowerCase().endsWith('.pdf') || 
-          file.name.toLowerCase().endsWith('.doc') || 
-          file.name.toLowerCase().endsWith('.docx')) {
-        
-        toast({
-          title: "Processing file...",
-          description: "Extracting text from your resume",
-        });
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const { data, error } = await supabase.functions.invoke('parse-resume', {
-          body: formData,
-        });
-
-        if (error || !data?.success) {
-          throw new Error(data?.error || 'Failed to parse resume');
-        }
-
-        setResumeText(data.text);
-        toast({
-          title: "Resume loaded",
-          description: "Your resume has been successfully parsed",
-        });
-      } else {
-        // For text files, read directly
+      // For text files, read directly
+      if (file.name.toLowerCase().endsWith('.txt')) {
         const text = await file.text();
         setResumeText(text);
+        toast({
+          title: "Resume loaded",
+          description: "Text file loaded successfully",
+        });
+      } else if (file.name.toLowerCase().endsWith('.pdf') || 
+                 file.name.toLowerCase().endsWith('.doc') || 
+                 file.name.toLowerCase().endsWith('.docx')) {
+        // Show helpful message for PDF/DOC files
+        toast({
+          title: "File Type Not Supported",
+          description: "Please open your resume, select all text (Ctrl+A or Cmd+A), and paste it into the text area below.",
+          variant: "destructive",
+          duration: 7000,
+        });
+        setResumeFile(null);
+      } else {
+        throw new Error("Unsupported file type. Please use .txt files or paste your resume text directly.");
       }
     } catch (error: any) {
       console.error('Error reading file:', error);
@@ -348,34 +339,35 @@ const CorporateAssistantContent = () => {
             <Upload className="w-16 h-16 text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Upload Your Resume</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Share your most comprehensive resume with me. I'll analyze it and then ask you questions to build a complete picture of your capabilities.
+              Share your resume as a .txt file, or paste your resume text below. I'll analyze it and ask you questions to build a complete picture of your capabilities.
             </p>
             <input
               type="file"
-              accept=".txt,.pdf,.doc,.docx"
+              accept=".txt"
               onChange={handleFileUpload}
               className="hidden"
               id="resume-upload"
             />
-            <label htmlFor="resume-upload">
-              <Button size="lg" asChild>
-                <span>Choose Resume File</span>
-              </Button>
-            </label>
-            {resumeFile && (
-              <div className="mt-4 w-full">
-                <p className="text-sm text-muted-foreground mb-2">Selected: {resumeFile.name}</p>
-                <Textarea
-                  value={resumeText}
-                  onChange={(e) => setResumeText(e.target.value)}
-                  placeholder="Or paste your resume text here..."
-                  className="min-h-[200px] mb-4"
-                />
+            <div className="flex gap-3 mb-4">
+              <label htmlFor="resume-upload">
+                <Button size="lg" variant="outline" asChild>
+                  <span>Upload .txt File</span>
+                </Button>
+              </label>
+            </div>
+            <div className="w-full max-w-md">
+              <Textarea
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+                placeholder="Or paste your resume text here..."
+                className="min-h-[200px] mb-4"
+              />
+              {resumeText && (
                 <Button onClick={handleAnalyzeResume} size="lg" className="w-full">
                   Analyze My Resume
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </Card>
       )}
