@@ -187,7 +187,7 @@ const DashboardContent = () => {
         <div className="container mx-auto px-4 py-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.full_name || session?.user?.email?.split('@')[0]}</h1>
-            <p className="text-lg text-muted-foreground">Here's your career management overview</p>
+            <p className="text-lg text-muted-foreground">Your contract work command center</p>
           </div>
         </div>
       </div>
@@ -196,9 +196,9 @@ const DashboardContent = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-12">
-          <h2 className="text-4xl font-bold mb-4">Welcome to Your Dashboard</h2>
+          <h2 className="text-4xl font-bold mb-4">Contract Work Dashboard</h2>
           <p className="text-xl text-muted-foreground">
-            Let's get started by uploading your resume and building your career strategy.
+            Manage your contract job search, connect with staffing agencies, and land premium opportunities.
           </p>
         </div>
 
