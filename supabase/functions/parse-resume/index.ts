@@ -44,21 +44,68 @@ serve(async (req) => {
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
     } 
-    // For PDF and DOC files, inform user to paste text instead
+    // For PDF and DOC files, use pdf.co API for parsing
     else if (fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'PDF and Word document parsing is not yet supported. Please open your resume, select all text (Ctrl+A or Cmd+A), copy it, and paste into the text area below instead.',
-          shouldShowTextArea: true
+      const PDFCO_API_KEY = Deno.env.get('PDFCO_API_KEY');
+      
+      if (!PDFCO_API_KEY) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Document parsing service not configured. Please contact support.',
+            needsConfig: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      // Use pdf.co API to convert document to text
+      const endpoint = fileName.endsWith('.pdf') 
+        ? 'https://api.pdf.co/v1/pdf/convert/to/text'
+        : 'https://api.pdf.co/v1/file/convert/to/text';
+
+      const pdfCoResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': PDFCO_API_KEY,
+        },
+        body: JSON.stringify({
+          base64: fileData,
+          async: false
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      });
+
+      if (!pdfCoResponse.ok) {
+        const errorText = await pdfCoResponse.text();
+        console.error('PDF.co extraction error:', errorText);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to parse document. Please try a different format or contact support.' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      const pdfCoResult = await pdfCoResponse.json();
+      
+      if (!pdfCoResult.body) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Could not extract text from document. Please try a different file.' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      extractedText = pdfCoResult.body;
     } else {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Unsupported file type. Please use .txt, .pdf, .doc, or .docx files, or paste your resume text directly.' 
+          error: 'Unsupported file type. Please use .txt, .pdf, .doc, or .docx files.' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
@@ -68,7 +115,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Could not extract meaningful text from the file. Please try pasting your resume text directly.' 
+          error: 'Could not extract meaningful text from the file. Please ensure the file contains text content.' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
