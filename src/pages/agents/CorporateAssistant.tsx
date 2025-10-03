@@ -70,8 +70,48 @@ const CorporateAssistantContent = () => {
     if (!file) return;
     
     setResumeFile(file);
-    const text = await file.text();
-    setResumeText(text);
+    
+    try {
+      // For PDF and DOC files, use the parse function
+      if (file.name.toLowerCase().endsWith('.pdf') || 
+          file.name.toLowerCase().endsWith('.doc') || 
+          file.name.toLowerCase().endsWith('.docx')) {
+        
+        toast({
+          title: "Processing file...",
+          description: "Extracting text from your resume",
+        });
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const { data, error } = await supabase.functions.invoke('parse-resume', {
+          body: formData,
+        });
+
+        if (error || !data?.success) {
+          throw new Error(data?.error || 'Failed to parse resume');
+        }
+
+        setResumeText(data.text);
+        toast({
+          title: "Resume loaded",
+          description: "Your resume has been successfully parsed",
+        });
+      } else {
+        // For text files, read directly
+        const text = await file.text();
+        setResumeText(text);
+      }
+    } catch (error: any) {
+      console.error('Error reading file:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to read file. Please try pasting the text instead.",
+        variant: "destructive",
+      });
+      setResumeFile(null);
+    }
   };
 
   const handleAnalyzeResume = async () => {
