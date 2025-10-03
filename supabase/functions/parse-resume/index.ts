@@ -44,63 +44,105 @@ serve(async (req) => {
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
     } 
-    // For PDF and DOC files, use pdf.co API for parsing
+    // For PDF and DOC files, use Lovable AI for parsing
     else if (fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      const PDFCO_API_KEY = Deno.env.get('PDFCO_API_KEY');
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       
-      if (!PDFCO_API_KEY) {
+      if (!LOVABLE_API_KEY) {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Document parsing service not configured. Please contact support.',
+            error: 'AI service not configured. Please contact support.',
             needsConfig: true
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
 
-      // Use pdf.co API to convert document to text
-      const endpoint = fileName.endsWith('.pdf') 
-        ? 'https://api.pdf.co/v1/pdf/convert/to/text'
-        : 'https://api.pdf.co/v1/file/convert/to/text';
+      console.log('Using Lovable AI to parse document...');
 
-      const pdfCoResponse = await fetch(endpoint, {
+      // Determine MIME type
+      const mimeType = fileName.endsWith('.pdf') 
+        ? 'application/pdf'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+      // Use Lovable AI to extract text from document
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
-          'x-api-key': PDFCO_API_KEY,
         },
         body: JSON.stringify({
-          base64: fileData,
-          async: false
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Please extract ALL text content from this resume document. Return only the raw text content, preserving formatting where possible. Do not add any commentary or explanations.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:${mimeType};base64,${fileData}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 4000
         }),
       });
 
-      if (!pdfCoResponse.ok) {
-        const errorText = await pdfCoResponse.text();
-        console.error('PDF.co extraction error:', errorText);
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error('Lovable AI error:', aiResponse.status, errorText);
+        
+        if (aiResponse.status === 429) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'AI service rate limit exceeded. Please try again in a moment.' 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
+          );
+        }
+        
+        if (aiResponse.status === 402) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'AI service requires additional credits. Please contact support.' 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
+          );
+        }
+        
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Failed to parse document. Please try a different format or contact support.' 
+            error: 'Failed to parse document with AI. Please try a different format.' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
 
-      const pdfCoResult = await pdfCoResponse.json();
-      
-      if (!pdfCoResult.body) {
+      const aiResult = await aiResponse.json();
+      extractedText = aiResult.choices?.[0]?.message?.content || '';
+
+      if (!extractedText) {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Could not extract text from document. Please try a different file.' 
+            error: 'Could not extract text from document. Please ensure the file contains readable text.' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
 
-      extractedText = pdfCoResult.body;
+      console.log('Successfully extracted text using AI, length:', extractedText.length);
     } else {
       return new Response(
         JSON.stringify({ 
