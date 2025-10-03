@@ -81,12 +81,18 @@ const CorporateAssistantContent = () => {
     setAiTyping(true);
 
     try {
+      // Sanitize resume text to remove null bytes and other problematic characters
+      const sanitizedText = resumeText
+        .replace(/\u0000/g, '') // Remove null bytes
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // Remove other control characters
+        .trim();
+
       // Create or update war chest
       const { data: warChest, error: wcError } = await supabase
         .from('career_war_chest')
         .upsert({
           user_id: userId,
-          resume_raw_text: resumeText,
+          resume_raw_text: sanitizedText,
           interview_completion_percentage: 0
         }, { onConflict: 'user_id' })
         .select()
@@ -97,7 +103,7 @@ const CorporateAssistantContent = () => {
 
       // Call initial analysis edge function
       const { data: analysis, error: analysisError } = await supabase.functions.invoke('analyze-resume', {
-        body: { resumeText }
+        body: { resumeText: sanitizedText }
       });
 
       if (analysisError) throw analysisError;
