@@ -71,3 +71,12 @@ verify_jwt = false
 
 [functions.validate-interview-response]
 verify_jwt = true
+
+[functions.orchestrator-agent]
+verify_jwt = true
+
+[functions.mcp-warchest-manager]
+verify_jwt = true
+
+[functions.mcp-persona-memory]
+verify_jwt = true
