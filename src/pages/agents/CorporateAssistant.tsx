@@ -51,7 +51,7 @@ const CorporateAssistantContent = () => {
       .from('career_war_chest')
       .select('*')
       .eq('user_id', uid)
-      .single();
+      .maybeSingle();
 
     if (data) {
       setWarChestId(data.id);
@@ -100,7 +100,15 @@ const CorporateAssistantContent = () => {
         });
         
         if (error || !data?.success) {
-          throw new Error(data?.error || 'Failed to parse document');
+          const errorMsg = data?.error || 'Failed to parse document';
+          toast({
+            title: "Unable to parse PDF",
+            description: "Please copy all text from your resume and paste it in the text area below instead.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          setResumeFile(null);
+          return; // Don't throw, just show the message and let user paste text
         }
         
         setResumeText(data.text);
