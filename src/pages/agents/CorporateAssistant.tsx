@@ -39,9 +39,9 @@ const CorporateAssistantContent = () => {
   const [aiTyping, setAiTyping] = useState(false);
   const [isParsingFile, setIsParsingFile] = useState(false);
 
-  // Configure PDF.js worker
+  // Configure PDF.js worker with specific version for reliability
   useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.149/build/pdf.worker.min.js';
     console.log('PDF.js worker configured:', pdfjsLib.GlobalWorkerOptions.workerSrc);
   }, []);
 
@@ -96,41 +96,68 @@ const CorporateAssistantContent = () => {
       else if (fileName.endsWith('.pdf')) {
         console.log('Starting PDF parsing...');
         
+        // Add timeout wrapper
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('PDF parsing timeout - file may be too large or corrupted')), 30000)
+        );
+        
+        const parsePDF = async () => {
+          try {
+            console.log('Reading file as ArrayBuffer...');
+            const arrayBuffer = await file.arrayBuffer();
+            console.log('ArrayBuffer created, size:', arrayBuffer.byteLength);
+            
+            if (arrayBuffer.byteLength === 0) {
+              throw new Error('File appears to be empty');
+            }
+            
+            console.log('Creating PDF loading task...');
+            const loadingTask = pdfjsLib.getDocument({ 
+              data: arrayBuffer,
+              useWorkerFetch: false,
+              isEvalSupported: false,
+              useSystemFonts: true
+            });
+            
+            console.log('Waiting for PDF to load...');
+            const pdf = await loadingTask.promise;
+            console.log('PDF loaded successfully, pages:', pdf.numPages);
+            
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              console.log(`Processing page ${i}/${pdf.numPages}`);
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items
+                .map((item: any) => item.str)
+                .join(' ');
+              fullText += pageText + '\n\n';
+            }
+            
+            console.log('Successfully extracted text from PDF, length:', fullText.length);
+            
+            if (fullText.trim().length < 50) {
+              throw new Error('PDF appears to be empty or text could not be extracted. Please try a different file or paste your resume text directly.');
+            }
+            
+            return { fullText, numPages: pdf.numPages };
+          } catch (err: any) {
+            console.error('PDF parsing error:', err);
+            throw err;
+          }
+        };
+        
         try {
-          const arrayBuffer = await file.arrayBuffer();
-          console.log('ArrayBuffer created, size:', arrayBuffer.byteLength);
+          const result = await Promise.race([parsePDF(), timeout]) as { fullText: string, numPages: number };
           
-          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-          console.log('Loading task created');
-          
-          const pdf = await loadingTask.promise;
-          console.log('PDF loaded, pages:', pdf.numPages);
-          
-          let fullText = '';
-          for (let i = 1; i <= pdf.numPages; i++) {
-            console.log(`Processing page ${i}/${pdf.numPages}`);
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items
-              .map((item: any) => item.str)
-              .join(' ');
-            fullText += pageText + '\n\n';
-          }
-          
-          console.log('Successfully extracted text from PDF, length:', fullText.length);
-          
-          if (fullText.trim().length < 50) {
-            throw new Error('PDF appears to be empty or text could not be extracted. Please try a different file or paste your resume text directly.');
-          }
-          
-          setResumeText(fullText);
+          setResumeText(result.fullText);
           toast({
             title: "PDF parsed successfully",
-            description: `Extracted ${fullText.length.toLocaleString()} characters from ${pdf.numPages} pages`,
+            description: `Extracted ${result.fullText.length.toLocaleString()} characters from ${result.numPages} pages`,
           });
         } catch (pdfError: any) {
-          console.error('PDF parsing error:', pdfError);
-          throw new Error(`Failed to parse PDF: ${pdfError.message}. Please try pasting your resume text directly.`);
+          console.error('Final PDF error:', pdfError);
+          throw new Error(`Unable to parse PDF: ${pdfError.message}. Please try pasting your resume text directly instead.`);
         }
       }
       // For DOC/DOCX files, use edge function
