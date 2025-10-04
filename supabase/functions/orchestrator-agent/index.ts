@@ -56,6 +56,10 @@ const MCP_SERVERS: Record<string, MCPServerConfig> = {
     url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mcp-market-intelligence`,
     type: 'custom'
   },
+  'jobs': {
+    url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mcp-job-scraper`,
+    type: 'custom'
+  },
   'apify-jobs': {
     url: 'https://api.apify.com/v2/acts',
     type: 'external',

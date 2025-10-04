@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, FileText, Target, Briefcase, ListChecks, Settings, LogOut, Menu, Brain, Sparkles } from "lucide-react";
+import { Home, FileText, Target, Briefcase, ListChecks, Settings, LogOut, Menu, Brain, Sparkles, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -42,6 +42,7 @@ export const AppNav = () => {
     { path: "/agents/corporate-assistant", label: "Corporate Assistant", icon: Sparkles },
     { path: "/war-chest-dashboard", label: "War Chest", icon: FileText },
     { path: "/agents/interview-prep", label: "Interview Prep", icon: Brain },
+    { path: "/experimental", label: "Experimental Lab", icon: Zap },
     { path: "/projects", label: "Projects", icon: Briefcase },
     { path: "/application-queue", label: "Queue", icon: ListChecks },
   ];

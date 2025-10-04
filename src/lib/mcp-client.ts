@@ -289,6 +289,31 @@ export const market = {
 };
 
 /**
+ * Job Scraper MCP Tools
+ */
+export const jobScraper = {
+  scrapeJobs: async (query: string, location?: string, sources?: string[], maxResults?: number) => {
+    return callMCPTool('jobs.scrape_jobs', { query, location, sources, maxResults });
+  },
+
+  monitorJobs: async (userId: string, searchCriteria: any, frequency?: string) => {
+    return callMCPTool('jobs.monitor_jobs', { userId, searchCriteria, frequency });
+  },
+
+  enrichJob: async (jobId: string, companyName?: string) => {
+    return callMCPTool('jobs.enrich_job', { jobId, companyName });
+  },
+
+  deduplicateJobs: async (sessionId: string) => {
+    return callMCPTool('jobs.deduplicate_jobs', { sessionId });
+  },
+
+  getScrapeStatus: async (sessionId: string) => {
+    return callMCPTool('jobs.get_scrape_status', { sessionId });
+  }
+};
+
+/**
  * Persona Memory MCP Tools
  */
 export const personaMemory = {

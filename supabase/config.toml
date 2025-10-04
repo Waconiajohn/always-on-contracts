@@ -101,3 +101,6 @@ verify_jwt = true
 
 [functions.mcp-market-intelligence]
 verify_jwt = true
+
+[functions.mcp-job-scraper]
+verify_jwt = true
