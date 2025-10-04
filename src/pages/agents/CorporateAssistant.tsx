@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Briefcase, Upload, MessageSquare, Target, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface InterviewPhase {
   phase: 'resume_understanding' | 'skills_translation' | 'hidden_gems' | 'complete';
@@ -36,6 +37,11 @@ const CorporateAssistantContent = () => {
   });
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [aiTyping, setAiTyping] = useState(false);
+
+  // Configure PDF.js worker
+  useEffect(() => {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -82,8 +88,37 @@ const CorporateAssistantContent = () => {
           title: "Resume loaded",
           description: "Text file loaded successfully",
         });
-      } else if (fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
-        // Parse PDF/DOC/DOCX files using edge function
+      } 
+      // For PDF files, parse on client side using pdf.js
+      else if (fileName.endsWith('.pdf')) {
+        toast({
+          title: "Parsing PDF...",
+          description: "Extracting text from your resume",
+        });
+        
+        console.log('Parsing PDF on client side...');
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ');
+          fullText += pageText + '\n\n';
+        }
+        
+        console.log('Successfully extracted text from PDF, length:', fullText.length);
+        setResumeText(fullText);
+        toast({
+          title: "PDF parsed successfully",
+          description: "Resume text extracted",
+        });
+      }
+      // For DOC/DOCX files, use edge function
+      else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
         toast({
           title: "Parsing document...",
           description: "This may take a moment",

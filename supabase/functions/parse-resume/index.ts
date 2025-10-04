@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { pdfText } from "jsr:@pdf/pdftext@1.3.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,28 +43,6 @@ serve(async (req) => {
     // Handle text files
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
-    } 
-    // For PDF files, use pdfText library (Deno-compatible)
-    else if (fileName.endsWith('.pdf')) {
-      console.log('Parsing PDF file...');
-      try {
-        const buffer = Uint8Array.from(atob(fileData), c => c.charCodeAt(0));
-        const pages = await pdfText(buffer);
-        
-        // Combine all pages into a single text string
-        extractedText = Object.values(pages).join('\n\n');
-        
-        console.log('Successfully parsed PDF, length:', extractedText.length);
-      } catch (pdfError) {
-        console.error('PDF parsing error:', pdfError);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Failed to parse PDF. Please ensure the file is a valid PDF with readable text, or copy and paste your resume text instead.' 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
     }
     // For DOC/DOCX files, use Lovable AI
     else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
