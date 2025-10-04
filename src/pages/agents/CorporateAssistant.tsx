@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Briefcase, Upload, MessageSquare, Target, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import * as pdfjsLib from 'pdfjs-dist';
 
 interface InterviewPhase {
   phase: 'resume_understanding' | 'skills_translation' | 'hidden_gems' | 'complete';
@@ -38,12 +37,6 @@ const CorporateAssistantContent = () => {
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [aiTyping, setAiTyping] = useState(false);
   const [isParsingFile, setIsParsingFile] = useState(false);
-
-  // Configure PDF.js worker with specific version for reliability
-  useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.149/build/pdf.worker.min.js';
-    console.log('PDF.js worker configured:', pdfjsLib.GlobalWorkerOptions.workerSrc);
-  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -75,153 +68,51 @@ const CorporateAssistantContent = () => {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log('File selected:', file?.name, 'Size:', file?.size);
-    
-    if (!file) {
-      console.log('No file selected');
-      return;
-    }
+    if (!file) return;
     
     setResumeFile(file);
     setIsParsingFile(true);
-    console.log('Started parsing, isParsingFile set to true');
     
     try {
       const fileName = file.name.toLowerCase();
-      console.log('Processing file type:', fileName);
       
-      // For text files, read directly
-      if (fileName.endsWith('.txt')) {
-        console.log('Processing as text file...');
-        const text = await file.text();
-        setResumeText(text);
-        toast({
-          title: "Resume loaded",
-          description: "Text file loaded successfully",
-        });
-      } 
-      // For PDF files, parse on client side using pdf.js
-      else if (fileName.endsWith('.pdf')) {
-        console.log('Starting PDF parsing for:', fileName);
-        
-        // Verify worker is loaded
-        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-          console.error('PDF.js worker not configured!');
-          throw new Error('PDF parser not initialized. Please refresh the page and try again.');
-        }
-        console.log('Worker source verified:', pdfjsLib.GlobalWorkerOptions.workerSrc);
-        
-        // Add timeout wrapper (30 seconds)
-        const timeout = new Promise<never>((_, reject) => 
-          setTimeout(() => {
-            console.error('PDF parsing timeout reached');
-            reject(new Error('PDF parsing timeout - file may be too large or corrupted'));
-          }, 30000)
-        );
-        
-        const parsePDF = async () => {
-          try {
-            console.log('Reading file as ArrayBuffer...');
-            const arrayBuffer = await file.arrayBuffer();
-            console.log('ArrayBuffer created, size:', arrayBuffer.byteLength, 'bytes');
-            
-            if (arrayBuffer.byteLength === 0) {
-              throw new Error('File appears to be empty');
-            }
-            
-            console.log('Creating PDF loading task...');
-            const loadingTask = pdfjsLib.getDocument({ 
-              data: arrayBuffer,
-              useWorkerFetch: false,
-              isEvalSupported: false,
-              useSystemFonts: true
-            });
-            
-            console.log('Waiting for PDF to load...');
-            const pdf = await loadingTask.promise;
-            console.log('PDF loaded successfully, pages:', pdf.numPages);
-            
-            let fullText = '';
-            for (let i = 1; i <= pdf.numPages; i++) {
-              console.log(`Processing page ${i}/${pdf.numPages}`);
-              const page = await pdf.getPage(i);
-              const textContent = await page.getTextContent();
-              const pageText = textContent.items
-                .map((item: any) => item.str)
-                .join(' ');
-              fullText += pageText + '\n\n';
-            }
-            
-            console.log('Successfully extracted text from PDF, length:', fullText.length);
-            
-            if (fullText.trim().length < 50) {
-              throw new Error('PDF appears to be empty or text could not be extracted. Please try a different file or paste your resume text directly.');
-            }
-            
-            return { fullText, numPages: pdf.numPages };
-          } catch (err: any) {
-            console.error('PDF parsing error:', err);
-            throw err;
-          }
-        };
-        
-        const result = await Promise.race([parsePDF(), timeout]) as { fullText: string, numPages: number };
-        
-        console.log('PDF parsing completed successfully');
-        setResumeText(result.fullText);
-        toast({
-          title: "PDF parsed successfully",
-          description: `Extracted ${result.fullText.length.toLocaleString()} characters from ${result.numPages} pages`,
-        });
-      }
-      // For DOC/DOCX files, use edge function
-      else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
-        toast({
-          title: "Parsing document...",
-          description: "This may take a moment",
-        });
-        
+      // All file types now go through backend
+      if (fileName.endsWith('.txt') || fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+        // Convert file to base64
         const arrayBuffer = await file.arrayBuffer();
         const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
         
+        // Send to backend edge function
         const { data, error } = await supabase.functions.invoke('parse-resume', {
-          body: {
-            fileData: base64Data,
-            fileName: file.name
-          }
+          body: { fileData: base64Data, fileName: file.name }
         });
         
-        if (error || !data?.success) {
-          throw new Error(data?.error || 'Failed to parse document');
+        if (error) {
+          throw new Error(error.message || 'Failed to parse file');
+        }
+        
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to parse file');
         }
         
         setResumeText(data.text);
-        toast({
-          title: "Document parsed",
-          description: "Resume text extracted successfully",
+        toast({ 
+          title: "File parsed successfully", 
+          description: `Extracted ${data.text.length.toLocaleString()} characters from ${file.name}` 
         });
       } else {
-        throw new Error("Unsupported file type. Please use .txt, .pdf, .doc, or .docx files.");
+        throw new Error('Unsupported file type. Please upload .txt, .pdf, .doc, or .docx');
       }
     } catch (error: any) {
-      console.error('=== FILE PARSING ERROR ===');
-      console.error('Error type:', error.constructor.name);
-      console.error('Error message:', error.message);
-      console.error('Full error:', error);
-      console.error('========================');
-      
-      toast({
-        title: "Unable to parse file",
-        description: error.message || "Failed to read file. Please paste your resume text in the box below instead.",
-        variant: "destructive",
+      console.error('File upload error:', error);
+      toast({ 
+        title: "Unable to parse file", 
+        description: error.message || 'An unexpected error occurred', 
+        variant: "destructive" 
       });
-      
-      // Reset file state on error
       setResumeFile(null);
-      setResumeText("");
+      setResumeText('');
     } finally {
-      // CRITICAL: Always reset parsing state
-      console.log('Resetting isParsingFile to false');
       setIsParsingFile(false);
     }
   };
