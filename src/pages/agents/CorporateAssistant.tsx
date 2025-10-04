@@ -72,27 +72,44 @@ const CorporateAssistantContent = () => {
     setResumeFile(file);
     
     try {
+      const fileName = file.name.toLowerCase();
+      
       // For text files, read directly
-      if (file.name.toLowerCase().endsWith('.txt')) {
+      if (fileName.endsWith('.txt')) {
         const text = await file.text();
         setResumeText(text);
         toast({
           title: "Resume loaded",
           description: "Text file loaded successfully",
         });
-      } else if (file.name.toLowerCase().endsWith('.pdf') || 
-                 file.name.toLowerCase().endsWith('.doc') || 
-                 file.name.toLowerCase().endsWith('.docx')) {
-        // Show helpful message for PDF/DOC files
+      } else if (fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+        // Parse PDF/DOC/DOCX files using edge function
         toast({
-          title: "File Type Not Supported",
-          description: "Please open your resume, select all text (Ctrl+A or Cmd+A), and paste it into the text area below.",
-          variant: "destructive",
-          duration: 7000,
+          title: "Parsing document...",
+          description: "This may take a moment",
         });
-        setResumeFile(null);
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        
+        const { data, error } = await supabase.functions.invoke('parse-resume', {
+          body: {
+            fileData: base64Data,
+            fileName: file.name
+          }
+        });
+        
+        if (error || !data?.success) {
+          throw new Error(data?.error || 'Failed to parse document');
+        }
+        
+        setResumeText(data.text);
+        toast({
+          title: "Document parsed",
+          description: "Resume text extracted successfully",
+        });
       } else {
-        throw new Error("Unsupported file type. Please use .txt files or paste your resume text directly.");
+        throw new Error("Unsupported file type. Please use .txt, .pdf, .doc, or .docx files.");
       }
     } catch (error: any) {
       console.error('Error reading file:', error);
@@ -339,11 +356,11 @@ const CorporateAssistantContent = () => {
             <Upload className="w-16 h-16 text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Upload Your Resume</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Share your resume as a .txt file, or paste your resume text below. I'll analyze it and ask you questions to build a complete picture of your capabilities.
+              Upload your resume (.txt, .pdf, .doc, or .docx) or paste your resume text below. I'll analyze it and ask you questions to build a complete picture of your capabilities.
             </p>
             <input
               type="file"
-              accept=".txt"
+              accept=".txt,.pdf,.doc,.docx"
               onChange={handleFileUpload}
               className="hidden"
               id="resume-upload"
@@ -351,7 +368,7 @@ const CorporateAssistantContent = () => {
             <div className="flex gap-3 mb-4">
               <label htmlFor="resume-upload">
                 <Button size="lg" variant="outline" asChild>
-                  <span>Upload .txt File</span>
+                  <span>Upload Resume</span>
                 </Button>
               </label>
             </div>
