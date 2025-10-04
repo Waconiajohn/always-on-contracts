@@ -146,7 +146,10 @@ const CorporateAssistantContent = () => {
 
       // Call initial analysis edge function
       const { data: analysis, error: analysisError } = await supabase.functions.invoke('analyze-resume', {
-        body: { resumeText: sanitizedText }
+        body: { 
+          resumeText: sanitizedText,
+          userId: userId
+        }
       });
 
       if (analysisError) throw analysisError;

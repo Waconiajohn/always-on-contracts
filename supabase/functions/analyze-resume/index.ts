@@ -12,13 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeText, resumeId } = await req.json();
+    const { resumeText, userId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     if (!supabaseUrl || !supabaseKey) throw new Error("Supabase credentials not configured");
+    if (!userId) throw new Error("User ID is required");
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -117,23 +118,11 @@ Focus on positioning experience as premium value for contract work.`
 
     const analysis = JSON.parse(toolCall.function.arguments);
 
-    // Get user_id from the resume
-    const { data: resume } = await supabase
-      .from("resumes")
-      .select("user_id")
-      .eq("id", resumeId)
-      .single();
-
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
-
     // Store analysis in database
     const { error: insertError } = await supabase
       .from("resume_analysis")
       .insert({
-        resume_id: resumeId,
-        user_id: resume.user_id,
+        user_id: userId,
         ...analysis
       });
 
