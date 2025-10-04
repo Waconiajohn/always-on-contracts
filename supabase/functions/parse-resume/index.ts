@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-// @deno-types="https://esm.sh/v135/@types/pdf-parse@1.1.4/index.d.ts"
-import pdf from "https://esm.sh/pdf-parse@1.1.1";
+import { pdfText } from "jsr:@pdf/pdftext@1.3.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,13 +45,16 @@ serve(async (req) => {
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
     } 
-    // For PDF files, use pdf-parse library
+    // For PDF files, use pdfText library (Deno-compatible)
     else if (fileName.endsWith('.pdf')) {
       console.log('Parsing PDF file...');
       try {
         const buffer = Uint8Array.from(atob(fileData), c => c.charCodeAt(0));
-        const pdfData = await pdf(buffer);
-        extractedText = pdfData.text;
+        const pages = await pdfText(buffer);
+        
+        // Combine all pages into a single text string
+        extractedText = Object.values(pages).join('\n\n');
+        
         console.log('Successfully parsed PDF, length:', extractedText.length);
       } catch (pdfError) {
         console.error('PDF parsing error:', pdfError);
