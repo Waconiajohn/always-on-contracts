@@ -119,11 +119,22 @@ serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
           );
         }
+
+        // Check if it's an image extraction error (common with certain PDF formats)
+        if (errorText.includes('Failed to extract') || errorText.includes('image')) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'This PDF format cannot be parsed automatically. Please copy and paste your resume text directly into the text area instead.' 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
         
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Failed to parse document with AI. Please try a different format.' 
+            error: 'Failed to parse document. Please try copying and pasting your resume text instead.' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
