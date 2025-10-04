@@ -120,12 +120,12 @@ serve(async (req) => {
     // Add retirement client role
     await supabaseClient
       .from('user_roles')
-      .insert({
+      .upsert({
         user_id: user.id,
         role: 'retirement_client',
-      })
-      .onConflict('user_id,role')
-      .merge();
+      }, {
+        onConflict: 'user_id,role'
+      });
 
     console.log("[REDEEM-RETIREMENT-CODE] Code redeemed successfully");
 

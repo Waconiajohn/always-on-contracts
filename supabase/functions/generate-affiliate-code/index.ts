@@ -86,12 +86,12 @@ serve(async (req) => {
     // Add affiliate role
     await supabaseClient
       .from('user_roles')
-      .insert({
+      .upsert({
         user_id: user.id,
         role: 'affiliate',
-      })
-      .onConflict('user_id,role')
-      .merge();
+      }, {
+        onConflict: 'user_id,role'
+      });
 
     console.log("[GENERATE-AFFILIATE-CODE] Affiliate account created:", referralCode);
 
