@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { pdfText } from "jsr:@pdf/pdftext@1.3.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,87 +45,41 @@ serve(async (req) => {
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
     }
-    // Handle PDF files server-side
+    // Handle PDF files with native PDF parser
     else if (fileName.endsWith('.pdf')) {
-      console.log('Parsing PDF server-side...');
+      console.log('Parsing PDF with native library...');
       
       try {
-        // Use Lovable AI to extract text from PDF
-        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        // Convert base64 to Uint8Array
+        const binaryString = atob(fileData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
         
-        if (!LOVABLE_API_KEY) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'PDF parsing service not configured. Please contact support.',
-              needsConfig: true
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Please extract ALL text content from this PDF resume document. Return only the raw text content, preserving formatting where possible. Do not add any commentary or explanations.'
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:application/pdf;base64,${fileData}`
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 4000
-          }),
-        });
-
-        if (!aiResponse.ok) {
-          const errorText = await aiResponse.text();
-          console.error('Lovable AI PDF error:', aiResponse.status, errorText);
-          
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'Failed to parse PDF. Please try converting to .txt or paste your resume text directly.' 
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-
-        const aiResult = await aiResponse.json();
-        extractedText = aiResult.choices?.[0]?.message?.content || '';
-
+        // Extract text from PDF (returns object with page numbers as keys)
+        const pages = await pdfText(bytes);
+        
+        // Combine all pages into single text
+        extractedText = Object.values(pages).join('\n\n');
+        
         if (!extractedText || extractedText.trim().length < 50) {
           return new Response(
             JSON.stringify({ 
               success: false, 
-              error: 'Could not extract text from PDF. Please ensure the file contains readable text or try pasting your resume directly.' 
+              error: 'No text found in PDF. This might be a scanned document or image-based PDF. Please try converting it to text first or paste the content directly.' 
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
-
-        console.log('Successfully extracted text from PDF, length:', extractedText.length);
+        
+        console.log('Successfully parsed PDF, extracted text length:', extractedText.length);
       } catch (pdfError: any) {
         console.error('PDF parsing error:', pdfError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `Failed to parse PDF: ${pdfError.message}` 
+            error: `Failed to parse PDF: ${pdfError.message}. If this is a scanned PDF, please convert it to text first or paste the content directly.` 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );

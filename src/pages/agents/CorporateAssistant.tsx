@@ -373,14 +373,9 @@ const CorporateAssistantContent = () => {
             {/* Parsing status */}
             {isParsingFile && (
               <div className="w-full max-w-md mb-4 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700 dark:border-yellow-300"></div>
-                    <p className="font-medium">Extracting text from your file...</p>
-                  </div>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                    If this takes more than 30 seconds, try pasting your text below instead
-                  </p>
+                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700 dark:border-yellow-300"></div>
+                  <p className="font-medium">Extracting text from your file... This usually takes just a few seconds.</p>
                 </div>
               </div>
             )}
