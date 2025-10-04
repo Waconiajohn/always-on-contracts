@@ -154,7 +154,9 @@ Example question:
 **EXAMPLE OF A STRONG ANSWER:**
 "I built an Excel model in 2018 that predicted customer churn by analyzing 18 months of purchase patterns across 10,000+ customers—it was 82% accurate and our retention team used it to target high-risk accounts, saving an estimated $400K annually. I wasn't officially a manager but I coordinated our team's sprint planning for 2 years and mentored 3 junior developers who all got promoted. I also created a Power BI dashboard that tracked 15 KPIs and was used by the executive team for quarterly strategy sessions."` : ''}
 
-Generate ONE structured question. Extract actual data from the resume text provided.`;
+Generate ONE structured question. Extract actual data from the resume text provided.
+
+CRITICAL REQUIREMENT: The exampleAnswer field MUST be completely unique and specifically tailored to answer the exact questions you're asking. Look at the resume data and craft an example that demonstrates how to answer YOUR specific questions with appropriate detail. Never reuse generic examples.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -165,7 +167,7 @@ Generate ONE structured question. Extract actual data from the resume text provi
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an expert career counselor who extracts resume data and creates pre-filled interview questions.' },
+          { role: 'system', content: 'You are an expert career counselor who extracts resume data and creates pre-filled interview questions. CRITICAL: Each example answer MUST be unique and specifically address the exact questions you are asking. Never reuse examples.' },
           { role: 'user', content: prompt }
         ],
         tools: [{
@@ -214,7 +216,7 @@ Generate ONE structured question. Extract actual data from the resume text provi
                 },
                 exampleAnswer: { 
                   type: "string",
-                  description: "Concrete example showing the level of detail expected"
+                  description: "Concrete example that SPECIFICALLY answers ALL the questions in questionsToExpand with the appropriate level of detail. Must be unique and contextually relevant to these exact questions. DO NOT reuse examples from other questions."
                 }
               },
               required: ["context", "knownData", "questionsToExpand", "exampleAnswer"]
