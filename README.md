@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# CareerIQ - Career Intelligence Platform
 
 ## Project info
 

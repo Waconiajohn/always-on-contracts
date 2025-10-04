@@ -74,7 +74,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
   return (
     <Card className="w-full max-w-4xl mx-auto p-8">
       <div className="mb-8 animate-fade-in">
-        <h2 className="text-3xl font-bold mb-2">Welcome to ContractCareer Pro</h2>
+        <h2 className="text-3xl font-bold mb-2">Welcome to CareerIQ</h2>
         <p className="text-muted-foreground text-lg">
           Let's build your Career War Chest - a comprehensive intelligence system of your skills, 
           achievements, and capabilities

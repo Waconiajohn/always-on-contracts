@@ -326,7 +326,7 @@ const APIKeysContent = () => {
               <pre className="bg-background p-4 rounded text-sm overflow-x-auto">
 {`{
   "mcpServers": {
-    "contractcareer": {
+    "careeriq": {
       "url": "${window.location.origin}/functions/v1/mcp-server",
       "headers": {
         "Authorization": "Bearer YOUR_API_KEY_HERE"

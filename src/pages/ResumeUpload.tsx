@@ -193,7 +193,7 @@ const ResumeUploadContent = () => {
           <div className="mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Upload Your Resume</h1>
             <p className="text-xl text-muted-foreground">
-              Our AI will analyze your experience and create a personalized contract career strategy in minutes.
+              Our AI will analyze your experience and create a personalized career intelligence strategy in minutes.
             </p>
           </div>
 

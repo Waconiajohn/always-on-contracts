@@ -113,11 +113,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <div className="p-4 flex items-center gap-3">
-          <img src={logo} alt="ContractCareer Pro" className="h-8 w-8" />
+          <img src={logo} alt="CareerIQ" className="h-8 w-8" />
           {!isCollapsed && (
             <div>
-              <div className="font-semibold text-sm">ContractCareer Pro</div>
-              <div className="text-xs text-muted-foreground">Career Intelligence</div>
+              <div className="font-semibold text-sm">CareerIQ</div>
+              <div className="text-xs text-muted-foreground">Command Center</div>
             </div>
           )}
         </div>

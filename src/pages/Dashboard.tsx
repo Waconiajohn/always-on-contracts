@@ -112,7 +112,7 @@ const DashboardContent = () => {
         <div className="container mx-auto px-4 py-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.full_name || session?.user?.email?.split('@')[0]}</h1>
-            <p className="text-lg text-muted-foreground">Your contract work command center</p>
+            <p className="text-lg text-muted-foreground">Your career intelligence command center</p>
           </div>
         </div>
       </div>
@@ -121,9 +121,9 @@ const DashboardContent = () => {
       <main className="container mx-auto px-4 py-8 space-y-12 animate-slide-up">
         {/* Welcome Section */}
         <div>
-          <h2 className="text-4xl font-bold mb-4">Contract Work Dashboard</h2>
+          <h2 className="text-4xl font-bold mb-4">Career Dashboard</h2>
           <p className="text-xl text-muted-foreground">
-            Manage your contract job search, connect with staffing agencies, and land premium opportunities.
+            Strategic career management for mid-career and executive professionals seeking permanent and contract opportunities.
           </p>
         </div>
 
@@ -166,9 +166,9 @@ const DashboardContent = () => {
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <TrendingUp className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle className="text-2xl">Contract Opportunities</CardTitle>
+              <CardTitle className="text-2xl">Career Opportunities</CardTitle>
               <CardDescription className="text-lg">
-                AI-matched contract positions based on your profile
+                AI-matched permanent and contract positions based on your profile
               </CardDescription>
             </CardHeader>
             <CardContent>

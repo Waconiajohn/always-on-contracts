@@ -58,10 +58,10 @@ const HomeContent = () => {
         {/* Hero Section */}
         <div className="text-center mb-16 space-y-4">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Welcome to ContractCareer Pro
+            Welcome to CareerIQ
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your AI-powered career assistant that helps you land more interviews and job offers
+            Your career intelligence command center—turn experience into your unfair advantage
           </p>
         </div>
 

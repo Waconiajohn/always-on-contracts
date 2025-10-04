@@ -11,12 +11,12 @@ const Landing = () => {
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground">
-            Smart Contract Job Search
-            <span className="block text-primary">Made Simple</span>
+            Turn Experience Into
+            <span className="block text-primary">Your Unfair Advantage</span>
           </h1>
           
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-            AI-powered tools to help you find and manage contract opportunities faster.
+            AI-powered career intelligence platform for mid-career and executive professionals. Your strategic command center for permanent and contract opportunities.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -60,30 +60,30 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-              Finding Contract Work Takes Too Long
+              Your Experience Isn't A Liability—It's Power
             </h2>
             <p className="text-xl md:text-2xl text-muted-foreground">
-              Stop wasting time on manual job searches and application tracking.
+              Stop letting age work against you. Strategic positioning for professionals 40+ who deserve premium opportunities.
             </p>
             <div className="grid md:grid-cols-2 gap-8 pt-8 text-left">
               <div className="bg-card p-6 rounded-lg border-2 border-destructive/20">
-                <h3 className="text-2xl font-semibold mb-4 text-destructive">❌ Manual Search</h3>
+                <h3 className="text-2xl font-semibold mb-4 text-destructive">❌ Traditional Approach</h3>
                 <ul className="space-y-3 text-lg text-muted-foreground">
-                  <li>• Hours spent browsing job boards</li>
-                  <li>• Forgetting to follow up with recruiters</li>
-                  <li>• Losing track of applications</li>
-                  <li>• Manually customizing each resume</li>
-                  <li>• Unclear what your rate should be</li>
+                  <li>• Age discrimination limits opportunities</li>
+                  <li>• Scattered job search across platforms</li>
+                  <li>• Generic applications get ignored</li>
+                  <li>• No strategic career positioning</li>
+                  <li>• Undervalued experience and skills</li>
                 </ul>
               </div>
               <div className="bg-card p-6 rounded-lg border-2 border-primary/20">
-                <h3 className="text-2xl font-semibold mb-4 text-primary">✓ With ContractCareer Pro</h3>
+                <h3 className="text-2xl font-semibold mb-4 text-primary">✓ With CareerIQ</h3>
                 <ul className="space-y-3 text-lg text-muted-foreground">
-                  <li>• AI matches jobs to your profile</li>
-                  <li>• Track recruiter conversations in one place</li>
-                  <li>• Manage your application pipeline</li>
-                  <li>• Get resume customization suggestions</li>
-                  <li>• Calculate fair market rates instantly</li>
+                  <li>• AI-powered strategic positioning</li>
+                  <li>• Contract pathways bypass age bias</li>
+                  <li>• Executive-level career intelligence</li>
+                  <li>• Concierge service with command center control</li>
+                  <li>• Turn 40+ experience into premium value</li>
                 </ul>
               </div>
             </div>
@@ -96,16 +96,16 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-center mb-16">
-              Everything You Need to Manage Your Contract Career
+              Your Career Intelligence Command Center
             </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <Zap className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-2xl font-semibold">AI-Powered Matching</h3>
+                <h3 className="text-2xl font-semibold">Strategic Intelligence</h3>
                 <p className="text-lg text-muted-foreground">
-                  Upload your resume and get AI-powered job matches based on your skills, experience, and preferences.
+                  AI analyzes your experience and positions you for premium permanent roles and strategic contract opportunities that value seasoned professionals.
                 </p>
               </div>
               
@@ -113,9 +113,9 @@ const Landing = () => {
                 <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <Shield className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-2xl font-semibold">Application Queue</h3>
+                <h3 className="text-2xl font-semibold">Command Center</h3>
                 <p className="text-lg text-muted-foreground">
-                  Review matched opportunities, get resume customization suggestions, and track your applications in one place.
+                  Manage your entire career strategy from one dashboard. Track applications, prepare for interviews, and maintain your professional network with precision.
                 </p>
               </div>
               
@@ -123,9 +123,9 @@ const Landing = () => {
                 <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <Users className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-2xl font-semibold">Recruiter Network</h3>
+                <h3 className="text-2xl font-semibold">Concierge Service</h3>
                 <p className="text-lg text-muted-foreground">
-                  Access 200+ staffing agencies, track your outreach, and use templates to streamline communication.
+                  Premium tiers include dedicated support, direct C-suite outreach, and white-glove career transitions designed for executives and senior professionals.
                 </p>
               </div>
             </div>
@@ -142,13 +142,13 @@ const Landing = () => {
             </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-card p-8 rounded-lg border-2">
-                <h3 className="text-2xl font-bold mb-4">Active Search</h3>
+                <h3 className="text-2xl font-bold mb-4">Career Command</h3>
                 <div className="mb-6">
                   <span className="text-5xl font-bold">$49</span>
                   <span className="text-xl text-muted-foreground">/month</span>
                 </div>
                 <p className="text-lg text-muted-foreground mb-6">
-                  For professionals actively seeking contracts
+                  For professionals actively seeking permanent or contract roles
                 </p>
                 <Button 
                   className="w-full text-lg py-6"
@@ -162,13 +162,13 @@ const Landing = () => {
                 <div className="absolute top-4 right-4 bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm font-semibold">
                   MOST POPULAR
                 </div>
-                <h3 className="text-2xl font-bold mb-4">Contract Autopilot</h3>
+                <h3 className="text-2xl font-bold mb-4">Always Ready</h3>
                 <div className="mb-6">
                   <span className="text-5xl font-bold">$29</span>
                   <span className="text-xl opacity-90">/month</span>
                 </div>
                 <p className="text-lg opacity-90 mb-6">
-                  For professionals currently under contract
+                  Stay market-ready while employed with passive opportunity monitoring
                 </p>
                 <Button 
                   variant="secondary" 
@@ -180,13 +180,13 @@ const Landing = () => {
               </div>
               
               <div className="bg-card p-8 rounded-lg border-2">
-                <h3 className="text-2xl font-bold mb-4">Executive Concierge</h3>
+                <h3 className="text-2xl font-bold mb-4">Concierge Elite</h3>
                 <div className="mb-6">
                   <span className="text-5xl font-bold">$99</span>
                   <span className="text-xl text-muted-foreground">/month</span>
                 </div>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Premium service with human support
+                  White-glove service for C-suite and senior executives
                 </p>
                 <Button 
                   variant="outline" 
@@ -206,10 +206,10 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-8 bg-primary text-primary-foreground p-12 rounded-2xl">
             <h2 className="text-4xl md:text-5xl font-bold">
-              Ready to Simplify Your Contract Job Search?
+              Ready to Turn Experience Into Your Career Advantage?
             </h2>
             <p className="text-xl md:text-2xl opacity-90">
-              Get started in minutes and find your next contract opportunity faster.
+              Join mid-career and executive professionals who've stopped letting age limit their opportunities.
             </p>
             <Button 
               size="lg" 
@@ -229,9 +229,9 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="space-y-4">
-              <h3 className="text-xl font-bold">ContractCareer Pro</h3>
+              <h3 className="text-xl font-bold">CareerIQ</h3>
               <p className="text-muted-foreground">
-                Smart tools to help contract professionals find their next opportunity.
+                Career intelligence platform for mid-career and executive professionals who refuse to be undervalued.
               </p>
             </div>
             <div className="space-y-4">
@@ -281,7 +281,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="border-t pt-8 text-center text-muted-foreground">
-            <p>&copy; 2025 ContractCareer Pro. All rights reserved.</p>
+            <p>&copy; 2025 CareerIQ. All rights reserved.</p>
           </div>
         </div>
       </footer>

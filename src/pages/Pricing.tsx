@@ -31,12 +31,12 @@ const Pricing = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Active Search Tier */}
+            {/* Career Command Tier */}
             <Card className="border-2">
               <CardHeader>
-                <CardTitle className="text-3xl">Active Search</CardTitle>
+                <CardTitle className="text-3xl">Career Command</CardTitle>
                 <CardDescription className="text-lg">
-                  For professionals actively seeking contracts
+                  For professionals actively seeking permanent or contract roles
                 </CardDescription>
                 <div className="pt-4">
                   <span className="text-5xl font-bold">$49</span>
@@ -76,15 +76,15 @@ const Pricing = () => {
               </CardContent>
             </Card>
 
-            {/* Contract Autopilot Tier */}
+            {/* Always Ready Tier */}
             <Card className="border-4 border-primary relative">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-bold">
                 MOST POPULAR
               </div>
               <CardHeader className="bg-primary/5">
-                <CardTitle className="text-3xl">Contract Autopilot</CardTitle>
+                <CardTitle className="text-3xl">Always Ready</CardTitle>
                 <CardDescription className="text-lg">
-                  For professionals currently under contract
+                  Stay market-ready while employed with passive monitoring
                 </CardDescription>
                 <div className="pt-4">
                   <span className="text-5xl font-bold text-primary">$29</span>
@@ -124,12 +124,12 @@ const Pricing = () => {
               </CardContent>
             </Card>
 
-            {/* Executive Concierge Tier */}
+            {/* Concierge Elite Tier */}
             <Card className="border-2">
               <CardHeader>
-                <CardTitle className="text-3xl">Executive Concierge</CardTitle>
+                <CardTitle className="text-3xl">Concierge Elite</CardTitle>
                 <CardDescription className="text-lg">
-                  Premium service for high-value contractors
+                  White-glove service for C-suite and senior executives
                 </CardDescription>
                 <div className="pt-4">
                   <span className="text-5xl font-bold">$99</span>
@@ -179,8 +179,8 @@ const Pricing = () => {
               <div>
                 <h3 className="text-xl font-semibold mb-2">Can I switch between plans?</h3>
                 <p className="text-lg text-muted-foreground">
-                  Yes! You can upgrade or downgrade anytime. When you land a contract, downgrade to Autopilot. 
-                  When your contract nears its end, upgrade back to Active Search.
+                  Yes! You can upgrade or downgrade anytime. When you land a role, downgrade to Always Ready. 
+                  When actively seeking new opportunities, upgrade to Career Command.
                 </p>
               </div>
               <div>
@@ -192,8 +192,8 @@ const Pricing = () => {
               <div>
                 <h3 className="text-xl font-semibold mb-2">What is the &lt;30 day transition guarantee?</h3>
                 <p className="text-lg text-muted-foreground">
-                  With Contract Autopilot active, we guarantee you'll have qualified opportunities in your pipeline 
-                  within 30 days of your current contract ending.
+                  With Always Ready active, we guarantee you'll have qualified opportunities in your pipeline 
+                  within 30 days of when you need them.
                 </p>
               </div>
               <div>

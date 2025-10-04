@@ -1,12 +1,12 @@
 # MCP (Model Context Protocol) Integration
 
-ContractCareer Pro now supports MCP, allowing AI assistants like Claude Desktop to directly access your job opportunities data!
+CareerIQ now supports MCP, allowing AI assistants like Claude Desktop to directly access your career intelligence data!
 
 ## What is MCP?
 
 Model Context Protocol (MCP) is an open protocol that lets AI assistants access external data sources and tools. This integration allows Claude (or any MCP-compatible AI) to:
 
-- Search your 5,969+ contract opportunities
+- Search your 5,969+ career opportunities
 - View your AI-matched job recommendations
 - Browse staffing agencies database
 - Get personalized job details
@@ -15,7 +15,7 @@ Model Context Protocol (MCP) is an open protocol that lets AI assistants access 
 
 ### 1. Generate an API Key
 
-1. Log into ContractCareer Pro
+1. Log into CareerIQ
 2. Navigate to **Dashboard → API Keys**
 3. Click "Create New API Key"
 4. Give it a name (e.g., "Claude Desktop")
@@ -33,7 +33,7 @@ Add this configuration:
 ```json
 {
   "mcpServers": {
-    "contractcareer": {
+    "careeriq": {
       "url": "https://ubcghjlfxkamyyefnbkf.supabase.co/functions/v1/mcp-server",
       "headers": {
         "Authorization": "Bearer YOUR_API_KEY_HERE"
@@ -43,7 +43,7 @@ Add this configuration:
 }
 ```
 
-**Replace `YOUR_API_KEY_HERE`** with your actual API key (starts with `ccp_`)
+**Replace `YOUR_API_KEY_HERE`** with your actual API key (starts with `ciq_`)
 
 ### 3. Restart Claude Desktop
 
@@ -149,7 +149,7 @@ Mark an opportunity as applied (sets status to "applied" and records the date).
 ## Troubleshooting
 
 ### "Invalid API key" error
-- Verify you copied the entire key (starts with `ccp_`)
+- Verify you copied the entire key (starts with `ciq_`)
 - Check for extra spaces or line breaks
 - Ensure the key is still active (not deleted)
 

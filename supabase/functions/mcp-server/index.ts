@@ -88,7 +88,7 @@ serve(async (req) => {
               tools: {},
             },
             serverInfo: {
-              name: 'ContractCareer Pro MCP Server',
+              name: 'CareerIQ MCP Server',
               version: '1.0.0',
             },
           },

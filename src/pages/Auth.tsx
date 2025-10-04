@@ -89,8 +89,8 @@ const Auth = () => {
           </CardTitle>
           <CardDescription className="text-center text-lg">
             {isLogin
-              ? "Sign in to access your contract career dashboard"
-              : "Create your account to start finding high-value contracts"}
+              ? "Sign in to access your career intelligence platform"
+              : "Join mid-career and executive professionals turning experience into advantage"}
           </CardDescription>
         </CardHeader>
         <CardContent>
