@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Briefcase, Upload, MessageSquare, Target, CheckCircle2, Info, ChevronDown, AlertCircle, Sparkles } from "lucide-react";
+import { Briefcase, Upload, MessageSquare, Target, CheckCircle2, Info, ChevronDown, AlertCircle, Sparkles, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PreFilledQuestion } from "@/components/PreFilledQuestion";
+import { VoiceInput } from "@/components/VoiceInput";
 
 interface InterviewPhase {
   phase: 'resume_understanding' | 'skills_translation' | 'hidden_gems' | 'complete';
@@ -42,6 +43,9 @@ const CorporateAssistantContent = () => {
   const [validationFeedback, setValidationFeedback] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [currentQuestionData, setCurrentQuestionData] = useState<any>(null);
+  const [currentSubQuestion, setCurrentSubQuestion] = useState(0);
+  const [subQuestionResponses, setSubQuestionResponses] = useState<string[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -223,9 +227,13 @@ const CorporateAssistantContent = () => {
       if (typeof questionData === 'object' && questionData.context) {
         // Structured format
         setCurrentQuestionData(questionData);
+        setCurrentSubQuestion(0);
+        setSubQuestionResponses([]);
       } else {
         // Text format (fallback)
         setCurrentQuestionData({ question: questionData });
+        setCurrentSubQuestion(0);
+        setSubQuestionResponses([]);
       }
 
       setInterviewPhase({
@@ -253,57 +261,133 @@ const CorporateAssistantContent = () => {
     }
   };
 
+  const handleNextSubQuestion = () => {
+    if (!currentResponse.trim()) return;
+    
+    // Save current sub-question response
+    const newResponses = [...subQuestionResponses];
+    newResponses[currentSubQuestion] = currentResponse;
+    setSubQuestionResponses(newResponses);
+    setCurrentResponse("");
+    
+    // Move to next sub-question
+    setCurrentSubQuestion(prev => prev + 1);
+  };
+
   const handleSubmitResponse = async () => {
     if (!currentResponse.trim() || !warChestId) return;
 
-    // Validate answer quality first
-    setIsValidating(true);
-    try {
-      const { data: validation, error: valError } = await supabase.functions.invoke('validate-interview-response', {
-        body: {
-          question: interviewPhase.questions[0],
-          answer: currentResponse
+    // For structured questions with sub-questions
+    if (currentQuestionData?.questionsToExpand && currentQuestionData.questionsToExpand.length > 0) {
+      // Save final sub-question response
+      const allResponses = [...subQuestionResponses];
+      allResponses[currentSubQuestion] = currentResponse;
+      
+      // Combine all responses with question labels
+      const combinedResponse = allResponses
+        .map((resp, idx) => {
+          const q = currentQuestionData.questionsToExpand[idx];
+          return `Q${idx + 1}: ${q.prompt}\nA: ${resp}`;
+        })
+        .join('\n\n');
+
+      // Validate combined answer
+      setIsValidating(true);
+      try {
+        const { data: validation, error: valError } = await supabase.functions.invoke('validate-interview-response', {
+          body: {
+            question: interviewPhase.questions[0],
+            answer: combinedResponse
+          }
+        });
+
+        if (valError) throw valError;
+
+        setValidationFeedback(validation);
+
+        if (!validation.is_sufficient) {
+          setIsValidating(false);
+          toast({
+            title: "Great start!",
+            description: "Your answers could be stronger. See the feedback below.",
+          });
+          return;
         }
-      });
 
-      if (valError) throw valError;
+        await supabase
+          .from('war_chest_interview_responses')
+          .insert({
+            war_chest_id: warChestId,
+            user_id: userId,
+            question: interviewPhase.questions[0],
+            response: combinedResponse,
+            phase: interviewPhase.phase
+          });
 
-      setValidationFeedback(validation);
+        setCurrentResponse("");
+        setValidationFeedback(null);
+        setCurrentSubQuestion(0);
+        setSubQuestionResponses([]);
+        await loadNextQuestion(warChestId);
 
-      // If answer is insufficient, show feedback but don't move forward yet
-      if (!validation.is_sufficient) {
-        setIsValidating(false);
+      } catch (error: any) {
+        console.error('Error submitting response:', error);
         toast({
-          title: "Great start!",
-          description: "Your answer could be stronger. See the feedback below.",
+          title: "Error",
+          description: "Failed to save response",
+          variant: "destructive",
         });
-        return;
+      } finally {
+        setIsValidating(false);
       }
-
-      // Answer is good - save and move to next question
-      await supabase
-        .from('war_chest_interview_responses')
-        .insert({
-          war_chest_id: warChestId,
-          user_id: userId,
-          question: interviewPhase.questions[0],
-          response: currentResponse,
-          phase: interviewPhase.phase
+    } else {
+      // Old format - single question
+      setIsValidating(true);
+      try {
+        const { data: validation, error: valError } = await supabase.functions.invoke('validate-interview-response', {
+          body: {
+            question: interviewPhase.questions[0],
+            answer: currentResponse
+          }
         });
 
-      setCurrentResponse("");
-      setValidationFeedback(null);
-      await loadNextQuestion(warChestId);
+        if (valError) throw valError;
 
-    } catch (error: any) {
-      console.error('Error submitting response:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save response",
-        variant: "destructive",
-      });
-    } finally {
-      setIsValidating(false);
+        setValidationFeedback(validation);
+
+        if (!validation.is_sufficient) {
+          setIsValidating(false);
+          toast({
+            title: "Great start!",
+            description: "Your answer could be stronger. See the feedback below.",
+          });
+          return;
+        }
+
+        await supabase
+          .from('war_chest_interview_responses')
+          .insert({
+            war_chest_id: warChestId,
+            user_id: userId,
+            question: interviewPhase.questions[0],
+            response: currentResponse,
+            phase: interviewPhase.phase
+          });
+
+        setCurrentResponse("");
+        setValidationFeedback(null);
+        await loadNextQuestion(warChestId);
+
+      } catch (error: any) {
+        console.error('Error submitting response:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save response",
+          variant: "destructive",
+        });
+      } finally {
+        setIsValidating(false);
+      }
     }
   };
 
@@ -311,29 +395,76 @@ const CorporateAssistantContent = () => {
     // User wants to submit answer despite validation feedback
     if (!currentResponse.trim() || !warChestId) return;
 
-    try {
-      await supabase
-        .from('war_chest_interview_responses')
-        .insert({
-          war_chest_id: warChestId,
-          user_id: userId,
-          question: interviewPhase.questions[0],
-          response: currentResponse,
-          phase: interviewPhase.phase
+    // For structured questions with sub-questions
+    if (currentQuestionData?.questionsToExpand && currentQuestionData.questionsToExpand.length > 0) {
+      const allResponses = [...subQuestionResponses];
+      allResponses[currentSubQuestion] = currentResponse;
+      
+      const combinedResponse = allResponses
+        .map((resp, idx) => {
+          const q = currentQuestionData.questionsToExpand[idx];
+          return `Q${idx + 1}: ${q.prompt}\nA: ${resp}`;
+        })
+        .join('\n\n');
+
+      try {
+        await supabase
+          .from('war_chest_interview_responses')
+          .insert({
+            war_chest_id: warChestId,
+            user_id: userId,
+            question: interviewPhase.questions[0],
+            response: combinedResponse,
+            phase: interviewPhase.phase
+          });
+
+        setCurrentResponse("");
+        setValidationFeedback(null);
+        setCurrentSubQuestion(0);
+        setSubQuestionResponses([]);
+        await loadNextQuestion(warChestId);
+
+      } catch (error: any) {
+        console.error('Error submitting response:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save response",
+          variant: "destructive",
         });
+      }
+    } else {
+      try {
+        await supabase
+          .from('war_chest_interview_responses')
+          .insert({
+            war_chest_id: warChestId,
+            user_id: userId,
+            question: interviewPhase.questions[0],
+            response: currentResponse,
+            phase: interviewPhase.phase
+          });
 
-      setCurrentResponse("");
-      setValidationFeedback(null);
-      await loadNextQuestion(warChestId);
+        setCurrentResponse("");
+        setValidationFeedback(null);
+        await loadNextQuestion(warChestId);
 
-    } catch (error: any) {
-      console.error('Error submitting response:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save response",
-        variant: "destructive",
-      });
+      } catch (error: any) {
+        console.error('Error submitting response:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save response",
+          variant: "destructive",
+        });
+      }
     }
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    // Append voice transcript to current response
+    setCurrentResponse(prev => {
+      const newText = prev ? `${prev} ${text}` : text;
+      return newText;
+    });
   };
 
   // Parse markdown-formatted question
@@ -576,7 +707,14 @@ const CorporateAssistantContent = () => {
               {/* Pre-Filled Question Component or Fallback */}
               {currentQuestionData?.context && currentQuestionData?.questionsToExpand ? (
                 <div className="mb-6">
-                  <PreFilledQuestion {...currentQuestionData} />
+                  <PreFilledQuestion 
+                    context={currentQuestionData.context}
+                    knownData={currentQuestionData.knownData || []}
+                    singleQuestion={currentQuestionData.questionsToExpand[currentSubQuestion]}
+                    exampleAnswer={currentQuestionData.exampleAnswer}
+                    questionNumber={currentSubQuestion + 1}
+                    totalQuestions={currentQuestionData.questionsToExpand.length}
+                  />
                 </div>
               ) : (
                 <>
@@ -661,12 +799,25 @@ const CorporateAssistantContent = () => {
                 </Card>
               )}
 
-              <Textarea
-                value={currentResponse}
-                onChange={(e) => setCurrentResponse(e.target.value)}
-                placeholder="Share your experience here... Be specific with numbers, dates, and technologies."
-                className="min-h-[150px] mb-4"
-              />
+              {/* Answer Textarea with Voice Input */}
+              <div className="flex items-start gap-3 mb-4">
+                <Textarea
+                  value={currentResponse}
+                  onChange={(e) => setCurrentResponse(e.target.value)}
+                  placeholder={
+                    currentQuestionData?.questionsToExpand?.[currentSubQuestion]?.placeholder || 
+                    "Share your experience here... Be specific with numbers, dates, and technologies."
+                  }
+                  className="min-h-[120px] flex-1"
+                  disabled={isValidating || isRecording}
+                />
+                <VoiceInput
+                  onTranscript={handleVoiceTranscript}
+                  isRecording={isRecording}
+                  onToggleRecording={() => setIsRecording(!isRecording)}
+                  disabled={isValidating}
+                />
+              </div>
 
               <div className="flex gap-3">
                 {validationFeedback && !validationFeedback.is_sufficient ? (
@@ -678,6 +829,17 @@ const CorporateAssistantContent = () => {
                       Submit Anyway
                     </Button>
                   </>
+                ) : currentQuestionData?.questionsToExpand && 
+                   currentSubQuestion < currentQuestionData.questionsToExpand.length - 1 ? (
+                  <Button
+                    onClick={handleNextSubQuestion}
+                    disabled={!currentResponse.trim() || isValidating}
+                    size="lg"
+                    className="flex-1"
+                  >
+                    Next Question
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
                 ) : (
                   <>
                     <Button onClick={handleSubmitResponse} size="lg" className="flex-1" disabled={isValidating}>
