@@ -75,16 +75,24 @@ const CorporateAssistantContent = () => {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    console.log('File selected:', file?.name, 'Size:', file?.size);
+    
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
     
     setResumeFile(file);
     setIsParsingFile(true);
+    console.log('Started parsing, isParsingFile set to true');
     
     try {
       const fileName = file.name.toLowerCase();
+      console.log('Processing file type:', fileName);
       
       // For text files, read directly
       if (fileName.endsWith('.txt')) {
+        console.log('Processing as text file...');
         const text = await file.text();
         setResumeText(text);
         toast({
@@ -94,18 +102,28 @@ const CorporateAssistantContent = () => {
       } 
       // For PDF files, parse on client side using pdf.js
       else if (fileName.endsWith('.pdf')) {
-        console.log('Starting PDF parsing...');
+        console.log('Starting PDF parsing for:', fileName);
         
-        // Add timeout wrapper
-        const timeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('PDF parsing timeout - file may be too large or corrupted')), 30000)
+        // Verify worker is loaded
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          console.error('PDF.js worker not configured!');
+          throw new Error('PDF parser not initialized. Please refresh the page and try again.');
+        }
+        console.log('Worker source verified:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+        
+        // Add timeout wrapper (30 seconds)
+        const timeout = new Promise<never>((_, reject) => 
+          setTimeout(() => {
+            console.error('PDF parsing timeout reached');
+            reject(new Error('PDF parsing timeout - file may be too large or corrupted'));
+          }, 30000)
         );
         
         const parsePDF = async () => {
           try {
             console.log('Reading file as ArrayBuffer...');
             const arrayBuffer = await file.arrayBuffer();
-            console.log('ArrayBuffer created, size:', arrayBuffer.byteLength);
+            console.log('ArrayBuffer created, size:', arrayBuffer.byteLength, 'bytes');
             
             if (arrayBuffer.byteLength === 0) {
               throw new Error('File appears to be empty');
@@ -147,18 +165,14 @@ const CorporateAssistantContent = () => {
           }
         };
         
-        try {
-          const result = await Promise.race([parsePDF(), timeout]) as { fullText: string, numPages: number };
-          
-          setResumeText(result.fullText);
-          toast({
-            title: "PDF parsed successfully",
-            description: `Extracted ${result.fullText.length.toLocaleString()} characters from ${result.numPages} pages`,
-          });
-        } catch (pdfError: any) {
-          console.error('Final PDF error:', pdfError);
-          throw new Error(`Unable to parse PDF: ${pdfError.message}. Please try pasting your resume text directly instead.`);
-        }
+        const result = await Promise.race([parsePDF(), timeout]) as { fullText: string, numPages: number };
+        
+        console.log('PDF parsing completed successfully');
+        setResumeText(result.fullText);
+        toast({
+          title: "PDF parsed successfully",
+          description: `Extracted ${result.fullText.length.toLocaleString()} characters from ${result.numPages} pages`,
+        });
       }
       // For DOC/DOCX files, use edge function
       else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
@@ -190,15 +204,24 @@ const CorporateAssistantContent = () => {
         throw new Error("Unsupported file type. Please use .txt, .pdf, .doc, or .docx files.");
       }
     } catch (error: any) {
-      console.error('Error reading file:', error);
+      console.error('=== FILE PARSING ERROR ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Full error:', error);
+      console.error('========================');
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to read file. Please try pasting the text instead.",
+        title: "Unable to parse file",
+        description: error.message || "Failed to read file. Please paste your resume text in the box below instead.",
         variant: "destructive",
       });
+      
+      // Reset file state on error
       setResumeFile(null);
       setResumeText("");
     } finally {
+      // CRITICAL: Always reset parsing state
+      console.log('Resetting isParsingFile to false');
       setIsParsingFile(false);
     }
   };
@@ -459,9 +482,14 @@ const CorporateAssistantContent = () => {
             {/* Parsing status */}
             {isParsingFile && (
               <div className="w-full max-w-md mb-4 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700 dark:border-yellow-300"></div>
-                  <p className="font-medium">Extracting text from your file...</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700 dark:border-yellow-300"></div>
+                    <p className="font-medium">Extracting text from your file...</p>
+                  </div>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    If this takes more than 30 seconds, try pasting your text below instead
+                  </p>
                 </div>
               </div>
             )}
