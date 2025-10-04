@@ -321,7 +321,7 @@ const OpportunitiesContent = () => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" sideOffset={5}>
-                  <p className="max-w-xs">Fetch fresh contract jobs from 30+ job boards (Greenhouse, Lever, RemoteOK, etc.) and store them in your database</p>
+                  <p className="max-w-xs">Fetch fresh career opportunities from 30+ job boards (Greenhouse, Lever, RemoteOK, etc.) and store them in your database</p>
                 </TooltipContent>
               </Tooltip>
               

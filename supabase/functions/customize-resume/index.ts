@@ -62,7 +62,7 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    const prompt = `You are an expert resume writer specializing in executive-level contract positions. Customize this executive's resume to perfectly match the job opportunity below.
+    const prompt = `You are an expert resume writer specializing in executive-level positions (permanent, contract, and interim roles). Customize this executive's resume to perfectly match the job opportunity below.
 
 JOB OPPORTUNITY:
 Title: ${opportunity.job_title}

@@ -25,7 +25,7 @@ Resume Details:
 - Management Capabilities: ${resumeAnalysis.management_capabilities?.join(", ") || "Not specified"}
 
 Requirements:
-1. Skills should be relevant to executive-level contract work
+1. Skills should be relevant to executive-level roles (permanent, contract, and interim positions)
 2. Focus on leadership, strategic, and specialized technical skills
 3. Avoid duplicating existing skills
 4. Include a mix of hard and soft skills

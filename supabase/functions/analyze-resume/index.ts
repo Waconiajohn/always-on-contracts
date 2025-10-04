@@ -57,7 +57,7 @@ For each position, extract:
 - Team size managed/collaborated with
 - Budget or revenue scope if mentioned
 
-Focus on positioning experience as premium value for contract work.`
+Focus on positioning experience as premium value for executive and strategic opportunities (both permanent and contract).`
           },
           {
             role: "user",

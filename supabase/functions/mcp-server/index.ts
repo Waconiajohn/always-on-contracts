@@ -102,7 +102,7 @@ serve(async (req) => {
           {
             uri: 'opportunity://search',
             name: 'Search Opportunities',
-            description: 'Search contract job opportunities across 30+ job boards',
+            description: 'Search career opportunities (permanent and contract) across 30+ job boards',
             mimeType: 'application/json',
           },
           {
@@ -204,7 +204,7 @@ serve(async (req) => {
         const tools: MCPTool[] = [
           {
             name: 'search_opportunities',
-            description: 'Search for contract job opportunities by skills, location, and rate',
+            description: 'Search for career opportunities (permanent and contract) by skills, location, and rate',
             inputSchema: {
               type: 'object',
               properties: {

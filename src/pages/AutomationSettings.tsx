@@ -129,7 +129,7 @@ const AutomationSettingsContent = () => {
                   Enable Automated Job Search
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  When enabled, the system will search for new contract jobs daily and match them to your profile
+                  When enabled, the system will search for new career opportunities daily and match them to your profile
                 </p>
               </div>
               <Switch
@@ -140,8 +140,8 @@ const AutomationSettingsContent = () => {
             </div>
             <div className="bg-muted p-4 rounded-lg">
               <p className="text-sm">
-                <strong>How it works:</strong> The system searches 50+ job boards daily, filters for contract positions 
-                matching your preferences, and adds high-quality matches to your Opportunities page. You maintain full 
+                <strong>How it works:</strong> The system searches 50+ job boards daily, filters for opportunities 
+                matching your preferences (permanent, contract, and contract-to-hire), and adds high-quality matches to your Opportunities page. You maintain full 
                 control over which opportunities to pursue.
               </p>
             </div>

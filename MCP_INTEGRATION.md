@@ -70,7 +70,7 @@ Browse the database of 200+ staffing agencies.
 MCP tools are actions Claude can perform:
 
 ### `search_opportunities`
-Search contract jobs by skills, location, and rate.
+Search career opportunities (permanent and contract roles) by skills, location, and rate.
 
 **Parameters:**
 - `skills` (array): Skills to search for
@@ -116,10 +116,10 @@ Mark an opportunity as applied (sets status to "applied" and records the date).
 ## Example Conversations
 
 ### Finding Opportunities
-**You:** "I'm looking for remote contract work in supply chain management paying at least $125/hour"
+**You:** "I'm looking for remote opportunities in supply chain management paying at least $125/hour"
 
 **Claude:** *Uses `search_opportunities` tool with filters*
-"I found 12 contract opportunities matching your criteria. Here are the top matches:
+"I found 12 opportunities matching your criteria. Here are the top matches:
 1. Supply Chain Transformation Lead at Fortune 500 company ($125-175/hr)
 2. Interim VP of Operations at private equity firm ($175-225/hr)
 ..."
