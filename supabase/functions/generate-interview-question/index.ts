@@ -57,8 +57,9 @@ serve(async (req) => {
     const yearsExp = analysis.years_experience || 'Unknown';
     const keySkills = analysis.skills?.slice(0, 5).join(', ') || 'Unknown';
     const existingAchievements = analysis.key_achievements?.slice(0, 3) || [];
+    const workHistory = analysis.work_history || [];
 
-    // Use Lovable AI to generate contextual question
+    // Use Lovable AI to generate contextual question with structured output
     const prompt = `You are a corporate career assistant conducting a strategic interview to build a comprehensive "War Chest" that will power customized resumes and job applications.
 
 CRITICAL CONTEXT AWARENESS:
@@ -67,32 +68,25 @@ The user already uploaded a resume. Here's what we extracted:
 - Industries: ${industries}
 - Years of experience: ${yearsExp}
 - Key skills identified: ${keySkills}
+- Work history: ${JSON.stringify(workHistory)}
 - Existing achievements we captured: ${JSON.stringify(existingAchievements)}
 
-DO NOT ask them to repeat information we already have.
-INSTEAD:
-- Reference what we know: "I see you've worked as a ${jobTitles?.split(',')[0]} in ${industries?.split(',')[0]}..."
-- Ask for what's MISSING: quantified results, team dynamics, specific technologies, challenges overcome, budget/scope
-- Validate and expand: "You mentioned [achievement]. Can you elaborate on the specific metrics and timeline?"
-- Connect dots: "Given your experience with [skill], have you also worked with [related skill]?"
-- Think like an intelligent interviewer who read their resume carefully
+**FULL RESUME TEXT FOR SPECIFIC EXTRACTION:**
+${warChest.resume_raw_text || ''}
 
-Resume Summary: ${JSON.stringify(warChest.initial_analysis)}
+YOUR TASK:
+1. Review the resume text to extract SPECIFIC details relevant to this question
+2. Pre-populate known information (job title, company, dates, responsibilities)
+3. Ask for MISSING or EXPANDABLE information only
+
+DO NOT ask them to repeat information we can clearly see.
+INSTEAD:
+- Show what you found: "I see you were [title] at [company] from [dates]"
+- Ask for what's missing: metrics, team size, specific technologies, challenges, budget scope
+- Request expansion: "Can you quantify the impact?" or "What technologies did you use?"
+
 Previous Interview Responses: ${JSON.stringify(previousResponses?.slice(-3) || [])}
 Current Phase: ${phase} (Question ${responseCount + 1} of 25)
-
-CRITICAL FORMAT REQUIREMENTS:
-You MUST structure your question using this EXACT format with markdown:
-
-**CONTEXT:** [1-2 sentences explaining why you're asking, referencing what you already know from their resume]
-
-**PLEASE SHARE:**
-- [Specific element 1 with clear instructions - be concrete about what format you want]
-- [Specific element 2 with clear instructions - emphasize metrics/numbers if relevant]
-- [Specific element 3 with clear instructions - make it easy to understand what you need]
-
-**EXAMPLE OF A STRONG ANSWER:**
-[Concrete example in quotes showing the level of detail expected, with specific numbers and technologies]
 
 PHASE-SPECIFIC FOCUS:
 
@@ -160,7 +154,7 @@ Example question:
 **EXAMPLE OF A STRONG ANSWER:**
 "I built an Excel model in 2018 that predicted customer churn by analyzing 18 months of purchase patterns across 10,000+ customers—it was 82% accurate and our retention team used it to target high-risk accounts, saving an estimated $400K annually. I wasn't officially a manager but I coordinated our team's sprint planning for 2 years and mentored 3 junior developers who all got promoted. I also created a Power BI dashboard that tracked 15 KPIs and was used by the executive team for quarterly strategy sessions."` : ''}
 
-Generate ONE question following the format above with the **CONTEXT:**, **PLEASE SHARE:**, and **EXAMPLE:** sections clearly marked. Return ONLY the complete question text.`;
+Generate ONE structured question. Extract actual data from the resume text provided.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -171,22 +165,90 @@ Generate ONE question following the format above with the **CONTEXT:**, **PLEASE
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an expert career counselor conducting strategic interviews to build comprehensive career war chests.' },
+          { role: 'system', content: 'You are an expert career counselor who extracts resume data and creates pre-filled interview questions.' },
           { role: 'user', content: prompt }
-        ]
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "create_prefilled_question",
+            description: "Create a pre-filled interview question with known resume data",
+            parameters: {
+              type: "object",
+              properties: {
+                context: { 
+                  type: "string",
+                  description: "1-2 sentences explaining why you're asking and what you already know"
+                },
+                knownData: {
+                  type: "array",
+                  description: "Information already extracted from resume",
+                  items: {
+                    type: "object",
+                    properties: {
+                      label: { type: "string" },
+                      value: { 
+                        description: "Can be string or array of strings",
+                        oneOf: [
+                          { type: "string" },
+                          { type: "array", items: { type: "string" } }
+                        ]
+                      },
+                      source: { type: "string", enum: ["resume", "previous_answer"] }
+                    },
+                    required: ["label", "value", "source"]
+                  }
+                },
+                questionsToExpand: {
+                  type: "array",
+                  description: "Questions to expand on known data",
+                  items: {
+                    type: "object",
+                    properties: {
+                      prompt: { type: "string" },
+                      placeholder: { type: "string" },
+                      hint: { type: "string" }
+                    },
+                    required: ["prompt", "placeholder"]
+                  }
+                },
+                exampleAnswer: { 
+                  type: "string",
+                  description: "Concrete example showing the level of detail expected"
+                }
+              },
+              required: ["context", "knownData", "questionsToExpand", "exampleAnswer"]
+            }
+          }
+        }],
+        tool_choice: { type: "function", function: { name: "create_prefilled_question" } }
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to generate question');
+      const errorText = await response.text();
+      console.error('AI gateway error:', response.status, errorText);
+      throw new Error(`Failed to generate question: ${response.status}`);
     }
 
     const aiResponse = await response.json();
-    const question = aiResponse.choices[0].message.content.trim();
+    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+    
+    let questionData;
+    if (toolCall) {
+      // Structured format from tool calling
+      questionData = JSON.parse(toolCall.function.arguments);
+      console.log('Generated structured question:', questionData);
+    } else {
+      // Fallback to old text format
+      const question = aiResponse.choices[0].message.content.trim();
+      questionData = { question };
+      console.log('Generated text question (fallback):', question);
+    }
 
     return new Response(
       JSON.stringify({
-        question,
+        question: questionData,
         phase,
         phaseTitle,
         phaseDescription

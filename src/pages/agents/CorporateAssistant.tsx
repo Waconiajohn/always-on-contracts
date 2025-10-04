@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Briefcase, Upload, MessageSquare, Target, CheckCircle2, Info, ChevronDown, AlertCircle, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PreFilledQuestion } from "@/components/PreFilledQuestion";
 
 interface InterviewPhase {
   phase: 'resume_understanding' | 'skills_translation' | 'hidden_gems' | 'complete';
@@ -40,6 +41,7 @@ const CorporateAssistantContent = () => {
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [validationFeedback, setValidationFeedback] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [currentQuestionData, setCurrentQuestionData] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -216,11 +218,21 @@ const CorporateAssistantContent = () => {
 
       if (error) throw error;
 
+      // Parse question data - could be structured object or text
+      const questionData = question.question;
+      if (typeof questionData === 'object' && questionData.context) {
+        // Structured format
+        setCurrentQuestionData(questionData);
+      } else {
+        // Text format (fallback)
+        setCurrentQuestionData({ question: questionData });
+      }
+
       setInterviewPhase({
         phase: question.phase,
         title: question.phaseTitle,
         description: question.phaseDescription,
-        questions: [question.question],
+        questions: [typeof questionData === 'string' ? questionData : JSON.stringify(questionData)],
         currentQuestionIndex: 0
       });
 
@@ -561,52 +573,61 @@ const CorporateAssistantContent = () => {
                 </Card>
               </Collapsible>
 
-              {/* Parsed Question Display */}
-              {(() => {
-                const parsed = parseQuestion(interviewPhase.questions[0]);
-                return (
-                  <div className="space-y-4 mb-6">
-                    {/* Context Section */}
-                    {parsed.context && (
-                      <div className="flex gap-3 items-start p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">Why I'm asking this:</p>
-                          <p className="text-blue-800 dark:text-blue-200">{parsed.context}</p>
-                        </div>
-                      </div>
-                    )}
+              {/* Pre-Filled Question Component or Fallback */}
+              {currentQuestionData?.context && currentQuestionData?.questionsToExpand ? (
+                <div className="mb-6">
+                  <PreFilledQuestion {...currentQuestionData} />
+                </div>
+              ) : (
+                <>
+                  {/* Fallback: Parsed Question Display (old format) */}
+                  {(() => {
+                    const parsed = parseQuestion(interviewPhase.questions[0]);
+                    return (
+                      <div className="space-y-4 mb-6">
+                        {/* Context Section */}
+                        {parsed.context && (
+                          <div className="flex gap-3 items-start p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">Why I'm asking this:</p>
+                              <p className="text-blue-800 dark:text-blue-200">{parsed.context}</p>
+                            </div>
+                          </div>
+                        )}
 
-                    {/* Main Question with Bullet Points */}
-                    <div className="p-4 bg-muted rounded-lg border">
-                      <p className="font-semibold mb-3">Please share:</p>
-                      {parsed.sharePoints.length > 0 ? (
-                        <ul className="space-y-2">
-                          {parsed.sharePoints.map((point, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-primary mt-1">•</span>
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>{parsed.fullText}</p>
-                      )}
-                    </div>
-
-                    {/* Example Section */}
-                    {parsed.example && (
-                      <div className="p-4 bg-green-50 dark:bg-green-950 border-l-4 border-green-600 dark:border-green-400 rounded">
-                        <div className="flex items-start gap-2 mb-2">
-                          <Sparkles className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                          <p className="font-medium text-green-900 dark:text-green-100">Example of a strong answer:</p>
+                        {/* Main Question with Bullet Points */}
+                        <div className="p-4 bg-muted rounded-lg border">
+                          <p className="font-semibold mb-3">Please share:</p>
+                          {parsed.sharePoints.length > 0 ? (
+                            <ul className="space-y-2">
+                              {parsed.sharePoints.map((point, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="text-primary mt-1">•</span>
+                                  <span>{point}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>{parsed.fullText}</p>
+                          )}
                         </div>
-                        <p className="text-green-800 dark:text-green-200 italic">{parsed.example}</p>
+
+                        {/* Example Section */}
+                        {parsed.example && (
+                          <div className="p-4 bg-green-50 dark:bg-green-950 border-l-4 border-green-600 dark:border-green-400 rounded">
+                            <div className="flex items-start gap-2 mb-2">
+                              <Sparkles className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                              <p className="font-medium text-green-900 dark:text-green-100">Example of a strong answer:</p>
+                            </div>
+                            <p className="text-green-800 dark:text-green-200 italic">{parsed.example}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
+                    );
+                  })()}
+                </>
+              )}
 
               {/* Validation Feedback */}
               {validationFeedback && !validationFeedback.is_sufficient && (

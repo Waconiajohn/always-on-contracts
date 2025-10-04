@@ -35,7 +35,9 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert career advisor specializing in helping experienced professionals (45+) transition to high-value contract work. Analyze resumes to extract:
+            content: `You are an expert career advisor specializing in helping experienced professionals (45+) transition to high-value contract work. 
+
+Analyze resumes to extract:
 - Years of experience (calculate from dates)
 - Key achievements with quantifiable results
 - Industry expertise areas
@@ -43,6 +45,17 @@ serve(async (req) => {
 - Transferable skills valuable for contract positions
 - Recommended target hourly rates ($50-$150+ based on experience)
 - Suitable interim executive or contract positions
+
+**CRITICAL: Detailed work history for last 10-15 years:**
+For each position, extract:
+- Exact job title and company name
+- Start/end dates (or "Current" if still employed)
+- Industry/sector
+- 3-5 key responsibilities (bullet point form)
+- Quantified achievements (numbers, metrics, impact)
+- Technologies/tools/methodologies used
+- Team size managed/collaborated with
+- Budget or revenue scope if mentioned
 
 Focus on positioning experience as premium value for contract work.`
           },
@@ -83,7 +96,35 @@ Focus on positioning experience as premium value for contract work.`
                     type: "array",
                     items: { type: "string" }
                   },
-                  analysis_summary: { type: "string" }
+                  analysis_summary: { type: "string" },
+                  work_history: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        job_title: { type: "string" },
+                        company_name: { type: "string" },
+                        start_date: { type: "string" },
+                        end_date: { type: "string" },
+                        is_current: { type: "boolean" },
+                        industry: { type: "string" },
+                        key_responsibilities: {
+                          type: "array",
+                          items: { type: "string" }
+                        },
+                        achievements: {
+                          type: "array",
+                          items: { type: "string" }
+                        },
+                        technologies_used: {
+                          type: "array",
+                          items: { type: "string" }
+                        },
+                        team_size: { type: "number" },
+                        budget_managed: { type: "string" }
+                      }
+                    }
+                  }
                 },
                 required: [
                   "years_experience",
