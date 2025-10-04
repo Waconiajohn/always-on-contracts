@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, User, Mail, Phone, Briefcase } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, Phone, Briefcase, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Badge } from "@/components/ui/badge";
 
 interface Profile {
   full_name: string | null;
@@ -20,6 +22,7 @@ interface Profile {
 const ProfileContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { subscription, loading: subLoading, manageSubscription } = useSubscription();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile>({
@@ -230,28 +233,78 @@ const ProfileContent = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Account Information</CardTitle>
+              <CardTitle className="text-2xl">Subscription & Billing</CardTitle>
               <CardDescription>
-                View your account status and subscription details
+                Manage your subscription plan and billing settings
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center py-3 border-b">
-                <span className="text-base font-medium">Subscription Plan</span>
-                <span className="text-base text-muted-foreground">Free Trial</span>
+                <span className="text-base font-medium">Current Plan</span>
+                <div className="flex items-center gap-2">
+                  {subLoading ? (
+                    <span className="text-base text-muted-foreground">Loading...</span>
+                  ) : subscription?.is_retirement_client ? (
+                    <Badge className="text-sm font-semibold">Retirement Client - Lifetime Access</Badge>
+                  ) : subscription?.subscribed ? (
+                    <Badge variant="default" className="text-sm font-semibold">
+                      {subscription.tier === 'career_starter' && 'Career Starter'}
+                      {subscription.tier === 'always_ready' && 'Always Ready'}
+                      {subscription.tier === 'concierge_elite' && 'Concierge Elite'}
+                    </Badge>
+                  ) : (
+                    <span className="text-base text-muted-foreground">Free</span>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between items-center py-3 border-b">
-                <span className="text-base font-medium">Account Status</span>
-                <span className="text-base text-green-600 font-medium">Active</span>
-              </div>
-              <div className="pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/pricing")}
-                  className="w-full text-lg py-6"
-                >
-                  Upgrade Plan
-                </Button>
+              
+              {subscription?.subscribed && subscription?.subscription_end && (
+                <div className="flex justify-between items-center py-3 border-b">
+                  <span className="text-base font-medium">Renewal Date</span>
+                  <span className="text-base text-muted-foreground">
+                    {new Date(subscription.subscription_end).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+
+              {subscription?.cancel_at_period_end && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-900 dark:text-amber-100">
+                    Your subscription will end on {new Date(subscription.subscription_end!).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              
+              <div className="pt-4 space-y-3">
+                {subscription?.subscribed && !subscription?.is_retirement_client && (
+                  <Button
+                    variant="outline"
+                    onClick={manageSubscription}
+                    className="w-full text-lg py-6"
+                  >
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Manage Subscription
+                  </Button>
+                )}
+                
+                {!subscription?.subscribed && !subscription?.is_retirement_client && (
+                  <Button
+                    onClick={() => navigate("/pricing")}
+                    className="w-full text-lg py-6"
+                  >
+                    View Plans
+                  </Button>
+                )}
+
+                {!subscription?.is_retirement_client && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate("/redeem-code")}
+                    className="w-full text-base"
+                  >
+                    Have a retirement access code?
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
