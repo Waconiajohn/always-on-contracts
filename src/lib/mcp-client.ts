@@ -85,6 +85,210 @@ export const warChest = {
 };
 
 /**
+ * Research Agent MCP Tools
+ */
+export const research = {
+  scanSources: async (sources: string[]) => {
+    return callMCPTool('research.scan_sources', { sources });
+  },
+
+  analyzeTrends: async (timeframe?: string, category?: string) => {
+    return callMCPTool('research.analyze_trends', { timeframe, category });
+  },
+
+  createExperiment: async (
+    name: string,
+    description: string,
+    hypothesis: string,
+    controlVariant: string,
+    testVariant: string
+  ) => {
+    return callMCPTool('research.create_experiment', {
+      name,
+      description,
+      hypothesis,
+      control_variant: controlVariant,
+      test_variant: testVariant
+    });
+  },
+
+  trackResults: async (experimentId: string, userId: string, outcome: any) => {
+    return callMCPTool('research.track_results', {
+      experimentId,
+      userId,
+      outcome
+    });
+  },
+
+  getActiveExperiments: async () => {
+    return callMCPTool('research.get_active_experiments', {});
+  }
+};
+
+/**
+ * Resume Intelligence MCP Tools
+ */
+export const resume = {
+  analyze: async (userId: string, resumeText: string) => {
+    return callMCPTool('resume.analyze_resume', { userId, resumeText });
+  },
+
+  matchToJob: async (userId: string, jobDescription: string) => {
+    return callMCPTool('resume.match_to_job', { userId, jobDescription });
+  },
+
+  optimizeKeywords: async (userId: string, targetRole: string, industry?: string) => {
+    return callMCPTool('resume.optimize_keywords', { userId, targetRole, industry });
+  },
+
+  generateVariants: async (userId: string, targetJobs: any[]) => {
+    return callMCPTool('resume.generate_variants', { userId, targetJobs });
+  }
+};
+
+/**
+ * Application Automation MCP Tools
+ */
+export const application = {
+  evaluateOpportunity: async (userId: string, opportunityId: string, matchScore: number) => {
+    return callMCPTool('application.evaluate_opportunity', {
+      userId,
+      opportunityId,
+      matchScore
+    });
+  },
+
+  autoApply: async (userId: string, opportunityId: string, customizedResumeUrl?: string) => {
+    return callMCPTool('application.auto_apply', {
+      userId,
+      opportunityId,
+      customizedResumeUrl
+    });
+  },
+
+  addToQueue: async (userId: string, opportunityId: string, matchScore: number, aiNotes?: string) => {
+    return callMCPTool('application.add_to_queue', {
+      userId,
+      opportunityId,
+      matchScore,
+      aiNotes
+    });
+  },
+
+  trackApplication: async (userId: string, opportunityId: string, status: string) => {
+    return callMCPTool('application.track_application', {
+      userId,
+      opportunityId,
+      status
+    });
+  },
+
+  getDailyStats: async (userId: string) => {
+    return callMCPTool('application.get_daily_stats', { userId });
+  }
+};
+
+/**
+ * Interview Prep MCP Tools
+ */
+export const interview = {
+  generateQuestions: async (userId: string, jobDescription: string, interviewType?: string) => {
+    return callMCPTool('interview.generate_questions', { userId, jobDescription, interviewType });
+  },
+
+  validateResponse: async (question: string, response: string, context?: any) => {
+    return callMCPTool('interview.validate_response', { question, response, context });
+  },
+
+  buildStarStory: async (userId: string, situation?: string, task?: string, action?: string, result?: string) => {
+    return callMCPTool('interview.build_star_story', { userId, situation, task, action, result });
+  },
+
+  getStarStories: async (userId: string) => {
+    return callMCPTool('interview.get_star_stories', { userId });
+  },
+
+  mockInterview: async (userId: string, jobDescription: string, sessionType?: string) => {
+    return callMCPTool('interview.mock_interview', { userId, jobDescription, sessionType });
+  }
+};
+
+/**
+ * Agency Matcher MCP Tools
+ */
+export const agency = {
+  matchAgencies: async (userId: string, targetRoles?: string[], industries?: string[], location?: string) => {
+    return callMCPTool('agency.match_agencies', { userId, targetRoles, industries, location });
+  },
+
+  getAgencyInsights: async (agencyId: string) => {
+    return callMCPTool('agency.get_agency_insights', { agencyId });
+  },
+
+  trackOutreach: async (userId: string, agencyId: string, outreachType: string, notes?: string) => {
+    return callMCPTool('agency.track_outreach', { userId, agencyId, outreachType, notes });
+  },
+
+  getOutreachHistory: async (userId: string) => {
+    return callMCPTool('agency.get_outreach_history', { userId });
+  },
+
+  rateAgency: async (userId: string, agencyId: string, rating: number, reviewText?: string) => {
+    return callMCPTool('agency.rate_agency', { userId, agencyId, rating, reviewText });
+  }
+};
+
+/**
+ * Networking Orchestrator MCP Tools
+ */
+export const networking = {
+  generateEmail: async (userId: string, recipientRole: string, context: string, templateType?: string) => {
+    return callMCPTool('networking.generate_email', { userId, recipientRole, context, templateType });
+  },
+
+  scheduleFollowUp: async (userId: string, contactInfo: any, followUpDate: string, notes?: string) => {
+    return callMCPTool('networking.schedule_follow_up', { userId, contactInfo, followUpDate, notes });
+  },
+
+  trackInteraction: async (userId: string, contactName: string, interactionType: string, notes?: string, outcome?: string) => {
+    return callMCPTool('networking.track_interaction', { userId, contactName, interactionType, notes, outcome });
+  },
+
+  getTemplates: async (userId: string, templateType?: string) => {
+    return callMCPTool('networking.get_templates', { userId, templateType });
+  },
+
+  saveTemplate: async (userId: string, templateName: string, templateType: string, content: string) => {
+    return callMCPTool('networking.save_template', { userId, templateName, templateType, content });
+  }
+};
+
+/**
+ * Market Intelligence MCP Tools
+ */
+export const market = {
+  getMarketRates: async (role: string, location?: string, yearsExperience?: number) => {
+    return callMCPTool('market.get_market_rates', { role, location, yearsExperience });
+  },
+
+  analyzeTrends: async (industry: string, timeframe?: string, metrics?: string[]) => {
+    return callMCPTool('market.analyze_trends', { industry, timeframe, metrics });
+  },
+
+  getSalaryInsights: async (userId: string, targetRole: string, targetIndustry?: string) => {
+    return callMCPTool('market.get_salary_insights', { userId, targetRole, targetIndustry });
+  },
+
+  compareOffers: async (offers: any[]) => {
+    return callMCPTool('market.compare_offers', { offers });
+  },
+
+  getCompetitivePosition: async (userId: string) => {
+    return callMCPTool('market.get_competitive_position', { userId });
+  }
+};
+
+/**
  * Persona Memory MCP Tools
  */
 export const personaMemory = {

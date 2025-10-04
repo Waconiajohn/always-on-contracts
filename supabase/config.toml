@@ -80,3 +80,24 @@ verify_jwt = true
 
 [functions.mcp-persona-memory]
 verify_jwt = true
+
+[functions.mcp-research-agent]
+verify_jwt = true
+
+[functions.mcp-resume-intelligence]
+verify_jwt = true
+
+[functions.mcp-application-automation]
+verify_jwt = true
+
+[functions.mcp-interview-prep]
+verify_jwt = true
+
+[functions.mcp-agency-matcher]
+verify_jwt = true
+
+[functions.mcp-networking-orchestrator]
+verify_jwt = true
+
+[functions.mcp-market-intelligence]
+verify_jwt = true

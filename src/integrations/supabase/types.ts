@@ -372,6 +372,60 @@ export type Database = {
         }
         Relationships: []
       }
+      experiments: {
+        Row: {
+          control_variant: string
+          created_at: string
+          description: string
+          end_date: string | null
+          experiment_name: string
+          feature_flag: string
+          hypothesis: string
+          id: string
+          minimum_sample_size: number | null
+          results_summary: Json | null
+          start_date: string | null
+          status: string
+          success_metrics: Json
+          test_variant: string
+          updated_at: string
+        }
+        Insert: {
+          control_variant: string
+          created_at?: string
+          description: string
+          end_date?: string | null
+          experiment_name: string
+          feature_flag: string
+          hypothesis: string
+          id?: string
+          minimum_sample_size?: number | null
+          results_summary?: Json | null
+          start_date?: string | null
+          status?: string
+          success_metrics?: Json
+          test_variant: string
+          updated_at?: string
+        }
+        Update: {
+          control_variant?: string
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          experiment_name?: string
+          feature_flag?: string
+          hypothesis?: string
+          id?: string
+          minimum_sample_size?: number | null
+          results_summary?: Json | null
+          start_date?: string | null
+          status?: string
+          success_metrics?: Json
+          test_variant?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       job_alerts: {
         Row: {
           alert_name: string
@@ -1091,6 +1145,51 @@ export type Database = {
         }
         Relationships: []
       }
+      research_findings: {
+        Row: {
+          credibility_score: number | null
+          discovered_at: string
+          finding_type: string
+          full_content: string | null
+          id: string
+          is_verified: boolean | null
+          metadata: Json | null
+          published_date: string | null
+          relevance_tags: string[] | null
+          source_url: string
+          summary: string
+          title: string
+        }
+        Insert: {
+          credibility_score?: number | null
+          discovered_at?: string
+          finding_type: string
+          full_content?: string | null
+          id?: string
+          is_verified?: boolean | null
+          metadata?: Json | null
+          published_date?: string | null
+          relevance_tags?: string[] | null
+          source_url: string
+          summary: string
+          title: string
+        }
+        Update: {
+          credibility_score?: number | null
+          discovered_at?: string
+          finding_type?: string
+          full_content?: string | null
+          id?: string
+          is_verified?: boolean | null
+          metadata?: Json | null
+          published_date?: string | null
+          relevance_tags?: string[] | null
+          source_url?: string
+          summary?: string
+          title?: string
+        }
+        Relationships: []
+      }
       resume_analysis: {
         Row: {
           analysis_summary: string | null
@@ -1352,6 +1451,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_experiments: {
+        Row: {
+          created_at: string
+          experiment_id: string
+          feedback_rating: number | null
+          feedback_text: string | null
+          id: string
+          opted_in_at: string
+          opted_out_at: string | null
+          outcome_data: Json | null
+          user_id: string
+          variant: string
+        }
+        Insert: {
+          created_at?: string
+          experiment_id: string
+          feedback_rating?: number | null
+          feedback_text?: string | null
+          id?: string
+          opted_in_at?: string
+          opted_out_at?: string | null
+          outcome_data?: Json | null
+          user_id: string
+          variant: string
+        }
+        Update: {
+          created_at?: string
+          experiment_id?: string
+          feedback_rating?: number | null
+          feedback_text?: string | null
+          id?: string
+          opted_in_at?: string
+          opted_out_at?: string | null
+          outcome_data?: Json | null
+          user_id?: string
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_experiments_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "experiments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_saved_jobs: {
         Row: {
