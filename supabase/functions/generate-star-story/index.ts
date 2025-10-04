@@ -13,10 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
-    }
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -35,7 +33,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { rawStory, action = 'generate' } = await req.json();
+    const { rawStory, action = 'generate', provider = 'lovable' } = await req.json();
 
     console.log('STAR story request:', { action, hasRawStory: !!rawStory });
 
@@ -80,14 +78,23 @@ Enhance this story by:
 Return the same JSON structure but with enhanced content.`;
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const apiUrl = provider === 'openai'
+      ? 'https://api.openai.com/v1/chat/completions'
+      : 'https://ai.gateway.lovable.dev/v1/chat/completions';
+    
+    const apiKey = provider === 'openai' ? OPENAI_API_KEY : LOVABLE_API_KEY;
+    const model = provider === 'openai' ? 'gpt-4o-mini' : 'google/gemini-2.5-flash';
+
+    console.log(`Using ${provider} AI for STAR story`);
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model,
         messages: [
           { 
             role: 'system', 
@@ -95,15 +102,15 @@ Return the same JSON structure but with enhanced content.`;
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
+        temperature: provider === 'openai' ? 0.7 : undefined,
         max_tokens: 1500,
       }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('OpenAI API error:', response.status, error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('AI API error:', response.status, error);
+      throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();

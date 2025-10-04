@@ -14,6 +14,189 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_commissions: {
+        Row: {
+          affiliate_id: string
+          amount_cents: number
+          created_at: string
+          currency: string | null
+          id: string
+          paid_at: string | null
+          referral_id: string
+          status: string
+          stripe_transfer_id: string | null
+          subscription_id: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          amount_cents: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          paid_at?: string | null
+          referral_id: string
+          status?: string
+          stripe_transfer_id?: string | null
+          subscription_id?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          amount_cents?: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          paid_at?: string | null
+          referral_id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_referrals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_fraud_flags: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          description: string | null
+          flag_type: string
+          id: string
+          resolved: boolean | null
+          severity: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          description?: string | null
+          flag_type: string
+          id?: string
+          resolved?: boolean | null
+          severity: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          description?: string | null
+          flag_type?: string
+          id?: string
+          resolved?: boolean | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_fraud_flags_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_referrals: {
+        Row: {
+          affiliate_id: string
+          converted_at: string | null
+          created_at: string
+          id: string
+          referral_token: string | null
+          referred_user_id: string
+          subscription_id: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_token?: string | null
+          referred_user_id: string
+          subscription_id?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_token?: string | null
+          referred_user_id?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_referrals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          commission_rate: number
+          created_at: string
+          id: string
+          payout_email: string | null
+          referral_code: string
+          status: string
+          total_earnings_cents: number | null
+          total_referrals: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          payout_email?: string | null
+          referral_code: string
+          status?: string
+          total_earnings_cents?: number | null
+          total_referrals?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          payout_email?: string | null
+          referral_code?: string
+          status?: string
+          total_earnings_cents?: number | null
+          total_referrals?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agency_ratings: {
         Row: {
           agency_id: string
@@ -1115,6 +1298,48 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_codes: {
+        Row: {
+          code: string
+          code_type: string
+          created_at: string
+          created_by: string | null
+          current_uses: number | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+        }
+        Insert: {
+          code: string
+          code_type: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number | null
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+        }
+        Update: {
+          code?: string
+          code_type?: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+        }
+        Relationships: []
+      }
       rate_history: {
         Row: {
           contract_length_months: number | null
@@ -1273,6 +1498,42 @@ export type Database = {
         }
         Relationships: []
       }
+      retirement_access_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          device_fingerprint: string | null
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          redeemed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          redeemed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          redeemed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       staffing_agencies: {
         Row: {
           agency_name: string
@@ -1422,6 +1683,81 @@ export type Database = {
           },
         ]
       }
+      subscription_refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          processed_at: string | null
+          reason: string
+          status: string
+          stripe_refund_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason: string
+          status: string
+          stripe_refund_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason?: string
+          status?: string
+          stripe_refund_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_api_keys: {
         Row: {
           api_key: string
@@ -1498,6 +1834,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_saved_jobs: {
         Row: {
@@ -1808,7 +2168,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "affiliate" | "admin" | "retirement_client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1935,6 +2295,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "affiliate", "admin", "retirement_client"],
+    },
   },
 } as const

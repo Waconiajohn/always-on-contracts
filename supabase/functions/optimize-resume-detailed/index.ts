@@ -29,10 +29,8 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
-    }
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -51,7 +49,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { resumeText, jobDescription } = await req.json();
+    const { resumeText, jobDescription, provider = 'lovable' } = await req.json();
 
     // Validate input
     if (!resumeText || resumeText.length < 100) {
@@ -63,18 +61,19 @@ serve(async (req) => {
 
     console.log('Optimizing resume for user:', user.id);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert resume optimizer and career coach. Your task is to optimize resumes to better match job descriptions while maintaining authenticity and accuracy.
+    const apiUrl = provider === 'openai'
+      ? 'https://api.openai.com/v1/chat/completions'
+      : 'https://ai.gateway.lovable.dev/v1/chat/completions';
+    
+    const apiKey = provider === 'openai' ? OPENAI_API_KEY : LOVABLE_API_KEY;
+    const model = provider === 'openai' ? 'gpt-4o-mini' : 'google/gemini-2.5-flash';
+
+    const requestBody: any = {
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert resume optimizer and career coach. Your task is to optimize resumes to better match job descriptions while maintaining authenticity and accuracy.
 
 IMPORTANT GUIDELINES:
 1. Only enhance and rephrase existing experiences - never fabricate new ones
@@ -89,16 +88,28 @@ Respond with a JSON object containing:
 - improvements: Array of specific improvements made
 - missingKeywords: Array of important keywords from job description not in resume
 - recommendations: Array of strategic recommendations for the candidate`
-          },
-          {
-            role: 'user',
-            content: `Job Description:\n${jobDescription}\n\nOriginal Resume:\n${resumeText}`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
-        response_format: { type: "json_object" }
-      }),
+        },
+        {
+          role: 'user',
+          content: `Job Description:\n${jobDescription}\n\nOriginal Resume:\n${resumeText}`
+        }
+      ],
+      max_tokens: 4000
+    };
+
+    // Add provider-specific parameters
+    if (provider === 'openai') {
+      requestBody.temperature = 0.7;
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -108,7 +119,16 @@ Respond with a JSON object containing:
     }
 
     const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content || '{}');
+    let result;
+    try {
+      const content = data.choices[0].message.content || '{}';
+      // Try to parse JSON from content (handles both OpenAI and Lovable AI responses)
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+    } catch (e) {
+      console.error('Failed to parse AI response:', e);
+      result = {};
+    }
 
     const optimizationResult: ResumeOptimizationResult = {
       success: true,

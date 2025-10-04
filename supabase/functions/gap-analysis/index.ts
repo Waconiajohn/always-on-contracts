@@ -34,10 +34,8 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
-    }
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -56,7 +54,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { resumeText, jobDescription } = await req.json();
+    const { resumeText, jobDescription, provider = 'lovable' } = await req.json();
 
     if (!resumeText || !jobDescription) {
       throw new Error('Resume text and job description are required');
@@ -64,18 +62,21 @@ serve(async (req) => {
 
     console.log('Performing gap analysis for user:', user.id);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert at analyzing candidate-job fit. Perform a comprehensive gap analysis between the candidate's resume and the job requirements.
+    const apiUrl = provider === 'openai'
+      ? 'https://api.openai.com/v1/chat/completions'
+      : 'https://ai.gateway.lovable.dev/v1/chat/completions';
+    
+    const apiKey = provider === 'openai' ? OPENAI_API_KEY : LOVABLE_API_KEY;
+    const model = provider === 'openai' ? 'gpt-4o-mini' : 'google/gemini-2.5-flash';
+
+    console.log(`Using ${provider} AI for gap analysis`);
+
+    const requestBody: any = {
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert at analyzing candidate-job fit. Perform a comprehensive gap analysis between the candidate's resume and the job requirements.
 
 Analyze:
 1. Technical skills match
@@ -91,26 +92,47 @@ Provide a detailed JSON response with:
 - gaps: Array of gaps with severity ('critical', 'moderate', or 'minor'), description, and recommendations
 - keywordAnalysis: Object with matched (array), missing (array), and coverage (percentage 0-100)
 - recommendations: Array of strategic recommendations to address gaps`
-          },
-          {
-            role: 'user',
-            content: `Job Description:\n${jobDescription}\n\nCandidate Resume:\n${resumeText}`
-          }
-        ],
-        temperature: 0.5,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
-      }),
+        },
+        {
+          role: 'user',
+          content: `Job Description:\n${jobDescription}\n\nCandidate Resume:\n${resumeText}`
+        }
+      ],
+      max_tokens: 2000
+    };
+
+    if (provider === 'openai') {
+      requestBody.temperature = 0.5;
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('OpenAI API error:', response.status, error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('AI API error:', response.status, error);
+      throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content || '{}');
+    const content = data.choices[0].message.content || '{}';
+    
+    let result;
+    try {
+      // Handle both JSON object and JSON wrapped in markdown
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+    } catch (e) {
+      console.error('Failed to parse AI response:', e);
+      result = {};
+    }
 
     const gapAnalysisResult: GapAnalysisResult = {
       overallFit: result.overallFit || 0,
