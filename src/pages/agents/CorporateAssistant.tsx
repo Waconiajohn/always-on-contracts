@@ -37,6 +37,7 @@ const CorporateAssistantContent = () => {
   });
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [aiTyping, setAiTyping] = useState(false);
+  const [isParsingFile, setIsParsingFile] = useState(false);
 
   // Configure PDF.js worker
   useEffect(() => {
@@ -76,6 +77,7 @@ const CorporateAssistantContent = () => {
     if (!file) return;
     
     setResumeFile(file);
+    setIsParsingFile(true);
     
     try {
       const fileName = file.name.toLowerCase();
@@ -154,6 +156,9 @@ const CorporateAssistantContent = () => {
         variant: "destructive",
       });
       setResumeFile(null);
+      setResumeText("");
+    } finally {
+      setIsParsingFile(false);
     }
   };
 
@@ -393,29 +398,52 @@ const CorporateAssistantContent = () => {
             <p className="text-muted-foreground mb-6 max-w-md">
               Upload your resume (.txt, .pdf, .doc, or .docx) or paste your resume text below. I'll analyze it and ask you questions to build a complete picture of your capabilities.
             </p>
+            
+            {/* What Happens Next Info */}
+            <div className="w-full max-w-md mb-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-left">
+              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">What happens next?</h3>
+              <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
+                <li>I'll analyze your resume</li>
+                <li>You'll answer 25 questions about your experience</li>
+                <li>I'll build your War Chest with power phrases, skills, and hidden competencies</li>
+                <li>Use your War Chest to supercharge job applications and interviews</li>
+              </ol>
+            </div>
+            
             <input
               type="file"
               accept=".txt,.pdf,.doc,.docx"
               onChange={handleFileUpload}
               className="hidden"
               id="resume-upload"
+              disabled={isParsingFile}
             />
             <div className="flex gap-3 mb-4">
               <label htmlFor="resume-upload">
-                <Button size="lg" variant="outline" asChild>
-                  <span>Upload Resume</span>
+                <Button size="lg" variant="outline" asChild disabled={isParsingFile}>
+                  <span>{isParsingFile ? "Parsing..." : "Upload Resume"}</span>
                 </Button>
               </label>
             </div>
             
+            {/* Parsing status */}
+            {isParsingFile && (
+              <div className="w-full max-w-md mb-4 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700 dark:border-yellow-300"></div>
+                  <p className="font-medium">Extracting text from your file...</p>
+                </div>
+              </div>
+            )}
+            
             {/* Show uploaded file status */}
-            {resumeFile && (
+            {resumeFile && !isParsingFile && resumeText && (
               <div className="w-full max-w-md mb-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
                 <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                   <CheckCircle2 className="w-5 h-5" />
                   <div className="flex-1 text-left">
-                    <p className="font-medium">File uploaded successfully</p>
-                    <p className="text-sm">{resumeFile.name}</p>
+                    <p className="font-medium">Resume parsed successfully</p>
+                    <p className="text-sm">{resumeFile.name} • {resumeText.length.toLocaleString()} characters extracted</p>
                   </div>
                 </div>
               </div>
@@ -426,13 +454,22 @@ const CorporateAssistantContent = () => {
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
                 placeholder="Or paste your resume text here..."
-                className="min-h-[200px] mb-4"
+                className="min-h-[200px] mb-2"
+                disabled={isParsingFile}
               />
               {resumeText && (
-                <Button onClick={handleAnalyzeResume} size="lg" className="w-full">
-                  Analyze My Resume
-                </Button>
+                <p className="text-xs text-muted-foreground text-right mb-4">
+                  {resumeText.length.toLocaleString()} characters
+                </p>
               )}
+              <Button 
+                onClick={handleAnalyzeResume} 
+                size="lg" 
+                className="w-full"
+                disabled={!resumeText || isParsingFile}
+              >
+                {resumeText ? "Start Building My War Chest" : "Add your resume to continue"}
+              </Button>
             </div>
           </div>
         </Card>
