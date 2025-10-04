@@ -41,7 +41,8 @@ const CorporateAssistantContent = () => {
 
   // Configure PDF.js worker
   useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    console.log('PDF.js worker configured:', pdfjsLib.GlobalWorkerOptions.workerSrc);
   }, []);
 
   useEffect(() => {
@@ -93,31 +94,44 @@ const CorporateAssistantContent = () => {
       } 
       // For PDF files, parse on client side using pdf.js
       else if (fileName.endsWith('.pdf')) {
-        toast({
-          title: "Parsing PDF...",
-          description: "Extracting text from your resume",
-        });
+        console.log('Starting PDF parsing...');
         
-        console.log('Parsing PDF on client side...');
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        
-        let fullText = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(' ');
-          fullText += pageText + '\n\n';
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          console.log('ArrayBuffer created, size:', arrayBuffer.byteLength);
+          
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          console.log('Loading task created');
+          
+          const pdf = await loadingTask.promise;
+          console.log('PDF loaded, pages:', pdf.numPages);
+          
+          let fullText = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            console.log(`Processing page ${i}/${pdf.numPages}`);
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item: any) => item.str)
+              .join(' ');
+            fullText += pageText + '\n\n';
+          }
+          
+          console.log('Successfully extracted text from PDF, length:', fullText.length);
+          
+          if (fullText.trim().length < 50) {
+            throw new Error('PDF appears to be empty or text could not be extracted. Please try a different file or paste your resume text directly.');
+          }
+          
+          setResumeText(fullText);
+          toast({
+            title: "PDF parsed successfully",
+            description: `Extracted ${fullText.length.toLocaleString()} characters from ${pdf.numPages} pages`,
+          });
+        } catch (pdfError: any) {
+          console.error('PDF parsing error:', pdfError);
+          throw new Error(`Failed to parse PDF: ${pdfError.message}. Please try pasting your resume text directly.`);
         }
-        
-        console.log('Successfully extracted text from PDF, length:', fullText.length);
-        setResumeText(fullText);
-        toast({
-          title: "PDF parsed successfully",
-          description: "Resume text extracted",
-        });
       }
       // For DOC/DOCX files, use edge function
       else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
@@ -396,19 +410,8 @@ const CorporateAssistantContent = () => {
             <Upload className="w-16 h-16 text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Upload Your Resume</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Upload your resume (.txt, .pdf, .doc, or .docx) or paste your resume text below. I'll analyze it and ask you questions to build a complete picture of your capabilities.
+              Upload your resume (.txt, .pdf, .doc, or .docx) or paste your resume text below.
             </p>
-            
-            {/* What Happens Next Info */}
-            <div className="w-full max-w-md mb-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-left">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">What happens next?</h3>
-              <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
-                <li>I'll analyze your resume</li>
-                <li>You'll answer 25 questions about your experience</li>
-                <li>I'll build your War Chest with power phrases, skills, and hidden competencies</li>
-                <li>Use your War Chest to supercharge job applications and interviews</li>
-              </ol>
-            </div>
             
             <input
               type="file"
@@ -438,15 +441,28 @@ const CorporateAssistantContent = () => {
             
             {/* Show uploaded file status */}
             {resumeFile && !isParsingFile && resumeText && (
-              <div className="w-full max-w-md mb-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-                <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                  <CheckCircle2 className="w-5 h-5" />
-                  <div className="flex-1 text-left">
-                    <p className="font-medium">Resume parsed successfully</p>
-                    <p className="text-sm">{resumeFile.name} • {resumeText.length.toLocaleString()} characters extracted</p>
+              <>
+                <div className="w-full max-w-md mb-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <div className="flex-1 text-left">
+                      <p className="font-medium">Resume parsed successfully</p>
+                      <p className="text-sm">{resumeFile.name} • {resumeText.length.toLocaleString()} characters extracted</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+                
+                {/* What Happens Next Info - Shows after successful parsing */}
+                <div className="w-full max-w-md mb-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-left">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">What happens next?</h3>
+                  <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
+                    <li>I'll analyze your resume</li>
+                    <li>You'll answer 25 questions about your experience</li>
+                    <li>I'll build your War Chest with power phrases, skills, and hidden competencies</li>
+                    <li>Use your War Chest to supercharge job applications and interviews</li>
+                  </ol>
+                </div>
+              </>
             )}
             
             <div className="w-full max-w-md">
