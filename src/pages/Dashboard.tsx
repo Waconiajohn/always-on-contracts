@@ -15,7 +15,6 @@ const DashboardContent = () => {
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [resumes, setResumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activatingAutomation, setActivatingAutomation] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,84 +95,10 @@ const DashboardContent = () => {
     });
   };
 
-  const handleActivateAutomation = async () => {
-    if (!profile?.strategy_customized) {
-      toast({
-        title: "Complete Step 2 First",
-        description: "Please customize your strategy before activating automation",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setActivatingAutomation(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          automation_enabled: true,
-          automation_activated_at: new Date().toISOString(),
-        })
-        .eq("user_id", session.user.id);
-
-      if (error) throw error;
-
-      setProfile({ ...profile, automation_enabled: true });
-      toast({
-        title: "🚀 Automation Activated!",
-        description: "Your Always-On system is now working for you in the background",
-      });
-    } catch (error) {
-      console.error("Error activating automation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to activate automation",
-        variant: "destructive",
-      });
-    } finally {
-      setActivatingAutomation(false);
-    }
-  };
-
-  const handleDeactivateAutomation = async () => {
-    setActivatingAutomation(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          automation_enabled: false,
-        })
-        .eq("user_id", session.user.id);
-
-      if (error) throw error;
-
-      setProfile({ ...profile, automation_enabled: false });
-      toast({
-        title: "Automation Paused",
-        description: "You can reactivate it anytime from this dashboard",
-      });
-    } catch (error) {
-      console.error("Error deactivating automation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to deactivate automation",
-        variant: "destructive",
-      });
-    } finally {
-      setActivatingAutomation(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-2xl">Loading...</div>
+        <div className="text-2xl animate-pulse">Loading...</div>
       </div>
     );
   }
@@ -183,7 +108,7 @@ const DashboardContent = () => {
       <AppNav />
       
       {/* Greeting Section */}
-      <div className="border-b bg-card">
+      <div className="border-b bg-card animate-fade-in">
         <div className="container mx-auto px-4 py-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.full_name || session?.user?.email?.split('@')[0]}</h1>
@@ -193,9 +118,9 @@ const DashboardContent = () => {
       </div>
 
       {/* Main Dashboard */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 space-y-12 animate-slide-up">
         {/* Welcome Section */}
-        <div className="mb-12">
+        <div>
           <h2 className="text-4xl font-bold mb-4">Contract Work Dashboard</h2>
           <p className="text-xl text-muted-foreground">
             Manage your contract job search, connect with staffing agencies, and land premium opportunities.
@@ -203,8 +128,8 @@ const DashboardContent = () => {
         </div>
 
         {/* Quick Actions Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/resume-upload')}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card className="hover-scale cursor-pointer transition-all" onClick={() => navigate('/resume-upload')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <Upload className="h-6 w-6 text-primary" />
@@ -236,7 +161,7 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/opportunities')}>
+          <Card className="hover-scale cursor-pointer transition-all" onClick={() => navigate('/opportunities')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <TrendingUp className="h-6 w-6 text-primary" />
@@ -253,7 +178,7 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/agencies')}>
+          <Card className="hover-scale cursor-pointer transition-all" onClick={() => navigate('/agencies')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-primary" />
@@ -271,7 +196,7 @@ const DashboardContent = () => {
           </Card>
 
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/rate-calculator')}>
+          <Card className="hover-scale cursor-pointer transition-all" onClick={() => navigate('/rate-calculator')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <DollarSign className="h-6 w-6 text-primary" />
@@ -288,7 +213,7 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/templates')}>
+          <Card className="hover-scale cursor-pointer transition-all" onClick={() => navigate('/templates')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <FileText className="h-6 w-6 text-primary" />
@@ -305,7 +230,7 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/api-keys')}>
+          <Card className="hover-scale cursor-pointer transition-all" onClick={() => navigate('/api-keys')}>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                 <FileText className="h-6 w-6 text-primary" />
