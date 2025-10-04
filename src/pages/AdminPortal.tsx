@@ -153,12 +153,17 @@ export default function AdminPortal() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8 px-4">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center gap-3">
-          <Shield className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold">Admin Portal</h1>
-            <p className="text-muted-foreground">Manage subscriptions, codes, and affiliates</p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Shield className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-3xl font-bold">Admin Portal</h1>
+              <p className="text-muted-foreground">Manage subscriptions, codes, and affiliates</p>
+            </div>
           </div>
+          <Button onClick={() => window.location.href = '/admin/analytics'} variant="outline">
+            View Analytics
+          </Button>
         </div>
 
         <Tabs defaultValue="promo-codes">

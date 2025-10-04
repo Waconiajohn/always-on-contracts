@@ -5,9 +5,11 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { FileText, TrendingUp, Users, DollarSign, Upload } from "lucide-react";
+import { FileText, TrendingUp, Users, DollarSign, Upload, Crown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AppNav } from "@/components/AppNav";
+import { Badge } from "@/components/ui/badge";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const DashboardContent = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -16,6 +18,7 @@ const DashboardContent = () => {
   const [resumes, setResumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { subscription } = useSubscription();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -110,9 +113,20 @@ const DashboardContent = () => {
       {/* Greeting Section */}
       <div className="border-b bg-card animate-fade-in">
         <div className="container mx-auto px-4 py-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.full_name || session?.user?.email?.split('@')[0]}</h1>
-            <p className="text-lg text-muted-foreground">Your career intelligence command center</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.full_name || session?.user?.email?.split('@')[0]}</h1>
+              <p className="text-lg text-muted-foreground">Your career intelligence command center</p>
+            </div>
+            {subscription?.subscribed && (
+              <Badge variant={subscription.is_retirement_client ? "default" : "secondary"} className="text-sm flex items-center gap-1">
+                <Crown className="h-3 w-3" />
+                {subscription.is_retirement_client ? "Lifetime Access" : 
+                 subscription.tier === 'career_starter' ? "Career Starter" :
+                 subscription.tier === 'always_ready' ? "Always Ready" :
+                 subscription.tier === 'concierge_elite' ? "Concierge Elite" : "Premium"}
+              </Badge>
+            )}
           </div>
         </div>
       </div>
@@ -279,11 +293,39 @@ const DashboardContent = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Recruiter Network</CardTitle>
+              <CardTitle className="text-xl">Subscription Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold mb-2">0/200</div>
-              <p className="text-lg text-muted-foreground">Recruiters in your network</p>
+              {subscription?.subscribed ? (
+                <>
+                  <div className="text-xl font-bold mb-2 flex items-center gap-2">
+                    <Crown className="h-5 w-5 text-primary" />
+                    {subscription.is_retirement_client ? "Lifetime" :
+                     subscription.tier === 'career_starter' ? "Career Starter" :
+                     subscription.tier === 'always_ready' ? "Always Ready" :
+                     subscription.tier === 'concierge_elite' ? "Concierge Elite" : "Active"}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {subscription.is_retirement_client ? "You have lifetime access" :
+                     subscription.subscription_end ? 
+                     `Renews ${new Date(subscription.subscription_end).toLocaleDateString()}` :
+                     "Active subscription"}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/profile')}>
+                    Manage
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="text-xl font-bold mb-2">Free Tier</div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Upgrade to unlock premium features
+                  </p>
+                  <Button variant="default" size="sm" onClick={() => navigate('/pricing')}>
+                    View Plans
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -39,6 +39,7 @@ import Onboarding from "./pages/Onboarding";
 import AffiliatePortal from "./pages/AffiliatePortal";
 import RedeemCode from "./pages/RedeemCode";
 import AdminPortal from "./pages/AdminPortal";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -88,7 +89,8 @@ const App = () => (
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/affiliate-portal" element={<ProtectedRoute><AffiliatePortal /></ProtectedRoute>} />
           <Route path="/redeem-code" element={<ProtectedRoute><RedeemCode /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><AdminPortal /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPortal /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
                 </Routes>

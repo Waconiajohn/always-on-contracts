@@ -21,6 +21,8 @@ import {
   Brain,
   LogOut,
   Command,
+  DollarSign,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +38,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { useSubscription } from "@/hooks/useSubscription";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -67,9 +71,16 @@ const settingsItems = [
   { path: "/experimental-lab", label: "Experimental Lab", icon: TestTube },
 ];
 
+const businessItems = [
+  { path: "/pricing", label: "Pricing", icon: DollarSign },
+  { path: "/affiliate-portal", label: "Affiliate Portal", icon: TrendingUp },
+  { path: "/admin", label: "Admin Portal", icon: Shield },
+];
+
 export function AppSidebar() {
   const navigate = useNavigate();
   const { state } = useSidebar();
+  const { subscription } = useSubscription();
   const isCollapsed = state === "collapsed";
 
   const handleSignOut = async () => {
@@ -112,13 +123,24 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className="p-4 flex items-center gap-3">
-          <img src={logo} alt="CareerIQ" className="h-8 w-8" />
-          {!isCollapsed && (
-            <div>
-              <div className="font-semibold text-sm">CareerIQ</div>
-              <div className="text-xs text-muted-foreground">Command Center</div>
-            </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="CareerIQ" className="h-8 w-8" />
+            {!isCollapsed && (
+              <div>
+                <div className="font-semibold text-sm">CareerIQ</div>
+                <div className="text-xs text-muted-foreground">Command Center</div>
+              </div>
+            )}
+          </div>
+          
+          {!isCollapsed && subscription?.subscribed && (
+            <Badge variant={subscription.is_retirement_client ? "default" : "secondary"} className="text-xs">
+              {subscription.is_retirement_client ? "Lifetime Access" : 
+               subscription.tier === 'career_starter' ? "Career Starter" :
+               subscription.tier === 'always_ready' ? "Always Ready" :
+               subscription.tier === 'concierge_elite' ? "Concierge Elite" : "Active"}
+            </Badge>
           )}
         </div>
         
@@ -156,6 +178,7 @@ export function AppSidebar() {
         <NavGroup items={jobSearchItems} label="Job Search" />
         <NavGroup items={toolsItems} label="Tools" />
         <NavGroup items={settingsItems} label="Settings" />
+        <NavGroup items={businessItems} label="Business" />
       </SidebarContent>
 
       <SidebarFooter>
