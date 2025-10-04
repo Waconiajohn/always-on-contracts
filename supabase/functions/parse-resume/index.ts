@@ -1,6 +1,11 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { pdfText } from "jsr:@pdf/pdftext@1.3.2";
+import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs';
+import * as pdfjsworker from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs';
+
+// Force import of worker
+type PDFWorker = typeof pdfjsworker;
+pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,9 +50,9 @@ serve(async (req) => {
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
     }
-    // Handle PDF files with native PDF parser
+    // Handle PDF files with pdfjs
     else if (fileName.endsWith('.pdf')) {
-      console.log('Parsing PDF with native library...');
+      console.log('Parsing PDF with pdfjs library...');
       
       try {
         // Convert base64 to Uint8Array
@@ -57,13 +62,28 @@ serve(async (req) => {
           bytes[i] = binaryString.charCodeAt(i);
         }
         
-        // Extract text from PDF (returns object with page numbers as keys)
-        const pages = await pdfText(bytes);
+        // Parse PDF with pdfjs
+        const loadingTask = pdfjs.getDocument({ data: bytes });
+        const pdfDocument = await loadingTask.promise;
         
-        // Combine all pages into single text
-        extractedText = Object.values(pages).join('\n\n');
+        if (!pdfDocument) {
+          throw new Error("Failed to load PDF document");
+        }
         
-        if (!extractedText || extractedText.trim().length < 50) {
+        // Extract text from all pages
+        let fullText = '';
+        for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+          const page = await pdfDocument.getPage(pageNum);
+          const textContent = await page.getTextContent({ includeMarkedContent: false });
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ');
+          fullText += pageText + '\n\n';
+        }
+        
+        extractedText = fullText.trim();
+        
+        if (!extractedText || extractedText.length < 50) {
           return new Response(
             JSON.stringify({ 
               success: false, 
