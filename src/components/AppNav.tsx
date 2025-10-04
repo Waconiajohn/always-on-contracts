@@ -43,6 +43,7 @@ export const AppNav = () => {
     { path: "/war-chest-dashboard", label: "War Chest", icon: FileText },
     { path: "/agents/interview-prep", label: "Interview Prep", icon: Brain },
     { path: "/experimental", label: "Experimental Lab", icon: Zap },
+    { path: "/career-tools", label: "Career Tools", icon: Target },
     { path: "/projects", label: "Projects", icon: Briefcase },
     { path: "/application-queue", label: "Queue", icon: ListChecks },
   ];

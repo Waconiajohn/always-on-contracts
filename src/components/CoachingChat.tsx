@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { personaMemory } from "@/lib/mcp-client";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -39,6 +40,13 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
   useEffect(() => {
     const loadSession = async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Load persona memories
+        const memories = await personaMemory.recall(coachPersonality as 'robert' | 'sophia' | 'nexus', 10);
+        console.log(`Loaded ${memories.data?.length || 0} memories for ${coachPersonality}`);
+
         // Load existing session for this coach
         const { data: sessions, error } = await supabase
           .from('agent_sessions')
@@ -63,7 +71,7 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
           }
         }
 
-        // If no session or history, send initial greeting
+        // If no session or history, send initial greeting with context from memories
         const greetings: Record<string, string> = {
           robert: "Hello, I'm Robert. I'm here to help you position yourself strategically for your next executive role. What brings you here today?",
           sophia: "Hi there, I'm Sophia. I help executives like you develop authentic narratives that resonate. What would you like to work on?",
@@ -106,10 +114,53 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
       if (error) throw error;
 
       setSessionId(data.sessionId);
+      const assistantMessage = data.message;
+      
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: data.message 
+        content: assistantMessage 
       }]);
+
+      // Store important memories from the conversation
+      try {
+        // Analyze user message for key information
+        if (userMessage.toLowerCase().includes('goal') || userMessage.toLowerCase().includes('want to')) {
+          await personaMemory.remember(
+            coachPersonality as 'robert' | 'sophia' | 'nexus',
+            'goal',
+            userMessage,
+            8
+          );
+        } else if (userMessage.toLowerCase().includes('concern') || userMessage.toLowerCase().includes('worried')) {
+          await personaMemory.remember(
+            coachPersonality as 'robert' | 'sophia' | 'nexus',
+            'concern',
+            userMessage,
+            7
+          );
+        } else {
+          // Store as general fact
+          await personaMemory.remember(
+            coachPersonality as 'robert' | 'sophia' | 'nexus',
+            'fact',
+            userMessage,
+            5
+          );
+        }
+
+        // Track progress if relevant
+        if (userMessage.toLowerCase().includes('completed') || userMessage.toLowerCase().includes('finished')) {
+          await personaMemory.trackProgress(
+            coachPersonality as 'robert' | 'sophia' | 'nexus',
+            'Session task',
+            100,
+            userMessage
+          );
+        }
+      } catch (memoryError) {
+        console.error('Error storing memory:', memoryError);
+        // Don't fail the whole message if memory storage fails
+      }
 
     } catch (error) {
       console.error('Error sending message:', error);
