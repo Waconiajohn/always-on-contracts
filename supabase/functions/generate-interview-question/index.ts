@@ -138,19 +138,18 @@ Example: 'I built an Excel model that predicted customer churn by analyzing purc
 
 Generate ONE question following the format above. Make it conversational but extremely specific about what information you need. Return ONLY the complete question text with context, guidance, and example included.`;
 
-    const response = await fetch('https://lovable.app/api/ai/completion', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an expert career counselor conducting interviews.' },
+          { role: 'system', content: 'You are an expert career counselor conducting strategic interviews to build comprehensive career war chests.' },
           { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 150
+        ]
       }),
     });
 
