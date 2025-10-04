@@ -1,13 +1,104 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, ArrowLeft } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Check, Sparkles, Crown, Rocket, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
-const Pricing = () => {
+const TIERS = [
+  {
+    id: "career_starter",
+    name: "Career Starter",
+    price: "$29",
+    icon: Rocket,
+    description: "Essential tools for your executive job search",
+    features: [
+      "AI-powered resume optimization",
+      "Job matching algorithm",
+      "Application tracking",
+      "Basic market insights",
+      "Email support"
+    ],
+    highlighted: false
+  },
+  {
+    id: "always_ready",
+    name: "Always Ready",
+    price: "$49",
+    icon: Sparkles,
+    description: "Stay interview-ready with comprehensive tools",
+    features: [
+      "Everything in Career Starter",
+      "Automated applications (up to 5/day)",
+      "Executive coaching AI agents",
+      "Advanced market intelligence",
+      "Interview prep assistant",
+      "Priority support"
+    ],
+    highlighted: true
+  },
+  {
+    id: "concierge_elite",
+    name: "Concierge Elite",
+    price: "$99",
+    icon: Crown,
+    description: "White-glove career management",
+    features: [
+      "Everything in Always Ready",
+      "Unlimited AI agents",
+      "Dedicated career strategist",
+      "Custom automation workflows",
+      "Retirement planning integration",
+      "24/7 premium support"
+    ],
+    highlighted: false
+  }
+];
+
+export default function Pricing() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+
+  const handleSubscribe = async (tierId: string) => {
+    try {
+      setLoading(tierId);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error("Please sign in to subscribe");
+        navigate("/auth");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          tier: tierId,
+          promoCode: promoCode || undefined,
+          referralCode: referralCode || undefined
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      toast.error(error.message || "Failed to start checkout");
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
@@ -19,195 +110,119 @@ const Pricing = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Choose Your Career Mode
-            </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-              Start with a free trial. Switch plans anytime as your career needs change.
+      <div className="py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4">Choose Your Career Success Path</h1>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Unlock your executive potential with AI-powered career tools
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Career Command Tier */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="text-3xl">Career Command</CardTitle>
-                <CardDescription className="text-lg">
-                  For professionals actively seeking permanent or contract roles
-                </CardDescription>
-                <div className="pt-4">
-                  <span className="text-5xl font-bold">$49</span>
-                  <span className="text-xl text-muted-foreground">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <Button className="w-full text-lg py-6" onClick={() => navigate('/dashboard')}>
-                  Start Free Trial
-                </Button>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg">Full resume analysis & strategy</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg">Communication templates</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg">200+ staffing agency database</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg">LinkedIn optimization</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg">Rate calculator & negotiation tools</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg">Manual application tracking</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Promo/Referral Code Input */}
+          <div className="max-w-md mx-auto mb-8 space-y-3">
+            <Input
+              placeholder="Promo code (optional)"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+              className="text-center"
+            />
+            <Input
+              placeholder="Referral code (optional)"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value)}
+              className="text-center"
+            />
+          </div>
 
-            {/* Always Ready Tier */}
-            <Card className="border-4 border-primary relative">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-bold">
-                MOST POPULAR
-              </div>
-              <CardHeader className="bg-primary/5">
-                <CardTitle className="text-3xl">Always Ready</CardTitle>
-                <CardDescription className="text-lg">
-                  Stay market-ready while employed with passive monitoring
-                </CardDescription>
-                <div className="pt-4">
-                  <span className="text-5xl font-bold text-primary">$29</span>
-                  <span className="text-xl text-muted-foreground">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <Button className="w-full text-lg py-6" onClick={() => navigate('/dashboard')}>
-                  Start Free Trial
-                </Button>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Automated relationship maintenance</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">AI job scanning (50+ boards daily)</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Anonymous profile matching</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Market rate monitoring</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">60-day contract-end alerts</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Background recruiter engagement</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-3 gap-8">
+            {TIERS.map((tier) => {
+              const Icon = tier.icon;
+              return (
+                <Card 
+                  key={tier.id} 
+                  className={`relative ${tier.highlighted ? 'border-primary shadow-lg scale-105' : ''}`}
+                >
+                  {tier.highlighted && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-primary">Most Popular</Badge>
+                    </div>
+                  )}
+                  
+                  <CardHeader>
+                    <div className="flex items-center justify-between mb-4">
+                      <Icon className="h-8 w-8 text-primary" />
+                      {tier.highlighted && <Sparkles className="h-5 w-5 text-primary" />}
+                    </div>
+                    <CardTitle className="text-2xl">{tier.name}</CardTitle>
+                    <CardDescription>{tier.description}</CardDescription>
+                    <div className="mt-4">
+                      <span className="text-4xl font-bold">{tier.price}</span>
+                      <span className="text-muted-foreground">/month</span>
+                    </div>
+                  </CardHeader>
 
-            {/* Concierge Elite Tier */}
-            <Card className="border-2">
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {tier.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-3">
+                          <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+
+                  <CardFooter>
+                    <Button
+                      className="w-full"
+                      onClick={() => handleSubscribe(tier.id)}
+                      disabled={loading === tier.id}
+                      variant={tier.highlighted ? "default" : "outline"}
+                    >
+                      {loading === tier.id ? "Loading..." : "Subscribe Now"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Affiliate CTA */}
+          <div className="mt-16 text-center">
+            <Card className="max-w-2xl mx-auto bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
               <CardHeader>
-                <CardTitle className="text-3xl">Concierge Elite</CardTitle>
-                <CardDescription className="text-lg">
-                  White-glove service for C-suite and senior executives
+                <CardTitle>Become an Affiliate Partner</CardTitle>
+                <CardDescription>
+                  Earn 30% recurring commission for every referral
                 </CardDescription>
-                <div className="pt-4">
-                  <span className="text-5xl font-bold">$99</span>
-                  <span className="text-xl text-muted-foreground">/month</span>
-                </div>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <Button className="w-full text-lg py-6" onClick={() => navigate('/dashboard')}>
-                  Start Free Trial
+              <CardFooter className="justify-center">
+                <Button 
+                  onClick={() => navigate("/affiliate-portal")}
+                  variant="outline"
+                >
+                  Join Affiliate Program
                 </Button>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg">Everything in Autopilot</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Dedicated relationship manager</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Direct C-suite outreach campaigns</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Board-level networking</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">Personal brand management</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                    <p className="text-lg font-semibold">White-glove transitions</p>
-                  </div>
-                </div>
-              </CardContent>
+              </CardFooter>
             </Card>
           </div>
 
-          {/* FAQ Section */}
-          <Card className="bg-muted">
-            <CardHeader>
-              <CardTitle className="text-3xl">Frequently Asked Questions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Can I switch between plans?</h3>
-                <p className="text-lg text-muted-foreground">
-                  Yes! You can upgrade or downgrade anytime. When you land a role, downgrade to Always Ready. 
-                  When actively seeking new opportunities, upgrade to Career Command.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">What's included in the free trial?</h3>
-                <p className="text-lg text-muted-foreground">
-                  You get full access to all features of your chosen plan for 14 days. No credit card required to start.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">What is the &lt;30 day transition guarantee?</h3>
-                <p className="text-lg text-muted-foreground">
-                  With Always Ready active, we guarantee you'll have qualified opportunities in your pipeline 
-                  within 30 days of when you need them.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Is there a setup fee?</h3>
-                <p className="text-lg text-muted-foreground">
-                  No. There are no setup fees, hidden costs, or long-term contracts. Pay monthly and cancel anytime.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Retirement Client CTA */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              Retirement planning client?{" "}
+              <Button 
+                variant="link" 
+                className="p-0 h-auto"
+                onClick={() => navigate("/redeem-code")}
+              >
+                Redeem your access code
+              </Button>
+            </p>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
-};
-
-export default Pricing;
+}
