@@ -38,33 +38,105 @@ serve(async (req) => {
 
     if (responseCount < 8) {
       phase = 'resume_understanding';
-      phaseTitle = 'Understanding Your Experience';
-      phaseDescription = "Let me learn more about your background";
+      phaseTitle = 'Deep Dive Into Your Experience';
+      phaseDescription = "Let's extract the quantifiable achievements and specific impact from your career";
     } else if (responseCount < 17) {
       phase = 'skills_translation';
-      phaseTitle = 'Skills Translation';
-      phaseDescription = "Let's uncover equivalent skills you possess";
+      phaseTitle = 'Uncovering Transferable Skills';
+      phaseDescription = "Discovering skills and capabilities you have but may not have explicitly listed";
     } else {
       phase = 'hidden_gems';
       phaseTitle = 'Hidden Competencies';
-      phaseDescription = "Discovering your untapped potential";
+      phaseDescription = "Identifying expertise you possess but might not call by its modern industry name";
     }
 
     // Use Lovable AI to generate contextual question
-    const prompt = `You are a corporate career assistant conducting an interview to build a comprehensive "War Chest" of someone's capabilities.
+    const prompt = `You are a corporate career assistant conducting a strategic interview to build a comprehensive "War Chest" that will power customized resumes and job applications.
 
 Resume Summary: ${JSON.stringify(warChest.initial_analysis)}
-
 Previous Interview Responses: ${JSON.stringify(previousResponses?.slice(-3) || [])}
+Current Phase: ${phase} (Question ${responseCount + 1} of 25)
 
-Current Phase: ${phase}
+CRITICAL INSTRUCTIONS FOR GENERATING QUESTIONS:
+Your questions MUST include three elements:
+1. CONTEXT - A brief paragraph explaining WHY you're asking this specific question and what you'll do with the information
+2. SPECIFIC GUIDANCE - Clear instructions on what to include (timeframes, format, metrics, depth expected)
+3. CONCRETE EXAMPLE - Show them exactly what a strong answer looks like
 
-Generate ONE specific, insightful question that will help uncover:
-${phase === 'resume_understanding' ? '- Deeper context about their work experience\n- Quantifiable achievements they may have undersold\n- Specific projects and their impact' : ''}
-${phase === 'skills_translation' ? '- Skills they have but may not have listed (e.g., Salesforce experience means they can use Zoho)\n- Certifications they almost have (e.g., learned Kaizen in Japan but not Six Sigma certified)\n- Technologies or methodologies they\'ve worked with indirectly' : ''}
-${phase === 'hidden_gems' ? '- AI/ML experience they don\'t call "AI" (e.g., large language models, machine learning)\n- Leadership capabilities from non-management roles\n- Cross-functional skills they take for granted' : ''}
+Format your question like this:
+[Context paragraph]
 
-Return ONLY the question text, no preamble.`;
+Please share:
+• [Specific element 1]
+• [Specific element 2]
+• [Specific element 3]
+
+Example: [Concrete example showing the level of detail expected]
+
+PHASE-SPECIFIC FOCUS:
+
+${phase === 'resume_understanding' ? `PHASE 1: DEEP RESUME UNDERSTANDING (Questions 1-8)
+Goal: Extract quantifiable achievements, specific projects, leadership impact, and measurable results.
+
+Your questions should probe for:
+- Specific job titles, companies, and timeframes (last 10-15 years)
+- Quantified results (revenue impact, cost savings, team size, efficiency gains, customer metrics)
+- Technologies, tools, and methodologies used
+- Project scope and impact
+- Leadership and collaboration examples
+
+Example question structure:
+"I need to build a complete picture of your professional journey to identify your strongest achievements. This will help me craft powerful, quantified statements for your resume.
+
+Please share:
+• Your last 2-3 roles with job titles, companies, and dates
+• For each role, describe 1-2 major projects or initiatives you led
+• Include specific metrics: budget size, team size, revenue impact, cost savings, customer numbers, efficiency improvements, or other measurable outcomes
+• Mention key technologies, tools, or methodologies you used
+
+Example: 'As Senior Product Manager at TechCorp (2020-2023), I led a cross-functional team of 12 to launch our mobile app. We acquired 50K users in the first quarter, increased retention by 35%, and generated $1.2M in new revenue. I used Agile/Scrum, Jira, and collaborated with engineering, design, and marketing teams.'"` : ''}
+
+${phase === 'skills_translation' ? `PHASE 2: SKILLS TRANSLATION (Questions 9-17)
+Goal: Uncover equivalent skills, near-certifications, and transferable capabilities they haven't articulated.
+
+Your questions should probe for:
+- Tools they've used that translate to other tools (CRM experience = can use any CRM)
+- Training or certifications they almost have (studied methodology but not certified)
+- Skills demonstrated indirectly (led without manager title, analyzed data without "analyst" role)
+- Industry-specific knowledge that applies broadly
+- Technologies used in different contexts
+
+Example question structure:
+"Now I want to discover skills you have but may not have listed on your resume. Often people have capabilities they don't realize are valuable or transferable.
+
+Please share:
+• Any CRM, project management, or analytics tools you've used (even if not your main job)
+• Training programs, courses, or certifications you've started or almost completed
+• Times you've done work outside your official job title (coordinated projects, analyzed data, mentored others, solved technical problems)
+
+Example: 'I used Salesforce daily even though I wasn't in sales—I created custom reports and dashboards. I took a Six Sigma Green Belt course but never finished the certification project. I regularly trained new hires even though I wasn't officially a trainer.'"` : ''}
+
+${phase === 'hidden_gems' ? `PHASE 3: HIDDEN COMPETENCIES (Questions 18-25)
+Goal: Identify modern, high-value skills they possess but don't call by current industry terminology.
+
+Your questions should probe for:
+- AI/ML work they don't call "AI" (predictive models, recommendation engines, automation, natural language processing)
+- Leadership without the title (influenced decisions, drove change, mentored, coordinated teams)
+- Modern tech skills they describe in old terms (data science work called "Excel analysis")
+- Cross-functional expertise they take for granted
+- Innovation and problem-solving examples
+
+Example question structure:
+"Let's uncover hidden strengths you might not realize are highly valuable in today's market. Many people have done AI, data science, or leadership work without using those exact words.
+
+Please share:
+• Have you built or worked with any automated systems, predictive models, recommendation engines, chatbots, or data-driven decision tools?
+• Have you influenced company direction, driven process improvements, or led initiatives without having 'manager' in your title?
+• Have you worked with large datasets, built dashboards, or created reports that drove business decisions?
+
+Example: 'I built an Excel model that predicted customer churn by analyzing purchase patterns—it was 80% accurate and we used it to target retention campaigns. I wasn't officially a manager but I coordinated our team's sprint planning and mentored 3 junior developers.'"` : ''}
+
+Generate ONE question following the format above. Make it conversational but extremely specific about what information you need. Return ONLY the complete question text with context, guidance, and example included.`;
 
     const response = await fetch('https://lovable.app/api/ai/completion', {
       method: 'POST',
