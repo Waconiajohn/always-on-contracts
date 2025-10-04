@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @deno-types="https://esm.sh/v135/@types/pdf-parse@1.1.4/index.d.ts"
+import pdf from "https://esm.sh/pdf-parse@1.1.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,29 +46,44 @@ serve(async (req) => {
     if (fileName.endsWith('.txt')) {
       extractedText = atob(fileData);
     } 
-    // For PDF and DOC files, use Lovable AI for parsing
-    else if (fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+    // For PDF files, use pdf-parse library
+    else if (fileName.endsWith('.pdf')) {
+      console.log('Parsing PDF file...');
+      try {
+        const buffer = Uint8Array.from(atob(fileData), c => c.charCodeAt(0));
+        const pdfData = await pdf(buffer);
+        extractedText = pdfData.text;
+        console.log('Successfully parsed PDF, length:', extractedText.length);
+      } catch (pdfError) {
+        console.error('PDF parsing error:', pdfError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to parse PDF. Please ensure the file is a valid PDF with readable text, or copy and paste your resume text instead.' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    }
+    // For DOC/DOCX files, use Lovable AI
+    else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
       const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       
       if (!LOVABLE_API_KEY) {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'AI service not configured. Please contact support.',
+            error: 'AI service not configured for Word documents. Please convert to PDF or copy and paste your resume text instead.',
             needsConfig: true
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
 
-      console.log('Using Lovable AI to parse document...');
+      console.log('Using Lovable AI to parse Word document...');
 
-      // Determine MIME type
-      const mimeType = fileName.endsWith('.pdf') 
-        ? 'application/pdf'
-        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      const mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-      // Use Lovable AI to extract text from document
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -100,43 +117,12 @@ serve(async (req) => {
         const errorText = await aiResponse.text();
         console.error('Lovable AI error:', aiResponse.status, errorText);
         
-        if (aiResponse.status === 429) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'AI service rate limit exceeded. Please try again in a moment.' 
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
-          );
-        }
-        
-        if (aiResponse.status === 402) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'AI service requires additional credits. Please contact support.' 
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
-          );
-        }
-
-        // Check if it's an image extraction error (common with certain PDF formats)
-        if (errorText.includes('Failed to extract') || errorText.includes('image')) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'This PDF format cannot be parsed automatically. Please copy and paste your resume text directly into the text area instead.' 
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-        
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Failed to parse document. Please try copying and pasting your resume text instead.' 
+            error: 'Failed to parse Word document. Please convert to PDF or copy and paste your resume text instead.' 
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
 
@@ -147,13 +133,13 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Could not extract text from document. Please ensure the file contains readable text.' 
+            error: 'Could not extract text from Word document. Please ensure the file contains readable text.' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
 
-      console.log('Successfully extracted text using AI, length:', extractedText.length);
+      console.log('Successfully extracted text from Word document, length:', extractedText.length);
     } else {
       return new Response(
         JSON.stringify({ 

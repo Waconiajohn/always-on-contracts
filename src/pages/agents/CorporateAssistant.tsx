@@ -100,15 +100,7 @@ const CorporateAssistantContent = () => {
         });
         
         if (error || !data?.success) {
-          const errorMsg = data?.error || 'Failed to parse document';
-          toast({
-            title: "Unable to parse PDF",
-            description: "Please copy all text from your resume and paste it in the text area below instead.",
-            variant: "destructive",
-            duration: 8000,
-          });
-          setResumeFile(null);
-          return; // Don't throw, just show the message and let user paste text
+          throw new Error(data?.error || 'Failed to parse document');
         }
         
         setResumeText(data.text);
