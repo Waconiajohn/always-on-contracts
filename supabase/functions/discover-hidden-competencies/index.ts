@@ -33,42 +33,56 @@ serve(async (req) => {
 
     if (!warChest) throw new Error('War chest not found');
 
-    const prompt = `You are an expert at discovering hidden competencies people don't realize they have.
+    const prompt = `You are an expert at discovering hidden competencies and reframing experience with modern terminology.
 
 Resume: ${warChest.resume_raw_text}
 Hidden Gems Interview: ${JSON.stringify(responses)}
 
+DEEP DISCOVERY REQUIREMENTS:
+- Reframe old experience with modern terminology (e.g., "Excel reporting" → "Business Intelligence & Analytics")
+- Identify implicit leadership (mentored team, drove adoption, championed initiative = leadership capability)
+- Spot domain expertise they don't call expertise (e.g., "worked on medical devices 5 years" = "Healthcare Domain Expert")
+- Find certifications they're qualified for but don't have (e.g., "PMP-eligible", "Could pass AWS Solutions Architect")
+- Look for technology adjacency (e.g., "Built APIs" + "Managed servers" = "DevOps capabilities")
+- Uncover soft skills demonstrated through actions (e.g., "Coordinated 3 departments" = "Cross-functional collaboration expert")
+
 Discover 8-12 hidden competencies like:
-- Worked on large language models in 2018 → Can implement modern AI solutions (even without "AI experience" title)
-- Trained in Kaizen in Japan → Six Sigma Black Belt equivalent knowledge (even without certification)
-- Managed IT infrastructure projects → Qualified to lead AI implementation (knows engineering, project management, IT)
+- Worked on large language models in 2018 → Can implement modern AI solutions, Understands ML infrastructure (even without "AI Engineer" title)
+- Trained in Kaizen in Japan → Six Sigma Black Belt equivalent knowledge, Process optimization expert (even without certification)
+- Managed IT infrastructure projects → Qualified to lead cloud migration, DevOps transformation, AI implementation (knows engineering, project management, IT)
+- Created Excel macros for 10 years → RPA candidate, Python automation ready, process improvement expert
+- "Coordinated between sales and engineering" → Product management capable, stakeholder management expert
 
 Return JSON array:
 [{
-  "competency_area": "AI Implementation",
-  "supporting_evidence": ["Worked on large language models 2018-2020", "Led ML infrastructure projects", "Managed data science teams"],
-  "inferred_capability": "Qualified to lead enterprise AI transformation initiatives despite not having explicit 'AI experience' job title",
+  "competency_area": "AI Implementation Leadership",
+  "supporting_evidence": ["Worked on large language models 2018-2020", "Led ML infrastructure projects", "Managed data science teams", "Understands model deployment and scaling"],
+  "inferred_capability": "Qualified to lead enterprise AI transformation initiatives despite not having explicit 'AI experience' job title. Understands both technical and business aspects of AI.",
   "confidence_score": 85,
-  "certification_equivalent": "AI/ML Professional (practical experience)"
+  "certification_equivalent": "AI/ML Professional (practical experience) - could pass AI certifications"
 }]`;
 
-    const response = await fetch('https://lovable.app/api/ai/completion', {
+    console.log('Discovering hidden competencies for war chest:', warChestId);
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an expert career analyst. Return only valid JSON.' },
+          { role: 'system', content: 'You are an expert career analyst specializing in discovering hidden capabilities and reframing experience. Return only valid JSON.' },
           { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 1800
+        ]
       }),
     });
 
-    if (!response.ok) throw new Error('Failed to discover hidden competencies');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AI API error:', response.status, errorText);
+      throw new Error(`Failed to discover hidden competencies: ${response.status}`);
+    }
 
     const aiResponse = await response.json();
     const competenciesText = aiResponse.choices[0].message.content.trim();

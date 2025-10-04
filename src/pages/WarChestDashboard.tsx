@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, Zap, Brain, FileText, TrendingUp } from "lucide-react";
+import { Target, Zap, Brain, FileText, TrendingUp, Award, Trophy } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 interface WarChestStats {
@@ -15,12 +15,23 @@ interface WarChestStats {
   interview_completion_percentage: number;
 }
 
+interface StrengthScore {
+  total: number;
+  powerPhrasesScore: number;
+  transferableSkillsScore: number;
+  hiddenCompetenciesScore: number;
+  quantificationScore: number;
+  modernTerminologyScore: number;
+  level: 'Developing' | 'Solid' | 'Strong' | 'Elite' | 'Exceptional';
+}
+
 interface PowerPhrase {
   id: string;
   category: string;
   power_phrase: string;
   confidence_score: number;
   keywords: string[];
+  impact_metrics?: any;
 }
 
 interface TransferableSkill {
@@ -48,6 +59,64 @@ const WarChestDashboardContent = () => {
   const [transferableSkills, setTransferableSkills] = useState<TransferableSkill[]>([]);
   const [hiddenCompetencies, setHiddenCompetencies] = useState<HiddenCompetency[]>([]);
   const [loading, setLoading] = useState(true);
+  const [strengthScore, setStrengthScore] = useState<StrengthScore | null>(null);
+
+  const calculateStrengthScore = (
+    phrases: PowerPhrase[], 
+    skills: TransferableSkill[], 
+    competencies: HiddenCompetency[]
+  ): StrengthScore => {
+    // Power Phrases Score (0-20 points)
+    const powerPhrasesScore = Math.min((phrases.length / 15) * 20, 20);
+    
+    // Transferable Skills Score (0-20 points)
+    const transferableSkillsScore = Math.min((skills.length / 10) * 20, 20);
+    
+    // Hidden Competencies Score (0-20 points)
+    const hiddenCompetenciesScore = Math.min((competencies.length / 8) * 20, 20);
+    
+    // Quantification Density Score (0-20 points)
+    const phrasesWithMetrics = phrases.filter(p => 
+      p.impact_metrics && Object.keys(p.impact_metrics).length > 0
+    ).length;
+    const quantificationScore = phrases.length > 0 
+      ? (phrasesWithMetrics / phrases.length) * 20 
+      : 0;
+    
+    // Modern Terminology Score (0-20 points)
+    const modernKeywords = ['AI', 'ML', 'cloud', 'digital transformation', 'automation', 
+      'data science', 'agile', 'DevOps', 'analytics', 'optimization'];
+    const modernPhrases = phrases.filter(p => 
+      p.keywords.some(k => modernKeywords.some(mk => k.toLowerCase().includes(mk.toLowerCase())))
+    ).length;
+    const modernTerminologyScore = phrases.length > 0 
+      ? (modernPhrases / phrases.length) * 20 
+      : 0;
+    
+    const total = Math.round(
+      powerPhrasesScore + 
+      transferableSkillsScore + 
+      hiddenCompetenciesScore + 
+      quantificationScore + 
+      modernTerminologyScore
+    );
+    
+    let level: StrengthScore['level'] = 'Developing';
+    if (total >= 90) level = 'Exceptional';
+    else if (total >= 80) level = 'Elite';
+    else if (total >= 70) level = 'Strong';
+    else if (total >= 60) level = 'Solid';
+    
+    return {
+      total,
+      powerPhrasesScore: Math.round(powerPhrasesScore),
+      transferableSkillsScore: Math.round(transferableSkillsScore),
+      hiddenCompetenciesScore: Math.round(hiddenCompetenciesScore),
+      quantificationScore: Math.round(quantificationScore),
+      modernTerminologyScore: Math.round(modernTerminologyScore),
+      level
+    };
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,6 +168,16 @@ const WarChestDashboardContent = () => {
           .order('confidence_score', { ascending: false });
 
         setHiddenCompetencies(competencies || []);
+
+        // Calculate strength score
+        const score = calculateStrengthScore(phrases || [], skills || [], competencies || []);
+        setStrengthScore(score);
+
+        // Update overall strength score in database
+        await supabase
+          .from('career_war_chest')
+          .update({ overall_strength_score: score.total })
+          .eq('id', warChest.id);
       }
 
       setLoading(false);
@@ -135,6 +214,88 @@ const WarChestDashboardContent = () => {
           A comprehensive intelligence system of your skills, achievements, and capabilities
         </p>
       </div>
+
+      {/* War Chest Strength Score - Prominent Display */}
+      {strengthScore && (
+        <Card className="p-8 mb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-primary/10 rounded-full">
+                <Trophy className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold mb-1">War Chest Strength Score</h2>
+                <p className="text-muted-foreground">Your career intelligence assessment</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-5xl font-bold text-primary mb-1">{strengthScore.total}</div>
+              <Badge variant={
+                strengthScore.level === 'Exceptional' ? 'default' :
+                strengthScore.level === 'Elite' ? 'default' :
+                strengthScore.level === 'Strong' ? 'secondary' :
+                'outline'
+              } className="text-lg px-4 py-1">
+                {strengthScore.level}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Power Phrases</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.powerPhrasesScore}/20</span>
+              </div>
+              <Progress value={(strengthScore.powerPhrasesScore / 20) * 100} className="h-2" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Transferable Skills</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.transferableSkillsScore}/20</span>
+              </div>
+              <Progress value={(strengthScore.transferableSkillsScore / 20) * 100} className="h-2" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Hidden Competencies</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.hiddenCompetenciesScore}/20</span>
+              </div>
+              <Progress value={(strengthScore.hiddenCompetenciesScore / 20) * 100} className="h-2" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Quantification</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.quantificationScore}/20</span>
+              </div>
+              <Progress value={(strengthScore.quantificationScore / 20) * 100} className="h-2" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Modern Terms</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.modernTerminologyScore}/20</span>
+              </div>
+              <Progress value={(strengthScore.modernTerminologyScore / 20) * 100} className="h-2" />
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-background/50 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Award className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <p className="font-medium mb-2">Your War Chest Achievements:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>✓ {stats.total_power_phrases} power phrases ready to deploy</li>
+                  <li>✓ {stats.total_transferable_skills} skills mapped to multiple opportunities</li>
+                  <li>✓ {stats.total_hidden_competencies} hidden competencies discovered</li>
+                  {strengthScore.level === 'Exceptional' && <li className="text-primary font-medium">🏆 Exceptional War Chest - Top 5% of professionals!</li>}
+                  {strengthScore.level === 'Elite' && <li className="text-primary font-medium">⭐ Elite War Chest - Outstanding career intelligence!</li>}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

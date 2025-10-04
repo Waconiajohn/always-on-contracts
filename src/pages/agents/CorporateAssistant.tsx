@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Upload, MessageSquare, Target, CheckCircle2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Briefcase, Upload, MessageSquare, Target, CheckCircle2, Info, ChevronDown, AlertCircle, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
@@ -37,6 +38,8 @@ const CorporateAssistantContent = () => {
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [aiTyping, setAiTyping] = useState(false);
   const [isParsingFile, setIsParsingFile] = useState(false);
+  const [validationFeedback, setValidationFeedback] = useState<any>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -241,8 +244,31 @@ const CorporateAssistantContent = () => {
   const handleSubmitResponse = async () => {
     if (!currentResponse.trim() || !warChestId) return;
 
+    // Validate answer quality first
+    setIsValidating(true);
     try {
-      // Save response
+      const { data: validation, error: valError } = await supabase.functions.invoke('validate-interview-response', {
+        body: {
+          question: interviewPhase.questions[0],
+          answer: currentResponse
+        }
+      });
+
+      if (valError) throw valError;
+
+      setValidationFeedback(validation);
+
+      // If answer is insufficient, show feedback but don't move forward yet
+      if (!validation.is_sufficient) {
+        setIsValidating(false);
+        toast({
+          title: "Great start!",
+          description: "Your answer could be stronger. See the feedback below.",
+        });
+        return;
+      }
+
+      // Answer is good - save and move to next question
       await supabase
         .from('war_chest_interview_responses')
         .insert({
@@ -254,6 +280,38 @@ const CorporateAssistantContent = () => {
         });
 
       setCurrentResponse("");
+      setValidationFeedback(null);
+      await loadNextQuestion(warChestId);
+
+    } catch (error: any) {
+      console.error('Error submitting response:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save response",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleAcceptAnswer = async () => {
+    // User wants to submit answer despite validation feedback
+    if (!currentResponse.trim() || !warChestId) return;
+
+    try {
+      await supabase
+        .from('war_chest_interview_responses')
+        .insert({
+          war_chest_id: warChestId,
+          user_id: userId,
+          question: interviewPhase.questions[0],
+          response: currentResponse,
+          phase: interviewPhase.phase
+        });
+
+      setCurrentResponse("");
+      setValidationFeedback(null);
       await loadNextQuestion(warChestId);
 
     } catch (error: any) {
@@ -264,6 +322,20 @@ const CorporateAssistantContent = () => {
         variant: "destructive",
       });
     }
+  };
+
+  // Parse markdown-formatted question
+  const parseQuestion = (questionText: string) => {
+    const contextMatch = questionText.match(/\*\*CONTEXT:\*\*([\s\S]*?)(?=\*\*PLEASE SHARE:\*\*|$)/);
+    const shareMatch = questionText.match(/\*\*PLEASE SHARE:\*\*([\s\S]*?)(?=\*\*EXAMPLE|$)/);
+    const exampleMatch = questionText.match(/\*\*EXAMPLE[^:]*:\*\*([\s\S]*?)$/);
+
+    return {
+      context: contextMatch?.[1]?.trim() || '',
+      sharePoints: shareMatch?.[1]?.trim().split(/\n[-•]\s*/).filter(Boolean) || [],
+      example: exampleMatch?.[1]?.trim() || '',
+      fullText: questionText
+    };
   };
 
   const buildWarChestIntelligence = async (wcId: string) => {
@@ -457,7 +529,7 @@ const CorporateAssistantContent = () => {
             <Badge className="mb-2">{interviewPhase.title}</Badge>
             <h2 className="text-2xl font-semibold mb-2">{interviewPhase.description}</h2>
             <p className="text-muted-foreground text-sm">
-              Question {Math.round((completionPercentage / 100) * 25)} of 25
+              Question {Math.floor((completionPercentage / 100) * 25) + 1} of 25
             </p>
           </div>
 
@@ -467,27 +539,137 @@ const CorporateAssistantContent = () => {
             </div>
           ) : (
             <>
-              <div className="p-4 bg-muted rounded-lg mb-4">
-                <p className="text-lg">{interviewPhase.questions[0]}</p>
-              </div>
+              {/* Help Section */}
+              <Collapsible className="mb-4">
+                <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                      <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-blue-900 dark:text-blue-100">How to Answer Well</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                    <ul className="space-y-1 list-disc list-inside">
+                      <li>Be specific with numbers and metrics (dollars, percentages, team sizes)</li>
+                      <li>Include timeframes (months, years, quarters)</li>
+                      <li>Name tools, technologies, and methodologies</li>
+                      <li>Focus on YOUR contribution, not just team achievements</li>
+                      <li>Think "what impact did I create?" not "what did I do?"</li>
+                    </ul>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+
+              {/* Parsed Question Display */}
+              {(() => {
+                const parsed = parseQuestion(interviewPhase.questions[0]);
+                return (
+                  <div className="space-y-4 mb-6">
+                    {/* Context Section */}
+                    {parsed.context && (
+                      <div className="flex gap-3 items-start p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">Why I'm asking this:</p>
+                          <p className="text-blue-800 dark:text-blue-200">{parsed.context}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Main Question with Bullet Points */}
+                    <div className="p-4 bg-muted rounded-lg border">
+                      <p className="font-semibold mb-3">Please share:</p>
+                      {parsed.sharePoints.length > 0 ? (
+                        <ul className="space-y-2">
+                          {parsed.sharePoints.map((point, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-primary mt-1">•</span>
+                              <span>{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>{parsed.fullText}</p>
+                      )}
+                    </div>
+
+                    {/* Example Section */}
+                    {parsed.example && (
+                      <div className="p-4 bg-green-50 dark:bg-green-950 border-l-4 border-green-600 dark:border-green-400 rounded">
+                        <div className="flex items-start gap-2 mb-2">
+                          <Sparkles className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                          <p className="font-medium text-green-900 dark:text-green-100">Example of a strong answer:</p>
+                        </div>
+                        <p className="text-green-800 dark:text-green-200 italic">{parsed.example}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Validation Feedback */}
+              {validationFeedback && !validationFeedback.is_sufficient && (
+                <Card className="p-4 mb-4 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium text-orange-900 dark:text-orange-100 mb-2">Your answer could be stronger</p>
+                      <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">{validationFeedback.follow_up_prompt}</p>
+                      {validationFeedback.missing_elements?.length > 0 && (
+                        <div className="text-sm text-orange-800 dark:text-orange-200">
+                          <p className="font-medium mb-1">Missing:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            {validationFeedback.missing_elements.map((elem: string, idx: number) => (
+                              <li key={idx}>{elem}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {validationFeedback && validationFeedback.is_sufficient && (
+                <Card className="p-4 mb-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <p className="text-green-800 dark:text-green-200">Great answer! Quality score: {validationFeedback.quality_score}/100</p>
+                  </div>
+                </Card>
+              )}
 
               <Textarea
                 value={currentResponse}
                 onChange={(e) => setCurrentResponse(e.target.value)}
-                placeholder="Share your experience here..."
+                placeholder="Share your experience here... Be specific with numbers, dates, and technologies."
                 className="min-h-[150px] mb-4"
               />
 
               <div className="flex gap-3">
-                <Button onClick={handleSubmitResponse} size="lg" className="flex-1">
-                  Submit Answer
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => loadNextQuestion(warChestId!)}
-                >
-                  Skip
-                </Button>
+                {validationFeedback && !validationFeedback.is_sufficient ? (
+                  <>
+                    <Button onClick={handleSubmitResponse} size="lg" className="flex-1" disabled={isValidating}>
+                      {isValidating ? "Validating..." : "Improve Answer"}
+                    </Button>
+                    <Button onClick={handleAcceptAnswer} variant="outline" size="lg">
+                      Submit Anyway
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button onClick={handleSubmitResponse} size="lg" className="flex-1" disabled={isValidating}>
+                      {isValidating ? "Validating..." : "Submit Answer"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => loadNextQuestion(warChestId!)}
+                    >
+                      Skip
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}

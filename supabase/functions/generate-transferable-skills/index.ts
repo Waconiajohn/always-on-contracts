@@ -33,41 +33,54 @@ serve(async (req) => {
 
     if (!warChest) throw new Error('War chest not found');
 
-    const prompt = `You are a career strategist identifying transferable skills. 
+    const prompt = `You are a career strategist identifying transferable skills with strategic precision.
 
 Resume: ${warChest.resume_raw_text}
 Skills Translation Responses: ${JSON.stringify(responses)}
 
+STRATEGIC TRANSLATION REQUIREMENTS:
+- If they managed [specific tool], list 8-10 equivalent/adjacent tools they could claim
+- If they worked in [industry], identify 3-5 adjacent industries where skills transfer
+- Include "near-certifications": skills that are 80% of the way to a formal credential
+- Think: "What could they claim to know that they don't realize they know?"
+- Look for technology evolution (e.g., "data analysis 2015" = "business intelligence" today)
+
 Identify 10-15 transferable skills mappings like:
-- Salesforce experience → Zoho, HubSpot, any CRM platform
-- Project management in healthcare → Project management in finance (domain transfer)
-- Machine learning work → AI implementation (technology evolution)
+- Salesforce experience → Zoho, HubSpot, Microsoft Dynamics, SugarCRM, any CRM platform, Pipedrive, Freshsales
+- Project management in healthcare → Project management in finance/tech/manufacturing (domain transfer)
+- Machine learning work → AI implementation, ML Ops, data science infrastructure (technology evolution)
+- Excel VBA automation → Python automation, process improvement, RPA concepts
+- Managed distributed teams → Remote team leadership, async collaboration, virtual leadership
 
 Return JSON array:
 [{
   "stated_skill": "Salesforce Administration",
-  "equivalent_skills": ["Zoho CRM", "HubSpot", "Microsoft Dynamics", "SugarCRM", "Any enterprise CRM"],
-  "evidence": "5 years managing Salesforce includes workflow automation, custom objects, reporting - all transferable to similar platforms",
+  "equivalent_skills": ["Zoho CRM", "HubSpot", "Microsoft Dynamics 365", "SugarCRM", "Pipedrive", "Freshsales", "Any enterprise CRM platform", "CRM implementation"],
+  "evidence": "5 years managing Salesforce includes workflow automation, custom objects, reporting, integrations - all transferable to similar platforms. Understanding of CRM architecture and business processes.",
   "confidence_score": 95
 }]`;
 
-    const response = await fetch('https://lovable.app/api/ai/completion', {
+    console.log('Generating transferable skills for war chest:', warChestId);
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are a career strategist. Return only valid JSON.' },
+          { role: 'system', content: 'You are a career strategist specializing in skills translation and career pivoting. Return only valid JSON.' },
           { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 1500
+        ]
       }),
     });
 
-    if (!response.ok) throw new Error('Failed to generate transferable skills');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AI API error:', response.status, errorText);
+      throw new Error(`Failed to generate transferable skills: ${response.status}`);
+    }
 
     const aiResponse = await response.json();
     const skillsText = aiResponse.choices[0].message.content.trim();

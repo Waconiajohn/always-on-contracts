@@ -40,40 +40,51 @@ Resume Text: ${warChest.resume_raw_text}
 
 Interview Insights: ${JSON.stringify(responses)}
 
+ADVANCED REQUIREMENTS:
+- Cross-reference interview responses with resume text to find NEW achievements they mentioned
+- For every power phrase, include 2-3 specific keywords that would match job descriptions
+- Categorize by modern job market terms (e.g., "Digital Transformation" not just "Technology")
+- Prioritize phrases with dollar amounts, percentages, team sizes, or time saved
+- Look for implicit achievements (e.g., "trained 5 people" = leadership)
+
 Generate 15-20 power phrases following these rules:
-1. Start with strong action verbs (Led, Architected, Optimized, Spearheaded)
-2. Include quantifiable metrics whenever possible
-3. Show impact and results
-4. Be specific and concrete
-5. Categorize each phrase (leadership, technical, quantitative_achievement, strategic, operational)
+1. Start with strong action verbs (Led, Architected, Optimized, Spearheaded, Transformed, Drove)
+2. Include quantifiable metrics whenever possible (revenue, cost, time, team size, %)
+3. Show impact and results, not just activities
+4. Be specific and concrete with technologies, methodologies, tools
+5. Categorize each phrase accurately (leadership, technical, quantitative_achievement, strategic, operational, digital_transformation)
 
 Return JSON array with format:
 [{
   "category": "leadership",
   "original_text": "Managed team",
-  "power_phrase": "Led cross-functional team of 12 engineers to deliver $2M project 3 weeks ahead of schedule",
-  "impact_metrics": {"team_size": 12, "value": "$2M", "time_saved": "3 weeks"},
-  "keywords": ["leadership", "project management", "team building"],
+  "power_phrase": "Led cross-functional team of 12 engineers to deliver $2M cloud migration project 3 weeks ahead of schedule, reducing infrastructure costs by 35%",
+  "impact_metrics": {"team_size": 12, "value": "$2M", "time_saved": "3 weeks", "cost_reduction": "35%"},
+  "keywords": ["leadership", "project management", "cloud migration", "cost optimization"],
   "confidence_score": 90
 }]`;
 
-    const response = await fetch('https://lovable.app/api/ai/completion', {
+    console.log('Generating power phrases for war chest:', warChestId);
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an expert resume writer. Return only valid JSON.' },
+          { role: 'system', content: 'You are an expert resume writer specializing in quantified achievement statements. Return only valid JSON.' },
           { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 2000
+        ]
       }),
     });
 
-    if (!response.ok) throw new Error('Failed to generate power phrases');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AI API error:', response.status, errorText);
+      throw new Error(`Failed to generate power phrases: ${response.status}`);
+    }
 
     const aiResponse = await response.json();
     const powerPhrasesText = aiResponse.choices[0].message.content.trim();

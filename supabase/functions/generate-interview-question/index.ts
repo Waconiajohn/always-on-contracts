@@ -50,28 +50,49 @@ serve(async (req) => {
       phaseDescription = "Identifying expertise you possess but might not call by its modern industry name";
     }
 
+    // Extract analysis data for context awareness
+    const analysis = warChest.initial_analysis as any || {};
+    const jobTitles = analysis.recommended_positions?.join(', ') || 'Unknown';
+    const industries = analysis.industry_expertise?.join(', ') || 'Unknown';
+    const yearsExp = analysis.years_experience || 'Unknown';
+    const keySkills = analysis.skills?.slice(0, 5).join(', ') || 'Unknown';
+    const existingAchievements = analysis.key_achievements?.slice(0, 3) || [];
+
     // Use Lovable AI to generate contextual question
     const prompt = `You are a corporate career assistant conducting a strategic interview to build a comprehensive "War Chest" that will power customized resumes and job applications.
+
+CRITICAL CONTEXT AWARENESS:
+The user already uploaded a resume. Here's what we extracted:
+- Job titles/roles: ${jobTitles}
+- Industries: ${industries}
+- Years of experience: ${yearsExp}
+- Key skills identified: ${keySkills}
+- Existing achievements we captured: ${JSON.stringify(existingAchievements)}
+
+DO NOT ask them to repeat information we already have.
+INSTEAD:
+- Reference what we know: "I see you've worked as a ${jobTitles?.split(',')[0]} in ${industries?.split(',')[0]}..."
+- Ask for what's MISSING: quantified results, team dynamics, specific technologies, challenges overcome, budget/scope
+- Validate and expand: "You mentioned [achievement]. Can you elaborate on the specific metrics and timeline?"
+- Connect dots: "Given your experience with [skill], have you also worked with [related skill]?"
+- Think like an intelligent interviewer who read their resume carefully
 
 Resume Summary: ${JSON.stringify(warChest.initial_analysis)}
 Previous Interview Responses: ${JSON.stringify(previousResponses?.slice(-3) || [])}
 Current Phase: ${phase} (Question ${responseCount + 1} of 25)
 
-CRITICAL INSTRUCTIONS FOR GENERATING QUESTIONS:
-Your questions MUST include three elements:
-1. CONTEXT - A brief paragraph explaining WHY you're asking this specific question and what you'll do with the information
-2. SPECIFIC GUIDANCE - Clear instructions on what to include (timeframes, format, metrics, depth expected)
-3. CONCRETE EXAMPLE - Show them exactly what a strong answer looks like
+CRITICAL FORMAT REQUIREMENTS:
+You MUST structure your question using this EXACT format with markdown:
 
-Format your question like this:
-[Context paragraph]
+**CONTEXT:** [1-2 sentences explaining why you're asking, referencing what you already know from their resume]
 
-Please share:
-• [Specific element 1]
-• [Specific element 2]
-• [Specific element 3]
+**PLEASE SHARE:**
+- [Specific element 1 with clear instructions - be concrete about what format you want]
+- [Specific element 2 with clear instructions - emphasize metrics/numbers if relevant]
+- [Specific element 3 with clear instructions - make it easy to understand what you need]
 
-Example: [Concrete example showing the level of detail expected]
+**EXAMPLE OF A STRONG ANSWER:**
+[Concrete example in quotes showing the level of detail expected, with specific numbers and technologies]
 
 PHASE-SPECIFIC FOCUS:
 
@@ -85,16 +106,17 @@ Your questions should probe for:
 - Project scope and impact
 - Leadership and collaboration examples
 
-Example question structure:
-"I need to build a complete picture of your professional journey to identify your strongest achievements. This will help me craft powerful, quantified statements for your resume.
+Example question:
+**CONTEXT:** I see from your resume you worked as a ${jobTitles?.split(',')[0]}. I need to quantify your achievements to create powerful resume statements that stand out.
 
-Please share:
-• Your last 2-3 roles with job titles, companies, and dates
-• For each role, describe 1-2 major projects or initiatives you led
-• Include specific metrics: budget size, team size, revenue impact, cost savings, customer numbers, efficiency improvements, or other measurable outcomes
-• Mention key technologies, tools, or methodologies you used
+**PLEASE SHARE:**
+• Your most recent role: specific title, company name, dates (month/year format)
+• One major project or initiative you led with clear scope
+• Specific metrics: revenue generated/saved, team size you managed/collaborated with, efficiency gains, customer impact numbers
+• Key technologies or methodologies you used daily
 
-Example: 'As Senior Product Manager at TechCorp (2020-2023), I led a cross-functional team of 12 to launch our mobile app. We acquired 50K users in the first quarter, increased retention by 35%, and generated $1.2M in new revenue. I used Agile/Scrum, Jira, and collaborated with engineering, design, and marketing teams.'"` : ''}
+**EXAMPLE OF A STRONG ANSWER:**
+"As Senior Product Manager at TechCorp (Jan 2020 - Dec 2023), I led the mobile app launch working with a cross-functional team of 12 (5 engineers, 4 designers, 3 marketing). We acquired 50,000 users in Q1 2021, increased retention by 35%, and generated $1.2M in new revenue. I used Agile/Scrum methodology, Jira for project tracking, and collaborated daily with engineering, design, and marketing teams."` : ''}
 
 ${phase === 'skills_translation' ? `PHASE 2: SKILLS TRANSLATION (Questions 9-17)
 Goal: Uncover equivalent skills, near-certifications, and transferable capabilities they haven't articulated.
@@ -106,15 +128,16 @@ Your questions should probe for:
 - Industry-specific knowledge that applies broadly
 - Technologies used in different contexts
 
-Example question structure:
-"Now I want to discover skills you have but may not have listed on your resume. Often people have capabilities they don't realize are valuable or transferable.
+Example question:
+**CONTEXT:** I noticed you have experience with ${keySkills?.split(',')[0] || 'various tools'}. Let's identify equivalent skills and near-certifications you possess but may not have explicitly listed.
 
-Please share:
-• Any CRM, project management, or analytics tools you've used (even if not your main job)
-• Training programs, courses, or certifications you've started or almost completed
-• Times you've done work outside your official job title (coordinated projects, analyzed data, mentored others, solved technical problems)
+**PLEASE SHARE:**
+• Any CRM, project management, analytics, or collaboration tools you've used (even if not your main job)
+• Training programs, courses, or certifications you've started, partially completed, or studied informally
+• Times you performed work outside your official job title (coordinated projects, analyzed data, mentored others, solved technical problems, drove initiatives)
 
-Example: 'I used Salesforce daily even though I wasn't in sales—I created custom reports and dashboards. I took a Six Sigma Green Belt course but never finished the certification project. I regularly trained new hires even though I wasn't officially a trainer.'"` : ''}
+**EXAMPLE OF A STRONG ANSWER:**
+"I used Salesforce daily for 3 years even though I wasn't in sales—I created 15+ custom reports and automated 5 workflows that the sales team still uses. I took a Six Sigma Green Belt course in 2019, completed all modules but never submitted the final certification project. I regularly trained 5-7 new hires each year even though I wasn't officially a trainer or people manager."` : ''}
 
 ${phase === 'hidden_gems' ? `PHASE 3: HIDDEN COMPETENCIES (Questions 18-25)
 Goal: Identify modern, high-value skills they possess but don't call by current industry terminology.
@@ -126,17 +149,18 @@ Your questions should probe for:
 - Cross-functional expertise they take for granted
 - Innovation and problem-solving examples
 
-Example question structure:
-"Let's uncover hidden strengths you might not realize are highly valuable in today's market. Many people have done AI, data science, or leadership work without using those exact words.
+Example question:
+**CONTEXT:** Many executives have done AI, data science, or leadership work without using those exact words. I want to reframe your experience using modern industry terminology that will resonate with today's employers.
 
-Please share:
-• Have you built or worked with any automated systems, predictive models, recommendation engines, chatbots, or data-driven decision tools?
-• Have you influenced company direction, driven process improvements, or led initiatives without having 'manager' in your title?
-• Have you worked with large datasets, built dashboards, or created reports that drove business decisions?
+**PLEASE SHARE:**
+• Any automated systems, predictive models, recommendation engines, chatbots, or data-driven decision tools you've built or worked with (even in Excel, Access, or older tools)
+• Times you influenced company direction, drove process improvements, or led initiatives without having 'manager' in your title
+• Work with large datasets, dashboards, or reports that drove business decisions (what data, what decisions, what impact?)
 
-Example: 'I built an Excel model that predicted customer churn by analyzing purchase patterns—it was 80% accurate and we used it to target retention campaigns. I wasn't officially a manager but I coordinated our team's sprint planning and mentored 3 junior developers.'"` : ''}
+**EXAMPLE OF A STRONG ANSWER:**
+"I built an Excel model in 2018 that predicted customer churn by analyzing 18 months of purchase patterns across 10,000+ customers—it was 82% accurate and our retention team used it to target high-risk accounts, saving an estimated $400K annually. I wasn't officially a manager but I coordinated our team's sprint planning for 2 years and mentored 3 junior developers who all got promoted. I also created a Power BI dashboard that tracked 15 KPIs and was used by the executive team for quarterly strategy sessions."` : ''}
 
-Generate ONE question following the format above. Make it conversational but extremely specific about what information you need. Return ONLY the complete question text with context, guidance, and example included.`;
+Generate ONE question following the format above with the **CONTEXT:**, **PLEASE SHARE:**, and **EXAMPLE:** sections clearly marked. Return ONLY the complete question text.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
