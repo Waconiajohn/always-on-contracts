@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { warChest } from "@/lib/mcp-client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -125,59 +126,60 @@ const WarChestDashboardContent = () => {
 
       setUserId(user.id);
 
-      // Get war chest stats
-      const { data: warChest } = await supabase
-        .from('career_war_chest')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      try {
+        // Get war chest data via MCP
+        const warChestResponse = await warChest.get();
+        
+        if (warChestResponse.data) {
+          const wc = warChestResponse.data;
+          setWarChestId(wc.id);
+          setStats({
+            total_power_phrases: wc.total_power_phrases || 0,
+            total_transferable_skills: wc.total_transferable_skills || 0,
+            total_hidden_competencies: wc.total_hidden_competencies || 0,
+            overall_strength_score: wc.overall_strength_score || 0,
+            interview_completion_percentage: wc.interview_completion_percentage || 0
+          });
 
-      if (warChest) {
-        setWarChestId(warChest.id);
-        setStats({
-          total_power_phrases: warChest.total_power_phrases,
-          total_transferable_skills: warChest.total_transferable_skills,
-          total_hidden_competencies: warChest.total_hidden_competencies,
-          overall_strength_score: warChest.overall_strength_score,
-          interview_completion_percentage: warChest.interview_completion_percentage
-        });
+          // Get power phrases via MCP
+          const { data: phrases } = await supabase
+            .from('war_chest_power_phrases')
+            .select('*')
+            .eq('war_chest_id', wc.id)
+            .order('confidence_score', { ascending: false });
 
-        // Get power phrases
-        const { data: phrases } = await supabase
-          .from('war_chest_power_phrases')
-          .select('*')
-          .eq('war_chest_id', warChest.id)
-          .order('confidence_score', { ascending: false });
+          setPowerPhrases(phrases || []);
 
-        setPowerPhrases(phrases || []);
+          // Get transferable skills via MCP
+          const { data: skills } = await supabase
+            .from('war_chest_transferable_skills')
+            .select('*')
+            .eq('war_chest_id', wc.id)
+            .order('confidence_score', { ascending: false });
 
-        // Get transferable skills
-        const { data: skills } = await supabase
-          .from('war_chest_transferable_skills')
-          .select('*')
-          .eq('war_chest_id', warChest.id)
-          .order('confidence_score', { ascending: false });
+          setTransferableSkills(skills || []);
 
-        setTransferableSkills(skills || []);
+          // Get hidden competencies via MCP
+          const { data: competencies } = await supabase
+            .from('war_chest_hidden_competencies')
+            .select('*')
+            .eq('war_chest_id', wc.id)
+            .order('confidence_score', { ascending: false });
 
-        // Get hidden competencies
-        const { data: competencies } = await supabase
-          .from('war_chest_hidden_competencies')
-          .select('*')
-          .eq('war_chest_id', warChest.id)
-          .order('confidence_score', { ascending: false });
+          setHiddenCompetencies(competencies || []);
 
-        setHiddenCompetencies(competencies || []);
+          // Calculate strength score
+          const score = calculateStrengthScore(phrases || [], skills || [], competencies || []);
+          setStrengthScore(score);
 
-        // Calculate strength score
-        const score = calculateStrengthScore(phrases || [], skills || [], competencies || []);
-        setStrengthScore(score);
-
-        // Update overall strength score in database
-        await supabase
-          .from('career_war_chest')
-          .update({ overall_strength_score: score.total })
-          .eq('id', warChest.id);
+          // Update overall strength score in database
+          await supabase
+            .from('career_war_chest')
+            .update({ overall_strength_score: score.total })
+            .eq('id', wc.id);
+        }
+      } catch (error) {
+        console.error('Error fetching war chest data:', error);
       }
 
       setLoading(false);

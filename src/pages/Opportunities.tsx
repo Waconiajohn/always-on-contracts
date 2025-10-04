@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { jobScraper, application } from "@/lib/mcp-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -102,14 +103,24 @@ const OpportunitiesContent = () => {
   const syncExternalJobs = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-external-jobs');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Please sign in to continue');
 
-      if (error) throw error;
+      // Use MCP job scraper to sync jobs
+      const result = await jobScraper.scrapeJobs(
+        'contract opportunities',
+        undefined,
+        ['linkedin', 'indeed', 'glassdoor'],
+        100
+      );
 
       toast({
         title: "Success",
-        description: `Synced ${data.inserted} new jobs, updated ${data.updated} existing jobs`,
+        description: `Job sync started - check back in a moment`,
       });
+      
+      // Refresh after a delay
+      setTimeout(() => fetchOpportunities(), 3000);
     } catch (error: any) {
       console.error('Error syncing external jobs:', error);
       toast({

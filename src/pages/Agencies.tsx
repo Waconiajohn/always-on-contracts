@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { agency } from "@/lib/mcp-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -177,15 +178,13 @@ const AgenciesContent = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from("outreach_tracking")
-        .insert({
-          user_id: session.user.id,
-          agency_id: agencyId,
-          status: "pending",
-        });
-
-      if (error) throw error;
+      // Use MCP agency matcher to track outreach
+      await agency.trackOutreach(
+        session.user.id,
+        agencyId,
+        'email',
+        'Initial outreach tracking'
+      );
 
       await fetchTrackedAgencies();
       toast({

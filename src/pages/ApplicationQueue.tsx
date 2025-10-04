@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { application } from "@/lib/mcp-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -86,6 +87,20 @@ export default function ApplicationQueue() {
 
   const handleApprove = async (itemId: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const item = queueItems.find(i => i.id === itemId);
+      if (!item) return;
+
+      // Use MCP application automation to track
+      await application.trackApplication(
+        user.id,
+        item.opportunity_id,
+        'submitted'
+      );
+
+      // Update queue status
       const { error } = await supabase
         .from("application_queue")
         .update({ status: "approved", reviewed_at: new Date().toISOString() })

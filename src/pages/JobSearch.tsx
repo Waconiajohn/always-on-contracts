@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AppNav } from "@/components/AppNav";
+import { jobScraper } from "@/lib/mcp-client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -121,22 +122,13 @@ export default function JobSearch() {
 
       if (sessionError) throw sessionError;
 
-      // Invoke scraping function
-      const { data, error } = await supabase.functions.invoke('scrape-jobs', {
-        body: {
-          sessionId: session.id,
-          query: searchQuery,
-          filters: {
-            locations: selectedLocations,
-            remote_types: selectedRemoteTypes,
-            employment_types: selectedEmploymentTypes,
-            salary_min: salaryMin ? parseInt(salaryMin) : null,
-            sources: selectedSources
-          }
-        }
-      });
-
-      if (error) throw error;
+      // Use MCP job scraper
+      await jobScraper.scrapeJobs(
+        searchQuery,
+        selectedLocations[0],
+        selectedSources,
+        100
+      );
 
       toast({
         title: "Search started",
