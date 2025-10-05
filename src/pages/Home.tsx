@@ -1,9 +1,9 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
-import { Brain, FileText, Target, BookOpen, Users, Gift, AlertCircle, CheckCircle, Package, Lock, Crown, Briefcase } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Brain, FileText, Target, BookOpen, Users, Briefcase, Crown, Package, ArrowRight, Zap, TrendingUp, DollarSign, Network, MessageSquare, Calendar, Rocket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -59,143 +59,311 @@ const HomeContent = () => {
     }
   };
 
-  const features = [
+  const processSteps = [
     {
       icon: Package,
-      title: "War Chest",
-      description: warChestComplete ? "Your career intelligence foundation is complete" : "Build your career intelligence foundation",
-      action: () => navigate(warChestComplete ? "/war-chest" : "/war-chest/onboarding"),
-      color: "text-primary",
-      locked: false,
-      isPrimary: true
+      title: "Build",
+      description: "Complete your War Chest—extract every skill, story, and achievement from your career",
+      color: "text-primary"
     },
     {
-      icon: Brain,
-      title: "AI Agent Hub",
-      description: "Work with specialized AI agents for job search, resume building, and interview prep",
-      action: () => navigate("/ai-agents"),
-      color: "text-purple-500",
-      locked: !warChestComplete
+      icon: Rocket,
+      title: "Deploy",
+      description: "AI agents craft perfect applications, find hidden opportunities, and automate your search",
+      color: "text-purple-500"
     },
     {
-      icon: FileText,
-      title: "Active Projects",
-      description: "Manage your job applications in one organized workspace",
-      action: () => navigate("/projects"),
-      color: "text-blue-500",
-      locked: !warChestComplete
-    },
-    {
-      icon: Target,
-      title: "Job Search",
-      description: "Find and track opportunities that match your skills",
-      action: () => navigate("/job-search"),
-      color: "text-green-500",
-      locked: !warChestComplete
-    },
-    {
-      icon: BookOpen,
-      title: "Learning Center",
-      description: "Access guides, tutorials, and templates to boost your career",
-      action: () => navigate("/learn"),
-      color: "text-orange-500",
-      locked: false
-    },
-    {
-      icon: Users,
-      title: "Coaching & Webinars",
-      description: "Join live sessions and get personalized career coaching",
-      action: () => navigate("/coaching"),
-      color: "text-pink-500",
-      locked: !warChestComplete
-    },
-    {
-      icon: Gift,
-      title: "Referral Program",
-      description: "Recommend friends and earn rewards",
-      action: () => navigate("/referrals"),
-      color: "text-yellow-500",
-      locked: false
+      icon: TrendingUp,
+      title: "Dominate",
+      description: "Land interviews faster with AI-powered prep, negotiation intel, and market insights",
+      color: "text-green-500"
     }
   ];
 
+  const quickLinks = {
+    activeJobSearch: [
+      {
+        icon: Brain,
+        title: "AI Agent Hub",
+        description: "Job search, resume builder, interview prep agents",
+        path: "/ai-agents",
+        locked: !warChestComplete
+      },
+      {
+        icon: Target,
+        title: "Job Board",
+        description: "Find opportunities with AI-powered matching",
+        path: "/agents/job-search",
+        locked: !warChestComplete
+      },
+      {
+        icon: FileText,
+        title: "Active Projects",
+        description: "Track applications and interviews",
+        path: "/projects",
+        locked: !warChestComplete
+      }
+    ],
+    careerResources: [
+      {
+        icon: BookOpen,
+        title: "Learning Center",
+        description: "Guides, templates, and career resources",
+        path: "/learn",
+        locked: false
+      },
+      {
+        icon: Calendar,
+        title: "Live Training",
+        description: "Join webinars and coaching sessions",
+        path: "/coaching",
+        locked: !warChestComplete
+      },
+      {
+        icon: MessageSquare,
+        title: "Templates",
+        description: "Email templates and outreach scripts",
+        path: "/templates",
+        locked: false
+      }
+    ],
+    advancedTools: [
+      {
+        icon: DollarSign,
+        title: "Rate Calculator",
+        description: "Calculate your market value",
+        path: "/rate-calculator",
+        locked: false
+      },
+      {
+        icon: Network,
+        title: "Agency Matcher",
+        description: "Connect with top recruiters",
+        path: "/agencies",
+        locked: !warChestComplete
+      },
+      {
+        icon: Users,
+        title: "Networking Hub",
+        description: "Build and manage professional connections",
+        path: "/outreach",
+        locked: !warChestComplete
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-12">
-        {/* War Chest Status Banner */}
-        {!warChestComplete && (
-          <Alert className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>Complete your War Chest to unlock all features ({warChestCompletion}% done)</span>
-              <Button size="sm" onClick={() => navigate('/war-chest/onboarding')}>
-                Continue Setup
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         
-        {/* Hero Section */}
-        <div className="text-center mb-16 space-y-4">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Welcome to CareerIQ
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your career intelligence command center—turn experience into your unfair advantage
-          </p>
-        </div>
-
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            const isLocked = feature.locked;
-            return (
-              <Card 
-                key={index}
-                className={`hover:shadow-lg transition-all duration-300 cursor-pointer border-2 ${
-                  feature.isPrimary 
-                    ? 'border-primary/50 bg-primary/5' 
-                    : isLocked 
-                    ? 'border-muted opacity-60' 
-                    : 'hover:border-primary/50'
-                }`}
-                onClick={feature.action}
+        {/* Section 1: War Chest Hero Status */}
+        <Card className="mb-12 border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-purple-500/5">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-3xl flex items-center gap-3">
+                  <Package className="h-8 w-8 text-primary" />
+                  Your Career Intelligence Status
+                </CardTitle>
+                <CardDescription className="text-base">
+                  {warChestComplete 
+                    ? "Your War Chest is fully armed—all AI agents and tools are unlocked" 
+                    : "Complete your War Chest to unlock the full power of CareerIQ"}
+                </CardDescription>
+              </div>
+              <Badge variant={warChestComplete ? "default" : "secondary"} className="h-8 px-4 text-lg">
+                {warChestCompletion}%
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">War Chest Completion</span>
+                <span className="font-semibold">{warChestCompletion}% Complete</span>
+              </div>
+              <Progress value={warChestCompletion} className="h-3" />
+            </div>
+            
+            <div className="flex gap-4">
+              <Button 
+                size="lg" 
+                className="flex-1"
+                onClick={() => navigate(warChestComplete ? "/war-chest" : "/war-chest/onboarding")}
               >
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-muted ${feature.color}`}>
-                      <Icon className="h-6 w-6" />
+                {warChestComplete ? "View War Chest" : "Continue War Chest"}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              {!warChestComplete && (
+                <Button size="lg" variant="outline" onClick={() => navigate("/learn")}>
+                  Learn More
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 2: The CareerIQ Process */}
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-2">The CareerIQ Process</h2>
+            <p className="text-muted-foreground text-lg">
+              Three steps to transform your career search from reactive to strategic
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {processSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
+                  <CardHeader>
+                    <div className="flex items-start gap-3">
+                      <div className={`p-3 rounded-lg bg-muted ${step.color}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-2xl font-bold text-muted-foreground">0{index + 1}</span>
+                          <CardTitle className="text-xl">{step.title}</CardTitle>
+                        </div>
+                        <CardDescription className="text-base leading-relaxed">
+                          {step.description}
+                        </CardDescription>
+                      </div>
                     </div>
-                    <CardTitle className="flex items-center gap-2">
-                      {feature.title}
-                      {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
-                      {feature.isPrimary && !warChestComplete && (
-                        <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full">
-                          {warChestCompletion}%
-                        </span>
-                      )}
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">
-                    {feature.description}
-                  </CardDescription>
-                  {isLocked && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Complete War Chest to unlock
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardHeader>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Status Overview */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          <Card>
+        {/* Section 3: Quick Links by Career Stage */}
+        <div className="mb-12 space-y-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold mb-2">Your Arsenal</h2>
+            <p className="text-muted-foreground text-lg">
+              Access the right tools for your career stage
+            </p>
+          </div>
+
+          {/* Active Job Search */}
+          <div>
+            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              Active Job Search
+            </h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              {quickLinks.activeJobSearch.map((link, index) => {
+                const Icon = link.icon;
+                return (
+                  <Card 
+                    key={index}
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      link.locked ? 'opacity-60' : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => !link.locked && navigate(link.path)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-base">{link.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <CardDescription>{link.description}</CardDescription>
+                      {link.locked && (
+                        <Badge variant="secondary" className="mt-2 text-xs">
+                          Complete War Chest
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Career Resources */}
+          <div>
+            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Career Resources
+            </h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              {quickLinks.careerResources.map((link, index) => {
+                const Icon = link.icon;
+                return (
+                  <Card 
+                    key={index}
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      link.locked ? 'opacity-60' : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => !link.locked && navigate(link.path)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-base">{link.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <CardDescription>{link.description}</CardDescription>
+                      {link.locked && (
+                        <Badge variant="secondary" className="mt-2 text-xs">
+                          Complete War Chest
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Advanced Tools */}
+          <div>
+            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Advanced Tools
+            </h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              {quickLinks.advancedTools.map((link, index) => {
+                const Icon = link.icon;
+                return (
+                  <Card 
+                    key={index}
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      link.locked ? 'opacity-60' : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => !link.locked && navigate(link.path)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-base">{link.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <CardDescription>{link.description}</CardDescription>
+                      {link.locked && (
+                        <Badge variant="secondary" className="mt-2 text-xs">
+                          Complete War Chest
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Stats Snapshot */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="border-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-primary" />
@@ -204,68 +372,52 @@ const HomeContent = () => {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold mb-2">{activeOpportunities}</div>
-              <p className="text-muted-foreground mb-4">Opportunities being tracked</p>
-              <Button variant="outline" onClick={() => navigate('/opportunities')}>
-                View All Opportunities
+              <p className="text-muted-foreground mb-4">Jobs you're tracking and applying to</p>
+              <Button variant="outline" onClick={() => navigate('/opportunities')} className="w-full">
+                View Opportunities
               </Button>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-primary" />
-                Subscription Status
+                Subscription
               </CardTitle>
             </CardHeader>
             <CardContent>
               {subscription?.subscribed ? (
                 <>
-                  <div className="text-2xl font-bold mb-2 flex items-center gap-2">
-                    {subscription.is_retirement_client ? "Lifetime" :
+                  <div className="text-2xl font-bold mb-2">
+                    {subscription.is_retirement_client ? "Lifetime Access" :
                      subscription.tier === 'career_starter' ? "Career Starter" :
                      subscription.tier === 'always_ready' ? "Always Ready" :
                      subscription.tier === 'concierge_elite' ? "Concierge Elite" : "Active"}
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {subscription.is_retirement_client ? "You have lifetime access" :
+                    {subscription.is_retirement_client ? "Unlimited access forever" :
                      subscription.subscription_end ? 
                      `Renews ${new Date(subscription.subscription_end).toLocaleDateString()}` :
-                     "Active subscription"}
+                     "Your subscription is active"}
                   </p>
-                  <Button variant="outline" onClick={() => navigate('/profile')}>
-                    Manage Subscription
+                  <Button variant="outline" onClick={() => navigate('/profile')} className="w-full">
+                    Manage Plan
                   </Button>
                 </>
               ) : (
                 <>
                   <div className="text-2xl font-bold mb-2">Free Tier</div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Upgrade to unlock premium features
+                    Upgrade for unlimited AI access & premium features
                   </p>
-                  <Button onClick={() => navigate('/pricing')}>
+                  <Button onClick={() => navigate('/pricing')} className="w-full">
                     View Plans
                   </Button>
                 </>
               )}
             </CardContent>
           </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-semibold">Ready to get started?</h2>
-          <div className="flex justify-center gap-4">
-            <Button 
-              size="lg" 
-              onClick={() => navigate(warChestComplete ? "/projects" : "/war-chest/onboarding")}
-            >
-              {warChestComplete ? "View My Projects" : "Build War Chest"}
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/ai-agents")}>
-              Meet the AI Agents
-            </Button>
-          </div>
         </div>
       </div>
     </div>
