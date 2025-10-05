@@ -43,6 +43,19 @@ const WarChestOnboarding = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Convert file to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64Data = result.split(',')[1]; // Remove data:mime;base64, prefix
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(resumeFile);
+      const base64Data = await base64Promise;
+
       // Upload to storage
       const filePath = `${user.id}/${Date.now()}_${resumeFile.name}`;
       const { error: uploadError } = await supabase.storage
@@ -51,9 +64,12 @@ const WarChestOnboarding = () => {
 
       if (uploadError) throw uploadError;
 
-      // Parse resume
+      // Parse resume with base64 data
       const { data, error } = await supabase.functions.invoke('parse-resume', {
-        body: { fileName: resumeFile.name, filePath }
+        body: { 
+          fileName: resumeFile.name, 
+          fileData: base64Data 
+        }
       });
 
       if (error) throw error;
