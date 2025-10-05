@@ -161,7 +161,7 @@ const ResumeUploadContent = () => {
       fetchExistingResumes();
       
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/home");
       }, 2000);
     } catch (error: any) {
       console.error("Error:", error);
@@ -181,7 +181,7 @@ const ResumeUploadContent = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
-          <Button variant="ghost" size="lg" onClick={() => navigate('/dashboard')}>
+          <Button variant="ghost" size="lg" onClick={() => navigate('/home')}>
             <ArrowLeft className="mr-2 h-6 w-6" />
             Back to Dashboard
           </Button>

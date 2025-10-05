@@ -104,7 +104,7 @@ const WarChestOnboarding = () => {
       });
 
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/home');
       }, 2000);
     } catch (error) {
       console.error('Error completing onboarding:', error);

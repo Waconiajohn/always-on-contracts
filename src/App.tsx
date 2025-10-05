@@ -14,7 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 // Lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
 const Home = lazy(() => import("./pages/Home"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ResumeUpload = lazy(() => import("./pages/ResumeUpload"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -82,7 +81,6 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
           <Route path="/resume-upload" element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>} />
           <Route path="/coaching" element={<ProtectedRoute><Coaching /></ProtectedRoute>} />

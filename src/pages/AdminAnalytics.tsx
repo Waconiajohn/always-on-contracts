@@ -44,7 +44,7 @@ const AdminAnalyticsContent = () => {
         .eq('user_id', user.id);
 
       if (!roles?.some(r => r.role === 'admin')) {
-        navigate('/dashboard');
+        navigate('/home');
         return;
       }
 

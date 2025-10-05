@@ -2,18 +2,23 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Brain, FileText, Target, BookOpen, Users, Gift, AlertCircle, CheckCircle, Package, Lock } from "lucide-react";
+import { Brain, FileText, Target, BookOpen, Users, Gift, AlertCircle, CheckCircle, Package, Lock, Crown, Briefcase } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Badge } from "@/components/ui/badge";
 
 const HomeContent = () => {
   const navigate = useNavigate();
   const [warChestComplete, setWarChestComplete] = useState(false);
   const [warChestCompletion, setWarChestCompletion] = useState(0);
+  const [activeOpportunities, setActiveOpportunities] = useState(0);
+  const { subscription } = useSubscription();
 
   useEffect(() => {
     checkWarChestStatus();
+    loadActiveOpportunities();
   }, []);
 
   const checkWarChestStatus = async () => {
@@ -34,6 +39,23 @@ const HomeContent = () => {
       }
     } catch (error) {
       console.error('Error checking War Chest status:', error);
+    }
+  };
+
+  const loadActiveOpportunities = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { count } = await supabase
+        .from('opportunity_matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .in('status', ['new', 'viewed', 'applied']);
+
+      setActiveOpportunities(count || 0);
+    } catch (error) {
+      console.error('Error loading opportunities:', error);
     }
   };
 
@@ -169,6 +191,65 @@ const HomeContent = () => {
               </Card>
             );
           })}
+        </div>
+
+        {/* Status Overview */}
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-primary" />
+                Active Opportunities
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold mb-2">{activeOpportunities}</div>
+              <p className="text-muted-foreground mb-4">Opportunities being tracked</p>
+              <Button variant="outline" onClick={() => navigate('/opportunities')}>
+                View All Opportunities
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                Subscription Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {subscription?.subscribed ? (
+                <>
+                  <div className="text-2xl font-bold mb-2 flex items-center gap-2">
+                    {subscription.is_retirement_client ? "Lifetime" :
+                     subscription.tier === 'career_starter' ? "Career Starter" :
+                     subscription.tier === 'always_ready' ? "Always Ready" :
+                     subscription.tier === 'concierge_elite' ? "Concierge Elite" : "Active"}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {subscription.is_retirement_client ? "You have lifetime access" :
+                     subscription.subscription_end ? 
+                     `Renews ${new Date(subscription.subscription_end).toLocaleDateString()}` :
+                     "Active subscription"}
+                  </p>
+                  <Button variant="outline" onClick={() => navigate('/profile')}>
+                    Manage Subscription
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold mb-2">Free Tier</div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Upgrade to unlock premium features
+                  </p>
+                  <Button onClick={() => navigate('/pricing')}>
+                    View Plans
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Actions */}

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2, AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
+import { Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw, Loader2, AlertCircle, CheckCircle, TrendingUp, FileText, Calculator } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AppNav } from "@/components/AppNav";
@@ -411,11 +411,91 @@ const OpportunitiesContent = () => {
                 </Card>
               )}
               {activeTab === 'contract' && contractJobs.length === 0 && (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">No contract opportunities found. Try running AI matching.</p>
-                  </CardContent>
-                </Card>
+                <>
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <p className="text-muted-foreground">No contract opportunities found. Try running AI matching.</p>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Contract Tools */}
+                  <div className="grid md:grid-cols-2 gap-6 mt-6">
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/rate-calculator')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Calculator className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Rate Calculator</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Calculate your premium hourly rate for contract work
+                        </CardDescription>
+                        <Button className="w-full">Calculate Rate</Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/templates')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Templates</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Communication templates for contract negotiations
+                        </CardDescription>
+                        <Button className="w-full">Browse Templates</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
+              
+              {activeTab === 'contract' && contractJobs.length > 0 && (
+                <>
+                  {/* Contract Tools */}
+                  <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/rate-calculator')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Calculator className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Rate Calculator</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Calculate your premium hourly rate for contract work
+                        </CardDescription>
+                        <Button className="w-full">Calculate Rate</Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/templates')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Templates</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Communication templates for contract negotiations
+                        </CardDescription>
+                        <Button className="w-full">Browse Templates</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
               )}
               
               {((activeTab === 'full-time' && fullTimeJobs.length > 0) || (activeTab === 'contract' && contractJobs.length > 0)) && (

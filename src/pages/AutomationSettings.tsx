@@ -217,7 +217,7 @@ const AutomationSettingsContent = () => {
           <Button
             variant="outline"
             size="lg"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/home')}
             disabled={saving}
           >
             Cancel

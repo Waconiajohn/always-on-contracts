@@ -46,7 +46,6 @@ import logo from "@/assets/logo.png";
 const navItems = [
   { path: "/war-chest", label: "War Chest", icon: Package },
   { path: "/home", label: "Home", icon: Home },
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/projects", label: "Projects", icon: FolderKanban },
 ];
 

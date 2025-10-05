@@ -49,7 +49,7 @@ export default function RedeemCode() {
       toast.success(data.message || "Access code redeemed successfully!");
       
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/home");
       }, 3000);
     } catch (error: any) {
       console.error('Redemption error:', error);
