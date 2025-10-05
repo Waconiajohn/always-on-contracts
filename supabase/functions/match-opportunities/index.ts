@@ -180,7 +180,7 @@ serve(async (req) => {
         
         try {
           const aiResponse = await Promise.race([
-            fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${lovableApiKey}`,
@@ -191,31 +191,37 @@ serve(async (req) => {
                 messages: [
                   {
                     role: 'system',
-                    content: 'You are an executive career advisor specializing in contract and interim placements. Be persuasive and highlight the candidate\'s strengths. Focus on why they\'re an excellent fit.'
+                    content: 'You are an executive career strategist who creates high-impact job match recommendations. Focus on concrete value propositions and specific alignment points. Never use generic language.'
                   },
                   {
                     role: 'user',
-                    content: `Analyze this opportunity match:
-
-OPPORTUNITY:
-Title: ${opp.job_title}
-Description: ${opp.job_description || 'Senior-level contract role'}
-Required Skills: ${requiredSkills.join(', ') || 'Not specified'}
-Location: ${opp.location || 'Remote'}
-Rate: $${opp.hourly_rate_min}-${opp.hourly_rate_max}/hour
-Duration: ${opp.contract_duration_months} months
+                    content: `ROLE: You are an executive career strategist specializing in high-value job matching.
 
 CANDIDATE PROFILE:
-${userProfile.experience} years experience
-Skills: ${userProfile.skills.join(', ')}
-Industries: ${userProfile.industries.join(', ')}
-Target Roles: ${userProfile.positions.join(', ')}
+Skills: ${userProfile.skills.join(", ")}
+Industry Expertise: ${userProfile.industries.join(", ")}
+Experience Level: ${userProfile.experience} years
+Target Roles: ${userProfile.positions.join(", ")}
 
-MATCH ANALYSIS:
-Direct Skill Matches: ${matchingSkills.join(', ') || 'Transferable skills applicable'}
+OPPORTUNITY DETAILS:
+Role: ${opp.job_title}
+Company: ${opp.company_name || "Not disclosed"}
+Location: ${opp.location || "Not specified"}
+Description: ${(opp.job_description || "").substring(0, 600)}
+Rate: $${opp.hourly_rate_min}-${opp.hourly_rate_max}/hour
+Duration: ${opp.contract_duration_months} months
 Match Score: ${Math.round(matchScore)}%
 
-Write 2-3 compelling sentences explaining why this candidate is an excellent fit for this contract role. Focus on their relevant experience, transferable skills, and what unique value they bring. Be enthusiastic and professional.`
+TASK: Generate a compelling, results-focused pitch (2-3 sentences) that:
+1. Opens with the strongest alignment point (skill/experience match)
+2. Quantifies the value proposition where possible
+3. Creates urgency with a clear call-to-action
+
+TONE: Professional, confident, benefit-driven
+FORMAT: Direct recommendation without fluff
+AVOID: Generic phrases like "great opportunity" or "exciting role"
+
+OUTPUT: Return ONLY the recommendation text, no preamble.`
                   }
                 ],
               }),

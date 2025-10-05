@@ -76,26 +76,78 @@ serve(async (req) => {
       messages: [
         {
           role: 'system',
-          content: `You are an expert at analyzing candidate-job fit. Perform a comprehensive gap analysis between the candidate's resume and the job requirements.
+          content: `ROLE: You are an executive recruiter with 20+ years evaluating candidates for senior roles. You conduct rigorous gap analyses that determine hiring decisions.
 
-Analyze:
-1. Technical skills match
-2. Experience level alignment
-3. Leadership/management experience
-4. Industry knowledge
-5. Cultural fit indicators
-6. Keyword coverage
+EVALUATION DIMENSIONS:
 
-Provide a detailed JSON response with:
-- overallFit: Score 0-100
-- strengths: Array of candidate strengths with evidence (each with category, description, and evidence array)
-- gaps: Array of gaps with severity ('critical', 'moderate', or 'minor'), description, and recommendations
-- keywordAnalysis: Object with matched (array), missing (array), and coverage (percentage 0-100)
-- recommendations: Array of strategic recommendations to address gaps`
+1. TECHNICAL SKILLS (25% weight)
+   - Required vs. possessed technical capabilities
+   - Tool/platform proficiency
+   - Certifications and credentials
+   - Years of hands-on experience per skill
+
+2. EXPERIENCE ALIGNMENT (30% weight)
+   - Role level match (individual contributor vs. leadership)
+   - Industry relevance and depth
+   - Company scale experience (startup vs. enterprise)
+   - Direct vs. transferable experience
+
+3. ACHIEVEMENT PROFILE (25% weight)
+   - Quantified impact matching job scope
+   - Leadership/team management experience
+   - Budget/revenue responsibility alignment
+   - Innovation and transformation track record
+
+4. INDUSTRY & DOMAIN KNOWLEDGE (20% weight)
+   - Sector expertise match
+   - Regulatory/compliance knowledge
+   - Market and competitive intelligence
+   - Client/stakeholder management
+
+SEVERITY CLASSIFICATION:
+- CRITICAL GAP: Hard requirement completely missing (deal-breaker)
+- MODERATE GAP: Important skill/experience with partial match
+- MINOR GAP: Nice-to-have missing or easily trainable
+
+KEYWORD ANALYSIS RULES:
+- Identify exact keyword matches (case-insensitive)
+- Flag synonym matches (e.g., "led" vs "managed")
+- Calculate keyword density: (matched keywords / total required) * 100
+- Recommend strategic keyword placement
+
+RECOMMENDATIONS FRAMEWORK:
+1. IMMEDIATE WINS: Resume wording changes (no new skills needed)
+2. SHORT-TERM GAPS: Skills acquirable in 1-3 months
+3. STRATEGIC GAPS: May require role change or significant training
+4. POSITIONING SHIFTS: How to reframe existing experience
+
+OUTPUT REQUIREMENTS:
+- Overall fit score (0-100) with confidence level
+- Strength inventory (top 5 with evidence)
+- Gap inventory (ranked by severity with mitigation strategies)
+- Keyword analysis (found, missing, density score)
+- 5-7 prioritized recommendations with expected impact
+
+TONE: Direct, evidence-based, constructive. Flag deal-breakers clearly. Return valid JSON only.`
         },
         {
           role: 'user',
-          content: `Job Description:\n${jobDescription}\n\nCandidate Resume:\n${resumeText}`
+          content: `Conduct a comprehensive executive-level gap analysis.
+
+CANDIDATE RESUME:
+${resumeText}
+
+TARGET JOB DESCRIPTION:
+${jobDescription}
+
+ANALYSIS REQUIREMENTS:
+1. Score across all four evaluation dimensions
+2. Identify all critical, moderate, and minor gaps
+3. Extract and compare keywords (required vs. present)
+4. Provide evidence-based strengths assessment
+5. Deliver prioritized, actionable recommendations
+
+FORMAT: Return detailed JSON with complete scoring, gap classification, and strategic recommendations matching the schema (overallFit number, strengths array, gaps array, keywordAnalysis object, recommendations array).`
         }
       ],
       max_tokens: 2000

@@ -35,33 +35,37 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert career advisor specializing in helping experienced professionals (45+) transition to high-value contract work. 
-
-Analyze resumes to extract:
-- Years of experience (calculate from dates)
-- Key achievements with quantifiable results
-- Industry expertise areas
-- Management and leadership capabilities
-- Transferable skills valuable for contract positions
-- Recommended target hourly rates ($50-$150+ based on experience)
-- Suitable interim executive or contract positions
-
-**CRITICAL: Detailed work history for last 10-15 years:**
-For each position, extract:
-- Exact job title and company name
-- Start/end dates (or "Current" if still employed)
-- Industry/sector
-- 3-5 key responsibilities (bullet point form)
-- Quantified achievements (numbers, metrics, impact)
-- Technologies/tools/methodologies used
-- Team size managed/collaborated with
-- Budget or revenue scope if mentioned
-
-Focus on positioning experience as premium value for executive and strategic opportunities (both permanent and contract).`
+            content: `You are an expert resume analyzer who returns structured JSON. Always respond with valid JSON matching the tool schema exactly.`
           },
           {
             role: "user",
-            content: `Analyze this resume and provide a structured analysis:\n\n${resumeText}`
+            content: `ROLE: You are an elite resume analysis AI specializing in executive career positioning and contract/freelance work optimization.
+
+RESUME TEXT:
+${resumeText}
+
+EXTRACTION RULES:
+1. DATES: Extract ALL employment dates in YYYY-MM format. If year-only, use YYYY-01. Mark ongoing roles as "Present".
+2. ACHIEVEMENTS: Quantify everything. Extract numbers, percentages, dollar amounts, team sizes, timelines.
+3. CONTRACT IDENTIFICATION: Flag any indicators of contract/freelance work (keywords: contractor, consultant, freelance, project-based, temporary, contract, 1099, W2).
+4. WORK HISTORY: Identify gaps >3 months. Calculate total experience excluding gaps.
+5. RATES: If hourly/daily rates mentioned, extract and convert to annual equivalent.
+6. SKILLS: Separate technical skills, soft skills, and certifications/tools.
+7. INDUSTRY SIGNALS: Identify primary and secondary industries from company names, role titles, and project descriptions.
+
+MANDATORY EXTRACTION:
+- Extract detailed work history for last 10-15 years minimum
+- For each position: exact dates, company, title, responsibilities, achievements with metrics
+- Calculate years_experience accurately from employment dates
+- Identify contractor vs employee status from job type keywords
+- Extract or estimate hourly rates based on role level and industry
+
+ERROR HANDLING:
+- If data is ambiguous, provide best estimate based on context
+- Never leave required fields empty - use reasonable defaults
+- Flag any data quality concerns
+
+Focus on positioning experience as premium value for executive and strategic opportunities.`
           }
         ],
         tools: [
