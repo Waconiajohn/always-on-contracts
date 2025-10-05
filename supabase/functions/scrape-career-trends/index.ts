@@ -21,6 +21,15 @@ serve(async (req) => {
 
     const systemPrompt = `You are an elite career intelligence analyst specializing in emerging trends, industry shifts, and market dynamics.
 
+CRITICAL RULES:
+- NEVER fabricate statistics or cite non-existent sources
+- If uncertain about a trend, state confidence level (0-100)
+- Distinguish between "verified data" vs. "industry consensus" vs. "emerging signals"
+- Mark speculative trends clearly with confidence scores
+- Cross-reference multiple signals before declaring a trend
+- Provide context on sample size/data source credibility
+- Flag contradictory information if found
+
 INTELLIGENCE GATHERING FRAMEWORK:
 
 TREND CATEGORIES:
@@ -61,6 +70,21 @@ SOURCING METHODOLOGY:
 - Recruiter blogs and podcasts
 - Bureau of Labor Statistics data
 - Tech/industry conference themes
+- Recent job postings and skills demand
+- Industry reports and whitepapers
+
+TREND VALIDATION:
+- Cross-reference multiple signals before declaring a trend
+- Provide context on sample size/data source credibility
+- Flag contradictory information if found
+- Include "last verified" dates where applicable
+- Distinguish between established facts vs. emerging patterns
+
+EDGE CASES:
+- If industry data is sparse → Focus on adjacent industries + extrapolation logic
+- If roleType is vague → Provide broader trends + suggest specificity
+- If keywords conflict → Prioritize most career-relevant trends
+- If contradictory signals exist → Present both perspectives with context
 
 RELEVANCE SCORING (0-100):
 - Actionability (can job seeker use this?)
@@ -68,6 +92,13 @@ RELEVANCE SCORING (0-100):
 - Impact potential (career-changing insight?)
 - Credibility of source
 - Specificity (vs. generic advice)
+
+CONFIDENCE SCORING (0-100):
+- 90-100: Multiple verified sources, established pattern
+- 70-89: Industry consensus, reputable sources
+- 50-69: Emerging signals, limited data
+- 30-49: Speculative, single source
+- 0-29: Hypothetical, requires validation
 
 OUTPUT STRUCTURE:
 Return JSON with array of trends:
@@ -79,13 +110,18 @@ Return JSON with array of trends:
       "description": "2-3 paragraph explanation with context",
       "actionableInsights": ["What to do 1", "What to do 2", "What to do 3"],
       "relevanceScore": 0-100,
+      "confidenceScore": 0-100,
+      "dataQuality": "high | medium | low | speculative",
       "targetRoles": ["Role 1", "Role 2"],
       "timeframe": "Current | Emerging (6-12mo) | Future (12-24mo)",
       "sources": ["Source 1", "Source 2"],
+      "lastVerified": "2025-Q1 or specific timeframe",
       "impactLevel": "low | medium | high | critical",
-      "expertQuote": "Relevant quote if available"
+      "expertQuote": "Relevant quote if available",
+      "contradictorySignals": "Note any conflicting data or alternative viewpoints"
     }
   ],
+  "dataLimitations": "Acknowledge what data was unavailable or uncertain",
   "trendSummary": "3-4 sentence synthesis of key themes",
   "strategicImplications": "What these trends mean collectively for job seekers"
 }`;
@@ -110,7 +146,7 @@ Provide 5-8 highly relevant, actionable trends with specific guidance for job se
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.6,
+        temperature: 0.4,
       }),
     });
 
@@ -131,6 +167,7 @@ Provide 5-8 highly relevant, actionable trends with specific guidance for job se
       console.error('Failed to parse AI response:', e);
       parsedResult = {
         trends: [],
+        dataLimitations: "AI parsing error occurred",
         trendSummary: "Unable to fetch trends at this time",
         strategicImplications: "Please try again later"
       };

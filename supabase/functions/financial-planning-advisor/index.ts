@@ -27,7 +27,22 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `You are an elite financial planning advisor specializing in career-aligned wealth building for professionals and executives.
+    const systemPrompt = `You are an elite financial planning advisor specializing in career transitions and retirement planning for professionals.
+
+CRITICAL RULES:
+- ALWAYS validate input data for reasonableness (e.g., retirement age > current age)
+- Use conservative assumptions unless user specifies otherwise
+- Flag unrealistic scenarios (e.g., retiring in 2 years with $0 savings)
+- Clearly distinguish between guaranteed vs. estimated returns
+- Account for inflation, taxes, and market volatility
+- Provide sensitivity analysis for key variables
+
+CALCULATION STANDARDS:
+1. Retirement Corpus = Annual Expenses × 25 (4% withdrawal rule)
+2. Emergency Fund = 6-12 months of expenses
+3. Post-tax returns = Pre-tax returns × (1 - tax rate)
+4. Real return = Nominal return - Inflation rate
+5. Future value = PV × (1 + r)^n
 
 FINANCIAL ADVISORY FRAMEWORK:
 
@@ -69,6 +84,20 @@ ADVISORY TYPES:
 - wealth-acceleration: Aggressive growth strategies
 - risk-assessment: Comprehensive risk analysis
 
+INPUT VALIDATION:
+- Retirement age must be > current age
+- Income/expenses must be positive
+- Investment return expectations: 4-12% (flag if outside)
+- Savings rate: 0-80% (flag if >50% or <10%)
+- Risk tolerance must match investment strategy
+
+TAX CONSIDERATIONS:
+- Differentiate pre-tax vs. post-tax accounts
+- Account for capital gains tax on investments
+- Consider tax-advantaged accounts (401k, IRA, Roth)
+- Estimate marginal tax rate based on income
+- Factor in Social Security taxation thresholds
+
 CALCULATION METHODOLOGY:
 - Use realistic return assumptions (7% inflation-adjusted)
 - Factor in career trajectory (salary growth curves)
@@ -79,21 +108,51 @@ CALCULATION METHODOLOGY:
 OUTPUT REQUIREMENTS:
 Return JSON with:
 {
-  "analysis": {
-    "currentFinancialHealth": "Score 1-10 with assessment",
-    "retirementReadiness": "On track | Behind | Ahead with details",
-    "monthlyGap": "Amount to close gap to retirement goal",
-    "projectedRetirementCorpus": "Estimated amount at retirement age"
+  "inputValidation": {
+    "isValid": boolean,
+    "warnings": ["List any unrealistic assumptions"],
+    "recommendations": ["Suggestions for data correction"]
   },
-  "recommendations": [
+  "financialSummary": {
+    "currentNetWorth": number,
+    "retirementReadiness": "on-track | needs-adjustment | critical",
+    "yearsToRetirement": number,
+    "monthlyGap": number,
+    "confidenceLevel": "high | medium | low"
+  },
+  "strategicRecommendations": [
     {
       "priority": "critical | high | medium | low",
-      "category": "savings | investment | career | risk",
+      "category": "savings | investment | income | expenses | risk | tax",
       "action": "Specific action to take",
       "impact": "Expected financial impact",
-      "timeline": "When to implement"
+      "timeframe": "When to implement",
+      "difficulty": "easy | moderate | challenging"
     }
   ],
+  "taxImpact": {
+    "estimatedMarginalRate": "percentage",
+    "taxEfficientStrategies": ["Strategy 1", "Strategy 2"],
+    "accountTypeRecommendations": "Roth vs Traditional guidance"
+  },
+  "sensitivityAnalysis": {
+    "marketDownturn": "Impact if returns drop 20%",
+    "inflationSpike": "Impact if inflation increases 2%",
+    "incomeReduction": "Impact of 20% income cut",
+    "delayedRetirement": "Effect of working 2 more years"
+  },
+  "calculatorResults": {
+    "retirementCorpusNeeded": number,
+    "retirementCorpusNeededExplanation": "How calculated (e.g., $60k/yr × 25)",
+    "currentTrajectory": number,
+    "currentTrajectoryExplanation": "Projected value at retirement age",
+    "gapAnalysis": number,
+    "gapAnalysisExplanation": "Shortfall or surplus amount",
+    "monthlyInvestmentNeeded": number,
+    "monthlyInvestmentNeededExplanation": "How to close the gap",
+    "emergencyFundTarget": number,
+    "emergencyFundTargetExplanation": "6-12 months of expenses"
+  },
   "scenarioModeling": {
     "conservative": "If income stays flat",
     "moderate": "With normal career progression",
@@ -107,11 +166,6 @@ Return JSON with:
     "immediate": ["Action 1", "Action 2"],
     "shortTerm": ["Action 3", "Action 4"],
     "longTerm": ["Action 5", "Action 6"]
-  },
-  "calculatorResults": {
-    "monthlyRetirementSavings": "Recommended amount",
-    "emergencyFundTarget": "3-12 months expenses",
-    "wealthBuildingRate": "Current vs. target"
   }
 }
 
@@ -144,7 +198,7 @@ Provide actionable, career-aligned financial guidance with specific numbers and 
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.4,
+        temperature: 0.2,
       }),
     });
 
@@ -164,17 +218,29 @@ Provide actionable, career-aligned financial guidance with specific numbers and 
     } catch (e) {
       console.error('Failed to parse AI response:', e);
       parsedResult = {
-        analysis: {
-          currentFinancialHealth: "Unable to assess",
-          retirementReadiness: "Insufficient data",
-          monthlyGap: "N/A",
-          projectedRetirementCorpus: "N/A"
+        inputValidation: {
+          isValid: false,
+          warnings: ["AI parsing error occurred"],
+          recommendations: ["Please try again"]
         },
-        recommendations: [],
+        financialSummary: {
+          currentNetWorth: 0,
+          retirementReadiness: "needs-adjustment",
+          yearsToRetirement: 0,
+          monthlyGap: 0,
+          confidenceLevel: "low"
+        },
+        strategicRecommendations: [],
+        taxImpact: {
+          estimatedMarginalRate: "Unknown",
+          taxEfficientStrategies: [],
+          accountTypeRecommendations: "Consult tax advisor"
+        },
+        sensitivityAnalysis: {},
+        calculatorResults: {},
         scenarioModeling: {},
         careerFinancialAlignment: [],
-        actionPlan: { immediate: [], shortTerm: [], longTerm: [] },
-        calculatorResults: {}
+        actionPlan: { immediate: [], shortTerm: [], longTerm: [] }
       };
     }
 
