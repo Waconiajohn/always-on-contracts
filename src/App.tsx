@@ -30,7 +30,6 @@ const AutomationSettings = lazy(() => import("./pages/AutomationSettings"));
 const ApplicationQueue = lazy(() => import("./pages/ApplicationQueue"));
 const SearchProfiles = lazy(() => import("./pages/SearchProfiles"));
 const AIAgents = lazy(() => import("./pages/AIAgents"));
-const JobSearch = lazy(() => import("./pages/JobSearch"));
 const CorporateAssistant = lazy(() => import("./pages/agents/CorporateAssistant"));
 const JobSearchAgent = lazy(() => import("./pages/agents/JobSearchAgent"));
 const ResumeBuilderAgent = lazy(() => import("./pages/agents/ResumeBuilderAgent"));
@@ -94,7 +93,6 @@ const App = () => (
           <Route path="/automation-settings" element={<ProtectedRoute><AutomationSettings /></ProtectedRoute>} />
           <Route path="/application-queue" element={<ProtectedRoute><ApplicationQueue /></ProtectedRoute>} />
           <Route path="/search-profiles" element={<ProtectedRoute><SearchProfiles /></ProtectedRoute>} />
-          <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
         <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
         <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />

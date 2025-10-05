@@ -137,15 +137,42 @@ serve(async (req) => {
 });
 
 async function handleScrapeJobs(supabaseClient: any, args: any) {
-  const { query, location, sources = ['linkedin', 'indeed'], maxResults = 50 } = args;
+  const { query, location, sources = ['linkedin', 'indeed'], maxResults = 50, includeTransferableSkills = false, userId } = args;
+
+  let expandedQuery = query;
+
+  // If transferable skills enabled, expand query
+  if (includeTransferableSkills && userId) {
+    const { data: transferableSkills } = await supabaseClient
+      .from('war_chest_transferable_skills')
+      .select('skill_name, source_industry, target_industry')
+      .eq('user_id', userId)
+      .limit(10);
+
+    if (transferableSkills && transferableSkills.length > 0) {
+      // Build expanded query with OR clauses
+      const additionalTerms = transferableSkills
+        .map((skill: any) => `"${skill.skill_name}"`)
+        .slice(0, 5); // Limit to 5 additional terms to keep query reasonable
+      
+      expandedQuery = `${query} OR ${additionalTerms.join(' OR ')}`;
+      console.log('Expanded query with transferable skills:', expandedQuery);
+    }
+  }
 
   // Create search session
   const { data: session, error: sessionError } = await supabaseClient
     .from('job_search_sessions')
     .insert({
-      user_id: args.userId || '00000000-0000-0000-0000-000000000000', // System user for automated scraping
-      search_query: query,
-      filters: { location, sources, maxResults },
+      user_id: userId || '00000000-0000-0000-0000-000000000000',
+      search_query: expandedQuery,
+      filters: { 
+        location, 
+        sources, 
+        maxResults, 
+        includeTransferableSkills,
+        originalQuery: query 
+      },
       status: 'pending'
     })
     .select()
@@ -153,9 +180,16 @@ async function handleScrapeJobs(supabaseClient: any, args: any) {
 
   if (sessionError) throw sessionError;
 
-  // Call existing scrape-jobs function
+  // Call existing scrape-jobs function with expanded query
   const { data: scrapeResult, error: scrapeError } = await supabaseClient.functions.invoke('scrape-jobs', {
-    body: { query, location, sources, maxResults, sessionId: session.id }
+    body: { 
+      query: expandedQuery, 
+      location, 
+      sources, 
+      maxResults, 
+      sessionId: session.id,
+      metadata: { includeTransferableSkills }
+    }
   });
 
   if (scrapeError) {
@@ -171,10 +205,27 @@ async function handleScrapeJobs(supabaseClient: any, args: any) {
     throw scrapeError;
   }
 
+  // Tag results with transferable skills flag if applicable
+  if (includeTransferableSkills && scrapeResult?.jobs) {
+    const { error: updateError } = await supabaseClient
+      .from('job_listings')
+      .update({ 
+        raw_data: supabaseClient.rpc('jsonb_set', {
+          target: 'raw_data',
+          path: '{is_transferable_match}',
+          new_value: 'true'
+        })
+      })
+      .eq('search_session_id', session.id);
+
+    if (updateError) console.error('Error tagging transferable jobs:', updateError);
+  }
+
   return new Response(JSON.stringify({ 
     success: true, 
     sessionId: session.id,
-    data: scrapeResult 
+    data: scrapeResult,
+    expandedQuery: includeTransferableSkills ? expandedQuery : null
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });

@@ -140,3 +140,6 @@ verify_jwt = true
 
 [functions.generate-interview-question]
 verify_jwt = true
+
+[functions.job-search-assistant]
+verify_jwt = true

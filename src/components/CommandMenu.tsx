@@ -40,7 +40,7 @@ interface CommandItem {
 const commandItems: CommandItem[] = [
   { title: "Home", path: "/home", icon: Home, keywords: ["dashboard", "main", "overview"] },
   { title: "Projects", path: "/projects", icon: FolderKanban, keywords: ["tasks", "work"] },
-  { title: "Job Search", path: "/job-search", icon: Search, keywords: ["find", "opportunities"] },
+  { title: "Job Search", path: "/agents/job-search", icon: Search, keywords: ["find", "opportunities"] },
   { title: "Opportunities", path: "/opportunities", icon: TrendingUp, keywords: ["jobs", "matches"] },
   { title: "Application Queue", path: "/application-queue", icon: ClipboardList, keywords: ["apply", "track"] },
   { title: "Agencies", path: "/agencies", icon: Building2, keywords: ["recruiters", "staffing"] },

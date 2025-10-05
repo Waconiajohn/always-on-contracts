@@ -50,7 +50,7 @@ const navItems = [
 ];
 
 const jobSearchItems = [
-  { path: "/job-search", label: "Job Search", icon: Search },
+  { path: "/agents/job-search", label: "Job Search", icon: Search },
   { path: "/opportunities", label: "Job Board", icon: TrendingUp },
   { path: "/application-queue", label: "Application Queue", icon: ClipboardList },
   { path: "/agencies", label: "Agencies", icon: Building2 },
