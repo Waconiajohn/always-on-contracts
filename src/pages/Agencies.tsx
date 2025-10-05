@@ -15,7 +15,7 @@ import {
   MessageSquare, Calendar, ExternalLink, Copy, Check, Trash2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { fetchTemplateVariables, populateTemplate, generateMailtoLink } from "@/lib/templateService";
+import { fetchTemplateVariables, populateTemplate, generateMailtoLink, fetchUserTemplates } from "@/lib/templateService";
 import {
   Collapsible,
   CollapsibleContent,
@@ -77,18 +77,14 @@ const AgenciesContent = () => {
 
   const fetchTemplates = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("communication_templates")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setTemplates(data || []);
-    } catch (error) {
-      console.error("Error fetching templates:", error);
+      const templates = await fetchUserTemplates();
+      setTemplates(templates);
+    } catch (error: any) {
+      toast({
+        title: "Error loading templates",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 

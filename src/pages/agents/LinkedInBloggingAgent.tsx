@@ -8,9 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, BarChart3, Save, Copy } from "lucide-react";
+import { Loader2, Sparkles, BarChart3, Save, Copy, Trash2, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useLinkedInDrafts } from "@/hooks/useLinkedInDrafts";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import type { LinkedInPost, ContentAnalysis } from "@/types/linkedin";
 
 export default function LinkedInBloggingAgent() {
   const [topic, setTopic] = useState("");
@@ -18,12 +21,14 @@ export default function LinkedInBloggingAgent() {
   const [postType, setPostType] = useState("thought-leadership");
   const [targetAudience, setTargetAudience] = useState("");
   const [keyPoints, setKeyPoints] = useState("");
-  const [generatedPost, setGeneratedPost] = useState<any>(null);
+  const [generatedPost, setGeneratedPost] = useState<LinkedInPost | null>(null);
   const [analysisContent, setAnalysisContent] = useState("");
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<ContentAnalysis | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [editingDraft, setEditingDraft] = useState<string | null>(null);
   const { toast } = useToast();
+  const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -94,6 +99,7 @@ export default function LinkedInBloggingAgent() {
 
       if (error) throw error;
       toast({ title: "Saved!", description: "Post saved to your drafts" });
+      fetchDrafts();
     } catch (error: any) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
     }
@@ -104,6 +110,15 @@ export default function LinkedInBloggingAgent() {
       navigator.clipboard.writeText(generatedPost.content);
       toast({ title: "Copied!", description: "Post copied to clipboard" });
     }
+  };
+
+  const handleDeleteDraft = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this draft?")) return;
+    await deleteDraft(id);
+  };
+
+  const handlePublishDraft = async (id: string) => {
+    await updateDraft(id, { status: 'published' });
   };
 
   return (
@@ -377,7 +392,53 @@ export default function LinkedInBloggingAgent() {
               <CardDescription>Access and manage your saved LinkedIn posts</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-center py-8">Draft management coming soon...</p>
+              {draftsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : drafts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No drafts yet. Generate your first post above!</p>
+              ) : (
+                <div className="space-y-4">
+                  {drafts.map((draft) => (
+                    <Card key={draft.id} className="border-2">
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{draft.title || "Untitled Post"}</CardTitle>
+                            <div className="flex gap-2 mt-2">
+                              <Badge>{draft.status}</Badge>
+                              {draft.post_type && <Badge variant="outline">{draft.post_type}</Badge>}
+                              {draft.engagement_score && <Badge variant="secondary">Score: {draft.engagement_score}</Badge>}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(draft.content)}>
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handlePublishDraft(draft.id)}>
+                              Publish
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDraft(draft.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Textarea value={draft.content} readOnly rows={6} className="font-mono text-sm" />
+                        {draft.hashtags && draft.hashtags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {draft.hashtags.map((tag, idx) => (
+                              <Badge key={idx} variant="secondary">#{tag}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

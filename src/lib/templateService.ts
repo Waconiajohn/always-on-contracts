@@ -1,5 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface Template {
+  id: string;
+  template_name: string;
+  template_type: string;
+  subject_line: string | null;
+  body_content: string;
+  created_at: string;
+  user_id: string;
+}
+
 interface TemplateVariables {
   // User data
   your_name?: string;
@@ -86,6 +96,27 @@ export const fetchTemplateVariables = async (agencyId?: string): Promise<Templat
   }
 
   return variables;
+};
+
+/**
+ * Fetch all communication templates for the authenticated user
+ * @returns Array of templates sorted by creation date (newest first)
+ * @throws Error if user is not authenticated or if database query fails
+ */
+export const fetchUserTemplates = async (): Promise<Template[]> => {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError) throw userError;
+  if (!user) throw new Error("User not authenticated");
+  
+  const { data, error } = await supabase
+    .from("communication_templates")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+    
+  if (error) throw error;
+  return data || [];
 };
 
 export const populateTemplate = (template: string, variables: TemplateVariables): string => {

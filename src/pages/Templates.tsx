@@ -42,19 +42,12 @@ const TemplatesContent = () => {
 
   const fetchTemplates = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("communication_templates")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setTemplates(data || []);
+      const { fetchUserTemplates } = await import("@/lib/templateService");
+      const templates = await fetchUserTemplates();
+      setTemplates(templates);
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Error loading templates",
         description: error.message,
         variant: "destructive",
       });

@@ -2333,6 +2333,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_password_strength: {
+        Args: { password: string }
+        Returns: boolean
+      }
       generate_api_key: {
         Args: Record<PropertyKey, never>
         Returns: string

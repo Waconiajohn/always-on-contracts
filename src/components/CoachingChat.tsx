@@ -45,7 +45,6 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
 
         // Load persona memories
         const memories = await personaMemory.recall(coachPersonality as 'robert' | 'sophia' | 'nexus', 10);
-        console.log(`Loaded ${memories.data?.length || 0} memories for ${coachPersonality}`);
 
         // Load existing session for this coach
         const { data: sessions, error } = await supabase
@@ -83,9 +82,8 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
           content: greetings[coachPersonality] || greetings.robert 
         }]);
 
-      } catch (error) {
-        console.error('Error loading session:', error);
-        toast.error("Failed to load previous conversation");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to load previous conversation");
       }
     };
 
@@ -157,14 +155,15 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
             userMessage
           );
         }
-      } catch (memoryError) {
-        console.error('Error storing memory:', memoryError);
+      } catch (memoryError: any) {
         // Don't fail the whole message if memory storage fails
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error storing memory:', memoryError);
+        }
       }
 
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error("Failed to send message. Please try again.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send message. Please try again.");
     } finally {
       setIsLoading(false);
     }

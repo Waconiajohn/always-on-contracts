@@ -40,11 +40,10 @@ export const AgencyMatcherPanel = ({ userId, targetRoles = [], industries = [] }
         title: "Agencies Found",
         description: `Found ${result.data?.length || 0} matching agencies`,
       });
-    } catch (error) {
-      console.error('Error finding agency matches:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to find matching agencies",
+        title: "Error finding agencies",
+        description: error.message || "Failed to find matching agencies",
         variant: "destructive",
       });
     } finally {
@@ -57,11 +56,10 @@ export const AgencyMatcherPanel = ({ userId, targetRoles = [], industries = [] }
     try {
       const result = await agency.getAgencyInsights(agencyId);
       setAgencyDetails(result.data);
-    } catch (error) {
-      console.error('Error loading agency details:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to load agency details",
+        title: "Error loading details",
+        description: error.message || "Failed to load agency details",
         variant: "destructive",
       });
     } finally {
@@ -78,11 +76,10 @@ export const AgencyMatcherPanel = ({ userId, targetRoles = [], industries = [] }
       });
       setOutreachNotes("");
       setSelectedAgency(null);
-    } catch (error) {
-      console.error('Error tracking outreach:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to track outreach",
+        title: "Error tracking outreach",
+        description: error.message || "Failed to track outreach",
         variant: "destructive",
       });
     }
@@ -96,11 +93,10 @@ export const AgencyMatcherPanel = ({ userId, targetRoles = [], industries = [] }
         description: "Thank you for your feedback!",
       });
       await findMatches(); // Refresh matches
-    } catch (error) {
-      console.error('Error submitting rating:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to submit rating",
+        title: "Error submitting rating",
+        description: error.message || "Failed to submit rating",
         variant: "destructive",
       });
     }

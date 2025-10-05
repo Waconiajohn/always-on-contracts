@@ -134,10 +134,10 @@ Return ONLY a JSON object with this structure:
     }
 
     // Extract keywords from job description for scoring
-    const keywords = [
+    const keywords = Array.from(new Set([
       ...(opportunity.required_skills || []),
       ...customizedResume.keywords
-    ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+    ]));
 
     return new Response(JSON.stringify({ 
       ...customizedResume,
