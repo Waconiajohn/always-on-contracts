@@ -31,6 +31,12 @@ import CorporateAssistant from "./pages/agents/CorporateAssistant";
 import JobSearchAgent from "./pages/agents/JobSearchAgent";
 import ResumeBuilderAgent from "./pages/agents/ResumeBuilderAgent";
 import InterviewPrepAgent from "./pages/agents/InterviewPrepAgent";
+import LinkedInBloggingAgent from "./pages/agents/LinkedInBloggingAgent";
+import AutoApplyAgent from "./pages/agents/AutoApplyAgent";
+import LinkedInProfileBuilder from "./pages/agents/LinkedInProfileBuilder";
+import NetworkingAgent from "./pages/agents/NetworkingAgent";
+import CareerTrendsScout from "./pages/agents/CareerTrendsScout";
+import FinancialPlanningAssistant from "./pages/agents/FinancialPlanningAssistant";
 import CareerDashboard from "./pages/CareerDashboard";
 import Onboarding from "./pages/Onboarding";
 import AffiliatePortal from "./pages/AffiliatePortal";
@@ -78,6 +84,12 @@ const App = () => (
         <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />
         <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
+        <Route path="/agents/linkedin-blogging" element={<ProtectedRoute><LinkedInBloggingAgent /></ProtectedRoute>} />
+        <Route path="/agents/auto-apply" element={<ProtectedRoute><AutoApplyAgent /></ProtectedRoute>} />
+        <Route path="/agents/linkedin-profile" element={<ProtectedRoute><LinkedInProfileBuilder /></ProtectedRoute>} />
+        <Route path="/agents/networking" element={<ProtectedRoute><NetworkingAgent /></ProtectedRoute>} />
+        <Route path="/agents/career-trends" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
+        <Route path="/agents/financial-planning" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
         <Route path="/career-tools" element={<ProtectedRoute><CareerDashboard /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
