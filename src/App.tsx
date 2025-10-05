@@ -7,44 +7,56 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CommandMenu } from "@/components/CommandMenu";
 import { AppSidebar } from "@/components/AppSidebar";
-import Landing from "./pages/Landing";
-import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
-import Projects from "./pages/Projects";
-import ResumeUpload from "./pages/ResumeUpload";
-import Pricing from "./pages/Pricing";
-import Auth from "./pages/Auth";
-import Coaching from "./pages/Coaching";
-import ResumeOptimizer from "./pages/ResumeOptimizer";
-import Agencies from "./pages/Agencies";
-import Opportunities from "./pages/Opportunities";
-import RateCalculator from "./pages/RateCalculator";
-import Profile from "./pages/Profile";
-import Templates from "./pages/Templates";
-import APIKeys from "./pages/APIKeys";
-import AutomationSettings from "./pages/AutomationSettings";
-import ApplicationQueue from "./pages/ApplicationQueue";
-import SearchProfiles from "./pages/SearchProfiles";
-import AIAgents from "./pages/AIAgents";
-import JobSearch from "./pages/JobSearch";
-import CorporateAssistant from "./pages/agents/CorporateAssistant";
-import JobSearchAgent from "./pages/agents/JobSearchAgent";
-import ResumeBuilderAgent from "./pages/agents/ResumeBuilderAgent";
-import InterviewPrepAgent from "./pages/agents/InterviewPrepAgent";
-import LinkedInBloggingAgent from "./pages/agents/LinkedInBloggingAgent";
-import AutoApplyAgent from "./pages/agents/AutoApplyAgent";
-import LinkedInProfileBuilder from "./pages/agents/LinkedInProfileBuilder";
-import NetworkingAgent from "./pages/agents/NetworkingAgent";
-import CareerTrendsScout from "./pages/agents/CareerTrendsScout";
-import FinancialPlanningAssistant from "./pages/agents/FinancialPlanningAssistant";
-import CareerDashboard from "./pages/CareerDashboard";
-import Onboarding from "./pages/Onboarding";
-import AffiliatePortal from "./pages/AffiliatePortal";
-import RedeemCode from "./pages/RedeemCode";
-import AdminPortal from "./pages/AdminPortal";
-import AdminAnalytics from "./pages/AdminAnalytics";
-import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { lazy, Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load all pages
+const Landing = lazy(() => import("./pages/Landing"));
+const Home = lazy(() => import("./pages/Home"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ResumeUpload = lazy(() => import("./pages/ResumeUpload"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Coaching = lazy(() => import("./pages/Coaching"));
+const ResumeOptimizer = lazy(() => import("./pages/ResumeOptimizer"));
+const Agencies = lazy(() => import("./pages/Agencies"));
+const Opportunities = lazy(() => import("./pages/Opportunities"));
+const RateCalculator = lazy(() => import("./pages/RateCalculator"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Templates = lazy(() => import("./pages/Templates"));
+const APIKeys = lazy(() => import("./pages/APIKeys"));
+const AutomationSettings = lazy(() => import("./pages/AutomationSettings"));
+const ApplicationQueue = lazy(() => import("./pages/ApplicationQueue"));
+const SearchProfiles = lazy(() => import("./pages/SearchProfiles"));
+const AIAgents = lazy(() => import("./pages/AIAgents"));
+const JobSearch = lazy(() => import("./pages/JobSearch"));
+const CorporateAssistant = lazy(() => import("./pages/agents/CorporateAssistant"));
+const JobSearchAgent = lazy(() => import("./pages/agents/JobSearchAgent"));
+const ResumeBuilderAgent = lazy(() => import("./pages/agents/ResumeBuilderAgent"));
+const InterviewPrepAgent = lazy(() => import("./pages/agents/InterviewPrepAgent"));
+const LinkedInBloggingAgent = lazy(() => import("./pages/agents/LinkedInBloggingAgent"));
+const AutoApplyAgent = lazy(() => import("./pages/agents/AutoApplyAgentComplete"));
+const LinkedInProfileBuilder = lazy(() => import("./pages/agents/LinkedInProfileBuilder"));
+const NetworkingAgent = lazy(() => import("./pages/agents/NetworkingAgentComplete"));
+const CareerTrendsScout = lazy(() => import("./pages/agents/CareerTrendsScout"));
+const FinancialPlanningAssistant = lazy(() => import("./pages/agents/FinancialPlanningAssistant"));
+const CareerDashboard = lazy(() => import("./pages/CareerDashboard"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
+const RedeemCode = lazy(() => import("./pages/RedeemCode"));
+const AdminPortal = lazy(() => import("./pages/AdminPortal"));
+const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex-1 p-8 space-y-4">
+    <Skeleton className="h-12 w-64" />
+    <Skeleton className="h-96 w-full" />
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -60,7 +72,8 @@ const App = () => (
               <AppSidebar />
               <div className="flex-1 flex flex-col">
                 <CommandMenu />
-                <Routes>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
@@ -99,7 +112,8 @@ const App = () => (
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-                </Routes>
+                  </Routes>
+                </Suspense>
               </div>
             </div>
           </SidebarProvider>
