@@ -103,7 +103,7 @@ serve(async (req) => {
         // Find referral
         const { data: referral } = await supabase
           .from("affiliate_referrals")
-          .select("id, affiliate_id")
+          .select("id, affiliate_id, referral_email")
           .eq("subscription_id", subscriptionId)
           .eq("converted_at", null)
           .single();
@@ -113,14 +113,28 @@ serve(async (req) => {
           break;
         }
 
-        // Get affiliate commission rate
+        // Get affiliate details
         const { data: affiliate } = await supabase
           .from("affiliates")
-          .select("commission_rate")
+          .select("commission_rate, user_id")
           .eq("id", referral.affiliate_id)
           .single();
 
         if (!affiliate) break;
+
+        // Get affiliate profile for email and name
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("user_id", affiliate.user_id)
+          .single();
+
+        // Get subscription details for tier
+        const { data: subscriptionData } = await supabase
+          .from("subscriptions")
+          .select("tier")
+          .eq("stripe_subscription_id", subscriptionId)
+          .single();
 
         // Calculate commission (30% of payment)
         const commissionRate = affiliate.commission_rate / 100;
@@ -149,6 +163,26 @@ serve(async (req) => {
         });
 
         console.log("[WEBHOOK] Commission created for affiliate:", referral.affiliate_id);
+
+        // Send email notification to affiliate
+        if (profile?.email) {
+          try {
+            await supabase.functions.invoke("send-affiliate-commission-email", {
+              body: {
+                affiliateEmail: profile.email,
+                affiliateName: profile.full_name || "Affiliate",
+                commissionAmount: amountCents / 100,
+                referralEmail: referral.referral_email || "N/A",
+                subscriptionTier: subscriptionData?.tier || "N/A",
+              },
+            });
+            console.log("[WEBHOOK] Email notification sent to affiliate");
+          } catch (emailError) {
+            console.error("[WEBHOOK] Failed to send email notification:", emailError);
+            // Continue processing even if email fails
+          }
+        }
+
         break;
       }
 

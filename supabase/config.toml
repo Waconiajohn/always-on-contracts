@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.mcp-job-scraper]
 verify_jwt = true
+
+[functions.send-affiliate-commission-email]
+verify_jwt = false
