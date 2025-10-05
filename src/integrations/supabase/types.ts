@@ -382,6 +382,7 @@ export type Database = {
           response_received_at: string | null
           status: string | null
           submitted_at: string | null
+          success_modal_shown: boolean | null
           updated_at: string | null
           user_id: string
         }
@@ -398,6 +399,7 @@ export type Database = {
           response_received_at?: string | null
           status?: string | null
           submitted_at?: string | null
+          success_modal_shown?: boolean | null
           updated_at?: string | null
           user_id: string
         }
@@ -414,6 +416,7 @@ export type Database = {
           response_received_at?: string | null
           status?: string | null
           submitted_at?: string | null
+          success_modal_shown?: boolean | null
           updated_at?: string | null
           user_id?: string
         }
@@ -2005,6 +2008,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_feature_progress: {
+        Row: {
+          created_at: string | null
+          feature_name: string
+          id: string
+          last_activity_at: string | null
+          metadata: Json | null
+          milestone_percentage: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          feature_name: string
+          id?: string
+          last_activity_at?: string | null
+          metadata?: Json | null
+          milestone_percentage?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          feature_name?: string
+          id?: string
+          last_activity_at?: string | null
+          metadata?: Json | null
+          milestone_percentage?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

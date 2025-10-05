@@ -2,10 +2,40 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Brain, FileText, Target, BookOpen, Users, Gift } from "lucide-react";
+import { Brain, FileText, Target, BookOpen, Users, Gift, AlertCircle, CheckCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 const HomeContent = () => {
   const navigate = useNavigate();
+  const [warChestComplete, setWarChestComplete] = useState(false);
+  const [warChestCompletion, setWarChestCompletion] = useState(0);
+
+  useEffect(() => {
+    checkWarChestStatus();
+  }, []);
+
+  const checkWarChestStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('career_war_chest')
+        .select('interview_completion_percentage')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data) {
+        const completion = data.interview_completion_percentage || 0;
+        setWarChestCompletion(completion);
+        setWarChestComplete(completion === 100);
+      }
+    } catch (error) {
+      console.error('Error checking War Chest status:', error);
+    }
+  };
 
   const features = [
     {
@@ -55,6 +85,19 @@ const HomeContent = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-12">
+        {/* War Chest Status Banner */}
+        {!warChestComplete && (
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Complete your War Chest to unlock all features ({warChestCompletion}% done)</span>
+              <Button size="sm" onClick={() => navigate('/war-chest/onboarding')}>
+                Continue Setup
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Hero Section */}
         <div className="text-center mb-16 space-y-4">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">

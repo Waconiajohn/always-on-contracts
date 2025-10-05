@@ -48,6 +48,10 @@ const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
 const RedeemCode = lazy(() => import("./pages/RedeemCode"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const WarChestDashboard = lazy(() => import("./pages/WarChestDashboard"));
+const WarChestOnboarding = lazy(() => import("./pages/WarChestOnboarding"));
+const LearningCenter = lazy(() => import("./pages/LearningCenter"));
+const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component
@@ -110,6 +114,10 @@ const App = () => (
           <Route path="/redeem-code" element={<ProtectedRoute><RedeemCode /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPortal /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/war-chest" element={<ProtectedRoute><WarChestDashboard /></ProtectedRoute>} />
+            <Route path="/war-chest/onboarding" element={<ProtectedRoute><WarChestOnboarding /></ProtectedRoute>} />
+            <Route path="/learn" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
+            <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
                   </Routes>

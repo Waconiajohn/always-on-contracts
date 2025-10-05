@@ -13,255 +13,179 @@ serve(async (req) => {
   }
 
   try {
-    const { warChestId, previousResponses } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get war chest data
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    const { phase, isFirst, previousResponse, conversationHistory } = await req.json();
+
+    // Get War Chest data for context
     const { data: warChest } = await supabase
       .from('career_war_chest')
       .select('*')
-      .eq('id', warChestId)
+      .eq('user_id', user.id)
       .single();
 
-    if (!warChest) {
-      throw new Error('War chest not found');
-    }
+    const systemPrompt = `You are an elite career intelligence analyst conducting an adaptive interview to build a comprehensive career "War Chest."
 
-    // Determine which phase we're in based on response count
-    const responseCount = previousResponses?.length || 0;
-    let phase: string;
-    let phaseTitle: string;
-    let phaseDescription: string;
+YOUR GOAL: Extract deep, actionable career intelligence that will power:
+- Highly targeted job recommendations
+- Optimized resume generation
+- Strategic interview preparation
+- Career positioning strategies
 
-    if (responseCount < 8) {
-      phase = 'resume_understanding';
-      phaseTitle = 'Deep Dive Into Your Experience';
-      phaseDescription = "Let's extract the quantifiable achievements and specific impact from your career";
-    } else if (responseCount < 17) {
-      phase = 'skills_translation';
-      phaseTitle = 'Uncovering Transferable Skills';
-      phaseDescription = "Discovering skills and capabilities you have but may not have explicitly listed";
-    } else {
-      phase = 'hidden_gems';
-      phaseTitle = 'Hidden Competencies';
-      phaseDescription = "Identifying expertise you possess but might not call by its modern industry name";
-    }
+ADAPTIVE INTERVIEW STRATEGY:
+1. Analyze the user's resume and previous responses
+2. Determine profession complexity, industry nuance, and career depth
+3. Dynamically adjust question count based on:
+   - Years of experience (2-5 years: 10-15 questions, 10-20 years: 15-20, 20+ years: 20-30)
+   - Role seniority (Junior: fewer questions, Executive: more depth)
+   - Response quality (shallow answers: probe deeper, rich detail: move faster)
+   - Career transitions (complex paths: more questions)
 
-    // Extract analysis data for context awareness
-    const analysis = warChest.initial_analysis as any || {};
-    const jobTitles = analysis.recommended_positions?.join(', ') || 'Unknown';
-    const industries = analysis.industry_expertise?.join(', ') || 'Unknown';
-    const yearsExp = analysis.years_experience || 'Unknown';
-    const keySkills = analysis.skills?.slice(0, 5).join(', ') || 'Unknown';
-    const existingAchievements = analysis.key_achievements?.slice(0, 3) || [];
-    const workHistory = analysis.work_history || [];
+INTERVIEW PHASES:
+1. DISCOVERY (25%): Basic background, current situation, career trajectory
+2. DEEP DIVE (50%): Achievements, challenges, pivotal moments
+3. SKILLS & STRENGTHS (75%): Core competencies, hidden skills, transferable capabilities
+4. FUTURE GOALS (100%): Aspirations, target roles, ideal opportunities
 
-    // Use Lovable AI to generate contextual question with structured output
-    const prompt = `You are a corporate career assistant conducting a strategic interview to build a comprehensive "War Chest" that will power customized resumes and job applications.
+KEY AREAS TO COVER:
+- Career trajectory & pivotal moments
+- Core competencies & expertise depth
+- Hidden skills & transferable capabilities
+- Quantifiable achievements & impact
+- Leadership & soft skills
+- Industry knowledge & domain expertise
+- Career aspirations & goals
+- Challenges overcome & lessons learned
 
-CRITICAL CONTEXT AWARENESS:
-The user already uploaded a resume. Here's what we extracted:
-- Job titles/roles: ${jobTitles}
-- Industries: ${industries}
-- Years of experience: ${yearsExp}
-- Key skills identified: ${keySkills}
-- Work history: ${JSON.stringify(workHistory)}
-- Existing achievements we captured: ${JSON.stringify(existingAchievements)}
+QUESTION CHARACTERISTICS:
+- Open-ended to encourage detailed responses
+- Build on previous answers
+- Probe for specific examples and numbers
+- Adapt based on user's industry and role
+- Natural conversational flow
 
-**FULL RESUME TEXT FOR SPECIFIC EXTRACTION:**
-${warChest.resume_raw_text || ''}
+COMPLETION CRITERIA:
+- All key areas explored with sufficient depth
+- 15-25 power phrases identified
+- 10-15 transferable skills extracted
+- 5-10 hidden competencies discovered
+- AI confidence ≥ 80% in understanding user's career profile
 
-YOUR TASK:
-1. Review the resume text to extract SPECIFIC details relevant to this question
-2. Pre-populate known information (job title, company, dates, responsibilities)
-3. Ask for MISSING or EXPANDABLE information only
+Current Phase: ${phase}
+${isFirst ? 'This is the first question.' : ''}
+${previousResponse ? `User's previous response: ${previousResponse}` : ''}
 
-DO NOT ask them to repeat information we can clearly see.
-INSTEAD:
-- Show what you found: "I see you were [title] at [company] from [dates]"
-- Ask for what's missing: metrics, team size, specific technologies, challenges, budget scope
-- Request expansion: "Can you quantify the impact?" or "What technologies did you use?"
+RESPONSE FORMAT:
+{
+  "question": "Your next interview question",
+  "phase": "current_phase",
+  "completionPercentage": 0-100,
+  "isComplete": false,
+  "reasoning": "Why you asked this question and what you're looking for"
+}
 
-Previous Interview Responses: ${JSON.stringify(previousResponses?.slice(-3) || [])}
-Current Phase: ${phase} (Question ${responseCount + 1} of 25)
+If interview is complete (all criteria met), set isComplete: true.`;
 
-PHASE-SPECIFIC FOCUS:
-
-${phase === 'resume_understanding' ? `PHASE 1: DEEP RESUME UNDERSTANDING (Questions 1-8)
-Goal: Extract quantifiable achievements, specific projects, leadership impact, and measurable results.
-
-Your questions should probe for:
-- Specific job titles, companies, and timeframes (last 10-15 years)
-- Quantified results (revenue impact, cost savings, team size, efficiency gains, customer metrics)
-- Technologies, tools, and methodologies used
-- Project scope and impact
-- Leadership and collaboration examples
-
-Example question:
-**CONTEXT:** I see from your resume you worked as a ${jobTitles?.split(',')[0]}. I need to quantify your achievements to create powerful resume statements that stand out.
-
-**PLEASE SHARE:**
-• Your most recent role: specific title, company name, dates (month/year format)
-• One major project or initiative you led with clear scope
-• Specific metrics: revenue generated/saved, team size you managed/collaborated with, efficiency gains, customer impact numbers
-• Key technologies or methodologies you used daily
-
-**EXAMPLE OF A STRONG ANSWER:**
-"As Senior Product Manager at TechCorp (Jan 2020 - Dec 2023), I led the mobile app launch working with a cross-functional team of 12 (5 engineers, 4 designers, 3 marketing). We acquired 50,000 users in Q1 2021, increased retention by 35%, and generated $1.2M in new revenue. I used Agile/Scrum methodology, Jira for project tracking, and collaborated daily with engineering, design, and marketing teams."` : ''}
-
-${phase === 'skills_translation' ? `PHASE 2: SKILLS TRANSLATION (Questions 9-17)
-Goal: Uncover equivalent skills, near-certifications, and transferable capabilities they haven't articulated.
-
-Your questions should probe for:
-- Tools they've used that translate to other tools (CRM experience = can use any CRM)
-- Training or certifications they almost have (studied methodology but not certified)
-- Skills demonstrated indirectly (led without manager title, analyzed data without "analyst" role)
-- Industry-specific knowledge that applies broadly
-- Technologies used in different contexts
-
-Example question:
-**CONTEXT:** I noticed you have experience with ${keySkills?.split(',')[0] || 'various tools'}. Let's identify equivalent skills and near-certifications you possess but may not have explicitly listed.
-
-**PLEASE SHARE:**
-• Any CRM, project management, analytics, or collaboration tools you've used (even if not your main job)
-• Training programs, courses, or certifications you've started, partially completed, or studied informally
-• Times you performed work outside your official job title (coordinated projects, analyzed data, mentored others, solved technical problems, drove initiatives)
-
-**EXAMPLE OF A STRONG ANSWER:**
-"I used Salesforce daily for 3 years even though I wasn't in sales—I created 15+ custom reports and automated 5 workflows that the sales team still uses. I took a Six Sigma Green Belt course in 2019, completed all modules but never submitted the final certification project. I regularly trained 5-7 new hires each year even though I wasn't officially a trainer or people manager."` : ''}
-
-${phase === 'hidden_gems' ? `PHASE 3: HIDDEN COMPETENCIES (Questions 18-25)
-Goal: Identify modern, high-value skills they possess but don't call by current industry terminology.
-
-Your questions should probe for:
-- AI/ML work they don't call "AI" (predictive models, recommendation engines, automation, natural language processing)
-- Leadership without the title (influenced decisions, drove change, mentored, coordinated teams)
-- Modern tech skills they describe in old terms (data science work called "Excel analysis")
-- Cross-functional expertise they take for granted
-- Innovation and problem-solving examples
-
-Example question:
-**CONTEXT:** Many executives have done AI, data science, or leadership work without using those exact words. I want to reframe your experience using modern industry terminology that will resonate with today's employers.
-
-**PLEASE SHARE:**
-• Any automated systems, predictive models, recommendation engines, chatbots, or data-driven decision tools you've built or worked with (even in Excel, Access, or older tools)
-• Times you influenced company direction, drove process improvements, or led initiatives without having 'manager' in your title
-• Work with large datasets, dashboards, or reports that drove business decisions (what data, what decisions, what impact?)
-
-**EXAMPLE OF A STRONG ANSWER:**
-"I built an Excel model in 2018 that predicted customer churn by analyzing 18 months of purchase patterns across 10,000+ customers—it was 82% accurate and our retention team used it to target high-risk accounts, saving an estimated $400K annually. I wasn't officially a manager but I coordinated our team's sprint planning for 2 years and mentored 3 junior developers who all got promoted. I also created a Power BI dashboard that tracked 15 KPIs and was used by the executive team for quarterly strategy sessions."` : ''}
-
-Generate ONE structured question. Extract actual data from the resume text provided.
-
-CRITICAL REQUIREMENT: The exampleAnswer field MUST be completely unique and specifically tailored to answer the exact questions you're asking. Look at the resume data and craft an example that demonstrates how to answer YOUR specific questions with appropriate detail. Never reuse generic examples.`;
+    const userPrompt = isFirst 
+      ? `Start the War Chest interview. Resume analysis: ${JSON.stringify(warChest?.initial_analysis || {})}`
+      : `Continue the interview. Conversation so far: ${JSON.stringify(conversationHistory || [])}`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an expert career counselor who extracts resume data and creates pre-filled interview questions. CRITICAL: Each example answer MUST be unique and specifically address the exact questions you are asking. Never reuse examples.' },
-          { role: 'user', content: prompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "create_prefilled_question",
-            description: "Create a pre-filled interview question with known resume data",
-            parameters: {
-              type: "object",
-              properties: {
-                context: { 
-                  type: "string",
-                  description: "1-2 sentences explaining why you're asking and what you already know"
-                },
-                knownData: {
-                  type: "array",
-                  description: "Information already extracted from resume",
-                  items: {
-                    type: "object",
-                    properties: {
-                      label: { type: "string" },
-                      value: { 
-                        description: "Can be string or array of strings",
-                        oneOf: [
-                          { type: "string" },
-                          { type: "array", items: { type: "string" } }
-                        ]
-                      },
-                      source: { type: "string", enum: ["resume", "previous_answer"] }
-                    },
-                    required: ["label", "value", "source"]
-                  }
-                },
-                questionsToExpand: {
-                  type: "array",
-                  description: "Questions to expand on known data",
-                  items: {
-                    type: "object",
-                    properties: {
-                      prompt: { type: "string" },
-                      placeholder: { type: "string" },
-                      hint: { type: "string" }
-                    },
-                    required: ["prompt", "placeholder"]
-                  }
-                },
-                exampleAnswer: { 
-                  type: "string",
-                  description: "Concrete example that SPECIFICALLY answers ALL the questions in questionsToExpand with the appropriate level of detail. Must be unique and contextually relevant to these exact questions. DO NOT reuse examples from other questions."
-                }
-              },
-              required: ["context", "knownData", "questionsToExpand", "exampleAnswer"]
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "create_prefilled_question" } }
+        temperature: 0.8,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`Failed to generate question: ${response.status}`);
+      throw new Error(`AI optimization failed: ${response.status}`);
     }
 
-    const aiResponse = await response.json();
-    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    
-    let questionData;
-    if (toolCall) {
-      // Structured format from tool calling
-      questionData = JSON.parse(toolCall.function.arguments);
-      console.log('Generated structured question:', questionData);
-    } else {
-      // Fallback to old text format
-      const question = aiResponse.choices[0].message.content.trim();
-      questionData = { question };
-      console.log('Generated text question (fallback):', question);
-    }
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content;
 
-    return new Response(
-      JSON.stringify({
-        question: questionData,
+    let parsedResult;
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      parsedResult = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+    } catch (e) {
+      console.error('Failed to parse AI response:', e);
+      parsedResult = {
+        question: aiResponse,
         phase,
-        phaseTitle,
-        phaseDescription
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+        completionPercentage: 0,
+        isComplete: false
+      };
+    }
 
-  } catch (error: any) {
-    console.error('Error generating question:', error);
+    // Store response in War Chest
+    if (previousResponse) {
+      const { data: existingWarChest } = await supabase
+        .from('career_war_chest')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingWarChest) {
+        await supabase
+          .from('war_chest_interview_responses')
+          .insert({
+            war_chest_id: existingWarChest.id,
+            question_text: conversationHistory?.[conversationHistory.length - 2]?.content || '',
+            response_text: previousResponse,
+            phase
+          });
+      }
+
+      // Update completion percentage
+      await supabase
+        .from('career_war_chest')
+        .update({
+          interview_completion_percentage: parsedResult.completionPercentage,
+          last_updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+    }
+
+    return new Response(JSON.stringify(parsedResult), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error in generate-interview-question:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
