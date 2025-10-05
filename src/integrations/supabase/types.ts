@@ -480,6 +480,42 @@ export type Database = {
           },
         ]
       }
+      career_trends: {
+        Row: {
+          description: string
+          discovered_at: string | null
+          id: string
+          is_verified: boolean | null
+          metadata: Json | null
+          relevance_score: number | null
+          source_url: string | null
+          trend_category: string
+          trend_title: string
+        }
+        Insert: {
+          description: string
+          discovered_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          metadata?: Json | null
+          relevance_score?: number | null
+          source_url?: string | null
+          trend_category: string
+          trend_title: string
+        }
+        Update: {
+          description?: string
+          discovered_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          metadata?: Json | null
+          relevance_score?: number | null
+          source_url?: string | null
+          trend_category?: string
+          trend_title?: string
+        }
+        Relationships: []
+      }
       career_war_chest: {
         Row: {
           created_at: string
@@ -1023,6 +1059,141 @@ export type Database = {
           results_count?: number | null
           search_query?: string
           status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      linkedin_posts: {
+        Row: {
+          analysis_data: Json | null
+          content: string
+          created_at: string | null
+          engagement_score: number | null
+          hashtags: string[] | null
+          id: string
+          post_type: string | null
+          status: string | null
+          title: string | null
+          tone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_data?: Json | null
+          content: string
+          created_at?: string | null
+          engagement_score?: number | null
+          hashtags?: string[] | null
+          id?: string
+          post_type?: string | null
+          status?: string | null
+          title?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_data?: Json | null
+          content?: string
+          created_at?: string | null
+          engagement_score?: number | null
+          hashtags?: string[] | null
+          id?: string
+          post_type?: string | null
+          status?: string | null
+          title?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      linkedin_profiles: {
+        Row: {
+          about: string | null
+          created_at: string | null
+          featured_skills: string[] | null
+          headline: string | null
+          id: string
+          last_optimized_at: string | null
+          optimization_score: number | null
+          optimized_content: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          about?: string | null
+          created_at?: string | null
+          featured_skills?: string[] | null
+          headline?: string | null
+          id?: string
+          last_optimized_at?: string | null
+          optimization_score?: number | null
+          optimized_content?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          about?: string | null
+          created_at?: string | null
+          featured_skills?: string[] | null
+          headline?: string | null
+          id?: string
+          last_optimized_at?: string | null
+          optimization_score?: number | null
+          optimized_content?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      networking_contacts: {
+        Row: {
+          contact_company: string | null
+          contact_email: string | null
+          contact_linkedin: string | null
+          contact_name: string
+          contact_title: string | null
+          created_at: string | null
+          id: string
+          last_contact_date: string | null
+          next_follow_up_date: string | null
+          notes: string | null
+          relationship_strength: string | null
+          tags: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_linkedin?: string | null
+          contact_name: string
+          contact_title?: string | null
+          created_at?: string | null
+          id?: string
+          last_contact_date?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          relationship_strength?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_linkedin?: string | null
+          contact_name?: string
+          contact_title?: string | null
+          created_at?: string | null
+          id?: string
+          last_contact_date?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          relationship_strength?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

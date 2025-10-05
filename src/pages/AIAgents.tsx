@@ -28,28 +28,28 @@ const aiAgents = [
     id: 4,
     name: "Auto-Apply Agent (MCP)",
     icon: CheckCircle2,
-    status: "coming-soon",
+    status: "active",
     description: "Automated job application submission with smart form-filling capabilities"
   },
   {
     id: 5,
     name: "LinkedIn Profile Builder",
     icon: Linkedin,
-    status: "coming-soon",
+    status: "active",
     description: "Comprehensive profile optimization with industry-specific keywords and storytelling"
   },
   {
     id: 6,
     name: "Networking Agent",
     icon: Network,
-    status: "coming-soon",
+    status: "active",
     description: "Strategic networking guidance and resume referral pathways"
   },
   {
     id: 7,
     name: "LinkedIn Blogging Agent",
     icon: MessageSquare,
-    status: "coming-soon",
+    status: "active",
     description: "AI-powered content creation for thought leadership and visibility"
   },
   {
@@ -63,14 +63,14 @@ const aiAgents = [
     id: 9,
     name: "Career Trends Scout",
     icon: TrendingUp,
-    status: "coming-soon",
+    status: "active",
     description: "Aggregates cutting-edge career advice from social media and coaching sources"
   },
   {
     id: 10,
     name: "Financial Planning Assistant",
     icon: DollarSign,
-    status: "coming-soon",
+    status: "active",
     description: "Retirement and financial planning guidance tailored to your career trajectory"
   },
   {
