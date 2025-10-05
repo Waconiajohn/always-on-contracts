@@ -138,7 +138,7 @@ verify_jwt = true
 [functions.financial-planning-advisor]
 verify_jwt = true
 
-[functions.generate-interview-question]
+[functions.extract-war-chest-intelligence]
 verify_jwt = true
 
 [functions.job-search-assistant]
