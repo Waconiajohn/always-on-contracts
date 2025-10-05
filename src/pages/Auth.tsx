@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Briefcase } from "lucide-react";
+import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,6 +16,11 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  // Rate limiting state
+  const loginAttemptsRef = useRef<{ count: number; timestamp: number }>({ count: 0, timestamp: Date.now() });
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,6 +40,55 @@ const Auth = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Client-side password validation for signup
+    if (!isLogin) {
+      if (password.length < 8) {
+        toast({
+          title: "Password too short",
+          description: "Password must be at least 8 characters long.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check for basic password requirements
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      
+      if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+        toast({
+          title: "Weak password",
+          description: "Password should contain uppercase, lowercase, and numbers for better security.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // Rate limiting check for login attempts
+    if (isLogin) {
+      const now = Date.now();
+      const timeSinceFirstAttempt = now - loginAttemptsRef.current.timestamp;
+      
+      // Reset counter if window has passed
+      if (timeSinceFirstAttempt > RATE_LIMIT_WINDOW) {
+        loginAttemptsRef.current = { count: 0, timestamp: now };
+      }
+      
+      // Check if rate limit exceeded
+      if (loginAttemptsRef.current.count >= MAX_LOGIN_ATTEMPTS) {
+        const remainingTime = Math.ceil((RATE_LIMIT_WINDOW - timeSinceFirstAttempt) / 60000);
+        toast({
+          title: "Too many attempts",
+          description: `Please wait ${remainingTime} minutes before trying again.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setLoading(true);
 
     try {
@@ -42,7 +97,16 @@ const Auth = () => {
           email,
           password,
         });
-        if (error) throw error;
+        
+        if (error) {
+          // Increment failed login attempts
+          loginAttemptsRef.current.count += 1;
+          throw error;
+        }
+        
+        // Reset on successful login
+        loginAttemptsRef.current = { count: 0, timestamp: Date.now() };
+        
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in.",
@@ -120,15 +184,17 @@ const Auth = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password {!isLogin && "(minimum 8 characters)"}</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={8}
                 className="text-lg h-12"
               />
+              {!isLogin && <PasswordStrengthIndicator password={password} />}
             </div>
             <Button
               type="submit"
