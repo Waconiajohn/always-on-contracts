@@ -2,7 +2,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Brain, FileText, Target, BookOpen, Users, Gift, AlertCircle, CheckCircle } from "lucide-react";
+import { Brain, FileText, Target, BookOpen, Users, Gift, AlertCircle, CheckCircle, Package, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -39,46 +39,61 @@ const HomeContent = () => {
 
   const features = [
     {
+      icon: Package,
+      title: "War Chest",
+      description: warChestComplete ? "Your career intelligence foundation is complete" : "Build your career intelligence foundation",
+      action: () => navigate(warChestComplete ? "/war-chest" : "/war-chest/onboarding"),
+      color: "text-primary",
+      locked: false,
+      isPrimary: true
+    },
+    {
       icon: Brain,
       title: "AI Agent Hub",
       description: "Work with specialized AI agents for job search, resume building, and interview prep",
       action: () => navigate("/ai-agents"),
-      color: "text-purple-500"
+      color: "text-purple-500",
+      locked: !warChestComplete
     },
     {
       icon: FileText,
       title: "Active Projects",
       description: "Manage your job applications in one organized workspace",
       action: () => navigate("/projects"),
-      color: "text-blue-500"
+      color: "text-blue-500",
+      locked: !warChestComplete
     },
     {
       icon: Target,
       title: "Job Search",
       description: "Find and track opportunities that match your skills",
       action: () => navigate("/job-search"),
-      color: "text-green-500"
+      color: "text-green-500",
+      locked: !warChestComplete
     },
     {
       icon: BookOpen,
       title: "Learning Center",
       description: "Access guides, tutorials, and templates to boost your career",
       action: () => navigate("/learn"),
-      color: "text-orange-500"
+      color: "text-orange-500",
+      locked: false
     },
     {
       icon: Users,
       title: "Coaching & Webinars",
       description: "Join live sessions and get personalized career coaching",
       action: () => navigate("/coaching"),
-      color: "text-pink-500"
+      color: "text-pink-500",
+      locked: !warChestComplete
     },
     {
       icon: Gift,
       title: "Referral Program",
       description: "Recommend friends and earn rewards",
       action: () => navigate("/referrals"),
-      color: "text-yellow-500"
+      color: "text-yellow-500",
+      locked: false
     }
   ];
 
@@ -112,10 +127,17 @@ const HomeContent = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {features.map((feature, index) => {
             const Icon = feature.icon;
+            const isLocked = feature.locked;
             return (
               <Card 
                 key={index}
-                className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-primary/50"
+                className={`hover:shadow-lg transition-all duration-300 cursor-pointer border-2 ${
+                  feature.isPrimary 
+                    ? 'border-primary/50 bg-primary/5' 
+                    : isLocked 
+                    ? 'border-muted opacity-60' 
+                    : 'hover:border-primary/50'
+                }`}
                 onClick={feature.action}
               >
                 <CardHeader>
@@ -123,13 +145,26 @@ const HomeContent = () => {
                     <div className={`p-2 rounded-lg bg-muted ${feature.color}`}>
                       <Icon className="h-6 w-6" />
                     </div>
-                    <CardTitle>{feature.title}</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      {feature.title}
+                      {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                      {feature.isPrimary && !warChestComplete && (
+                        <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full">
+                          {warChestCompletion}%
+                        </span>
+                      )}
+                    </CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
                     {feature.description}
                   </CardDescription>
+                  {isLocked && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Complete War Chest to unlock
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -140,8 +175,11 @@ const HomeContent = () => {
         <div className="text-center space-y-4">
           <h2 className="text-2xl font-semibold">Ready to get started?</h2>
           <div className="flex justify-center gap-4">
-            <Button size="lg" onClick={() => navigate("/projects")}>
-              View My Projects
+            <Button 
+              size="lg" 
+              onClick={() => navigate(warChestComplete ? "/projects" : "/war-chest/onboarding")}
+            >
+              {warChestComplete ? "View My Projects" : "Build War Chest"}
             </Button>
             <Button size="lg" variant="outline" onClick={() => navigate("/ai-agents")}>
               Meet the AI Agents

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Search, FileText, Network, Linkedin, MessageSquare, GraduationCap, TrendingUp, DollarSign, Target, Briefcase, CheckCircle2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const aiAgents = [
   {
@@ -90,8 +91,24 @@ const aiAgents = [
 ];
 
 export default function AIAgents() {
+  const navigate = useNavigate();
   const activeAgents = aiAgents.filter(a => a.status === "active");
   const comingSoon = aiAgents.filter(a => a.status === "coming-soon");
+
+  const agentRoutes: Record<string, string> = {
+    'Job Search Agent': '/agents/job-search',
+    'Resume Rewriter': '/agents/resume-builder',
+    'Job Description Analyzer': '/career-tools',
+    'Auto-Apply Agent (MCP)': '/agents/auto-apply',
+    'LinkedIn Profile Builder': '/agents/linkedin-profile',
+    'Networking Agent': '/agents/networking',
+    'LinkedIn Blogging Agent': '/agents/linkedin-blogging',
+    'Interview Prep Master': '/agents/interview-prep',
+    'Career Trends Scout': '/agents/career-trends',
+    'Financial Planning Assistant': '/agents/financial-planning',
+    'Executive Coaching': '/coaching',
+    'Contract Opportunities': '/opportunities',
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
@@ -111,7 +128,14 @@ export default function AIAgents() {
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeAgents.map((agent) => (
-                <Card key={agent.id} className="hover:shadow-lg transition-shadow">
+                <Card 
+                  key={agent.id} 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => {
+                    const route = agentRoutes[agent.name];
+                    if (route) navigate(route);
+                  }}
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <agent.icon className="h-8 w-8 text-primary" />

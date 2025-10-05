@@ -24,8 +24,11 @@ import {
   Filter,
   SlidersHorizontal,
   TrendingUp,
-  Sparkles
+  Sparkles,
+  X
 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { subDays, subHours } from "date-fns";
 
 interface JobListing {
   id: string;
@@ -49,15 +52,25 @@ export default function JobSearch() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [jobs, setJobs] = useState<JobListing[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<JobListing[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showAllFilters, setShowAllFilters] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   
-  // Filter states
+  // War Chest suggestions
+  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]);
+  
+  // Quick filters (top 5)
+  const [dateFilter, setDateFilter] = useState<string>('24h');
+  const [remoteType, setRemoteType] = useState<string>('any');
+  const [employmentType, setEmploymentType] = useState<string>('any');
+  const [salaryRange, setSalaryRange] = useState<string>('any');
+  const [experienceLevel, setExperienceLevel] = useState<string>('any');
+  
+  // Extended filters (in "All Filters")
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [selectedRemoteTypes, setSelectedRemoteTypes] = useState<string[]>([]);
-  const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([]);
-  const [salaryMin, setSalaryMin] = useState<string>("");
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>(["linkedin", "indeed", "glassdoor"]);
 
   useEffect(() => {
@@ -65,11 +78,104 @@ export default function JobSearch() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        await loadWarChestData(user.id);
       }
     };
     initUser();
     loadRecentJobs();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [jobs, dateFilter, remoteType, employmentType, salaryRange, experienceLevel]);
+
+  const loadWarChestData = async (userId: string) => {
+    try {
+      const { data: warChest } = await supabase
+        .from('career_war_chest')
+        .select(`
+          *,
+          war_chest_transferable_skills(skill_name),
+          war_chest_power_phrases(phrase_text)
+        `)
+        .eq('user_id', userId)
+        .single();
+
+      if (warChest) {
+        // Extract job titles from analysis
+        const analysis = warChest.initial_analysis as any;
+        const titles = analysis?.recommended_positions || [];
+        setSuggestedTitles(titles.slice(0, 5));
+
+        // Extract skills
+        const skills = warChest.war_chest_transferable_skills?.map((s: any) => s.skill_name) || [];
+        setSuggestedSkills(skills.slice(0, 8));
+      }
+    } catch (error) {
+      console.error('Error loading War Chest data:', error);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...jobs];
+
+    // Date filter
+    if (dateFilter !== 'any') {
+      const now = new Date();
+      const cutoff = dateFilter === '24h' ? subHours(now, 24) :
+                     dateFilter === '3d' ? subDays(now, 3) :
+                     dateFilter === 'week' ? subDays(now, 7) :
+                     null;
+      
+      if (cutoff) {
+        filtered = filtered.filter(j => 
+          j.posted_date && new Date(j.posted_date) >= cutoff
+        );
+      }
+    }
+
+    // Remote type filter
+    if (remoteType !== 'any') {
+      filtered = filtered.filter(j => j.remote_type === remoteType);
+    }
+
+    // Employment type filter
+    if (employmentType !== 'any') {
+      filtered = filtered.filter(j => j.employment_type === employmentType);
+    }
+
+    // Salary range filter
+    if (salaryRange !== 'any') {
+      const minSalary = parseInt(salaryRange);
+      filtered = filtered.filter(j => 
+        j.salary_min && j.salary_min >= minSalary
+      );
+    }
+
+    setFilteredJobs(filtered);
+  };
+
+  const getAppliedFiltersCount = () => {
+    let count = 0;
+    if (dateFilter !== 'any') count++;
+    if (remoteType !== 'any') count++;
+    if (employmentType !== 'any') count++;
+    if (salaryRange !== 'any') count++;
+    if (experienceLevel !== 'any') count++;
+    if (selectedLocations.length > 0) count++;
+    if (selectedIndustries.length > 0) count++;
+    return count;
+  };
+
+  const clearFilters = () => {
+    setDateFilter('24h');
+    setRemoteType('any');
+    setEmploymentType('any');
+    setSalaryRange('any');
+    setExperienceLevel('any');
+    setSelectedLocations([]);
+    setSelectedIndustries([]);
+  };
 
   const loadRecentJobs = async () => {
     try {
@@ -109,13 +215,13 @@ export default function JobSearch() {
         .insert([{
           user_id: userId,
           search_query: searchQuery,
-          filters: {
-            locations: selectedLocations,
-            remote_types: selectedRemoteTypes,
-            employment_types: selectedEmploymentTypes,
-            salary_min: salaryMin ? parseInt(salaryMin) : null,
-            sources: selectedSources
-          }
+        filters: {
+          locations: selectedLocations,
+          remote_types: remoteType !== 'any' ? [remoteType] : [],
+          employment_types: employmentType !== 'any' ? [employmentType] : [],
+          salary_min: salaryRange !== 'any' ? parseInt(salaryRange) : null,
+          sources: selectedSources
+        }
         }])
         .select()
         .single();
@@ -239,6 +345,49 @@ export default function JobSearch() {
           </p>
         </div>
 
+        {/* War Chest Suggestions */}
+        {(suggestedTitles.length > 0 || suggestedSkills.length > 0) && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Suggested by Your War Chest
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {suggestedTitles.length > 0 && (
+                <div>
+                  <Label className="text-sm text-muted-foreground mb-2 block">Job Titles</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedTitles.map((title, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="outline" 
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                        onClick={() => setSearchQuery(title)}
+                      >
+                        {title}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {suggestedSkills.length > 0 && (
+                <div>
+                  <Label className="text-sm text-muted-foreground mb-2 block">Your Skills</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedSkills.map((skill, idx) => (
+                      <Badge key={idx} variant="secondary">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Search Bar */}
         <Card className="mb-8">
           <CardContent className="pt-6">
@@ -261,78 +410,112 @@ export default function JobSearch() {
                 <Search className="h-5 w-5" />
                 {isSearching ? "Searching..." : "Search"}
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setShowFilters(!showFilters)}
-                className="gap-2"
-              >
-                <SlidersHorizontal className="h-5 w-5" />
-                Filters
-              </Button>
             </div>
 
-            {/* Advanced Filters */}
-            {showFilters && (
-              <div className="mt-6 space-y-4 p-4 bg-muted/50 rounded-lg">
+            {/* Date & Quick Filters */}
+            <div className="mt-6 space-y-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <Label className="font-semibold">Posted:</Label>
+                <ToggleGroup type="single" value={dateFilter} onValueChange={(v) => v && setDateFilter(v)}>
+                  <ToggleGroupItem value="24h" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    Last 24 Hours ({jobs.filter(j => j.posted_date && new Date(j.posted_date) >= subHours(new Date(), 24)).length})
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="3d" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    Last 3 Days ({jobs.filter(j => j.posted_date && new Date(j.posted_date) >= subDays(new Date(), 3)).length})
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="week" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    Last Week ({jobs.filter(j => j.posted_date && new Date(j.posted_date) >= subDays(new Date(), 7)).length})
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="any" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    Any Time ({jobs.length})
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Label className="font-semibold">Quick Filters:</Label>
+                
+                <Select value={remoteType} onValueChange={setRemoteType}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Location</SelectItem>
+                    <SelectItem value="remote">Remote</SelectItem>
+                    <SelectItem value="hybrid">Hybrid</SelectItem>
+                    <SelectItem value="onsite">On-site</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={employmentType} onValueChange={setEmploymentType}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Job Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Type</SelectItem>
+                    <SelectItem value="full-time">Full-Time</SelectItem>
+                    <SelectItem value="contract">Contract</SelectItem>
+                    <SelectItem value="part-time">Part-Time</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={salaryRange} onValueChange={setSalaryRange}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Salary" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Salary</SelectItem>
+                    <SelectItem value="50000">$50K+</SelectItem>
+                    <SelectItem value="75000">$75K+</SelectItem>
+                    <SelectItem value="100000">$100K+</SelectItem>
+                    <SelectItem value="150000">$150K+</SelectItem>
+                    <SelectItem value="200000">$200K+</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={experienceLevel} onValueChange={setExperienceLevel}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Experience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Level</SelectItem>
+                    <SelectItem value="entry">Entry Level</SelectItem>
+                    <SelectItem value="mid">Mid-Level</SelectItem>
+                    <SelectItem value="senior">Senior</SelectItem>
+                    <SelectItem value="executive">Executive</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAllFilters(!showAllFilters)}
+                  className="gap-2"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  All Filters
+                  {getAppliedFiltersCount() > 5 && (
+                    <Badge variant="secondary">{getAppliedFiltersCount() - 5} more</Badge>
+                  )}
+                </Button>
+
+                {getAppliedFiltersCount() > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
+                    <X className="h-4 w-4" />
+                    Clear All
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* All Filters Panel */}
+            {showAllFilters && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-4">
                 <h3 className="font-semibold flex items-center gap-2">
                   <Filter className="h-4 w-4" />
-                  Advanced Filters
+                  Additional Filters
                 </h3>
                 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label>Minimum Salary</Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g. 80000"
-                      value={salaryMin}
-                      onChange={(e) => setSalaryMin(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Work Location</Label>
-                    <div className="space-y-2">
-                      {['remote', 'hybrid', 'onsite'].map((type) => (
-                        <div key={type} className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={selectedRemoteTypes.includes(type)}
-                            onCheckedChange={(checked) => {
-                              setSelectedRemoteTypes(
-                                checked
-                                  ? [...selectedRemoteTypes, type]
-                                  : selectedRemoteTypes.filter((t) => t !== type)
-                              );
-                            }}
-                          />
-                          <Label className="capitalize">{type}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Employment Type</Label>
-                    <div className="space-y-2">
-                      {['full-time', 'contract', 'part-time'].map((type) => (
-                        <div key={type} className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={selectedEmploymentTypes.includes(type)}
-                            onCheckedChange={(checked) => {
-                              setSelectedEmploymentTypes(
-                                checked
-                                  ? [...selectedEmploymentTypes, type]
-                                  : selectedEmploymentTypes.filter((t) => t !== type)
-                              );
-                            }}
-                          />
-                          <Label className="capitalize">{type.replace('-', ' ')}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
+                <div className="grid md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Job Boards</Label>
                     <div className="space-y-2">
@@ -353,6 +536,48 @@ export default function JobSearch() {
                       ))}
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Locations</Label>
+                    <div className="space-y-2">
+                      {['New York', 'San Francisco', 'Austin', 'Remote'].map((loc) => (
+                        <div key={loc} className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={selectedLocations.includes(loc)}
+                            onCheckedChange={(checked) => {
+                              setSelectedLocations(
+                                checked
+                                  ? [...selectedLocations, loc]
+                                  : selectedLocations.filter((l) => l !== loc)
+                              );
+                            }}
+                          />
+                          <Label>{loc}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Industries</Label>
+                    <div className="space-y-2">
+                      {['Technology', 'Finance', 'Healthcare', 'Retail'].map((industry) => (
+                        <div key={industry} className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={selectedIndustries.includes(industry)}
+                            onCheckedChange={(checked) => {
+                              setSelectedIndustries(
+                                checked
+                                  ? [...selectedIndustries, industry]
+                                  : selectedIndustries.filter((i) => i !== industry)
+                              );
+                            }}
+                          />
+                          <Label>{industry}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -362,7 +587,7 @@ export default function JobSearch() {
         {/* Results */}
         <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="all">All Jobs ({jobs.length})</TabsTrigger>
+            <TabsTrigger value="all">All Jobs ({filteredJobs.length})</TabsTrigger>
             <TabsTrigger value="best-match">
               <Sparkles className="h-4 w-4 mr-2" />
               Best Matches
@@ -374,7 +599,7 @@ export default function JobSearch() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {jobs.map((job) => (
+            {filteredJobs.map((job) => (
               <Card key={job.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">

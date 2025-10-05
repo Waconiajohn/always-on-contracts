@@ -23,6 +23,7 @@ import {
   Command,
   DollarSign,
   Shield,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import logo from "@/assets/logo.png";
 
 const navItems = [
+  { path: "/war-chest", label: "War Chest", icon: Package },
   { path: "/home", label: "Home", icon: Home },
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/projects", label: "Projects", icon: FolderKanban },
@@ -50,14 +52,14 @@ const navItems = [
 
 const jobSearchItems = [
   { path: "/job-search", label: "Job Search", icon: Search },
-  { path: "/opportunities", label: "Opportunities", icon: TrendingUp },
+  { path: "/opportunities", label: "Job Board", icon: TrendingUp },
   { path: "/application-queue", label: "Application Queue", icon: ClipboardList },
   { path: "/agencies", label: "Agencies", icon: Building2 },
 ];
 
 const toolsItems = [
   { path: "/coaching", label: "Coaching", icon: MessageSquare },
-  { path: "/career-tools", label: "Career Tools", icon: Target },
+  { path: "/career-command-center", label: "Command Center", icon: Target },
   { path: "/ai-agents", label: "AI Agents", icon: Brain },
   { path: "/rate-calculator", label: "Rate Calculator", icon: Calculator },
 ];

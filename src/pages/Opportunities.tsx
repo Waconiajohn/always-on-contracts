@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AppNav } from "@/components/AppNav";
 import { JobFeedbackDialog } from "@/components/JobFeedbackDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface OpportunityMatch {
   id: string;
@@ -52,8 +53,16 @@ const OpportunitiesContent = () => {
   const [matching, setMatching] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(20);
+  const [activeTab, setActiveTab] = useState('full-time');
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const fullTimeJobs = opportunities.filter(o => 
+    !o.job_opportunities.contract_type || o.job_opportunities.contract_type === 'permanent'
+  );
+  const contractJobs = opportunities.filter(o => 
+    o.job_opportunities.contract_type && o.job_opportunities.contract_type !== 'permanent'
+  );
 
   useEffect(() => {
     fetchOpportunities();
@@ -304,7 +313,7 @@ const OpportunitiesContent = () => {
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold">Contract Opportunities</h1>
+            <h1 className="text-4xl font-bold">Job Board</h1>
             <p className="text-muted-foreground">AI-matched opportunities based on your profile</p>
           </div>
           <TooltipProvider delayDuration={300}>
@@ -360,6 +369,19 @@ const OpportunitiesContent = () => {
           </TooltipProvider>
         </div>
 
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="full-time" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Full-Time ({fullTimeJobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="contract" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Contract ({contractJobs.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {opportunities.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -379,23 +401,43 @@ const OpportunitiesContent = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between bg-muted p-4 rounded-lg">
-              <div className="text-sm">
-                <span className="font-semibold">{opportunities.length}</span> total matches found
-                <span className="text-muted-foreground ml-2">
-                  (showing {Math.min(displayLimit, opportunities.length)})
-                </span>
-              </div>
-              {opportunities.length > displayLimit && (
+          <TabsContent value={activeTab} className="mt-0">
+            <div className="space-y-6">
+              {activeTab === 'full-time' && fullTimeJobs.length === 0 && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">No full-time opportunities found. Try running AI matching.</p>
+                  </CardContent>
+                </Card>
+              )}
+              {activeTab === 'contract' && contractJobs.length === 0 && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">No contract opportunities found. Try running AI matching.</p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {((activeTab === 'full-time' && fullTimeJobs.length > 0) || (activeTab === 'contract' && contractJobs.length > 0)) && (
+                <>
+                  <div className="flex items-center justify-between bg-muted p-4 rounded-lg">
+                    <div className="text-sm">
+                      <span className="font-semibold">
+                        {activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length}
+                      </span> matches found
+                      <span className="text-muted-foreground ml-2">
+                        (showing {Math.min(displayLimit, activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length)})
+                      </span>
+                    </div>
+              {(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) > displayLimit && (
                 <Button 
                   variant="outline" 
                   onClick={() => setDisplayLimit(prev => prev + 20)}
                 >
-                  Load More ({opportunities.length - displayLimit} remaining)
+                  Load More ({(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) - displayLimit} remaining)
                 </Button>
               )}
-              {displayLimit > 20 && opportunities.length > 20 && (
+              {displayLimit > 20 && (activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) > 20 && (
                 <Button 
                   variant="ghost" 
                   onClick={() => setDisplayLimit(20)}
@@ -403,9 +445,9 @@ const OpportunitiesContent = () => {
                   Show Less
                 </Button>
               )}
-            </div>
-            <div className="grid gap-6">
-            {opportunities.slice(0, displayLimit).map((match) => (
+                  </div>
+                  <div className="grid gap-6">
+                    {(activeTab === 'full-time' ? fullTimeJobs : contractJobs).slice(0, displayLimit).map((match) => (
               <Card key={match.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -597,19 +639,22 @@ const OpportunitiesContent = () => {
                 </CardContent>
               </Card>
             ))}
+                  </div>
+                  {(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) > displayLimit && (
+                    <div className="flex justify-center mt-6">
+                      <Button 
+                        onClick={() => setDisplayLimit(prev => prev + 20)}
+                        variant="outline"
+                        size="lg"
+                      >
+                        Load More Opportunities ({(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) - displayLimit} remaining)
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            {opportunities.length > displayLimit && (
-              <div className="flex justify-center mt-6">
-                <Button 
-                  onClick={() => setDisplayLimit(prev => prev + 20)}
-                  variant="outline"
-                  size="lg"
-                >
-                  Load More Opportunities ({opportunities.length - displayLimit} remaining)
-                </Button>
-              </div>
-            )}
-          </div>
+          </TabsContent>
         )}
       </div>
     </div>

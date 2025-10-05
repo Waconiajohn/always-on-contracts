@@ -52,6 +52,7 @@ const WarChestDashboard = lazy(() => import("./pages/WarChestDashboard"));
 const WarChestOnboarding = lazy(() => import("./pages/WarChestOnboarding"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
+const CareerCommandCenter = lazy(() => import("./pages/CareerCommandCenter"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component
@@ -108,6 +109,7 @@ const App = () => (
         <Route path="/agents/career-trends" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
         <Route path="/agents/financial-planning" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
         <Route path="/career-tools" element={<ProtectedRoute><CareerDashboard /></ProtectedRoute>} />
+        <Route path="/career-command-center" element={<ProtectedRoute><CareerCommandCenter /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/affiliate-portal" element={<ProtectedRoute><AffiliatePortal /></ProtectedRoute>} />
