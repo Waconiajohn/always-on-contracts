@@ -34,8 +34,8 @@ serve(async (req) => {
         },
       ],
       from: {
-        email: 'noreply@yourdomain.com', // Replace with your verified SendGrid sender
-        name: 'Career Coach Platform',
+        email: Deno.env.get('SENDGRID_SENDER_EMAIL') || 'noreply@careeriq.com',
+        name: 'CareerIQ',
       },
       content: [
         {

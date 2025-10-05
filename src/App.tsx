@@ -31,10 +31,7 @@ import CorporateAssistant from "./pages/agents/CorporateAssistant";
 import JobSearchAgent from "./pages/agents/JobSearchAgent";
 import ResumeBuilderAgent from "./pages/agents/ResumeBuilderAgent";
 import InterviewPrepAgent from "./pages/agents/InterviewPrepAgent";
-import WarChestDashboard from "./pages/WarChestDashboard";
-import ExperimentalLab from "./pages/ExperimentalLab";
 import CareerDashboard from "./pages/CareerDashboard";
-import MCPTestDashboard from "./pages/MCPTestDashboard";
 import Onboarding from "./pages/Onboarding";
 import AffiliatePortal from "./pages/AffiliatePortal";
 import RedeemCode from "./pages/RedeemCode";
@@ -81,10 +78,7 @@ const App = () => (
         <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />
         <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
-        <Route path="/war-chest-dashboard" element={<ProtectedRoute><WarChestDashboard /></ProtectedRoute>} />
-        <Route path="/experimental" element={<ProtectedRoute><ExperimentalLab /></ProtectedRoute>} />
         <Route path="/career-tools" element={<ProtectedRoute><CareerDashboard /></ProtectedRoute>} />
-        <Route path="/mcp-test" element={<ProtectedRoute><MCPTestDashboard /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/affiliate-portal" element={<ProtectedRoute><AffiliatePortal /></ProtectedRoute>} />

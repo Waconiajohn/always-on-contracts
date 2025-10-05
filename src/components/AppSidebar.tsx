@@ -57,8 +57,7 @@ const jobSearchItems = [
 
 const toolsItems = [
   { path: "/coaching", label: "Coaching", icon: MessageSquare },
-  { path: "/career-dashboard", label: "Career Dashboard", icon: Target },
-  { path: "/war-chest-dashboard", label: "War Chest", icon: Briefcase },
+  { path: "/career-tools", label: "Career Tools", icon: Target },
   { path: "/ai-agents", label: "AI Agents", icon: Brain },
   { path: "/rate-calculator", label: "Rate Calculator", icon: Calculator },
 ];
@@ -68,7 +67,6 @@ const settingsItems = [
   { path: "/templates", label: "Templates", icon: FileText },
   { path: "/api-keys", label: "API Keys", icon: Key },
   { path: "/automation-settings", label: "Automation", icon: Settings },
-  { path: "/experimental-lab", label: "Experimental Lab", icon: TestTube },
 ];
 
 const businessItems = [

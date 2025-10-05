@@ -142,13 +142,13 @@ const Landing = () => {
             </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-card p-8 rounded-lg border-2">
-                <h3 className="text-2xl font-bold mb-4">Career Command</h3>
+                <h3 className="text-2xl font-bold mb-4">Career Starter</h3>
                 <div className="mb-6">
-                  <span className="text-5xl font-bold">$49</span>
+                  <span className="text-5xl font-bold">$29</span>
                   <span className="text-xl text-muted-foreground">/month</span>
                 </div>
                 <p className="text-lg text-muted-foreground mb-6">
-                  For professionals actively seeking permanent or contract roles
+                  Essential tools for your executive job search
                 </p>
                 <Button 
                   className="w-full text-lg py-6"
@@ -164,11 +164,11 @@ const Landing = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4">Always Ready</h3>
                 <div className="mb-6">
-                  <span className="text-5xl font-bold">$29</span>
+                  <span className="text-5xl font-bold">$49</span>
                   <span className="text-xl opacity-90">/month</span>
                 </div>
                 <p className="text-lg opacity-90 mb-6">
-                  Stay market-ready while employed with passive opportunity monitoring
+                  Stay interview-ready with comprehensive career tools
                 </p>
                 <Button 
                   variant="secondary" 
@@ -186,7 +186,7 @@ const Landing = () => {
                   <span className="text-xl text-muted-foreground">/month</span>
                 </div>
                 <p className="text-lg text-muted-foreground mb-6">
-                  White-glove service for C-suite and senior executives
+                  White-glove career management for executives
                 </p>
                 <Button 
                   variant="outline" 
