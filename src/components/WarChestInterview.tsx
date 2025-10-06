@@ -263,15 +263,15 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         
         const { data: savedResponse } = await supabase
           .from('war_chest_interview_responses')
-          .insert({
+          .insert([{
             war_chest_id: warChestId,
             user_id: user.id,
             question: currentSubQuestion.prompt,
             response: userInput,
             quality_score: validation.quality_score,
-            validation_feedback: validation,
+            validation_feedback: validation as any,
             phase: currentPhase,
-          })
+          }])
           .select()
           .single();
 
