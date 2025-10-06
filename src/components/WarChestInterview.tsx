@@ -365,13 +365,23 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
+        // Format response based on question type
+        let responseToSave = '';
+        if (questionType === 'multiple_choice_with_custom') {
+          const selectedText = selectedOptions.length > 0 ? selectedOptions.join('; ') : '';
+          const customText = customAnswerText.trim();
+          responseToSave = selectedText + (customText ? `\n\nAdditional details: ${customText}` : '');
+        } else {
+          responseToSave = userInput;
+        }
+        
         const { data: savedResponse } = await supabase
           .from('war_chest_interview_responses')
           .insert([{
             war_chest_id: warChestId,
             user_id: user.id,
             question: currentSubQuestion.prompt,
-            response: userInput,
+            response: responseToSave,
             quality_score: validation.quality_score,
             validation_feedback: validation as any,
             phase: currentPhase,
@@ -388,7 +398,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           'extract-war-chest-intelligence',
           {
             body: {
-              responseText: userInput,
+              responseText: responseToSave,
               questionText: currentSubQuestion.prompt,
               warChestId
             }
@@ -412,7 +422,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         }
       }
 
-      // Step 4: Check if we need to move to next sub-question or next main question
+      // Check if we need to move to next sub-question or next main question
       if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
         // Move to next sub-question
         setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
@@ -420,6 +430,20 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setValidationFeedback('');
         setGuidedPrompts(null);
         setSkipAttempts(0);
+        
+        // Reset state for next sub-question
+        const nextSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex + 1];
+        if (nextSubQuestion?.answer_options) {
+          setQuestionType('multiple_choice_with_custom');
+          setAnswerOptions(nextSubQuestion.answer_options);
+        } else if (nextSubQuestion?.question_type === 'star') {
+          setQuestionType('star');
+        } else {
+          setQuestionType('text');
+        }
+        setSelectedOptions([]);
+        setCustomAnswerText('');
+        
         setIsValidating(false);
         return;
       }
@@ -428,10 +452,21 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       setIsLoading(true);
       setCurrentSubQuestionIndex(0);
 
+      // Get user and confirmed skills for context
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { data: confirmedSkills } = await supabase
+        .from('war_chest_confirmed_skills')
+        .select('*')
+        .eq('user_id', currentUser.id);
+
       const { data, error } = await supabase.functions.invoke('generate-interview-question', {
         body: {
           phase: currentPhase,
           previousResponse: userInput,
+          generate_answer_options: true,
+          confirmed_skills: confirmedSkills || []
         }
       });
 
@@ -456,7 +491,18 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setGuidedPrompts(null);
         setSkipAttempts(0);
         
-        // Don't auto-play audio - wait for user to click Play button
+        // Set question type for new question
+        const firstSubQuestion = data.question.questionsToExpand[0];
+        if (firstSubQuestion?.answer_options) {
+          setQuestionType('multiple_choice_with_custom');
+          setAnswerOptions(firstSubQuestion.answer_options);
+        } else if (firstSubQuestion?.question_type === 'star') {
+          setQuestionType('star');
+        } else {
+          setQuestionType('text');
+        }
+        setSelectedOptions([]);
+        setCustomAnswerText('');
       }
 
     } catch (error) {
@@ -548,14 +594,43 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         // Move to next question
         if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
           setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
+          
+          // Reset state for next sub-question
+          const nextSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex + 1];
+          if (nextSubQuestion?.answer_options) {
+            setQuestionType('multiple_choice_with_custom');
+            setAnswerOptions(nextSubQuestion.answer_options);
+          } else if (nextSubQuestion?.question_type === 'star') {
+            setQuestionType('star');
+          } else {
+            setQuestionType('text');
+          }
+          setSelectedOptions([]);
+          setCustomAnswerText('');
         } else {
           setCompletionPercentage(Math.min(100, completionPercentage + 10));
           const { data } = await supabase.functions.invoke('generate-interview-question', {
-            body: { phase: currentPhase }
+            body: { 
+              phase: currentPhase,
+              generate_answer_options: true
+            }
           });
           if (data?.question) {
             setCurrentQuestion(data.question);
             setCurrentSubQuestionIndex(0);
+            
+            // Set question type for new question
+            const firstSubQuestion = data.question.questionsToExpand[0];
+            if (firstSubQuestion?.answer_options) {
+              setQuestionType('multiple_choice_with_custom');
+              setAnswerOptions(firstSubQuestion.answer_options);
+            } else if (firstSubQuestion?.question_type === 'star') {
+              setQuestionType('star');
+            } else {
+              setQuestionType('text');
+            }
+            setSelectedOptions([]);
+            setCustomAnswerText('');
           }
         }
 
@@ -608,6 +683,16 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Format response based on question type
+      let responseToSave = '';
+      if (questionType === 'multiple_choice_with_custom') {
+        const selectedText = selectedOptions.length > 0 ? selectedOptions.join('; ') : '';
+        const customText = customAnswerText.trim();
+        responseToSave = selectedText + (customText ? `\n\nAdditional details: ${customText}` : '');
+      } else {
+        responseToSave = userInput;
+      }
+
       // Save the response
       await supabase
         .from('war_chest_interview_responses')
@@ -615,7 +700,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           war_chest_id: warChestId,
           user_id: user.id,
           question: currentSubQuestion.prompt,
-          response: userInput,
+          response: responseToSave,
           quality_score: qualityScore,
           validation_feedback: validationFeedback as any,
           phase: currentPhase,
@@ -625,21 +710,51 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       await supabase.functions.invoke('extract-war-chest-intelligence', {
         body: {
           war_chest_id: warChestId,
-          response_text: userInput
+          response_text: responseToSave
         }
       });
 
       // Move to next question
       if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
         setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
+        
+        // Reset state for next sub-question
+        const nextSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex + 1];
+        if (nextSubQuestion?.answer_options) {
+          setQuestionType('multiple_choice_with_custom');
+          setAnswerOptions(nextSubQuestion.answer_options);
+        } else if (nextSubQuestion?.question_type === 'star') {
+          setQuestionType('star');
+        } else {
+          setQuestionType('text');
+        }
+        setSelectedOptions([]);
+        setCustomAnswerText('');
       } else {
         setCompletionPercentage(Math.min(100, completionPercentage + 10));
         const { data } = await supabase.functions.invoke('generate-interview-question', {
-          body: { phase: currentPhase }
+          body: { 
+            phase: currentPhase,
+            generate_answer_options: true,
+            confirmed_skills: []
+          }
         });
         if (data?.question) {
           setCurrentQuestion(data.question);
           setCurrentSubQuestionIndex(0);
+          
+          // Set question type for new question
+          const firstSubQuestion = data.question.questionsToExpand[0];
+          if (firstSubQuestion?.answer_options) {
+            setQuestionType('multiple_choice_with_custom');
+            setAnswerOptions(firstSubQuestion.answer_options);
+          } else if (firstSubQuestion?.question_type === 'star') {
+            setQuestionType('star');
+          } else {
+            setQuestionType('text');
+          }
+          setSelectedOptions([]);
+          setCustomAnswerText('');
         }
       }
 
@@ -685,6 +800,19 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setValidationFeedback('');
         setGuidedPrompts(null);
         setSkipAttempts(0);
+        
+        // Reset state for new question type
+        const firstSubQuestion = data.question.questionsToExpand[0];
+        if (firstSubQuestion?.answer_options) {
+          setQuestionType('multiple_choice_with_custom');
+          setAnswerOptions(firstSubQuestion.answer_options);
+        } else if (firstSubQuestion?.question_type === 'star') {
+          setQuestionType('star');
+        } else {
+          setQuestionType('text');
+        }
+        setSelectedOptions([]);
+        setCustomAnswerText('');
         
         toast({
           title: 'Skipped',
