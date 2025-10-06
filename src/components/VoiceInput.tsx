@@ -112,17 +112,21 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 relative z-10">
       <Button
         type="button"
-        variant={isRecording ? "default" : "outline"}
+        variant="outline"
         size="icon"
         onClick={onToggleRecording}
         disabled={disabled}
-        className={isRecording ? "bg-green-600 hover:bg-green-700 animate-pulse" : ""}
-        title={isRecording ? "Stop recording" : "Start voice input"}
+        className={isRecording ? "bg-green-600 hover:bg-green-700 border-green-600 animate-pulse" : ""}
+        title={isRecording ? "Click to stop recording" : "Click to start voice input"}
       >
-        <Mic className={`h-4 w-4 ${isRecording ? 'text-white' : ''}`} />
+        {isRecording ? (
+          <MicOff className="h-4 w-4 text-white" />
+        ) : (
+          <Mic className="h-4 w-4" />
+        )}
       </Button>
       {isRecording && (
         <div className="flex items-center gap-2">
@@ -131,8 +135,8 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
             <div className="w-1 h-4 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
             <div className="w-1 h-3 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
           </div>
-          <span className="text-xs text-muted-foreground">
-            {interimTranscript ? `"${interimTranscript}"` : "Listening..."}
+          <span className="text-sm font-medium text-green-600">
+            {interimTranscript ? `"${interimTranscript}"` : "Recording... Click mic to stop"}
           </span>
         </div>
       )}
