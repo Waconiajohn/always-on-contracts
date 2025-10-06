@@ -36,8 +36,48 @@ Deno.serve(async (req) => {
     const rolesText = target_roles?.join(', ') || 'Not specified';
     const industriesText = target_industries?.join(', ') || 'Not specified';
 
-    // Use Lovable AI to analyze resume and generate skill taxonomy
-    const prompt = `Analyze this resume and generate a comprehensive skill taxonomy:
+    // Fetch War Chest for context-aware skill extraction
+    const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
+      'get-war-chest-intelligence',
+      { headers: { Authorization: authHeader } }
+    );
+
+    const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
+    
+    let warChestContext = '';
+    if (intelligence) {
+      const existingSkills = intelligence.technicalDepth.map((t: any) => 
+        `${t.skill_name} (${t.proficiency_level}, verified)`
+      ).join(', ');
+
+      const projectContext = intelligence.projects.slice(0, 5).map((p: any) => 
+        `${p.project_name}: ${p.technologies_used?.join(', ') || 'technologies used'}`
+      ).join('\n');
+
+      const achievementContext = intelligence.businessImpacts.slice(0, 5).map((b: any) => 
+        b.context || b.metric_type
+      ).join('; ');
+
+      warChestContext = `
+WAR CHEST INTELLIGENCE (Use for skill verification):
+CONFIRMED SKILLS (${intelligence.counts.technicalSkills}): ${existingSkills}
+
+PROJECT TECHNOLOGIES:
+${projectContext}
+
+ACHIEVEMENT CONTEXTS:
+${achievementContext}
+
+**EXTRACTION MANDATE:**
+- Cross-reference skills against confirmed War Chest skills
+- If a skill matches War Chest data, mark it as verified and increase confidence
+- Consider skills demonstrated in projects even if not explicitly listed
+- Look for skills implied by quantified achievements
+`;
+    }
+
+    // Use Lovable AI to analyze resume and generate hierarchical skill taxonomy
+    const prompt = `Analyze this resume and generate a comprehensive hierarchical skill taxonomy.
 
 RESUME:
 ${resume_text}
@@ -45,26 +85,39 @@ ${resume_text}
 TARGET ROLES: ${rolesText}
 TARGET INDUSTRIES: ${industriesText}
 
-Generate three categories of skills:
+${warChestContext}
 
-1. CORE SKILLS (from resume): Skills explicitly mentioned or demonstrated in the resume
-2. INFERRED SKILLS (likely has): Skills the candidate likely possesses based on their roles/responsibilities but not explicitly stated
-3. GROWTH SKILLS (needs for target roles): Skills commonly required in target roles that are missing or need development
+Generate three categories with HIERARCHICAL DEPTH:
+
+1. CORE SKILLS (from resume): Skills explicitly mentioned or clearly demonstrated
+   - Mark as "resume_verified" if confirmed in War Chest
+   - Organize by skill hierarchy: Expert > Advanced > Intermediate > Basic
+
+2. INFERRED SKILLS (likely has): Skills implied by roles/achievements but not explicitly stated
+   - Verify against projects and achievements from War Chest
+   - Only include if there's concrete evidence (not assumptions)
+
+3. GROWTH SKILLS (needs for target roles): Required skills with gaps
+   - Check against target role requirements
+   - Exclude skills already confirmed in War Chest
 
 For each skill, provide:
-- skill_name: Clear, specific skill name
+- skill_name: Clear, specific skill name (use industry-standard terminology)
 - skill_category: One of: technical, leadership, domain_expertise, soft_skills, tools
-- source: "resume", "inferred", or "growth"
-- confidence_score: 0-100 (how confident you are they have this skill)
+- skill_hierarchy: One of: expert, advanced, intermediate, basic, learning
+- source: "resume", "inferred", "growth", or "resume_verified" (if matches War Chest)
+- confidence_score: 0-100 (increase if verified in War Chest or demonstrated in projects)
 - sub_attributes: Array of 3-5 specific sub-skills or applications
 - market_frequency: Estimated % of target job postings requiring this skill (0-100)
+- evidence: Array of specific achievements, projects, or contexts demonstrating this skill
 
 Return ONLY a JSON array of skill objects. Example:
 [
   {
     "skill_name": "Strategic Planning",
     "skill_category": "leadership",
-    "source": "resume",
+    "skill_hierarchy": "advanced",
+    "source": "resume_verified",
     "confidence_score": 95,
     "sub_attributes": [
       "Multi-year roadmap development",
@@ -72,11 +125,23 @@ Return ONLY a JSON array of skill objects. Example:
       "Budget forecasting ($1M+)",
       "Competitive positioning"
     ],
-    "market_frequency": 85
+    "market_frequency": 85,
+    "evidence": [
+      "Led 3-year product strategy for SaaS platform",
+      "Managed $2.5M product budget",
+      "Coordinated planning across 5 departments"
+    ]
   }
 ]
 
-Aim for 25-30 total skills across all three categories.`;
+CRITICAL REQUIREMENTS:
+1. Verify skills against War Chest - mark matching skills as "resume_verified"
+2. Organize by skill_hierarchy (expert to learning)
+3. Include evidence array with specific examples from resume or War Chest
+4. Cross-reference skills against projects and achievements
+5. Use industry-specific terminology and skill taxonomy
+
+Aim for 25-30 total skills with hierarchical organization and evidence-based validation.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -111,7 +176,80 @@ Aim for 25-30 total skills across all three categories.`;
 
     const skills = JSON.parse(jsonContent);
 
-    console.log('AI generated', skills.length, 'skills. Now verifying with Perplexity...');
+    console.log('[ANALYZE-RESUME] AI generated', skills.length, 'skills');
+
+    // Fetch War Chest intelligence for skill verification
+    const { data: verificationData, error: verificationError } = await supabase.functions.invoke(
+      'get-war-chest-intelligence',
+      { headers: { Authorization: authHeader } }
+    );
+
+    const verificationIntelligence = verificationError ? null : verificationData?.intelligence;
+    
+    if (verificationIntelligence) {
+      console.log('[ANALYZE-RESUME] War Chest loaded for verification:', {
+        confirmedSkills: verificationIntelligence.counts.technicalSkills,
+        projects: verificationIntelligence.counts.projects,
+        businessImpacts: verificationIntelligence.counts.businessImpacts
+      });
+
+      // Verify skills against War Chest data
+      const confirmedSkillNames = verificationIntelligence.technicalDepth.map((t: any) => t.skill_name.toLowerCase());
+      const projectSkills = verificationIntelligence.projects.flatMap((p: any) => 
+        (p.technologies_used || []).map((t: string) => t.toLowerCase())
+      );
+      
+      // Enhance skills with War Chest validation
+      skills.forEach((skill: any) => {
+        const skillLower = skill.skill_name.toLowerCase();
+        
+        // Check if skill is confirmed in War Chest
+        if (confirmedSkillNames.includes(skillLower)) {
+          const warChestSkill = verificationIntelligence.technicalDepth.find(
+            (t: any) => t.skill_name.toLowerCase() === skillLower
+          );
+          
+          skill.confidence_score = Math.max(skill.confidence_score, 95);
+          skill.source = 'resume_verified';
+          skill.verification_note = `Confirmed in War Chest (${warChestSkill?.proficiency_level || 'validated'})`;
+          
+          // Add years of experience if available
+          if (warChestSkill?.years_experience) {
+            skill.years_experience = warChestSkill.years_experience;
+          }
+        }
+        
+        // Check if skill appears in completed projects
+        if (projectSkills.includes(skillLower)) {
+          skill.confidence_score = Math.max(skill.confidence_score, 85);
+          skill.project_validated = true;
+          
+          const relatedProjects = verificationIntelligence.projects.filter((p: any) => 
+            (p.technologies_used || []).some((t: string) => t.toLowerCase() === skillLower)
+          );
+          
+          if (relatedProjects.length > 0) {
+            skill.evidence_projects = relatedProjects.map((p: any) => p.project_name);
+          }
+        }
+        
+        // Check for business impacts that demonstrate this skill
+        const relatedImpacts = verificationIntelligence.businessImpacts.filter((b: any) => 
+          b.context?.toLowerCase().includes(skillLower) || 
+          b.metric_type?.toLowerCase().includes(skillLower)
+        );
+        
+        if (relatedImpacts.length > 0) {
+          skill.quantified_evidence = relatedImpacts.map((b: any) => 
+            `${b.metric_type}: ${b.metric_value}`
+          );
+        }
+      });
+      
+      console.log('[ANALYZE-RESUME] Skills verified against War Chest');
+    }
+
+    console.log('[ANALYZE-RESUME] Now verifying with Perplexity...');
 
     // Verify skills with Perplexity
     const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
@@ -196,7 +334,7 @@ Be concise but specific.`;
       user_id: user.id,
       skill_name: skill.skill_name,
       skill_category: skill.skill_category,
-      source: skill.source,
+      source: skill.source === 'resume_verified' ? 'resume' : skill.source,
       confidence_score: skill.confidence_score,
       sub_attributes: skill.sub_attributes,
       market_frequency: skill.market_frequency,
@@ -217,8 +355,10 @@ Be concise but specific.`;
         verified: !!verification_result,
         verification_summary: verification_result ? 'Skills verified with current market data' : 'Verification skipped',
         citations_count: citations.length,
+        war_chest_enhanced: !!intelligence,
+        war_chest_verified_count: skills.filter((s: any) => s.source === 'resume_verified').length,
         breakdown: {
-          resume: skills.filter((s: any) => s.source === 'resume').length,
+          resume: skills.filter((s: any) => s.source === 'resume' || s.source === 'resume_verified').length,
           inferred: skills.filter((s: any) => s.source === 'inferred').length,
           growth: skills.filter((s: any) => s.source === 'growth').length,
         },
