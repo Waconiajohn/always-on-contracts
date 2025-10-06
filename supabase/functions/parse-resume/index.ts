@@ -214,10 +214,12 @@ serve(async (req) => {
     // Validate if the document is actually a resume
     const isLikelyResume = (text: string): boolean => {
       const resumeIndicators = [
-        /experience|employment|work history/i,
-        /education|degree|university|college/i,
-        /skills|proficiencies|expertise/i,
-        /objective|summary|profile/i
+        /experience|employment|work history|professional background|career|positions?/i,
+        /education|degree|university|college|academic|certifications?/i,
+        /skills|proficiencies|expertise|competencies|technical|technologies/i,
+        /objective|summary|profile|about|background/i,
+        /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}/i, // Date patterns common in resumes
+        /\b(manager|engineer|developer|analyst|specialist|coordinator|director|consultant)/i // Job titles
       ];
       
       const contractIndicators = [
@@ -229,7 +231,8 @@ serve(async (req) => {
       const resumeMatches = resumeIndicators.filter(r => r.test(text)).length;
       const contractMatches = contractIndicators.filter(r => r.test(text)).length;
       
-      return resumeMatches > contractMatches && resumeMatches >= 2;
+      // More lenient: require only 1 match if no contract indicators, or more resume than contract indicators
+      return contractMatches === 0 ? resumeMatches >= 1 : resumeMatches > contractMatches;
     };
 
     if (!isLikelyResume(sanitizedText)) {
