@@ -185,14 +185,19 @@ export const SkillCard = ({ skill, onConfirm, onSkip }: SkillCardProps) => {
                   {skill.sub_attributes.map((attr, idx) => (
                     <div
                       key={idx}
-                      className="flex items-start gap-3 p-2 rounded hover:bg-accent cursor-pointer"
-                      onClick={() => toggleAttribute(attr)}
+                      className="flex items-start gap-3 p-2 rounded hover:bg-accent"
                     >
                       <Checkbox
+                        id={`${skill.id}-attr-${idx}`}
                         checked={selectedAttributes.includes(attr)}
                         onCheckedChange={() => toggleAttribute(attr)}
                       />
-                      <label className="flex-1 cursor-pointer text-sm">{attr}</label>
+                      <Label 
+                        htmlFor={`${skill.id}-attr-${idx}`}
+                        className="flex-1 cursor-pointer text-sm"
+                      >
+                        {attr}
+                      </Label>
                     </div>
                   ))}
                 </div>
@@ -202,15 +207,16 @@ export const SkillCard = ({ skill, onConfirm, onSkip }: SkillCardProps) => {
             {/* Want to Develop */}
             <div className="flex items-center space-x-2 p-3 bg-accent/50 rounded">
               <Checkbox
+                id={`${skill.id}-develop`}
                 checked={wantToDevelop}
                 onCheckedChange={(checked) => setWantToDevelop(checked === true)}
               />
-              <label
+              <Label
+                htmlFor={`${skill.id}-develop`}
                 className="cursor-pointer text-sm"
-                onClick={() => setWantToDevelop(!wantToDevelop)}
               >
                 Mark as "Want to Develop"
-              </label>
+              </Label>
             </div>
 
             {/* Actions */}
