@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, Star, Volume2 } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Persona {
   id: string;
@@ -34,6 +36,7 @@ export const PersonaSelector = ({
   agentType
 }: PersonaSelectorProps) => {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const getPersonaDetails = (persona: Persona) => {
     if (agentType === 'resume') return persona.writingStyle;
@@ -44,8 +47,34 @@ export const PersonaSelector = ({
 
   const playVoicePreview = async (voiceId: string, personaId: string) => {
     setPlayingVoice(personaId);
-    // Simulate voice preview - implement actual TTS call if needed
-    setTimeout(() => setPlayingVoice(null), 2000);
+    
+    try {
+      const sampleText = agentType === 'resume' 
+        ? "Let me craft your executive summary with strategic impact."
+        : "Here's how you should approach this interview question.";
+
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { 
+          text: sampleText,
+          voice: voiceId 
+        }
+      });
+
+      if (error) throw error;
+
+      // Play audio
+      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      audio.play();
+      audio.onended = () => setPlayingVoice(null);
+    } catch (error) {
+      console.error('Voice preview error:', error);
+      toast({
+        title: "Voice preview unavailable",
+        description: "Could not play voice sample",
+        variant: "destructive"
+      });
+      setPlayingVoice(null);
+    }
   };
 
   return (

@@ -30,7 +30,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { opportunityId } = await req.json();
+    const { opportunityId, persona } = await req.json();
 
     // Fetch opportunity details
     const { data: opportunity, error: oppError } = await supabase
@@ -62,7 +62,18 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
+    // Persona-specific instructions
+    const personaInstructions = {
+      executive: "Write in a commanding, strategic tone. Focus on P&L responsibility, board-level impact, organizational transformation. Use power words like 'orchestrated', 'spearheaded', 'architected'. Emphasize vision and scalability.",
+      technical: "Use technical precision and specificity. Include architecture patterns, methodologies, tech stacks. Quantify performance improvements. Balance technical depth with business outcomes. Use terms like 'engineered', 'optimized', 'designed'.",
+      transitioner: "Emphasize transferable skills and adaptability. Bridge past experience to new industry/role. Focus on learning agility, quick ramp-up examples, and universal competencies. Highlight versatility."
+    };
+
+    const personaStyle = persona ? personaInstructions[persona as keyof typeof personaInstructions] : personaInstructions.executive;
+
     const prompt = `You are an expert resume writer specializing in executive-level positions (permanent, contract, and interim roles). Customize this executive's resume to perfectly match the job opportunity below.
+
+PERSONA STYLE: ${personaStyle}
 
 JOB OPPORTUNITY:
 Title: ${opportunity.job_title}

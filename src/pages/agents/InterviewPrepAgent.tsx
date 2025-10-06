@@ -4,17 +4,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Target, Brain, Lightbulb } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { MessageSquare, Target, Brain, Lightbulb, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { PersonaSelector } from "@/components/PersonaSelector";
+import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("practice");
   const [warChestData, setWarChestData] = useState<any>(null);
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [jobDescription, setJobDescription] = useState("");
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const { toast } = useToast();
+  const { recommendation, loading: personaLoading, getRecommendation } = usePersonaRecommendation('interview');
 
   useEffect(() => {
     fetchWarChestData();
@@ -39,6 +45,18 @@ const InterviewPrepAgentContent = () => {
     setLoading(false);
   };
 
+  const handleGetRecommendation = () => {
+    if (!jobDescription.trim()) {
+      toast({
+        title: "Job description required",
+        description: "Please enter a job description to get persona recommendations",
+        variant: "destructive"
+      });
+      return;
+    }
+    getRecommendation(jobDescription);
+  };
+
   const generateInterviewQuestion = async () => {
     if (!warChestData) return;
 
@@ -47,7 +65,8 @@ const InterviewPrepAgentContent = () => {
     const { data, error } = await supabase.functions.invoke('generate-interview-question', {
       body: {
         warChestId: warChestData.id,
-        phase: 'interview_prep'
+        phase: 'interview_prep',
+        persona: selectedPersona
       }
     });
 
@@ -147,22 +166,59 @@ const InterviewPrepAgentContent = () => {
               </TabsList>
 
               <TabsContent value="practice" className="mt-4 space-y-4">
-                <div className="bg-primary/5 p-6 rounded-lg border-2 border-primary/20">
-                  {currentQuestion ? (
-                    <div>
-                      <Badge className="mb-3">Interview Question</Badge>
-                      <p className="text-lg">{currentQuestion}</p>
+                {!recommendation ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Job Description</label>
+                      <Textarea
+                        placeholder="Paste the job description here to get personalized coaching recommendations..."
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        rows={6}
+                        className="resize-none"
+                      />
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-muted-foreground mb-4">Generate a practice question based on your War Chest</p>
-                      <Button onClick={generateInterviewQuestion} disabled={!warChestData}>
-                        Generate Question
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                    <Button 
+                      onClick={handleGetRecommendation} 
+                      disabled={personaLoading || !jobDescription.trim()}
+                      className="w-full"
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {personaLoading ? "Analyzing..." : "Get Coaching Persona Recommendation"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <PersonaSelector
+                      personas={recommendation.personas}
+                      recommendedPersona={recommendation.recommendedPersona}
+                      reasoning={recommendation.reasoning}
+                      confidence={recommendation.confidence}
+                      selectedPersona={selectedPersona}
+                      onSelectPersona={setSelectedPersona}
+                      agentType="interview"
+                    />
+
+                    {selectedPersona && (
+                      <div className="bg-primary/5 p-6 rounded-lg border-2 border-primary/20">
+                        {currentQuestion ? (
+                          <div>
+                            <Badge className="mb-3">Interview Question</Badge>
+                            <p className="text-lg">{currentQuestion}</p>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                            <p className="text-muted-foreground mb-4">Generate a practice question based on your War Chest</p>
+                            <Button onClick={generateInterviewQuestion} disabled={!warChestData}>
+                              Generate Question
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {currentQuestion && (
                   <div className="space-y-3">
