@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2, Volume2, VolumeX, UserCircle, Mic } from 'lucide-react';
+import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2, CheckCircle, Volume2, VolumeX, UserCircle, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { VoiceInput } from './VoiceInput';
@@ -68,6 +68,8 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   const [warChestId, setWarChestId] = useState<string>('');
   const [guidedPrompts, setGuidedPrompts] = useState<any>(null);
   const [skipAttempts, setSkipAttempts] = useState<number>(0);
+  const [enhancedStrongAnswer, setEnhancedStrongAnswer] = useState<string>('');
+  const [showAcceptButton, setShowAcceptButton] = useState<boolean>(false);
   const [currentResponseId, setCurrentResponseId] = useState<string>('');
   const [intelligenceExtracted, setIntelligenceExtracted] = useState({
     powerPhrases: 0,
@@ -234,9 +236,29 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       if (validationError) throw validationError;
 
       setQualityScore(validation.quality_score);
-      setGuidedPrompts(validation.guided_prompts || null);
+      
+      // Quality >= 70: Response is good enough - show Accept button
+      if (validation.quality_score >= 70) {
+        setShowAcceptButton(true);
+        setGuidedPrompts(null); // Don't show guided prompts
+        setValidationFeedback(validation.follow_up_prompt || `Great answer! (${validation.quality_score}/100) You can continue or enhance it further.`);
+        
+        // Fetch enhanced strong answer for reference
+        fetchEnhancedAnswer(currentSubQuestion.prompt, userInput, validation);
+        
+        toast({
+          title: '✅ Strong Answer!',
+          description: `Quality: ${validation.quality_score}/100. You can continue or add more details.`,
+        });
+        setIsValidating(false);
+        return;
+      }
 
-      // If response is insufficient, show feedback and guided prompts
+      // Quality < 70: Show guided prompts if available
+      setGuidedPrompts(validation.guided_prompts || null);
+      setShowAcceptButton(false);
+
+      // If response is insufficient and we have room for improvement
       if (!validation.is_sufficient && skipAttempts < 2) {
         setValidationFeedback(validation.follow_up_prompt);
         toast({
@@ -480,6 +502,125 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
     }
   };
 
+  const fetchEnhancedAnswer = async (question: string, currentAnswer: string, validationFeedback: any) => {
+    try {
+      const { data } = await supabase.functions.invoke('update-strong-answer', {
+        body: { question, currentAnswer, validationFeedback }
+      });
+      
+      if (data?.enhanced_answer) {
+        setEnhancedStrongAnswer(data.enhanced_answer);
+      }
+    } catch (error) {
+      console.error('Error fetching enhanced answer:', error);
+    }
+  };
+
+  const handleAcceptAndContinue = async () => {
+    if (!currentQuestion || !warChestId) return;
+    
+    setIsLoading(true);
+    const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Save the response
+      await supabase
+        .from('war_chest_interview_responses')
+        .insert([{
+          war_chest_id: warChestId,
+          user_id: user.id,
+          question: currentSubQuestion.prompt,
+          response: userInput,
+          quality_score: qualityScore,
+          validation_feedback: validationFeedback as any,
+          phase: currentPhase,
+        }]);
+
+      // Extract intelligence
+      await supabase.functions.invoke('extract-war-chest-intelligence', {
+        body: {
+          war_chest_id: warChestId,
+          response_text: userInput
+        }
+      });
+
+      // Move to next question
+      if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
+        setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
+      } else {
+        setCompletionPercentage(Math.min(100, completionPercentage + 10));
+        const { data } = await supabase.functions.invoke('generate-interview-question', {
+          body: { phase: currentPhase }
+        });
+        if (data?.question) {
+          setCurrentQuestion(data.question);
+          setCurrentSubQuestionIndex(0);
+        }
+      }
+
+      setUserInput('');
+      setQualityScore(0);
+      setShowAcceptButton(false);
+      setValidationFeedback('');
+      setEnhancedStrongAnswer('');
+      setSkipAttempts(0);
+      
+      toast({
+        title: 'Saved!',
+        description: 'Moving to next question.',
+      });
+    } catch (error) {
+      console.error('Error saving response:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save response',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSkipRemainingSubQuestions = async () => {
+    if (!currentQuestion) return;
+    
+    setIsLoading(true);
+    try {
+      setCompletionPercentage(Math.min(100, completionPercentage + 10));
+      const { data } = await supabase.functions.invoke('generate-interview-question', {
+        body: { phase: currentPhase }
+      });
+      
+      if (data?.question) {
+        setCurrentQuestion(data.question);
+        setCurrentSubQuestionIndex(0);
+        setUserInput('');
+        setQualityScore(0);
+        setShowAcceptButton(false);
+        setValidationFeedback('');
+        setGuidedPrompts(null);
+        setSkipAttempts(0);
+        
+        toast({
+          title: 'Skipped',
+          description: 'Moving to next topic.',
+        });
+      }
+    } catch (error) {
+      console.error('Error skipping:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to skip',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSkipGuidedPrompts = () => {
     const newSkipAttempts = skipAttempts + 1;
     setSkipAttempts(newSkipAttempts);
@@ -646,13 +787,64 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           context={currentQuestion.context}
           knownData={currentQuestion.knownData}
           singleQuestion={currentQuestion.questionsToExpand[currentSubQuestionIndex]}
-          exampleAnswer={currentQuestion.exampleAnswer}
+          exampleAnswer={enhancedStrongAnswer || currentQuestion.exampleAnswer}
           questionNumber={currentQuestionNum}
           totalQuestions={totalQuestions}
         />
 
+        {/* Accept and Continue - when quality >= 70 */}
+        {showAcceptButton && qualityScore >= 70 && (
+          <Alert className="mt-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+            <AlertDescription className="space-y-3">
+              <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                ✅ {validationFeedback}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={handleAcceptAndContinue}
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      Accept & Continue
+                    </>
+                  )}
+                </Button>
+                {qualityScore >= 80 && currentSubQuestionIndex < totalQuestions - 1 && (
+                  <Button
+                    onClick={handleSkipRemainingSubQuestions}
+                    variant="outline"
+                    className="gap-2"
+                    disabled={isLoading}
+                  >
+                    Skip Remaining Sub-Questions
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    setShowAcceptButton(false);
+                    setValidationFeedback('');
+                    toast({
+                      title: 'Continue editing',
+                      description: 'Add more details to strengthen your answer further',
+                    });
+                  }}
+                  variant="ghost"
+                  className="gap-2"
+                >
+                  Add More Details
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Validation feedback */}
-        {validationFeedback && !guidedPrompts && (
+        {validationFeedback && !guidedPrompts && !showAcceptButton && (
           <>
             <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
               <AlertDescription className="text-sm">
@@ -668,8 +860,8 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           </>
         )}
 
-        {/* Guided Prompts Selector */}
-        {guidedPrompts && (
+        {/* Guided Prompts Selector - only show when quality < 70 */}
+        {guidedPrompts && !showAcceptButton && qualityScore < 70 && (
           <GuidedPromptSelector
             guidedPrompts={guidedPrompts}
             onApply={handleApplyGuidedOptions}

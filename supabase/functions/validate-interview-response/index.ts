@@ -92,11 +92,12 @@ Return JSON with guided prompts for missing elements:
   }
 }
 
-IMPORTANT: 
-- Only include guided_prompts for elements that are actually missing
-- If quality_score >= 70, set is_sufficient to true
-- Be encouraging and constructive in follow_up_prompt
-- Acknowledge strengths while suggesting improvements`;
+CRITICAL VALIDATION RULES: 
+- If quality_score >= 70: DO NOT include guided_prompts field AT ALL, set is_sufficient to true, and provide encouraging follow_up_prompt
+- If quality_score < 70: Include guided_prompts ONLY for elements that are actually missing
+- Always be encouraging and constructive in follow_up_prompt
+- Acknowledge strengths while suggesting improvements when score is below 70
+- When score >= 70, celebrate the quality and mention they can continue or enhance further`;
 
     console.log('Validating interview response');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

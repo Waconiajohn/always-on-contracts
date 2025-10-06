@@ -87,6 +87,9 @@ verify_jwt = false
 [functions.validate-interview-response]
 verify_jwt = true
 
+[functions.update-strong-answer]
+verify_jwt = true
+
 [functions.orchestrator-agent]
 verify_jwt = true
 
