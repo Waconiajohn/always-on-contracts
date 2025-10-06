@@ -44,10 +44,10 @@ Return JSON with guided prompts for missing elements:
     "specificity": {
       "question": "Can you add more specific details?",
       "options": [
-        "Named specific technologies/tools used",
-        "Mentioned specific methodologies or frameworks",
-        "Referenced particular projects or initiatives",
-        "Described concrete examples or scenarios",
+        "Name specific technologies/tools used",
+        "Mention specific methodologies or frameworks",
+        "Reference particular projects or initiatives",
+        "Describe concrete examples or scenarios",
         "I don't remember more specifics"
       ]
     },
