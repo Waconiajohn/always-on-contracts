@@ -10,7 +10,12 @@ interface ResumeAnalysis {
   years_of_experience?: number;
   seniority_level?: string;
   industry?: string;
+  industry_expertise?: string[];
   key_skills?: string[];
+  analysis_summary?: string;
+  key_achievements?: string[];
+  recommended_positions?: string[];
+  management_capabilities?: string[];
 }
 
 Deno.serve(async (req) => {
@@ -41,27 +46,49 @@ Deno.serve(async (req) => {
 
     const analysis: ResumeAnalysis = resume_analysis;
 
-    // Use Lovable AI to suggest target roles
-    const prompt = `Based on this career profile, suggest job titles the candidate should target:
+    // Build industry context
+    const industryContext = analysis.industry_expertise?.length 
+      ? analysis.industry_expertise.join(', ')
+      : analysis.industry || 'Not specified';
 
-Current Role: ${analysis.current_role || 'Not specified'}
+    // Build achievements context (first 3 for brevity)
+    const achievementsContext = analysis.key_achievements?.slice(0, 3).join('\n• ') || 'Not specified';
+
+    // Use Lovable AI with tool calling for structured output
+    const systemPrompt = `You are an expert career advisor specializing in role targeting for experienced professionals. 
+Your task is to suggest highly relevant, industry-specific job titles based on detailed career information.
+
+CRITICAL RULES:
+- Match seniority level accurately (Senior → Senior roles, not entry-level)
+- Use industry-specific terminology and actual job titles
+- Consider years of experience when suggesting roles
+- Stretch roles should be ONE level up, not multiple levels
+- Current level roles should match the candidate's expertise exactly`;
+
+    const userPrompt = `Analyze this professional's career profile and suggest relevant target roles:
+
+CURRENT POSITION:
+Role: ${analysis.current_role || 'Not specified'}
 Years of Experience: ${analysis.years_of_experience || 'Not specified'}
 Seniority Level: ${analysis.seniority_level || 'Not specified'}
-Industry: ${analysis.industry || 'Not specified'}
-Key Skills: ${analysis.key_skills?.join(', ') || 'Not specified'}
 
-Please suggest:
-1. AT CURRENT LEVEL: 3-5 roles matching their current seniority
-2. STRETCH ROLES: 2-3 roles one level above (promotions/growth)
-3. SAFETY/PIVOT ROLES: 1-2 alternative roles (adjacent fields or one level below)
+INDUSTRY EXPERTISE:
+${industryContext}
 
-Return ONLY a JSON object in this exact format:
-{
-  "current_level": ["Role 1", "Role 2", "Role 3"],
-  "stretch": ["Senior Role 1", "Senior Role 2"],
-  "safety": ["Alternative Role 1"],
-  "reasoning": "Brief explanation of suggestions"
-}`;
+CAREER SUMMARY:
+${analysis.analysis_summary || 'Professional with demonstrated expertise in their field.'}
+
+KEY SKILLS:
+${analysis.key_skills?.join(', ') || 'Not specified'}
+
+NOTABLE ACHIEVEMENTS:
+${achievementsContext}
+
+${analysis.recommended_positions?.length ? `PREVIOUSLY IDENTIFIED ROLES:\n${analysis.recommended_positions.join(', ')}` : ''}
+
+${analysis.management_capabilities?.length ? `MANAGEMENT CAPABILITIES:\n${analysis.management_capabilities.join(', ')}` : ''}
+
+Based on this ${analysis.seniority_level || 'experienced'} professional's background, suggest appropriate target roles.`;
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     
@@ -74,11 +101,45 @@ Return ONLY a JSON object in this exact format:
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
         ],
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'suggest_target_roles',
+              description: 'Suggest target job roles for a professional based on their career profile',
+              parameters: {
+                type: 'object',
+                properties: {
+                  current_level: {
+                    type: 'array',
+                    description: '3-5 roles matching their current seniority and industry expertise',
+                    items: { type: 'string' }
+                  },
+                  stretch: {
+                    type: 'array',
+                    description: '2-3 roles one level above (promotions/leadership)',
+                    items: { type: 'string' }
+                  },
+                  safety: {
+                    type: 'array',
+                    description: '1-2 lateral or alternative roles in adjacent fields',
+                    items: { type: 'string' }
+                  },
+                  reasoning: {
+                    type: 'string',
+                    description: 'Brief explanation of why these roles fit the candidate'
+                  }
+                },
+                required: ['current_level', 'stretch', 'safety', 'reasoning'],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: 'function', function: { name: 'suggest_target_roles' } }
       }),
     });
 
@@ -89,16 +150,26 @@ Return ONLY a JSON object in this exact format:
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices[0]?.message?.content || '{}';
     
-    // Extract JSON from markdown code blocks if present
-    let jsonContent = content;
-    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (jsonMatch) {
-      jsonContent = jsonMatch[1];
+    // Extract tool call result
+    const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      console.error('No tool call in response:', JSON.stringify(aiData));
+      throw new Error('AI did not return structured role suggestions');
     }
 
-    const suggestions = JSON.parse(jsonContent);
+    const suggestions = JSON.parse(toolCall.function.arguments);
+    
+    // Validate suggestions match experience level
+    if (analysis.seniority_level?.toLowerCase().includes('senior') || 
+        (analysis.years_of_experience && analysis.years_of_experience > 7)) {
+      const hasJuniorRoles = suggestions.current_level?.some((role: string) => 
+        role.toLowerCase().includes('junior') || role.toLowerCase().includes('entry')
+      );
+      if (hasJuniorRoles) {
+        console.warn('Warning: Junior roles suggested for senior candidate');
+      }
+    }
 
     return new Response(
       JSON.stringify({
