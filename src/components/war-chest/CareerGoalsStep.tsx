@@ -27,16 +27,37 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [customIndustry, setCustomIndustry] = useState('');
 
-  const industryOptions = [
-    'FinTech',
-    'Healthcare Technology',
-    'Enterprise SaaS',
-    'E-commerce',
-    'Cybersecurity',
-    'Cloud Computing',
-    'Artificial Intelligence',
-    'EdTech',
-  ];
+  // Generate industry options based on resume analysis
+  const getIndustryOptions = () => {
+    const defaultIndustries = [
+      'Oil & Gas',
+      'Energy',
+      'Mining & Metals',
+      'Construction',
+      'Manufacturing',
+      'Utilities',
+      'FinTech',
+      'Healthcare Technology',
+      'Enterprise SaaS',
+      'E-commerce',
+      'Cybersecurity',
+      'Cloud Computing',
+      'Artificial Intelligence',
+      'EdTech',
+      'Consulting',
+      'Telecommunications',
+    ];
+
+    // Extract industries from resume analysis if available
+    const resumeIndustries = resumeAnalysis?.industry_expertise || [];
+    
+    // Combine and deduplicate
+    const allIndustries = [...new Set([...resumeIndustries, ...defaultIndustries])];
+    
+    return allIndustries;
+  };
+
+  const industryOptions = getIndustryOptions();
 
   useEffect(() => {
     fetchRoleSuggestions();
