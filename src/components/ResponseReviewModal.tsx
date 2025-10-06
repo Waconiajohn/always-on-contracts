@@ -105,7 +105,7 @@ export function ResponseReviewModal({
         if (updateError) throw updateError;
 
         // Re-extract intelligence
-        const { error: extractError } = await supabase.functions.invoke('extract-war-chest-intelligence', {
+        const { error: extractError } = await supabase.functions.invoke('extract-vault-intelligence', {
           body: {
             vaultId,
             question,

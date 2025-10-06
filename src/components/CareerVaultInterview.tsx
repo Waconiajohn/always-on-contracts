@@ -412,7 +412,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
 
         // Step 3: Extract intelligence in real-time
         const { data: extracted } = await supabase.functions.invoke(
-          'extract-war-chest-intelligence',
+           'extract-vault-intelligence',
           {
             body: {
               responseText: responseToSave,
@@ -733,7 +733,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
         }]);
 
       // Extract intelligence
-      await supabase.functions.invoke('extract-war-chest-intelligence', {
+      await supabase.functions.invoke('extract-vault-intelligence', {
         body: {
           vault_id: vaultId,
           response_text: responseToSave

@@ -29,9 +29,9 @@ serve(async (req) => {
 
     if (userError || !user) throw new Error('Unauthorized');
 
-    const { responseText, questionText, warChestId } = await req.json();
+    const { responseText, questionText, vaultId } = await req.json();
 
-    console.log('[EXTRACT-INTELLIGENCE] Analyzing response:', responseText.substring(0, 100) + '...');
+    console.log('[EXTRACT-VAULT-INTELLIGENCE] Analyzing response:', responseText.substring(0, 100) + '...');
 
     const systemPrompt = `You are an expert career intelligence analyst. Extract structured intelligence from interview responses across ALL 20 categories (13 original + 7 intangibles).`;
 
@@ -97,8 +97,8 @@ Return as JSON with ALL applicable categories:
 
 Only include categories where you found relevant intelligence. Empty arrays are acceptable.`;
 
-    // Use Gemini 2.5 Flash Thinking for deep intelligence extraction
-    console.log('[EXTRACT-INTELLIGENCE] Using Gemini 2.5 Flash Thinking for deep analysis...');
+    // Use Gemini 2.5 Flash for intelligence extraction
+    console.log('[EXTRACT-VAULT-INTELLIGENCE] Using Gemini 2.5 Flash for analysis...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -106,18 +106,17 @@ Only include categories where you found relevant intelligence. Empty arrays are 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-thinking',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
+        ]
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[EXTRACT-INTELLIGENCE] AI error:', response.status, errorText);
+      console.error('[EXTRACT-VAULT-INTELLIGENCE] AI error:', response.status, errorText);
       throw new Error(`AI extraction failed: ${response.status}`);
     }
 
@@ -129,13 +128,12 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       intelligence = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
     } catch (e) {
-      console.error('[EXTRACT-INTELLIGENCE] Failed to parse:', e);
+      console.error('[EXTRACT-VAULT-INTELLIGENCE] Failed to parse:', e);
       intelligence = {};
     }
 
-    console.log('[EXTRACT-INTELLIGENCE] Extracted intelligence:', JSON.stringify(intelligence, null, 2).substring(0, 500) + '...');
+    console.log('[EXTRACT-VAULT-INTELLIGENCE] Extracted intelligence:', JSON.stringify(intelligence, null, 2).substring(0, 500) + '...');
 
-    // Insert extracted intelligence across ALL 20 categories
     const insertPromises = [];
     let totalExtracted = 0;
 
@@ -144,11 +142,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.powerPhrases.length;
       insertPromises.push(
         ...intelligence.powerPhrases.map((pp: any) =>
-          supabase.from('war_chest_power_phrases').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_power_phrases').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            phrase: pp.phrase,
-            context: pp.context
+            power_phrase: pp.phrase,
+            context: pp.context,
+            category: 'achievement',
+            confidence_score: 80,
+            keywords: []
           })
         )
       );
@@ -158,12 +159,13 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.transferableSkills.length;
       insertPromises.push(
         ...intelligence.transferableSkills.map((skill: any) =>
-          supabase.from('war_chest_transferable_skills').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_transferable_skills').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            skill_name: skill.skill,
-            proficiency_level: skill.level,
-            evidence: skill.evidence
+            stated_skill: skill.skill,
+            equivalent_skills: [],
+            evidence: skill.evidence,
+            confidence_score: 75
           })
         )
       );
@@ -173,12 +175,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.hiddenCompetencies.length;
       insertPromises.push(
         ...intelligence.hiddenCompetencies.map((comp: any) =>
-          supabase.from('war_chest_hidden_competencies').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_hidden_competencies').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            competency: comp.competency,
-            description: comp.description,
-            potential_value: comp.potential
+            competency_area: comp.competency,
+            supporting_evidence: [],
+            inferred_capability: comp.description,
+            confidence_score: 70,
+            certification_equivalent: comp.potential
           })
         )
       );
@@ -189,13 +193,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.businessImpacts.length;
       insertPromises.push(
         ...intelligence.businessImpacts.map((impact: any) =>
-          supabase.from('war_chest_business_impact').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_business_impacts').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            impact_statement: impact.impact,
-            metrics: impact.metrics || {},
+            impact_summary: impact.impact,
+            quantified_metrics: impact.metrics,
             context: impact.context,
-            business_area: impact.business_area
+            business_area: impact.business_area,
+            confidence_score: 85
           })
         )
       );
@@ -205,13 +210,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.leadershipEvidence.length;
       insertPromises.push(
         ...intelligence.leadershipEvidence.map((lead: any) =>
-          supabase.from('war_chest_leadership_evidence').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_leadership_evidence').insert({
+            vault_id: vaultId,
             user_id: user.id,
             leadership_example: lead.example,
             team_size: lead.team_size,
             leadership_type: lead.type,
-            outcome: lead.outcome
+            outcome: lead.outcome,
+            confidence_score: 82
           })
         )
       );
@@ -221,12 +227,13 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.technicalDepth.length;
       insertPromises.push(
         ...intelligence.technicalDepth.map((tech: any) =>
-          supabase.from('war_chest_technical_depth').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_technical_depth').insert({
+            vault_id: vaultId,
             user_id: user.id,
             technology: tech.technology,
             proficiency_level: tech.proficiency,
-            specific_achievements: tech.achievements
+            achievements: tech.achievements,
+            confidence_score: 78
           })
         )
       );
@@ -236,13 +243,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.projects.length;
       insertPromises.push(
         ...intelligence.projects.map((proj: any) =>
-          supabase.from('war_chest_projects').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_projects').insert({
+            vault_id: vaultId,
             user_id: user.id,
             project_name: proj.name,
             role: proj.role,
             duration_months: proj.duration_months,
-            results_achieved: proj.results
+            results: proj.results,
+            confidence_score: 80
           })
         )
       );
@@ -251,13 +259,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     if (intelligence.industryExpertise?.length > 0) {
       totalExtracted += intelligence.industryExpertise.length;
       insertPromises.push(
-        ...intelligence.industryExpertise.map((ind: any) =>
-          supabase.from('war_chest_industry_expertise').insert({
-            war_chest_id: warChestId,
+        ...intelligence.industryExpertise.map((exp: any) =>
+          supabase.from('vault_industry_expertise').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            industry: ind.industry,
-            specific_knowledge: ind.knowledge,
-            market_insights: ind.insights
+            industry: exp.industry,
+            knowledge_area: exp.knowledge,
+            insights: exp.insights,
+            confidence_score: 77
           })
         )
       );
@@ -267,13 +276,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.problemSolving.length;
       insertPromises.push(
         ...intelligence.problemSolving.map((prob: any) =>
-          supabase.from('war_chest_problem_solving').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_problem_solving').insert({
+            vault_id: vaultId,
             user_id: user.id,
             problem_description: prob.problem,
-            approach_taken: prob.approach,
-            solution_implemented: prob.solution,
-            results: prob.results
+            approach: prob.approach,
+            solution: prob.solution,
+            results: prob.results,
+            confidence_score: 83
           })
         )
       );
@@ -283,12 +293,13 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.stakeholderMgmt.length;
       insertPromises.push(
         ...intelligence.stakeholderMgmt.map((stake: any) =>
-          supabase.from('war_chest_stakeholder_mgmt').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_stakeholder_mgmt').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            relationship_building_example: stake.example,
-            stakeholder_types: stake.stakeholder_types || [],
-            influence_strategies: stake.strategies
+            situation_example: stake.example,
+            stakeholder_types: stake.stakeholder_types,
+            strategies_used: stake.strategies,
+            confidence_score: 79
           })
         )
       );
@@ -298,12 +309,13 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.careerNarrative.length;
       insertPromises.push(
         ...intelligence.careerNarrative.map((narr: any) =>
-          supabase.from('war_chest_career_narrative').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_career_narrative').insert({
+            vault_id: vaultId,
             user_id: user.id,
             career_stage: narr.stage,
-            key_transition: narr.transition,
-            strategic_direction: narr.direction
+            transition_details: narr.transition,
+            future_direction: narr.direction,
+            confidence_score: 76
           })
         )
       );
@@ -312,13 +324,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     if (intelligence.competitiveAdvantages?.length > 0) {
       totalExtracted += intelligence.competitiveAdvantages.length;
       insertPromises.push(
-        ...intelligence.competitiveAdvantages.map((comp: any) =>
-          supabase.from('war_chest_competitive_advantages').insert({
-            war_chest_id: warChestId,
+        ...intelligence.competitiveAdvantages.map((adv: any) =>
+          supabase.from('vault_competitive_advantages').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            advantage_type: comp.type,
-            description: comp.description,
-            evidence: comp.evidence
+            advantage_type: adv.type,
+            advantage_description: adv.description,
+            supporting_evidence: adv.evidence,
+            confidence_score: 81
           })
         )
       );
@@ -328,29 +341,31 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.communication.length;
       insertPromises.push(
         ...intelligence.communication.map((comm: any) =>
-          supabase.from('war_chest_communication').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_communication').insert({
+            vault_id: vaultId,
             user_id: user.id,
             communication_type: comm.type,
             example: comm.example,
-            impact: comm.impact
+            impact: comm.impact,
+            confidence_score: 78
           })
         )
       );
     }
 
-    // PHASE 3: Intangibles Intelligence (New 7)
+    // PHASE 3 - Intangibles Intelligence (New 7)
     if (intelligence.softSkills?.length > 0) {
       totalExtracted += intelligence.softSkills.length;
       insertPromises.push(
-        ...intelligence.softSkills.map((skill: any) =>
-          supabase.from('war_chest_soft_skills').insert({
-            war_chest_id: warChestId,
+        ...intelligence.softSkills.map((soft: any) =>
+          supabase.from('vault_soft_skills').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            skill_name: skill.skill_name,
-            examples: skill.examples,
-            impact: skill.impact,
-            proficiency_level: skill.proficiency_level
+            skill_name: soft.skill_name,
+            examples: soft.examples,
+            impact: soft.impact,
+            proficiency_level: soft.proficiency_level,
+            confidence_score: 75
           })
         )
       );
@@ -359,14 +374,15 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     if (intelligence.leadershipPhilosophy?.length > 0) {
       totalExtracted += intelligence.leadershipPhilosophy.length;
       insertPromises.push(
-        ...intelligence.leadershipPhilosophy.map((phil: any) =>
-          supabase.from('war_chest_leadership_philosophy').insert({
-            war_chest_id: warChestId,
+        ...intelligence.leadershipPhilosophy.map((leadPhil: any) =>
+          supabase.from('vault_leadership_philosophies').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            philosophy_statement: phil.philosophy_statement,
-            leadership_style: phil.leadership_style,
-            core_principles: phil.core_principles || [],
-            real_world_application: phil.real_world_application
+            philosophy_statement: leadPhil.philosophy_statement,
+            leadership_style: leadPhil.leadership_style,
+            core_principles: leadPhil.core_principles,
+            real_world_application: leadPhil.real_world_application,
+            confidence_score: 77
           })
         )
       );
@@ -375,14 +391,15 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     if (intelligence.executivePresence?.length > 0) {
       totalExtracted += intelligence.executivePresence.length;
       insertPromises.push(
-        ...intelligence.executivePresence.map((pres: any) =>
-          supabase.from('war_chest_executive_presence').insert({
-            war_chest_id: warChestId,
+        ...intelligence.executivePresence.map((execPres: any) =>
+          supabase.from('vault_executive_presence').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            presence_indicator: pres.presence_indicator,
-            situational_example: pres.situational_example,
-            perceived_impact: pres.perceived_impact,
-            brand_alignment: pres.brand_alignment
+            presence_indicator: execPres.presence_indicator,
+            situational_example: execPres.situational_example,
+            perceived_impact: execPres.perceived_impact,
+            brand_alignment: execPres.brand_alignment,
+            confidence_score: 79
           })
         )
       );
@@ -391,14 +408,15 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     if (intelligence.personalityTraits?.length > 0) {
       totalExtracted += intelligence.personalityTraits.length;
       insertPromises.push(
-        ...intelligence.personalityTraits.map((trait: any) =>
-          supabase.from('war_chest_personality_traits').insert({
-            war_chest_id: warChestId,
+        ...intelligence.personalityTraits.map((persTrait: any) =>
+          supabase.from('vault_personality_traits').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            trait_name: trait.trait_name,
-            behavioral_evidence: trait.behavioral_evidence,
-            work_context: trait.work_context,
-            strength_or_growth: trait.strength_or_growth
+            trait_name: persTrait.trait_name,
+            behavioral_evidence: persTrait.behavioral_evidence,
+            work_context: persTrait.work_context,
+            strength_or_growth: persTrait.strength_or_growth,
+            confidence_score: 76
           })
         )
       );
@@ -407,14 +425,15 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     if (intelligence.workStyle?.length > 0) {
       totalExtracted += intelligence.workStyle.length;
       insertPromises.push(
-        ...intelligence.workStyle.map((style: any) =>
-          supabase.from('war_chest_work_style').insert({
-            war_chest_id: warChestId,
+        ...intelligence.workStyle.map((workStyle: any) =>
+          supabase.from('vault_work_styles').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            preference_area: style.preference_area,
-            preference_description: style.preference_description,
-            examples: style.examples,
-            ideal_environment: style.ideal_environment
+            preference_area: workStyle.preference_area,
+            preference_description: workStyle.preference_description,
+            examples: workStyle.examples,
+            ideal_environment: workStyle.ideal_environment,
+            confidence_score: 78
           })
         )
       );
@@ -424,13 +443,14 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       totalExtracted += intelligence.values.length;
       insertPromises.push(
         ...intelligence.values.map((value: any) =>
-          supabase.from('war_chest_values_motivations').insert({
-            war_chest_id: warChestId,
+          supabase.from('vault_values').insert({
+            vault_id: vaultId,
             user_id: user.id,
             value_name: value.value_name,
             importance_level: value.importance_level,
             manifestation: value.manifestation,
-            career_decisions_influenced: value.career_decisions_influenced
+            career_decisions_influenced: value.career_decisions_influenced,
+            confidence_score: 80
           })
         )
       );
@@ -439,109 +459,117 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     if (intelligence.behavioralIndicators?.length > 0) {
       totalExtracted += intelligence.behavioralIndicators.length;
       insertPromises.push(
-        ...intelligence.behavioralIndicators.map((indicator: any) =>
-          supabase.from('war_chest_behavioral_indicators').insert({
-            war_chest_id: warChestId,
+        ...intelligence.behavioralIndicators.map((behavInd: any) =>
+          supabase.from('vault_behavioral_indicators').insert({
+            vault_id: vaultId,
             user_id: user.id,
-            indicator_type: indicator.indicator_type,
-            specific_behavior: indicator.specific_behavior,
-            context: indicator.context,
-            outcome_pattern: indicator.outcome_pattern
+            indicator_type: behavInd.indicator_type,
+            specific_behavior: behavInd.specific_behavior,
+            context: behavInd.context,
+            outcome_pattern: behavInd.outcome_pattern,
+            confidence_score: 77
           })
         )
       );
     }
 
     await Promise.all(insertPromises);
-    console.log(`[EXTRACT-INTELLIGENCE] Successfully inserted ${totalExtracted} intelligence items`);
 
-    // Get updated counts for ALL 20 categories
+    // Get counts for all categories
     const [
-      ppCount, tsCount, hcCount,
-      biCount, leCount, tdCount, pjCount, ieCount, psCount, smCount, cnCount, caCount, ceCount,
-      ssCount, lpCount, epCount, ptCount, wsCount, vmCount, biCount2
+      ppCount, tsCount, hcCount, biCount, leCount,
+      tdCount, projCount, ieCount, psCount, smCount,
+      cnCount, caCount, commCount, ssCount, lpCount,
+      epCount, ptCount, wsCount, vCount, bi2Count
     ] = await Promise.all([
-      supabase.from('war_chest_power_phrases').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_transferable_skills').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_hidden_competencies').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_business_impact').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_leadership_evidence').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_technical_depth').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_projects').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_industry_expertise').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_problem_solving').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_stakeholder_mgmt').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_career_narrative').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_competitive_advantages').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_communication').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_soft_skills').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_leadership_philosophy').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_executive_presence').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_personality_traits').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_work_style').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_values_motivations').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
-      supabase.from('war_chest_behavioral_indicators').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('vault_power_phrases').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_transferable_skills').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_hidden_competencies').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_business_impacts').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_leadership_evidence').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_technical_depth').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_projects').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_industry_expertise').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_problem_solving').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_stakeholder_mgmt').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_career_narrative').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_competitive_advantages').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_communication').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_soft_skills').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_leadership_philosophies').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_executive_presence').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_personality_traits').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_work_styles').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_values').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_behavioral_indicators').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId)
     ]);
 
-    // Update the war chest with ALL 20 category counts
+    const totalCounts = {
+      power_phrases: ppCount.count || 0,
+      transferable_skills: tsCount.count || 0,
+      hidden_competencies: hcCount.count || 0,
+      business_impacts: biCount.count || 0,
+      leadership_evidence: leCount.count || 0,
+      technical_depth: tdCount.count || 0,
+      projects: projCount.count || 0,
+      industry_expertise: ieCount.count || 0,
+      problem_solving: psCount.count || 0,
+      stakeholder_mgmt: smCount.count || 0,
+      career_narrative: cnCount.count || 0,
+      competitive_advantages: caCount.count || 0,
+      communication: commCount.count || 0,
+      soft_skills: ssCount.count || 0,
+      leadership_philosophies: lpCount.count || 0,
+      executive_presence: epCount.count || 0,
+      personality_traits: ptCount.count || 0,
+      work_styles: wsCount.count || 0,
+      values: vCount.count || 0,
+      behavioral_indicators: bi2Count.count || 0
+    };
+
+    // Update vault with new counts
     await supabase
-      .from('career_war_chest')
+      .from('career_vault')
       .update({
-        total_power_phrases: ppCount.count || 0,
-        total_transferable_skills: tsCount.count || 0,
-        total_hidden_competencies: hcCount.count || 0,
-        total_business_impacts: biCount.count || 0,
-        total_leadership_examples: leCount.count || 0,
-        total_technical_skills: tdCount.count || 0,
-        total_projects: pjCount.count || 0,
-        total_industry_expertise: ieCount.count || 0,
-        total_problem_solving: psCount.count || 0,
-        total_stakeholder_examples: smCount.count || 0,
-        total_career_narrative: cnCount.count || 0,
-        total_competitive_advantages: caCount.count || 0,
-        total_communication_examples: ceCount.count || 0,
-        total_soft_skills: ssCount.count || 0,
-        total_leadership_philosophy: lpCount.count || 0,
-        total_executive_presence: epCount.count || 0,
-        total_personality_traits: ptCount.count || 0,
-        total_work_style: wsCount.count || 0,
-        total_values: vmCount.count || 0,
-        total_behavioral_indicators: biCount2.count || 0,
-        last_updated_at: new Date().toISOString(),
+        total_power_phrases: totalCounts.power_phrases,
+        total_transferable_skills: totalCounts.transferable_skills,
+        total_hidden_competencies: totalCounts.hidden_competencies,
+        total_business_impacts: totalCounts.business_impacts,
+        total_leadership_evidence: totalCounts.leadership_evidence,
+        total_technical_depth: totalCounts.technical_depth,
+        total_projects: totalCounts.projects,
+        total_industry_expertise: totalCounts.industry_expertise,
+        total_problem_solving: totalCounts.problem_solving,
+        total_stakeholder_mgmt: totalCounts.stakeholder_mgmt,
+        total_career_narrative: totalCounts.career_narrative,
+        total_competitive_advantages: totalCounts.competitive_advantages,
+        total_communication: totalCounts.communication,
+        total_soft_skills: totalCounts.soft_skills,
+        total_leadership_philosophies: totalCounts.leadership_philosophies,
+        total_executive_presence: totalCounts.executive_presence,
+        total_personality_traits: totalCounts.personality_traits,
+        total_work_styles: totalCounts.work_styles,
+        total_values: totalCounts.values,
+        total_behavioral_indicators: totalCounts.behavioral_indicators,
+        last_updated_at: new Date().toISOString()
       })
-      .eq('id', warChestId);
+      .eq('id', vaultId);
 
-    const totalIntelligence = (ppCount.count || 0) + (tsCount.count || 0) + (hcCount.count || 0) +
-      (biCount.count || 0) + (leCount.count || 0) + (tdCount.count || 0) + (pjCount.count || 0) +
-      (ieCount.count || 0) + (psCount.count || 0) + (smCount.count || 0) + (cnCount.count || 0) +
-      (caCount.count || 0) + (ceCount.count || 0) +
-      (ssCount.count || 0) + (lpCount.count || 0) + (epCount.count || 0) + (ptCount.count || 0) +
-      (wsCount.count || 0) + (vmCount.count || 0) + (biCount2.count || 0);
-
-    console.log(`[EXTRACT-INTELLIGENCE] Total intelligence in War Chest: ${totalIntelligence}`);
+    console.log('[EXTRACT-VAULT-INTELLIGENCE] Extracted', totalExtracted, 'intelligence items');
 
     return new Response(JSON.stringify({
       success: true,
-      totalExtracted,
-      totalIntelligence,
-      extracted: {
-        powerPhrases: intelligence.powerPhrases?.length || 0,
-        transferableSkills: intelligence.transferableSkills?.length || 0,
-        hiddenCompetencies: intelligence.hiddenCompetencies?.length || 0,
-        intangibles: (intelligence.softSkills?.length || 0) + (intelligence.leadershipPhilosophy?.length || 0) +
-                     (intelligence.executivePresence?.length || 0) + (intelligence.personalityTraits?.length || 0) +
-                     (intelligence.workStyle?.length || 0) + (intelligence.values?.length || 0) +
-                     (intelligence.behavioralIndicators?.length || 0)
-      }
+      extracted: totalExtracted,
+      counts: totalCounts
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('[EXTRACT-INTELLIGENCE] Error:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+  } catch (error: any) {
+    console.error('[EXTRACT-VAULT-INTELLIGENCE] Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

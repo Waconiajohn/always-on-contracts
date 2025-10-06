@@ -34,16 +34,16 @@ serve(async (req) => {
 
     console.log('[CUSTOMIZE-RESUME] Starting for user:', user.id, 'opportunity:', opportunityId);
 
-    // Fetch War Chest intelligence
+    // Fetch Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
-      'get-war-chest-intelligence',
+      'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
     );
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
     if (intelligence) {
-      console.log('[CUSTOMIZE-RESUME] War Chest intelligence loaded:', {
+      console.log('[CUSTOMIZE-RESUME] Career Vault intelligence loaded:', {
         powerPhrases: intelligence.counts.powerPhrases,
         businessImpacts: intelligence.counts.businessImpacts,
         leadershipExamples: intelligence.counts.leadershipExamples,
@@ -51,7 +51,7 @@ serve(async (req) => {
         projects: intelligence.counts.projects
       });
     } else {
-      console.log('[CUSTOMIZE-RESUME] No War Chest intelligence available, using fallback mode');
+      console.log('[CUSTOMIZE-RESUME] No Career Vault intelligence available, using fallback mode');
     }
 
     // Fetch opportunity details
@@ -93,8 +93,8 @@ serve(async (req) => {
 
     const personaStyle = persona ? personaInstructions[persona as keyof typeof personaInstructions] : personaInstructions.executive;
 
-    // Build War Chest context for prompt
-    let warChestContext = '';
+    // Build Career Vault context for prompt
+    let vaultContext = '';
     if (intelligence) {
       const topPowerPhrases = intelligence.powerPhrases.slice(0, 8).map((p: any) => 
         `- ${p.phrase} (${p.context || 'proven achievement'})`
@@ -120,8 +120,8 @@ serve(async (req) => {
         `- ${i.industry_name} (${i.depth_level}): ${i.key_areas?.join(', ') || 'expert knowledge'}`
       ).join('\n');
 
-      warChestContext = `
-CAREER INTELLIGENCE DATABASE (Verified achievements from War Chest):
+      vaultContext = `
+CAREER INTELLIGENCE DATABASE (Verified achievements from Career Vault):
 
 PROVEN POWER PHRASES (${intelligence.counts.powerPhrases} total, top 8):
 ${topPowerPhrases}
@@ -167,17 +167,17 @@ Industries: ${analysis.industry_expertise?.join(", ") || "Not specified"}
 Leadership: ${analysis.management_capabilities?.join(", ") || "Not specified"}
 Executive Summary: ${analysis.analysis_summary || "Not provided"}
 
-${warChestContext}
+${vaultContext}
 
 TASK:
 1. Identify the top 8-10 keywords and phrases from the job description that should be incorporated
-2. Create a tailored executive summary (3-4 sentences) that speaks directly to this role, using verified achievements from the War Chest when available
+2. Create a tailored executive summary (3-4 sentences) that speaks directly to this role, using verified achievements from the Career Vault when available
 3. List 5-7 key achievements that are most relevant to this opportunity - PRIORITIZE quantified achievements from the Business Impacts database
 4. List 8-12 core competencies that match the job requirements - reference confirmed Technical Depth and Leadership Evidence
-5. Provide 2-3 specific customization notes explaining why this executive is a strong match, citing specific War Chest intelligence
+5. Provide 2-3 specific customization notes explaining why this executive is a strong match, citing specific Career Vault intelligence
 
 CRITICAL REQUIREMENTS:
-- Use exact power phrases from the War Chest database when they align with job requirements
+- Use exact power phrases from the Career Vault database when they align with job requirements
 - Include specific metrics and numbers from Business Impacts (percentages, dollar amounts, scale)
 - Reference real projects from Project Portfolio when relevant to the role
 - Leverage Industry Expertise to establish domain credibility
@@ -242,7 +242,7 @@ Return ONLY a JSON object with this structure:
     return new Response(JSON.stringify({ 
       ...customizedResume,
       keywords,
-      warChestUsed: !!intelligence
+      vaultUsed: !!intelligence
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -68,16 +68,16 @@ serve(async (req) => {
 
     console.log('[GAP-ANALYSIS] Starting for user:', user.id);
 
-    // Fetch War Chest intelligence
+    // Fetch Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
-      'get-war-chest-intelligence',
+      'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
     );
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
     if (intelligence) {
-      console.log('[GAP-ANALYSIS] War Chest loaded:', {
+      console.log('[GAP-ANALYSIS] Career Vault loaded:', {
         confirmedSkills: intelligence.counts.technicalSkills,
         hiddenCompetencies: intelligence.counts.hiddenCompetencies,
         transferableSkills: intelligence.counts.transferableSkills

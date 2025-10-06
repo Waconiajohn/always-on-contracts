@@ -13,29 +13,29 @@ serve(async (req) => {
   }
 
   try {
-    const { warChestId } = await req.json();
+    const { vaultId } = await req.json();
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: warChest } = await supabase
-      .from('career_war_chest')
+    const { data: vault } = await supabase
+      .from('career_vault')
       .select('*')
-      .eq('id', warChestId)
+      .eq('id', vaultId)
       .single();
 
     const { data: responses } = await supabase
-      .from('war_chest_interview_responses')
+      .from('vault_interview_responses')
       .select('*')
-      .eq('war_chest_id', warChestId)
+      .eq('vault_id', vaultId)
       .eq('phase', 'hidden_gems');
 
-    if (!warChest) throw new Error('War chest not found');
+    if (!vault) throw new Error('Career Vault not found');
 
     const prompt = `You are an expert at discovering hidden competencies and reframing experience with modern terminology.
 
-Resume: ${warChest.resume_raw_text}
+Resume: ${vault.resume_raw_text}
 Hidden Gems Interview: ${JSON.stringify(responses)}
 
 DEEP DISCOVERY REQUIREMENTS:
@@ -62,7 +62,7 @@ Return JSON array:
   "certification_equivalent": "AI/ML Professional (practical experience) - could pass AI certifications"
 }]`;
 
-    console.log('Discovering hidden competencies for war chest:', warChestId);
+    console.log('Discovering hidden competencies for career vault:', vaultId);
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -90,9 +90,9 @@ Return JSON array:
     const competencies = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
     const insertPromises = competencies.map((comp: any) =>
-      supabase.from('war_chest_hidden_competencies').insert({
-        war_chest_id: warChestId,
-        user_id: warChest.user_id,
+      supabase.from('vault_hidden_competencies').insert({
+        vault_id: vaultId,
+        user_id: vault.user_id,
         competency_area: comp.competency_area,
         supporting_evidence: comp.supporting_evidence,
         inferred_capability: comp.inferred_capability,

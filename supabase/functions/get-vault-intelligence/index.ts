@@ -29,19 +29,19 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    console.log('[GET-WAR-CHEST-INTELLIGENCE] Fetching for user:', user.id);
+    console.log('[GET-VAULT-INTELLIGENCE] Fetching for user:', user.id);
 
-    // Get the war chest
-    const { data: warChest, error: wcError } = await supabase
-      .from('career_war_chest')
+    // Get the career vault
+    const { data: vault, error: vaultError } = await supabase
+      .from('career_vault')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (wcError || !warChest) {
+    if (vaultError || !vault) {
       return new Response(JSON.stringify({ 
         intelligence: null,
-        message: 'No War Chest found. Please complete the interview first.' 
+        message: 'No Career Vault found. Please complete the interview first.' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -52,91 +52,49 @@ serve(async (req) => {
       powerPhrases,
       transferableSkills,
       hiddenCompetencies,
-      businessImpacts,
-      leadershipEvidence,
-      technicalDepth,
-      projects,
-      industryExpertise,
-      problemSolving,
-      stakeholderMgmt,
-      careerNarrative,
-      competitiveAdvantages,
-      communication,
       interviewResponses
     ] = await Promise.all([
-      supabase.from('war_chest_power_phrases').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_transferable_skills').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_hidden_competencies').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_business_impact').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_leadership_evidence').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_technical_depth').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_projects').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_industry_expertise').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_problem_solving').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_stakeholder_mgmt').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_career_narrative').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_competitive_advantages').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_communication').select('*').eq('war_chest_id', warChest.id),
-      supabase.from('war_chest_interview_responses').select('*').eq('war_chest_id', warChest.id).order('created_at', { ascending: false })
+      supabase.from('vault_power_phrases').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_transferable_skills').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_interview_responses').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false })
     ]);
 
     const intelligence = {
       // Overview
-      completionPercentage: warChest.interview_completion_percentage || 0,
-      strengthScore: warChest.overall_strength_score || 0,
-      resumeText: warChest.resume_raw_text,
-      initialAnalysis: warChest.initial_analysis,
+      completionPercentage: vault.interview_completion_percentage || 0,
+      strengthScore: vault.overall_strength_score || 0,
+      resumeText: vault.resume_raw_text,
+      initialAnalysis: vault.initial_analysis,
       
-      // Core Intelligence (Original 3)
+      // Core Intelligence
       powerPhrases: powerPhrases.data || [],
       transferableSkills: transferableSkills.data || [],
       hiddenCompetencies: hiddenCompetencies.data || [],
-      
-      // Expanded Intelligence (New 10)
-      businessImpacts: businessImpacts.data || [],
-      leadershipEvidence: leadershipEvidence.data || [],
-      technicalDepth: technicalDepth.data || [],
-      projects: projects.data || [],
-      industryExpertise: industryExpertise.data || [],
-      problemSolving: problemSolving.data || [],
-      stakeholderManagement: stakeholderMgmt.data || [],
-      careerNarrative: careerNarrative.data || [],
-      competitiveAdvantages: competitiveAdvantages.data || [],
-      communicationExamples: communication.data || [],
       
       // Interview History
       interviewResponses: interviewResponses.data || [],
       
       // Summary Counts
       counts: {
-        powerPhrases: warChest.total_power_phrases || 0,
-        transferableSkills: warChest.total_transferable_skills || 0,
-        hiddenCompetencies: warChest.total_hidden_competencies || 0,
-        businessImpacts: warChest.total_business_impacts || 0,
-        leadershipExamples: warChest.total_leadership_examples || 0,
-        technicalSkills: warChest.total_technical_skills || 0,
-        projects: warChest.total_projects || 0,
-        industryExpertise: warChest.total_industry_expertise || 0,
-        problemSolving: warChest.total_problem_solving || 0,
-        stakeholderExamples: warChest.total_stakeholder_examples || 0,
-        careerNarrative: warChest.total_career_narrative || 0,
-        competitiveAdvantages: warChest.total_competitive_advantages || 0,
-        communicationExamples: warChest.total_communication_examples || 0,
+        powerPhrases: vault.total_power_phrases || 0,
+        transferableSkills: vault.total_transferable_skills || 0,
+        hiddenCompetencies: vault.total_hidden_competencies || 0
       },
       
       // Metadata
-      lastUpdated: warChest.last_updated_at,
-      createdAt: warChest.created_at,
+      lastUpdated: vault.last_updated_at,
+      createdAt: vault.created_at,
     };
 
-    console.log('[GET-WAR-CHEST-INTELLIGENCE] Total intelligence items:', 
+    console.log('[GET-VAULT-INTELLIGENCE] Total intelligence items:', 
       Object.values(intelligence.counts).reduce((sum, count) => sum + count, 0));
 
     return new Response(JSON.stringify({ intelligence }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('[GET-WAR-CHEST-INTELLIGENCE] Error:', error);
+    console.error('[GET-VAULT-INTELLIGENCE] Error:', error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

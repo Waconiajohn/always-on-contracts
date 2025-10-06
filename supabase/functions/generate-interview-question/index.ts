@@ -45,27 +45,27 @@ serve(async (req) => {
       confirmed_skills = []
     } = await req.json();
 
-    console.log('[GENERATE-INTERVIEW-QUESTION] Fetching War Chest intelligence for user:', user.id);
+    console.log('[GENERATE-INTERVIEW-QUESTION] Fetching Career Vault intelligence for user:', user.id);
 
-    // Get full War Chest intelligence
+    // Get full Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
-      'get-war-chest-intelligence',
+      'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
     );
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
-    const warChest = intelligence ? { 
-      id: 'war_chest_id',
+    const vault = intelligence ? { 
+      id: 'vault_id',
       user_id: user.id,
       interview_completion_percentage: intelligence.completionPercentage || 0,
       initial_analysis: intelligence.initialAnalysis || {}
     } : null;
 
-    if (!warChest) {
-      console.log('[GENERATE-INTERVIEW-QUESTION] No War Chest found');
+    if (!vault) {
+      console.log('[GENERATE-INTERVIEW-QUESTION] No Career Vault found');
       return new Response(JSON.stringify({
-        question: 'Please complete the War Chest interview first.',
-        error: 'No war chest found'
+        question: 'Please complete the Career Vault interview first.',
+        error: 'No career vault found'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
@@ -129,9 +129,9 @@ serve(async (req) => {
     let currentPhase = interviewPhases[0];
     let completionPercentage = 0;
     
-    if (warChest) {
+    if (vault) {
       const totalQuestions = interviewPhases.reduce((sum, phase) => sum + phase.questionsCount, 0);
-      const responsesCount = Math.floor(totalQuestions * (warChest.interview_completion_percentage || 0) / 100);
+      const responsesCount = Math.floor(totalQuestions * (vault.interview_completion_percentage || 0) / 100);
       
       let cumulativeQuestions = 0;
       for (const phase of interviewPhases) {
@@ -145,7 +145,7 @@ serve(async (req) => {
         }
       }
       
-      completionPercentage = warChest.interview_completion_percentage || 0;
+      completionPercentage = vault.interview_completion_percentage || 0;
     }
 
     // Persona-specific coaching styles
@@ -155,8 +155,8 @@ serve(async (req) => {
       strategist: `You are THE STRATEGIST - analytical, precise, and forward-thinking. You ask probing questions about decision-making and long-term impact. Use phrases like "Walk me through your thinking," "What were the strategic implications?" and "How did this position you for future opportunities?" Your tone is intellectual and methodical.`
     };
 
-    // Build War Chest context
-    let warChestContext = '';
+    // Build Career Vault context
+    let vaultContext = '';
     if (intelligence && intelligence.interviewResponses?.length > 0) {
       const askedTopics = intelligence.interviewResponses.map((r: any) => r.question_category).filter(Boolean);
       const recentResponses = intelligence.interviewResponses.slice(-3).map((r: any) => 
@@ -257,14 +257,9 @@ ${generate_answer_options ? `{
 }`}
 
 CRITICAL INSTRUCTIONS:
-1. Pull specific data from resume: ${JSON.stringify(warChest?.initial_analysis || {})}
-2. Create 1-3 sub-questions in questionsToExpand that probe for depth
-3. Make knownData specific and relevant to this question
-4. Provide realistic, detailed example answers with metrics
-5. Context should explain WHY this question matters strategically
-6. Focus questions on the TARGET CATEGORIES for current phase
-${generate_answer_options ? `7. For each question, generate 4-6 contextual answer options based on:
-   - Resume content: ${JSON.stringify(warChest?.initial_analysis || {})}
+1. Pull specific data from resume: ${JSON.stringify(vault?.initial_analysis || {})}
+...
+   - Resume content: ${JSON.stringify(vault?.initial_analysis || {})}
    - Confirmed skills: ${JSON.stringify(confirmed_skills)}
    - Target role requirements
    - Include realistic options the user can select
@@ -277,7 +272,7 @@ ${isFirst ? 'This is the FIRST question - focus on career overview' : ''}
 Return ONLY valid JSON in the format above.`;
 
     const userPrompt = isFirst 
-      ? `Start the War Chest interview. Resume analysis: ${JSON.stringify(warChest?.initial_analysis || {})}`
+      ? `Start the Career Vault interview. Resume analysis: ${JSON.stringify(vault?.initial_analysis || {})}`
       : `Continue the interview. Conversation so far: ${JSON.stringify(conversationHistory || [])}`;
 
     // Use Gemini 2.5 Flash for conversational questions (fast)
@@ -320,12 +315,12 @@ Return ONLY valid JSON in the format above.`;
       };
     }
 
-    // Store response in War Chest
-    if (previousResponse && warChest) {
+    // Store response in Career Vault
+    if (previousResponse && vault) {
       await supabase
-        .from('war_chest_interview_responses')
+        .from('vault_interview_responses')
         .insert({
-          war_chest_id: warChest.id,
+          vault_id: vault.id,
           user_id: user.id,
           phase: currentPhase.name,
           question: conversationHistory?.[conversationHistory.length - 2]?.content || '',

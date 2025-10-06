@@ -36,15 +36,15 @@ Deno.serve(async (req) => {
     const rolesText = target_roles?.join(', ') || 'Not specified';
     const industriesText = target_industries?.join(', ') || 'Not specified';
 
-    // Fetch War Chest for context-aware skill extraction
+    // Fetch Career Vault for context-aware skill extraction
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
-      'get-war-chest-intelligence',
+      'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
     );
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
-    let warChestContext = '';
+    let vaultContext = '';
     if (intelligence) {
       const existingSkills = intelligence.technicalDepth.map((t: any) => 
         `${t.skill_name} (${t.proficiency_level}, verified)`
@@ -58,8 +58,8 @@ Deno.serve(async (req) => {
         b.context || b.metric_type
       ).join('; ');
 
-      warChestContext = `
-WAR CHEST INTELLIGENCE (Use for skill verification):
+      vaultContext = `
+CAREER VAULT INTELLIGENCE (Use for skill verification):
 CONFIRMED SKILLS (${intelligence.counts.technicalSkills}): ${existingSkills}
 
 PROJECT TECHNOLOGIES:
@@ -69,8 +69,8 @@ ACHIEVEMENT CONTEXTS:
 ${achievementContext}
 
 **EXTRACTION MANDATE:**
-- Cross-reference skills against confirmed War Chest skills
-- If a skill matches War Chest data, mark it as verified and increase confidence
+- Cross-reference skills against confirmed Career Vault skills
+- If a skill matches Career Vault data, mark it as verified and increase confidence
 - Consider skills demonstrated in projects even if not explicitly listed
 - Look for skills implied by quantified achievements
 `;
@@ -85,28 +85,28 @@ ${resume_text}
 TARGET ROLES: ${rolesText}
 TARGET INDUSTRIES: ${industriesText}
 
-${warChestContext}
+${vaultContext}
 
 Generate three categories with HIERARCHICAL DEPTH:
 
 1. CORE SKILLS (from resume): Skills explicitly mentioned or clearly demonstrated
-   - Mark as "resume_verified" if confirmed in War Chest
+   - Mark as "resume_verified" if confirmed in Career Vault
    - Organize by skill hierarchy: Expert > Advanced > Intermediate > Basic
 
 2. INFERRED SKILLS (likely has): Skills implied by roles/achievements but not explicitly stated
-   - Verify against projects and achievements from War Chest
+   - Verify against projects and achievements from Career Vault
    - Only include if there's concrete evidence (not assumptions)
 
 3. GROWTH SKILLS (needs for target roles): Required skills with gaps
    - Check against target role requirements
-   - Exclude skills already confirmed in War Chest
+   - Exclude skills already confirmed in Career Vault
 
 For each skill, provide:
 - skill_name: Clear, specific skill name (use industry-standard terminology)
 - skill_category: One of: technical, leadership, domain_expertise, soft_skills, tools
 - skill_hierarchy: One of: expert, advanced, intermediate, basic, learning
-- source: "resume", "inferred", "growth", or "resume_verified" (if matches War Chest)
-- confidence_score: 0-100 (increase if verified in War Chest or demonstrated in projects)
+- source: "resume", "inferred", "growth", or "resume_verified" (if matches Career Vault)
+- confidence_score: 0-100 (increase if verified in Career Vault or demonstrated in projects)
 - sub_attributes: Array of 3-5 specific sub-skills or applications
 - market_frequency: Estimated % of target job postings requiring this skill (0-100)
 - evidence: Array of specific achievements, projects, or contexts demonstrating this skill
@@ -135,9 +135,9 @@ Return ONLY a JSON array of skill objects. Example:
 ]
 
 CRITICAL REQUIREMENTS:
-1. Verify skills against War Chest - mark matching skills as "resume_verified"
+1. Verify skills against Career Vault - mark matching skills as "resume_verified"
 2. Organize by skill_hierarchy (expert to learning)
-3. Include evidence array with specific examples from resume or War Chest
+3. Include evidence array with specific examples from resume or Career Vault
 4. Cross-reference skills against projects and achievements
 5. Use industry-specific terminology and skill taxonomy
 
@@ -178,28 +178,28 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
 
     console.log('[ANALYZE-RESUME] AI generated', skills.length, 'skills');
 
-    // Fetch War Chest intelligence for skill verification
+    // Fetch Career Vault intelligence for skill verification
     const { data: verificationData, error: verificationError } = await supabase.functions.invoke(
-      'get-war-chest-intelligence',
+      'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
     );
 
     const verificationIntelligence = verificationError ? null : verificationData?.intelligence;
     
     if (verificationIntelligence) {
-      console.log('[ANALYZE-RESUME] War Chest loaded for verification:', {
+      console.log('[ANALYZE-RESUME] Career Vault loaded for verification:', {
         confirmedSkills: verificationIntelligence.counts.technicalSkills,
         projects: verificationIntelligence.counts.projects,
         businessImpacts: verificationIntelligence.counts.businessImpacts
       });
 
-      // Verify skills against War Chest data
+      // Verify skills against Career Vault data
       const confirmedSkillNames = verificationIntelligence.technicalDepth.map((t: any) => t.skill_name.toLowerCase());
       const projectSkills = verificationIntelligence.projects.flatMap((p: any) => 
         (p.technologies_used || []).map((t: string) => t.toLowerCase())
       );
       
-      // Enhance skills with War Chest validation
+      // Enhance skills with Career Vault validation
       skills.forEach((skill: any) => {
         const skillLower = skill.skill_name.toLowerCase();
         
@@ -246,7 +246,7 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
         }
       });
       
-      console.log('[ANALYZE-RESUME] Skills verified against War Chest');
+      console.log('[ANALYZE-RESUME] Skills verified against Career Vault');
     }
 
     console.log('[ANALYZE-RESUME] Now verifying with Perplexity...');
@@ -303,7 +303,7 @@ Be concise but specific.`;
 
           // Store verification
           await supabase
-            .from('war_chest_verifications')
+            .from('vault_verifications')
             .insert({
               user_id: user.id,
               verification_type: 'skills',
@@ -325,7 +325,7 @@ Be concise but specific.`;
 
     // Delete existing taxonomy for this user
     await supabase
-      .from('war_chest_skill_taxonomy')
+      .from('vault_skill_taxonomy')
       .delete()
       .eq('user_id', user.id);
 
@@ -341,7 +341,7 @@ Be concise but specific.`;
     }));
 
     const { error: insertError } = await supabase
-      .from('war_chest_skill_taxonomy')
+      .from('vault_skill_taxonomy')
       .insert(taxonomyData);
 
     if (insertError) {
@@ -355,8 +355,8 @@ Be concise but specific.`;
         verified: !!verification_result,
         verification_summary: verification_result ? 'Skills verified with current market data' : 'Verification skipped',
         citations_count: citations.length,
-        war_chest_enhanced: !!intelligence,
-        war_chest_verified_count: skills.filter((s: any) => s.source === 'resume_verified').length,
+        vault_enhanced: !!intelligence,
+        vault_verified_count: skills.filter((s: any) => s.source === 'resume_verified').length,
         breakdown: {
           resume: skills.filter((s: any) => s.source === 'resume' || s.source === 'resume_verified').length,
           inferred: skills.filter((s: any) => s.source === 'inferred').length,

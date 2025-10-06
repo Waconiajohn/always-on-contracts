@@ -37,16 +37,16 @@ serve(async (req) => {
 
     console.log('[GENERATE-STAR-STORY] Starting:', { action, hasRawStory: !!rawStory, user: user.id });
 
-    // Fetch War Chest intelligence
+    // Fetch Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
-      'get-war-chest-intelligence',
+      'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
     );
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
     if (intelligence) {
-      console.log('[GENERATE-STAR-STORY] War Chest loaded:', {
+      console.log('[GENERATE-STAR-STORY] Career Vault loaded:', {
         projects: intelligence.counts.projects,
         businessImpacts: intelligence.counts.businessImpacts,
         leadershipEvidence: intelligence.counts.leadershipExamples

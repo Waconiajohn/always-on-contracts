@@ -61,16 +61,16 @@ serve(async (req) => {
 
     console.log('[OPTIMIZE-RESUME] Starting for user:', user.id);
 
-    // Fetch War Chest intelligence
+    // Fetch Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
-      'get-war-chest-intelligence',
+      'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
     );
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
     if (intelligence) {
-      console.log('[OPTIMIZE-RESUME] War Chest loaded:', {
+      console.log('[OPTIMIZE-RESUME] Career Vault loaded:', {
         powerPhrases: intelligence.counts.powerPhrases,
         businessImpacts: intelligence.counts.businessImpacts,
         confirmedSkills: intelligence.counts.technicalSkills

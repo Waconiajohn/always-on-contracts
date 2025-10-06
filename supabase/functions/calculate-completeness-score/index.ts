@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
 
     // Count confirmed skills
     const { count: confirmedCount, error: confirmedError } = await supabase
-      .from('war_chest_confirmed_skills')
+      .from('vault_confirmed_skills')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
     // Count total suggested skills
     const { count: totalCount, error: totalError } = await supabase
-      .from('war_chest_skill_taxonomy')
+      .from('vault_skill_taxonomy')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     // Get interview responses with quality scores
     const { data: responses, error: responsesError } = await supabase
-      .from('war_chest_responses')
+      .from('vault_responses')
       .select('quality_score')
       .eq('user_id', user.id);
 
