@@ -163,12 +163,15 @@ Focus on positioning experience as premium value for executive and strategic opp
 
     const analysis = JSON.parse(toolCall.function.arguments);
 
-    // Store analysis in database
+    // Extract work_history separately and exclude from database insert
+    const { work_history, ...analysisForDb } = analysis;
+
+    // Store analysis in database (excluding work_history which is a nested array)
     const { error: insertError } = await supabase
       .from("resume_analysis")
       .insert({
         user_id: userId,
-        ...analysis
+        ...analysisForDb
       });
 
     if (insertError) throw insertError;
