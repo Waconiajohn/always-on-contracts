@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { syncWarChestSkillsToProfile } from '@/lib/services/profileSync';
 
 interface SkillConfirmationStepProps {
   onComplete: () => void;
@@ -156,12 +157,26 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (confirmedCount === 0) {
       toast.error('Please confirm at least one skill before continuing');
       return;
     }
-    onComplete();
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user');
+      
+      // Sync confirmed skills to profile
+      await syncWarChestSkillsToProfile(user.id);
+      toast.success('Skills synced to your profile');
+      
+      onComplete();
+    } catch (error) {
+      console.error('Error syncing skills:', error);
+      // Don't block progression if sync fails
+      onComplete();
+    }
   };
 
   const progressPercentage = skills.length > 0 ? (confirmedCount / skills.length) * 100 : 0;

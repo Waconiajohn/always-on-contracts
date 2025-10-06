@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { optimizeResume, ResumeOptimizationResult } from '@/lib/services/resumeOptimizer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Sparkles, TrendingUp, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
+import { Loader2, Sparkles, TrendingUp, AlertCircle, CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { JobConversation } from './JobConversation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
 
 interface JobAnalysis {
   professionalTitle: string;
@@ -28,6 +29,46 @@ export function ResumeOptimizer() {
   const [jobAnalysis, setJobAnalysis] = useState<JobAnalysis | null>(null);
   const [result, setResult] = useState<ResumeOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [warChestData, setWarChestData] = useState<any>(null);
+  const [loadingWarChest, setLoadingWarChest] = useState(true);
+
+  useEffect(() => {
+    loadWarChestData();
+  }, []);
+
+  const loadWarChestData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: warChest } = await supabase
+        .from('career_war_chest')
+        .select(`
+          resume_raw_text,
+          war_chest_power_phrases(phrase, context),
+          war_chest_confirmed_skills(skill_name, proficiency_level)
+        `)
+        .eq('user_id', user.id)
+        .single();
+
+      if (warChest) {
+        setWarChestData(warChest);
+        // Auto-populate resume if empty
+        if (!resumeText && warChest.resume_raw_text) {
+          setResumeText(warChest.resume_raw_text);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading War Chest data:', error);
+    } finally {
+      setLoadingWarChest(false);
+    }
+  };
+
+  const insertPowerPhrase = (phrase: string) => {
+    setResumeText(prev => prev + '\n' + phrase);
+    toast.success('Power phrase added to resume');
+  };
 
   const handleAnalysisComplete = (analysis: JobAnalysis) => {
     setJobAnalysis(analysis);
@@ -76,6 +117,35 @@ export function ResumeOptimizer() {
             Our most powerful feature - transform your resume with AI coaching, hiring manager insights, and precision targeting
           </p>
         </div>
+
+        {warChestData && !loadingWarChest && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Your War Chest Intelligence
+              </CardTitle>
+              <CardDescription>
+                Click to add power phrases to your resume
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {warChestData.war_chest_power_phrases?.slice(0, 10).map((phrase: any, idx: number) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => insertPowerPhrase(phrase.phrase)}
+                  >
+                    <span className="text-xs">{phrase.phrase}</span>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
