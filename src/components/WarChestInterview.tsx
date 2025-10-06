@@ -315,42 +315,63 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   return (
     <div className="space-y-4">
       {/* Persona Selection & Voice Controls */}
-      <Card className="p-4 bg-gradient-to-r from-primary/5 to-purple-500/5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <UserCircle className="h-5 w-5 text-primary" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Your AI Coach</p>
-              <Select value={selectedPersona} onValueChange={(v) => setSelectedPersona(v as CoachPersona)}>
-                <SelectTrigger className="w-[200px] h-8 mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(personas).map(([key, persona]) => (
-                    <SelectItem key={key} value={key}>
+      <Card className="p-5 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="p-2 bg-background rounded-full">
+              <UserCircle className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 space-y-2">
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Select Your AI Coach</p>
+                <Select value={selectedPersona} onValueChange={(v) => setSelectedPersona(v as CoachPersona)}>
+                  <SelectTrigger className="w-full sm:w-[240px] bg-background border-primary/20 hover:border-primary/40">
+                    <SelectValue>
                       <span className="flex items-center gap-2">
-                        <span>{persona.icon}</span>
-                        <span>{persona.name}</span>
+                        <span className="text-lg">{personas[selectedPersona].icon}</span>
+                        <span className="font-medium">{personas[selectedPersona].name}</span>
                       </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-primary/20">
+                    {Object.entries(personas).map(([key, persona]) => (
+                      <SelectItem key={key} value={key} className="cursor-pointer">
+                        <div className="flex items-center gap-3 py-1">
+                          <span className="text-xl">{persona.icon}</span>
+                          <div>
+                            <p className="font-medium">{persona.name}</p>
+                            <p className="text-xs text-muted-foreground">{persona.description}</p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {personas[selectedPersona].description} • Questions will be spoken aloud
+              </p>
             </div>
           </div>
           <Button
-            variant="ghost"
+            variant={voiceEnabled ? "default" : "outline"}
             size="sm"
             onClick={() => setVoiceEnabled(!voiceEnabled)}
-            className="gap-2"
+            className="gap-2 shrink-0"
           >
-            {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            {voiceEnabled ? 'Voice On' : 'Voice Off'}
+            {voiceEnabled ? (
+              <>
+                <Volume2 className="h-4 w-4" />
+                Voice On
+              </>
+            ) : (
+              <>
+                <VolumeX className="h-4 w-4" />
+                Voice Off
+              </>
+            )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {personas[selectedPersona].description}
-        </p>
       </Card>
 
       {/* Header with phase and progress */}
