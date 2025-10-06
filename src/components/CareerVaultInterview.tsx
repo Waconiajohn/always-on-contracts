@@ -1032,8 +1032,8 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
           totalQuestions={totalQuestions}
         />
 
-        {/* Accept and Continue - when quality >= 70 */}
-        {showAcceptButton && qualityScore >= 70 && (
+        {/* Accept and Continue - when quality >= 40 */}
+        {showAcceptButton && qualityScore >= 40 && (
           <Alert className="mt-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
             <AlertDescription className="space-y-3">
               <p className="text-sm font-medium text-green-900 dark:text-green-100">

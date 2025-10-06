@@ -37,6 +37,12 @@ ${question}
 USER'S ANSWER:
 ${combinedAnswer}
 
+IMPORTANT SCORING GUIDELINES:
+- If user selected multiple checkboxes (3+), they are showing breadth of experience. Base score should be at least 60.
+- If user selected 5+ checkboxes, base score should be at least 70, as they're demonstrating significant experience.
+- Checkbox selections ARE valuable data points and should be weighted appropriately.
+- Only penalize heavily if BOTH checkbox selections are minimal AND no custom details are provided.
+
 Evaluate this answer for:
 1. Specificity (Are there concrete details, not vague statements?)
 2. Quantification (Are there numbers, metrics, percentages, dollar amounts?)
