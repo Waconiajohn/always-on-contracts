@@ -52,6 +52,10 @@ const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
 const CareerCommandCenter = lazy(() => import("./pages/CareerCommandCenter"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const ProcessingMonitor = lazy(() => import("./pages/ProcessingMonitor"));
+const Outreach = lazy(() => import("./pages/Outreach"));
+const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
+const MCPTestDashboard = lazy(() => import("./pages/MCPTestDashboard"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -116,6 +120,7 @@ const App = () => (
             <Route path="/war-chest/onboarding" element={<ProtectedRoute><WarChestOnboarding /></ProtectedRoute>} />
             <Route path="/learn" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
+            <Route path="/processing-monitor" element={<ProtectedRoute><ProcessingMonitor /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
                   </Routes>

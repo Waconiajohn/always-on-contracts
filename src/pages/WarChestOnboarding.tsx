@@ -51,20 +51,10 @@ const WarChestOnboarding = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Convert file to base64
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64Data = result.split(',')[1]; // Remove data:mime;base64, prefix
-          resolve(base64Data);
-        };
-        reader.onerror = reject;
-      });
-      reader.readAsDataURL(resumeFile);
-      const base64Data = await base64Promise;
+      // Read file as text
+      const fileText = await resumeFile.text();
 
-      // Upload to storage
+      // Upload to storage first
       const filePath = `${user.id}/${Date.now()}_${resumeFile.name}`;
       const { error: uploadError } = await supabase.storage
         .from('resumes')
@@ -72,65 +62,49 @@ const WarChestOnboarding = () => {
 
       if (uploadError) throw uploadError;
 
-      // Parse resume with base64 data
-      const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-resume', {
-        body: { 
-          fileName: resumeFile.name, 
-          fileData: base64Data 
-        }
-      });
-
-      if (parseError) throw parseError;
-      
-      if (!parseData.success) {
-        throw new Error(parseData.error || 'Failed to parse resume');
-      }
-
-      const extractedText = parseData.text;
-      setResumeText(extractedText);
-
-      // Analyze resume to get structured data
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-resume', {
+      // Use new unified process-resume function
+      const { data: processData, error: processError } = await supabase.functions.invoke('process-resume', {
         body: {
-          resumeText: extractedText,
+          fileText,
+          fileName: resumeFile.name,
+          fileSize: resumeFile.size,
+          fileType: resumeFile.type,
           userId: user.id
         }
       });
 
-      if (analysisError) throw analysisError;
-
-      setResumeAnalysis(analysisData);
-
-      // Initialize War Chest
-      const { error: upsertError } = await supabase.from('career_war_chest').upsert({
-        user_id: user.id,
-        resume_raw_text: extractedText,
-        interview_completion_percentage: 25,
-        initial_analysis: analysisData
-      }, {
-        onConflict: 'user_id'
-      });
-
-      if (upsertError) {
-        console.error('Error initializing War Chest:', upsertError);
-        throw new Error('Failed to initialize War Chest');
+      if (processError) throw processError;
+      
+      if (!processData.success) {
+        toast({
+          title: "Processing Failed",
+          description: processData.error || "Failed to process resume",
+          variant: "destructive"
+        });
+        
+        if (processData.solutions) {
+          console.log("Suggested solutions:", processData.solutions);
+        }
+        return;
       }
 
+      setResumeText(processData.extractedText);
+      setResumeAnalysis(processData.analysis);
+
       toast({
-        title: 'Resume Uploaded',
-        description: 'Moving to career goals...'
+        title: "Resume Processed",
+        description: processData.cached 
+          ? "Found matching resume in cache - instant analysis!"
+          : "Your resume has been analyzed successfully",
       });
 
       setCurrentStep('goals');
     } catch (error: any) {
       console.error('Upload error:', error);
-      
-      const errorMessage = error?.message || 'Please try again.';
-      
       toast({
-        title: 'Upload Failed',
-        description: errorMessage,
-        variant: 'destructive'
+        title: "Upload Failed",
+        description: error.message || "Failed to upload resume",
+        variant: "destructive"
       });
     } finally {
       setIsUploading(false);
