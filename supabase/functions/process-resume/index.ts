@@ -181,6 +181,9 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
         // Import PDF.js from CDN
         const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/+esm');
         
+        // Configure the worker source for PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
+        
         // Load the PDF document
         const loadingTask = pdfjsLib.getDocument({ data: bytes });
         const pdf = await loadingTask.promise;
