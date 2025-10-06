@@ -70,7 +70,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+      <TooltipProvider delayDuration={300} skipDelayDuration={0}>
         <Toaster />
         <Sonner />
         <BrowserRouter>

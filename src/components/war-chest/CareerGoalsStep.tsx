@@ -159,12 +159,18 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
             <Label className="text-sm font-semibold">At Your Level</Label>
             <div className="grid gap-3">
               {roleSuggestions.current_level.map((role) => (
-                <div key={role} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => toggleRole(role)}>
+                <div key={role} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
                   <Checkbox
+                    id={`role-current-${role}`}
                     checked={selectedRoles.includes(role)}
                     onCheckedChange={() => toggleRole(role)}
                   />
-                  <label className="flex-1 cursor-pointer">{role}</label>
+                  <label 
+                    htmlFor={`role-current-${role}`}
+                    className="flex-1 cursor-pointer select-none"
+                  >
+                    {role}
+                  </label>
                 </div>
               ))}
             </div>
@@ -175,12 +181,18 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
             <Label className="text-sm font-semibold">Stretch Roles (One level up)</Label>
             <div className="grid gap-3">
               {roleSuggestions.stretch.map((role) => (
-                <div key={role} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => toggleRole(role)}>
+                <div key={role} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
                   <Checkbox
+                    id={`role-stretch-${role}`}
                     checked={selectedRoles.includes(role)}
                     onCheckedChange={() => toggleRole(role)}
                   />
-                  <label className="flex-1 cursor-pointer">{role}</label>
+                  <label 
+                    htmlFor={`role-stretch-${role}`}
+                    className="flex-1 cursor-pointer select-none"
+                  >
+                    {role}
+                  </label>
                 </div>
               ))}
             </div>
@@ -192,12 +204,18 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
               <Label className="text-sm font-semibold">Alternative Paths</Label>
               <div className="grid gap-3">
                 {roleSuggestions.safety.map((role) => (
-                  <div key={role} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => toggleRole(role)}>
+                  <div key={role} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
                     <Checkbox
+                      id={`role-safety-${role}`}
                       checked={selectedRoles.includes(role)}
                       onCheckedChange={() => toggleRole(role)}
                     />
-                    <label className="flex-1 cursor-pointer">{role}</label>
+                    <label 
+                      htmlFor={`role-safety-${role}`}
+                      className="flex-1 cursor-pointer select-none"
+                    >
+                      {role}
+                    </label>
                   </div>
                 ))}
               </div>
@@ -232,12 +250,18 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {industryOptions.map((industry) => (
-              <div key={industry} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => toggleIndustry(industry)}>
+              <div key={industry} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
                 <Checkbox
+                  id={`industry-${industry}`}
                   checked={selectedIndustries.includes(industry)}
                   onCheckedChange={() => toggleIndustry(industry)}
                 />
-                <label className="flex-1 cursor-pointer text-sm">{industry}</label>
+                <label 
+                  htmlFor={`industry-${industry}`}
+                  className="flex-1 cursor-pointer select-none text-sm"
+                >
+                  {industry}
+                </label>
               </div>
             ))}
           </div>
