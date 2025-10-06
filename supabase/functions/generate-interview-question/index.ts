@@ -42,8 +42,23 @@ serve(async (req) => {
       conversationHistory, 
       persona = 'mentor',
       generate_answer_options = false,
-      confirmed_skills = []
+      confirmed_skills = [],
+      milestone_id = null
     } = await req.json();
+    
+    // Fetch milestone context if provided
+    let milestoneContext = null;
+    if (milestone_id) {
+      const { data: milestone } = await supabase
+        .from('vault_resume_milestones')
+        .select('*')
+        .eq('id', milestone_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      milestoneContext = milestone;
+      console.log('[GENERATE-INTERVIEW-QUESTION] Milestone context loaded:', milestone?.company_name, milestone?.job_title);
+    }
 
     console.log('[GENERATE-INTERVIEW-QUESTION] Fetching Career Vault intelligence for user:', user.id);
 
@@ -175,6 +190,31 @@ ${recentResponses}
 
 **PROGRESSIVE DEEPENING:** Build on existing intelligence - reference projects/achievements already mentioned and dig deeper.
 `;
+    }
+    
+    // Add milestone-specific context if provided
+    let milestonePromptSection = '';
+    if (milestoneContext) {
+      milestonePromptSection = `
+
+📍 RESUME-GROUNDED CONTEXT - Expand on this specific experience:
+Company: ${milestoneContext.company_name || 'N/A'}
+Role: ${milestoneContext.job_title || 'N/A'}
+Period: ${milestoneContext.start_date || '?'} to ${milestoneContext.end_date || '?'}
+Summary: ${milestoneContext.description || 'N/A'}
+Known Achievements: ${milestoneContext.key_achievements?.join(', ') || 'None listed'}
+
+Progress: ${milestoneContext.questions_answered}/${milestoneContext.questions_asked} questions answered
+Intelligence extracted: ${milestoneContext.intelligence_extracted || 0} items
+
+**YOUR TASK:** Generate a targeted question to extract MORE intelligence from this specific role/project:
+1. PRE-FILL known context from the resume
+2. Ask the user to expand with STAR details (Situation, Task, Action, Result)
+3. Focus on quantifiable outcomes and specific examples
+4. If this is an early question, ask about the biggest achievement
+5. If later questions, dig into specific aspects (leadership, technical, stakeholder mgmt)
+
+Make the question SPECIFIC to this role, not generic.`;
     }
 
     const systemPrompt = `${personaStyles[persona as keyof typeof personaStyles] || personaStyles.mentor}

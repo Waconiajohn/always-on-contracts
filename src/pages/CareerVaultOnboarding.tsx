@@ -10,6 +10,7 @@ import { CareerVaultInterview } from '@/components/CareerVaultInterview';
 import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { AIAnalysisStep } from '@/components/career-vault/AIAnalysisStep';
 import { SkillConfirmationStep } from '@/components/career-vault/SkillConfirmationStep';
+import { MilestoneProgress } from '@/components/career-vault/MilestoneProgress';
 
 type OnboardingStep = 'upload' | 'goals' | 'analysis' | 'skills' | 'interview' | 'complete';
 
@@ -21,6 +22,9 @@ const CareerVaultOnboarding = () => {
   const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
   const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [currentMilestoneId, setCurrentMilestoneId] = useState<string | null>(null);
+  const [totalIntelligenceExtracted, setTotalIntelligenceExtracted] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -147,6 +151,30 @@ const CareerVaultOnboarding = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Parse resume into milestones for interview
+      const { data: vault } = await supabase
+        .from('career_vault')
+        .select('id, resume_raw_text')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (vault && vault.resume_raw_text) {
+        console.log('Parsing resume into milestones...');
+        const { data: milestonesData } = await supabase.functions.invoke('parse-resume-milestones', {
+          body: {
+            resumeText: vault.resume_raw_text,
+            vaultId: vault.id
+          }
+        });
+
+        if (milestonesData && milestonesData.success) {
+          toast({
+            title: 'Resume parsed!',
+            description: `Found ${milestonesData.milestones.length} career milestones to expand on`,
+          });
+        }
+      }
 
       await supabase
         .from('career_vault')

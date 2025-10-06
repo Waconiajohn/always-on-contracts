@@ -176,3 +176,18 @@ verify_jwt = true
 
 [functions.send-interview-communication]
 verify_jwt = true
+
+[functions.parse-resume-milestones]
+verify_jwt = true
+
+[functions.verify-vault-with-perplexity]
+verify_jwt = true
+
+[functions.extract-vault-intelligence]
+verify_jwt = true
+
+[functions.get-vault-intelligence]
+verify_jwt = true
+
+[functions.calculate-completeness-score]
+verify_jwt = true

@@ -57,11 +57,12 @@ interface ValidationResult {
 
 interface CareerVaultInterviewProps {
   onComplete: () => void;
+  currentMilestoneId?: string | null;
 }
 
 type CoachPersona = 'mentor' | 'challenger' | 'strategist';
 
-export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) => {
+export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMilestoneId }: CareerVaultInterviewProps) => {
   const [currentQuestion, setCurrentQuestion] = useState<QuestionData | null>(null);
   const [currentSubQuestionIndex, setCurrentSubQuestionIndex] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -91,6 +92,9 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
   const [dynamicQuestionCount, setDynamicQuestionCount] = useState(50);
   const [completenessScore, setCompletenessScore] = useState(0);
   const [resumeText, setResumeText] = useState('');
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [currentMilestoneId, setCurrentMilestoneId] = useState<string | null>(null);
+  const [totalIntelligenceExtracted, setTotalIntelligenceExtracted] = useState(0);
   
   // Audio/voice state (kept for backward compatibility, made optional)
   const [selectedPersona, setSelectedPersona] = useState<CoachPersona>('mentor');
@@ -117,8 +121,15 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
   };
 
   useEffect(() => {
+    if (propMilestoneId) {
+      setCurrentMilestoneId(propMilestoneId);
+    }
+  }, [propMilestoneId]);
+
+  useEffect(() => {
     startInterview();
     calculateDynamicQuestionCount();
+    loadMilestones();
   }, []);
 
   const calculateDynamicQuestionCount = async () => {
@@ -136,6 +147,44 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
       }
     } catch (error) {
       console.error('Error calculating question count:', error);
+    }
+  };
+  
+  const loadMilestones = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get vault ID
+      const { data: vault } = await supabase
+        .from('career_vault')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!vault) return;
+
+      // Load milestones
+      const { data: milestonesData } = await supabase
+        .from('vault_resume_milestones')
+        .select('*')
+        .eq('vault_id', vault.id)
+        .order('start_date', { ascending: false });
+
+      if (milestonesData && milestonesData.length > 0) {
+        setMilestones(milestonesData);
+        // Set first incomplete milestone as current
+        const firstIncomplete = milestonesData.find(m => m.completion_percentage < 100);
+        if (firstIncomplete) {
+          setCurrentMilestoneId(firstIncomplete.id);
+        }
+        
+        // Calculate total intelligence
+        const total = milestonesData.reduce((sum, m) => sum + (m.intelligence_extracted || 0), 0);
+        setTotalIntelligenceExtracted(total);
+      }
+    } catch (error) {
+      console.error('Error loading milestones:', error);
     }
   };
 
@@ -240,7 +289,8 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
           phase: 'discovery', 
           isFirst: true,
           generate_answer_options: true,
-          confirmed_skills: confirmedSkills || []
+          confirmed_skills: confirmedSkills || [],
+          milestone_id: currentMilestoneId
         }
       });
 
