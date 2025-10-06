@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2, Volume2, VolumeX, UserCircle } from 'lucide-react';
+import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2, Volume2, VolumeX, UserCircle, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { VoiceInput } from './VoiceInput';
@@ -493,17 +493,47 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
         {/* Validation feedback */}
         {validationFeedback && (
-          <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
-            <AlertDescription className="text-sm">
-              💡 {validationFeedback}
-            </AlertDescription>
-          </Alert>
+          <>
+            <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+              <AlertDescription className="text-sm">
+                💡 {validationFeedback}
+              </AlertDescription>
+            </Alert>
+            <Alert className="mt-2 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+              <AlertDescription className="text-sm font-medium flex items-center gap-2">
+                <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                Click the microphone to continue speaking and add more detail to your answer
+              </AlertDescription>
+            </Alert>
+          </>
         )}
 
         {/* Quality score */}
         {qualityScore > 0 && (
-          <div className="mt-4 text-sm text-muted-foreground">
-            Response quality: {qualityScore}/100
+          <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">Response Quality:</span>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+                  {qualityScore}/100
+                </div>
+                {qualityScore < 70 && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+                    Add more detail
+                  </span>
+                )}
+                {qualityScore >= 70 && qualityScore < 90 && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                    Good progress
+                  </span>
+                )}
+                {qualityScore >= 90 && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                    Excellent!
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
