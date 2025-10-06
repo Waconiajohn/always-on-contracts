@@ -31,7 +31,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
     {
       id: 2,
       title: "Meet Your Corporate Assistant",
-      description: "AI-powered career strategist to build your War Chest",
+      description: "AI-powered career strategist to build your Career Vault",
       icon: MessageSquare,
       completed: false,
       route: "/agents/corporate-assistant"
@@ -39,18 +39,18 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
     {
       id: 3,
       title: "Complete Career Interview",
-      description: "Answer 20-30 questions to expand your War Chest",
+      description: "Answer 20-30 questions to expand your Career Vault",
       icon: Target,
       completed: false,
       route: "/agents/corporate-assistant"
     },
     {
       id: 4,
-      title: "Review Your War Chest",
+      title: "Review Your Career Vault",
       description: "See your power phrases, skills, and hidden competencies",
       icon: CheckCircle2,
       completed: false,
-      route: "/war-chest-dashboard"
+      route: "/career-vault"
     },
     {
       id: 5,
@@ -76,7 +76,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       <div className="mb-8 animate-fade-in">
         <h2 className="text-3xl font-bold mb-2">Welcome to CareerIQ</h2>
         <p className="text-muted-foreground text-lg">
-          Let's build your Career War Chest - a comprehensive intelligence system of your skills, 
+          Let's build your Career Vault - a comprehensive intelligence system of your skills, 
           achievements, and capabilities
         </p>
       </div>
@@ -150,10 +150,10 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       <div className="mt-8 p-6 bg-blue-500/10 rounded-lg border border-blue-500/20">
         <h3 className="font-semibold mb-2 flex items-center gap-2">
           <Target className="h-5 w-5 text-blue-500" />
-          What is a War Chest?
+          What is a Career Vault?
         </h3>
         <p className="text-sm text-muted-foreground">
-          Your Career War Chest is a living document that captures not just what you've done, 
+          Your Career Vault is a living document that captures not just what you've done, 
           but what you're truly capable of. It includes:
         </p>
         <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">

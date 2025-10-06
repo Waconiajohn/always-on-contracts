@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { warChest } from "@/lib/mcp-client";
+import { careerVault } from "@/lib/mcp-client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Zap, Brain, FileText, TrendingUp, Award, Trophy } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
-interface WarChestStats {
+interface VaultStats {
   total_power_phrases: number;
   total_transferable_skills: number;
   total_hidden_competencies: number;
@@ -56,10 +57,11 @@ import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
 import { MarketResearchPanel } from '@/components/MarketResearchPanel';
 import { EnhancementQueue } from '@/components/EnhancementQueue';
 
-const WarChestDashboardContent = () => {
+const VaultDashboardContent = () => {
+  const navigate = useNavigate();
   const [userId, setUserId] = useState<string>("");
-  const [warChestId, setWarChestId] = useState<string>("");
-  const [stats, setStats] = useState<WarChestStats | null>(null);
+  const [vaultId, setVaultId] = useState<string>("");
+  const [stats, setStats] = useState<VaultStats | null>(null);
   const [powerPhrases, setPowerPhrases] = useState<PowerPhrase[]>([]);
   const [transferableSkills, setTransferableSkills] = useState<TransferableSkill[]>([]);
   const [hiddenCompetencies, setHiddenCompetencies] = useState<HiddenCompetency[]>([]);
@@ -131,25 +133,25 @@ const WarChestDashboardContent = () => {
       setUserId(user.id);
 
       try {
-        // Get war chest data via MCP
-        const warChestResponse = await warChest.get();
+        // Get career vault data via MCP
+        const vaultResponse = await careerVault.get();
         
-        if (warChestResponse.data) {
-          const wc = warChestResponse.data;
-          setWarChestId(wc.id);
+        if (vaultResponse.data) {
+          const vault = vaultResponse.data;
+          setVaultId(vault.id);
           setStats({
-            total_power_phrases: wc.total_power_phrases || 0,
-            total_transferable_skills: wc.total_transferable_skills || 0,
-            total_hidden_competencies: wc.total_hidden_competencies || 0,
-            overall_strength_score: wc.overall_strength_score || 0,
-            interview_completion_percentage: wc.interview_completion_percentage || 0
+            total_power_phrases: vault.total_power_phrases || 0,
+            total_transferable_skills: vault.total_transferable_skills || 0,
+            total_hidden_competencies: vault.total_hidden_competencies || 0,
+            overall_strength_score: vault.overall_strength_score || 0,
+            interview_completion_percentage: vault.interview_completion_percentage || 0
           });
 
           // Get power phrases via MCP
           const { data: phrases } = await supabase
             .from('vault_power_phrases')
             .select('*')
-            .eq('vault_id', wc.id)
+            .eq('vault_id', vault.id)
             .order('confidence_score', { ascending: false });
 
           setPowerPhrases(phrases || []);
@@ -158,7 +160,7 @@ const WarChestDashboardContent = () => {
           const { data: skills } = await supabase
             .from('vault_transferable_skills')
             .select('*')
-            .eq('vault_id', wc.id)
+            .eq('vault_id', vault.id)
             .order('confidence_score', { ascending: false });
 
           setTransferableSkills(skills || []);
@@ -167,7 +169,7 @@ const WarChestDashboardContent = () => {
           const { data: competencies } = await supabase
             .from('vault_hidden_competencies')
             .select('*')
-            .eq('vault_id', wc.id)
+            .eq('vault_id', vault.id)
             .order('confidence_score', { ascending: false });
 
           setHiddenCompetencies(competencies || []);
@@ -180,10 +182,10 @@ const WarChestDashboardContent = () => {
           await supabase
             .from('career_vault')
             .update({ overall_strength_score: score.total })
-            .eq('id', wc.id);
+            .eq('id', vault.id);
         }
       } catch (error) {
-        console.error('Error fetching war chest data:', error);
+        console.error('Error fetching career vault data:', error);
       }
 
       setLoading(false);
@@ -195,7 +197,7 @@ const WarChestDashboardContent = () => {
   if (loading) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
-        <div className="text-center">Loading your War Chest...</div>
+        <div className="text-center">Loading your Career Vault...</div>
       </div>
     );
   }
@@ -205,8 +207,8 @@ const WarChestDashboardContent = () => {
       <div className="container mx-auto p-6 max-w-6xl">
         <Card className="p-8 text-center">
           <Target className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold mb-2">No War Chest Yet</h2>
-          <p className="text-muted-foreground">Complete your interview with the Corporate Assistant to build your War Chest.</p>
+          <h2 className="text-2xl font-semibold mb-2">No Career Vault Yet</h2>
+          <p className="text-muted-foreground">Complete your interview with the Corporate Assistant to build your Career Vault.</p>
         </Card>
       </div>
     );
@@ -215,13 +217,13 @@ const WarChestDashboardContent = () => {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Your Career War Chest</h1>
+        <h1 className="text-3xl font-bold mb-2">Your Career Vault</h1>
         <p className="text-muted-foreground">
           A comprehensive intelligence system of your skills, achievements, and capabilities
         </p>
       </div>
 
-      {/* War Chest Strength Score - Prominent Display */}
+      {/* Career Vault Strength Score - Prominent Display */}
       {strengthScore && (
         <Card className="p-8 mb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
           <div className="flex items-center justify-between mb-6">
@@ -367,7 +369,7 @@ const WarChestDashboardContent = () => {
         </TabsList>
 
         <TabsContent value="enhancement-queue">
-          <EnhancementQueue vaultId={warChestId} />
+          <EnhancementQueue vaultId={vaultId} />
         </TabsContent>
 
         <TabsContent value="power-phrases" className="space-y-4">
@@ -451,7 +453,7 @@ const WarChestDashboardContent = () => {
         </TabsContent>
 
         <TabsContent value="responses">
-          <InterviewResponsesTab vaultId={warChestId} />
+          <InterviewResponsesTab vaultId={vaultId} />
         </TabsContent>
 
         <TabsContent value="market-research">
@@ -462,10 +464,10 @@ const WarChestDashboardContent = () => {
   );
 };
 
-export default function WarChestDashboard() {
+export default function CareerVaultDashboard() {
   return (
     <ProtectedRoute>
-      <WarChestDashboardContent />
+      <VaultDashboardContent />
     </ProtectedRoute>
   );
 }

@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Syncs confirmed skills from War Chest to user profile
+ * Syncs confirmed skills from Career Vault to user profile
  * This ensures the profile always reflects the latest confirmed skills
  */
 export const syncVaultSkillsToProfile = async (userId: string): Promise<void> => {
@@ -36,7 +36,7 @@ export const syncVaultSkillsToProfile = async (userId: string): Promise<void> =>
 
     console.log(`Synced ${skillNames.length} skills to profile`);
   } catch (error) {
-    console.error('Failed to sync War Chest skills to profile:', error);
+    console.error('Failed to sync Career Vault skills to profile:', error);
     throw error;
   }
 };
@@ -60,7 +60,7 @@ export const getVaultStatus = async (userId: string) => {
       isComplete: (data?.interview_completion_percentage || 0) === 100
     };
   } catch (error) {
-    console.error('Error getting War Chest status:', error);
+    console.error('Error getting Career Vault status:', error);
     return {
       completionPercentage: 0,
       strengthScore: 0,

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface OnboardingStatus {
   hasResume: boolean;
   hasCompletedInterview: boolean;
-  hasReviewedWarChest: boolean;
+  hasReviewedVault: boolean;
   isOnboardingComplete: boolean;
   loading: boolean;
 }
@@ -13,7 +13,7 @@ export const useOnboarding = () => {
   const [status, setStatus] = useState<OnboardingStatus>({
     hasResume: false,
     hasCompletedInterview: false,
-    hasReviewedWarChest: false,
+    hasReviewedVault: false,
     isOnboardingComplete: false,
     loading: true,
   });
@@ -48,8 +48,8 @@ export const useOnboarding = () => {
 
       const hasCompletedInterview = profile?.strategy_customized || false;
 
-      // Check for war chest review (assuming they've accessed it)
-      const hasReviewedWarChest = localStorage.getItem(`war_chest_reviewed_${user.id}`) === "true";
+      // Check for career vault review (assuming they've accessed it)
+      const hasReviewedVault = localStorage.getItem(`vault_reviewed_${user.id}`) === "true";
       
       // Simple onboarding completion check based on key milestones
       const isOnboardingComplete = hasResume && hasCompletedInterview;
@@ -57,7 +57,7 @@ export const useOnboarding = () => {
       setStatus({
         hasResume,
         hasCompletedInterview,
-        hasReviewedWarChest,
+        hasReviewedVault,
         isOnboardingComplete,
         loading: false,
       });
@@ -75,11 +75,11 @@ export const useOnboarding = () => {
     }
   };
 
-  const markWarChestReviewed = () => {
+  const markVaultReviewed = () => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        localStorage.setItem(`war_chest_reviewed_${user.id}`, "true");
-        setStatus(prev => ({ ...prev, hasReviewedWarChest: true }));
+        localStorage.setItem(`vault_reviewed_${user.id}`, "true");
+        setStatus(prev => ({ ...prev, hasReviewedVault: true }));
       }
     });
   };
@@ -87,7 +87,7 @@ export const useOnboarding = () => {
   return {
     ...status,
     markOnboardingComplete,
-    markWarChestReviewed,
+    markVaultReviewed,
     refresh: checkOnboardingStatus,
   };
 };

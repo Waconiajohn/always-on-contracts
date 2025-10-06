@@ -160,7 +160,7 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold">What are your career goals?</h2>
         <p className="text-muted-foreground">
-          Help us tailor your War Chest by selecting your target roles and industries
+          Help us tailor your Career Vault by selecting your target roles and industries
         </p>
       </div>
 

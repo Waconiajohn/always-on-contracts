@@ -45,9 +45,9 @@ export async function callMCPTool(
 }
 
 /**
- * War Chest MCP Tools
+ * Career Vault MCP Tools
  */
-export const warChest = {
+export const careerVault = {
   create: async (resumeText?: string) => {
     return callMCPTool('warchest.create', { resumeText });
   },

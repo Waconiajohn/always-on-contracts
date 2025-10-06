@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
-  warChest,
+  careerVault,
   research,
   resume,
   application,
@@ -52,20 +52,20 @@ export default function MCPTestDashboard() {
     setTestResults(prev => [...prev, result]);
   };
 
-  const testWarChestMCP = async () => {
+  const testCareerVaultMCP = async () => {
     const start = Date.now();
     try {
-      const result = await warChest.get();
+      const result = await careerVault.get();
       addResult({
-        mcp: 'War Chest',
+        mcp: 'Career Vault',
         tool: 'get',
         status: result.error ? 'error' : 'success',
-        message: result.error || `Found ${result.data ? 'war chest data' : 'no data'}`,
+        message: result.error || `Found ${result.data ? 'career vault data' : 'no data'}`,
         duration: Date.now() - start
       });
     } catch (error: any) {
       addResult({
-        mcp: 'War Chest',
+        mcp: 'Career Vault',
         tool: 'get',
         status: 'error',
         message: error.message,
@@ -281,7 +281,7 @@ export default function MCPTestDashboard() {
       description: "Testing all 10 MCPs..."
     });
 
-    await testWarChestMCP();
+    await testCareerVaultMCP();
     await testResearchMCP();
     await testResumeMCP();
     await testApplicationMCP();
@@ -304,7 +304,7 @@ export default function MCPTestDashboard() {
   };
 
   const mcpCards = [
-    { icon: Database, name: "War Chest", test: testWarChestMCP, color: "text-blue-500" },
+    { icon: Database, name: "Career Vault", test: testCareerVaultMCP, color: "text-blue-500" },
     { icon: Search, name: "Research", test: testResearchMCP, color: "text-purple-500" },
     { icon: FileText, name: "Resume", test: testResumeMCP, color: "text-green-500" },
     { icon: Send, name: "Application", test: testApplicationMCP, color: "text-orange-500" },
@@ -455,7 +455,7 @@ export default function MCPTestDashboard() {
               <div>
                 <h3 className="font-semibold mb-2">Core MCPs</h3>
                 <ul className="space-y-1 text-muted-foreground">
-                  <li>• War Chest - Career intelligence storage</li>
+                  <li>• Career Vault - Career intelligence storage</li>
                   <li>• Research - Experimental lab features</li>
                   <li>• Resume Intelligence - Resume analysis</li>
                   <li>• Application Automation - Job applications</li>
