@@ -141,5 +141,11 @@ verify_jwt = true
 [functions.extract-war-chest-intelligence]
 verify_jwt = true
 
+[functions.get-war-chest-intelligence]
+verify_jwt = true
+
+[functions.text-to-speech]
+verify_jwt = true
+
 [functions.job-search-assistant]
 verify_jwt = true

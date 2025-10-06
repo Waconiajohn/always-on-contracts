@@ -44,72 +44,135 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    const systemPrompt = `You are an elite career intelligence analyst conducting an adaptive interview to build a comprehensive career "War Chest."
+    // 6-Phase Enhanced Interview Strategy
+    const interviewPhases = [
+      {
+        name: 'foundation',
+        title: 'Foundation & Overview',
+        description: 'Establish core career profile and baseline capabilities',
+        targetCategories: ['power_phrases', 'transferable_skills', 'career_narrative'],
+        questionsCount: 8,
+      },
+      {
+        name: 'impact_mining',
+        title: 'Impact Mining & Quantification',
+        description: 'Extract quantified business results and measurable achievements',
+        targetCategories: ['business_impact', 'problem_solving', 'competitive_advantages'],
+        questionsCount: 10,
+      },
+      {
+        name: 'leadership_depth',
+        title: 'Leadership & Influence',
+        description: 'Explore leadership experience, team management, and stakeholder influence',
+        targetCategories: ['leadership_evidence', 'stakeholder_mgmt', 'communication'],
+        questionsCount: 8,
+      },
+      {
+        name: 'technical_mastery',
+        title: 'Technical Depth & Expertise',
+        description: 'Document technical skills, tools, methodologies, and industry knowledge',
+        targetCategories: ['technical_depth', 'industry_expertise', 'hidden_competencies'],
+        questionsCount: 8,
+      },
+      {
+        name: 'project_showcase',
+        title: 'Project Portfolio & Problem-Solving',
+        description: 'Capture detailed project experiences and complex problem-solving examples',
+        targetCategories: ['projects', 'problem_solving', 'technical_depth'],
+        questionsCount: 10,
+      },
+      {
+        name: 'future_positioning',
+        title: 'Strategic Positioning & Future',
+        description: 'Define career trajectory, competitive advantages, and market positioning',
+        targetCategories: ['competitive_advantages', 'career_narrative', 'industry_expertise'],
+        questionsCount: 6,
+      },
+    ];
 
-YOUR GOAL: Extract deep, actionable career intelligence through structured, contextual questions.
+    // Calculate which phase we're in based on completion percentage
+    let currentPhase = interviewPhases[0];
+    let completionPercentage = 0;
+    
+    if (warChest) {
+      const totalQuestions = interviewPhases.reduce((sum, phase) => sum + phase.questionsCount, 0);
+      const responsesCount = Math.floor(totalQuestions * (warChest.interview_completion_percentage || 0) / 100);
+      
+      let cumulativeQuestions = 0;
+      for (const phase of interviewPhases) {
+        cumulativeQuestions += phase.questionsCount;
+        if (responsesCount < cumulativeQuestions) {
+          currentPhase = phase;
+          break;
+        }
+        if (phase === interviewPhases[interviewPhases.length - 1]) {
+          currentPhase = phase;
+        }
+      }
+      
+      completionPercentage = warChest.interview_completion_percentage || 0;
+    }
+
+    const systemPrompt = `You are an expert career coach conducting an in-depth career intelligence interview.
+
+CURRENT INTERVIEW PHASE: ${currentPhase.title} (${currentPhase.name})
+PHASE DESCRIPTION: ${currentPhase.description}
+TARGET INTELLIGENCE CATEGORIES: ${currentPhase.targetCategories.join(', ')}
+OVERALL COMPLETION: ${completionPercentage}%
+
+Your goal is to extract SPECIFIC, QUANTIFIED, and COMPELLING career intelligence across 13 categories:
+
+**Core Intelligence (Original 3):**
+1. Power Phrases: Action-packed statements showcasing accomplishments with strong verbs
+2. Transferable Skills: Core competencies applicable across roles/industries
+3. Hidden Competencies: Unique capabilities the candidate may undervalue or overlook
+
+**Expanded Intelligence (New 10):**
+4. Business Impact: Quantified results (revenue, cost savings, efficiency gains, growth metrics)
+5. Leadership Evidence: Team management, people development, organizational influence
+6. Technical Depth: Tools, technologies, methodologies, certifications, technical achievements
+7. Project Portfolio: Detailed project experiences (scope, budget, timeline, outcomes)
+8. Industry Expertise: Domain knowledge, regulatory understanding, market insights
+9. Problem-Solving: Complex challenges overcome using structured approaches (STAR format)
+10. Stakeholder Management: Relationship building, negotiation, conflict resolution, influence
+11. Career Narrative: Career progression logic, strategic transitions, growth trajectory
+12. Competitive Advantages: Unique combinations of skills, rare experiences, differentiators
+13. Communication Excellence: Presentation skills, writing abilities, cross-functional collaboration
 
 RESPONSE FORMAT (ALWAYS RETURN THIS STRUCTURE):
 {
   "question": {
-    "context": "Why I'm asking this - explain the strategic value of this question",
+    "context": "Why I'm asking this - explain the strategic value",
     "knownData": [
       {
         "label": "Current Role",
         "value": "Senior Product Manager",
         "source": "resume"
-      },
-      {
-        "label": "Years Experience", 
-        "value": "12 years",
-        "source": "resume"
-      },
-      {
-        "label": "Key Skills",
-        "value": ["Product Strategy", "Team Leadership", "Data Analysis"],
-        "source": "resume"
       }
     ],
     "questionsToExpand": [
       {
-        "prompt": "Walk me through your biggest product success at [Company]",
-        "placeholder": "Describe the product, your role, the outcome...",
-        "hint": "Include specific metrics like user growth, revenue impact, or efficiency gains"
-      },
-      {
-        "prompt": "What made this success repeatable?",
-        "placeholder": "The framework or approach you can use again...",
-        "hint": "Think about the process, not just the result"
+        "prompt": "Walk me through your biggest success",
+        "placeholder": "Describe the situation, your actions, and the results...",
+        "hint": "Include specific metrics and numbers"
       }
     ],
-    "exampleAnswer": "At TechCorp, I led the redesign of our B2B dashboard which increased customer retention by 34% over 6 months. I identified pain points through 40+ user interviews, prioritized features using RICE scoring, and coordinated a cross-functional team of 8 people. The key was establishing weekly user feedback loops that we could replicate for future products."
+    "exampleAnswer": "Detailed example showing STAR format with metrics..."
   },
-  "phase": "deep_dive",
-  "completionPercentage": 45,
+  "phase": "${currentPhase.name}",
+  "completionPercentage": ${completionPercentage},
   "isComplete": false
 }
 
 CRITICAL INSTRUCTIONS:
-1. ALWAYS pull specific data from the resume (${JSON.stringify(warChest?.initial_analysis || {})})
+1. Pull specific data from resume: ${JSON.stringify(warChest?.initial_analysis || {})}
 2. Create 1-3 sub-questions in questionsToExpand that probe for depth
 3. Make knownData specific and relevant to this question
-4. Provide realistic, detailed example answers
+4. Provide realistic, detailed example answers with metrics
 5. Context should explain WHY this question matters strategically
-6. Hints should guide users toward quantified, specific responses
+6. Focus questions on the TARGET CATEGORIES for current phase
 
-INTERVIEW PHASES:
-1. DISCOVERY (0-25%): Career trajectory, current role, key accomplishments
-2. DEEP_DIVE (25-60%): Detailed achievements with metrics, leadership examples, problem-solving
-3. SKILLS (60-85%): Technical skills, soft skills, hidden competencies, transferable capabilities
-4. FUTURE (85-100%): Career goals, target roles, ideal opportunities
-
-QUESTION STRATEGY:
-- Reference specific items from their resume in knownData
-- Build on previous responses (${previousResponse ? `Previous: ${previousResponse}` : 'First question'})
-- Probe for STAR format: Situation, Task, Action, Result
-- Always ask for metrics and numbers
-- Adaptive depth based on response quality
-
-Current Phase: ${phase}
+Current Phase Focus: ${currentPhase.name}
 ${isFirst ? 'This is the FIRST question - focus on career overview' : ''}
 
 Return ONLY valid JSON in the format above.`;
@@ -118,6 +181,7 @@ Return ONLY valid JSON in the format above.`;
       ? `Start the War Chest interview. Resume analysis: ${JSON.stringify(warChest?.initial_analysis || {})}`
       : `Continue the interview. Conversation so far: ${JSON.stringify(conversationHistory || [])}`;
 
+    // Use Gemini 2.5 Flash for conversational questions (fast)
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -130,7 +194,7 @@ Return ONLY valid JSON in the format above.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.8,
+        temperature: 0.7,
       }),
     });
 
@@ -151,30 +215,23 @@ Return ONLY valid JSON in the format above.`;
       console.error('Failed to parse AI response:', e);
       parsedResult = {
         question: aiResponse,
-        phase,
-        completionPercentage: 0,
+        phase: currentPhase.name,
+        completionPercentage,
         isComplete: false
       };
     }
 
     // Store response in War Chest
-    if (previousResponse) {
-      const { data: existingWarChest } = await supabase
-        .from('career_war_chest')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (existingWarChest) {
-        await supabase
-          .from('war_chest_interview_responses')
-          .insert({
-            war_chest_id: existingWarChest.id,
-            question_text: conversationHistory?.[conversationHistory.length - 2]?.content || '',
-            response_text: previousResponse,
-            phase
-          });
-      }
+    if (previousResponse && warChest) {
+      await supabase
+        .from('war_chest_interview_responses')
+        .insert({
+          war_chest_id: warChest.id,
+          user_id: user.id,
+          phase: currentPhase.name,
+          question: conversationHistory?.[conversationHistory.length - 2]?.content || '',
+          response: previousResponse
+        });
 
       // Update completion percentage
       await supabase
