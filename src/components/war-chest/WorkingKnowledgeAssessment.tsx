@@ -38,7 +38,7 @@ export const WorkingKnowledgeAssessment = ({
       <CardContent className="space-y-6">
         <RadioGroup value={selectedLevel} onValueChange={(v) => setSelectedLevel(v as any)}>
           <div className="space-y-4">
-            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => setSelectedLevel('none')}>
+            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent">
               <RadioGroupItem value="none" id="none" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="none" className="cursor-pointer font-medium">
@@ -50,7 +50,7 @@ export const WorkingKnowledgeAssessment = ({
               </div>
             </div>
 
-            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => setSelectedLevel('working')}>
+            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent">
               <RadioGroupItem value="working" id="working" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="working" className="cursor-pointer font-medium">
@@ -62,7 +62,7 @@ export const WorkingKnowledgeAssessment = ({
               </div>
             </div>
 
-            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => setSelectedLevel('strong_working')}>
+            <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent">
               <RadioGroupItem value="strong_working" id="strong_working" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="strong_working" className="cursor-pointer font-medium">
