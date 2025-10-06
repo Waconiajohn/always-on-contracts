@@ -376,16 +376,108 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
     setIsRecording(!isRecording);
   };
 
-  const handleApplyGuidedOptions = (selectedOptions: string[]) => {
+  const handleApplyGuidedOptions = async (selectedOptions: string[]) => {
+    if (!currentQuestion) return;
+    
+    const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
+    
+    // Check if any non-skip option was selected
+    const hasRealOptions = selectedOptions.some(opt => 
+      !opt.toLowerCase().includes("don't remember") && 
+      !opt.toLowerCase().includes("can't recall")
+    );
+    
+    if (!hasRealOptions) {
+      // User only selected "don't remember" options - treat as skip
+      handleSkipGuidedPrompts();
+      return;
+    }
+
     const optionsText = selectedOptions.join('; ');
     const enhancedAnswer = `${userInput}\n\nAdditional context: ${optionsText}`;
     setUserInput(enhancedAnswer);
     setValidationFeedback('');
     setGuidedPrompts(null);
+    
     toast({
       title: 'Details added',
-      description: 'Your response has been enhanced. Review and submit when ready.',
+      description: 'Revalidating your enhanced response...',
     });
+
+    // Automatically revalidate the enhanced answer
+    setIsValidating(true);
+    try {
+      const { data: validationData, error: validationError } = await supabase.functions.invoke(
+        'validate-interview-response',
+        {
+          body: {
+            question: currentSubQuestion.prompt,
+            answer: enhancedAnswer
+          }
+        }
+      );
+
+      if (validationError) throw validationError;
+
+      const validation = validationData as ValidationResult;
+      setQualityScore(validation.quality_score);
+
+      if (validation.is_sufficient && validation.quality_score >= 70) {
+        // Good enough - save and proceed
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        if (warChestId) {
+          await supabase
+            .from('war_chest_interview_responses')
+            .insert([{
+              war_chest_id: warChestId,
+              user_id: user.id,
+              question: currentSubQuestion.prompt,
+              response: enhancedAnswer,
+              quality_score: validation.quality_score,
+              validation_feedback: validation as any,
+              phase: currentPhase,
+            }]);
+        }
+
+        // Move to next question
+        if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
+          setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
+        } else {
+          setCompletionPercentage(Math.min(100, completionPercentage + 10));
+          const { data } = await supabase.functions.invoke('generate-interview-question', {
+            body: { phase: currentPhase }
+          });
+          if (data?.question) {
+            setCurrentQuestion(data.question);
+            setCurrentSubQuestionIndex(0);
+          }
+        }
+
+        setUserInput('');
+        setQualityScore(0);
+        toast({
+          title: 'Great!',
+          description: 'Your enhanced response looks good. Moving forward.',
+        });
+      } else {
+        // Still needs improvement
+        setValidationFeedback(validation.follow_up_prompt);
+        if (validation.guided_prompts) {
+          setGuidedPrompts(validation.guided_prompts);
+        }
+      }
+    } catch (error) {
+      console.error('Error revalidating:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to validate enhanced response. Please try submitting again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleSkipGuidedPrompts = () => {
