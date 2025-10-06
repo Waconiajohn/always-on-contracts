@@ -83,7 +83,9 @@ Return ONLY a JSON object in this exact format:
     });
 
     if (!aiResponse.ok) {
-      throw new Error('Failed to generate role suggestions');
+      const errorText = await aiResponse.text();
+      console.error('Lovable AI error:', aiResponse.status, errorText);
+      throw new Error(`Failed to generate role suggestions: ${aiResponse.status} - ${errorText}`);
     }
 
     const aiData = await aiResponse.json();
