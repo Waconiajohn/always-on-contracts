@@ -54,6 +54,7 @@ interface HiddenCompetency {
 
 import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
 import { MarketResearchPanel } from '@/components/MarketResearchPanel';
+import { EnhancementQueue } from '@/components/EnhancementQueue';
 
 const WarChestDashboardContent = () => {
   const [userId, setUserId] = useState<string>("");
@@ -355,13 +356,19 @@ const WarChestDashboardContent = () => {
       </Card>
 
       {/* Detailed Tabs */}
-      <Tabs defaultValue="power-phrases" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="enhancement-queue" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="enhancement-queue">🎯 Enhancement Queue</TabsTrigger>
           <TabsTrigger value="power-phrases">Power Phrases</TabsTrigger>
-          <TabsTrigger value="transferable-skills">Transferable Skills</TabsTrigger>
-          <TabsTrigger value="hidden-competencies">Hidden Competencies</TabsTrigger>
-          <TabsTrigger value="market-research">Market Intelligence</TabsTrigger>
+          <TabsTrigger value="transferable-skills">Skills</TabsTrigger>
+          <TabsTrigger value="intangibles">🧠 Intangibles</TabsTrigger>
+          <TabsTrigger value="responses">All Responses</TabsTrigger>
+          <TabsTrigger value="market-research">Market Intel</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="enhancement-queue">
+          <EnhancementQueue warChestId={warChestId} />
+        </TabsContent>
 
         <TabsContent value="power-phrases" className="space-y-4">
           {powerPhrases.map((phrase) => (
@@ -406,34 +413,45 @@ const WarChestDashboardContent = () => {
           ))}
         </TabsContent>
 
-        <TabsContent value="hidden-competencies" className="space-y-4">
-          {hiddenCompetencies.map((comp) => (
-            <Card key={comp.id} className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <h4 className="text-lg font-semibold">{comp.competency_area}</h4>
-                <Badge variant={comp.confidence_score > 80 ? "default" : "outline"}>
-                  {comp.confidence_score}% confidence
-                </Badge>
-              </div>
-              {comp.certification_equivalent && (
-                <Badge variant="secondary" className="mb-3">
-                  {comp.certification_equivalent}
-                </Badge>
+        <TabsContent value="intangibles">
+          <Card className="p-6">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold mb-2">🧠 Intangibles Intelligence</h3>
+              <p className="text-muted-foreground">
+                Soft skills, leadership philosophy, executive presence, personality traits, work style, values, and behavioral patterns
+              </p>
+            </div>
+            <div className="grid gap-4">
+              {hiddenCompetencies.length > 0 ? (
+                hiddenCompetencies.map((comp) => (
+                  <Card key={comp.id} className="p-4 bg-muted/50">
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold">{comp.competency_area}</h4>
+                      <Badge variant={comp.confidence_score > 80 ? "default" : "outline"}>
+                        {comp.confidence_score}%
+                      </Badge>
+                    </div>
+                    <p className="text-sm mb-2">{comp.inferred_capability}</p>
+                    {comp.supporting_evidence.length > 0 && (
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        {comp.supporting_evidence.slice(0, 2).map((ev, idx) => (
+                          <li key={idx}>• {ev}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </Card>
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  Complete more of the War Chest interview to reveal intangibles intelligence
+                </p>
               )}
-              <p className="text-sm mb-3">{comp.inferred_capability}</p>
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Supporting Evidence:</p>
-                <ul className="text-sm space-y-1">
-                  {comp.supporting_evidence.map((evidence, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      <span>{evidence}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Card>
-          ))}
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="responses">
+          <InterviewResponsesTab warChestId={warChestId} />
         </TabsContent>
 
         <TabsContent value="market-research">

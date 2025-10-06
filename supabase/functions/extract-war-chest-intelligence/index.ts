@@ -33,9 +33,9 @@ serve(async (req) => {
 
     console.log('[EXTRACT-INTELLIGENCE] Analyzing response:', responseText.substring(0, 100) + '...');
 
-    const systemPrompt = `You are an expert career intelligence analyst. Extract structured intelligence from interview responses across ALL 13 categories.`;
+    const systemPrompt = `You are an expert career intelligence analyst. Extract structured intelligence from interview responses across ALL 20 categories (13 original + 7 intangibles).`;
 
-    const prompt = `Analyze this interview response and extract career intelligence across ALL 13 categories.
+    const prompt = `Analyze this interview response and extract career intelligence across ALL 20 categories.
 
 QUESTION ASKED:
 ${questionText}
@@ -45,12 +45,12 @@ ${responseText}
 
 Extract intelligence across these categories:
 
-**Core (Original 3):**
+**Core Intelligence (Original 3):**
 1. powerPhrases: Action-packed achievement statements with strong verbs
 2. transferableSkills: Core competencies applicable across roles
 3. hiddenCompetencies: Unique capabilities that might be undervalued
 
-**Expanded (New 10):**
+**Expanded Intelligence (Original 10):**
 4. businessImpacts: Quantified business results with metrics
 5. leadershipEvidence: Leadership and management examples
 6. technicalDepth: Technical skills, tools, technologies
@@ -61,6 +61,15 @@ Extract intelligence across these categories:
 11. careerNarrative: Career progression insights
 12. competitiveAdvantages: Unique differentiators
 13. communication: Communication and collaboration examples
+
+**PHASE 3 - Intangibles Intelligence (New 7):**
+14. softSkills: Emotional intelligence, adaptability, resilience, empathy, conflict resolution
+15. leadershipPhilosophy: Core beliefs about leadership, management style, coaching approach
+16. executivePresence: Gravitas, communication impact, credibility, personal brand signals
+17. personalityTraits: MBTI-like traits, strengths/weaknesses, behavioral patterns
+18. workStyle: Preferred work environment, collaboration style, autonomy vs teamwork
+19. values: Core principles, ethical standards, career motivators, what drives decisions
+20. behavioralIndicators: Decision-making patterns, stress responses, learning style
 
 Return as JSON with ALL applicable categories:
 {
@@ -76,7 +85,14 @@ Return as JSON with ALL applicable categories:
   "stakeholderMgmt": [{ "example": "...", "stakeholder_types": [...], "strategies": "..." }],
   "careerNarrative": [{ "stage": "...", "transition": "...", "direction": "..." }],
   "competitiveAdvantages": [{ "type": "...", "description": "...", "evidence": "..." }],
-  "communication": [{ "type": "...", "example": "...", "impact": "..." }]
+  "communication": [{ "type": "...", "example": "...", "impact": "..." }],
+  "softSkills": [{ "skill_name": "...", "examples": "...", "impact": "...", "proficiency_level": "..." }],
+  "leadershipPhilosophy": [{ "philosophy_statement": "...", "leadership_style": "...", "core_principles": [...], "real_world_application": "..." }],
+  "executivePresence": [{ "presence_indicator": "...", "situational_example": "...", "perceived_impact": "...", "brand_alignment": "..." }],
+  "personalityTraits": [{ "trait_name": "...", "behavioral_evidence": "...", "work_context": "...", "strength_or_growth": "strength|growth_area" }],
+  "workStyle": [{ "preference_area": "...", "preference_description": "...", "examples": "...", "ideal_environment": "..." }],
+  "values": [{ "value_name": "...", "importance_level": "core|important|nice_to_have", "manifestation": "...", "career_decisions_influenced": "..." }],
+  "behavioralIndicators": [{ "indicator_type": "...", "specific_behavior": "...", "context": "...", "outcome_pattern": "..." }]
 }
 
 Only include categories where you found relevant intelligence. Empty arrays are acceptable.`;
@@ -119,7 +135,7 @@ Only include categories where you found relevant intelligence. Empty arrays are 
 
     console.log('[EXTRACT-INTELLIGENCE] Extracted intelligence:', JSON.stringify(intelligence, null, 2).substring(0, 500) + '...');
 
-    // Insert extracted intelligence across ALL categories
+    // Insert extracted intelligence across ALL 20 categories
     const insertPromises = [];
     let totalExtracted = 0;
 
@@ -168,7 +184,7 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       );
     }
 
-    // Expanded Intelligence (New 10)
+    // Expanded Intelligence (Original 10)
     if (intelligence.businessImpacts?.length > 0) {
       totalExtracted += intelligence.businessImpacts.length;
       insertPromises.push(
@@ -323,13 +339,127 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       );
     }
 
+    // PHASE 3: Intangibles Intelligence (New 7)
+    if (intelligence.softSkills?.length > 0) {
+      totalExtracted += intelligence.softSkills.length;
+      insertPromises.push(
+        ...intelligence.softSkills.map((skill: any) =>
+          supabase.from('war_chest_soft_skills').insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            skill_name: skill.skill_name,
+            examples: skill.examples,
+            impact: skill.impact,
+            proficiency_level: skill.proficiency_level
+          })
+        )
+      );
+    }
+
+    if (intelligence.leadershipPhilosophy?.length > 0) {
+      totalExtracted += intelligence.leadershipPhilosophy.length;
+      insertPromises.push(
+        ...intelligence.leadershipPhilosophy.map((phil: any) =>
+          supabase.from('war_chest_leadership_philosophy').insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            philosophy_statement: phil.philosophy_statement,
+            leadership_style: phil.leadership_style,
+            core_principles: phil.core_principles || [],
+            real_world_application: phil.real_world_application
+          })
+        )
+      );
+    }
+
+    if (intelligence.executivePresence?.length > 0) {
+      totalExtracted += intelligence.executivePresence.length;
+      insertPromises.push(
+        ...intelligence.executivePresence.map((pres: any) =>
+          supabase.from('war_chest_executive_presence').insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            presence_indicator: pres.presence_indicator,
+            situational_example: pres.situational_example,
+            perceived_impact: pres.perceived_impact,
+            brand_alignment: pres.brand_alignment
+          })
+        )
+      );
+    }
+
+    if (intelligence.personalityTraits?.length > 0) {
+      totalExtracted += intelligence.personalityTraits.length;
+      insertPromises.push(
+        ...intelligence.personalityTraits.map((trait: any) =>
+          supabase.from('war_chest_personality_traits').insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            trait_name: trait.trait_name,
+            behavioral_evidence: trait.behavioral_evidence,
+            work_context: trait.work_context,
+            strength_or_growth: trait.strength_or_growth
+          })
+        )
+      );
+    }
+
+    if (intelligence.workStyle?.length > 0) {
+      totalExtracted += intelligence.workStyle.length;
+      insertPromises.push(
+        ...intelligence.workStyle.map((style: any) =>
+          supabase.from('war_chest_work_style').insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            preference_area: style.preference_area,
+            preference_description: style.preference_description,
+            examples: style.examples,
+            ideal_environment: style.ideal_environment
+          })
+        )
+      );
+    }
+
+    if (intelligence.values?.length > 0) {
+      totalExtracted += intelligence.values.length;
+      insertPromises.push(
+        ...intelligence.values.map((value: any) =>
+          supabase.from('war_chest_values_motivations').insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            value_name: value.value_name,
+            importance_level: value.importance_level,
+            manifestation: value.manifestation,
+            career_decisions_influenced: value.career_decisions_influenced
+          })
+        )
+      );
+    }
+
+    if (intelligence.behavioralIndicators?.length > 0) {
+      totalExtracted += intelligence.behavioralIndicators.length;
+      insertPromises.push(
+        ...intelligence.behavioralIndicators.map((indicator: any) =>
+          supabase.from('war_chest_behavioral_indicators').insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            indicator_type: indicator.indicator_type,
+            specific_behavior: indicator.specific_behavior,
+            context: indicator.context,
+            outcome_pattern: indicator.outcome_pattern
+          })
+        )
+      );
+    }
+
     await Promise.all(insertPromises);
     console.log(`[EXTRACT-INTELLIGENCE] Successfully inserted ${totalExtracted} intelligence items`);
 
-    // Get updated counts for ALL categories
+    // Get updated counts for ALL 20 categories
     const [
       ppCount, tsCount, hcCount,
-      biCount, leCount, tdCount, pjCount, ieCount, psCount, smCount, cnCount, caCount, ceCount
+      biCount, leCount, tdCount, pjCount, ieCount, psCount, smCount, cnCount, caCount, ceCount,
+      ssCount, lpCount, epCount, ptCount, wsCount, vmCount, biCount2
     ] = await Promise.all([
       supabase.from('war_chest_power_phrases').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
       supabase.from('war_chest_transferable_skills').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
@@ -344,9 +474,16 @@ Only include categories where you found relevant intelligence. Empty arrays are 
       supabase.from('war_chest_career_narrative').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
       supabase.from('war_chest_competitive_advantages').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
       supabase.from('war_chest_communication').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('war_chest_soft_skills').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('war_chest_leadership_philosophy').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('war_chest_executive_presence').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('war_chest_personality_traits').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('war_chest_work_style').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('war_chest_values_motivations').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
+      supabase.from('war_chest_behavioral_indicators').select('id', { count: 'exact', head: true }).eq('war_chest_id', warChestId),
     ]);
 
-    // Update the war chest with ALL new counts
+    // Update the war chest with ALL 20 category counts
     await supabase
       .from('career_war_chest')
       .update({
@@ -363,6 +500,13 @@ Only include categories where you found relevant intelligence. Empty arrays are 
         total_career_narrative: cnCount.count || 0,
         total_competitive_advantages: caCount.count || 0,
         total_communication_examples: ceCount.count || 0,
+        total_soft_skills: ssCount.count || 0,
+        total_leadership_philosophy: lpCount.count || 0,
+        total_executive_presence: epCount.count || 0,
+        total_personality_traits: ptCount.count || 0,
+        total_work_style: wsCount.count || 0,
+        total_values: vmCount.count || 0,
+        total_behavioral_indicators: biCount2.count || 0,
         last_updated_at: new Date().toISOString(),
       })
       .eq('id', warChestId);
@@ -370,14 +514,25 @@ Only include categories where you found relevant intelligence. Empty arrays are 
     const totalIntelligence = (ppCount.count || 0) + (tsCount.count || 0) + (hcCount.count || 0) +
       (biCount.count || 0) + (leCount.count || 0) + (tdCount.count || 0) + (pjCount.count || 0) +
       (ieCount.count || 0) + (psCount.count || 0) + (smCount.count || 0) + (cnCount.count || 0) +
-      (caCount.count || 0) + (ceCount.count || 0);
+      (caCount.count || 0) + (ceCount.count || 0) +
+      (ssCount.count || 0) + (lpCount.count || 0) + (epCount.count || 0) + (ptCount.count || 0) +
+      (wsCount.count || 0) + (vmCount.count || 0) + (biCount2.count || 0);
 
     console.log(`[EXTRACT-INTELLIGENCE] Total intelligence in War Chest: ${totalIntelligence}`);
 
     return new Response(JSON.stringify({
       success: true,
       totalExtracted,
-      totalIntelligence
+      totalIntelligence,
+      extracted: {
+        powerPhrases: intelligence.powerPhrases?.length || 0,
+        transferableSkills: intelligence.transferableSkills?.length || 0,
+        hiddenCompetencies: intelligence.hiddenCompetencies?.length || 0,
+        intangibles: (intelligence.softSkills?.length || 0) + (intelligence.leadershipPhilosophy?.length || 0) +
+                     (intelligence.executivePresence?.length || 0) + (intelligence.personalityTraits?.length || 0) +
+                     (intelligence.workStyle?.length || 0) + (intelligence.values?.length || 0) +
+                     (intelligence.behavioralIndicators?.length || 0)
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

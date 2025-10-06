@@ -101,10 +101,12 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   
   const { toast } = useToast();
 
+  // PHASE 3: Add "The Psychologist" persona for intangibles
   const personas = {
     mentor: { name: 'The Mentor', voice: 'Sarah', description: 'Supportive & encouraging', icon: '🤝' },
     challenger: { name: 'The Challenger', voice: 'Charlie', description: 'Direct & probing', icon: '⚡' },
-    strategist: { name: 'The Strategist', voice: 'Lily', description: 'Strategic & analytical', icon: '🎯' }
+    strategist: { name: 'The Strategist', voice: 'Lily', description: 'Strategic & analytical', icon: '🎯' },
+    psychologist: { name: 'The Psychologist', voice: 'Sarah', description: 'Insightful & reflective', icon: '🧠' }
   };
 
   const phaseLabels: Record<string, string> = {
@@ -319,46 +321,47 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
       setQualityScore(validation.quality_score);
       
-      // Quality >= 70: Response is good enough - show Accept button
-      if (validation.quality_score >= 70) {
+      // PHASE 1 FIX: Lower threshold from 70 → 40, make feedback encouraging
+      // Quality >= 40: Response is acceptable - show Accept button with encouragement
+      if (validation.quality_score >= 40) {
         setShowAcceptButton(true);
-        setGuidedPrompts(null); // Don't show guided prompts
-        setValidationFeedback(validation.follow_up_prompt || `Great answer! (${validation.quality_score}/100) You can continue or enhance it further.`);
+        setGuidedPrompts(validation.guided_prompts || null);
         
-        // Fetch enhanced strong answer for reference
-        fetchEnhancedAnswer(currentSubQuestion.prompt, userInput, validation);
+        // Encouraging feedback based on score
+        let encouragingFeedback = '';
+        if (validation.quality_score >= 80) {
+          encouragingFeedback = `🌟 Excellent answer! (${validation.quality_score}/100) Your detail and specificity really shine through.`;
+        } else if (validation.quality_score >= 60) {
+          encouragingFeedback = `✅ Solid answer! (${validation.quality_score}/100) You've captured the key points. You can enhance further or continue.`;
+        } else {
+          encouragingFeedback = `👍 Good start! (${validation.quality_score}/100) Your answer is saved. You can add more detail now or enhance it later from the Dashboard.`;
+        }
+        
+        setValidationFeedback(encouragingFeedback);
+        
+        // Fetch enhanced answer for reference only if score is high
+        if (validation.quality_score >= 60) {
+          fetchEnhancedAnswer(currentSubQuestion.prompt, userInput, validation);
+        }
         
         toast({
-          title: '✅ Strong Answer!',
-          description: `Quality: ${validation.quality_score}/100. You can continue or add more details.`,
+          title: '✨ Answer Saved!',
+          description: encouragingFeedback,
         });
         setIsValidating(false);
         return;
       }
 
-      // Quality < 70: Show guided prompts if available
+      // Quality < 40: Show guided prompts but STILL allow progression
       setGuidedPrompts(validation.guided_prompts || null);
-      setShowAcceptButton(false);
-
-      // If response is insufficient and we have room for improvement
-      if (!validation.is_sufficient && skipAttempts < 2) {
-        setValidationFeedback(validation.follow_up_prompt);
-        toast({
-          title: 'Let\'s add more detail',
-          description: 'Select options below or add more to your answer',
-          variant: 'default'
-        });
-        setIsValidating(false);
-        return;
-      }
-
-      // If skip attempts >= 2, allow progression even with low score
-      if (skipAttempts >= 2) {
-        toast({
-          title: 'Moving forward',
-          description: 'You can enhance this response later from your Dashboard',
-        });
-      }
+      setShowAcceptButton(true); // PHASE 1 FIX: Always allow progression
+      
+      setValidationFeedback(`Your answer has been saved! (${validation.quality_score}/100)\n\nTo strengthen it, try adding: ${validation.follow_up_prompt}\n\nYou can continue now or enhance this later from your Dashboard.`);
+      
+      toast({
+        title: '📝 Draft Saved',
+        description: 'Answer saved! Add more detail or continue - you can enhance later.',
+      });
 
       // Step 2: Save response to database
       if (warChestId) {
@@ -375,6 +378,15 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           responseToSave = userInput;
         }
         
+        // PHASE 2 FIX: Add multi-dimensional scoring
+        const completenessScore = Math.min(100, (responseToSave.length / 200) * 100);
+        const specificityScore = validation.quality_score; // AI determines specificity
+        const intelligenceValue = (completenessScore + specificityScore) / 2;
+        const needsEnhancement = intelligenceValue < 60;
+        const enhancementPriority = 
+          intelligenceValue < 30 ? 'high' :
+          intelligenceValue < 60 ? 'medium' : 'low';
+        
         const { data: savedResponse } = await supabase
           .from('war_chest_interview_responses')
           .insert([{
@@ -385,6 +397,11 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
             quality_score: validation.quality_score,
             validation_feedback: validation as any,
             phase: currentPhase,
+            needs_enhancement: needsEnhancement,
+            enhancement_priority: enhancementPriority,
+            completeness_score: Math.round(completenessScore),
+            specificity_score: specificityScore,
+            intelligence_value: Math.round(intelligenceValue)
           }])
           .select()
           .single();
@@ -473,10 +490,19 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       if (error) throw error;
 
       if (data?.isComplete) {
+        // PHASE 1 FIX: Sync completion to 100%
+        await supabase
+          .from('career_war_chest')
+          .update({ 
+            interview_completion_percentage: 100,
+            last_updated_at: new Date().toISOString()
+          })
+          .eq('id', warChestId);
+          
         setCompletionPercentage(100);
         toast({
-          title: '🎉 Interview Complete!',
-          description: 'Your War Chest has been built with rich career intelligence.'
+          title: '🎉 War Chest Complete!',
+          description: 'You can enhance any responses from the Dashboard anytime.'
         });
         setTimeout(onComplete, 2000);
         return;
