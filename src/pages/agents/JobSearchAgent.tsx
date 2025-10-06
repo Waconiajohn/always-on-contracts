@@ -119,11 +119,11 @@ const JobSearchAgentContent = () => {
   const loadWarChestData = async (userId: string) => {
     try {
       const { data: warChest } = await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .select(`
           *,
-          war_chest_transferable_skills(skill_name, source_industry, target_industry),
-          war_chest_power_phrases(phrase_text)
+          vault_transferable_skills(skill_name, source_industry, target_industry),
+          vault_power_phrases(phrase_text)
         `)
         .eq('user_id', userId)
         .single();
@@ -134,7 +134,7 @@ const JobSearchAgentContent = () => {
         const titles = analysis?.recommended_positions || [];
         setSuggestedTitles(titles.slice(0, 5));
 
-        const skills = warChest.war_chest_transferable_skills?.map((s: any) => s.skill_name) || [];
+        const skills = warChest.vault_transferable_skills?.map((s: any) => s.skill_name) || [];
         setSuggestedSkills(skills.slice(0, 8));
 
         // Send initial AI greeting

@@ -276,7 +276,7 @@ export const InterviewFollowupPanel = ({ userId, jobProjectId }: InterviewFollow
             Generate Follow-up Email
           </CardTitle>
           <CardDescription>
-            AI-powered email generation using your War Chest data
+            AI-powered email generation using your Career Vault data
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

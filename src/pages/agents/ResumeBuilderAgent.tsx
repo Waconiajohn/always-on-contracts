@@ -36,8 +36,8 @@ const ResumeBuilderAgentContent = () => {
     if (!user) return;
 
     const { data: warChest } = await supabase
-      .from('career_war_chest')
-      .select('*, war_chest_power_phrases(*), war_chest_transferable_skills(*), war_chest_hidden_competencies(*)')
+      .from('career_vault')
+      .select('*, vault_power_phrases(*), vault_transferable_skills(*), vault_hidden_competencies(*)')
       .eq('user_id', user.id)
       .single();
 
@@ -119,10 +119,10 @@ const ResumeBuilderAgentContent = () => {
                   <div>
                     <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                       <Zap className="h-4 w-4" />
-                      Power Phrases ({warChestData.war_chest_power_phrases?.length || 0})
+                      Power Phrases ({warChestData.vault_power_phrases?.length || 0})
                     </h3>
                     <div className="space-y-2">
-                      {warChestData.war_chest_power_phrases?.slice(0, 5).map((phrase: any) => (
+                      {warChestData.vault_power_phrases?.slice(0, 5).map((phrase: any) => (
                         <div key={phrase.id} className="p-2 bg-muted rounded text-xs cursor-pointer hover:bg-primary/10"
                           onClick={() => setSelectedPhrases(prev => 
                             prev.includes(phrase.id) ? prev.filter(id => id !== phrase.id) : [...prev, phrase.id]
@@ -138,10 +138,10 @@ const ResumeBuilderAgentContent = () => {
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">
-                      Transferable Skills ({warChestData.war_chest_transferable_skills?.length || 0})
+                      Transferable Skills ({warChestData.vault_transferable_skills?.length || 0})
                     </h3>
                     <div className="flex flex-wrap gap-1">
-                      {warChestData.war_chest_transferable_skills?.slice(0, 10).map((skill: any) => (
+                      {warChestData.vault_transferable_skills?.slice(0, 10).map((skill: any) => (
                         <Badge 
                           key={skill.id} 
                           variant={selectedSkills.includes(skill.id) ? "default" : "outline"}
@@ -157,10 +157,10 @@ const ResumeBuilderAgentContent = () => {
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">
-                      Hidden Competencies ({warChestData.war_chest_hidden_competencies?.length || 0})
+                      Hidden Competencies ({warChestData.vault_hidden_competencies?.length || 0})
                     </h3>
                     <div className="space-y-1">
-                      {warChestData.war_chest_hidden_competencies?.slice(0, 3).map((comp: any) => (
+                      {warChestData.vault_hidden_competencies?.slice(0, 3).map((comp: any) => (
                         <Badge key={comp.id} variant="secondary" className="text-xs">
                           {comp.competency_area}
                         </Badge>

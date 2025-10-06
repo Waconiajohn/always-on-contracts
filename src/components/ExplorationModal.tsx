@@ -9,7 +9,7 @@ interface ExplorationModalProps {
   onClose: () => void;
   featureName: string;
   featureDescription: string;
-  warChestCompletion: number;
+  vaultCompletion: number;
 }
 
 export const ExplorationModal = ({
@@ -17,13 +17,13 @@ export const ExplorationModal = ({
   onClose,
   featureName,
   featureDescription,
-  warChestCompletion
+  vaultCompletion
 }: ExplorationModalProps) => {
   const navigate = useNavigate();
 
   const handleContinueSetup = () => {
     onClose();
-    navigate('/war-chest/onboarding');
+    navigate('/career-vault/onboarding');
   };
 
   return (
@@ -44,29 +44,27 @@ export const ExplorationModal = ({
         <div className="space-y-4 py-4">
           <div className="bg-muted/50 p-4 rounded-lg space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">War Chest Progress</span>
-              <span className="text-muted-foreground">{warChestCompletion}%</span>
+              <span className="font-medium">Career Vault Progress</span>
+              <span className="text-muted-foreground">{vaultCompletion}%</span>
             </div>
-            <Progress value={warChestCompletion} className="h-2" />
-            <p className="text-xs text-muted-foreground">
-              Complete your War Chest to unlock all features
+            <Progress value={vaultCompletion} className="h-2" />
+            <p className="text-sm text-muted-foreground">
+              Complete your Career Vault to unlock all features
             </p>
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Why complete your War Chest?</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• AI-powered career intelligence</li>
-              <li>• Personalized job recommendations</li>
-              <li>• Optimized resume generation</li>
-              <li>• Strategic interview preparation</li>
+            <h4 className="font-semibold text-sm">Why complete your Career Vault?</h4>
+            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+              <li>Unlock AI-powered job matching</li>
+              <li>Get personalized resume optimization</li>
+              <li>Access interview preparation tools</li>
+              <li>Build your professional narrative</li>
             </ul>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-2">
           <Button onClick={handleContinueSetup} className="w-full">
-            Continue War Chest Setup
+            Continue Career Vault Setup
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
           <Button variant="outline" onClick={onClose} className="w-full">

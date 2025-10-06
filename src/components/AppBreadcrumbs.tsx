@@ -19,7 +19,7 @@ const routeNames: Record<string, string> = {
   agencies: "Agencies",
   coaching: "Coaching",
   "career-dashboard": "Career Dashboard",
-  "war-chest-dashboard": "War Chest",
+  "career-vault-dashboard": "Career Vault",
   "ai-agents": "AI Agents",
   "rate-calculator": "Rate Calculator",
   profile: "Profile",

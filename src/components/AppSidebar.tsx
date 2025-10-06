@@ -44,7 +44,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import logo from "@/assets/logo.png";
 
 const navItems = [
-  { path: "/war-chest", label: "War Chest", icon: Package },
+  { path: "/career-vault", label: "Career Vault", icon: Package },
   { path: "/home", label: "Home", icon: Home },
   { path: "/projects", label: "Projects", icon: FolderKanban },
 ];

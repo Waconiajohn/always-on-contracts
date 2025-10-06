@@ -27,7 +27,7 @@ const HomeContent = () => {
       if (!user) return;
 
       const { data } = await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .select('interview_completion_percentage')
         .eq('user_id', user.id)
         .single();

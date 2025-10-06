@@ -183,7 +183,7 @@ export function GuidedPromptSelector({
 
         {skipAttempts > 0 && (
           <p className="text-xs text-muted-foreground text-center">
-            You can enhance this response later from your War Chest Dashboard
+            You can enhance this response later from your Career Vault Dashboard
           </p>
         )}
       </div>

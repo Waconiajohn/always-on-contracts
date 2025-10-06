@@ -58,7 +58,7 @@ const CorporateAssistantContent = () => {
 
   const checkExistingWarChest = async (uid: string) => {
     const { data } = await supabase
-      .from('career_war_chest')
+      .from('career_vault')
       .select('*')
       .eq('user_id', uid)
       .maybeSingle();
@@ -141,7 +141,7 @@ const CorporateAssistantContent = () => {
 
       // Create or update war chest
       const { data: warChest, error: wcError } = await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .upsert({
           user_id: userId,
           resume_raw_text: sanitizedText,
@@ -165,7 +165,7 @@ const CorporateAssistantContent = () => {
 
       // Update war chest with initial analysis
       await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .update({
           initial_analysis: analysis,
           overall_strength_score: analysis.strengthScore || 50
@@ -197,9 +197,9 @@ const CorporateAssistantContent = () => {
     try {
       // Get existing responses to determine next question
       const { data: responses } = await supabase
-        .from('war_chest_interview_responses')
+        .from('vault_interview_responses')
         .select('*')
-        .eq('war_chest_id', wcId)
+        .eq('vault_id', wcId)
         .order('created_at', { ascending: true });
 
       const totalResponses = responses?.length || 0;
@@ -245,7 +245,7 @@ const CorporateAssistantContent = () => {
       });
 
       await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .update({ interview_completion_percentage: completion })
         .eq('id', wcId);
 
@@ -315,9 +315,9 @@ const CorporateAssistantContent = () => {
         }
 
         await supabase
-          .from('war_chest_interview_responses')
+          .from('vault_interview_responses')
           .insert({
-            war_chest_id: warChestId,
+            vault_id: warChestId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: combinedResponse,
@@ -365,9 +365,9 @@ const CorporateAssistantContent = () => {
         }
 
         await supabase
-          .from('war_chest_interview_responses')
+          .from('vault_interview_responses')
           .insert({
-            war_chest_id: warChestId,
+            vault_id: warChestId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: currentResponse,
@@ -409,9 +409,9 @@ const CorporateAssistantContent = () => {
 
       try {
         await supabase
-          .from('war_chest_interview_responses')
+          .from('vault_interview_responses')
           .insert({
-            war_chest_id: warChestId,
+            vault_id: warChestId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: combinedResponse,
@@ -435,9 +435,9 @@ const CorporateAssistantContent = () => {
     } else {
       try {
         await supabase
-          .from('war_chest_interview_responses')
+          .from('vault_interview_responses')
           .insert({
-            war_chest_id: warChestId,
+            vault_id: warChestId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: currentResponse,
@@ -494,13 +494,13 @@ const CorporateAssistantContent = () => {
 
       // Update totals
       const [phrases, skills, competencies] = await Promise.all([
-        supabase.from('war_chest_power_phrases').select('id', { count: 'exact', head: true }).eq('war_chest_id', wcId),
-        supabase.from('war_chest_transferable_skills').select('id', { count: 'exact', head: true }).eq('war_chest_id', wcId),
-        supabase.from('war_chest_hidden_competencies').select('id', { count: 'exact', head: true }).eq('war_chest_id', wcId)
+        supabase.from('vault_power_phrases').select('id', { count: 'exact', head: true }).eq('vault_id', wcId),
+        supabase.from('vault_transferable_skills').select('id', { count: 'exact', head: true }).eq('vault_id', wcId),
+        supabase.from('vault_hidden_competencies').select('id', { count: 'exact', head: true }).eq('vault_id', wcId)
       ]);
 
       await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .update({
           total_power_phrases: phrases.count || 0,
           total_transferable_skills: skills.count || 0,

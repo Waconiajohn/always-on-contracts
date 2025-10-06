@@ -32,12 +32,12 @@ const InterviewPrepAgentContent = () => {
     if (!user) return;
 
     const { data: warChest } = await supabase
-      .from('career_war_chest')
+      .from('career_vault')
       .select(`
         *,
-        war_chest_power_phrases(*),
-        war_chest_transferable_skills(*),
-        war_chest_hidden_competencies(*)
+        vault_power_phrases(*),
+        vault_transferable_skills(*),
+        vault_hidden_competencies(*)
       `)
       .eq('user_id', user.id)
       .single();
@@ -118,7 +118,7 @@ const InterviewPrepAgentContent = () => {
                       Hidden Competencies
                     </h3>
                     <div className="space-y-2">
-                      {warChestData.war_chest_hidden_competencies?.map((comp: any) => (
+                      {warChestData.vault_hidden_competencies?.map((comp: any) => (
                         <div key={comp.id} className="p-3 bg-muted rounded-lg">
                           <Badge variant="secondary" className="mb-2">{comp.competency_area}</Badge>
                           <p className="text-xs text-muted-foreground">{comp.inferred_capability}</p>
@@ -135,7 +135,7 @@ const InterviewPrepAgentContent = () => {
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Transferable Skills</h3>
                     <div className="space-y-2">
-                      {warChestData.war_chest_transferable_skills?.slice(0, 5).map((skill: any) => (
+                      {warChestData.vault_transferable_skills?.slice(0, 5).map((skill: any) => (
                         <div key={skill.id} className="p-2 bg-muted rounded text-xs">
                           <p className="font-medium">{skill.stated_skill}</p>
                           <p className="text-muted-foreground mt-1">{skill.evidence}</p>

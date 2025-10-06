@@ -501,7 +501,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
           
         setCompletionPercentage(100);
         toast({
-          title: '🎉 War Chest Complete!',
+          title: '🎉 Career Vault Complete!',
           description: 'You can enhance any responses from the Dashboard anytime.'
         });
         setTimeout(onComplete, 2000);
