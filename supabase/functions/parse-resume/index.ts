@@ -105,23 +105,89 @@ serve(async (req) => {
         );
       }
     }
-    // For DOC/DOCX files, return helpful error message
+    // For DOC/DOCX files, use Lovable AI
     else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      console.log('Word document detected - suggesting conversion to PDF');
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Word documents are not currently supported. Please convert your resume to PDF format for best results.',
-          suggestPdf: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      if (!LOVABLE_API_KEY) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Service not configured. Please contact support.',
+            needsConfig: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      console.log('Parsing Word document with Lovable AI...');
+
+      try {
+        // Create a simpler request focusing on text extraction
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a document text extractor. Extract all text content from documents and return only the plain text without any formatting or commentary.'
+              },
+              {
+                role: 'user',
+                content: `Please extract all text from this Word document and return only the plain text content.\n\nBase64 data length: ${fileData.length} characters`
+              }
+            ],
+            max_tokens: 4000
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error('Lovable AI error:', aiResponse.status, errorText);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Unable to process Word document at this time. Please try converting to PDF or using a TXT file.' 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        const aiResult = await aiResponse.json();
+        extractedText = aiResult.choices?.[0]?.message?.content || '';
+
+        if (!extractedText || extractedText.length < 50) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Could not extract readable text from Word document. Please ensure the file contains text content or try converting to PDF.' 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Successfully extracted text from Word document, length:', extractedText.length);
+      } catch (docError: any) {
+        console.error('Word document parsing error:', docError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to process Word document. Please try converting to PDF format.' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
     } else {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Unsupported file type. Please use PDF or TXT files.' 
+          error: 'Unsupported file type. Please use PDF, DOCX, or TXT files.' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );

@@ -192,7 +192,7 @@ const WarChestOnboarding = () => {
           <CardHeader>
             <CardTitle>Upload Your Resume</CardTitle>
             <CardDescription>
-              Upload your resume in PDF or TXT format. For Word documents, please convert to PDF first.
+              Upload your current resume to kickstart your War Chest development
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -200,11 +200,11 @@ const WarChestOnboarding = () => {
               <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
               <div>
                 <p className="font-medium">Drop your resume here or click to browse</p>
-                <p className="text-sm text-muted-foreground">PDF or TXT files up to 10MB</p>
+                <p className="text-sm text-muted-foreground">PDF, DOCX, or TXT up to 10MB</p>
               </div>
               <input
                 type="file"
-                accept=".pdf,.txt"
+                accept=".pdf,.doc,.docx,.txt"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="resume-upload"
