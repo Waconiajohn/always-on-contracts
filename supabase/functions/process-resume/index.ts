@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import "https://deno.land/x/xhr@0.3.0/mod.ts";
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
+import { getDocumentProxy } from "https://esm.sh/unpdf@0.11.0";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
@@ -173,20 +173,36 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
       return new TextDecoder().decode(bytes);
     }
 
-    // For PDF files - use pdf-parse library with smart fallback to AI vision for scanned PDFs
+    // For PDF files - use unpdf library with smart fallback to AI vision for scanned PDFs
     if (fileType.includes('pdf')) {
       console.log('[parseFile] PDF detected, attempting direct text extraction');
       
       try {
-        // Convert base64 to buffer
+        // Convert base64 to Uint8Array
         const binaryString = atob(base64Data);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         
-        const pdfData = await pdfParse(bytes);
-        const extractedText = pdfData.text.trim();
+        // Parse PDF with unpdf
+        const pdf = await getDocumentProxy(bytes);
+        const numPages = pdf.numPages;
+        
+        console.log(`[parseFile] PDF has ${numPages} pages, extracting text...`);
+        
+        // Extract text from all pages
+        let fullText = '';
+        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => item.str || '')
+            .join(' ');
+          fullText += pageText + '\n';
+        }
+        
+        const extractedText = fullText.trim();
         
         // Smart fallback: if we extracted very little text, it's likely a scanned PDF
         if (extractedText.length < 100) {
@@ -194,11 +210,11 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
           return await extractWithVisionAI(base64Data, fileType, apiKey);
         }
         
-        console.log(`[parseFile] Successfully extracted ${extractedText.length} characters from PDF using pdf-parse`);
+        console.log(`[parseFile] Successfully extracted ${extractedText.length} characters from PDF using unpdf`);
         return extractedText;
         
       } catch (pdfError: any) {
-        console.error('[parseFile] pdf-parse failed:', pdfError);
+        console.error('[parseFile] unpdf failed:', pdfError);
         console.log('[parseFile] Falling back to AI vision');
         return await extractWithVisionAI(base64Data, fileType, apiKey);
       }
