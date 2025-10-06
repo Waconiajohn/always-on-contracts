@@ -16,6 +16,9 @@ const ResumeUploadContent = () => {
   const [savedFilename, setSavedFilename] = useState<string>("");
   const [existingResumes, setExistingResumes] = useState<any[]>([]);
   const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const [processingStage, setProcessingStage] = useState<string>("");
+  const [progress, setProgress] = useState<number>(0);
+  const [errorSolutions, setErrorSolutions] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +67,7 @@ const ResumeUploadContent = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
+      // Phase 4.3: Enhanced client-side validation
       const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
       if (!validTypes.includes(selectedFile.type)) {
         toast({
@@ -74,10 +78,11 @@ const ResumeUploadContent = () => {
         return;
       }
       
-      if (selectedFile.size > 10 * 1024 * 1024) {
+      // Increased to 20MB for scale
+      if (selectedFile.size > 20 * 1024 * 1024) {
         toast({
           title: "File too large",
-          description: "Please upload a file smaller than 10MB",
+          description: "Please upload a file smaller than 20MB",
           variant: "destructive",
         });
         return;
@@ -88,6 +93,10 @@ const ResumeUploadContent = () => {
       setDuplicateWarning(isDuplicate);
       
       setFile(selectedFile);
+      setProgress(0);
+      setProcessingStage("");
+      setErrorSolutions([]);
+      
       toast({
         title: isDuplicate ? "Duplicate filename detected" : "File loaded",
         description: isDuplicate 
@@ -103,16 +112,21 @@ const ResumeUploadContent = () => {
     
     try {
       setUploading(true);
+      setProgress(5);
+      setProcessingStage("Uploading file...");
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
       const filePath = `${session.user.id}/${Date.now()}_${file.name}`;
+      
+      // Phase 4.2: Upload progress (0-25%)
       const { error: uploadError } = await supabase.storage
         .from("resumes")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
+      setProgress(25);
 
       const { data: { publicUrl } } = supabase.storage
         .from("resumes")
@@ -132,32 +146,48 @@ const ResumeUploadContent = () => {
 
       setUploadComplete(true);
       setSavedFilename(file.name);
-      toast({
-        title: "Resume uploaded",
-        description: `${file.name} saved successfully. Starting AI analysis...`,
-      });
+      setProcessingStage("Extracting text...");
+      setProgress(30);
 
       setAnalyzing(true);
 
       const fileText = await file.text();
+      setProgress(40);
+      setProcessingStage("Analyzing with AI...");
 
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke(
-        "analyze-resume",
+      // Phase 2.1: Use unified process-resume function
+      const { data: processData, error: processError } = await supabase.functions.invoke(
+        "process-resume",
         {
           body: {
-            resumeText: fileText,
-            resumeId: resumeData.id,
+            fileText,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            userId: session.user.id,
           },
         }
       );
 
-      if (analysisError) throw analysisError;
+      if (processError) throw processError;
+
+      if (!processData.success) {
+        // Phase 4.1: Display intelligent error messages with solutions
+        setErrorSolutions(processData.solutions || []);
+        throw new Error(processData.error || "Analysis failed");
+      }
+
+      setProgress(90);
+      setProcessingStage("Finalizing...");
 
       toast({
-        title: "Analysis complete!",
-        description: "Redirecting to dashboard...",
+        title: processData.cached ? "Analysis retrieved from cache!" : "Analysis complete!",
+        description: processData.cached 
+          ? "Found matching resume in our system. Redirecting..."
+          : "Your resume has been analyzed. Redirecting to dashboard...",
       });
 
+      setProgress(100);
       fetchExistingResumes();
       
       setTimeout(() => {
@@ -165,12 +195,21 @@ const ResumeUploadContent = () => {
       }, 2000);
     } catch (error: any) {
       console.error("Error:", error);
+      
+      // Phase 4.1: Show error with solutions if available
+      const errorMessage = error.message || "Failed to upload resume";
+      
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload resume",
+        description: errorSolutions.length > 0 
+          ? `${errorMessage}. See suggestions below.`
+          : errorMessage,
         variant: "destructive",
       });
+      
       setUploadComplete(false);
+      setProgress(0);
+      setProcessingStage("");
     } finally {
       setUploading(false);
       setAnalyzing(false);
@@ -279,7 +318,7 @@ const ResumeUploadContent = () => {
             <CardHeader>
               <CardTitle className="text-2xl">Upload Your Resume</CardTitle>
               <CardDescription className="text-lg">
-                Accepted formats: PDF, DOC, DOCX, TXT (Max 10MB)
+                Accepted formats: PDF, DOC, DOCX, TXT (Max 20MB)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -290,6 +329,21 @@ const ResumeUploadContent = () => {
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
                         A resume with this filename already exists. Uploading will create a duplicate entry. Consider deleting the old one first.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {/* Phase 4.1: Display error solutions */}
+                  {errorSolutions.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="font-semibold mb-2">Suggestions to fix the issue:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {errorSolutions.map((solution, idx) => (
+                            <li key={idx}>{solution}</li>
+                          ))}
+                        </ul>
                       </AlertDescription>
                     </Alert>
                   )}
@@ -338,16 +392,34 @@ const ResumeUploadContent = () => {
                   </div>
 
                   {file && (
-                    <Button 
-                      className="w-full text-lg py-6" 
-                      size="lg"
-                      onClick={handleUpload}
-                      disabled={uploading || analyzing}
-                    >
-                      {uploading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-                      {analyzing && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-                      {uploading ? "Uploading Resume..." : analyzing ? "AI Analysis in Progress..." : "Upload & Analyze"}
-                    </Button>
+                    <>
+                      {/* Phase 4.2: Progress indicator */}
+                      {(uploading || analyzing) && progress > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">{processingStage}</span>
+                            <span className="font-medium">{progress}%</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-primary h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        className="w-full text-lg py-6" 
+                        size="lg"
+                        onClick={handleUpload}
+                        disabled={uploading || analyzing}
+                      >
+                        {uploading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                        {analyzing && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                        {uploading ? "Uploading Resume..." : analyzing ? "AI Analysis in Progress..." : "Upload & Analyze"}
+                      </Button>
+                    </>
                   )}
                 </>
               ) : (

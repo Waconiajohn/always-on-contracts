@@ -164,3 +164,15 @@ verify_jwt = true
 
 [functions.perplexity-research]
 verify_jwt = true
+
+[functions.process-resume]
+verify_jwt = true
+
+[functions.batch-process-resumes]
+verify_jwt = true
+
+[functions.generate-interview-followup]
+verify_jwt = true
+
+[functions.send-interview-communication]
+verify_jwt = true

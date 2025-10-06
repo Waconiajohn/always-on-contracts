@@ -1454,6 +1454,74 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_logs: {
+        Row: {
+          ai_tokens_used: number | null
+          confidence_level: string | null
+          created_at: string
+          error_message: string | null
+          error_type: string | null
+          extracted_text_length: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          metadata: Json | null
+          processing_time_ms: number | null
+          queue_id: string | null
+          success: boolean
+          user_id: string
+          validation_score: number | null
+          was_cached: boolean | null
+        }
+        Insert: {
+          ai_tokens_used?: number | null
+          confidence_level?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          extracted_text_length?: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          metadata?: Json | null
+          processing_time_ms?: number | null
+          queue_id?: string | null
+          success: boolean
+          user_id: string
+          validation_score?: number | null
+          was_cached?: boolean | null
+        }
+        Update: {
+          ai_tokens_used?: number | null
+          confidence_level?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          extracted_text_length?: number | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          metadata?: Json | null
+          processing_time_ms?: number | null
+          queue_id?: string | null
+          success?: boolean
+          user_id?: string
+          validation_score?: number | null
+          was_cached?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_logs_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "resume_processing_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           automation_activated_at: string | null
@@ -1637,6 +1705,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          request_count: number
+          user_id: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          request_count?: number
+          user_id: string
+          window_end: string
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          request_count?: number
+          user_id?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       research_findings: {
         Row: {
           credibility_score: number | null
@@ -1737,6 +1835,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      resume_cache: {
+        Row: {
+          analysis_result: Json | null
+          content_hash: string
+          created_at: string
+          expires_at: string
+          extracted_text: string
+          file_type: string
+          hit_count: number | null
+          id: string
+          last_accessed: string
+        }
+        Insert: {
+          analysis_result?: Json | null
+          content_hash: string
+          created_at?: string
+          expires_at?: string
+          extracted_text: string
+          file_type: string
+          hit_count?: number | null
+          id?: string
+          last_accessed?: string
+        }
+        Update: {
+          analysis_result?: Json | null
+          content_hash?: string
+          created_at?: string
+          expires_at?: string
+          extracted_text?: string
+          file_type?: string
+          hit_count?: number | null
+          id?: string
+          last_accessed?: string
+        }
+        Relationships: []
+      }
+      resume_processing_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          error_type: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          metadata: Json | null
+          progress: number | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          metadata?: Json | null
+          progress?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          metadata?: Json | null
+          progress?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       resumes: {
         Row: {
@@ -2621,6 +2806,10 @@ export type Database = {
       check_password_strength: {
         Args: { password: string }
         Returns: boolean
+      }
+      cleanup_expired_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       generate_api_key: {
         Args: Record<PropertyKey, never>
