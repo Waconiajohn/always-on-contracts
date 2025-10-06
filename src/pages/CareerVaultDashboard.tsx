@@ -147,27 +147,27 @@ const WarChestDashboardContent = () => {
 
           // Get power phrases via MCP
           const { data: phrases } = await supabase
-            .from('war_chest_power_phrases')
+            .from('vault_power_phrases')
             .select('*')
-            .eq('war_chest_id', wc.id)
+            .eq('vault_id', wc.id)
             .order('confidence_score', { ascending: false });
 
           setPowerPhrases(phrases || []);
 
           // Get transferable skills via MCP
           const { data: skills } = await supabase
-            .from('war_chest_transferable_skills')
+            .from('vault_transferable_skills')
             .select('*')
-            .eq('war_chest_id', wc.id)
+            .eq('vault_id', wc.id)
             .order('confidence_score', { ascending: false });
 
           setTransferableSkills(skills || []);
 
           // Get hidden competencies via MCP
           const { data: competencies } = await supabase
-            .from('war_chest_hidden_competencies')
+            .from('vault_hidden_competencies')
             .select('*')
-            .eq('war_chest_id', wc.id)
+            .eq('vault_id', wc.id)
             .order('confidence_score', { ascending: false });
 
           setHiddenCompetencies(competencies || []);
@@ -178,7 +178,7 @@ const WarChestDashboardContent = () => {
 
           // Update overall strength score in database
           await supabase
-            .from('career_war_chest')
+            .from('career_vault')
             .update({ overall_strength_score: score.total })
             .eq('id', wc.id);
         }
@@ -367,7 +367,7 @@ const WarChestDashboardContent = () => {
         </TabsList>
 
         <TabsContent value="enhancement-queue">
-          <EnhancementQueue warChestId={warChestId} />
+          <EnhancementQueue vaultId={warChestId} />
         </TabsContent>
 
         <TabsContent value="power-phrases" className="space-y-4">
@@ -451,7 +451,7 @@ const WarChestDashboardContent = () => {
         </TabsContent>
 
         <TabsContent value="responses">
-          <InterviewResponsesTab warChestId={warChestId} />
+          <InterviewResponsesTab vaultId={warChestId} />
         </TabsContent>
 
         <TabsContent value="market-research">

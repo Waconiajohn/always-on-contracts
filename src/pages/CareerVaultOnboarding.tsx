@@ -6,14 +6,14 @@ import { Upload, MessageSquare, CheckCircle, ArrowRight, FileText } from 'lucide
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { WarChestInterview } from '@/components/WarChestInterview';
-import { CareerGoalsStep } from '@/components/war-chest/CareerGoalsStep';
-import { AIAnalysisStep } from '@/components/war-chest/AIAnalysisStep';
-import { SkillConfirmationStep } from '@/components/war-chest/SkillConfirmationStep';
+import { CareerVaultInterview } from '@/components/CareerVaultInterview';
+import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
+import { AIAnalysisStep } from '@/components/career-vault/AIAnalysisStep';
+import { SkillConfirmationStep } from '@/components/career-vault/SkillConfirmationStep';
 
 type OnboardingStep = 'upload' | 'goals' | 'analysis' | 'skills' | 'interview' | 'complete';
 
-const WarChestOnboarding = () => {
+const CareerVaultOnboarding = () => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -127,7 +127,7 @@ const WarChestOnboarding = () => {
       if (!user) return;
 
       await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .update({ interview_completion_percentage: 100 })
         .eq('user_id', user.id);
 
@@ -265,7 +265,7 @@ const WarChestOnboarding = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <WarChestInterview onComplete={handleInterviewComplete} />
+            <CareerVaultInterview onComplete={handleInterviewComplete} />
           </CardContent>
         </Card>
       )}
@@ -287,4 +287,4 @@ const WarChestOnboarding = () => {
   );
 };
 
-export default WarChestOnboarding;
+export default CareerVaultOnboarding;

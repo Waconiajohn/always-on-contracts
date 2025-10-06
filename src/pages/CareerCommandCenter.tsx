@@ -37,9 +37,9 @@ const CareerCommandCenter = () => {
         return;
       }
 
-      // Fetch War Chest completion
-      const { data: warChest } = await supabase
-        .from('career_war_chest')
+      // Fetch Career Vault completion
+      const { data: vault } = await supabase
+        .from('career_vault')
         .select('interview_completion_percentage, last_updated_at')
         .eq('user_id', user.id)
         .single();
@@ -57,11 +57,11 @@ const CareerCommandCenter = () => {
       // Build feature list with completion percentages
       const featureList: FeatureProgress[] = [
         {
-          name: 'War Chest',
+          name: 'Career Vault',
           icon: Package,
-          completion: warChest?.interview_completion_percentage || 0,
-          lastActivity: warChest?.last_updated_at || null,
-          route: '/war-chest',
+          completion: vault?.interview_completion_percentage || 0,
+          lastActivity: vault?.last_updated_at || null,
+          route: '/career-vault',
           description: 'Your career intelligence foundation'
         },
         {

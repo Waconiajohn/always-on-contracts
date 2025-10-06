@@ -71,7 +71,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [validationFeedback, setValidationFeedback] = useState<string>('');
   const [qualityScore, setQualityScore] = useState<number>(0);
-  const [warChestId, setWarChestId] = useState<string>('');
+  const [vaultId, setVaultId] = useState<string>('');
   const [guidedPrompts, setGuidedPrompts] = useState<any>(null);
   const [skipAttempts, setSkipAttempts] = useState<number>(0);
   const [enhancedStrongAnswer, setEnhancedStrongAnswer] = useState<string>('');
@@ -364,7 +364,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
       });
 
       // Step 2: Save response to database
-      if (warChestId) {
+      if (vaultId) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
@@ -417,7 +417,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
             body: {
               responseText: responseToSave,
               questionText: currentSubQuestion.prompt,
-              warChestId
+              vaultId
             }
           }
         );
@@ -700,7 +700,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
   };
 
   const handleAcceptAndContinue = async () => {
-    if (!currentQuestion || !warChestId) return;
+    if (!currentQuestion || !vaultId) return;
     
     setIsLoading(true);
     const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
@@ -735,7 +735,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
       // Extract intelligence
       await supabase.functions.invoke('extract-war-chest-intelligence', {
         body: {
-          war_chest_id: warChestId,
+          vault_id: vaultId,
           response_text: responseToSave
         }
       });

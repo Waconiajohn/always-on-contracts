@@ -46,7 +46,7 @@ export const MarketResearchPanel = () => {
   const handleSkillsDemand = async () => {
     // Get user's skills
     const { data: skills } = await supabase
-      .from('war_chest_confirmed_skills')
+      .from('vault_confirmed_skills')
       .select('skill_name')
       .limit(10);
 

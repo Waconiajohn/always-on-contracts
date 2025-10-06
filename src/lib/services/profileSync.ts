@@ -4,11 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
  * Syncs confirmed skills from War Chest to user profile
  * This ensures the profile always reflects the latest confirmed skills
  */
-export const syncWarChestSkillsToProfile = async (userId: string): Promise<void> => {
+export const syncVaultSkillsToProfile = async (userId: string): Promise<void> => {
   try {
-    // Get confirmed skills from War Chest
+    // Get confirmed skills from Career Vault
     const { data: confirmedSkills } = await supabase
-      .from('war_chest_confirmed_skills')
+      .from('vault_confirmed_skills')
       .select('skill_name')
       .eq('user_id', userId);
 
@@ -42,12 +42,12 @@ export const syncWarChestSkillsToProfile = async (userId: string): Promise<void>
 };
 
 /**
- * Gets War Chest completion status for a user
+ * Gets Career Vault completion status for a user
  */
-export const getWarChestStatus = async (userId: string) => {
+export const getVaultStatus = async (userId: string) => {
   try {
     const { data, error } = await supabase
-      .from('career_war_chest')
+      .from('career_vault')
       .select('interview_completion_percentage, overall_strength_score')
       .eq('user_id', userId)
       .single();

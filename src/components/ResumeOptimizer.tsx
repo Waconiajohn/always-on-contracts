@@ -29,39 +29,39 @@ export function ResumeOptimizer() {
   const [jobAnalysis, setJobAnalysis] = useState<JobAnalysis | null>(null);
   const [result, setResult] = useState<ResumeOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [warChestData, setWarChestData] = useState<any>(null);
-  const [loadingWarChest, setLoadingWarChest] = useState(true);
+  const [vaultData, setVaultData] = useState<any>(null);
+  const [loadingVault, setLoadingVault] = useState(true);
 
   useEffect(() => {
-    loadWarChestData();
+    loadVaultData();
   }, []);
 
-  const loadWarChestData = async () => {
+  const loadVaultData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: warChest } = await supabase
-        .from('career_war_chest')
+      const { data: vault } = await supabase
+        .from('career_vault')
         .select(`
           resume_raw_text,
-          war_chest_power_phrases(phrase, context),
-          war_chest_confirmed_skills(skill_name, proficiency_level)
+          vault_power_phrases(phrase, context),
+          vault_confirmed_skills(skill_name, proficiency_level)
         `)
         .eq('user_id', user.id)
         .single();
 
-      if (warChest) {
-        setWarChestData(warChest);
+      if (vault) {
+        setVaultData(vault);
         // Auto-populate resume if empty
-        if (!resumeText && warChest.resume_raw_text) {
-          setResumeText(warChest.resume_raw_text);
+        if (!resumeText && vault.resume_raw_text) {
+          setResumeText(vault.resume_raw_text);
         }
       }
     } catch (error) {
-      console.error('Error loading War Chest data:', error);
+      console.error('Error loading Career Vault data:', error);
     } finally {
-      setLoadingWarChest(false);
+      setLoadingVault(false);
     }
   };
 
@@ -118,12 +118,12 @@ export function ResumeOptimizer() {
           </p>
         </div>
 
-        {warChestData && !loadingWarChest && (
+        {vaultData && !loadingVault && (
           <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Your War Chest Intelligence
+                Your Career Vault Intelligence
               </CardTitle>
               <CardDescription>
                 Click to add power phrases to your resume
@@ -131,7 +131,7 @@ export function ResumeOptimizer() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {warChestData.war_chest_power_phrases?.slice(0, 10).map((phrase: any, idx: number) => (
+                {vaultData.vault_power_phrases?.slice(0, 10).map((phrase: any, idx: number) => (
                   <Button
                     key={idx}
                     variant="outline"

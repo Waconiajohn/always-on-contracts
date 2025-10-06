@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { syncWarChestSkillsToProfile } from '@/lib/services/profileSync';
+import { syncVaultSkillsToProfile } from '@/lib/services/profileSync';
 
 interface SkillConfirmationStepProps {
   onComplete: () => void;
@@ -46,7 +46,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       if (!user) throw new Error('No user');
 
       const { data, error } = await supabase
-        .from('war_chest_skill_taxonomy')
+        .from('vault_skill_taxonomy')
         .select('*')
         .eq('user_id', user.id)
         .order('source', { ascending: true })
@@ -58,7 +58,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       
       // Get confirmed count
       const { count } = await supabase
-        .from('war_chest_confirmed_skills')
+        .from('vault_confirmed_skills')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
@@ -96,7 +96,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       const skill = skills.find((s) => s.id === skillId);
       if (!skill) return;
 
-      const { error } = await supabase.from('war_chest_confirmed_skills').insert({
+      const { error } = await supabase.from('vault_confirmed_skills').insert({
         user_id: user.id,
         skill_name: skill.skill_name,
         source: skill.source,
@@ -130,7 +130,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user');
 
-      const { error } = await supabase.from('war_chest_confirmed_skills').insert({
+      const { error } = await supabase.from('vault_confirmed_skills').insert({
         user_id: user.id,
         skill_name: customSkillName.trim(),
         source: 'custom',
@@ -168,7 +168,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       if (!user) throw new Error('No user');
       
       // Sync confirmed skills to profile
-      await syncWarChestSkillsToProfile(user.id);
+      await syncVaultSkillsToProfile(user.id);
       toast.success('Skills synced to your profile');
       
       onComplete();
