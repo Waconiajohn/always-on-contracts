@@ -163,8 +163,8 @@ serve(async (req) => {
         `Q: ${r.question_text}\nA: ${r.response_text?.substring(0, 150)}...`
       ).join('\n\n');
 
-      warChestContext = `
-EXISTING WAR CHEST INTELLIGENCE:
+      vaultContext = `
+EXISTING CAREER VAULT INTELLIGENCE:
 - Power Phrases: ${intelligence.counts.powerPhrases}
 - Business Impacts: ${intelligence.counts.businessImpacts}
 - Projects: ${intelligence.counts.projects}
@@ -186,7 +186,7 @@ PHASE DESCRIPTION: ${currentPhase.description}
 TARGET INTELLIGENCE CATEGORIES: ${currentPhase.targetCategories.join(', ')}
 OVERALL COMPLETION: ${completionPercentage}%
 
-${warChestContext}
+${vaultContext}
 
 Your goal is to extract SPECIFIC, QUANTIFIED, and COMPELLING career intelligence across 13 categories:
 
@@ -258,13 +258,18 @@ ${generate_answer_options ? `{
 
 CRITICAL INSTRUCTIONS:
 1. Pull specific data from resume: ${JSON.stringify(vault?.initial_analysis || {})}
-...
+2. Reference existing Career Vault intelligence when building questions
+3. Ask follow-up questions that build on previous responses
+4. Use the phase context to focus on relevant intelligence categories
+5. Keep questions conversational and natural
+6. Push for specifics and quantified results
+7. Help user articulate their unique value${generate_answer_options ? `
+8. Add question_type: "multiple_choice_with_custom" for checkbox questions
+9. Include realistic answer_options based on:
    - Resume content: ${JSON.stringify(vault?.initial_analysis || {})}
    - Confirmed skills: ${JSON.stringify(confirmed_skills)}
    - Target role requirements
-   - Include realistic options the user can select
-8. Add question_type: "multiple_choice_with_custom" for checkbox questions
-9. Include custom_input_prompt for freeform additions` : ''}
+10. Include custom_input_prompt for freeform additions` : ''}
 
 Current Phase Focus: ${currentPhase.name}
 ${isFirst ? 'This is the FIRST question - focus on career overview' : ''}

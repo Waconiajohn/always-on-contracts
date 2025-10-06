@@ -35,7 +35,7 @@ serve(async (req) => {
           tools: [
             {
               name: 'create',
-              description: 'Initialize war chest for user',
+              description: 'Initialize Career Vault for user',
               inputSchema: {
                 type: 'object',
                 properties: {
@@ -47,7 +47,7 @@ serve(async (req) => {
             },
             {
               name: 'get',
-              description: 'Retrieve war chest data',
+              description: 'Retrieve Career Vault data',
               inputSchema: {
                 type: 'object',
                 properties: {

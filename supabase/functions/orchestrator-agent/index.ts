@@ -20,8 +20,8 @@ interface MCPServerConfig {
 }
 
 const MCP_SERVERS: Record<string, MCPServerConfig> = {
-  'warchest': {
-    url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mcp-warchest-manager`,
+  'vault': {
+    url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mcp-vault-manager`,
     type: 'custom'
   },
   'persona-memory': {
