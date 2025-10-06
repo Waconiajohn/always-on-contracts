@@ -32,6 +32,28 @@ serve(async (req) => {
 
     const { opportunityId, persona } = await req.json();
 
+    console.log('[CUSTOMIZE-RESUME] Starting for user:', user.id, 'opportunity:', opportunityId);
+
+    // Fetch War Chest intelligence
+    const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
+      'get-war-chest-intelligence',
+      { headers: { Authorization: authHeader } }
+    );
+
+    const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
+    
+    if (intelligence) {
+      console.log('[CUSTOMIZE-RESUME] War Chest intelligence loaded:', {
+        powerPhrases: intelligence.counts.powerPhrases,
+        businessImpacts: intelligence.counts.businessImpacts,
+        leadershipExamples: intelligence.counts.leadershipExamples,
+        technicalSkills: intelligence.counts.technicalSkills,
+        projects: intelligence.counts.projects
+      });
+    } else {
+      console.log('[CUSTOMIZE-RESUME] No War Chest intelligence available, using fallback mode');
+    }
+
     // Fetch opportunity details
     const { data: opportunity, error: oppError } = await supabase
       .from("job_opportunities")
@@ -71,6 +93,61 @@ serve(async (req) => {
 
     const personaStyle = persona ? personaInstructions[persona as keyof typeof personaInstructions] : personaInstructions.executive;
 
+    // Build War Chest context for prompt
+    let warChestContext = '';
+    if (intelligence) {
+      const topPowerPhrases = intelligence.powerPhrases.slice(0, 8).map((p: any) => 
+        `- ${p.phrase} (${p.context || 'proven achievement'})`
+      ).join('\n');
+
+      const topBusinessImpacts = intelligence.businessImpacts.slice(0, 5).map((b: any) => 
+        `- ${b.metric_type}: ${b.metric_value} (${b.context || 'quantified result'})`
+      ).join('\n');
+
+      const leadershipHighlights = intelligence.leadershipEvidence.slice(0, 4).map((l: any) => 
+        `- ${l.evidence_type}: ${l.description}`
+      ).join('\n');
+
+      const technicalSkills = intelligence.technicalDepth.slice(0, 6).map((t: any) => 
+        `- ${t.skill_name} (${t.proficiency_level}): ${t.years_experience || 'experienced'}`
+      ).join('\n');
+
+      const projectHighlights = intelligence.projects.slice(0, 4).map((p: any) => 
+        `- ${p.project_name}: ${p.impact || p.outcome || 'successful delivery'}`
+      ).join('\n');
+
+      const industryExpertise = intelligence.industryExpertise.slice(0, 5).map((i: any) => 
+        `- ${i.industry_name} (${i.depth_level}): ${i.key_areas?.join(', ') || 'expert knowledge'}`
+      ).join('\n');
+
+      warChestContext = `
+CAREER INTELLIGENCE DATABASE (Verified achievements from War Chest):
+
+PROVEN POWER PHRASES (${intelligence.counts.powerPhrases} total, top 8):
+${topPowerPhrases}
+
+QUANTIFIED BUSINESS IMPACTS (${intelligence.counts.businessImpacts} total, top 5):
+${topBusinessImpacts}
+
+LEADERSHIP EVIDENCE (${intelligence.counts.leadershipExamples} total, top 4):
+${leadershipHighlights}
+
+TECHNICAL DEPTH (${intelligence.counts.technicalSkills} total, top 6):
+${technicalSkills}
+
+PROJECT PORTFOLIO (${intelligence.counts.projects} total, top 4):
+${projectHighlights}
+
+INDUSTRY EXPERTISE (${intelligence.counts.industryExpertise} areas):
+${industryExpertise}
+
+COMPETITIVE ADVANTAGES:
+${intelligence.competitiveAdvantages.slice(0, 3).map((a: any) => `- ${a.advantage_description}`).join('\n')}
+
+**INSTRUCTION: Prioritize these verified achievements and quantified metrics in your customization. These are proven, real accomplishments - use them directly.**
+`;
+    }
+
     const prompt = `You are an expert resume writer specializing in executive-level positions (permanent, contract, and interim roles). Customize this executive's resume to perfectly match the job opportunity below.
 
 PERSONA STYLE: ${personaStyle}
@@ -90,12 +167,22 @@ Industries: ${analysis.industry_expertise?.join(", ") || "Not specified"}
 Leadership: ${analysis.management_capabilities?.join(", ") || "Not specified"}
 Executive Summary: ${analysis.analysis_summary || "Not provided"}
 
+${warChestContext}
+
 TASK:
 1. Identify the top 8-10 keywords and phrases from the job description that should be incorporated
-2. Create a tailored executive summary (3-4 sentences) that speaks directly to this role
-3. List 5-7 key achievements that are most relevant to this opportunity
-4. List 8-12 core competencies that match the job requirements
-5. Provide 2-3 specific customization notes explaining why this executive is a strong match
+2. Create a tailored executive summary (3-4 sentences) that speaks directly to this role, using verified achievements from the War Chest when available
+3. List 5-7 key achievements that are most relevant to this opportunity - PRIORITIZE quantified achievements from the Business Impacts database
+4. List 8-12 core competencies that match the job requirements - reference confirmed Technical Depth and Leadership Evidence
+5. Provide 2-3 specific customization notes explaining why this executive is a strong match, citing specific War Chest intelligence
+
+CRITICAL REQUIREMENTS:
+- Use exact power phrases from the War Chest database when they align with job requirements
+- Include specific metrics and numbers from Business Impacts (percentages, dollar amounts, scale)
+- Reference real projects from Project Portfolio when relevant to the role
+- Leverage Industry Expertise to establish domain credibility
+- Maintain consistency with established Career Narrative
+- Ensure competitive advantages are prominently featured
 
 Return ONLY a JSON object with this structure:
 {
@@ -106,7 +193,7 @@ Return ONLY a JSON object with this structure:
   "customization_notes": "Brief notes on why this is a strong match and what was emphasized..."
 }`;
 
-    console.log("Calling Lovable AI for resume customization...");
+    console.log("[CUSTOMIZE-RESUME] Calling Lovable AI...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -134,7 +221,7 @@ Return ONLY a JSON object with this structure:
     const data = await response.json();
     const content = data.choices[0].message.content;
 
-    console.log("AI response:", content);
+    console.log("[CUSTOMIZE-RESUME] AI response received");
 
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -150,9 +237,12 @@ Return ONLY a JSON object with this structure:
       ...customizedResume.keywords
     ]));
 
+    console.log("[CUSTOMIZE-RESUME] Customization complete with", keywords.length, "keywords");
+
     return new Response(JSON.stringify({ 
       ...customizedResume,
-      keywords 
+      keywords,
+      warChestUsed: !!intelligence
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

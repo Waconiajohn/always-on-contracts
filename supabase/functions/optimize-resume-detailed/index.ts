@@ -59,7 +59,68 @@ serve(async (req) => {
       throw new Error('Job description must be at least 50 characters');
     }
 
-    console.log('Optimizing resume for user:', user.id);
+    console.log('[OPTIMIZE-RESUME] Starting for user:', user.id);
+
+    // Fetch War Chest intelligence
+    const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
+      'get-war-chest-intelligence',
+      { headers: { Authorization: authHeader } }
+    );
+
+    const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
+    
+    if (intelligence) {
+      console.log('[OPTIMIZE-RESUME] War Chest loaded:', {
+        powerPhrases: intelligence.counts.powerPhrases,
+        businessImpacts: intelligence.counts.businessImpacts,
+        confirmedSkills: intelligence.counts.technicalSkills
+      });
+    }
+
+    // Build War Chest context
+    let warChestContext = '';
+    if (intelligence) {
+      const confirmedSkills = intelligence.technicalDepth.map((t: any) => 
+        `${t.skill_name} (${t.proficiency_level}, ${t.years_experience || 'experienced'})`
+      ).join(', ');
+
+      const quantifiedAchievements = intelligence.businessImpacts.slice(0, 10).map((b: any) => 
+        `- ${b.metric_type}: ${b.metric_value} | ${b.context || 'verified achievement'}`
+      ).join('\n');
+
+      const powerPhraseBank = intelligence.powerPhrases.slice(0, 15).map((p: any) => 
+        `"${p.phrase}" (${p.category})`
+      ).join(', ');
+
+      warChestContext = `
+WAR CHEST INTELLIGENCE (Verified Career Data):
+
+CONFIRMED SKILLS (${intelligence.counts.technicalSkills}):
+${confirmedSkills}
+
+QUANTIFIED ACHIEVEMENTS DATABASE (${intelligence.counts.businessImpacts} total, top 10):
+${quantifiedAchievements}
+
+ATS KEYWORD BANK (${intelligence.counts.powerPhrases} proven phrases, top 15):
+${powerPhraseBank}
+
+LEADERSHIP EVIDENCE (${intelligence.counts.leadershipExamples} examples):
+${intelligence.leadershipEvidence.slice(0, 5).map((l: any) => `- ${l.evidence_type}: ${l.description}`).join('\n')}
+
+INDUSTRY EXPERTISE:
+${intelligence.industryExpertise.slice(0, 5).map((i: any) => `- ${i.industry_name} (${i.depth_level})`).join('\n')}
+
+COMPETITIVE ADVANTAGES:
+${intelligence.competitiveAdvantages.slice(0, 3).map((a: any) => `- ${a.advantage_description}`).join('\n')}
+
+**OPTIMIZATION MANDATE:**
+- Prioritize confirmed skills from War Chest over inferred skills
+- Use exact quantified achievements (metrics are verified, not estimated)
+- Incorporate proven power phrases for ATS optimization
+- Leverage competitive advantages to differentiate from other candidates
+- Maintain consistency with established career narrative
+`;
+    }
 
     const apiUrl = provider === 'openai'
       ? 'https://api.openai.com/v1/chat/completions'
@@ -82,30 +143,43 @@ EXPERTISE AREAS:
 - Industry-specific terminology and credibility signals
 - Contract/consulting positioning for premium rates
 
+${intelligence ? `
+CRITICAL: You have access to this candidate's verified War Chest intelligence. This is real, validated career data - not generic advice. Use it strategically:
+- When War Chest shows quantified metrics, use them exactly as provided
+- Prioritize confirmed skills over suggested/inferred skills
+- Use proven power phrases from the keyword bank
+- Reference verified leadership evidence and industry expertise
+- Highlight competitive advantages explicitly
+` : ''}
+
 ANALYSIS FRAMEWORK:
 Phase 1 - ATS OPTIMIZATION (40% weight)
 - Keyword density analysis (target: 8-12 critical keywords)
 - Skills section alignment with job requirements
 - Job title and role description matching
 - Format compatibility (ATS-friendly structure)
+${intelligence ? '- Integration of War Chest keyword bank' : ''}
 
 Phase 2 - HUMAN READER IMPACT (40% weight)
 - Executive summary strength (hook within 3 seconds)
 - Achievement quantification (numbers, %, $, impact scale)
 - Leadership indicators (team size, budget, scope)
 - Industry credibility signals (company names, project scale)
+${intelligence ? '- Showcase verified quantified achievements from War Chest' : ''}
 
 Phase 3 - EXECUTIVE POSITIONING (20% weight)
 - Strategic thinking evidence
 - Business impact (revenue, efficiency, transformation)
 - Thought leadership indicators
 - Premium positioning (contractor: bill rate justification)
+${intelligence ? '- Leverage competitive advantages from War Chest' : ''}
 
 OUTPUT REQUIREMENTS:
 1. Overall scores (0-100) for each phase
 2. Top 5 specific improvements with before/after examples
 3. Missing critical keywords with suggested placement
 4. 3-5 concrete recommendations ranked by impact
+${intelligence ? '5. Validation of War Chest data usage in optimized resume' : ''}
 
 TONE: Direct, specific, actionable. No generic advice. Return valid JSON only.`
         },
@@ -119,12 +193,15 @@ ${resumeText}
 TARGET JOB DESCRIPTION:
 ${jobDescription}
 
+${warChestContext}
+
 DELIVERABLES:
 1. Comprehensive scoring across all three phases
 2. Specific keyword gaps with integration strategy
-3. Achievement enhancement suggestions (add metrics where missing)
+3. Achievement enhancement suggestions (add metrics where missing, prioritize War Chest verified metrics)
 4. Executive positioning improvements
 5. Final recommendations prioritized by ROI
+${intelligence ? '6. Confirmation of which War Chest intelligence was leveraged' : ''}
 
 FORMAT: Return detailed JSON matching the expected schema with optimizedResume, analysis (with all score fields), improvements array, missingKeywords array, and recommendations array.`
         }
@@ -138,6 +215,8 @@ FORMAT: Return detailed JSON matching the expected schema with optimizedResume, 
       requestBody.response_format = { type: "json_object" };
     }
 
+    console.log('[OPTIMIZE-RESUME] Calling AI API...');
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -149,15 +228,14 @@ FORMAT: Return detailed JSON matching the expected schema with optimizedResume, 
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('OpenAI API error:', response.status, error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('AI API error:', response.status, error);
+      throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
     let result;
     try {
       const content = data.choices[0].message.content || '{}';
-      // Try to parse JSON from content (handles both OpenAI and Lovable AI responses)
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
     } catch (e) {
@@ -181,6 +259,8 @@ FORMAT: Return detailed JSON matching the expected schema with optimizedResume, 
       recommendations: result.recommendations || []
     };
 
+    console.log('[OPTIMIZE-RESUME] Optimization complete, overall score:', optimizationResult.analysis.overallScore);
+
     // Store optimization result as an artifact
     await supabase
       .from('artifacts')
@@ -192,7 +272,8 @@ FORMAT: Return detailed JSON matching the expected schema with optimizedResume, 
           analysis: optimizationResult.analysis,
           improvements: optimizationResult.improvements,
           missingKeywords: optimizationResult.missingKeywords,
-          recommendations: optimizationResult.recommendations
+          recommendations: optimizationResult.recommendations,
+          warChestUsed: !!intelligence
         },
         quality_score: optimizationResult.analysis.overallScore,
         ats_score: optimizationResult.analysis.keywordDensityScore,

@@ -45,12 +45,39 @@ serve(async (req) => {
       confirmed_skills = []
     } = await req.json();
 
-    // Get War Chest data for context
-    const { data: warChest } = await supabase
-      .from('career_war_chest')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    console.log('[GENERATE-INTERVIEW-QUESTION] Fetching War Chest intelligence for user:', user.id);
+
+    // Get full War Chest intelligence
+    const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
+      'get-war-chest-intelligence',
+      { headers: { Authorization: authHeader } }
+    );
+
+    const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
+    const warChest = intelligence ? { 
+      id: 'war_chest_id',
+      user_id: user.id,
+      interview_completion_percentage: intelligence.completionPercentage || 0,
+      initial_analysis: intelligence.initialAnalysis || {}
+    } : null;
+
+    if (!warChest) {
+      console.log('[GENERATE-INTERVIEW-QUESTION] No War Chest found');
+      return new Response(JSON.stringify({
+        question: 'Please complete the War Chest interview first.',
+        error: 'No war chest found'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    console.log('[GENERATE-INTERVIEW-QUESTION] Intelligence loaded:', {
+      completion: intelligence?.completionPercentage,
+      existingResponses: intelligence?.interviewResponses?.length || 0,
+      powerPhrases: intelligence?.counts.powerPhrases || 0,
+      projects: intelligence?.counts.projects || 0
+    });
 
     // 6-Phase Enhanced Interview Strategy
     const interviewPhases = [
@@ -128,6 +155,28 @@ serve(async (req) => {
       strategist: `You are THE STRATEGIST - analytical, precise, and forward-thinking. You ask probing questions about decision-making and long-term impact. Use phrases like "Walk me through your thinking," "What were the strategic implications?" and "How did this position you for future opportunities?" Your tone is intellectual and methodical.`
     };
 
+    // Build War Chest context
+    let warChestContext = '';
+    if (intelligence && intelligence.interviewResponses?.length > 0) {
+      const askedTopics = intelligence.interviewResponses.map((r: any) => r.question_category).filter(Boolean);
+      const recentResponses = intelligence.interviewResponses.slice(-3).map((r: any) => 
+        `Q: ${r.question_text}\nA: ${r.response_text?.substring(0, 150)}...`
+      ).join('\n\n');
+
+      warChestContext = `
+EXISTING WAR CHEST INTELLIGENCE:
+- Power Phrases: ${intelligence.counts.powerPhrases}
+- Business Impacts: ${intelligence.counts.businessImpacts}
+- Projects: ${intelligence.counts.projects}
+- Topics Covered: ${askedTopics.join(', ')}
+
+RECENT RESPONSES:
+${recentResponses}
+
+**PROGRESSIVE DEEPENING:** Build on existing intelligence - reference projects/achievements already mentioned and dig deeper.
+`;
+    }
+
     const systemPrompt = `${personaStyles[persona as keyof typeof personaStyles] || personaStyles.mentor}
 
 You are conducting an in-depth career intelligence interview.
@@ -136,6 +185,8 @@ CURRENT INTERVIEW PHASE: ${currentPhase.title} (${currentPhase.name})
 PHASE DESCRIPTION: ${currentPhase.description}
 TARGET INTELLIGENCE CATEGORIES: ${currentPhase.targetCategories.join(', ')}
 OVERALL COMPLETION: ${completionPercentage}%
+
+${warChestContext}
 
 Your goal is to extract SPECIFIC, QUANTIFIED, and COMPELLING career intelligence across 13 categories:
 
