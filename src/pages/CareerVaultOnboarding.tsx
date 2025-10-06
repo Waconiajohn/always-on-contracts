@@ -36,6 +36,28 @@ const CareerVaultOnboarding = () => {
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
+  // Check if user has already completed onboarding and redirect if so
+  useEffect(() => {
+    const checkExistingVault = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if career vault already exists and is complete
+      const { data: existingVault } = await supabase
+        .from('career_vault')
+        .select('id, interview_completion_percentage')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingVault && existingVault.interview_completion_percentage >= 100) {
+        // User has completed onboarding, redirect to dashboard
+        navigate('/career-vault');
+      }
+    };
+
+    checkExistingVault();
+  }, [navigate]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
