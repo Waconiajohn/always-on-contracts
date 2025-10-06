@@ -192,8 +192,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setCurrentPhase(data.phase || 'discovery');
         setCompletionPercentage(data.completionPercentage || 0);
         
-        // Play first question audio
-        await playQuestionAudio(data.question.questionsToExpand[0].prompt);
+        // Don't auto-play audio - wait for user to click Play button
       }
     } catch (error) {
       console.error('Error starting interview:', error);
@@ -313,8 +312,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setUserInput('');
         setValidationFeedback('');
         
-        // Play next question audio
-        await playQuestionAudio(data.question.questionsToExpand[0].prompt);
+        // Don't auto-play audio - wait for user to click Play button
       }
 
     } catch (error) {
