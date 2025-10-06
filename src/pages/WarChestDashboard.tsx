@@ -52,6 +52,8 @@ interface HiddenCompetency {
   certification_equivalent: string | null;
 }
 
+import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
+
 const WarChestDashboardContent = () => {
   const [userId, setUserId] = useState<string>("");
   const [warChestId, setWarChestId] = useState<string>("");

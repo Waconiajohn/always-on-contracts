@@ -2236,9 +2236,13 @@ export type Database = {
           follow_up_questions: Json | null
           id: string
           phase: string
+          quality_score: number | null
           question: string
           response: string
+          updated_at: string | null
           user_id: string
+          validation_feedback: Json | null
+          version: number | null
           war_chest_id: string
         }
         Insert: {
@@ -2247,9 +2251,13 @@ export type Database = {
           follow_up_questions?: Json | null
           id?: string
           phase: string
+          quality_score?: number | null
           question: string
           response: string
+          updated_at?: string | null
           user_id: string
+          validation_feedback?: Json | null
+          version?: number | null
           war_chest_id: string
         }
         Update: {
@@ -2258,9 +2266,13 @@ export type Database = {
           follow_up_questions?: Json | null
           id?: string
           phase?: string
+          quality_score?: number | null
           question?: string
           response?: string
+          updated_at?: string | null
           user_id?: string
+          validation_feedback?: Json | null
+          version?: number | null
           war_chest_id?: string
         }
         Relationships: [

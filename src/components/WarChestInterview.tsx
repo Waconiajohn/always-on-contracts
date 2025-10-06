@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { VoiceInput } from './VoiceInput';
 import { PreFilledQuestion } from './PreFilledQuestion';
+import { GuidedPromptSelector } from './GuidedPromptSelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface KnownDataItem {
@@ -44,6 +45,7 @@ interface ValidationResult {
   missing_elements: string[];
   follow_up_prompt: string;
   strengths: string[];
+  guided_prompts?: any;
 }
 
 interface WarChestInterviewProps {
@@ -64,6 +66,9 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   const [validationFeedback, setValidationFeedback] = useState<string>('');
   const [qualityScore, setQualityScore] = useState<number>(0);
   const [warChestId, setWarChestId] = useState<string>('');
+  const [guidedPrompts, setGuidedPrompts] = useState<any>(null);
+  const [skipAttempts, setSkipAttempts] = useState<number>(0);
+  const [currentResponseId, setCurrentResponseId] = useState<string>('');
   const [intelligenceExtracted, setIntelligenceExtracted] = useState({
     powerPhrases: 0,
     transferableSkills: 0,
@@ -229,21 +234,52 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       if (validationError) throw validationError;
 
       setQualityScore(validation.quality_score);
+      setGuidedPrompts(validation.guided_prompts || null);
 
-      // If response is insufficient, show feedback and don't proceed
-      if (!validation.is_sufficient) {
+      // If response is insufficient, show feedback and guided prompts
+      if (!validation.is_sufficient && skipAttempts < 2) {
         setValidationFeedback(validation.follow_up_prompt);
         toast({
           title: 'Let\'s add more detail',
-          description: 'Your response is good, but could be stronger with more specifics.',
+          description: 'Select options below or add more to your answer',
           variant: 'default'
         });
         setIsValidating(false);
         return;
       }
 
-      // Step 2: Extract intelligence in real-time
+      // If skip attempts >= 2, allow progression even with low score
+      if (skipAttempts >= 2) {
+        toast({
+          title: 'Moving forward',
+          description: 'You can enhance this response later from your Dashboard',
+        });
+      }
+
+      // Step 2: Save response to database
       if (warChestId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: savedResponse } = await supabase
+          .from('war_chest_interview_responses')
+          .insert({
+            war_chest_id: warChestId,
+            user_id: user.id,
+            question: currentSubQuestion.prompt,
+            response: userInput,
+            quality_score: validation.quality_score,
+            validation_feedback: validation,
+            phase: currentPhase,
+          })
+          .select()
+          .single();
+
+        if (savedResponse) {
+          setCurrentResponseId(savedResponse.id);
+        }
+
+        // Step 3: Extract intelligence in real-time
         const { data: extracted } = await supabase.functions.invoke(
           'extract-war-chest-intelligence',
           {
@@ -272,12 +308,14 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         }
       }
 
-      // Step 3: Check if we need to move to next sub-question or next main question
+      // Step 4: Check if we need to move to next sub-question or next main question
       if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
         // Move to next sub-question
         setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
         setUserInput('');
         setValidationFeedback('');
+        setGuidedPrompts(null);
+        setSkipAttempts(0);
         setIsValidating(false);
         return;
       }
@@ -311,6 +349,8 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setCompletionPercentage(data.completionPercentage);
         setUserInput('');
         setValidationFeedback('');
+        setGuidedPrompts(null);
+        setSkipAttempts(0);
         
         // Don't auto-play audio - wait for user to click Play button
       }
@@ -334,6 +374,34 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
   const toggleRecording = () => {
     setIsRecording(!isRecording);
+  };
+
+  const handleApplyGuidedOptions = (selectedOptions: string[]) => {
+    const optionsText = selectedOptions.join('; ');
+    const enhancedAnswer = `${userInput}\n\nAdditional context: ${optionsText}`;
+    setUserInput(enhancedAnswer);
+    setValidationFeedback('');
+    setGuidedPrompts(null);
+    toast({
+      title: 'Details added',
+      description: 'Your response has been enhanced. Review and submit when ready.',
+    });
+  };
+
+  const handleSkipGuidedPrompts = () => {
+    const newSkipAttempts = skipAttempts + 1;
+    setSkipAttempts(newSkipAttempts);
+    setGuidedPrompts(null);
+    
+    if (newSkipAttempts >= 2) {
+      // Allow progression
+      handleSubmit();
+    } else {
+      toast({
+        title: 'Noted',
+        description: 'You can enhance this later. Click Submit to continue.',
+      });
+    }
   };
 
   if (!currentQuestion) {
@@ -492,7 +560,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         />
 
         {/* Validation feedback */}
-        {validationFeedback && (
+        {validationFeedback && !guidedPrompts && (
           <>
             <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
               <AlertDescription className="text-sm">
@@ -506,6 +574,16 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
               </AlertDescription>
             </Alert>
           </>
+        )}
+
+        {/* Guided Prompts Selector */}
+        {guidedPrompts && (
+          <GuidedPromptSelector
+            guidedPrompts={guidedPrompts}
+            onApply={handleApplyGuidedOptions}
+            onSkip={handleSkipGuidedPrompts}
+            skipAttempts={skipAttempts}
+          />
         )}
 
         {/* Quality score */}

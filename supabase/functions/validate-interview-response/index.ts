@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error('Question and answer are required');
     }
 
-    // Use Lovable AI to validate the response quality
+    // Use Lovable AI to validate the response quality with guided enhancement options
     const validationPrompt = `You are validating an interview response for completeness and quality.
 
 QUESTION ASKED:
@@ -33,17 +33,70 @@ Evaluate this answer for:
 3. Context (Team size, timeline, technologies/tools mentioned?)
 4. Impact (Results, outcomes, what changed?)
 
-Return JSON:
+Return JSON with guided prompts for missing elements:
 {
   "is_sufficient": boolean,
   "quality_score": number (0-100),
-  "missing_elements": ["element1", "element2"],
-  "follow_up_prompt": "Friendly follow-up message asking for missing details, or empty string if sufficient",
-  "strengths": ["what they did well"]
+  "missing_elements": ["specificity", "quantification", "context", "impact"],
+  "follow_up_prompt": "Friendly message explaining what's missing",
+  "strengths": ["what they did well"],
+  "guided_prompts": {
+    "specificity": {
+      "question": "Can you add more specific details?",
+      "options": [
+        "Named specific technologies/tools used",
+        "Mentioned specific methodologies or frameworks",
+        "Referenced particular projects or initiatives",
+        "Described concrete examples or scenarios",
+        "I don't remember more specifics"
+      ]
+    },
+    "quantification": {
+      "question": "What was the measurable impact?",
+      "options": [
+        "10-25% improvement",
+        "25-50% improvement", 
+        "50-100% improvement",
+        "100%+ improvement or transformation",
+        "Saved specific $ amount or hours",
+        "Reduced costs or increased revenue by X%",
+        "I don't remember specific numbers"
+      ]
+    },
+    "context": {
+      "question": "What was the team and project context?",
+      "options": [
+        "Solo project or individual contributor",
+        "Small team (2-5 people)",
+        "Medium team (6-15 people)",
+        "Large team (15+ people)",
+        "Timeline: weeks",
+        "Timeline: months",
+        "Timeline: years",
+        "I don't remember team size or timeline"
+      ]
+    },
+    "impact": {
+      "question": "What were the outcomes and results?",
+      "options": [
+        "Improved efficiency or productivity",
+        "Increased revenue or sales",
+        "Reduced costs or waste",
+        "Enhanced customer/user satisfaction",
+        "Solved critical business problem",
+        "Enabled new capabilities or features",
+        "Received recognition or awards",
+        "I can't recall specific outcomes"
+      ]
+    }
+  }
 }
 
-If the answer is too vague, generic, or missing key details, set is_sufficient to false and provide a helpful follow_up_prompt.
-If the answer is good, set is_sufficient to true and follow_up_prompt to empty string.`;
+IMPORTANT: 
+- Only include guided_prompts for elements that are actually missing
+- If quality_score >= 70, set is_sufficient to true
+- Be encouraging and constructive in follow_up_prompt
+- Acknowledge strengths while suggesting improvements`;
 
     console.log('Validating interview response');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
