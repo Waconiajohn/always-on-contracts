@@ -232,7 +232,7 @@ const VaultDashboardContent = () => {
                 <Trophy className="w-8 h-8 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-1">War Chest Strength Score</h2>
+                <h2 className="text-2xl font-bold mb-1">Career Vault Strength Score</h2>
                 <p className="text-muted-foreground">Your career intelligence assessment</p>
               </div>
             </div>
@@ -291,13 +291,13 @@ const VaultDashboardContent = () => {
             <div className="flex items-start gap-3">
               <Award className="w-5 h-5 text-primary mt-0.5" />
               <div>
-                <p className="font-medium mb-2">Your War Chest Achievements:</p>
+                <p className="font-medium mb-2">Your Career Vault Achievements:</p>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>✓ {stats.total_power_phrases} power phrases ready to deploy</li>
                   <li>✓ {stats.total_transferable_skills} skills mapped to multiple opportunities</li>
                   <li>✓ {stats.total_hidden_competencies} hidden competencies discovered</li>
-                  {strengthScore.level === 'Exceptional' && <li className="text-primary font-medium">🏆 Exceptional War Chest - Top 5% of professionals!</li>}
-                  {strengthScore.level === 'Elite' && <li className="text-primary font-medium">⭐ Elite War Chest - Outstanding career intelligence!</li>}
+                  {strengthScore.level === 'Exceptional' && <li className="text-primary font-medium">🏆 Exceptional Career Vault - Top 5% of professionals!</li>}
+                  {strengthScore.level === 'Elite' && <li className="text-primary font-medium">⭐ Elite Career Vault - Outstanding career intelligence!</li>}
                 </ul>
               </div>
             </div>
@@ -445,7 +445,7 @@ const VaultDashboardContent = () => {
                 ))
               ) : (
                 <p className="text-center text-muted-foreground py-8">
-                  Complete more of the War Chest interview to reveal intangibles intelligence
+                  Complete more of the Career Vault interview to reveal intangibles intelligence
                 </p>
               )}
             </div>

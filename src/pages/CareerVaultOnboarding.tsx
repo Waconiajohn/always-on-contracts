@@ -134,7 +134,7 @@ const CareerVaultOnboarding = () => {
       setCurrentStep('complete');
 
       toast({
-        title: 'War Chest Complete!',
+        title: 'Career Vault Complete!',
         description: 'All features are now unlocked.'
       });
 
@@ -150,7 +150,7 @@ const CareerVaultOnboarding = () => {
     <div className="container max-w-4xl py-8 space-y-6">
       {/* Progress Header */}
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold">Build Your Career War Chest</h1>
+        <h1 className="text-3xl font-bold">Build Your Career Vault</h1>
         <p className="text-muted-foreground">
           Let's gather your career intelligence in 4 simple steps
         </p>
@@ -176,7 +176,7 @@ const CareerVaultOnboarding = () => {
           <CardHeader>
             <CardTitle>Upload Your Resume</CardTitle>
             <CardDescription>
-              Upload your current resume to kickstart your War Chest development
+              Upload your current resume to kickstart your Career Vault development
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -276,7 +276,7 @@ const CareerVaultOnboarding = () => {
             <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-full w-fit mx-auto">
               <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold">War Chest Complete!</h2>
+            <h2 className="text-2xl font-bold">Career Vault Complete!</h2>
             <p className="text-muted-foreground">
               All features are now unlocked. Redirecting to dashboard...
             </p>

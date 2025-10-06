@@ -18,7 +18,7 @@ export interface MCPToolResponse {
 
 /**
  * Call an MCP tool via the orchestrator
- * @param action - Format: "server.tool" (e.g., "warchest.create")
+ * @param action - Format: "server.tool" (e.g., "vault.create")
  * @param params - Tool parameters
  */
 export async function callMCPTool(
@@ -49,15 +49,15 @@ export async function callMCPTool(
  */
 export const careerVault = {
   create: async (resumeText?: string) => {
-    return callMCPTool('warchest.create', { resumeText });
+    return callMCPTool('vault.create', { resumeText });
   },
 
   get: async () => {
-    return callMCPTool('warchest.get', {});
+    return callMCPTool('vault.get', {});
   },
 
   addResponse: async (question: string, response: string, phase: string) => {
-    return callMCPTool('warchest.add_response', {
+    return callMCPTool('vault.add_response', {
       question,
       response,
       phase
@@ -65,22 +65,22 @@ export const careerVault = {
   },
 
   generateQuestion: async (phase: string, previousResponses?: any[]) => {
-    return callMCPTool('warchest.generate_question', {
+    return callMCPTool('vault.generate_question', {
       phase,
       previousResponses
     });
   },
 
   getPowerPhrases: async () => {
-    return callMCPTool('warchest.get_power_phrases', {});
+    return callMCPTool('vault.get_power_phrases', {});
   },
 
   getTransferableSkills: async () => {
-    return callMCPTool('warchest.get_transferable_skills', {});
+    return callMCPTool('vault.get_transferable_skills', {});
   },
 
   getHiddenCompetencies: async () => {
-    return callMCPTool('warchest.get_hidden_competencies', {});
+    return callMCPTool('vault.get_hidden_competencies', {});
   }
 };
 

@@ -11,17 +11,17 @@ import { Badge } from "@/components/ui/badge";
 
 const HomeContent = () => {
   const navigate = useNavigate();
-  const [warChestComplete, setWarChestComplete] = useState(false);
-  const [warChestCompletion, setWarChestCompletion] = useState(0);
+  const [vaultComplete, setVaultComplete] = useState(false);
+  const [vaultCompletion, setVaultCompletion] = useState(0);
   const [activeOpportunities, setActiveOpportunities] = useState(0);
   const { subscription } = useSubscription();
 
   useEffect(() => {
-    checkWarChestStatus();
+    checkVaultStatus();
     loadActiveOpportunities();
   }, []);
 
-  const checkWarChestStatus = async () => {
+  const checkVaultStatus = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -34,11 +34,11 @@ const HomeContent = () => {
 
       if (data) {
         const completion = data.interview_completion_percentage || 0;
-        setWarChestCompletion(completion);
-        setWarChestComplete(completion === 100);
+        setVaultCompletion(completion);
+        setVaultComplete(completion === 100);
       }
     } catch (error) {
-      console.error('Error checking War Chest status:', error);
+      console.error('Error checking Career Vault status:', error);
     }
   };
 
@@ -63,7 +63,7 @@ const HomeContent = () => {
     {
       icon: Package,
       title: "Build",
-      description: "Complete your War Chest—extract every skill, story, and achievement from your career",
+      description: "Complete your Career Vault—extract every skill, story, and achievement from your career",
       color: "text-primary"
     },
     {
@@ -87,21 +87,21 @@ const HomeContent = () => {
         title: "AI Agent Hub",
         description: "Job search, resume builder, interview prep agents",
         path: "/ai-agents",
-        locked: !warChestComplete
+        locked: !vaultComplete
       },
       {
         icon: Target,
         title: "Job Board",
         description: "Find opportunities with AI-powered matching",
         path: "/agents/job-search",
-        locked: !warChestComplete
+        locked: !vaultComplete
       },
       {
         icon: FileText,
         title: "Active Projects",
         description: "Track applications and interviews",
         path: "/projects",
-        locked: !warChestComplete
+        locked: !vaultComplete
       }
     ],
     careerResources: [
@@ -117,7 +117,7 @@ const HomeContent = () => {
         title: "Live Training",
         description: "Join webinars and coaching sessions",
         path: "/coaching",
-        locked: !warChestComplete
+        locked: !vaultComplete
       },
       {
         icon: MessageSquare,
@@ -140,14 +140,14 @@ const HomeContent = () => {
         title: "Agency Matcher",
         description: "Connect with top recruiters",
         path: "/agencies",
-        locked: !warChestComplete
+        locked: !vaultComplete
       },
       {
         icon: Users,
         title: "Networking Hub",
         description: "Build and manage professional connections",
         path: "/outreach",
-        locked: !warChestComplete
+        locked: !vaultComplete
       }
     ]
   };
@@ -156,7 +156,7 @@ const HomeContent = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         
-        {/* Section 1: War Chest Hero Status */}
+        {/* Section 1: Career Vault Hero Status */}
         <Card className="mb-12 border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-purple-500/5">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -166,35 +166,35 @@ const HomeContent = () => {
                   Your Career Intelligence Status
                 </CardTitle>
                 <CardDescription className="text-base">
-                  {warChestComplete 
-                    ? "Your War Chest is fully armed—all AI agents and tools are unlocked" 
-                    : "Complete your War Chest to unlock the full power of CareerIQ"}
+                  {vaultComplete 
+                    ? "Your Career Vault is fully loaded—all AI agents and tools are unlocked" 
+                    : "Complete your Career Vault to unlock the full power of CareerIQ"}
                 </CardDescription>
               </div>
-              <Badge variant={warChestComplete ? "default" : "secondary"} className="h-8 px-4 text-lg">
-                {warChestCompletion}%
+              <Badge variant={vaultComplete ? "default" : "secondary"} className="h-8 px-4 text-lg">
+                {vaultCompletion}%
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">War Chest Completion</span>
-                <span className="font-semibold">{warChestCompletion}% Complete</span>
+                <span className="text-muted-foreground">Career Vault Completion</span>
+                <span className="font-semibold">{vaultCompletion}% Complete</span>
               </div>
-              <Progress value={warChestCompletion} className="h-3" />
+              <Progress value={vaultCompletion} className="h-3" />
             </div>
             
             <div className="flex gap-4">
               <Button 
                 size="lg" 
                 className="flex-1"
-                onClick={() => navigate(warChestComplete ? "/war-chest" : "/war-chest/onboarding")}
+                onClick={() => navigate(vaultComplete ? "/career-vault" : "/career-vault/onboarding")}
               >
-                {warChestComplete ? "View War Chest" : "Continue War Chest"}
+                {vaultComplete ? "View Career Vault" : "Continue Career Vault"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              {!warChestComplete && (
+              {!vaultComplete && (
                 <Button size="lg" variant="outline" onClick={() => navigate("/learn")}>
                   Learn More
                 </Button>
@@ -276,7 +276,7 @@ const HomeContent = () => {
                       <CardDescription>{link.description}</CardDescription>
                       {link.locked && (
                         <Badge variant="secondary" className="mt-2 text-xs">
-                          Complete War Chest
+                          Complete Career Vault
                         </Badge>
                       )}
                     </CardContent>
@@ -313,7 +313,7 @@ const HomeContent = () => {
                       <CardDescription>{link.description}</CardDescription>
                       {link.locked && (
                         <Badge variant="secondary" className="mt-2 text-xs">
-                          Complete War Chest
+                          Complete Career Vault
                         </Badge>
                       )}
                     </CardContent>
@@ -350,7 +350,7 @@ const HomeContent = () => {
                       <CardDescription>{link.description}</CardDescription>
                       {link.locked && (
                         <Badge variant="secondary" className="mt-2 text-xs">
-                          Complete War Chest
+                          Complete Career Vault
                         </Badge>
                       )}
                     </CardContent>
