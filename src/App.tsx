@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CommandMenu } from "@/components/CommandMenu";
@@ -118,6 +118,9 @@ const App = () => (
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/career-vault" element={<ProtectedRoute><CareerVaultDashboard /></ProtectedRoute>} />
             <Route path="/career-vault/onboarding" element={<ProtectedRoute><CareerVaultOnboarding /></ProtectedRoute>} />
+            {/* Redirects from old War Chest routes */}
+            <Route path="/war-chest" element={<Navigate to="/career-vault" replace />} />
+            <Route path="/war-chest/onboarding" element={<Navigate to="/career-vault/onboarding" replace />} />
             <Route path="/learn" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
             <Route path="/processing-monitor" element={<ProtectedRoute><ProcessingMonitor /></ProtectedRoute>} />
