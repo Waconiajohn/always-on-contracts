@@ -35,7 +35,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { phase, isFirst, previousResponse, conversationHistory } = await req.json();
+    const { phase, isFirst, previousResponse, conversationHistory, persona = 'mentor' } = await req.json();
 
     // Get War Chest data for context
     const { data: warChest } = await supabase
@@ -113,7 +113,16 @@ serve(async (req) => {
       completionPercentage = warChest.interview_completion_percentage || 0;
     }
 
-    const systemPrompt = `You are an expert career coach conducting an in-depth career intelligence interview.
+    // Persona-specific coaching styles
+    const personaStyles = {
+      mentor: `You are THE MENTOR - warm, encouraging, and supportive. You ask questions with empathy and make the candidate feel safe to share. Use phrases like "That's wonderful," "I can see how that would be challenging," and "Tell me more about..." Your tone is nurturing but professional.`,
+      challenger: `You are THE CHALLENGER - direct, demanding, and no-nonsense. You push for specifics and don't accept vague answers. Use phrases like "Give me the exact numbers," "What specifically did YOU do?" and "That's not clear enough." Your tone is professional but tough.`,
+      strategist: `You are THE STRATEGIST - analytical, precise, and forward-thinking. You ask probing questions about decision-making and long-term impact. Use phrases like "Walk me through your thinking," "What were the strategic implications?" and "How did this position you for future opportunities?" Your tone is intellectual and methodical.`
+    };
+
+    const systemPrompt = `${personaStyles[persona as keyof typeof personaStyles] || personaStyles.mentor}
+
+You are conducting an in-depth career intelligence interview.
 
 CURRENT INTERVIEW PHASE: ${currentPhase.title} (${currentPhase.name})
 PHASE DESCRIPTION: ${currentPhase.description}

@@ -1,9 +1,116 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Network, Users, Calendar, MessageSquare } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Network, Users, Calendar, MessageSquare, Sparkles, Copy, Check } from "lucide-react";
+import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
+import { PersonaSelector } from "@/components/PersonaSelector";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNetworkingContacts } from "@/hooks/useNetworkingContacts";
 
 export default function NetworkingAgent() {
+  const { contacts } = useNetworkingContacts();
+  const [jobDescription, setJobDescription] = useState("");
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
+  const [generatedEmail, setGeneratedEmail] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const { toast } = useToast();
+  
+  const { 
+    recommendation, 
+    loading: recommendationLoading, 
+    getRecommendation 
+  } = usePersonaRecommendation('networking');
+
+  const handleGetRecommendation = async () => {
+    if (!jobDescription.trim()) {
+      toast({
+        title: "Job description required",
+        description: "Please enter a job description to get persona recommendations",
+        variant: "destructive"
+      });
+      return;
+    }
+    await getRecommendation(jobDescription);
+  };
+
+  const handleGenerateEmail = async () => {
+    if (!selectedPersona) {
+      toast({
+        title: "Select a persona",
+        description: "Please select a networking persona first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('mcp-networking-orchestrator', {
+        body: {
+          method: 'tools/call',
+          params: {
+            name: 'generate_email',
+            arguments: {
+              context: jobDescription,
+              persona: selectedPersona,
+              purpose: 'informational_interview'
+            }
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      setGeneratedEmail(data.content[0].text);
+      toast({
+        title: "Email generated",
+        description: "Your networking email is ready!"
+      });
+    } catch (error) {
+      console.error('Error generating email:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate email",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedEmail);
+      setIsCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Email copied to clipboard"
+      });
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy email",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const upcomingFollowUps = contacts.filter(c => 
+    c.next_follow_up_date && new Date(c.next_follow_up_date) >= new Date()
+  ).length;
+
+  const recentInteractions = contacts.filter(c => {
+    if (!c.last_contact_date) return false;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return new Date(c.last_contact_date) >= thirtyDaysAgo;
+  }).length;
+
   return (
     <div className="container py-8">
       <div className="mb-8">
@@ -24,7 +131,7 @@ export default function NetworkingAgent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">0</div>
+              <div className="text-3xl font-bold">{contacts.length}</div>
               <p className="text-xs text-muted-foreground mt-1">Managed contacts</p>
             </CardContent>
           </Card>
@@ -37,8 +144,8 @@ export default function NetworkingAgent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground mt-1">This week</p>
+              <div className="text-3xl font-bold">{upcomingFollowUps}</div>
+              <p className="text-xs text-muted-foreground mt-1">Upcoming</p>
             </CardContent>
           </Card>
 
@@ -50,11 +157,97 @@ export default function NetworkingAgent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">0</div>
+              <div className="text-3xl font-bold">{recentInteractions}</div>
               <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Networking Assistant</CardTitle>
+            <CardDescription>Get personalized networking strategies and outreach messages</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Target Role or Company Context
+                </label>
+                <Textarea
+                  placeholder="Describe the role, company, or networking context you're targeting..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              <Button 
+                onClick={handleGetRecommendation}
+                disabled={recommendationLoading || !jobDescription.trim()}
+                className="w-full"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {recommendationLoading ? "Analyzing..." : "Get Networking Strategy"}
+              </Button>
+            </div>
+
+            {recommendation && (
+              <div className="space-y-6">
+                <PersonaSelector
+                  personas={recommendation.personas}
+                  recommendedPersona={recommendation.recommendedPersona}
+                  reasoning={recommendation.reasoning}
+                  confidence={recommendation.confidence}
+                  selectedPersona={selectedPersona}
+                  onSelectPersona={setSelectedPersona}
+                  agentType="networking"
+                />
+
+                {selectedPersona && (
+                  <div className="space-y-4">
+                    <Button 
+                      onClick={handleGenerateEmail}
+                      disabled={isGenerating}
+                      className="w-full"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      {isGenerating ? "Generating..." : "Generate Networking Email"}
+                    </Button>
+
+                    {generatedEmail && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Your Networking Email</CardTitle>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCopyEmail}
+                            >
+                              {isCopied ? (
+                                <Check className="h-4 w-4 mr-2" />
+                              ) : (
+                                <Copy className="h-4 w-4 mr-2" />
+                              )}
+                              {isCopied ? "Copied" : "Copy"}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">
+                            {generatedEmail}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -80,9 +273,9 @@ export default function NetworkingAgent() {
                   <div className="flex items-start gap-3">
                     <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
                     <div>
-                      <h3 className="font-semibold mb-1">Outreach Templates</h3>
+                      <h3 className="font-semibold mb-1">AI Outreach Generator</h3>
                       <p className="text-sm text-muted-foreground">
-                        AI-generated personalized messages for different scenarios
+                        Personalized messages with your selected networking persona
                       </p>
                     </div>
                   </div>
@@ -111,30 +304,6 @@ export default function NetworkingAgent() {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <Card className="bg-muted/50">
-                <CardHeader>
-                  <CardTitle className="text-base">Coming Soon</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm">
-                    <li>• LinkedIn connection request automation</li>
-                    <li>• Relationship strength scoring</li>
-                    <li>• Mutual connection discovery</li>
-                    <li>• Event networking recommendations</li>
-                    <li>• Coffee chat scheduling assistant</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <div className="flex gap-3">
-                <Button className="flex-1" disabled>
-                  Add Contact
-                </Button>
-                <Button variant="outline" className="flex-1" disabled>
-                  View Network Map
-                </Button>
               </div>
             </div>
           </CardContent>
