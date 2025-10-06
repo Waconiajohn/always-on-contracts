@@ -155,85 +155,78 @@ async function recordRateLimit(supabase: any, userId: string) {
     });
 }
 
-// Phase 1.1: Proper Document Parser using native libraries
+// Phase 1.1: AI-Powered Document Parser using Lovable AI Vision
 async function parseFile(base64Data: string, fileType: string, apiKey: string): Promise<string> {
   console.log(`[parseFile] Starting to parse file of type: ${fileType}`);
   
   try {
-    // Decode base64 to get raw file data
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    // For plain text files, decode directly
+    // For plain text files, decode directly (no AI needed - faster and free)
     if (fileType === 'text/plain' || fileType.includes('txt')) {
       console.log('[parseFile] Plain text file detected, decoding directly');
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
       return new TextDecoder().decode(bytes);
     }
 
-    // For PDF files - use @pdf/pdftext from JSR (Deno-compatible)
-    if (fileType.includes('pdf')) {
-      console.log('[parseFile] PDF detected, extracting text');
+    // For PDF and DOCX files - use Lovable AI vision model
+    if (fileType.includes('pdf') || fileType.includes('word') || fileType.includes('docx') || fileType.includes('doc')) {
+      console.log(`[parseFile] ${fileType.includes('pdf') ? 'PDF' : 'Word'} document detected, using AI vision for extraction`);
       
       try {
-        // Import pdftext from JSR - designed for Deno
-        const { extractText } = await import('jsr:@pdf/pdftext@0.1.0');
-        
-        // Extract text from PDF bytes
-        const text = await extractText(bytes);
-        
-        if (!text || text.trim().length < 50) {
-          console.log('[parseFile] PDF appears to be scanned or image-based');
-          throw new Error('This PDF appears to be scanned or image-based. Please ensure your resume contains selectable text, or try converting it to a Word document first.');
-        }
-        
-        console.log(`[parseFile] Successfully extracted ${text.length} characters from PDF`);
-        return text;
-        
-      } catch (pdfError: any) {
-        console.error('[parseFile] PDF parsing error:', pdfError);
-        throw new Error(`Failed to parse PDF: ${pdfError.message || 'Unknown error'}`);
-      }
-    }
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [{
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Extract all text content from this document. Return ONLY the extracted text without any additional commentary, formatting, or explanations. Preserve the original structure and formatting as much as possible.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:${fileType};base64,${base64Data}`
+                  }
+                }
+              ]
+            }],
+            max_tokens: 4000
+          })
+        });
 
-    // For Word documents - parse DOCX structure
-    if (fileType.includes('word') || fileType.includes('docx') || fileType.includes('doc')) {
-      console.log('[parseFile] Word document detected, parsing DOCX structure');
-      
-      try {
-        // Import JSZip
-        const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
-        
-        // DOCX is a zip file containing XML
-        const zip = await JSZip.loadAsync(bytes);
-        const documentXml = await zip.file('word/document.xml')?.async('string');
-        
-        if (!documentXml) {
-          throw new Error('Invalid Word document structure - missing document.xml');
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('AI service rate limit reached. Please try again in a few moments.');
+          }
+          if (response.status === 402) {
+            throw new Error('AI service payment required. Please contact support.');
+          }
+          throw new Error(`AI extraction failed: ${response.status}`);
         }
-        
-        // Extract text from XML
-        const textMatch = documentXml.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
-        if (!textMatch) {
-          throw new Error('No text found in Word document');
+
+        const data = await response.json();
+        const extractedText = data.choices?.[0]?.message?.content;
+
+        if (!extractedText || extractedText.trim().length < 50) {
+          console.log('[parseFile] AI extracted minimal or no text');
+          throw new Error('Unable to extract sufficient text from document. The document may be blank, corrupted, or contain only images without text.');
         }
+
+        console.log(`[parseFile] Successfully extracted ${extractedText.length} characters using AI vision`);
+        return extractedText;
         
-        const fullText = textMatch
-          .map((match: string) => match.replace(/<[^>]+>/g, ''))
-          .join(' ');
-        
-        if (fullText.trim().length < 50) {
-          throw new Error('Word document appears to be empty or contains minimal text');
-        }
-        
-        console.log(`[parseFile] Successfully extracted ${fullText.length} characters from Word document`);
-        return fullText;
-        
-      } catch (docxError: any) {
-        console.error('[parseFile] DOCX parsing error:', docxError);
-        throw new Error(`Failed to parse Word document: ${docxError.message || 'Unknown error'}`);
+      } catch (aiError: any) {
+        console.error('[parseFile] AI extraction error:', aiError);
+        throw new Error(`Failed to extract text from document: ${aiError.message || 'Unknown error'}`);
       }
     }
 
