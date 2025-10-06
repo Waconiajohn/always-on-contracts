@@ -105,7 +105,19 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('TTS error:', error);
+        throw new Error(error.message || 'Failed to generate speech');
+      }
+
+      if (data?.error) {
+        console.error('TTS API error:', data.error);
+        throw new Error(data.error);
+      }
+
+      if (!data?.audioContent) {
+        throw new Error('No audio content received');
+      }
 
       // Convert base64 to audio blob
       const audioBlob = new Blob(
@@ -120,10 +132,35 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       }
       audioRef.current = new Audio(audioUrl);
       audioRef.current.onended = () => setIsPlayingAudio(false);
+      audioRef.current.onerror = () => {
+        setIsPlayingAudio(false);
+        toast({
+          title: "Audio playback failed",
+          description: "Unable to play audio. Please try again.",
+          variant: "destructive"
+        });
+      };
       await audioRef.current.play();
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsPlayingAudio(false);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Check for specific error types
+      if (errorMessage.includes('quota_exceeded') || errorMessage.includes('credits')) {
+        toast({
+          title: "Voice credits exhausted",
+          description: "The text-to-speech service has run out of credits. Voice is temporarily unavailable.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Audio playback failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     }
   };
 
