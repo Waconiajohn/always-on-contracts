@@ -173,42 +173,24 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
       return new TextDecoder().decode(bytes);
     }
 
-    // For PDF files - use PDF.js
+    // For PDF files - use @pdf/pdftext from JSR (Deno-compatible)
     if (fileType.includes('pdf')) {
-      console.log('[parseFile] PDF detected, extracting text with PDF.js');
+      console.log('[parseFile] PDF detected, extracting text');
       
       try {
-        // Import PDF.js from CDN
-        const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/+esm');
+        // Import pdftext from JSR - designed for Deno
+        const { extractText } = await import('jsr:@pdf/pdftext@0.1.0');
         
-        // Configure the worker source for PDF.js
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
+        // Extract text from PDF bytes
+        const text = await extractText(bytes);
         
-        // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: bytes });
-        const pdf = await loadingTask.promise;
-        
-        console.log(`[parseFile] PDF loaded with ${pdf.numPages} pages`);
-        
-        let fullText = '';
-        
-        // Extract text from each page
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(' ');
-          fullText += pageText + '\n\n';
-        }
-        
-        if (fullText.trim().length < 50) {
+        if (!text || text.trim().length < 50) {
           console.log('[parseFile] PDF appears to be scanned or image-based');
           throw new Error('This PDF appears to be scanned or image-based. Please ensure your resume contains selectable text, or try converting it to a Word document first.');
         }
         
-        console.log(`[parseFile] Successfully extracted ${fullText.length} characters from PDF`);
-        return fullText;
+        console.log(`[parseFile] Successfully extracted ${text.length} characters from PDF`);
+        return text;
         
       } catch (pdfError: any) {
         console.error('[parseFile] PDF parsing error:', pdfError);
