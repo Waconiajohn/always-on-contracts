@@ -119,21 +119,17 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
         size="icon"
         onClick={onToggleRecording}
         disabled={disabled}
-        className={isRecording ? "bg-red-600 hover:bg-red-700 animate-pulse" : ""}
+        className={isRecording ? "bg-green-600 hover:bg-green-700 animate-pulse" : ""}
         title={isRecording ? "Stop recording" : "Start voice input"}
       >
-        {isRecording ? (
-          <MicOff className="h-4 w-4" />
-        ) : (
-          <Mic className="h-4 w-4" />
-        )}
+        <Mic className={`h-4 w-4 ${isRecording ? 'text-white' : ''}`} />
       </Button>
       {isRecording && (
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
-            <div className="w-1 h-3 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-            <div className="w-1 h-4 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-            <div className="w-1 h-3 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+            <div className="w-1 h-3 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+            <div className="w-1 h-4 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+            <div className="w-1 h-3 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-xs text-muted-foreground">
             {interimTranscript ? `"${interimTranscript}"` : "Listening..."}
