@@ -115,15 +115,15 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
     <div className="flex items-center gap-2 relative z-10">
       <Button
         type="button"
-        variant="outline"
+        variant={isRecording ? "default" : "outline"}
         size="icon"
         onClick={onToggleRecording}
         disabled={disabled}
-        className={isRecording ? "bg-green-600 hover:bg-green-700 border-green-600 animate-pulse" : ""}
+        className={isRecording ? "bg-green-600 hover:bg-green-700 border-green-600 text-white animate-pulse" : ""}
         title={isRecording ? "Click to stop recording" : "Click to start voice input"}
       >
         {isRecording ? (
-          <MicOff className="h-4 w-4 text-white" />
+          <Mic className="h-4 w-4 text-white" />
         ) : (
           <Mic className="h-4 w-4" />
         )}

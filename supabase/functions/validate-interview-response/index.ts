@@ -37,11 +37,14 @@ ${question}
 USER'S ANSWER:
 ${combinedAnswer}
 
-IMPORTANT SCORING GUIDELINES:
-- If user selected multiple checkboxes (3+), they are showing breadth of experience. Base score should be at least 60.
-- If user selected 5+ checkboxes, base score should be at least 70, as they're demonstrating significant experience.
-- Checkbox selections ARE valuable data points and should be weighted appropriately.
-- Only penalize heavily if BOTH checkbox selections are minimal AND no custom details are provided.
+CRITICAL SCORING RULES (MUST FOLLOW):
+1. Count the number of checkboxes selected (look for semicolons or multiple items in selected_options)
+2. Apply MINIMUM scores based on checkbox count:
+   - 3-4 checkboxes selected: MINIMUM score = 65
+   - 5-6 checkboxes selected: MINIMUM score = 75
+   - 7+ checkboxes selected: MINIMUM score = 85
+3. If custom text is also provided with 5+ checkboxes, score should be 85+
+4. ONLY score below 60 if: fewer than 3 checkboxes AND no meaningful custom text
 
 Evaluate this answer for:
 1. Specificity (Are there concrete details, not vague statements?)
@@ -110,10 +113,11 @@ Return JSON with guided prompts for missing elements:
 
 CRITICAL VALIDATION RULES: 
 - If quality_score >= 70: DO NOT include guided_prompts field AT ALL, set is_sufficient to true, and provide encouraging follow_up_prompt
-- If quality_score < 70: Include guided_prompts ONLY for elements that are actually missing
+- If quality_score >= 60 but < 70: Include minimal guided_prompts, acknowledge strong foundation
+- If quality_score < 60: Include guided_prompts for missing elements
 - Always be encouraging and constructive in follow_up_prompt
-- Acknowledge strengths while suggesting improvements when score is below 70
-- When score >= 70, celebrate the quality and mention they can continue or enhance further`;
+- If many checkboxes were selected, acknowledge breadth of experience in strengths
+- When score >= 70, celebrate the quality and mention they can continue`;
 
     console.log('Validating interview response');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

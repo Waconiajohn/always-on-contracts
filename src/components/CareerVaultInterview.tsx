@@ -322,25 +322,23 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
       setQualityScore(validation.quality_score);
       
       // PHASE 1 FIX: Lower threshold from 70 → 40, make feedback encouraging
-      // Quality >= 40: Response is acceptable - show Accept button with encouragement
-      if (validation.quality_score >= 40) {
+      // Quality >= 70: Excellent - show Accept button, NO guided prompts
+      if (validation.quality_score >= 70) {
         setShowAcceptButton(true);
-        setGuidedPrompts(validation.guided_prompts || null);
+        setGuidedPrompts(null);
         
         // Encouraging feedback based on score
         let encouragingFeedback = '';
         if (validation.quality_score >= 80) {
           encouragingFeedback = `🌟 Excellent answer! (${validation.quality_score}/100) Your detail and specificity really shine through.`;
-        } else if (validation.quality_score >= 60) {
-          encouragingFeedback = `✅ Solid answer! (${validation.quality_score}/100) You've captured the key points. You can enhance further or continue.`;
         } else {
-          encouragingFeedback = `👍 Good start! (${validation.quality_score}/100) Your answer is saved. You can add more detail now or enhance it later from the Dashboard.`;
+          encouragingFeedback = `✅ Strong answer! (${validation.quality_score}/100) You've provided good detail. Ready to continue!`;
         }
         
         setValidationFeedback(encouragingFeedback);
         
-        // Fetch enhanced answer for reference only if score is high
-        if (validation.quality_score >= 60) {
+        // Fetch enhanced answer for reference
+        if (validation.quality_score >= 75) {
           fetchEnhancedAnswer(currentSubQuestion.prompt, userInput, validation);
         }
         
@@ -352,9 +350,25 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
         return;
       }
 
-      // Quality < 40: Show guided prompts but STILL allow progression
+      // Quality 60-69: Good answer with optional enhancement
+      if (validation.quality_score >= 60) {
+        setShowAcceptButton(true);
+        setGuidedPrompts(validation.guided_prompts || null);
+        
+        const encouragingFeedback = `✅ Good answer! (${validation.quality_score}/100) You've captured key points. You can continue now or add more detail.`;
+        setValidationFeedback(encouragingFeedback);
+        
+        toast({
+          title: '✨ Answer Saved!',
+          description: encouragingFeedback,
+        });
+        setIsValidating(false);
+        return;
+      }
+
+      // Quality < 60: Show guided prompts to help improve
       setGuidedPrompts(validation.guided_prompts || null);
-      setShowAcceptButton(true); // PHASE 1 FIX: Always allow progression
+      setShowAcceptButton(true); // Still allow progression
       
       setValidationFeedback(`Your answer has been saved! (${validation.quality_score}/100)\n\nTo strengthen it, try adding: ${validation.follow_up_prompt}\n\nYou can continue now or enhance this later from your Dashboard.`);
       
@@ -758,6 +772,7 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
         }
         setSelectedOptions([]);
         setCustomAnswerText('');
+        setGuidedPrompts(null);
       } else {
         setCompletionPercentage(Math.min(100, completionPercentage + 10));
         const { data } = await supabase.functions.invoke('generate-interview-question', {
@@ -792,9 +807,10 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
       setValidationFeedback('');
       setEnhancedStrongAnswer('');
       setSkipAttempts(0);
+      setGuidedPrompts(null);
       
       toast({
-        title: 'Saved!',
+        title: '✅ Saved!',
         description: 'Moving to next question.',
       });
     } catch (error) {
@@ -1100,14 +1116,21 @@ export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) 
           </>
         )}
 
-        {/* Guided Prompts Selector - only show when quality < 70 */}
-        {guidedPrompts && !showAcceptButton && qualityScore < 70 && (
-          <GuidedPromptSelector
-            guidedPrompts={guidedPrompts}
-            onApply={handleApplyGuidedOptions}
-            onSkip={handleSkipGuidedPrompts}
-            skipAttempts={skipAttempts}
-          />
+        {/* Guided Prompts Selector - show when quality < 70 and guided prompts exist */}
+        {guidedPrompts && qualityScore < 70 && qualityScore > 0 && (
+          <div className="mt-4">
+            <Alert className="mb-3 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+              <AlertDescription className="text-sm">
+                💡 <strong>Optional:</strong> Select any that apply to strengthen your answer, or click "Accept & Continue" above to move forward.
+              </AlertDescription>
+            </Alert>
+            <GuidedPromptSelector
+              guidedPrompts={guidedPrompts}
+              onApply={handleApplyGuidedOptions}
+              onSkip={handleSkipGuidedPrompts}
+              skipAttempts={skipAttempts}
+            />
+          </div>
         )}
 
         {/* Quality score */}
