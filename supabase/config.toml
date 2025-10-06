@@ -155,3 +155,12 @@ verify_jwt = true
 
 [functions.recommend-persona]
 verify_jwt = true
+
+[functions.analyze-resume-and-research]
+verify_jwt = true
+
+[functions.verify-with-perplexity]
+verify_jwt = true
+
+[functions.perplexity-research]
+verify_jwt = true
