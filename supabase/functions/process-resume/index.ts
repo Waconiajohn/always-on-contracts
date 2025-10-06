@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import "https://deno.land/x/xhr@0.3.0/mod.ts";
+import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,7 +157,7 @@ async function recordRateLimit(supabase: any, userId: string) {
     });
 }
 
-// Phase 1.1: AI-Powered Document Parser using Lovable AI Vision
+// Phase 1.1: Document Parser with pdf-parse and smart fallback
 async function parseFile(base64Data: string, fileType: string, apiKey: string): Promise<string> {
   console.log(`[parseFile] Starting to parse file of type: ${fileType}`);
   
@@ -171,62 +173,75 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
       return new TextDecoder().decode(bytes);
     }
 
-    // For PDF and DOCX files - use Lovable AI vision model
-    if (fileType.includes('pdf') || fileType.includes('word') || fileType.includes('docx') || fileType.includes('doc')) {
-      console.log(`[parseFile] ${fileType.includes('pdf') ? 'PDF' : 'Word'} document detected, using AI vision for extraction`);
+    // For PDF files - use pdf-parse library with smart fallback to AI vision for scanned PDFs
+    if (fileType.includes('pdf')) {
+      console.log('[parseFile] PDF detected, attempting direct text extraction');
       
       try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [{
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Extract all text content from this document. Return ONLY the extracted text without any additional commentary, formatting, or explanations. Preserve the original structure and formatting as much as possible.'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:${fileType};base64,${base64Data}`
-                  }
-                }
-              ]
-            }],
-            max_tokens: 4000
-          })
-        });
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error('AI service rate limit reached. Please try again in a few moments.');
-          }
-          if (response.status === 402) {
-            throw new Error('AI service payment required. Please contact support.');
-          }
-          throw new Error(`AI extraction failed: ${response.status}`);
+        // Convert base64 to buffer
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
         }
-
-        const data = await response.json();
-        const extractedText = data.choices?.[0]?.message?.content;
-
-        if (!extractedText || extractedText.trim().length < 50) {
-          console.log('[parseFile] AI extracted minimal or no text');
-          throw new Error('Unable to extract sufficient text from document. The document may be blank, corrupted, or contain only images without text.');
+        
+        const pdfData = await pdfParse(bytes);
+        const extractedText = pdfData.text.trim();
+        
+        // Smart fallback: if we extracted very little text, it's likely a scanned PDF
+        if (extractedText.length < 100) {
+          console.log('[parseFile] Extracted minimal text from PDF, likely scanned - falling back to AI vision');
+          return await extractWithVisionAI(base64Data, fileType, apiKey);
         }
-
-        console.log(`[parseFile] Successfully extracted ${extractedText.length} characters using AI vision`);
+        
+        console.log(`[parseFile] Successfully extracted ${extractedText.length} characters from PDF using pdf-parse`);
         return extractedText;
         
-      } catch (aiError: any) {
-        console.error('[parseFile] AI extraction error:', aiError);
-        throw new Error(`Failed to extract text from document: ${aiError.message || 'Unknown error'}`);
+      } catch (pdfError: any) {
+        console.error('[parseFile] pdf-parse failed:', pdfError);
+        console.log('[parseFile] Falling back to AI vision');
+        return await extractWithVisionAI(base64Data, fileType, apiKey);
+      }
+    }
+
+    // For DOCX files - parse XML structure directly
+    if (fileType.includes('word') || fileType.includes('docx') || fileType.includes('doc')) {
+      console.log('[parseFile] Word document detected, parsing XML structure');
+      
+      try {
+        // Convert base64 to buffer
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const zip = await JSZip.loadAsync(bytes);
+        const documentXml = await zip.file('word/document.xml')?.async('string');
+        
+        if (!documentXml) {
+          throw new Error('Unable to find document.xml in DOCX');
+        }
+        
+        // Extract text from XML (basic extraction)
+        const textMatches = documentXml.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+        const extractedText = textMatches
+          .map(match => match.replace(/<[^>]+>/g, ''))
+          .join(' ')
+          .trim();
+        
+        if (extractedText.length < 100) {
+          console.log('[parseFile] Extracted minimal text from DOCX - falling back to AI vision');
+          return await extractWithVisionAI(base64Data, fileType, apiKey);
+        }
+        
+        console.log(`[parseFile] Successfully extracted ${extractedText.length} characters from DOCX`);
+        return extractedText;
+        
+      } catch (docxError: any) {
+        console.error('[parseFile] DOCX parsing failed:', docxError);
+        console.log('[parseFile] Falling back to AI vision');
+        return await extractWithVisionAI(base64Data, fileType, apiKey);
       }
     }
 
@@ -237,6 +252,61 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
     console.error('[parseFile] Error during file parsing:', error);
     throw error;
   }
+}
+
+// Helper function for AI vision extraction (fallback for scanned documents)
+async function extractWithVisionAI(base64Data: string, fileType: string, apiKey: string): Promise<string> {
+  console.log('[extractWithVisionAI] Using Lovable AI vision for text extraction');
+  
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Extract all text content from this document image. Return ONLY the extracted text without any additional commentary, formatting, or explanations. Preserve the original structure and formatting as much as possible.'
+          },
+          {
+            type: 'inline_data',
+            inline_data: {
+              mime_type: fileType,
+              data: base64Data
+            }
+          }
+        ]
+      }],
+      max_tokens: 4000
+    })
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('AI service rate limit reached. Please try again in a few moments.');
+    }
+    if (response.status === 402) {
+      throw new Error('AI service payment required. Please contact support.');
+    }
+    const errorText = await response.text();
+    throw new Error(`AI extraction failed (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  const extractedText = data.choices?.[0]?.message?.content;
+
+  if (!extractedText || extractedText.trim().length < 50) {
+    console.log('[extractWithVisionAI] AI extracted minimal or no text');
+    throw new Error('Unable to extract sufficient text from document. The document may be blank, corrupted, or contain only images without text.');
+  }
+
+  console.log(`[extractWithVisionAI] Successfully extracted ${extractedText.length} characters using AI vision`);
+  return extractedText;
 }
 
 // Phase 1.2: Detect binary data in text field (for backward compatibility)
