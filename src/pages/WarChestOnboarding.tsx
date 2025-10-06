@@ -81,6 +81,10 @@ const WarChestOnboarding = () => {
       });
 
       if (parseError) throw parseError;
+      
+      if (!parseData.success) {
+        throw new Error(parseData.error || 'Failed to parse resume');
+      }
 
       const extractedText = parseData.text;
       setResumeText(extractedText);
@@ -118,11 +122,14 @@ const WarChestOnboarding = () => {
       });
 
       setCurrentStep('goals');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
+      
+      const errorMessage = error?.message || 'Please try again.';
+      
       toast({
         title: 'Upload Failed',
-        description: 'Please try again.',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -185,7 +192,7 @@ const WarChestOnboarding = () => {
           <CardHeader>
             <CardTitle>Upload Your Resume</CardTitle>
             <CardDescription>
-              Upload your current resume to kickstart your War Chest development
+              Upload your resume in PDF or TXT format. For Word documents, please convert to PDF first.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -193,11 +200,11 @@ const WarChestOnboarding = () => {
               <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
               <div>
                 <p className="font-medium">Drop your resume here or click to browse</p>
-                <p className="text-sm text-muted-foreground">PDF, DOCX up to 10MB</p>
+                <p className="text-sm text-muted-foreground">PDF or TXT files up to 10MB</p>
               </div>
               <input
                 type="file"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.txt"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="resume-upload"

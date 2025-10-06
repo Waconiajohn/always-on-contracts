@@ -105,86 +105,23 @@ serve(async (req) => {
         );
       }
     }
-    // For DOC/DOCX files, use Lovable AI
+    // For DOC/DOCX files, return helpful error message
     else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      console.log('Word document detected - suggesting conversion to PDF');
       
-      if (!LOVABLE_API_KEY) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'AI service not configured for Word documents. Please convert to PDF or copy and paste your resume text instead.',
-            needsConfig: true
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-
-      console.log('Using Lovable AI to parse Word document...');
-
-      const mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Please extract ALL text content from this resume document. Return only the raw text content, preserving formatting where possible. Do not add any commentary or explanations.'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:${mimeType};base64,${fileData}`
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 4000
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Word documents are not currently supported. Please convert your resume to PDF format for best results.',
+          suggestPdf: true
         }),
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error('Lovable AI error:', aiResponse.status, errorText);
-        
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Failed to parse Word document. Please convert to PDF or copy and paste your resume text instead.' 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-
-      const aiResult = await aiResponse.json();
-      extractedText = aiResult.choices?.[0]?.message?.content || '';
-
-      if (!extractedText) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Could not extract text from Word document. Please ensure the file contains readable text.' 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-
-      console.log('Successfully extracted text from Word document, length:', extractedText.length);
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     } else {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Unsupported file type. Please use .txt, .pdf, .doc, or .docx files.' 
+          error: 'Unsupported file type. Please use PDF or TXT files.' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
