@@ -18,6 +18,16 @@ serve(async (req) => {
       throw new Error('Question and answer are required');
     }
 
+    // Handle both formats: checkbox selections + custom text, or plain text
+    let combinedAnswer = '';
+    if (typeof answer === 'object' && 'selected_options' in answer) {
+      const selectedOptions = (answer.selected_options || []).join('; ');
+      const customText = answer.custom_text || '';
+      combinedAnswer = selectedOptions + (customText ? `\n\nAdditional details: ${customText}` : '');
+    } else {
+      combinedAnswer = answer;
+    }
+
     // Use Lovable AI to validate the response quality with guided enhancement options
     const validationPrompt = `You are validating an interview response for completeness and quality.
 
@@ -25,7 +35,7 @@ QUESTION ASKED:
 ${question}
 
 USER'S ANSWER:
-${answer}
+${combinedAnswer}
 
 Evaluate this answer for:
 1. Specificity (Are there concrete details, not vague statements?)

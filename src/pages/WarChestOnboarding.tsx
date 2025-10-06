@@ -7,21 +7,27 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { WarChestInterview } from '@/components/WarChestInterview';
+import { CareerGoalsStep } from '@/components/war-chest/CareerGoalsStep';
+import { AIAnalysisStep } from '@/components/war-chest/AIAnalysisStep';
+import { SkillConfirmationStep } from '@/components/war-chest/SkillConfirmationStep';
 
-type OnboardingStep = 'upload' | 'interview' | 'review' | 'complete';
+type OnboardingStep = 'upload' | 'goals' | 'analysis' | 'skills' | 'interview' | 'complete';
 
 const WarChestOnboarding = () => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [resumeText, setResumeText] = useState('');
+  const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const steps = [
     { id: 'upload', label: 'Resume Upload', icon: Upload },
-    { id: 'interview', label: 'AI Interview', icon: MessageSquare },
-    { id: 'review', label: 'Review', icon: FileText },
+    { id: 'goals', label: 'Career Goals', icon: FileText },
+    { id: 'analysis', label: 'AI Analysis', icon: MessageSquare },
+    { id: 'skills', label: 'Skills Review', icon: CheckCircle },
+    { id: 'interview', label: 'Interview', icon: MessageSquare },
     { id: 'complete', label: 'Complete', icon: CheckCircle }
   ];
 
@@ -75,6 +81,7 @@ const WarChestOnboarding = () => {
       if (error) throw error;
 
       setResumeText(data.rawText || '');
+      setResumeAnalysis(data.analysis || {});
 
       // Initialize War Chest
       await supabase.from('career_war_chest').upsert({
@@ -89,7 +96,7 @@ const WarChestOnboarding = () => {
         description: 'Starting AI interview...'
       });
 
-      setCurrentStep('interview');
+      setCurrentStep('goals');
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -193,6 +200,28 @@ const WarChestOnboarding = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {currentStep === 'goals' && resumeAnalysis && (
+        <CareerGoalsStep 
+          resumeAnalysis={resumeAnalysis}
+          onComplete={(data) => setCurrentStep('analysis')}
+        />
+      )}
+
+      {currentStep === 'analysis' && resumeText && resumeAnalysis && (
+        <AIAnalysisStep
+          resumeText={resumeText}
+          targetRoles={[]}
+          targetIndustries={[]}
+          onComplete={() => setCurrentStep('skills')}
+        />
+      )}
+
+      {currentStep === 'skills' && (
+        <SkillConfirmationStep 
+          onComplete={() => setCurrentStep('interview')}
+        />
       )}
 
       {currentStep === 'interview' && (

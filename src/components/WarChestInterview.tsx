@@ -12,6 +12,10 @@ import { VoiceInput } from './VoiceInput';
 import { PreFilledQuestion } from './PreFilledQuestion';
 import { GuidedPromptSelector } from './GuidedPromptSelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { STARStoryBuilder } from './war-chest/STARStoryBuilder';
+import { WorkingKnowledgeAssessment } from './war-chest/WorkingKnowledgeAssessment';
 
 interface KnownDataItem {
   label: string;
@@ -23,6 +27,9 @@ interface QuestionToExpand {
   prompt: string;
   placeholder: string;
   hint?: string;
+  question_type?: 'text' | 'multiple_choice_with_custom' | 'star';
+  answer_options?: string[];
+  custom_input_prompt?: string;
 }
 
 interface QuestionData {
@@ -62,7 +69,6 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   const [isValidating, setIsValidating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<string>('discovery');
   const [completionPercentage, setCompletionPercentage] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
   const [validationFeedback, setValidationFeedback] = useState<string>('');
   const [qualityScore, setQualityScore] = useState<number>(0);
   const [warChestId, setWarChestId] = useState<string>('');
@@ -76,10 +82,23 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
     transferableSkills: 0,
     hiddenCompetencies: 0
   });
+  
+  // New state for checkbox-driven answers
+  const [questionType, setQuestionType] = useState<'text' | 'multiple_choice_with_custom' | 'star'>('text');
+  const [answerOptions, setAnswerOptions] = useState<string[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [customAnswerText, setCustomAnswerText] = useState('');
+  const [dynamicQuestionCount, setDynamicQuestionCount] = useState(50);
+  const [completenessScore, setCompletenessScore] = useState(0);
+  const [resumeText, setResumeText] = useState('');
+  
+  // Audio/voice state (kept for backward compatibility, made optional)
   const [selectedPersona, setSelectedPersona] = useState<CoachPersona>('mentor');
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(false); // Disabled by default
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
   const { toast } = useToast();
 
   const personas = {
@@ -97,7 +116,26 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
   useEffect(() => {
     startInterview();
+    calculateDynamicQuestionCount();
   }, []);
+
+  const calculateDynamicQuestionCount = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase.functions.invoke('calculate-completeness-score', {
+        body: { user_id: user.id }
+      });
+
+      if (data) {
+        setDynamicQuestionCount(data.recommended_question_count || 50);
+        setCompletenessScore(data.completeness_percentage || 0);
+      }
+    } catch (error) {
+      console.error('Error calculating question count:', error);
+    }
+  };
 
   const playQuestionAudio = async (text: string) => {
     if (!voiceEnabled) return;
@@ -180,16 +218,28 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       // Get war chest ID
       const { data: warChest } = await supabase
         .from('career_war_chest')
-        .select('id')
+        .select('id, resume_raw_text')
         .eq('user_id', user.id)
         .single();
 
       if (warChest) {
         setWarChestId(warChest.id);
+        setResumeText(warChest.resume_raw_text || '');
       }
 
+      // Get confirmed skills for context
+      const { data: confirmedSkills } = await supabase
+        .from('war_chest_confirmed_skills')
+        .select('*')
+        .eq('user_id', user.id);
+
       const { data, error } = await supabase.functions.invoke('generate-interview-question', {
-        body: { phase: 'discovery', isFirst: true }
+        body: { 
+          phase: 'discovery', 
+          isFirst: true,
+          generate_answer_options: true,
+          confirmed_skills: confirmedSkills || []
+        }
       });
 
       if (error) throw error;
@@ -199,7 +249,16 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setCurrentPhase(data.phase || 'discovery');
         setCompletionPercentage(data.completionPercentage || 0);
         
-        // Don't auto-play audio - wait for user to click Play button
+        // Extract answer options if provided
+        const firstSubQuestion = data.question.questionsToExpand[0];
+        if (firstSubQuestion?.answer_options) {
+          setQuestionType('multiple_choice_with_custom');
+          setAnswerOptions(firstSubQuestion.answer_options);
+        } else if (firstSubQuestion?.question_type === 'star') {
+          setQuestionType('star');
+        } else {
+          setQuestionType('text');
+        }
       }
     } catch (error) {
       console.error('Error starting interview:', error);
@@ -214,9 +273,32 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   };
 
   const handleSubmit = async () => {
-    if (!userInput.trim() || isLoading || !currentQuestion) return;
+    if (!currentQuestion) return;
 
     const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
+    
+    // Prepare answer based on question type
+    let answerToValidate: any;
+    if (questionType === 'multiple_choice_with_custom') {
+      if (selectedOptions.length === 0 && !customAnswerText.trim()) {
+        toast({
+          title: 'Please provide an answer',
+          description: 'Select at least one option or add custom text',
+          variant: 'destructive'
+        });
+        return;
+      }
+      answerToValidate = {
+        selected_options: selectedOptions,
+        custom_text: customAnswerText
+      };
+    } else if (questionType === 'star') {
+      if (!userInput.trim()) return;
+      answerToValidate = userInput;
+    } else {
+      if (!userInput.trim()) return;
+      answerToValidate = userInput;
+    }
     
     setIsValidating(true);
     setValidationFeedback('');
@@ -228,7 +310,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         {
           body: {
             question: currentSubQuestion.prompt,
-            answer: userInput
+            answer: answerToValidate
           }
         }
       ) as { data: ValidationResult; error: any };
@@ -901,50 +983,147 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
         {/* Input area */}
         <div className="mt-6 space-y-3">
-          <Textarea
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            placeholder={currentQuestion.questionsToExpand[currentSubQuestionIndex].placeholder}
-            className="min-h-[120px] resize-none"
-            disabled={isLoading || isValidating}
-          />
+          {/* Checkbox-driven answers */}
+          {questionType === 'multiple_choice_with_custom' && (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                {answerOptions.map((option, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                    onClick={() => {
+                      if (selectedOptions.includes(option)) {
+                        setSelectedOptions(selectedOptions.filter(o => o !== option));
+                      } else {
+                        setSelectedOptions([...selectedOptions, option]);
+                      }
+                    }}
+                  >
+                    <Checkbox
+                      checked={selectedOptions.includes(option)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedOptions([...selectedOptions, option]);
+                        } else {
+                          setSelectedOptions(selectedOptions.filter(o => o !== option));
+                        }
+                      }}
+                      className="mt-0.5"
+                    />
+                    <Label className="flex-1 cursor-pointer leading-relaxed">
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </div>
 
-          <div className="flex gap-2 justify-end">
-            <VoiceInput
-              onTranscript={handleVoiceInput}
-              isRecording={isRecording}
-              onToggleRecording={toggleRecording}
-              disabled={isLoading || isValidating}
+              {/* Custom input field */}
+              <div className="border-t pt-4 space-y-2">
+                <Label className="text-sm font-medium">
+                  {currentQuestion.questionsToExpand[currentSubQuestionIndex]?.custom_input_prompt || 'Add other experiences:'}
+                </Label>
+                <Textarea
+                  value={customAnswerText}
+                  onChange={(e) => setCustomAnswerText(e.target.value)}
+                  placeholder="Type additional details or use the microphone..."
+                  className="min-h-[100px] resize-none"
+                  disabled={isLoading || isValidating}
+                />
+                <div className="flex gap-2 justify-between items-center">
+                  <VoiceInput
+                    onTranscript={(text) => setCustomAnswerText(prev => prev + ' ' + text)}
+                    isRecording={isRecording}
+                    onToggleRecording={toggleRecording}
+                    disabled={isLoading || isValidating}
+                  />
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={(selectedOptions.length === 0 && !customAnswerText.trim()) || isLoading || isValidating}
+                    className="gap-2"
+                  >
+                    {isValidating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Validating...
+                      </>
+                    ) : isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Submit Answer
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STAR Story Builder */}
+          {questionType === 'star' && (
+            <STARStoryBuilder
+              onComplete={(story) => {
+                setUserInput(story);
+                handleSubmit();
+              }}
+              resumeContext={resumeText}
+              skillName={currentQuestion.questionsToExpand[currentSubQuestionIndex].prompt}
             />
-            <Button
-              onClick={handleSubmit}
-              disabled={!userInput.trim() || isLoading || isValidating}
-              className="gap-2"
-            >
-              {isValidating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Validating...
-                </>
-              ) : isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  {currentSubQuestionIndex < totalQuestions - 1 ? 'Next' : 'Continue'}
-                </>
-              )}
-            </Button>
-          </div>
+          )}
+
+          {/* Traditional text input */}
+          {questionType === 'text' && (
+            <>
+              <Textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                placeholder={currentQuestion.questionsToExpand[currentSubQuestionIndex].placeholder}
+                className="min-h-[120px] resize-none"
+                disabled={isLoading || isValidating}
+              />
+
+              <div className="flex gap-2 justify-end">
+                <VoiceInput
+                  onTranscript={handleVoiceInput}
+                  isRecording={isRecording}
+                  onToggleRecording={toggleRecording}
+                  disabled={isLoading || isValidating}
+                />
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!userInput.trim() || isLoading || isValidating}
+                  className="gap-2"
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Validating...
+                    </>
+                  ) : isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      {currentSubQuestionIndex < totalQuestions - 1 ? 'Next' : 'Continue'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </Card>
     </div>

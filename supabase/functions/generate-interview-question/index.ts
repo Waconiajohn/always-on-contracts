@@ -35,7 +35,15 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { phase, isFirst, previousResponse, conversationHistory, persona = 'mentor' } = await req.json();
+    const { 
+      phase, 
+      isFirst, 
+      previousResponse, 
+      conversationHistory, 
+      persona = 'mentor',
+      generate_answer_options = false,
+      confirmed_skills = []
+    } = await req.json();
 
     // Get War Chest data for context
     const { data: warChest } = await supabase
@@ -149,7 +157,31 @@ Your goal is to extract SPECIFIC, QUANTIFIED, and COMPELLING career intelligence
 13. Communication Excellence: Presentation skills, writing abilities, cross-functional collaboration
 
 RESPONSE FORMAT (ALWAYS RETURN THIS STRUCTURE):
-{
+${generate_answer_options ? `{
+  "question": {
+    "context": "Why I'm asking this - explain the strategic value",
+    "knownData": [...],
+    "questionsToExpand": [
+      {
+        "prompt": "Your question here",
+        "placeholder": "Type or select below...",
+        "hint": "Include specific metrics",
+        "question_type": "multiple_choice_with_custom",
+        "answer_options": [
+          "Led teams of 10-50 people",
+          "Managed budgets over $1M",
+          "Drove cross-functional initiatives",
+          "Mentored junior team members"
+        ],
+        "custom_input_prompt": "Add other experiences:"
+      }
+    ],
+    "exampleAnswer": "..."
+  },
+  "phase": "${currentPhase.name}",
+  "completionPercentage": ${completionPercentage},
+  "isComplete": false
+}` : `{
   "question": {
     "context": "Why I'm asking this - explain the strategic value",
     "knownData": [
@@ -171,7 +203,7 @@ RESPONSE FORMAT (ALWAYS RETURN THIS STRUCTURE):
   "phase": "${currentPhase.name}",
   "completionPercentage": ${completionPercentage},
   "isComplete": false
-}
+}`}
 
 CRITICAL INSTRUCTIONS:
 1. Pull specific data from resume: ${JSON.stringify(warChest?.initial_analysis || {})}
@@ -180,6 +212,13 @@ CRITICAL INSTRUCTIONS:
 4. Provide realistic, detailed example answers with metrics
 5. Context should explain WHY this question matters strategically
 6. Focus questions on the TARGET CATEGORIES for current phase
+${generate_answer_options ? `7. For each question, generate 4-6 contextual answer options based on:
+   - Resume content: ${JSON.stringify(warChest?.initial_analysis || {})}
+   - Confirmed skills: ${JSON.stringify(confirmed_skills)}
+   - Target role requirements
+   - Include realistic options the user can select
+8. Add question_type: "multiple_choice_with_custom" for checkbox questions
+9. Include custom_input_prompt for freeform additions` : ''}
 
 Current Phase Focus: ${currentPhase.name}
 ${isFirst ? 'This is the FIRST question - focus on career overview' : ''}
