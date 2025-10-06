@@ -414,14 +414,38 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
       {/* Question display */}
       <Card className="p-6">
-        {isPlayingAudio && (
-          <Alert className="mb-4 bg-primary/5 border-primary/20">
-            <Volume2 className="h-4 w-4 animate-pulse" />
-            <AlertDescription>
-              {personas[selectedPersona].icon} {personas[selectedPersona].name} is speaking...
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Prominent Play Question Button */}
+        <div className="mb-4 flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">{personas[selectedPersona].icon}</div>
+            <div>
+              <p className="font-semibold text-sm">
+                {isPlayingAudio ? 'Speaking now...' : 'Click to hear the question'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {personas[selectedPersona].name} • {voiceEnabled ? 'Voice enabled' : 'Voice disabled'}
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => playQuestionAudio(currentQuestion.questionsToExpand[currentSubQuestionIndex].prompt)}
+            disabled={isPlayingAudio || !voiceEnabled}
+            size="lg"
+            className="gap-2 bg-primary hover:bg-primary/90"
+          >
+            {isPlayingAudio ? (
+              <>
+                <Volume2 className="h-5 w-5 animate-pulse" />
+                Speaking...
+              </>
+            ) : (
+              <>
+                <Volume2 className="h-5 w-5" />
+                Play Question
+              </>
+            )}
+          </Button>
+        </div>
         
         <PreFilledQuestion
           context={currentQuestion.context}
