@@ -71,24 +71,38 @@ const WarChestOnboarding = () => {
       if (uploadError) throw uploadError;
 
       // Parse resume with base64 data
-      const { data, error } = await supabase.functions.invoke('parse-resume', {
+      const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-resume', {
         body: { 
           fileName: resumeFile.name, 
           fileData: base64Data 
         }
       });
 
-      if (error) throw error;
+      if (parseError) throw parseError;
 
-      setResumeText(data.rawText || '');
-      setResumeAnalysis(data.analysis || {});
+      const extractedText = parseData.text;
+      setResumeText(extractedText);
+
+      // Analyze resume to get structured data
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-resume', {
+        body: {
+          resumeText: extractedText,
+          userId: user.id
+        }
+      });
+
+      if (analysisError) throw analysisError;
+
+      setResumeAnalysis(analysisData);
 
       // Initialize War Chest
-      await supabase.from('career_war_chest').upsert({
+      const { error: upsertError } = await supabase.from('career_war_chest').upsert({
         user_id: user.id,
-        resume_raw_text: data.rawText,
+        resume_raw_text: extractedText,
         interview_completion_percentage: 25,
-        initial_analysis: data.analysis
+        initial_analysis: analysisData
+      }, {
+        onConflict: 'user_id'
       });
 
       toast({
