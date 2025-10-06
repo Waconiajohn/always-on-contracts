@@ -44,13 +44,13 @@ serve(async (req) => {
     }
 
     // Fetch War Chest data
-    const { data: warChest } = await supabaseClient
-      .from('career_war_chest')
+    const { data: vault } = await supabaseClient
+      .from('career_vault')
       .select(`
         *,
-        war_chest_power_phrases(*),
-        war_chest_hidden_competencies(*),
-        war_chest_transferable_skills(*)
+        vault_power_phrases(*),
+        vault_hidden_competencies(*),
+        vault_transferable_skills(*)
       `)
       .eq('user_id', user.id)
       .single();
@@ -96,8 +96,8 @@ Generate a professional ${communicationType.replace('_', ' ')} email for:
 
 **Candidate Info:**
 - Name: ${profile?.full_name || 'The candidate'}
-- Key Competencies: ${warChest?.war_chest_hidden_competencies?.map((c: any) => c.competency_area).join(', ') || 'N/A'}
-- Notable Skills: ${warChest?.war_chest_transferable_skills?.slice(0, 5).map((s: any) => s.stated_skill).join(', ') || 'N/A'}
+- Key Competencies: ${vault?.vault_hidden_competencies?.map((c: any) => c.competency_area).join(', ') || 'N/A'}
+- Notable Skills: ${vault?.vault_transferable_skills?.slice(0, 5).map((s: any) => s.stated_skill).join(', ') || 'N/A'}
 
 **Custom Instructions:** ${customInstructions || 'None'}
 

@@ -334,7 +334,7 @@ Return ONLY valid JSON in the format above.`;
 
       // Update completion percentage
       await supabase
-        .from('career_war_chest')
+        .from('career_vault')
         .update({
           interview_completion_percentage: parsedResult.completionPercentage,
           last_updated_at: new Date().toISOString()

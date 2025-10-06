@@ -140,7 +140,7 @@ Use job posting data from the last 2 months.`;
 
     // Store research result
     const { error: insertError } = await supabase
-      .from('war_chest_research')
+      .from('vault_research')
       .insert({
         user_id: user.id,
         research_type,

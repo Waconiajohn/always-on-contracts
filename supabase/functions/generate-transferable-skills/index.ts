@@ -13,29 +13,29 @@ serve(async (req) => {
   }
 
   try {
-    const { warChestId } = await req.json();
+    const { vaultId } = await req.json();
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: warChest } = await supabase
-      .from('career_war_chest')
+    const { data: vault } = await supabase
+      .from('career_vault')
       .select('*')
-      .eq('id', warChestId)
+      .eq('id', vaultId)
       .single();
 
     const { data: responses } = await supabase
-      .from('war_chest_interview_responses')
+      .from('vault_interview_responses')
       .select('*')
-      .eq('war_chest_id', warChestId)
+      .eq('vault_id', vaultId)
       .eq('phase', 'skills_translation');
 
-    if (!warChest) throw new Error('War chest not found');
+    if (!vault) throw new Error('Career Vault not found');
 
     const prompt = `You are a career strategist identifying transferable skills with strategic precision.
 
-Resume: ${warChest.resume_raw_text}
+Resume: ${vault.resume_raw_text}
 Skills Translation Responses: ${JSON.stringify(responses)}
 
 STRATEGIC TRANSLATION REQUIREMENTS:
@@ -60,7 +60,7 @@ Return JSON array:
   "confidence_score": 95
 }]`;
 
-    console.log('Generating transferable skills for war chest:', warChestId);
+    console.log('Generating transferable skills for Career Vault:', vaultId);
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -88,9 +88,9 @@ Return JSON array:
     const skills = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
     const insertPromises = skills.map((skill: any) =>
-      supabase.from('war_chest_transferable_skills').insert({
-        war_chest_id: warChestId,
-        user_id: warChest.user_id,
+      supabase.from('vault_transferable_skills').insert({
+        vault_id: vaultId,
+        user_id: vault.user_id,
         stated_skill: skill.stated_skill,
         equivalent_skills: skill.equivalent_skills,
         evidence: skill.evidence,

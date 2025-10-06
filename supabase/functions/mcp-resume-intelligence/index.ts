@@ -134,7 +134,7 @@ async function handleAnalyzeResume(supabaseClient: any, args: any) {
 
   // Store or update analysis
   const { data, error } = await supabaseClient
-    .from('career_war_chest')
+    .from('career_vault')
     .upsert({
       user_id: userId,
       resume_raw_text: resumeText,

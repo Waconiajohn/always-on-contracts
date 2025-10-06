@@ -84,8 +84,8 @@ serve(async (req) => {
       });
     }
 
-    // Build War Chest context
-    let warChestContext = '';
+    // Build Career Vault context
+    let vaultContext = '';
     if (intelligence) {
       const confirmedSkills = intelligence.technicalDepth.map((t: any) => 
         `${t.skill_name} (${t.proficiency_level}, ${t.years_experience || 'experienced'})`
@@ -103,8 +103,8 @@ serve(async (req) => {
         `${b.metric_type}: ${b.metric_value}`
       ).join('; ');
 
-      warChestContext = `
-WAR CHEST INTELLIGENCE (Verified Career Data):
+      vaultContext = `
+CAREER VAULT INTELLIGENCE (Verified Career Data):
 
 CONFIRMED SKILLS (${intelligence.counts.technicalSkills} validated):
 ${confirmedSkills}
@@ -125,11 +125,11 @@ PROJECTS PORTFOLIO:
 ${intelligence.projects.slice(0, 5).map((p: any) => `- ${p.project_name}: ${p.outcome || 'delivered'}`).join('\n')}
 
 **GAP ANALYSIS MANDATE:**
-1. SEPARATE "Stated Gaps" vs "Hidden Strengths" - use War Chest hidden competencies
+1. SEPARATE "Stated Gaps" vs "Hidden Strengths" - use Career Vault hidden competencies
 2. For each gap, check if a transferable skill can bridge it
-3. Recommend War Chest intelligence to emphasize (which power phrases, metrics, etc.)
+3. Recommend Career Vault intelligence to emphasize (which power phrases, metrics, etc.)
 4. Never mark a confirmed skill as a gap - these are validated capabilities
-5. Highlight hidden competencies that aren't obvious in the resume but exist in War Chest
+5. Highlight hidden competencies that aren't obvious in the resume but exist in Career Vault
 `;
     }
 
@@ -150,7 +150,7 @@ ${intelligence.projects.slice(0, 5).map((p: any) => `- ${p.project_name}: ${p.ou
           content: `ROLE: You are an executive recruiter with 20+ years evaluating candidates for senior roles. You conduct rigorous gap analyses that determine hiring decisions.
 
 ${intelligence ? `
-CRITICAL: You have access to this candidate's War Chest intelligence - verified career data including:
+CRITICAL: You have access to this candidate's Career Vault intelligence - verified career data including:
 - ${intelligence.counts.technicalSkills} confirmed skills (not guesses)
 - ${intelligence.counts.hiddenCompetencies} hidden competencies (capabilities not obvious in resume)
 - ${intelligence.counts.transferableSkills} transferable skills (can bridge gaps)
@@ -160,7 +160,7 @@ USE THIS INTELLIGENCE TO:
 1. Avoid marking confirmed skills as gaps
 2. Identify hidden strengths that compensate for apparent weaknesses
 3. Suggest transferable skill bridges for real gaps
-4. Provide War Chest recommendations (which intelligence to emphasize)
+4. Provide Career Vault recommendations (which intelligence to emphasize)
 ` : ''}
 
 EVALUATION DIMENSIONS:
@@ -170,21 +170,21 @@ EVALUATION DIMENSIONS:
    - Tool/platform proficiency
    - Certifications and credentials
    - Years of hands-on experience per skill
-   ${intelligence ? '- CHECK AGAINST CONFIRMED SKILLS FROM WAR CHEST' : ''}
+   ${intelligence ? '- CHECK AGAINST CONFIRMED SKILLS FROM CAREER VAULT' : ''}
 
 2. EXPERIENCE ALIGNMENT (30% weight)
    - Role level match (individual contributor vs. leadership)
    - Industry relevance and depth
    - Company scale experience (startup vs. enterprise)
    - Direct vs. transferable experience
-   ${intelligence ? '- CONSIDER TRANSFERABLE SKILLS FROM WAR CHEST' : ''}
+   ${intelligence ? '- CONSIDER TRANSFERABLE SKILLS FROM CAREER VAULT' : ''}
 
 3. ACHIEVEMENT PROFILE (25% weight)
    - Quantified impact matching job scope
    - Leadership/team management experience
    - Budget/revenue responsibility alignment
    - Innovation and transformation track record
-   ${intelligence ? '- REFERENCE BUSINESS IMPACTS FROM WAR CHEST AS EVIDENCE' : ''}
+   ${intelligence ? '- REFERENCE BUSINESS IMPACTS FROM CAREER VAULT AS EVIDENCE' : ''}
 
 4. INDUSTRY & DOMAIN KNOWLEDGE (20% weight)
    - Sector expertise match
@@ -199,8 +199,8 @@ SEVERITY CLASSIFICATION:
 
 ${intelligence ? `
 HIDDEN STRENGTHS IDENTIFICATION:
-Look for hidden competencies in War Chest that aren't obvious in resume but fulfill job requirements.
-Example: Resume doesn't mention "stakeholder management" but War Chest shows evidence of this capability.
+Look for hidden competencies in Career Vault that aren't obvious in resume but fulfill job requirements.
+Example: Resume doesn't mention "stakeholder management" but Career Vault shows evidence of this capability.
 ` : ''}
 
 KEYWORD ANALYSIS RULES:
@@ -210,20 +210,20 @@ KEYWORD ANALYSIS RULES:
 - Recommend strategic keyword placement
 
 RECOMMENDATIONS FRAMEWORK:
-1. IMMEDIATE WINS: Resume wording changes (no new skills needed) - use War Chest power phrases
-2. HIDDEN STRENGTHS: War Chest competencies to emphasize that address gaps
+1. IMMEDIATE WINS: Resume wording changes (no new skills needed) - use Career Vault power phrases
+2. HIDDEN STRENGTHS: Career Vault competencies to emphasize that address gaps
 3. TRANSFERABLE BRIDGES: How existing transferable skills can fill gaps
 4. SHORT-TERM GAPS: Skills acquirable in 1-3 months
 5. STRATEGIC GAPS: May require role change or significant training
 
 OUTPUT REQUIREMENTS:
 - Overall fit score (0-100) with confidence level
-- Strength inventory (top 5 with evidence from War Chest when available)
+- Strength inventory (top 5 with evidence from Career Vault when available)
 - Gap inventory (ranked by severity with mitigation strategies)
-- Hidden strengths array (competencies from War Chest that aren't obvious)
+- Hidden strengths array (competencies from Career Vault that aren't obvious)
 - Transferable skill bridges (how existing skills can fill gaps)
 - Keyword analysis (found, missing, density score)
-- 5-7 prioritized recommendations including War Chest emphasis strategy
+- 5-7 prioritized recommendations including Career Vault emphasis strategy
 
 TONE: Direct, evidence-based, constructive. Flag deal-breakers clearly. Return valid JSON only.`
         },
@@ -237,16 +237,16 @@ ${resumeText}
 TARGET JOB DESCRIPTION:
 ${jobDescription}
 
-${warChestContext}
+${vaultContext}
 
 ANALYSIS REQUIREMENTS:
 1. Score across all four evaluation dimensions
 2. Identify all critical, moderate, and minor gaps (accounting for confirmed skills and transferable bridges)
 3. Extract and compare keywords (required vs. present)
-4. Provide evidence-based strengths assessment (prioritize War Chest verified data)
-5. Identify hidden strengths from War Chest that aren't obvious in resume
+4. Provide evidence-based strengths assessment (prioritize Career Vault verified data)
+5. Identify hidden strengths from Career Vault that aren't obvious in resume
 6. For each gap, check if a transferable skill can bridge it
-7. Deliver prioritized, actionable recommendations including War Chest intelligence strategy
+7. Deliver prioritized, actionable recommendations including Career Vault intelligence strategy
 
 FORMAT: Return detailed JSON with complete scoring, gap classification, hidden strengths, transferable skill bridges, and strategic recommendations matching the schema (overallFit number, strengths array, gaps array, keywordAnalysis object, recommendations array, hiddenStrengths array, transferableSkillBridges array).`
         }
@@ -320,7 +320,7 @@ FORMAT: Return detailed JSON with complete scoring, gap classification, hidden s
           gapCount: gapAnalysisResult.gaps.length,
           strengthCount: gapAnalysisResult.strengths.length,
           keywordCoverage: gapAnalysisResult.keywordAnalysis.coverage,
-          warChestUsed: !!intelligence,
+          vaultUsed: !!intelligence,
           hiddenStrengthsFound: gapAnalysisResult.hiddenStrengths?.length || 0
         },
         quality_score: gapAnalysisResult.overallFit,

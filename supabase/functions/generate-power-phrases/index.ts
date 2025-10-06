@@ -13,30 +13,30 @@ serve(async (req) => {
   }
 
   try {
-    const { warChestId } = await req.json();
+    const { vaultId } = await req.json();
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get war chest and interview responses
-    const { data: warChest } = await supabase
-      .from('career_war_chest')
+    const { data: vault } = await supabase
+      .from('career_vault')
       .select('*')
-      .eq('id', warChestId)
+      .eq('id', vaultId)
       .single();
-
+    
     const { data: responses } = await supabase
-      .from('war_chest_interview_responses')
+      .from('vault_interview_responses')
       .select('*')
-      .eq('war_chest_id', warChestId);
+      .eq('vault_id', vaultId);
 
-    if (!warChest) throw new Error('War chest not found');
+    if (!vault) throw new Error('Career Vault not found');
 
     // Use Lovable AI to generate power phrases
     const prompt = `You are an expert resume writer. Convert weak resume statements into powerful, quantified achievement statements.
 
-Resume Text: ${warChest.resume_raw_text}
+Resume Text: ${vault.resume_raw_text}
 
 Interview Insights: ${JSON.stringify(responses)}
 
@@ -64,7 +64,7 @@ Return JSON array with format:
   "confidence_score": 90
 }]`;
 
-    console.log('Generating power phrases for war chest:', warChestId);
+    console.log('Generating power phrases for Career Vault:', vaultId);
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -95,9 +95,9 @@ Return JSON array with format:
 
     // Insert power phrases into database
     const insertPromises = powerPhrases.map((phrase: any) =>
-      supabase.from('war_chest_power_phrases').insert({
-        war_chest_id: warChestId,
-        user_id: warChest.user_id,
+      supabase.from('vault_power_phrases').insert({
+        vault_id: vaultId,
+        user_id: vault.user_id,
         category: phrase.category,
         original_text: phrase.original_text || null,
         power_phrase: phrase.power_phrase,

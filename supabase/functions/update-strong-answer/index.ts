@@ -41,9 +41,9 @@ serve(async (req) => {
       throw new Error('Question and current answer are required');
     }
 
-    // Get War Chest data for resume context
-    const { data: warChest } = await supabase
-      .from('career_war_chest')
+    // Get Career Vault data for resume context
+    const { data: vault } = await supabase
+      .from('career_vault')
       .select('*')
       .eq('user_id', user.id)
       .single();
@@ -60,7 +60,7 @@ VALIDATION FEEDBACK:
 ${JSON.stringify(validationFeedback || {})}
 
 RESUME CONTEXT:
-${JSON.stringify(warChest?.initial_analysis || {})}
+${JSON.stringify(vault?.initial_analysis || {})}
 
 Your task: Create an ENHANCED version of their answer that:
 1. BUILDS ON what they already said (don't ignore their input)

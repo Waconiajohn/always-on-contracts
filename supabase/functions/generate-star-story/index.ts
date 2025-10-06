@@ -53,8 +53,8 @@ serve(async (req) => {
       });
     }
 
-    // Build War Chest context
-    let warChestContext = '';
+    // Build Career Vault context
+    let vaultContext = '';
     if (intelligence) {
       const projects = intelligence.projects.map((p: any) => 
         `- ${p.project_name}: ${p.role || 'Your role'} | ${p.outcome || p.impact || 'outcome'} | Duration: ${p.duration || 'timeframe'}`
@@ -72,8 +72,8 @@ serve(async (req) => {
         `"${p.phrase}"`
       ).join(', ');
 
-      warChestContext = `
-WAR CHEST INTELLIGENCE (Ground Your Story in Real Achievements):
+      vaultContext = `
+CAREER VAULT INTELLIGENCE (Ground Your Story in Real Achievements):
 
 REAL PROJECTS (${intelligence.counts.projects} total):
 ${projects}
@@ -106,7 +106,7 @@ AVOID: Generic placeholders or estimated metrics when War Chest has verified dat
 USER'S RAW INPUT:
 "${rawStory}"
 
-${warChestContext}
+${vaultContext}
 
 TASK: Transform this into a compelling STAR method story that demonstrates executive presence and impact.
 
@@ -177,7 +177,7 @@ Generate a JSON response with this structure:
     "secondaryMetrics": ["Additional quantifiable results"]
   },
   "industry": "Industry context",
-  "timeframe": "Duration or time period"${intelligence ? ',\n  "warChestSourced": "Brief note on which War Chest data was used"' : ''}
+  "timeframe": "Duration or time period"${intelligence ? ',\n  "vaultSourced": "Brief note on which Career Vault data was used"' : ''}
 }`;
     } else if (action === 'refine') {
       prompt = `ROLE: You are an executive interview coach refining a STAR story for maximum interview impact.
@@ -185,7 +185,7 @@ Generate a JSON response with this structure:
 CURRENT STAR STORY:
 "${rawStory}"
 
-${warChestContext}
+${vaultContext}
 
 REFINEMENT GOALS:
 1. SITUATION: Compress to essential context (20-30 words max)
@@ -283,7 +283,7 @@ Return the same JSON structure with refined content.`;
     return new Response(
       JSON.stringify({ 
         starStory,
-        warChestUsed: !!intelligence
+        vaultUsed: !!intelligence
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

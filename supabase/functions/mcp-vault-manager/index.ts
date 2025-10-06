@@ -149,17 +149,17 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           resources: [
             {
-              uri: 'warchest://user/{userId}/data',
-              name: 'War Chest Data',
-              description: 'Full war chest JSON for user'
+              uri: 'vault://user/{userId}/data',
+              name: 'Career Vault Data',
+              description: 'Full Career Vault JSON for user'
             },
             {
-              uri: 'warchest://user/{userId}/responses',
+              uri: 'vault://user/{userId}/responses',
               name: 'Interview Responses',
               description: 'All interview responses'
             },
             {
-              uri: 'warchest://user/{userId}/strength_score',
+              uri: 'vault://user/{userId}/strength_score',
               name: 'Strength Score',
               description: 'Calculated overall strength score'
             }
@@ -224,22 +224,22 @@ async function handleGet(supabaseClient: any, args: any) {
 async function handleAddResponse(supabaseClient: any, args: any) {
   const { userId, question, response, phase } = args;
 
-  // Get war chest
-  const { data: warChest } = await supabaseClient
-    .from('career_war_chest')
+  // Get vault
+  const { data: vault } = await supabaseClient
+    .from('career_vault')
     .select('id')
     .eq('user_id', userId)
     .single();
 
-  if (!warChest) {
-    throw new Error('War chest not found');
+  if (!vault) {
+    throw new Error('Career Vault not found');
   }
 
   const { data, error } = await supabaseClient
-    .from('war_chest_interview_responses')
+    .from('vault_interview_responses')
     .insert({
       user_id: userId,
-      war_chest_id: warChest.id,
+      vault_id: vault.id,
       question,
       response,
       phase
@@ -258,7 +258,7 @@ async function handleGetPowerPhrases(supabaseClient: any, args: any) {
   const { userId } = args;
 
   const { data, error } = await supabaseClient
-    .from('war_chest_power_phrases')
+    .from('vault_power_phrases')
     .select('*')
     .eq('user_id', userId);
 
@@ -273,7 +273,7 @@ async function handleGetTransferableSkills(supabaseClient: any, args: any) {
   const { userId } = args;
 
   const { data, error } = await supabaseClient
-    .from('war_chest_transferable_skills')
+    .from('vault_transferable_skills')
     .select('*')
     .eq('user_id', userId);
 
@@ -288,7 +288,7 @@ async function handleGetHiddenCompetencies(supabaseClient: any, args: any) {
   const { userId } = args;
 
   const { data, error } = await supabaseClient
-    .from('war_chest_hidden_competencies')
+    .from('vault_hidden_competencies')
     .select('*')
     .eq('user_id', userId);
 

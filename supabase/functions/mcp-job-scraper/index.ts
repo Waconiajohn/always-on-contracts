@@ -144,7 +144,7 @@ async function handleScrapeJobs(supabaseClient: any, args: any) {
   // If transferable skills enabled, expand query
   if (includeTransferableSkills && userId) {
     const { data: transferableSkills } = await supabaseClient
-      .from('war_chest_transferable_skills')
+      .from('vault_transferable_skills')
       .select('skill_name, source_industry, target_industry')
       .eq('user_id', userId)
       .limit(10);

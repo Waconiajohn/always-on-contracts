@@ -203,19 +203,19 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
       skills.forEach((skill: any) => {
         const skillLower = skill.skill_name.toLowerCase();
         
-        // Check if skill is confirmed in War Chest
+        // Check if skill is confirmed in Career Vault
         if (confirmedSkillNames.includes(skillLower)) {
-          const warChestSkill = verificationIntelligence.technicalDepth.find(
+          const vaultSkill = verificationIntelligence.technicalDepth.find(
             (t: any) => t.skill_name.toLowerCase() === skillLower
           );
           
           skill.confidence_score = Math.max(skill.confidence_score, 95);
           skill.source = 'resume_verified';
-          skill.verification_note = `Confirmed in War Chest (${warChestSkill?.proficiency_level || 'validated'})`;
+          skill.verification_note = `Confirmed in Career Vault (${vaultSkill?.proficiency_level || 'validated'})`;
           
           // Add years of experience if available
-          if (warChestSkill?.years_experience) {
-            skill.years_experience = warChestSkill.years_experience;
+          if (vaultSkill?.years_experience) {
+            skill.years_experience = vaultSkill.years_experience;
           }
         }
         

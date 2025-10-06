@@ -77,8 +77,8 @@ serve(async (req) => {
       });
     }
 
-    // Build War Chest context
-    let warChestContext = '';
+    // Build Career Vault context
+    let vaultContext = '';
     if (intelligence) {
       const confirmedSkills = intelligence.technicalDepth.map((t: any) => 
         `${t.skill_name} (${t.proficiency_level}, ${t.years_experience || 'experienced'})`
@@ -92,8 +92,8 @@ serve(async (req) => {
         `"${p.phrase}" (${p.category})`
       ).join(', ');
 
-      warChestContext = `
-WAR CHEST INTELLIGENCE (Verified Career Data):
+      vaultContext = `
+CAREER VAULT INTELLIGENCE (Verified Career Data):
 
 CONFIRMED SKILLS (${intelligence.counts.technicalSkills}):
 ${confirmedSkills}
@@ -193,7 +193,7 @@ ${resumeText}
 TARGET JOB DESCRIPTION:
 ${jobDescription}
 
-${warChestContext}
+${vaultContext}
 
 DELIVERABLES:
 1. Comprehensive scoring across all three phases
@@ -273,7 +273,7 @@ FORMAT: Return detailed JSON matching the expected schema with optimizedResume, 
           improvements: optimizationResult.improvements,
           missingKeywords: optimizationResult.missingKeywords,
           recommendations: optimizationResult.recommendations,
-          warChestUsed: !!intelligence
+          vaultUsed: !!intelligence
         },
         quality_score: optimizationResult.analysis.overallScore,
         ats_score: optimizationResult.analysis.keywordDensityScore,

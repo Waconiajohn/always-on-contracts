@@ -134,7 +134,7 @@ Provide factual verification with current sources.`;
 
     // Store verification result
     const { error: insertError } = await supabase
-      .from('war_chest_verifications')
+      .from('vault_verifications')
       .insert({
         user_id: user.id,
         verification_type,
