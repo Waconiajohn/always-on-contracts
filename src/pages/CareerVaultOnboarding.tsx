@@ -147,12 +147,12 @@ const CareerVaultOnboarding = () => {
     }
   };
 
-  const handleInterviewComplete = async () => {
+  const handleSkillsComplete = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Parse resume into milestones for interview
+      // Parse resume into milestones BEFORE starting interview
       const { data: vault } = await supabase
         .from('career_vault')
         .select('id, resume_raw_text')
@@ -161,20 +161,47 @@ const CareerVaultOnboarding = () => {
 
       if (vault && vault.resume_raw_text) {
         console.log('Parsing resume into milestones...');
-        const { data: milestonesData } = await supabase.functions.invoke('parse-resume-milestones', {
+        const { data: milestonesData, error: parseError } = await supabase.functions.invoke('parse-resume-milestones', {
           body: {
             resumeText: vault.resume_raw_text,
             vaultId: vault.id
           }
         });
 
-        if (milestonesData && milestonesData.success) {
+        if (parseError) {
+          console.error('Error parsing milestones:', parseError);
+          toast({
+            title: 'Warning',
+            description: 'Could not parse resume milestones, proceeding with standard interview',
+            variant: 'destructive'
+          });
+        } else if (milestonesData?.success) {
+          setMilestones(milestonesData.milestones);
+          setCurrentMilestoneId(milestonesData.milestones[0]?.id || null);
+          setTotalIntelligenceExtracted(0);
+          
           toast({
             title: 'Resume parsed!',
             description: `Found ${milestonesData.milestones.length} career milestones to expand on`,
           });
         }
       }
+
+      setCurrentStep('interview');
+    } catch (error) {
+      console.error('Error starting interview:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start interview. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleInterviewComplete = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
       await supabase
         .from('career_vault')
@@ -302,22 +329,38 @@ const CareerVaultOnboarding = () => {
 
       {currentStep === 'skills' && (
         <SkillConfirmationStep 
-          onComplete={() => setCurrentStep('interview')}
+          onComplete={handleSkillsComplete}
         />
       )}
 
       {currentStep === 'interview' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Career Interview</CardTitle>
-            <CardDescription>
-              Answer questions to help us understand your full career potential
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CareerVaultInterview onComplete={handleInterviewComplete} />
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {/* Milestone Progress Sidebar */}
+          {milestones.length > 0 && (
+            <MilestoneProgress
+              milestones={milestones}
+              currentMilestoneId={currentMilestoneId || undefined}
+              onSelectMilestone={setCurrentMilestoneId}
+              totalIntelligenceExtracted={totalIntelligenceExtracted}
+            />
+          )}
+
+          {/* Interview Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Resume Intelligence Extraction</CardTitle>
+              <CardDescription>
+                Let's expand on your career milestones with specific examples and quantified achievements
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CareerVaultInterview 
+                onComplete={handleInterviewComplete}
+                currentMilestoneId={currentMilestoneId}
+              />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {currentStep === 'complete' && (
