@@ -1374,6 +1374,7 @@ export type Database = {
           automation_mode: string | null
           base_resume: string | null
           career_goals: string | null
+          completeness_score: number | null
           core_skills: string[] | null
           created_at: string | null
           current_employment_status: string | null
@@ -1395,6 +1396,7 @@ export type Database = {
           subscription_tier: string | null
           target_industries: string[] | null
           target_positions: string[] | null
+          target_roles: string[] | null
           target_salary: string | null
           updated_at: string | null
           user_id: string
@@ -1408,6 +1410,7 @@ export type Database = {
           automation_mode?: string | null
           base_resume?: string | null
           career_goals?: string | null
+          completeness_score?: number | null
           core_skills?: string[] | null
           created_at?: string | null
           current_employment_status?: string | null
@@ -1429,6 +1432,7 @@ export type Database = {
           subscription_tier?: string | null
           target_industries?: string[] | null
           target_positions?: string[] | null
+          target_roles?: string[] | null
           target_salary?: string | null
           updated_at?: string | null
           user_id: string
@@ -1442,6 +1446,7 @@ export type Database = {
           automation_mode?: string | null
           base_resume?: string | null
           career_goals?: string | null
+          completeness_score?: number | null
           core_skills?: string[] | null
           created_at?: string | null
           current_employment_status?: string | null
@@ -1463,6 +1468,7 @@ export type Database = {
           subscription_tier?: string | null
           target_industries?: string[] | null
           target_positions?: string[] | null
+          target_roles?: string[] | null
           target_salary?: string | null
           updated_at?: string | null
           user_id?: string
@@ -2185,6 +2191,45 @@ export type Database = {
         }
         Relationships: []
       }
+      war_chest_confirmed_skills: {
+        Row: {
+          created_at: string | null
+          custom_notes: string | null
+          id: string
+          proficiency: string | null
+          skill_name: string
+          source: string
+          sub_attributes: Json | null
+          updated_at: string | null
+          user_id: string
+          want_to_develop: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_notes?: string | null
+          id?: string
+          proficiency?: string | null
+          skill_name: string
+          source: string
+          sub_attributes?: Json | null
+          updated_at?: string | null
+          user_id: string
+          want_to_develop?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_notes?: string | null
+          id?: string
+          proficiency?: string | null
+          skill_name?: string
+          source?: string
+          sub_attributes?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          want_to_develop?: boolean | null
+        }
+        Relationships: []
+      }
       war_chest_hidden_competencies: {
         Row: {
           certification_equivalent: string | null
@@ -2334,6 +2379,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      war_chest_skill_taxonomy: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          market_frequency: number | null
+          skill_category: string | null
+          skill_name: string
+          source: string
+          sub_attributes: Json | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          market_frequency?: number | null
+          skill_category?: string | null
+          skill_name: string
+          source: string
+          sub_attributes?: Json | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          market_frequency?: number | null
+          skill_category?: string | null
+          skill_name?: string
+          source?: string
+          sub_attributes?: Json | null
+          user_id?: string
+        }
+        Relationships: []
       }
       war_chest_transferable_skills: {
         Row: {
