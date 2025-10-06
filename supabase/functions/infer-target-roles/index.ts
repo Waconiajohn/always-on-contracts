@@ -63,11 +63,13 @@ Return ONLY a JSON object in this exact format:
   "reasoning": "Brief explanation of suggestions"
 }`;
 
-    const aiResponse = await fetch('https://api.lovable.app/v1/ai/completions', {
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+    
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
@@ -77,8 +79,6 @@ Return ONLY a JSON object in this exact format:
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 1000,
       }),
     });
 
