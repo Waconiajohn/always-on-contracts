@@ -7,22 +7,28 @@ const corsHeaders = {
 
 const VOICE_PERSONAS = {
   mentor: {
-    voiceId: '9BWtsMINqrJLrRacOk9x', // Aria - warm, encouraging
+    voiceId: 'EXAVITQu4vr4xnSDxMaL', // Laura - warm, professional, clear
     name: 'Sarah (The Mentor)',
-    stability: 0.75,
+    stability: 0.5,
     similarity_boost: 0.75,
+    style: 0.0,
+    use_speaker_boost: true,
   },
   challenger: {
-    voiceId: 'IKne3meq5aSn9XLyUdCD', // Charlie - direct, demanding
+    voiceId: 'onwK4e9ZLuTAKqWW03F9', // Daniel - strong, confident, direct
     name: 'Charlie (The Challenger)',
     stability: 0.5,
     similarity_boost: 0.8,
+    style: 0.0,
+    use_speaker_boost: true,
   },
   strategist: {
-    voiceId: 'pFZP5JQG7iQjIQuC4Bku', // Lily - analytical, precise
+    voiceId: 'TX3LPaxmHKxFdv7VOQHJ', // Liam - calm, analytical, intelligent
     name: 'Lily (The Strategist)',
-    stability: 0.65,
+    stability: 0.5,
     similarity_boost: 0.75,
+    style: 0.0,
+    use_speaker_boost: true,
   },
 };
 
@@ -58,10 +64,12 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           text,
-          model_id: 'eleven_multilingual_v2',
+          model_id: 'eleven_turbo_v2_5', // Faster model for quicker speech
           voice_settings: {
             stability: voiceConfig.stability,
             similarity_boost: voiceConfig.similarity_boost,
+            style: voiceConfig.style,
+            use_speaker_boost: voiceConfig.use_speaker_boost,
           },
         }),
       }
