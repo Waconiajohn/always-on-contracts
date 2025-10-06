@@ -19,7 +19,7 @@ const ResumeBuilderAgentContent = () => {
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [warChestData, setWarChestData] = useState<any>(null);
+  const [vaultData, setVaultData] = useState<any>(null);
   const [selectedPhrases, setSelectedPhrases] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
@@ -28,20 +28,20 @@ const ResumeBuilderAgentContent = () => {
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
   useEffect(() => {
-    fetchWarChestData();
+    fetchVaultData();
   }, []);
 
-  const fetchWarChestData = async () => {
+  const fetchVaultData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: warChest } = await supabase
+    const { data: vault } = await supabase
       .from('career_vault')
       .select('*, vault_power_phrases(*), vault_transferable_skills(*), vault_hidden_competencies(*)')
       .eq('user_id', user.id)
       .single();
 
-    setWarChestData(warChest);
+    setVaultData(vault);
     setLoading(false);
   };
 
@@ -87,18 +87,18 @@ const ResumeBuilderAgentContent = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Resume Builder Agent</h1>
-          <p className="text-muted-foreground">Build custom resumes from your War Chest</p>
+          <p className="text-muted-foreground">Build custom resumes from your Career Vault</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: War Chest Explorer */}
+          {/* Left: Career Vault Explorer */}
           <Card className="lg:col-span-1 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 rounded-full bg-primary/10">
                 <Target className="h-8 w-8 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold">Your War Chest</h2>
+                <h2 className="font-semibold">Your Career Vault</h2>
                 <p className="text-sm text-muted-foreground">Select ammunition</p>
               </div>
             </div>
@@ -106,12 +106,12 @@ const ResumeBuilderAgentContent = () => {
             <ScrollArea className="h-[calc(100vh-250px)]">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : !warChestData ? (
+              ) : !vaultData ? (
                 <div className="text-center py-8">
                   <Brain className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-muted-foreground mb-4">No War Chest yet</p>
+                  <p className="text-sm text-muted-foreground mb-4">No Career Vault yet</p>
                   <Button onClick={() => window.location.href = '/agents/corporate-assistant'}>
-                    Build Your War Chest
+                    Build Your Career Vault
                   </Button>
                 </div>
               ) : (
@@ -119,10 +119,10 @@ const ResumeBuilderAgentContent = () => {
                   <div>
                     <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                       <Zap className="h-4 w-4" />
-                      Power Phrases ({warChestData.vault_power_phrases?.length || 0})
+                      Power Phrases ({vaultData.vault_power_phrases?.length || 0})
                     </h3>
                     <div className="space-y-2">
-                      {warChestData.vault_power_phrases?.slice(0, 5).map((phrase: any) => (
+                      {vaultData.vault_power_phrases?.slice(0, 5).map((phrase: any) => (
                         <div key={phrase.id} className="p-2 bg-muted rounded text-xs cursor-pointer hover:bg-primary/10"
                           onClick={() => setSelectedPhrases(prev => 
                             prev.includes(phrase.id) ? prev.filter(id => id !== phrase.id) : [...prev, phrase.id]
@@ -138,10 +138,10 @@ const ResumeBuilderAgentContent = () => {
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">
-                      Transferable Skills ({warChestData.vault_transferable_skills?.length || 0})
+                      Transferable Skills ({vaultData.vault_transferable_skills?.length || 0})
                     </h3>
                     <div className="flex flex-wrap gap-1">
-                      {warChestData.vault_transferable_skills?.slice(0, 10).map((skill: any) => (
+                      {vaultData.vault_transferable_skills?.slice(0, 10).map((skill: any) => (
                         <Badge 
                           key={skill.id} 
                           variant={selectedSkills.includes(skill.id) ? "default" : "outline"}
@@ -157,10 +157,10 @@ const ResumeBuilderAgentContent = () => {
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">
-                      Hidden Competencies ({warChestData.vault_hidden_competencies?.length || 0})
+                      Hidden Competencies ({vaultData.vault_hidden_competencies?.length || 0})
                     </h3>
                     <div className="space-y-1">
-                      {warChestData.vault_hidden_competencies?.slice(0, 3).map((comp: any) => (
+                      {vaultData.vault_hidden_competencies?.slice(0, 3).map((comp: any) => (
                         <Badge key={comp.id} variant="secondary" className="text-xs">
                           {comp.competency_area}
                         </Badge>

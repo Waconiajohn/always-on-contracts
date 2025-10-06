@@ -1,9 +1,9 @@
-# War Chest Integration Review - Complete Analysis
+# Career Vault Integration Review - Complete Analysis
 
 ## ✅ VERIFIED INTEGRATIONS
 
 ### 1. **Onboarding Flow** (FULLY WORKING)
-- **File**: `src/pages/WarChestOnboarding.tsx`
+- **File**: `src/pages/CareerVaultOnboarding.tsx`
 - **Process**:
   1. Resume Upload → Parse resume text
   2. Analyze resume → Generate structured analysis
@@ -12,10 +12,10 @@
   5. Skill Confirmation → User confirms/adds skills
   6. Interview → Dynamic AI interview extracting intelligence
 - **Data Flow**: ✅ Target roles/industries properly flow from Career Goals → AI Analysis → Skill Taxonomy
-- **Database**: ✅ Initializes `career_war_chest` with resume text and initial analysis
+- **Database**: ✅ Initializes `career_vault` with resume text and initial analysis
 
 ### 2. **Interview System** (FULLY WORKING)
-- **File**: `src/components/WarChestInterview.tsx`
+- **File**: `src/components/CareerVaultInterview.tsx`
 - **Features**:
   - Multi-modal questions (text, multiple choice, STAR stories)
   - Real-time validation with quality scoring
@@ -44,7 +44,7 @@
   - Modern Terminology Score (20 points)
 
 ### 4. **AI Agents Integration** (FULLY WORKING)
-All agents successfully leverage War Chest data:
+All agents successfully leverage Career Vault data:
 
 #### **Resume Builder Agent**
 - **File**: `src/pages/agents/ResumeBuilderAgent.tsx`

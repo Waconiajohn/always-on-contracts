@@ -37,7 +37,7 @@
 **MCP Functions (Advanced Features):**
 These power the AI agent system. Monitor usage and errors:
 - `orchestrator-agent` - MCP coordination
-- `mcp-warchest-manager` - Career preparation
+- `mcp-vault-manager` - Career preparation
 - `mcp-persona-memory` - User context
 - `mcp-research-agent` - Market intelligence
 - `mcp-resume-intelligence` - Resume optimization
@@ -146,7 +146,7 @@ These power the AI agent system. Monitor usage and errors:
 1. **Experimental Features Removed:**
    - `/experimental` route
    - `/mcp-test` route
-   - `/war-chest-dashboard` route
+   - `/career-vault` route
    These were removed from production. Re-enable via App.tsx if needed.
 
 2. **MCP Functions:**

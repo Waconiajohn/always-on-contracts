@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
     let vaultContext = '';
-    if (intelligence) {
+    if (intelligence && intelligence.technicalDepth && intelligence.projects && intelligence.businessImpacts) {
       const existingSkills = intelligence.technicalDepth.map((t: any) => 
         `${t.skill_name} (${t.proficiency_level}, verified)`
       ).join(', ');
@@ -186,7 +186,7 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
 
     const verificationIntelligence = verificationError ? null : verificationData?.intelligence;
     
-    if (verificationIntelligence) {
+    if (verificationIntelligence && verificationIntelligence.technicalDepth && verificationIntelligence.projects && verificationIntelligence.businessImpacts) {
       console.log('[ANALYZE-RESUME] Career Vault loaded for verification:', {
         confirmedSkills: verificationIntelligence.counts.technicalSkills,
         projects: verificationIntelligence.counts.projects,

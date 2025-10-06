@@ -65,7 +65,7 @@ const JobSearchAgentContent = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("search");
   const [useTransferableSkills, setUseTransferableSkills] = useState(false);
-  const [warChestStats, setWarChestStats] = useState<any>(null);
+  const [vaultStats, setVaultStats] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
   
   // Search state
@@ -75,7 +75,7 @@ const JobSearchAgentContent = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showAllFilters, setShowAllFilters] = useState(false);
   
-  // War Chest suggestions
+  // Career Vault suggestions
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]);
   
@@ -101,7 +101,7 @@ const JobSearchAgentContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        await loadWarChestData(user.id);
+        await loadVaultData(user.id);
       }
     };
     initUser();
@@ -116,9 +116,9 @@ const JobSearchAgentContent = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [aiMessages]);
 
-  const loadWarChestData = async (userId: string) => {
+  const loadVaultData = async (userId: string) => {
     try {
-      const { data: warChest } = await supabase
+      const { data: vault } = await supabase
         .from('career_vault')
         .select(`
           *,
@@ -128,25 +128,25 @@ const JobSearchAgentContent = () => {
         .eq('user_id', userId)
         .single();
 
-      if (warChest) {
-        setWarChestStats(warChest);
-        const analysis = warChest.initial_analysis as any;
+      if (vault) {
+        setVaultStats(vault);
+        const analysis = vault.initial_analysis as any;
         const titles = analysis?.recommended_positions || [];
         setSuggestedTitles(titles.slice(0, 5));
 
-        const skills = warChest.vault_transferable_skills?.map((s: any) => s.skill_name) || [];
+        const skills = vault.vault_transferable_skills?.map((s: any) => s.skill_name) || [];
         setSuggestedSkills(skills.slice(0, 8));
 
         // Send initial AI greeting
         if (titles.length > 0) {
           setAiMessages([{
             role: 'assistant',
-            content: `👋 Hi! Based on your War Chest, I can help you find ${titles.join(', ')} positions. What are you looking for today?`
+            content: `👋 Hi! Based on your Career Vault, I can help you find ${titles.join(', ')} positions. What are you looking for today?`
           }]);
         }
       }
     } catch (error) {
-      console.error('Error loading War Chest data:', error);
+      console.error('Error loading Career Vault data:', error);
     }
   };
 
@@ -360,7 +360,7 @@ const JobSearchAgentContent = () => {
       const context = {
         skills: suggestedSkills,
         titles: suggestedTitles,
-        transferableSkills: warChestStats?.total_transferable_skills || 0,
+        transferableSkills: vaultStats?.total_transferable_skills || 0,
         query: searchQuery,
         resultsCount: filteredJobs.length,
         activeFilters: getAppliedFiltersCount()
@@ -437,7 +437,7 @@ const JobSearchAgentContent = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Job Search Agent</h1>
-          <p className="text-muted-foreground">AI-powered job discovery with your War Chest</p>
+          <p className="text-muted-foreground">AI-powered job discovery with your Career Vault</p>
         </div>
 
         {(suggestedTitles.length > 0 || suggestedSkills.length > 0) && (
@@ -445,7 +445,7 @@ const JobSearchAgentContent = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Sparkles className="h-5 w-5 text-primary" />
-                Suggested by Your War Chest
+                Suggested by Your Career Vault
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -522,9 +522,9 @@ const JobSearchAgentContent = () => {
               <p className="text-xs text-muted-foreground">
                 Expands search to cross-industry roles
               </p>
-              {warChestStats && (
+              {vaultStats && (
                 <Badge variant="outline" className="text-xs mt-2">
-                  {warChestStats.total_transferable_skills} skills available
+                  {vaultStats.total_transferable_skills} skills available
                 </Badge>
               )}
             </div>

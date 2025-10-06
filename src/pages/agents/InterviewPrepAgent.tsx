@@ -15,7 +15,7 @@ import { InterviewFollowupPanel } from "@/components/InterviewFollowupPanel";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("practice");
-  const [warChestData, setWarChestData] = useState<any>(null);
+  const [vaultData, setVaultData] = useState<any>(null);
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [jobDescription, setJobDescription] = useState("");
@@ -24,14 +24,14 @@ const InterviewPrepAgentContent = () => {
   const { recommendation, loading: personaLoading, getRecommendation } = usePersonaRecommendation('interview');
 
   useEffect(() => {
-    fetchWarChestData();
+    fetchVaultData();
   }, []);
 
-  const fetchWarChestData = async () => {
+  const fetchVaultData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: warChest } = await supabase
+    const { data: vault } = await supabase
       .from('career_vault')
       .select(`
         *,
@@ -42,7 +42,7 @@ const InterviewPrepAgentContent = () => {
       .eq('user_id', user.id)
       .single();
 
-    setWarChestData(warChest);
+    setVaultData(vault);
     setLoading(false);
   };
 
@@ -59,13 +59,13 @@ const InterviewPrepAgentContent = () => {
   };
 
   const generateInterviewQuestion = async () => {
-    if (!warChestData) return;
+    if (!vaultData) return;
 
     toast({ title: "Generating interview question..." });
 
     const { data, error } = await supabase.functions.invoke('generate-interview-question', {
       body: {
-        warChestId: warChestData.id,
+        vaultId: vaultData.id,
         phase: 'interview_prep',
         persona: selectedPersona
       }
@@ -83,11 +83,11 @@ const InterviewPrepAgentContent = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Interview Prep Agent</h1>
-          <p className="text-muted-foreground">Practice discussing your War Chest competencies</p>
+          <p className="text-muted-foreground">Practice discussing your Career Vault competencies</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: War Chest Reference */}
+          {/* Left: Career Vault Reference */}
           <Card className="lg:col-span-1 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 rounded-full bg-primary/10">
@@ -95,19 +95,19 @@ const InterviewPrepAgentContent = () => {
               </div>
               <div>
                 <h2 className="font-semibold">Your Talking Points</h2>
-                <p className="text-sm text-muted-foreground">From War Chest</p>
+                <p className="text-sm text-muted-foreground">From Career Vault</p>
               </div>
             </div>
 
             <ScrollArea className="h-[calc(100vh-250px)]">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : !warChestData ? (
+              ) : !vaultData ? (
                 <div className="text-center py-8">
                   <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-muted-foreground mb-4">No War Chest yet</p>
+                  <p className="text-sm text-muted-foreground mb-4">No Career Vault yet</p>
                   <Button onClick={() => window.location.href = '/agents/corporate-assistant'}>
-                    Build Your War Chest
+                    Build Your Career Vault
                   </Button>
                 </div>
               ) : (
@@ -118,7 +118,7 @@ const InterviewPrepAgentContent = () => {
                       Hidden Competencies
                     </h3>
                     <div className="space-y-2">
-                      {warChestData.vault_hidden_competencies?.map((comp: any) => (
+                      {vaultData.vault_hidden_competencies?.map((comp: any) => (
                         <div key={comp.id} className="p-3 bg-muted rounded-lg">
                           <Badge variant="secondary" className="mb-2">{comp.competency_area}</Badge>
                           <p className="text-xs text-muted-foreground">{comp.inferred_capability}</p>
@@ -135,7 +135,7 @@ const InterviewPrepAgentContent = () => {
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Transferable Skills</h3>
                     <div className="space-y-2">
-                      {warChestData.vault_transferable_skills?.slice(0, 5).map((skill: any) => (
+                      {vaultData.vault_transferable_skills?.slice(0, 5).map((skill: any) => (
                         <div key={skill.id} className="p-2 bg-muted rounded text-xs">
                           <p className="font-medium">{skill.stated_skill}</p>
                           <p className="text-muted-foreground mt-1">{skill.evidence}</p>
@@ -214,8 +214,8 @@ const InterviewPrepAgentContent = () => {
                         ) : (
                           <div className="text-center py-8">
                             <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                            <p className="text-muted-foreground mb-4">Generate a practice question based on your War Chest</p>
-                            <Button onClick={generateInterviewQuestion} disabled={!warChestData}>
+                            <p className="text-muted-foreground mb-4">Generate a practice question based on your Career Vault</p>
+                            <Button onClick={generateInterviewQuestion} disabled={!vaultData}>
                               Generate Question
                             </Button>
                           </div>
@@ -231,7 +231,7 @@ const InterviewPrepAgentContent = () => {
                       <h3 className="text-sm font-semibold mb-2">💡 How to Answer</h3>
                       <ul className="text-sm space-y-1 text-muted-foreground">
                         <li>• Use the STAR method (Situation, Task, Action, Result)</li>
-                        <li>• Reference specific achievements from your War Chest</li>
+                        <li>• Reference specific achievements from your Career Vault</li>
                         <li>• Include quantifiable results when possible</li>
                         <li>• Connect to the hidden competencies identified</li>
                       </ul>
@@ -245,7 +245,7 @@ const InterviewPrepAgentContent = () => {
 
               <TabsContent value="followup" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-300px)]">
-                  <InterviewFollowupPanel userId={warChestData?.user_id} />
+                  <InterviewFollowupPanel userId={vaultData?.user_id} />
                 </ScrollArea>
               </TabsContent>
 
@@ -255,7 +255,7 @@ const InterviewPrepAgentContent = () => {
                     <div className="p-4 bg-muted rounded-lg">
                       <h3 className="font-semibold mb-2">Technical Deep-Dive</h3>
                       <p className="text-sm text-muted-foreground">
-                        Practice explaining complex technical concepts using examples from your War Chest
+                        Practice explaining complex technical concepts using examples from your Career Vault
                       </p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">

@@ -25,7 +25,7 @@ const CorporateAssistantContent = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string>("");
-  const [warChestId, setWarChestId] = useState<string | null>(null);
+  const [vaultId, setVaultId] = useState<string | null>(null);
   const [step, setStep] = useState<'upload' | 'analyzing' | 'interview' | 'building'>('upload');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState("");
@@ -51,12 +51,12 @@ const CorporateAssistantContent = () => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setUserId(user.id);
-        checkExistingWarChest(user.id);
+        checkExistingVault(user.id);
       }
     });
   }, []);
 
-  const checkExistingWarChest = async (uid: string) => {
+  const checkExistingVault = async (uid: string) => {
     const { data } = await supabase
       .from('career_vault')
       .select('*')
@@ -64,7 +64,7 @@ const CorporateAssistantContent = () => {
       .maybeSingle();
 
     if (data) {
-      setWarChestId(data.id);
+      setVaultId(data.id);
       setCompletionPercentage(data.interview_completion_percentage || 0);
       if (data.interview_completion_percentage === 100) {
         setStep('building');
@@ -139,8 +139,8 @@ const CorporateAssistantContent = () => {
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // Remove other control characters
         .trim();
 
-      // Create or update war chest
-      const { data: warChest, error: wcError } = await supabase
+      // Create or update Career Vault
+      const { data: vault, error: wcError } = await supabase
         .from('career_vault')
         .upsert({
           user_id: userId,
@@ -151,7 +151,7 @@ const CorporateAssistantContent = () => {
         .single();
 
       if (wcError) throw wcError;
-      setWarChestId(warChest.id);
+      setVaultId(vault.id);
 
       // Call initial analysis edge function
       const { data: analysis, error: analysisError } = await supabase.functions.invoke('analyze-resume', {
@@ -163,22 +163,22 @@ const CorporateAssistantContent = () => {
 
       if (analysisError) throw analysisError;
 
-      // Update war chest with initial analysis
+      // Update Career Vault with initial analysis
       await supabase
         .from('career_vault')
         .update({
           initial_analysis: analysis,
           overall_strength_score: analysis.strengthScore || 50
         })
-        .eq('id', warChest.id);
+        .eq('id', vault.id);
 
       setAiTyping(false);
       setStep('interview');
-      await loadNextQuestion(warChest.id);
+      await loadNextQuestion(vault.id);
 
       toast({
         title: "Resume Analyzed",
-        description: "Let's start building your War Chest!",
+        description: "Let's start building your Career Vault!",
       });
     } catch (error: any) {
       console.error('Error analyzing resume:', error);
@@ -208,14 +208,14 @@ const CorporateAssistantContent = () => {
 
       if (completion >= 100) {
         setStep('building');
-        await buildWarChestIntelligence(wcId);
+        await buildVaultIntelligence(wcId);
         return;
       }
 
       // Generate next question based on phase
       const { data: question, error } = await supabase.functions.invoke('generate-interview-question', {
         body: {
-          warChestId: wcId,
+          vaultId: wcId,
           previousResponses: responses
         }
       });
@@ -275,7 +275,7 @@ const CorporateAssistantContent = () => {
   };
 
   const handleSubmitResponse = async () => {
-    if (!currentResponse.trim() || !warChestId) return;
+    if (!currentResponse.trim() || !vaultId) return;
 
     // For structured questions with sub-questions
     if (currentQuestionData?.questionsToExpand && currentQuestionData.questionsToExpand.length > 0) {
@@ -317,7 +317,7 @@ const CorporateAssistantContent = () => {
         await supabase
           .from('vault_interview_responses')
           .insert({
-            vault_id: warChestId,
+            vault_id: vaultId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: combinedResponse,
@@ -328,7 +328,7 @@ const CorporateAssistantContent = () => {
         setValidationFeedback(null);
         setCurrentSubQuestion(0);
         setSubQuestionResponses([]);
-        await loadNextQuestion(warChestId);
+        await loadNextQuestion(vaultId);
 
       } catch (error: any) {
         console.error('Error submitting response:', error);
@@ -367,7 +367,7 @@ const CorporateAssistantContent = () => {
         await supabase
           .from('vault_interview_responses')
           .insert({
-            vault_id: warChestId,
+            vault_id: vaultId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: currentResponse,
@@ -376,7 +376,7 @@ const CorporateAssistantContent = () => {
 
         setCurrentResponse("");
         setValidationFeedback(null);
-        await loadNextQuestion(warChestId);
+        await loadNextQuestion(vaultId);
 
       } catch (error: any) {
         console.error('Error submitting response:', error);
@@ -393,7 +393,7 @@ const CorporateAssistantContent = () => {
 
   const handleAcceptAnswer = async () => {
     // User wants to submit answer despite validation feedback
-    if (!currentResponse.trim() || !warChestId) return;
+    if (!currentResponse.trim() || !vaultId) return;
 
     // For structured questions with sub-questions
     if (currentQuestionData?.questionsToExpand && currentQuestionData.questionsToExpand.length > 0) {
@@ -411,7 +411,7 @@ const CorporateAssistantContent = () => {
         await supabase
           .from('vault_interview_responses')
           .insert({
-            vault_id: warChestId,
+            vault_id: vaultId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: combinedResponse,
@@ -422,7 +422,7 @@ const CorporateAssistantContent = () => {
         setValidationFeedback(null);
         setCurrentSubQuestion(0);
         setSubQuestionResponses([]);
-        await loadNextQuestion(warChestId);
+        await loadNextQuestion(vaultId);
 
       } catch (error: any) {
         console.error('Error submitting response:', error);
@@ -437,7 +437,7 @@ const CorporateAssistantContent = () => {
         await supabase
           .from('vault_interview_responses')
           .insert({
-            vault_id: warChestId,
+            vault_id: vaultId,
             user_id: userId,
             question: interviewPhase.questions[0],
             response: currentResponse,
@@ -446,7 +446,7 @@ const CorporateAssistantContent = () => {
 
         setCurrentResponse("");
         setValidationFeedback(null);
-        await loadNextQuestion(warChestId);
+        await loadNextQuestion(vaultId);
 
       } catch (error: any) {
         console.error('Error submitting response:', error);
@@ -481,15 +481,15 @@ const CorporateAssistantContent = () => {
     };
   };
 
-  const buildWarChestIntelligence = async (wcId: string) => {
+  const buildVaultIntelligence = async (wcId: string) => {
     setAiTyping(true);
     
     try {
       // Call intelligence edge functions in parallel
       await Promise.all([
-        supabase.functions.invoke('generate-power-phrases', { body: { warChestId: wcId } }),
-        supabase.functions.invoke('generate-transferable-skills', { body: { warChestId: wcId } }),
-        supabase.functions.invoke('discover-hidden-competencies', { body: { warChestId: wcId } })
+        supabase.functions.invoke('generate-power-phrases', { body: { vaultId: wcId } }),
+        supabase.functions.invoke('generate-transferable-skills', { body: { vaultId: wcId } }),
+        supabase.functions.invoke('discover-hidden-competencies', { body: { vaultId: wcId } })
       ]);
 
       // Update totals
@@ -509,15 +509,15 @@ const CorporateAssistantContent = () => {
         .eq('id', wcId);
 
       toast({
-        title: "War Chest Complete!",
+        title: "Career Vault Complete!",
         description: "Your career intelligence engine is ready.",
       });
 
     } catch (error: any) {
-      console.error('Error building war chest:', error);
+      console.error('Error building Career Vault:', error);
       toast({
         title: "Error",
-        description: "Failed to build war chest intelligence",
+        description: "Failed to build Career Vault intelligence",
         variant: "destructive",
       });
     } finally {
@@ -533,7 +533,7 @@ const CorporateAssistantContent = () => {
           <h1 className="text-3xl font-bold">Your Corporate Assistant</h1>
         </div>
         <p className="text-muted-foreground">
-          I'll help you build a comprehensive War Chest of your skills, experience, and hidden talents
+          I'll help you build a comprehensive Career Vault of your skills, experience, and hidden talents
         </p>
       </div>
 
@@ -541,7 +541,7 @@ const CorporateAssistantContent = () => {
       {step !== 'upload' && (
         <Card className="p-6 mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">War Chest Progress</span>
+            <span className="text-sm font-medium">Career Vault Progress</span>
             <span className="text-sm text-muted-foreground">{Math.round(completionPercentage)}%</span>
           </div>
           <Progress value={completionPercentage} className="h-2" />
@@ -556,7 +556,7 @@ const CorporateAssistantContent = () => {
             </Badge>
             <Badge variant={step === 'building' ? 'default' : 'outline'}>
               <Target className="w-3 h-3 mr-1" />
-              War Chest Built
+              Career Vault Built
             </Badge>
           </div>
         </Card>
@@ -617,8 +617,8 @@ const CorporateAssistantContent = () => {
                   <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
                     <li>I'll analyze your resume</li>
                     <li>You'll answer 25 questions about your experience</li>
-                    <li>I'll build your War Chest with power phrases, skills, and hidden competencies</li>
-                    <li>Use your War Chest to supercharge job applications and interviews</li>
+                    <li>I'll build your Career Vault with power phrases, skills, and hidden competencies</li>
+                    <li>Use your Career Vault to supercharge job applications and interviews</li>
                   </ol>
                 </div>
               </>
@@ -643,7 +643,7 @@ const CorporateAssistantContent = () => {
                 className="w-full"
                 disabled={!resumeText || isParsingFile}
               >
-                {resumeText ? "Start Building My War Chest" : "Add your resume to continue"}
+                {resumeText ? "Start Building My Career Vault" : "Add your resume to continue"}
               </Button>
             </div>
           </div>
@@ -847,7 +847,7 @@ const CorporateAssistantContent = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => loadNextQuestion(warChestId!)}
+                      onClick={() => loadNextQuestion(vaultId!)}
                     >
                       Skip
                     </Button>
@@ -859,7 +859,7 @@ const CorporateAssistantContent = () => {
         </Card>
       )}
 
-      {/* Step 4: Building War Chest */}
+      {/* Step 4: Building Career Vault */}
       {step === 'building' && (
         <Card className="p-8">
           <div className="flex flex-col items-center text-center">
@@ -868,7 +868,7 @@ const CorporateAssistantContent = () => {
                 <div className="animate-pulse mb-4">
                   <Target className="w-16 h-16 text-primary" />
                 </div>
-                <h2 className="text-2xl font-semibold mb-2">Building Your War Chest...</h2>
+                <h2 className="text-2xl font-semibold mb-2">Building Your Career Vault...</h2>
                 <p className="text-muted-foreground">
                   Creating power phrases, mapping transferable skills, and discovering hidden competencies
                 </p>
@@ -876,7 +876,7 @@ const CorporateAssistantContent = () => {
             ) : (
               <>
                 <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-                <h2 className="text-2xl font-semibold mb-2">Your War Chest is Ready!</h2>
+                <h2 className="text-2xl font-semibold mb-2">Your Career Vault is Ready!</h2>
                 <p className="text-muted-foreground mb-6">
                   You now have a complete career intelligence system. Let's put it to work.
                 </p>
@@ -884,8 +884,8 @@ const CorporateAssistantContent = () => {
                   <Button size="lg" onClick={() => navigate('/agents/resume-builder')}>
                     Build Custom Resume
                   </Button>
-                  <Button size="lg" variant="outline" onClick={() => navigate('/war-chest-dashboard')}>
-                    View War Chest
+                  <Button size="lg" variant="outline" onClick={() => navigate('/career-vault')}>
+                    View Career Vault
                   </Button>
                 </div>
               </>

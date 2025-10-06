@@ -22,7 +22,7 @@
 **Removed Routes:**
 - `/experimental` (ExperimentalLab page)
 - `/mcp-test` (MCPTestDashboard page)  
-- `/war-chest-dashboard` (WarChestDashboard page)
+- `/career-vault` (CareerVaultDashboard page)
 
 **Files Modified:**
 - `src/App.tsx` - Removed route definitions and imports
@@ -37,13 +37,13 @@
 - Removed unused component imports:
   - `ExperimentalLab`
   - `MCPTestDashboard`
-  - `WarChestDashboard`
+  - `CareerVaultDashboard`
 - **Impact:** Smaller bundle size, faster builds
 
 #### 2.2 Navigation Cleanup
 - **File:** `src/components/AppSidebar.tsx`
 - Removed experimental navigation items:
-  - \"War Chest\" from tools menu
+  - "Career Vault" from tools menu
   - \"Experimental Lab\" from settings menu
 - Fixed path: `career-dashboard` → `career-tools`
 - **Impact:** Cleaner, more professional navigation
@@ -108,7 +108,7 @@ Concierge Elite - $99/mo
 
 ### Active Functions (MCP System)
 8. `orchestrator-agent` - AI coordination
-9. `mcp-warchest-manager`
+9. `mcp-vault-manager`
 10. `mcp-persona-memory`
 11. `mcp-research-agent`
 12. `mcp-resume-intelligence`
@@ -158,7 +158,7 @@ Concierge Elite - $99/mo
 - **Status:** Removed from production
 - **Restore:** Uncomment route in `src/App.tsx`, re-import component
 
-### 3. War Chest Dashboard (`/war-chest-dashboard`)
+### 3. Career Vault Dashboard (`/career-vault`)
 - **Purpose:** Career preparation toolkit
 - **Status:** Removed from production
 - **Note:** MCP functions still exist, UI removed
@@ -171,12 +171,12 @@ Concierge Elite - $99/mo
 1. **Update `src/App.tsx`:**
 ```typescript
 // Add imports back
-import WarChestDashboard from "./pages/WarChestDashboard";
+import CareerVaultDashboard from "./pages/CareerVaultDashboard";
 import ExperimentalLab from "./pages/ExperimentalLab";
 import MCPTestDashboard from "./pages/MCPTestDashboard";
 
 // Add routes back
-<Route path="/war-chest-dashboard" element={<ProtectedRoute><WarChestDashboard /></ProtectedRoute>} />
+<Route path="/career-vault" element={<ProtectedRoute><CareerVaultDashboard /></ProtectedRoute>} />
 <Route path="/experimental" element={<ProtectedRoute><ExperimentalLab /></ProtectedRoute>} />
 <Route path="/mcp-test" element={<ProtectedRoute><MCPTestDashboard /></ProtectedRoute>} />
 ```
@@ -185,7 +185,7 @@ import MCPTestDashboard from "./pages/MCPTestDashboard";
 ```typescript
 const toolsItems = [
   // ... existing items
-  { path: "/war-chest-dashboard", label: "War Chest", icon: Briefcase },
+  { path: "/career-vault", label: "Career Vault", icon: Briefcase },
 ];
 
 const settingsItems = [
