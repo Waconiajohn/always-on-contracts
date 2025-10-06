@@ -20,19 +20,19 @@ interface EnhancementItem {
 }
 
 interface EnhancementQueueProps {
-  warChestId: string;
+  vaultId: string;
 }
 
-export function EnhancementQueue({ warChestId }: EnhancementQueueProps) {
+export function EnhancementQueue({ vaultId }: EnhancementQueueProps) {
   const [queue, setQueue] = useState<EnhancementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<EnhancementItem | null>(null);
 
   const fetchQueue = async () => {
     const { data } = await supabase
-      .from('war_chest_interview_responses')
+      .from('vault_interview_responses')
       .select('*')
-      .eq('war_chest_id', warChestId)
+      .eq('vault_id', vaultId)
       .eq('needs_enhancement', true)
       .order('enhancement_priority', { ascending: false })
       .order('intelligence_value', { ascending: true });
@@ -43,7 +43,7 @@ export function EnhancementQueue({ warChestId }: EnhancementQueueProps) {
 
   useEffect(() => {
     fetchQueue();
-  }, [warChestId]);
+  }, [vaultId]);
 
   if (loading) {
     return <div className="flex justify-center p-8">Loading enhancement queue...</div>;
@@ -84,7 +84,7 @@ export function EnhancementQueue({ warChestId }: EnhancementQueueProps) {
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">Enhancement Queue</h3>
         <p className="text-sm text-muted-foreground">
-          {queue.length} response{queue.length !== 1 ? 's' : ''} ready for enhancement to maximize your War Chest intelligence
+          {queue.length} response{queue.length !== 1 ? 's' : ''} ready for enhancement to maximize your Career Vault intelligence
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export function EnhancementQueue({ warChestId }: EnhancementQueueProps) {
           open={!!selectedItem}
           onOpenChange={(open) => !open && setSelectedItem(null)}
           responseId={selectedItem.id}
-          warChestId={warChestId}
+          vaultId={vaultId}
           question={selectedItem.question}
           currentAnswer={selectedItem.response}
           currentScore={selectedItem.quality_score}

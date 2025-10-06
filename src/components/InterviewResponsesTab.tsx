@@ -16,19 +16,19 @@ interface InterviewResponse {
 }
 
 interface InterviewResponsesTabProps {
-  warChestId: string;
+  vaultId: string;
 }
 
-export function InterviewResponsesTab({ warChestId }: InterviewResponsesTabProps) {
+export function InterviewResponsesTab({ vaultId }: InterviewResponsesTabProps) {
   const [responses, setResponses] = useState<InterviewResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedResponse, setSelectedResponse] = useState<InterviewResponse | null>(null);
 
   const fetchResponses = async () => {
     const { data } = await supabase
-      .from('war_chest_interview_responses')
+      .from('vault_interview_responses')
       .select('*')
-      .eq('war_chest_id', warChestId)
+      .eq('vault_id', vaultId)
       .order('quality_score', { ascending: true });
 
     if (data) setResponses(data as any);
@@ -37,7 +37,7 @@ export function InterviewResponsesTab({ warChestId }: InterviewResponsesTabProps
 
   useEffect(() => {
     fetchResponses();
-  }, [warChestId]);
+  }, [vaultId]);
 
   if (loading) {
     return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -86,7 +86,7 @@ export function InterviewResponsesTab({ warChestId }: InterviewResponsesTabProps
           open={!!selectedResponse}
           onOpenChange={(open) => !open && setSelectedResponse(null)}
           responseId={selectedResponse.id}
-          warChestId={warChestId}
+          vaultId={vaultId}
           question={selectedResponse.question}
           currentAnswer={selectedResponse.response}
           currentScore={selectedResponse.quality_score}

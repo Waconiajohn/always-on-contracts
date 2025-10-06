@@ -46,8 +46,8 @@ const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
 const RedeemCode = lazy(() => import("./pages/RedeemCode"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
-const WarChestDashboard = lazy(() => import("./pages/WarChestDashboard"));
-const WarChestOnboarding = lazy(() => import("./pages/WarChestOnboarding"));
+const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboard"));
+const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboarding"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
 const CareerCommandCenter = lazy(() => import("./pages/CareerCommandCenter"));
@@ -116,8 +116,8 @@ const App = () => (
           <Route path="/redeem-code" element={<ProtectedRoute><RedeemCode /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPortal /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
-            <Route path="/war-chest" element={<ProtectedRoute><WarChestDashboard /></ProtectedRoute>} />
-            <Route path="/war-chest/onboarding" element={<ProtectedRoute><WarChestOnboarding /></ProtectedRoute>} />
+            <Route path="/career-vault" element={<ProtectedRoute><CareerVaultDashboard /></ProtectedRoute>} />
+            <Route path="/career-vault/onboarding" element={<ProtectedRoute><CareerVaultOnboarding /></ProtectedRoute>} />
             <Route path="/learn" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
             <Route path="/processing-monitor" element={<ProtectedRoute><ProcessingMonitor /></ProtectedRoute>} />

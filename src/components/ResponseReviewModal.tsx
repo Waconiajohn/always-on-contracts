@@ -13,7 +13,7 @@ interface ResponseReviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   responseId: string;
-  warChestId: string;
+  vaultId: string;
   question: string;
   currentAnswer: string;
   currentScore: number;
@@ -33,7 +33,7 @@ export function ResponseReviewModal({
   open,
   onOpenChange,
   responseId,
-  warChestId,
+  vaultId,
   question,
   currentAnswer,
   currentScore,
@@ -86,14 +86,14 @@ export function ResponseReviewModal({
       try {
         // Get current version first
         const { data: currentData } = await supabase
-          .from('war_chest_interview_responses')
+          .from('vault_interview_responses')
           .select('version')
           .eq('id', responseId)
           .single();
 
         // Update the response
         const { error: updateError } = await supabase
-          .from('war_chest_interview_responses')
+          .from('vault_interview_responses')
           .update({
             response: answer,
             quality_score: validation.quality_score,
@@ -107,7 +107,7 @@ export function ResponseReviewModal({
         // Re-extract intelligence
         const { error: extractError } = await supabase.functions.invoke('extract-war-chest-intelligence', {
           body: {
-            warChestId,
+            vaultId,
             question,
             userResponse: answer,
           }

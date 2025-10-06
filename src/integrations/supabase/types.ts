@@ -519,7 +519,7 @@ export type Database = {
         }
         Relationships: []
       }
-      career_war_chest: {
+      career_vault: {
         Row: {
           created_at: string
           id: string
@@ -2484,7 +2484,7 @@ export type Database = {
         }
         Relationships: []
       }
-      war_chest_behavioral_indicators: {
+      vault_behavioral_indicators: {
         Row: {
           context: string | null
           created_at: string | null
@@ -2493,7 +2493,7 @@ export type Database = {
           outcome_pattern: string | null
           specific_behavior: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           context?: string | null
@@ -2503,7 +2503,7 @@ export type Database = {
           outcome_pattern?: string | null
           specific_behavior: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           context?: string | null
@@ -2513,19 +2513,19 @@ export type Database = {
           outcome_pattern?: string | null
           specific_behavior?: string
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_behavioral_indicators_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_confirmed_skills: {
+      vault_confirmed_skills: {
         Row: {
           created_at: string | null
           custom_notes: string | null
@@ -2564,7 +2564,7 @@ export type Database = {
         }
         Relationships: []
       }
-      war_chest_executive_presence: {
+      vault_executive_presence: {
         Row: {
           brand_alignment: string | null
           created_at: string | null
@@ -2573,7 +2573,7 @@ export type Database = {
           presence_indicator: string
           situational_example: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           brand_alignment?: string | null
@@ -2583,7 +2583,7 @@ export type Database = {
           presence_indicator: string
           situational_example: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           brand_alignment?: string | null
@@ -2593,19 +2593,19 @@ export type Database = {
           presence_indicator?: string
           situational_example?: string
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_executive_presence_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_hidden_competencies: {
+      vault_hidden_competencies: {
         Row: {
           certification_equivalent: string | null
           competency_area: string
@@ -2615,7 +2615,7 @@ export type Database = {
           inferred_capability: string
           supporting_evidence: string[]
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           certification_equivalent?: string | null
@@ -2626,7 +2626,7 @@ export type Database = {
           inferred_capability: string
           supporting_evidence?: string[]
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           certification_equivalent?: string | null
@@ -2637,19 +2637,19 @@ export type Database = {
           inferred_capability?: string
           supporting_evidence?: string[]
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_hidden_competencies_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_interview_responses: {
+      vault_interview_responses: {
         Row: {
           completeness_score: number | null
           created_at: string
@@ -2667,8 +2667,8 @@ export type Database = {
           updated_at: string | null
           user_id: string
           validation_feedback: Json | null
+          vault_id: string
           version: number | null
-          war_chest_id: string
         }
         Insert: {
           completeness_score?: number | null
@@ -2687,8 +2687,8 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           validation_feedback?: Json | null
+          vault_id: string
           version?: number | null
-          war_chest_id: string
         }
         Update: {
           completeness_score?: number | null
@@ -2707,20 +2707,20 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           validation_feedback?: Json | null
+          vault_id?: string
           version?: number | null
-          war_chest_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_interview_responses_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_leadership_philosophy: {
+      vault_leadership_philosophy: {
         Row: {
           core_principles: string[] | null
           created_at: string | null
@@ -2729,7 +2729,7 @@ export type Database = {
           philosophy_statement: string
           real_world_application: string | null
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           core_principles?: string[] | null
@@ -2739,7 +2739,7 @@ export type Database = {
           philosophy_statement: string
           real_world_application?: string | null
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           core_principles?: string[] | null
@@ -2749,19 +2749,19 @@ export type Database = {
           philosophy_statement?: string
           real_world_application?: string | null
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_leadership_philosophy_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_personality_traits: {
+      vault_personality_traits: {
         Row: {
           behavioral_evidence: string
           created_at: string | null
@@ -2769,7 +2769,7 @@ export type Database = {
           strength_or_growth: string | null
           trait_name: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
           work_context: string | null
         }
         Insert: {
@@ -2779,7 +2779,7 @@ export type Database = {
           strength_or_growth?: string | null
           trait_name: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
           work_context?: string | null
         }
         Update: {
@@ -2789,20 +2789,20 @@ export type Database = {
           strength_or_growth?: string | null
           trait_name?: string
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
           work_context?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_personality_traits_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_power_phrases: {
+      vault_power_phrases: {
         Row: {
           category: string
           confidence_score: number | null
@@ -2814,7 +2814,7 @@ export type Database = {
           power_phrase: string
           source: string | null
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           category: string
@@ -2827,7 +2827,7 @@ export type Database = {
           power_phrase: string
           source?: string | null
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           category?: string
@@ -2840,19 +2840,19 @@ export type Database = {
           power_phrase?: string
           source?: string | null
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_power_phrases_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_research: {
+      vault_research: {
         Row: {
           citations: Json | null
           created_at: string
@@ -2888,7 +2888,7 @@ export type Database = {
         }
         Relationships: []
       }
-      war_chest_skill_taxonomy: {
+      vault_skill_taxonomy: {
         Row: {
           confidence_score: number | null
           created_at: string | null
@@ -2924,7 +2924,7 @@ export type Database = {
         }
         Relationships: []
       }
-      war_chest_soft_skills: {
+      vault_soft_skills: {
         Row: {
           created_at: string | null
           examples: string
@@ -2933,7 +2933,7 @@ export type Database = {
           proficiency_level: string | null
           skill_name: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           created_at?: string | null
@@ -2943,7 +2943,7 @@ export type Database = {
           proficiency_level?: string | null
           skill_name: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           created_at?: string | null
@@ -2953,19 +2953,19 @@ export type Database = {
           proficiency_level?: string | null
           skill_name?: string
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_soft_skills_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_transferable_skills: {
+      vault_transferable_skills: {
         Row: {
           confidence_score: number | null
           created_at: string
@@ -2974,7 +2974,7 @@ export type Database = {
           id: string
           stated_skill: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           confidence_score?: number | null
@@ -2984,7 +2984,7 @@ export type Database = {
           id?: string
           stated_skill: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           confidence_score?: number | null
@@ -2994,19 +2994,19 @@ export type Database = {
           id?: string
           stated_skill?: string
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_transferable_skills_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_values_motivations: {
+      vault_values_motivations: {
         Row: {
           career_decisions_influenced: string | null
           created_at: string | null
@@ -3015,7 +3015,7 @@ export type Database = {
           manifestation: string
           user_id: string
           value_name: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           career_decisions_influenced?: string | null
@@ -3025,7 +3025,7 @@ export type Database = {
           manifestation: string
           user_id: string
           value_name: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           career_decisions_influenced?: string | null
@@ -3035,19 +3035,19 @@ export type Database = {
           manifestation?: string
           user_id?: string
           value_name?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_values_motivations_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
       }
-      war_chest_verifications: {
+      vault_verifications: {
         Row: {
           citations: Json | null
           created_at: string
@@ -3080,7 +3080,7 @@ export type Database = {
         }
         Relationships: []
       }
-      war_chest_work_style: {
+      vault_work_style: {
         Row: {
           created_at: string | null
           examples: string | null
@@ -3089,7 +3089,7 @@ export type Database = {
           preference_area: string
           preference_description: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Insert: {
           created_at?: string | null
@@ -3099,7 +3099,7 @@ export type Database = {
           preference_area: string
           preference_description: string
           user_id: string
-          war_chest_id: string
+          vault_id: string
         }
         Update: {
           created_at?: string | null
@@ -3109,14 +3109,14 @@ export type Database = {
           preference_area?: string
           preference_description?: string
           user_id?: string
-          war_chest_id?: string
+          vault_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "war_chest_work_style_war_chest_id_fkey"
-            columns: ["war_chest_id"]
+            columns: ["vault_id"]
             isOneToOne: false
-            referencedRelation: "career_war_chest"
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]

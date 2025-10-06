@@ -14,8 +14,8 @@ import { GuidedPromptSelector } from './GuidedPromptSelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { STARStoryBuilder } from './war-chest/STARStoryBuilder';
-import { WorkingKnowledgeAssessment } from './war-chest/WorkingKnowledgeAssessment';
+import { STARStoryBuilder } from './career-vault/STARStoryBuilder';
+import { WorkingKnowledgeAssessment } from './career-vault/WorkingKnowledgeAssessment';
 
 interface KnownDataItem {
   label: string;
@@ -55,13 +55,13 @@ interface ValidationResult {
   guided_prompts?: any;
 }
 
-interface WarChestInterviewProps {
+interface CareerVaultInterviewProps {
   onComplete: () => void;
 }
 
 type CoachPersona = 'mentor' | 'challenger' | 'strategist';
 
-export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
+export const CareerVaultInterview = ({ onComplete }: CareerVaultInterviewProps) => {
   const [currentQuestion, setCurrentQuestion] = useState<QuestionData | null>(null);
   const [currentSubQuestionIndex, setCurrentSubQuestionIndex] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -217,21 +217,21 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get war chest ID
-      const { data: warChest } = await supabase
-        .from('career_war_chest')
+      // Get career vault ID
+      const { data: vault } = await supabase
+        .from('career_vault')
         .select('id, resume_raw_text')
         .eq('user_id', user.id)
         .single();
 
-      if (warChest) {
-        setWarChestId(warChest.id);
-        setResumeText(warChest.resume_raw_text || '');
+      if (vault) {
+        setVaultId(vault.id);
+        setResumeText(vault.resume_raw_text || '');
       }
 
       // Get confirmed skills for context
       const { data: confirmedSkills } = await supabase
-        .from('war_chest_confirmed_skills')
+        .from('vault_confirmed_skills')
         .select('*')
         .eq('user_id', user.id);
 
@@ -388,9 +388,9 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           intelligenceValue < 60 ? 'medium' : 'low';
         
         const { data: savedResponse } = await supabase
-          .from('war_chest_interview_responses')
+          .from('vault_interview_responses')
           .insert([{
-            war_chest_id: warChestId,
+            vault_id: vaultId,
             user_id: user.id,
             question: currentSubQuestion.prompt,
             response: responseToSave,
@@ -474,7 +474,7 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       if (!currentUser) return;
 
       const { data: confirmedSkills } = await supabase
-        .from('war_chest_confirmed_skills')
+        .from('vault_confirmed_skills')
         .select('*')
         .eq('user_id', currentUser.id);
 
@@ -492,12 +492,12 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
       if (data?.isComplete) {
         // PHASE 1 FIX: Sync completion to 100%
         await supabase
-          .from('career_war_chest')
+          .from('career_vault')
           .update({ 
             interview_completion_percentage: 100,
             last_updated_at: new Date().toISOString()
           })
-          .eq('id', warChestId);
+          .eq('id', vaultId);
           
         setCompletionPercentage(100);
         toast({
@@ -603,11 +603,11 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        if (warChestId) {
+        if (vaultId) {
           await supabase
-            .from('war_chest_interview_responses')
+            .from('vault_interview_responses')
             .insert([{
-              war_chest_id: warChestId,
+              vault_id: vaultId,
               user_id: user.id,
               question: currentSubQuestion.prompt,
               response: enhancedAnswer,
@@ -721,9 +721,9 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
       // Save the response
       await supabase
-        .from('war_chest_interview_responses')
+        .from('vault_interview_responses')
         .insert([{
-          war_chest_id: warChestId,
+          vault_id: vaultId,
           user_id: user.id,
           question: currentSubQuestion.prompt,
           response: responseToSave,
