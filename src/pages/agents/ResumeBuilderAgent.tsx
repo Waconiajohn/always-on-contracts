@@ -5,11 +5,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload } from "lucide-react";
+import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { JobImportDialog } from "@/components/JobImportDialog";
+import { PersonaSelector } from "@/components/PersonaSelector";
+import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 
 const ResumeBuilderAgentContent = () => {
   const [activeTab, setActiveTab] = useState("current");
@@ -20,8 +22,10 @@ const ResumeBuilderAgentContent = () => {
   const [warChestData, setWarChestData] = useState<any>(null);
   const [selectedPhrases, setSelectedPhrases] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
   useEffect(() => {
     fetchWarChestData();
@@ -41,9 +45,22 @@ const ResumeBuilderAgentContent = () => {
     setLoading(false);
   };
 
+  const handleGetPersonaRecommendation = async () => {
+    if (!jobDescription.trim()) {
+      toast({ title: "Please enter a job description", variant: "destructive" });
+      return;
+    }
+    await getRecommendation(jobDescription);
+  };
+
   const handleGenerateResume = async () => {
     if (!jobDescription.trim()) {
       toast({ title: "Please enter a job description", variant: "destructive" });
+      return;
+    }
+
+    if (!selectedPersona) {
+      toast({ title: "Please select a persona", description: "Choose a writing style first", variant: "destructive" });
       return;
     }
 
@@ -53,7 +70,8 @@ const ResumeBuilderAgentContent = () => {
       body: { 
         jobDescription,
         selectedPhrases,
-        selectedSkills
+        selectedSkills,
+        persona: selectedPersona
       }
     });
 
@@ -196,15 +214,38 @@ const ResumeBuilderAgentContent = () => {
                   placeholder="Paste the job description here, or click 'Import Job' to upload from file/URL..."
                   className="min-h-[200px]"
                   value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
+                  onChange={(e) => {
+                    setJobDescription(e.target.value);
+                    if (recommendation) resetRecommendation();
+                    setSelectedPersona(null);
+                  }}
                 />
+
+                {!recommendation && jobDescription.trim() && (
+                  <Button onClick={handleGetPersonaRecommendation} variant="outline" className="w-full" disabled={personaLoading}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {personaLoading ? "Analyzing..." : "Get Persona Recommendation"}
+                  </Button>
+                )}
+
+                {recommendation && (
+                  <PersonaSelector
+                    personas={recommendation.personas}
+                    recommendedPersona={recommendation.recommendedPersona}
+                    reasoning={recommendation.reasoning}
+                    confidence={recommendation.confidence}
+                    selectedPersona={selectedPersona}
+                    onSelectPersona={setSelectedPersona}
+                    agentType="resume"
+                  />
+                )}
                 
-                <Button onClick={handleGenerateResume} className="w-full">
+                <Button onClick={handleGenerateResume} className="w-full" disabled={!selectedPersona}>
                   <Plus className="h-4 w-4 mr-2" />
                   Generate Custom Resume
                 </Button>
                 <div className="text-sm text-muted-foreground">
-                  Selected: {selectedPhrases.length} power phrases, {selectedSkills.length} skills
+                  Selected: {selectedPhrases.length} power phrases, {selectedSkills.length} skills{selectedPersona && `, ${recommendation?.personas.find(p => p.id === selectedPersona)?.name} persona`}
                 </div>
               </TabsContent>
 

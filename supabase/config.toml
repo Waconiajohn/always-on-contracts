@@ -149,3 +149,6 @@ verify_jwt = true
 
 [functions.job-search-assistant]
 verify_jwt = true
+
+[functions.recommend-persona]
+verify_jwt = true
