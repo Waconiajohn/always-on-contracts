@@ -648,6 +648,75 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_communications: {
+        Row: {
+          body_content: string
+          communication_type: string
+          created_at: string | null
+          id: string
+          job_project_id: string
+          metadata: Json | null
+          recipient_email: string | null
+          recipient_name: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          subject_line: string | null
+          template_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          body_content: string
+          communication_type: string
+          created_at?: string | null
+          id?: string
+          job_project_id: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          subject_line?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          body_content?: string
+          communication_type?: string
+          created_at?: string | null
+          id?: string
+          job_project_id?: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          subject_line?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_communications_job_project_id_fkey"
+            columns: ["job_project_id"]
+            isOneToOne: false
+            referencedRelation: "job_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_communications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_alerts: {
         Row: {
           alert_name: string
@@ -960,13 +1029,19 @@ export type Database = {
           company_name: string | null
           created_at: string
           external_job_url: string | null
+          follow_up_sent: boolean | null
           id: string
+          interview_date: string | null
           interview_prep_data: Json | null
+          interview_stage: string | null
+          interviewer_email: string | null
+          interviewer_name: string | null
           job_description: string | null
           job_listing_id: string | null
           job_source: string | null
           job_title: string | null
           metadata: Json | null
+          next_follow_up_date: string | null
           notes: string | null
           opportunity_id: string | null
           project_name: string
@@ -979,13 +1054,19 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           external_job_url?: string | null
+          follow_up_sent?: boolean | null
           id?: string
+          interview_date?: string | null
           interview_prep_data?: Json | null
+          interview_stage?: string | null
+          interviewer_email?: string | null
+          interviewer_name?: string | null
           job_description?: string | null
           job_listing_id?: string | null
           job_source?: string | null
           job_title?: string | null
           metadata?: Json | null
+          next_follow_up_date?: string | null
           notes?: string | null
           opportunity_id?: string | null
           project_name: string
@@ -998,13 +1079,19 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           external_job_url?: string | null
+          follow_up_sent?: boolean | null
           id?: string
+          interview_date?: string | null
           interview_prep_data?: Json | null
+          interview_stage?: string | null
+          interviewer_email?: string | null
+          interviewer_name?: string | null
           job_description?: string | null
           job_listing_id?: string | null
           job_source?: string | null
           job_title?: string | null
           metadata?: Json | null
+          next_follow_up_date?: string | null
           notes?: string | null
           opportunity_id?: string | null
           project_name?: string

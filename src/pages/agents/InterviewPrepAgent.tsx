@@ -5,12 +5,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Target, Brain, Lightbulb, Sparkles } from "lucide-react";
+import { MessageSquare, Target, Brain, Lightbulb, Sparkles, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
+import { InterviewFollowupPanel } from "@/components/InterviewFollowupPanel";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("practice");
@@ -150,10 +151,14 @@ const InterviewPrepAgentContent = () => {
           {/* Right: Interview Practice */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="practice" className="gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Practice
+                </TabsTrigger>
+                <TabsTrigger value="followup" className="gap-2">
+                  <Mail className="h-4 w-4" />
+                  Follow-up
                 </TabsTrigger>
                 <TabsTrigger value="scenarios" className="gap-2">
                   <Target className="h-4 w-4" />
@@ -236,6 +241,12 @@ const InterviewPrepAgentContent = () => {
                     </Button>
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="followup" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  <InterviewFollowupPanel userId={warChestData?.user_id} />
+                </ScrollArea>
               </TabsContent>
 
               <TabsContent value="scenarios" className="mt-4">
