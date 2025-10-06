@@ -111,6 +111,80 @@ Aim for 25-30 total skills across all three categories.`;
 
     const skills = JSON.parse(jsonContent);
 
+    console.log('AI generated', skills.length, 'skills. Now verifying with Perplexity...');
+
+    // Verify skills with Perplexity
+    const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
+    let verification_result = null;
+    let citations = [];
+
+    if (perplexityKey) {
+      try {
+        const verificationPrompt = `Verify these ${skills.length} skills for ${rolesText} in ${industriesText}:
+
+${skills.map((s: any) => `- ${s.skill_name} (${s.skill_category}, market freq: ${s.market_frequency}%)`).join('\n')}
+
+Provide:
+1. Are these skills accurate and relevant for these target roles?
+2. Any critical missing skills that should be added?
+3. Are the market frequency estimates realistic based on current job postings?
+4. Brief market insights for these roles
+
+Be concise but specific.`;
+
+        const verifyResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${perplexityKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-sonar-large-128k-online',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a career market analyst. Verify skill relevance and market demand with current data.'
+              },
+              {
+                role: 'user',
+                content: verificationPrompt
+              }
+            ],
+            temperature: 0.2,
+            max_tokens: 1500,
+            search_recency_filter: 'month',
+          }),
+        });
+
+        if (verifyResponse.ok) {
+          const verifyData = await verifyResponse.json();
+          verification_result = verifyData.choices[0]?.message?.content;
+          citations = verifyData.citations || [];
+          
+          console.log('Perplexity verification complete with', citations.length, 'citations');
+
+          // Store verification
+          await supabase
+            .from('war_chest_verifications')
+            .insert({
+              user_id: user.id,
+              verification_type: 'skills',
+              original_content: skills,
+              verification_result,
+              citations,
+              verified_at: new Date().toISOString(),
+            });
+        } else {
+          console.error('Perplexity verification failed:', await verifyResponse.text());
+        }
+      } catch (verifyError) {
+        console.error('Error during Perplexity verification:', verifyError);
+        // Continue without verification - not critical
+      }
+    } else {
+      console.log('Perplexity API key not configured, skipping verification');
+    }
+
     // Delete existing taxonomy for this user
     await supabase
       .from('war_chest_skill_taxonomy')
@@ -140,6 +214,9 @@ Aim for 25-30 total skills across all three categories.`;
       JSON.stringify({
         success: true,
         skills_count: skills.length,
+        verified: !!verification_result,
+        verification_summary: verification_result ? 'Skills verified with current market data' : 'Verification skipped',
+        citations_count: citations.length,
         breakdown: {
           resume: skills.filter((s: any) => s.source === 'resume').length,
           inferred: skills.filter((s: any) => s.source === 'inferred').length,

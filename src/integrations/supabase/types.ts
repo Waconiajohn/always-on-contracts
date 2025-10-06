@@ -2380,6 +2380,42 @@ export type Database = {
           },
         ]
       }
+      war_chest_research: {
+        Row: {
+          citations: Json | null
+          created_at: string
+          id: string
+          query_params: Json
+          related_questions: Json | null
+          research_result: string
+          research_type: string
+          researched_at: string
+          user_id: string
+        }
+        Insert: {
+          citations?: Json | null
+          created_at?: string
+          id?: string
+          query_params: Json
+          related_questions?: Json | null
+          research_result: string
+          research_type: string
+          researched_at: string
+          user_id: string
+        }
+        Update: {
+          citations?: Json | null
+          created_at?: string
+          id?: string
+          query_params?: Json
+          related_questions?: Json | null
+          research_result?: string
+          research_type?: string
+          researched_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       war_chest_skill_taxonomy: {
         Row: {
           confidence_score: number | null
@@ -2456,6 +2492,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      war_chest_verifications: {
+        Row: {
+          citations: Json | null
+          created_at: string
+          id: string
+          original_content: Json
+          user_id: string
+          verification_result: string
+          verification_type: string
+          verified_at: string
+        }
+        Insert: {
+          citations?: Json | null
+          created_at?: string
+          id?: string
+          original_content: Json
+          user_id: string
+          verification_result: string
+          verification_type: string
+          verified_at: string
+        }
+        Update: {
+          citations?: Json | null
+          created_at?: string
+          id?: string
+          original_content?: Json
+          user_id?: string
+          verification_result?: string
+          verification_type?: string
+          verified_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

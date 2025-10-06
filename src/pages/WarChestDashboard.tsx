@@ -53,6 +53,7 @@ interface HiddenCompetency {
 }
 
 import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
+import { MarketResearchPanel } from '@/components/MarketResearchPanel';
 
 const WarChestDashboardContent = () => {
   const [userId, setUserId] = useState<string>("");
@@ -355,10 +356,11 @@ const WarChestDashboardContent = () => {
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="power-phrases" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="power-phrases">Power Phrases</TabsTrigger>
           <TabsTrigger value="transferable-skills">Transferable Skills</TabsTrigger>
           <TabsTrigger value="hidden-competencies">Hidden Competencies</TabsTrigger>
+          <TabsTrigger value="market-research">Market Intelligence</TabsTrigger>
         </TabsList>
 
         <TabsContent value="power-phrases" className="space-y-4">
@@ -432,6 +434,10 @@ const WarChestDashboardContent = () => {
               </div>
             </Card>
           ))}
+        </TabsContent>
+
+        <TabsContent value="market-research">
+          <MarketResearchPanel />
         </TabsContent>
       </Tabs>
     </div>

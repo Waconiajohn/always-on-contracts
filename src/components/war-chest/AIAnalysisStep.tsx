@@ -27,6 +27,7 @@ export const AIAnalysisStep = ({
     { label: 'Analyzing your resume', status: 'in-progress' },
     { label: 'Researching target roles', status: 'pending' },
     { label: 'Identifying skill gaps', status: 'pending' },
+    { label: 'Verifying with market data', status: 'pending' },
     { label: 'Generating recommendations', status: 'pending' },
   ]);
   const [progress, setProgress] = useState(0);
@@ -77,12 +78,21 @@ export const AIAnalysisStep = ({
       updateStep(2, 'complete');
       updateStep(3, 'in-progress');
 
-      // Step 4: Complete
+      // Step 4: Verification (if done)
+      setProgress(85);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      updateStep(3, 'complete');
+      updateStep(4, 'in-progress');
+
+      // Step 5: Complete
       setProgress(100);
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      updateStep(3, 'complete');
+      updateStep(4, 'complete');
 
-      toast.success(`Analysis complete! Found ${data.skills_count} skills`);
+      const verificationMsg = data.verified 
+        ? ` & verified with ${data.citations_count} sources`
+        : '';
+      toast.success(`Analysis complete! Found ${data.skills_count} skills${verificationMsg}`);
 
       // Wait a moment then proceed
       setTimeout(() => {
