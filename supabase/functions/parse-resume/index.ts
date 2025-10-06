@@ -211,6 +211,41 @@ serve(async (req) => {
 
     console.log('Successfully extracted text, length:', sanitizedText.length);
 
+    // Validate if the document is actually a resume
+    const isLikelyResume = (text: string): boolean => {
+      const resumeIndicators = [
+        /experience|employment|work history/i,
+        /education|degree|university|college/i,
+        /skills|proficiencies|expertise/i,
+        /objective|summary|profile/i
+      ];
+      
+      const contractIndicators = [
+        /agreement|contract|terms and conditions/i,
+        /whereas|parties|witnesseth/i,
+        /confidential|non-disclosure/i
+      ];
+      
+      const resumeMatches = resumeIndicators.filter(r => r.test(text)).length;
+      const contractMatches = contractIndicators.filter(r => r.test(text)).length;
+      
+      return resumeMatches > contractMatches && resumeMatches >= 2;
+    };
+
+    if (!isLikelyResume(sanitizedText)) {
+      console.log('Document rejected: does not appear to be a resume');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'The uploaded document does not appear to be a resume. Please upload a proper resume document containing your work experience, education, and skills.'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

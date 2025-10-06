@@ -1604,7 +1604,7 @@ export type Database = {
           key_achievements: string[] | null
           management_capabilities: string[] | null
           recommended_positions: string[] | null
-          resume_id: string
+          resume_id: string | null
           skills: string[] | null
           target_hourly_rate_max: number | null
           target_hourly_rate_min: number | null
@@ -1619,7 +1619,7 @@ export type Database = {
           key_achievements?: string[] | null
           management_capabilities?: string[] | null
           recommended_positions?: string[] | null
-          resume_id: string
+          resume_id?: string | null
           skills?: string[] | null
           target_hourly_rate_max?: number | null
           target_hourly_rate_min?: number | null
@@ -1634,7 +1634,7 @@ export type Database = {
           key_achievements?: string[] | null
           management_capabilities?: string[] | null
           recommended_positions?: string[] | null
-          resume_id?: string
+          resume_id?: string | null
           skills?: string[] | null
           target_hourly_rate_max?: number | null
           target_hourly_rate_min?: number | null

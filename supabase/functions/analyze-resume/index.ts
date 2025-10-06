@@ -166,12 +166,27 @@ Focus on positioning experience as premium value for executive and strategic opp
     // Extract work_history separately and exclude from database insert
     const { work_history, ...analysisForDb } = analysis;
 
+    // Process data types for database insertion
+    const processedAnalysis = {
+      ...analysisForDb,
+      years_experience: analysisForDb.years_experience 
+        ? Math.round(Number(analysisForDb.years_experience)) 
+        : 0,
+      target_hourly_rate_min: analysisForDb.target_hourly_rate_min 
+        ? Number(analysisForDb.target_hourly_rate_min) 
+        : null,
+      target_hourly_rate_max: analysisForDb.target_hourly_rate_max 
+        ? Number(analysisForDb.target_hourly_rate_max) 
+        : null
+    };
+
     // Store analysis in database (excluding work_history which is a nested array)
     const { error: insertError } = await supabase
       .from("resume_analysis")
       .insert({
         user_id: userId,
-        ...analysisForDb
+        resume_id: null,
+        ...processedAnalysis
       });
 
     if (insertError) throw insertError;
