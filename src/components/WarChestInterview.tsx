@@ -725,8 +725,10 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           setAnswerOptions(nextSubQuestion.answer_options);
         } else if (nextSubQuestion?.question_type === 'star') {
           setQuestionType('star');
+          setAnswerOptions([]);
         } else {
           setQuestionType('text');
+          setAnswerOptions([]);
         }
         setSelectedOptions([]);
         setCustomAnswerText('');
@@ -808,8 +810,10 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
           setAnswerOptions(firstSubQuestion.answer_options);
         } else if (firstSubQuestion?.question_type === 'star') {
           setQuestionType('star');
+          setAnswerOptions([]);
         } else {
           setQuestionType('text');
+          setAnswerOptions([]);
         }
         setSelectedOptions([]);
         setCustomAnswerText('');

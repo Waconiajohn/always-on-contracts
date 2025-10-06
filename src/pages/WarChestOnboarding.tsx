@@ -19,6 +19,8 @@ const WarChestOnboarding = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [resumeText, setResumeText] = useState('');
   const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
+  const [targetRoles, setTargetRoles] = useState<string[]>([]);
+  const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -105,9 +107,14 @@ const WarChestOnboarding = () => {
         onConflict: 'user_id'
       });
 
+      if (upsertError) {
+        console.error('Error initializing War Chest:', upsertError);
+        throw new Error('Failed to initialize War Chest');
+      }
+
       toast({
         title: 'Resume Uploaded',
-        description: 'Starting AI interview...'
+        description: 'Moving to career goals...'
       });
 
       setCurrentStep('goals');
@@ -219,15 +226,35 @@ const WarChestOnboarding = () => {
       {currentStep === 'goals' && resumeAnalysis && (
         <CareerGoalsStep 
           resumeAnalysis={resumeAnalysis}
-          onComplete={(data) => setCurrentStep('analysis')}
+          onComplete={async () => {
+            // Fetch target roles and industries from profile
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('target_roles, target_industries')
+                  .eq('user_id', user.id)
+                  .single();
+                
+                if (profile) {
+                  setTargetRoles(profile.target_roles || []);
+                  setTargetIndustries(profile.target_industries || []);
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching profile data:', error);
+            }
+            setCurrentStep('analysis');
+          }}
         />
       )}
 
-      {currentStep === 'analysis' && resumeText && resumeAnalysis && (
+      {currentStep === 'analysis' && resumeText && (
         <AIAnalysisStep
           resumeText={resumeText}
-          targetRoles={[]}
-          targetIndustries={[]}
+          targetRoles={targetRoles}
+          targetIndustries={targetIndustries}
           onComplete={() => setCurrentStep('skills')}
         />
       )}
