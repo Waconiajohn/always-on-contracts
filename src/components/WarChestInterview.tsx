@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2, Volume2, VolumeX, UserCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { VoiceInput } from './VoiceInput';
 import { PreFilledQuestion } from './PreFilledQuestion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface KnownDataItem {
   label: string;
@@ -49,6 +50,8 @@ interface WarChestInterviewProps {
   onComplete: () => void;
 }
 
+type CoachPersona = 'mentor' | 'challenger' | 'strategist';
+
 export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   const [currentQuestion, setCurrentQuestion] = useState<QuestionData | null>(null);
   const [currentSubQuestionIndex, setCurrentSubQuestionIndex] = useState(0);
@@ -66,7 +69,17 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
     transferableSkills: 0,
     hiddenCompetencies: 0
   });
+  const [selectedPersona, setSelectedPersona] = useState<CoachPersona>('mentor');
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+
+  const personas = {
+    mentor: { name: 'The Mentor', voice: 'Sarah', description: 'Supportive & encouraging', icon: '🤝' },
+    challenger: { name: 'The Challenger', voice: 'Charlie', description: 'Direct & probing', icon: '⚡' },
+    strategist: { name: 'The Strategist', voice: 'Lily', description: 'Strategic & analytical', icon: '🎯' }
+  };
 
   const phaseLabels: Record<string, string> = {
     discovery: '🔍 Discovery',
@@ -78,6 +91,41 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
   useEffect(() => {
     startInterview();
   }, []);
+
+  const playQuestionAudio = async (text: string) => {
+    if (!voiceEnabled) return;
+    
+    setIsPlayingAudio(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { 
+          text,
+          voice: personas[selectedPersona].voice,
+          persona: selectedPersona
+        }
+      });
+
+      if (error) throw error;
+
+      // Convert base64 to audio blob
+      const audioBlob = new Blob(
+        [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
+        { type: 'audio/mpeg' }
+      );
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Play audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.onended = () => setIsPlayingAudio(false);
+      await audioRef.current.play();
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setIsPlayingAudio(false);
+    }
+  };
 
   const startInterview = async () => {
     setIsLoading(true);
@@ -106,6 +154,9 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setCurrentQuestion(data.question);
         setCurrentPhase(data.phase || 'discovery');
         setCompletionPercentage(data.completionPercentage || 0);
+        
+        // Play first question audio
+        await playQuestionAudio(data.question.questionsToExpand[0].prompt);
       }
     } catch (error) {
       console.error('Error starting interview:', error);
@@ -224,6 +275,9 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
         setCompletionPercentage(data.completionPercentage);
         setUserInput('');
         setValidationFeedback('');
+        
+        // Play next question audio
+        await playQuestionAudio(data.question.questionsToExpand[0].prompt);
       }
 
     } catch (error) {
@@ -260,6 +314,45 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
   return (
     <div className="space-y-4">
+      {/* Persona Selection & Voice Controls */}
+      <Card className="p-4 bg-gradient-to-r from-primary/5 to-purple-500/5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <UserCircle className="h-5 w-5 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Your AI Coach</p>
+              <Select value={selectedPersona} onValueChange={(v) => setSelectedPersona(v as CoachPersona)}>
+                <SelectTrigger className="w-[200px] h-8 mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(personas).map(([key, persona]) => (
+                    <SelectItem key={key} value={key}>
+                      <span className="flex items-center gap-2">
+                        <span>{persona.icon}</span>
+                        <span>{persona.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className="gap-2"
+          >
+            {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            {voiceEnabled ? 'Voice On' : 'Voice Off'}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {personas[selectedPersona].description}
+        </p>
+      </Card>
+
       {/* Header with phase and progress */}
       <div className="flex items-center justify-between">
         <Badge variant="secondary" className="text-base py-2 px-4">
@@ -300,6 +393,15 @@ export const WarChestInterview = ({ onComplete }: WarChestInterviewProps) => {
 
       {/* Question display */}
       <Card className="p-6">
+        {isPlayingAudio && (
+          <Alert className="mb-4 bg-primary/5 border-primary/20">
+            <Volume2 className="h-4 w-4 animate-pulse" />
+            <AlertDescription>
+              {personas[selectedPersona].icon} {personas[selectedPersona].name} is speaking...
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <PreFilledQuestion
           context={currentQuestion.context}
           knownData={currentQuestion.knownData}
