@@ -146,21 +146,24 @@ const ResumeUploadContent = () => {
 
       setUploadComplete(true);
       setSavedFilename(file.name);
-      setProcessingStage("Extracting text...");
+      setProcessingStage("Preparing file...");
       setProgress(30);
 
       setAnalyzing(true);
 
-      const fileText = await file.text();
-      setProgress(40);
+      // Convert file to base64
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      setProgress(35);
       setProcessingStage("Analyzing with AI...");
 
-      // Phase 2.1: Use unified process-resume function
+      // Phase 2.1: Use unified process-resume function with base64 data
       const { data: processData, error: processError } = await supabase.functions.invoke(
         "process-resume",
         {
           body: {
-            fileText,
+            fileData: base64Data,
             fileName: file.name,
             fileSize: file.size,
             fileType: file.type,

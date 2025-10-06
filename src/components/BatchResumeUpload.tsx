@@ -67,14 +67,19 @@ export function BatchResumeUpload() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Prepare resumes data
       const resumesData = await Promise.all(
-        files.map(async (file) => ({
-          fileName: file.name,
-          fileData: await file.text(),
-          fileSize: file.size,
-          fileType: file.type
-        }))
+        files.map(async (file) => {
+          // Convert to base64 for all file types
+          const arrayBuffer = await file.arrayBuffer();
+          const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          
+          return {
+            fileName: file.name,
+            fileData: base64Data,
+            fileSize: file.size,
+            fileType: file.type
+          };
+        })
       );
 
       // Upload to storage first

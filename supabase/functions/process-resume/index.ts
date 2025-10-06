@@ -155,7 +155,90 @@ async function recordRateLimit(supabase: any, userId: string) {
     });
 }
 
-// Phase 1.4: AI-Powered Resume Validation
+// Phase 1.1: Unified File Parser using Lovable AI
+async function parseFile(base64Data: string, fileType: string, apiKey: string): Promise<string> {
+  try {
+    // Determine MIME type for AI processing
+    let mimeType = 'application/octet-stream';
+    if (fileType.includes('pdf')) {
+      mimeType = 'application/pdf';
+    } else if (fileType.includes('word') || fileType.includes('docx')) {
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    } else if (fileType.includes('doc')) {
+      mimeType = 'application/msword';
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Extract ALL text from this document. Preserve formatting, line breaks, and structure. Return ONLY the extracted text with no commentary."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Data}`
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('AI service rate limit reached. Please try again in a moment.');
+      }
+      throw new Error(`File parsing failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    const extractedText = result.choices?.[0]?.message?.content || '';
+    
+    if (extractedText.trim().length < 50) {
+      throw new Error('Unable to extract meaningful text from document. It may be scanned or image-based.');
+    }
+    
+    return extractedText;
+  } catch (error: any) {
+    console.error('File parsing error:', error);
+    throw error;
+  }
+}
+
+// Phase 1.2: Detect binary data in text field (for backward compatibility)
+function detectBinaryData(text: string): { isBinary: boolean; type?: string } {
+  if (text.startsWith('%PDF-')) {
+    return { isBinary: true, type: 'pdf' };
+  }
+  if (text.startsWith('PK\x03\x04') || text.includes('word/')) {
+    return { isBinary: true, type: 'docx' };
+  }
+  // Check for high percentage of non-printable characters
+  const nonPrintable = text.split('').filter(c => {
+    const code = c.charCodeAt(0);
+    return code < 32 && code !== 9 && code !== 10 && code !== 13;
+  }).length;
+  
+  if (nonPrintable > text.length * 0.1) {
+    return { isBinary: true, type: 'unknown' };
+  }
+  
+  return { isBinary: false };
+}
+
+// Phase 1.3: AI-Powered Resume Validation
 async function validateIsResume(text: string, apiKey: string): Promise<{
   isResume: boolean;
   confidence: number;
@@ -409,11 +492,53 @@ serve(async (req) => {
   let userId: string | null = null;
 
   try {
-    const { fileText, fileName, fileSize, fileType, userId: reqUserId } = await req.json();
+    const { fileText, fileData, fileName, fileSize, fileType, userId: reqUserId } = await req.json();
     userId = reqUserId;
 
-    if (!fileText || !fileName || !userId) {
-      throw new Error("Missing required fields");
+    if (!fileName || !userId) {
+      throw new Error("Missing required fields: fileName and userId are required");
+    }
+
+    if (!fileText && !fileData) {
+      throw new Error("Missing required fields: either fileText or fileData must be provided");
+    }
+
+    let extractedText = '';
+
+    // Phase 1: Handle file parsing based on what was provided
+    if (fileData) {
+      // New method: Parse file from base64 data
+      await supabase.from('resume_processing_queue')
+        .insert({
+          user_id: userId,
+          file_name: fileName,
+          file_size: fileSize || 0,
+          file_type: fileType || 'unknown',
+          status: 'processing',
+          progress: 15
+        })
+        .select()
+        .single()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          queueId = data.id;
+        });
+
+      // Parse the file using Lovable AI
+      try {
+        extractedText = await parseFile(fileData, fileType || '', LOVABLE_API_KEY);
+      } catch (error: any) {
+        const errorInfo = ERROR_SOLUTIONS['parsing_failed'];
+        throw new Error(`${errorInfo.message}: ${error.message}`);
+      }
+    } else if (fileText) {
+      // Legacy method: Check if text is actually binary data
+      const binaryCheck = detectBinaryData(fileText);
+      if (binaryCheck.isBinary) {
+        const errorInfo = ERROR_SOLUTIONS['parsing_failed'];
+        throw new Error(`${errorInfo.message}: Detected binary ${binaryCheck.type || 'data'} instead of text. Please send file as base64 in fileData parameter.`);
+      }
+      extractedText = fileText;
     }
 
     // Phase 3.3: Check rate limit
@@ -432,25 +557,27 @@ serve(async (req) => {
       });
     }
 
-    // Phase 3.2: Create queue entry
-    const { data: queueEntry, error: queueError } = await supabase
-      .from('resume_processing_queue')
-      .insert({
-        user_id: userId,
-        file_name: fileName,
-        file_size: fileSize || 0,
-        file_type: fileType || 'unknown',
-        status: 'processing',
-        progress: 10
-      })
-      .select()
-      .single();
+    // Phase 3.2: Create queue entry (if not already created during file parsing)
+    if (!queueId) {
+      const { data: queueEntry, error: queueError } = await supabase
+        .from('resume_processing_queue')
+        .insert({
+          user_id: userId,
+          file_name: fileName,
+          file_size: fileSize || 0,
+          file_type: fileType || 'unknown',
+          status: 'processing',
+          progress: 10
+        })
+        .select()
+        .single();
 
-    if (queueError) throw queueError;
-    queueId = queueEntry.id;
+      if (queueError) throw queueError;
+      queueId = queueEntry.id;
+    }
 
-    // Phase 1.3: Clean text
-    const cleanedText = robustTextCleanup(fileText);
+    // Phase 1.4: Clean text
+    const cleanedText = robustTextCleanup(extractedText);
     
     await supabase.from('resume_processing_queue')
       .update({ progress: 25 })

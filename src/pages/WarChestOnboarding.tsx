@@ -51,8 +51,18 @@ const WarChestOnboarding = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Read file as text
-      const fileText = await resumeFile.text();
+      // Read file as text (for TXT files) or base64 (for PDF/DOCX)
+      let fileData = '';
+      let fileText = '';
+      
+      if (resumeFile.type === 'text/plain') {
+        // For TXT files, read as text
+        fileText = await resumeFile.text();
+      } else {
+        // For PDF/DOCX, convert to base64
+        const arrayBuffer = await resumeFile.arrayBuffer();
+        fileData = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
 
       // Upload to storage first
       const filePath = `${user.id}/${Date.now()}_${resumeFile.name}`;
@@ -65,7 +75,7 @@ const WarChestOnboarding = () => {
       // Use new unified process-resume function
       const { data: processData, error: processError } = await supabase.functions.invoke('process-resume', {
         body: {
-          fileText,
+          ...(fileData ? { fileData } : { fileText }),
           fileName: resumeFile.name,
           fileSize: resumeFile.size,
           fileType: resumeFile.type,
