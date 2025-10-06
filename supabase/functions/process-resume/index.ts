@@ -155,64 +155,108 @@ async function recordRateLimit(supabase: any, userId: string) {
     });
 }
 
-// Phase 1.1: Unified File Parser using Lovable AI
+// Phase 1.1: Proper Document Parser using native libraries
 async function parseFile(base64Data: string, fileType: string, apiKey: string): Promise<string> {
+  console.log(`[parseFile] Starting to parse file of type: ${fileType}`);
+  
   try {
-    // Determine MIME type for AI processing
-    let mimeType = 'application/octet-stream';
+    // Decode base64 to get raw file data
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // For plain text files, decode directly
+    if (fileType === 'text/plain' || fileType.includes('txt')) {
+      console.log('[parseFile] Plain text file detected, decoding directly');
+      return new TextDecoder().decode(bytes);
+    }
+
+    // For PDF files - use PDF.js
     if (fileType.includes('pdf')) {
-      mimeType = 'application/pdf';
-    } else if (fileType.includes('word') || fileType.includes('docx')) {
-      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    } else if (fileType.includes('doc')) {
-      mimeType = 'application/msword';
-    }
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Extract ALL text from this document. Preserve formatting, line breaks, and structure. Return ONLY the extracted text with no commentary."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Data}`
-                }
-              }
-            ]
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error('AI service rate limit reached. Please try again in a moment.');
+      console.log('[parseFile] PDF detected, extracting text with PDF.js');
+      
+      try {
+        // Import PDF.js from CDN
+        const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/+esm');
+        
+        // Load the PDF document
+        const loadingTask = pdfjsLib.getDocument({ data: bytes });
+        const pdf = await loadingTask.promise;
+        
+        console.log(`[parseFile] PDF loaded with ${pdf.numPages} pages`);
+        
+        let fullText = '';
+        
+        // Extract text from each page
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ');
+          fullText += pageText + '\n\n';
+        }
+        
+        if (fullText.trim().length < 50) {
+          console.log('[parseFile] PDF appears to be scanned or image-based');
+          throw new Error('This PDF appears to be scanned or image-based. Please ensure your resume contains selectable text, or try converting it to a Word document first.');
+        }
+        
+        console.log(`[parseFile] Successfully extracted ${fullText.length} characters from PDF`);
+        return fullText;
+        
+      } catch (pdfError: any) {
+        console.error('[parseFile] PDF parsing error:', pdfError);
+        throw new Error(`Failed to parse PDF: ${pdfError.message || 'Unknown error'}`);
       }
-      throw new Error(`File parsing failed: ${response.statusText}`);
     }
 
-    const result = await response.json();
-    const extractedText = result.choices?.[0]?.message?.content || '';
-    
-    if (extractedText.trim().length < 50) {
-      throw new Error('Unable to extract meaningful text from document. It may be scanned or image-based.');
+    // For Word documents - parse DOCX structure
+    if (fileType.includes('word') || fileType.includes('docx') || fileType.includes('doc')) {
+      console.log('[parseFile] Word document detected, parsing DOCX structure');
+      
+      try {
+        // Import JSZip
+        const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+        
+        // DOCX is a zip file containing XML
+        const zip = await JSZip.loadAsync(bytes);
+        const documentXml = await zip.file('word/document.xml')?.async('string');
+        
+        if (!documentXml) {
+          throw new Error('Invalid Word document structure - missing document.xml');
+        }
+        
+        // Extract text from XML
+        const textMatch = documentXml.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
+        if (!textMatch) {
+          throw new Error('No text found in Word document');
+        }
+        
+        const fullText = textMatch
+          .map((match: string) => match.replace(/<[^>]+>/g, ''))
+          .join(' ');
+        
+        if (fullText.trim().length < 50) {
+          throw new Error('Word document appears to be empty or contains minimal text');
+        }
+        
+        console.log(`[parseFile] Successfully extracted ${fullText.length} characters from Word document`);
+        return fullText;
+        
+      } catch (docxError: any) {
+        console.error('[parseFile] DOCX parsing error:', docxError);
+        throw new Error(`Failed to parse Word document: ${docxError.message || 'Unknown error'}`);
+      }
     }
+
+    // Unsupported file type
+    throw new Error(`Unsupported file type: ${fileType}. Please upload PDF, Word (.docx), or text files.`);
     
-    return extractedText;
   } catch (error: any) {
-    console.error('File parsing error:', error);
+    console.error('[parseFile] Error during file parsing:', error);
     throw error;
   }
 }
