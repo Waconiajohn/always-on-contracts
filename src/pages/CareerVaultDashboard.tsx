@@ -64,50 +64,57 @@ interface HiddenCompetency {
 interface SoftSkill {
   id: string;
   skill_name: string;
-  evidence: string;
-  quality_tier: string;
+  examples: string;
+  impact: string | null;
+  proficiency_level: string | null;
 }
 
 interface LeadershipPhilosophy {
   id: string;
   philosophy_statement: string;
-  supporting_evidence: string;
-  quality_tier: string;
+  leadership_style: string | null;
+  real_world_application: string | null;
+  core_principles: string[] | null;
 }
 
 interface ExecutivePresence {
   id: string;
   presence_indicator: string;
-  evidence: string;
-  quality_tier: string;
+  situational_example: string;
+  brand_alignment: string | null;
+  perceived_impact: string | null;
 }
 
 interface PersonalityTrait {
   id: string;
   trait_name: string;
-  evidence: string;
-  quality_tier: string;
+  behavioral_evidence: string;
+  work_context: string | null;
+  strength_or_growth: string | null;
 }
 
 interface WorkStyle {
   id: string;
-  style_aspect: string;
-  evidence: string;
-  quality_tier: string;
+  preference_area: string;
+  preference_description: string;
+  examples: string | null;
+  ideal_environment: string | null;
 }
 
 interface Value {
   id: string;
   value_name: string;
-  evidence: string;
-  quality_tier: string;
+  manifestation: string;
+  importance_level: string | null;
+  career_decisions_influenced: string | null;
 }
 
 interface BehavioralIndicator {
   id: string;
   indicator_type: string;
-  evidence: string;
-  quality_tier: string;
+  specific_behavior: string;
+  context: string | null;
+  outcome_pattern: string | null;
 }
 
 import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
@@ -238,13 +245,13 @@ const VaultDashboardContent = () => {
             supabase.from('vault_power_phrases').select('*').eq('vault_id', vault.id).order('confidence_score', { ascending: false }),
             supabase.from('vault_transferable_skills').select('*').eq('vault_id', vault.id).order('confidence_score', { ascending: false }),
             supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vault.id).order('confidence_score', { ascending: false }),
-            supabase.from('vault_soft_skills').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
-            supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
-            supabase.from('vault_executive_presence').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
-            supabase.from('vault_personality_traits').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
-            supabase.from('vault_work_style').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
-            supabase.from('vault_values').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
-            supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false })
+            supabase.from('vault_soft_skills').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false }),
+            supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false }),
+            supabase.from('vault_executive_presence').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false }),
+            supabase.from('vault_personality_traits').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false }),
+            supabase.from('vault_work_style').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false }),
+            supabase.from('vault_values_motivations').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false }),
+            supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id).order('created_at', { ascending: false })
           ]);
 
           setPowerPhrases(phrasesData.data || []);
@@ -531,11 +538,14 @@ const VaultDashboardContent = () => {
               <Card key={skill.id} className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <h4 className="text-lg font-semibold">{skill.skill_name}</h4>
-                  <Badge variant={skill.quality_tier === 'executive' ? 'default' : 'secondary'}>
-                    {skill.quality_tier}
+                  <Badge variant={skill.proficiency_level === 'expert' ? 'default' : 'secondary'}>
+                    {skill.proficiency_level || 'Proficient'}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{skill.evidence}</p>
+                <p className="text-sm text-muted-foreground mb-2">{skill.examples}</p>
+                {skill.impact && (
+                  <p className="text-sm text-primary">Impact: {skill.impact}</p>
+                )}
               </Card>
             ))
           ) : (
@@ -549,9 +559,20 @@ const VaultDashboardContent = () => {
           {leadershipPhilosophy.length > 0 ? (
             leadershipPhilosophy.map((philosophy) => (
               <Card key={philosophy.id} className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
-                <Badge variant="default" className="mb-3">{philosophy.quality_tier} Leadership</Badge>
+                {philosophy.leadership_style && (
+                  <Badge variant="default" className="mb-3">{philosophy.leadership_style}</Badge>
+                )}
                 <p className="text-lg font-medium mb-3">{philosophy.philosophy_statement}</p>
-                <p className="text-sm text-muted-foreground">{philosophy.supporting_evidence}</p>
+                {philosophy.real_world_application && (
+                  <p className="text-sm text-muted-foreground mb-2">{philosophy.real_world_application}</p>
+                )}
+                {philosophy.core_principles && philosophy.core_principles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {philosophy.core_principles.map((principle, idx) => (
+                      <Badge key={idx} variant="outline">{principle}</Badge>
+                    ))}
+                  </div>
+                )}
               </Card>
             ))
           ) : (
@@ -567,9 +588,14 @@ const VaultDashboardContent = () => {
               <Card key={presence.id} className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <h4 className="text-lg font-semibold">{presence.presence_indicator}</h4>
-                  <Badge variant="default">{presence.quality_tier}</Badge>
+                  {presence.perceived_impact && (
+                    <Badge variant="default">{presence.perceived_impact}</Badge>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">{presence.evidence}</p>
+                <p className="text-sm text-muted-foreground mb-2">{presence.situational_example}</p>
+                {presence.brand_alignment && (
+                  <p className="text-sm text-primary">Brand: {presence.brand_alignment}</p>
+                )}
               </Card>
             ))
           ) : (
@@ -585,9 +611,16 @@ const VaultDashboardContent = () => {
               <Card key={trait.id} className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <h4 className="text-lg font-semibold">{trait.trait_name}</h4>
-                  <Badge variant="secondary">{trait.quality_tier}</Badge>
+                  {trait.strength_or_growth && (
+                    <Badge variant={trait.strength_or_growth === 'strength' ? 'default' : 'secondary'}>
+                      {trait.strength_or_growth}
+                    </Badge>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">{trait.evidence}</p>
+                <p className="text-sm text-muted-foreground mb-2">{trait.behavioral_evidence}</p>
+                {trait.work_context && (
+                  <p className="text-sm text-primary">Context: {trait.work_context}</p>
+                )}
               </Card>
             ))
           ) : (
@@ -601,11 +634,14 @@ const VaultDashboardContent = () => {
           {workStyle.length > 0 ? (
             workStyle.map((style) => (
               <Card key={style.id} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="text-lg font-semibold">{style.style_aspect}</h4>
-                  <Badge variant="secondary">{style.quality_tier}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{style.evidence}</p>
+                <h4 className="text-lg font-semibold mb-3">{style.preference_area}</h4>
+                <p className="text-sm mb-2">{style.preference_description}</p>
+                {style.examples && (
+                  <p className="text-sm text-muted-foreground mb-2">Examples: {style.examples}</p>
+                )}
+                {style.ideal_environment && (
+                  <p className="text-sm text-primary">Ideal: {style.ideal_environment}</p>
+                )}
               </Card>
             ))
           ) : (
@@ -621,9 +657,14 @@ const VaultDashboardContent = () => {
               <Card key={value.id} className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
                 <div className="flex items-start justify-between mb-3">
                   <h4 className="text-lg font-semibold">{value.value_name}</h4>
-                  <Badge variant="default">{value.quality_tier}</Badge>
+                  {value.importance_level && (
+                    <Badge variant="default">{value.importance_level}</Badge>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">{value.evidence}</p>
+                <p className="text-sm mb-2">{value.manifestation}</p>
+                {value.career_decisions_influenced && (
+                  <p className="text-sm text-muted-foreground">Influences: {value.career_decisions_influenced}</p>
+                )}
               </Card>
             ))
           ) : (
@@ -637,11 +678,14 @@ const VaultDashboardContent = () => {
           {behavioralIndicators.length > 0 ? (
             behavioralIndicators.map((indicator) => (
               <Card key={indicator.id} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="text-lg font-semibold">{indicator.indicator_type}</h4>
-                  <Badge variant="secondary">{indicator.quality_tier}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{indicator.evidence}</p>
+                <h4 className="text-lg font-semibold mb-3">{indicator.indicator_type}</h4>
+                <p className="text-sm mb-2">{indicator.specific_behavior}</p>
+                {indicator.context && (
+                  <p className="text-sm text-muted-foreground mb-2">Context: {indicator.context}</p>
+                )}
+                {indicator.outcome_pattern && (
+                  <p className="text-sm text-primary">Outcome: {indicator.outcome_pattern}</p>
+                )}
               </Card>
             ))
           ) : (
@@ -659,10 +703,12 @@ const VaultDashboardContent = () => {
   );
 };
 
-export const CareerVaultDashboard = () => {
+const CareerVaultDashboard = () => {
   return (
     <ProtectedRoute>
       <VaultDashboardContent />
     </ProtectedRoute>
   );
 };
+
+export default CareerVaultDashboard;

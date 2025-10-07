@@ -212,11 +212,10 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
           supabase.from('vault_soft_skills').insert({
             vault_id: vaultId,
             user_id: user.id,
-            milestone_id,
             skill_name: soft.skill_name,
-            evidence: soft.evidence || soft.context,
-            context: soft.context,
-            quality_tier: determineQualityTier(soft)
+            examples: soft.evidence || soft.context || '',
+            impact: soft.impact || null,
+            proficiency_level: soft.proficiency_level || determineQualityTier(soft)
           })
         )
       );
@@ -229,10 +228,10 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
           supabase.from('vault_leadership_philosophy').insert({
             vault_id: vaultId,
             user_id: user.id,
-            milestone_id,
             philosophy_statement: phil.philosophy_statement,
-            supporting_evidence: phil.supporting_evidence,
-            quality_tier: 'executive'
+            leadership_style: phil.leadership_style || null,
+            real_world_application: phil.supporting_evidence || null,
+            core_principles: phil.core_principles || null
           })
         )
       );
@@ -245,10 +244,10 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
           supabase.from('vault_executive_presence').insert({
             vault_id: vaultId,
             user_id: user.id,
-            milestone_id,
             presence_indicator: pres.presence_indicator,
-            evidence: pres.evidence,
-            quality_tier: 'executive'
+            situational_example: pres.evidence || '',
+            brand_alignment: pres.brand_alignment || null,
+            perceived_impact: pres.perceived_impact || null
           })
         )
       );
@@ -261,10 +260,10 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
           supabase.from('vault_personality_traits').insert({
             vault_id: vaultId,
             user_id: user.id,
-            milestone_id,
             trait_name: trait.trait_name,
-            evidence: trait.evidence,
-            quality_tier: determineQualityTier(trait)
+            behavioral_evidence: trait.evidence || '',
+            work_context: trait.work_context || null,
+            strength_or_growth: trait.strength_or_growth || null
           })
         )
       );
@@ -277,10 +276,10 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
           supabase.from('vault_work_style').insert({
             vault_id: vaultId,
             user_id: user.id,
-            milestone_id,
-            style_aspect: style.style_aspect,
-            evidence: style.evidence,
-            quality_tier: determineQualityTier(style)
+            preference_area: style.style_aspect || style.preference_area || '',
+            preference_description: style.evidence || '',
+            examples: style.examples || null,
+            ideal_environment: style.ideal_environment || null
           })
         )
       );
@@ -290,13 +289,13 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
       totalExtracted += intelligence.values.length;
       insertPromises.push(
         ...intelligence.values.map((value: any) =>
-          supabase.from('vault_values').insert({
+          supabase.from('vault_values_motivations').insert({
             vault_id: vaultId,
             user_id: user.id,
-            milestone_id,
             value_name: value.value_name,
-            evidence: value.evidence,
-            quality_tier: 'executive'
+            manifestation: value.evidence || '',
+            importance_level: value.importance_level || null,
+            career_decisions_influenced: value.career_decisions_influenced || null
           })
         )
       );
@@ -309,10 +308,10 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
           supabase.from('vault_behavioral_indicators').insert({
             vault_id: vaultId,
             user_id: user.id,
-            milestone_id,
             indicator_type: indicator.indicator_type,
-            evidence: indicator.evidence,
-            quality_tier: determineQualityTier(indicator)
+            specific_behavior: indicator.evidence || '',
+            context: indicator.context || null,
+            outcome_pattern: indicator.outcome_pattern || null
           })
         )
       );

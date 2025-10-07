@@ -887,6 +887,9 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
             });
           }
         }
+
+        // Update interview completion percentage
+        await supabase.functions.invoke('update-interview-completion');
       }
 
       // Check if we need to move to next sub-question or next main question
@@ -1135,6 +1138,9 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           response_text: responseToSave
         }
       });
+
+      // Update interview completion percentage
+      await supabase.functions.invoke('update-interview-completion');
 
       // Move to next question
       if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
