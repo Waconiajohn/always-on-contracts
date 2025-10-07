@@ -267,7 +267,7 @@ ${generate_answer_options ? `{
         "custom_input_prompt": "Add other experiences:"
       }
     ],
-    "exampleAnswer": "..."
+    "exampleAnswer": "CRITICAL: Base this example on ACTUAL resume data: ${JSON.stringify(vault?.initial_analysis || {})}. Reference specific achievements, companies, or projects from their resume. Use their actual career story, not generic examples."
   },
   "phase": "${currentPhase.name}",
   "completionPercentage": ${completionPercentage},
@@ -289,7 +289,7 @@ ${generate_answer_options ? `{
         "hint": "Include specific metrics and numbers"
       }
     ],
-    "exampleAnswer": "Detailed example showing STAR format with metrics..."
+    "exampleAnswer": "MUST use resume data: ${JSON.stringify(vault?.initial_analysis || {})}. Show a STAR example using their actual job titles, companies, and achievements. Reference specific projects or metrics from their resume."
   },
   "phase": "${currentPhase.name}",
   "completionPercentage": ${completionPercentage},

@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2, CheckCircle, Volume2, VolumeX, UserCircle, Mic } from 'lucide-react';
+import { Loader2, Send, Sparkles, TrendingUp, CheckCircle2, CheckCircle, Volume2, VolumeX, UserCircle, Mic, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { VoiceInput } from './VoiceInput';
@@ -108,6 +108,10 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const [isRecording, setIsRecording] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
+  // STAR and sub-questions state
+  const [starStoryData, setStarStoryData] = useState<any>({});
+  const [subQuestions, setSubQuestions] = useState<any[]>([]);
+  
   const { toast } = useToast();
 
   // PHASE 3: Add "The Psychologist" persona for intangibles
@@ -135,157 +139,122 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     startInterview();
     calculateDynamicQuestionCount();
     loadMilestones();
-    restoreProgress(); // Restore any saved progress
     
-    // AGGRESSIVE session keep-alive - refresh every 2 minutes to prevent ANY timeout
-    // Supabase sessions expire after 1 hour - this prevents that completely
-    const keepAlive = setInterval(async () => {
-      try {
-        const { error } = await supabase.auth.refreshSession();
-        if (error) {
-          console.error('Session refresh failed:', error);
-          // Try again immediately if failed
-          setTimeout(() => supabase.auth.refreshSession(), 5000);
-        }
-      } catch (error) {
-        console.error('Session refresh error:', error);
-      }
-    }, 2 * 60 * 1000); // Refresh every 2 minutes (aggressive)
+    // Keep auth session alive (less aggressive - only when idle)
+    let lastActivityTime = Date.now();
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
     
-    // Prevent accidental page closure
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (userInput.trim().length > 10) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved work. Are you sure you want to leave?';
-        return e.returnValue;
-      }
+    const updateActivity = () => {
+      lastActivityTime = Date.now();
     };
     
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    // Disable browser password manager prompts during interview
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-      form.setAttribute('autocomplete', 'off');
+    activityEvents.forEach(event => {
+      window.addEventListener(event, updateActivity);
     });
+    
+    const keepAlive = setInterval(async () => {
+      const idleTime = Date.now() - lastActivityTime;
+      // Only refresh if user has been idle for 5+ minutes
+      if (idleTime > 5 * 60 * 1000) {
+        try {
+          const { error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error('[SESSION] Refresh failed:', error);
+          }
+        } catch (error) {
+          console.error('[SESSION] Refresh error:', error);
+        }
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
     
     return () => {
       clearInterval(keepAlive);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, updateActivity);
+      });
     };
-  }, [userInput]);
+  }, []); // Empty dependency array - only run once on mount
 
-  // NEW: Auto-save progress to both DB and localStorage
-  const autoSaveProgress = async () => {
-    if (!currentQuestion || !vaultId || !userInput.trim()) return;
+  // FIXED: Only save drafts explicitly (no auto-save during typing)
+  const saveDraft = async () => {
+    if (!currentQuestion || userInput.trim().length < 10) {
+      toast({
+        title: "Nothing to save",
+        description: "Please write at least a few words before saving",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsSaving(true);
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
       const progressData = {
         vault_id: vaultId,
-        user_id: user.id,
-        question: currentSubQuestion.prompt,
-        response: userInput,
-        phase: currentPhase,
-        milestone_id: currentMilestoneId,
-        is_draft: true,
-        saved_at: new Date().toISOString()
-      };
-
-      // Save to database as draft
-      await supabase
-        .from('vault_interview_responses')
-        .upsert(progressData, { 
-          onConflict: 'vault_id,question',
-          ignoreDuplicates: false 
-        });
-
-      // Backup to localStorage
-      localStorage.setItem('career_vault_progress', JSON.stringify({
-        ...progressData,
-        currentSubQuestionIndex,
-        completionPercentage
-      }));
-
-      setLastSaved(new Date());
-      console.log('✅ Progress auto-saved');
-    } catch (error) {
-      console.error('Auto-save error:', error);
-      // Still save to localStorage even if DB fails
-      localStorage.setItem('career_vault_emergency_backup', JSON.stringify({
+        question: currentQuestion,
         userInput,
-        currentPhase,
+        selectedOptions,
+        phase: currentPhase,
+        completionPercentage,
+        starStoryData,
+        subQuestions,
         currentSubQuestionIndex,
         timestamp: new Date().toISOString()
-      }));
+      };
+
+      // Save to session storage (survives refresh but not tab close)
+      sessionStorage.setItem('career_vault_interview_progress', JSON.stringify(progressData));
+      
+      // Save to database with explicit user_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated - please log in');
+      }
+
+      console.log('[SAVE-DRAFT] Saving to database for user:', user.id);
+
+      const responseData = {
+        vault_id: vaultId || null,
+        user_id: user.id,
+        question: currentQuestion.questionsToExpand?.[0]?.prompt || 'Current Question',
+        response: userInput,
+        phase: currentPhase || 'unknown',
+        quality_score: qualityScore || 0,
+        is_draft: true
+      };
+
+      console.log('[SAVE-DRAFT] Data:', responseData);
+
+      const { error, data } = await supabase
+        .from('vault_interview_responses')
+        .upsert([responseData], {
+          onConflict: 'user_id,question'
+        })
+        .select();
+
+      if (error) {
+        console.error('[SAVE-DRAFT] Database error:', error);
+        throw error;
+      }
+
+      console.log('[SAVE-DRAFT] Success:', data);
+      setLastSaved(new Date());
+      
+      toast({
+        title: "Draft saved",
+        description: "Your progress has been saved",
+      });
+    } catch (error: any) {
+      console.error('[SAVE-DRAFT] Failed:', error);
+      toast({
+        title: "Save failed",
+        description: error.message || "Please try again or check your connection",
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
   };
-
-  // NEW: Restore progress from DB or localStorage
-  const restoreProgress = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Try DB first
-      const { data: drafts } = await supabase
-        .from('vault_interview_responses')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_draft', true)
-        .order('saved_at', { ascending: false })
-        .limit(1);
-
-      if (drafts && drafts.length > 0) {
-        const draft = drafts[0];
-        setUserInput(draft.response || '');
-        toast({
-          title: '✅ Progress Restored',
-          description: 'We recovered your last answer from the database.',
-        });
-        return;
-      }
-
-      // Fallback to localStorage
-      const localProgress = localStorage.getItem('career_vault_progress');
-      if (localProgress) {
-        const progress = JSON.parse(localProgress);
-        setUserInput(progress.response || '');
-        setCurrentSubQuestionIndex(progress.currentSubQuestionIndex || 0);
-        setCompletionPercentage(progress.completionPercentage || 0);
-        toast({
-          title: '✅ Draft Recovered',
-          description: 'We restored your last answer from local backup.',
-        });
-      }
-    } catch (error) {
-      console.error('Error restoring progress:', error);
-    }
-  };
-
-  // NEW: Trigger auto-save when user types (debounced)
-  useEffect(() => {
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-
-    if (userInput.trim().length > 20) { // Only auto-save if meaningful input
-      autoSaveTimerRef.current = setTimeout(() => {
-        autoSaveProgress();
-      }, 3000); // Save 3 seconds after user stops typing
-    }
-
-    return () => {
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    };
-  }, [userInput, currentQuestion, vaultId]);
 
   const calculateDynamicQuestionCount = async () => {
     try {
@@ -606,25 +575,36 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           intelligenceValue < 30 ? 'high' :
           intelligenceValue < 60 ? 'medium' : 'low';
         
+        console.log('[SUBMIT] Saving response to database...');
         const { data: savedResponse, error: saveError } = await supabase
           .from('vault_interview_responses')
           .insert([{
-            vault_id: vaultId,
+            vault_id: vaultId || null,
             user_id: user.id,
             question: currentSubQuestion.prompt,
             response: responseToSave,
-            quality_score: validation.quality_score,
-            validation_feedback: validation as any,
-            phase: currentPhase,
+            phase: currentPhase || 'unknown',
+            question_category: currentQuestion.context || 'general',
+            validation_score: validation.quality_score || 0,
+            validation_feedback: JSON.stringify(validation) || null,
+            is_complete: true,
+            is_draft: false,
+            milestone_id: currentMilestoneId || null,
             needs_enhancement: needsEnhancement,
             enhancement_priority: enhancementPriority,
             completeness_score: Math.round(completenessScore),
             specificity_score: specificityScore,
-            intelligence_value: Math.round(intelligenceValue),
-            milestone_id: currentMilestoneId
+            intelligence_value: Math.round(intelligenceValue)
           }])
           .select()
           .single();
+        
+        if (saveError) {
+          console.error('[SUBMIT] Database error:', saveError);
+          throw saveError;
+        }
+        
+        console.log('[SUBMIT] Response saved:', savedResponse.id);
 
         if (saveError) {
           console.error('Error saving response:', saveError);
@@ -684,13 +664,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           setCurrentResponseId(savedResponse.id);
           console.log('✅ Response saved:', savedResponse.id);
           
-          // Clear draft after successful save
-          await supabase
-            .from('vault_interview_responses')
-            .delete()
-            .eq('vault_id', vaultId)
-            .eq('question', currentSubQuestion.prompt)
-            .eq('is_draft', true);
+          // Clear session storage after successful save
+          sessionStorage.removeItem('career_vault_interview_progress');
         }
 
         // Step 3: Extract intelligence in real-time
