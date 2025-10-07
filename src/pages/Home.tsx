@@ -26,17 +26,25 @@ const HomeContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
+      const { data: vault } = await supabase
         .from('career_vault')
         .select('interview_completion_percentage')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (data) {
-        const completion = data.interview_completion_percentage || 0;
+      if (vault) {
+        const completion = vault.interview_completion_percentage || 0;
         setVaultCompletion(completion);
         setVaultComplete(completion === 100);
       }
+      
+      // Check for saved interview responses
+      const { count } = await supabase
+        .from('vault_interview_responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      
+      console.log('[HOME] Saved responses:', count);
     } catch (error) {
       console.error('Error checking Career Vault status:', error);
     }

@@ -344,20 +344,22 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       if (!user) return;
 
       // Check for saved drafts in database
-      const { data: drafts } = await supabase
+      const { data: drafts, count } = await supabase
         .from('vault_interview_responses')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('user_id', user.id)
         .eq('is_draft', true)
         .order('created_at', { ascending: false })
         .limit(1);
+
+      console.log('[RESTORE] Found', count, 'total saved responses');
 
       if (drafts && drafts.length > 0) {
         const lastDraft = drafts[0];
         
         toast({
           title: "Welcome back!",
-          description: `Found saved progress from ${new Date(lastDraft.created_at).toLocaleDateString()}. Continuing where you left off...`,
+          description: `Found ${count} saved ${count === 1 ? 'response' : 'responses'}. Last saved ${new Date(lastDraft.created_at).toLocaleDateString()}.`,
         });
 
         // Restore state
@@ -365,8 +367,22 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         setQualityScore(lastDraft.quality_score || 0);
         setCurrentPhase(lastDraft.phase || 'discovery');
         
-        // Don't auto-load the old question - just show user they have saved work
-        console.log('[RESTORE] Found draft:', lastDraft);
+        console.log('[RESTORE] Restored draft:', lastDraft.question);
+      } else {
+        // Check if user has ANY responses (not just drafts)
+        const { count: totalCount } = await supabase
+          .from('vault_interview_responses')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        
+        if (totalCount && totalCount > 0) {
+          toast({
+            title: "Progress Found",
+            description: `You have ${totalCount} completed ${totalCount === 1 ? 'response' : 'responses'}. Continue from where you left off!`,
+          });
+        } else {
+          console.log('[RESTORE] No saved progress found - starting fresh');
+        }
       }
 
       // Check sessionStorage for very recent progress
@@ -384,8 +400,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           setCompletionPercentage(parsed.completionPercentage || 0);
           
           toast({
-            title: "Progress restored",
-            description: "Continuing from your last session",
+            title: "Session restored",
+            description: "Continuing from your last session (unsaved draft)",
           });
         } else {
           sessionStorage.removeItem('career_vault_interview_progress');
