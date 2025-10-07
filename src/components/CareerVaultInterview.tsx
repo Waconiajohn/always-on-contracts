@@ -106,6 +106,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const [voiceEnabled, setVoiceEnabled] = useState(false); // Disabled by default
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [shownPromptCategories, setShownPromptCategories] = useState<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // STAR and sub-questions state
@@ -220,6 +222,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         response: userInput,
         phase: currentPhase || 'unknown',
         quality_score: qualityScore || 0,
+        validation_feedback: { quality_score: qualityScore } as any, // Store as JSONB
         is_draft: true
       };
 
@@ -228,12 +231,18 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       const { error, data } = await supabase
         .from('vault_interview_responses')
         .upsert([responseData], {
-          onConflict: 'user_id,question'
+          onConflict: 'vault_id,question',
+          ignoreDuplicates: false
         })
         .select();
 
       if (error) {
-        console.error('[SAVE-DRAFT] Database error:', error);
+        console.error('[SAVE-DRAFT] Database error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
 
@@ -495,11 +504,12 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
       setQualityScore(validation.quality_score);
       
-      // PHASE 1 FIX: Lower threshold from 70 → 40, make feedback encouraging
+      // PHASE 4 FIX: Track shown prompts to avoid repetition
       // Quality >= 70: Excellent - show Accept button, NO guided prompts
       if (validation.quality_score >= 70) {
         setShowAcceptButton(true);
         setGuidedPrompts(null);
+        setShownPromptCategories(new Set()); // Clear for next question
         
         // Encouraging feedback based on score
         let encouragingFeedback = '';
@@ -526,9 +536,28 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
       // Quality 60-69: Good answer with optional enhancement
       if (validation.quality_score >= 60) {
+        // PHASE 4 FIX: Show NEW guided prompts only (avoid repetition)
         setShowAcceptButton(true);
-        setGuidedPrompts(validation.guided_prompts || null);
-        
+        if (validation.guided_prompts) {
+          const newPrompts = Object.keys(validation.guided_prompts)
+            .filter(cat => !shownPromptCategories.has(cat))
+            .reduce((acc, cat) => ({ ...acc, [cat]: validation.guided_prompts[cat] }), {});
+          
+          if (Object.keys(newPrompts).length > 0) {
+            setGuidedPrompts(newPrompts);
+            // Track shown categories
+            setShownPromptCategories(prev => {
+              const updated = new Set(prev);
+              Object.keys(newPrompts).forEach(cat => updated.add(cat));
+              return updated;
+            });
+          } else {
+            setGuidedPrompts(null); // All categories already shown
+          }
+        } else {
+          setGuidedPrompts(null);
+        }
+          
         const encouragingFeedback = `✅ Good answer! (${validation.quality_score}/100) You've captured key points. You can continue now or add more detail.`;
         setValidationFeedback(encouragingFeedback);
         
@@ -541,7 +570,25 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       }
 
       // Quality < 60: Show guided prompts to help improve
-      setGuidedPrompts(validation.guided_prompts || null);
+      // PHASE 4 FIX: Track shown categories for sub-60 scores too
+      if (validation.guided_prompts) {
+        const newPrompts = Object.keys(validation.guided_prompts)
+          .filter(cat => !shownPromptCategories.has(cat))
+          .reduce((acc, cat) => ({ ...acc, [cat]: validation.guided_prompts[cat] }), {});
+        
+        if (Object.keys(newPrompts).length > 0) {
+          setGuidedPrompts(newPrompts);
+          setShownPromptCategories(prev => {
+            const updated = new Set(prev);
+            Object.keys(newPrompts).forEach(cat => updated.add(cat));
+            return updated;
+          });
+        } else {
+          setGuidedPrompts(null);
+        }
+      } else {
+        setGuidedPrompts(null);
+      }
       setShowAcceptButton(true); // Still allow progression
       
       setValidationFeedback(`Your answer has been saved! (${validation.quality_score}/100)\n\nTo strengthen it, try adding: ${validation.follow_up_prompt}\n\nYou can continue now or enhance this later from your Dashboard.`);
@@ -811,45 +858,79 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   };
 
   const handleApplyGuidedOptions = async (selectedOptions: string[]) => {
-    if (!currentQuestion) return;
+    if (selectedOptions.length === 0 || !currentQuestion) return;
     
-    const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
-    
-    // Check if any non-skip option was selected
-    const hasRealOptions = selectedOptions.some(opt => 
-      !opt.toLowerCase().includes("don't remember") && 
-      !opt.toLowerCase().includes("can't recall")
-    );
-    
-    if (!hasRealOptions) {
-      // User only selected "don't remember" options - treat as skip
-      handleSkipGuidedPrompts();
-      return;
-    }
-
-    const optionsText = selectedOptions.join('; ');
-    const enhancedAnswer = `${userInput}\n\nAdditional context: ${optionsText}`;
-    setUserInput(enhancedAnswer);
-    setValidationFeedback('');
-    setGuidedPrompts(null);
+    setIsValidating(true);
     
     toast({
-      title: 'Details added',
-      description: 'Revalidating your enhanced response...',
+      title: '✨ Strengthening Answer',
+      description: 'Adding your selected details and revalidating...',
     });
 
-    // Automatically revalidate the enhanced answer
-    setIsValidating(true);
     try {
-      const { data: validationData, error: validationError } = await supabase.functions.invoke(
+      // PHASE 4 FIX: Re-validate with context that user is improving answer
+      const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
+      if (!currentSubQuestion) return;
+      
+      const enhancedAnswer = `${userInput}\n\n[Enhancement areas selected: ${selectedOptions.join('; ')}]`;
+      setUserInput(enhancedAnswer);
+
+      const { data: validation, error: validationError } = await supabase.functions.invoke(
         'validate-interview-response',
         {
           body: {
             question: currentSubQuestion.prompt,
-            answer: enhancedAnswer
+            answer: enhancedAnswer,
+            selected_guided_options: selectedOptions // Pass to AI for acknowledgment
           }
         }
-      );
+      ) as { data: ValidationResult; error: any };
+
+      if (validationError) throw validationError;
+
+      setQualityScore(validation.quality_score);
+      const scoreImprovement = validation.quality_score - qualityScore;
+      setValidationFeedback(validation.follow_up_prompt || `Quality score updated: ${validation.quality_score}/100 ${scoreImprovement > 0 ? `(+${scoreImprovement})` : ''}`);
+      
+      // PHASE 4 FIX: Clear guided prompts after applying
+      setGuidedPrompts(null);
+      
+      // If score is now sufficient, show accept button
+      if (validation.quality_score >= 70) {
+        setShowAcceptButton(true);
+        setShownPromptCategories(new Set()); // Reset for next question
+      }
+      
+      toast({
+        title: '✅ Answer Enhanced',
+        description: `Quality improved to ${validation.quality_score}/100${scoreImprovement > 0 ? ` (+${scoreImprovement} points)` : ''}`,
+      });
+    } catch (error) {
+      console.error('Error applying guided options:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to enhance answer. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleSkipGuidedPrompts = () => {
+    // PHASE 4 FIX: Clear prompts and allow advancement
+    setGuidedPrompts(null);
+    setSkipAttempts(prev => prev + 1);
+    setShownPromptCategories(new Set()); // Clear for next question
+    
+    toast({
+      title: "Moving Forward",
+      description: "Your response has been saved. You can enhance it later.",
+    });
+    
+    // PHASE 6 FIX: Allow advancement after first skip
+    handleAcceptAndContinue();
+  };
 
       if (validationError) throw validationError;
 
@@ -926,23 +1007,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         });
       } else {
         // Still needs improvement
-        setValidationFeedback(validation.follow_up_prompt);
-        if (validation.guided_prompts) {
-          setGuidedPrompts(validation.guided_prompts);
-        }
-      }
-    } catch (error) {
-      console.error('Error revalidating:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to validate enhanced response. Please try submitting again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
   const fetchEnhancedAnswer = async (question: string, currentAnswer: string, validationFeedback: any) => {
     try {
       const { data } = await supabase.functions.invoke('update-strong-answer', {
@@ -958,10 +1022,12 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   };
 
   const handleAcceptAndContinue = async () => {
-    if (!currentQuestion || !vaultId) return;
+    if (!currentQuestion) return;
+    
+    console.log('[INTERVIEW]', { action: 'accept_continue', score: qualityScore, hasMoreSubQuestions: currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1 });
     
     setIsLoading(true);
-    const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
+    setSaveStatus('idle');
     
     try {
       const { data: { user } } = await supabase.auth.getUser();

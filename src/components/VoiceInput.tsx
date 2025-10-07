@@ -1,56 +1,67 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, AlertCircle, Volume2 } from "lucide-react";
+import { Mic, MicOff, AlertCircle, Volume2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
   isRecording: boolean;
   onToggleRecording: () => void;
+  onRecordingStateChange?: (recording: boolean) => void;
   disabled?: boolean;
 }
 
-export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disabled }: VoiceInputProps) => {
+export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, onRecordingStateChange, disabled }: VoiceInputProps) => {
   const { toast } = useToast();
   const [isSupported, setIsSupported] = useState(true);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
+  const [micStatus, setMicStatus] = useState<'idle' | 'requesting' | 'recording' | 'error'>('idle');
   const recognitionRef = useRef<any>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
 
-  // Request microphone permission upfront
-  useEffect(() => {
-    const requestPermission = async () => {
-      try {
-        // Check if browser supports speech recognition
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        
-        if (!SpeechRecognition) {
-          setIsSupported(false);
-          return;
-        }
-
-        // Request microphone permission
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
-        setPermissionGranted(true);
-        
-        console.log('[VOICE] Microphone permission granted');
-      } catch (error: any) {
-        console.error('[VOICE] Permission error:', error);
-        setPermissionGranted(false);
-        
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          toast({
-            title: "Microphone Access Denied",
-            description: "Please allow microphone access in your browser settings to use voice input.",
-            variant: "destructive",
-          });
-        }
+  // PHASE 3 FIX: Explicit microphone permission request
+  const requestMicPermission = async () => {
+    setMicStatus('requesting');
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        setIsSupported(false);
+        setMicStatus('error');
+        return false;
       }
-    };
 
-    requestPermission();
-  }, [toast]);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      setPermissionGranted(true);
+      setMicStatus('idle');
+      
+      console.log('[VOICE] Microphone permission granted');
+      toast({
+        title: "Microphone Ready",
+        description: "Click the mic button to start recording",
+      });
+      return true;
+    } catch (error: any) {
+      console.error('[VOICE] Permission error:', error);
+      setPermissionGranted(false);
+      setMicStatus('error');
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        toast({
+          title: "Microphone Access Denied",
+          description: "Please allow microphone access in your browser settings to use voice input.",
+          variant: "destructive",
+        });
+      }
+      return false;
+    }
+  };
+
+  // Request permission on mount
+  useEffect(() => {
+    requestMicPermission();
+  }, []);
 
   useEffect(() => {
     // Check if browser supports speech recognition
@@ -69,6 +80,9 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
 
     recognition.onstart = () => {
       console.log('[VOICE] Recording started');
+      setMicStatus('recording');
+      onRecordingStateChange?.(true);
+      
       // Play a beep sound on start
       const audioContext = new AudioContext();
       const oscillator = audioContext.createOscillator();
@@ -100,12 +114,14 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
 
     recognition.onerror = (event: any) => {
       console.error('[VOICE] Recognition error:', event.error);
+      setMicStatus('error');
+      onRecordingStateChange?.(false);
       
       if (event.error === 'not-allowed') {
         setPermissionGranted(false);
         toast({
           title: "Microphone Access Denied",
-          description: "Please allow microphone access to use voice input.",
+          description: "Please allow microphone access in browser settings.",
           variant: "destructive",
         });
       } else if (event.error === 'no-speech') {
@@ -129,6 +145,9 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
 
     recognition.onend = () => {
       console.log('[VOICE] Recording ended');
+      setMicStatus('idle');
+      onRecordingStateChange?.(false);
+      
       // Play a beep sound on stop
       const audioContext = new AudioContext();
       const oscillator = audioContext.createOscillator();
@@ -140,9 +159,11 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
       if (isRecording) {
         // Restart if we're still supposed to be recording
         try {
+          setMicStatus('recording');
           recognition.start();
         } catch (error) {
           console.error('[VOICE] Restart error:', error);
+          setMicStatus('error');
         }
       }
     };
@@ -205,24 +226,41 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, disab
     );
   }
 
+  // PHASE 3 FIX: Better visual feedback based on mic status
+  const getButtonColor = () => {
+    if (micStatus === 'recording') return "bg-green-600 hover:bg-green-700 border-green-600";
+    if (micStatus === 'requesting') return "bg-yellow-500 hover:bg-yellow-600 border-yellow-500";
+    if (micStatus === 'error') return "bg-red-500 hover:bg-red-600 border-red-500";
+    return "";
+  };
+
   return (
-    <div className="flex items-center gap-2 relative z-10">
+    <div className="flex items-center gap-2 relative">
       <Button
         type="button"
-        variant={isRecording ? "default" : "outline"}
+        variant={micStatus === 'recording' ? "default" : "outline"}
         size="icon"
         onClick={onToggleRecording}
-        disabled={disabled || permissionGranted === null}
-        className={isRecording ? "bg-green-600 hover:bg-green-700 border-green-600 text-white animate-pulse" : ""}
-        title={isRecording ? "Click to stop recording" : "Click to start voice input"}
+        disabled={disabled || permissionGranted === null || micStatus === 'requesting'}
+        className={`${getButtonColor()} ${micStatus === 'recording' ? 'animate-pulse' : ''}`}
+        title={
+          micStatus === 'requesting' ? "Requesting microphone access..." :
+          micStatus === 'recording' ? "Click to stop recording" :
+          micStatus === 'error' ? "Microphone error" :
+          "Click to start voice input"
+        }
       >
-        {isRecording ? (
+        {micStatus === 'requesting' ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : micStatus === 'recording' ? (
           <Mic className="h-4 w-4 text-white" />
+        ) : micStatus === 'error' ? (
+          <MicOff className="h-4 w-4" />
         ) : (
           <Mic className="h-4 w-4" />
         )}
       </Button>
-      {isRecording && (
+      {micStatus === 'recording' && (
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
             <div className="w-1 h-3 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />

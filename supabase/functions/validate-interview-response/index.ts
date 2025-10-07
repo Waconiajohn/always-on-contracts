@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { question, answer } = await req.json();
+    const { question, answer, selected_guided_options } = await req.json();
 
     if (!question || !answer) {
       throw new Error('Question and answer are required');
@@ -28,6 +28,14 @@ serve(async (req) => {
       combinedAnswer = answer;
     }
 
+    // PHASE 4 FIX: Acknowledge improvement efforts
+    const improvementContext = selected_guided_options && selected_guided_options.length > 0
+      ? `\n\nUSER IS ACTIVELY IMPROVING THEIR ANSWER:
+They selected these enhancement areas: ${selected_guided_options.join(', ')}
+
+CRITICAL: If they added ANY additional detail after selecting improvement areas, increase the score by 10-20 points minimum to acknowledge their effort. Be encouraging!`
+      : '';
+
     // Use Lovable AI to validate the response quality with guided enhancement options
     const validationPrompt = `You are validating an interview response for completeness and quality.
 
@@ -35,7 +43,7 @@ QUESTION ASKED:
 ${question}
 
 USER'S ANSWER:
-${combinedAnswer}
+${combinedAnswer}${improvementContext}
 
 CRITICAL SCORING RULES (MUST FOLLOW):
 1. Count the number of checkboxes selected (look for semicolons or multiple items in selected_options)

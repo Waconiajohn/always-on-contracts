@@ -62,6 +62,19 @@ serve(async (req) => {
 
     console.log('[GENERATE-INTERVIEW-QUESTION] Fetching Career Vault intelligence for user:', user.id);
 
+    // PHASE 2 FIX: Get FULL resume data, not just analysis
+    const { data: vaultData } = await supabase
+      .from('career_vault')
+      .select('id, user_id, resume_raw_text, initial_analysis, interview_completion_percentage')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const { data: milestonesData } = await supabase
+      .from('vault_resume_milestones')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('start_date', { ascending: false });
+
     // Get full Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
       'get-vault-intelligence',
@@ -69,11 +82,10 @@ serve(async (req) => {
     );
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
-    const vault = intelligence ? { 
-      id: 'vault_id',
-      user_id: user.id,
-      interview_completion_percentage: intelligence.completionPercentage || 0,
-      initial_analysis: intelligence.initialAnalysis || {}
+    const vault = vaultData ? {
+      ...vaultData,
+      milestones: milestonesData || [],
+      intelligence: intelligence
     } : null;
 
     if (!vault) {
@@ -267,7 +279,7 @@ ${generate_answer_options ? `{
         "custom_input_prompt": "Add other experiences:"
       }
     ],
-    "exampleAnswer": "CRITICAL: Base this example on ACTUAL resume data: ${JSON.stringify(vault?.initial_analysis || {})}. Reference specific achievements, companies, or projects from their resume. Use their actual career story, not generic examples."
+    "exampleAnswer": "CRITICAL: Base this on REAL resume data:\nResume Text: ${vault?.resume_raw_text?.substring(0, 500) || 'N/A'}\nRecent Roles: ${vault?.milestones?.slice(0, 3).map((m: any) => `${m.company_name} - ${m.job_title}`).join(', ') || 'N/A'}\nShow a STAR example using THEIR actual companies, job titles, and achievements."
   },
   "phase": "${currentPhase.name}",
   "completionPercentage": ${completionPercentage},
@@ -289,27 +301,29 @@ ${generate_answer_options ? `{
         "hint": "Include specific metrics and numbers"
       }
     ],
-    "exampleAnswer": "MUST use resume data: ${JSON.stringify(vault?.initial_analysis || {})}. Show a STAR example using their actual job titles, companies, and achievements. Reference specific projects or metrics from their resume."
+    "exampleAnswer": "MUST use REAL resume data:\nResume: ${vault?.resume_raw_text?.substring(0, 500) || 'N/A'}\nRecent Roles: ${vault?.milestones?.slice(0, 3).map((m: any) => `${m.company_name} - ${m.job_title}`).join(', ') || 'N/A'}\nShow a STAR example using THEIR actual job titles, companies, achievements, and specific metrics from their resume."
   },
   "phase": "${currentPhase.name}",
   "completionPercentage": ${completionPercentage},
   "isComplete": false
 }`}
 
-CRITICAL INSTRUCTIONS:
-1. Pull specific data from resume: ${JSON.stringify(vault?.initial_analysis || {})}
-2. Reference existing Career Vault intelligence when building questions
-3. Ask follow-up questions that build on previous responses
-4. Use the phase context to focus on relevant intelligence categories
-5. Keep questions conversational and natural
-6. Push for specifics and quantified results
-7. Help user articulate their unique value${generate_answer_options ? `
-8. Add question_type: "multiple_choice_with_custom" for checkbox questions
-9. Include realistic answer_options based on:
-   - Resume content: ${JSON.stringify(vault?.initial_analysis || {})}
+CRITICAL INSTRUCTIONS (PHASE 2 FIX - Use FULL resume context):
+1. FULL RESUME TEXT: ${vault?.resume_raw_text?.substring(0, 800) || 'N/A'}
+2. RECENT ROLES: ${vault?.milestones?.slice(0, 3).map((m: any) => `${m.company_name} (${m.job_title}): ${m.description?.substring(0, 100)}`).join(' | ') || 'N/A'}
+3. Reference existing Career Vault intelligence when building questions
+4. Ask follow-up questions that build on previous responses
+5. Use the phase context to focus on relevant intelligence categories
+6. Keep questions conversational and natural
+7. Push for specifics and quantified results
+8. Help user articulate their unique value
+9. **CRITICAL for exampleAnswer**: Use their ACTUAL company names, job titles, and achievements from the resume text above. Show a STAR example with THEIR real career story.${generate_answer_options ? `
+10. Add question_type: "multiple_choice_with_custom" for checkbox questions
+11. Include realistic answer_options based on:
+   - Resume content above
    - Confirmed skills: ${JSON.stringify(confirmed_skills)}
    - Target role requirements
-10. Include custom_input_prompt for freeform additions` : ''}
+12. Include custom_input_prompt for freeform additions` : ''}
 
 Current Phase Focus: ${currentPhase.name}
 ${isFirst ? 'This is the FIRST question - focus on career overview' : ''}
