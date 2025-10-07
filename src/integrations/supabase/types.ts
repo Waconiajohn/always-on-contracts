@@ -2658,11 +2658,13 @@ export type Database = {
           follow_up_questions: Json | null
           id: string
           intelligence_value: number | null
+          is_draft: boolean | null
           needs_enhancement: boolean | null
           phase: string
           quality_score: number | null
           question: string
           response: string
+          saved_at: string | null
           specificity_score: number | null
           updated_at: string | null
           user_id: string
@@ -2678,11 +2680,13 @@ export type Database = {
           follow_up_questions?: Json | null
           id?: string
           intelligence_value?: number | null
+          is_draft?: boolean | null
           needs_enhancement?: boolean | null
           phase: string
           quality_score?: number | null
           question: string
           response: string
+          saved_at?: string | null
           specificity_score?: number | null
           updated_at?: string | null
           user_id: string
@@ -2698,11 +2702,13 @@ export type Database = {
           follow_up_questions?: Json | null
           id?: string
           intelligence_value?: number | null
+          is_draft?: boolean | null
           needs_enhancement?: boolean | null
           phase?: string
           quality_score?: number | null
           question?: string
           response?: string
+          saved_at?: string | null
           specificity_score?: number | null
           updated_at?: string | null
           user_id?: string

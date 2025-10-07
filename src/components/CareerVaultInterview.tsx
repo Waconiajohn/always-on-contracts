@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
@@ -84,6 +84,11 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     hiddenCompetencies: 0
   });
   
+  // NEW: Auto-save state
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // New state for checkbox-driven answers
   const [questionType, setQuestionType] = useState<'text' | 'multiple_choice_with_custom' | 'star'>('text');
   const [answerOptions, setAnswerOptions] = useState<string[]>([]);
@@ -130,6 +135,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     startInterview();
     calculateDynamicQuestionCount();
     loadMilestones();
+    restoreProgress(); // Restore any saved progress
     
     // Keep auth session alive during interview to prevent unexpected logout
     const keepAlive = setInterval(async () => {
@@ -140,8 +146,122 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       }
     }, 5 * 60 * 1000); // Refresh every 5 minutes
     
-    return () => clearInterval(keepAlive);
+    return () => {
+      clearInterval(keepAlive);
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
   }, []);
+
+  // NEW: Auto-save progress to both DB and localStorage
+  const autoSaveProgress = async () => {
+    if (!currentQuestion || !vaultId || !userInput.trim()) return;
+    
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
+      const progressData = {
+        vault_id: vaultId,
+        user_id: user.id,
+        question: currentSubQuestion.prompt,
+        response: userInput,
+        phase: currentPhase,
+        milestone_id: currentMilestoneId,
+        is_draft: true,
+        saved_at: new Date().toISOString()
+      };
+
+      // Save to database as draft
+      await supabase
+        .from('vault_interview_responses')
+        .upsert(progressData, { 
+          onConflict: 'vault_id,question',
+          ignoreDuplicates: false 
+        });
+
+      // Backup to localStorage
+      localStorage.setItem('career_vault_progress', JSON.stringify({
+        ...progressData,
+        currentSubQuestionIndex,
+        completionPercentage
+      }));
+
+      setLastSaved(new Date());
+      console.log('✅ Progress auto-saved');
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      // Still save to localStorage even if DB fails
+      localStorage.setItem('career_vault_emergency_backup', JSON.stringify({
+        userInput,
+        currentPhase,
+        currentSubQuestionIndex,
+        timestamp: new Date().toISOString()
+      }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // NEW: Restore progress from DB or localStorage
+  const restoreProgress = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Try DB first
+      const { data: drafts } = await supabase
+        .from('vault_interview_responses')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .order('saved_at', { ascending: false })
+        .limit(1);
+
+      if (drafts && drafts.length > 0) {
+        const draft = drafts[0];
+        setUserInput(draft.response || '');
+        toast({
+          title: '✅ Progress Restored',
+          description: 'We recovered your last answer from the database.',
+        });
+        return;
+      }
+
+      // Fallback to localStorage
+      const localProgress = localStorage.getItem('career_vault_progress');
+      if (localProgress) {
+        const progress = JSON.parse(localProgress);
+        setUserInput(progress.response || '');
+        setCurrentSubQuestionIndex(progress.currentSubQuestionIndex || 0);
+        setCompletionPercentage(progress.completionPercentage || 0);
+        toast({
+          title: '✅ Draft Recovered',
+          description: 'We restored your last answer from local backup.',
+        });
+      }
+    } catch (error) {
+      console.error('Error restoring progress:', error);
+    }
+  };
+
+  // NEW: Trigger auto-save when user types (debounced)
+  useEffect(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    if (userInput.trim().length > 20) { // Only auto-save if meaningful input
+      autoSaveTimerRef.current = setTimeout(() => {
+        autoSaveProgress();
+      }, 3000); // Save 3 seconds after user stops typing
+    }
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [userInput, currentQuestion, vaultId]);
 
   const calculateDynamicQuestionCount = async () => {
     try {
@@ -486,16 +606,67 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           console.error('Error saving response:', saveError);
           toast({
             title: 'Save Error',
-            description: 'Failed to save your response. Please try again.',
+            description: 'Failed to save your response. Trying again...',
             variant: 'destructive'
           });
-          setIsValidating(false);
-          return;
-        }
-
-        if (savedResponse) {
+          
+          // Retry save once
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const { data: retryResponse, error: retryError } = await supabase
+            .from('vault_interview_responses')
+            .insert([{
+              vault_id: vaultId,
+              user_id: user.id,
+              question: currentSubQuestion.prompt,
+              response: responseToSave,
+              quality_score: validation.quality_score,
+              validation_feedback: validation as any,
+              phase: currentPhase,
+              needs_enhancement: needsEnhancement,
+              enhancement_priority: enhancementPriority,
+              completeness_score: Math.round(completenessScore),
+              specificity_score: specificityScore,
+              intelligence_value: Math.round(intelligenceValue),
+              milestone_id: currentMilestoneId,
+              is_draft: false
+            }])
+            .select()
+            .single();
+          
+          if (retryError) {
+            console.error('Retry save failed:', retryError);
+            // Save to localStorage as emergency backup
+            const emergencyBackup = JSON.parse(localStorage.getItem('career_vault_emergency_responses') || '[]');
+            emergencyBackup.push({
+              question: currentSubQuestion.prompt,
+              response: responseToSave,
+              timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('career_vault_emergency_responses', JSON.stringify(emergencyBackup));
+            
+            toast({
+              title: '⚠️ Saved Locally',
+              description: 'Response saved to browser storage. Will sync when connection restored.',
+            });
+            setIsValidating(false);
+            return;
+          }
+          
+          if (retryResponse) {
+            setCurrentResponseId(retryResponse.id);
+            console.log('✅ Response saved (retry):', retryResponse.id);
+          }
+        } else if (savedResponse) {
           setCurrentResponseId(savedResponse.id);
           console.log('✅ Response saved:', savedResponse.id);
+          
+          // Clear draft after successful save
+          await supabase
+            .from('vault_interview_responses')
+            .delete()
+            .eq('vault_id', vaultId)
+            .eq('question', currentSubQuestion.prompt)
+            .eq('is_draft', true);
         }
 
         // Step 3: Extract intelligence in real-time
@@ -1079,7 +1250,54 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       )}
 
       {/* Question display */}
-      <Card className="p-6">
+      <Card className="max-w-4xl mx-auto">
+        <CardContent className="p-6 sm:p-8">
+          {/* Progress Header with Auto-Save Status */}
+          <div className="space-y-4 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {currentPhase && (
+                  <Badge variant="secondary" className="text-sm">
+                    {phaseLabels[currentPhase] || currentPhase}
+                  </Badge>
+                )}
+                {currentMilestoneId && milestones.length > 0 && (
+                  <Badge variant="outline" className="text-sm">
+                    {milestones.find(m => m.id === currentMilestoneId)?.title || 'Current Role'}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                {/* Auto-save indicator */}
+                {isSaving && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </span>
+                )}
+                {!isSaving && lastSaved && (
+                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Saved {Math.round((Date.now() - lastSaved.getTime()) / 1000)}s ago
+                  </span>
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {completionPercentage}% Complete
+                </span>
+              </div>
+            </div>
+            <Progress value={completionPercentage} className="h-2" />
+            
+            {/* Auto-save notice */}
+            {userInput && userInput.length > 20 && !lastSaved && (
+              <Alert>
+                <AlertDescription className="text-xs">
+                  💡 Your answers are auto-saved every 3 seconds as you type
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
         {/* Prominent Play Question Button */}
         <div className="mb-4 flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
           <div className="flex items-center gap-3">
@@ -1380,6 +1598,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
             </>
           )}
         </div>
+        </CardContent>
       </Card>
     </div>
   );
