@@ -2,6 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Milestone {
   id: string;
@@ -72,9 +73,12 @@ export const MilestoneProgress = ({
           return (
             <Card
               key={milestone.id}
-              className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-                isActive ? 'ring-2 ring-primary' : ''
-              }`}
+              className={cn(
+                "p-4 cursor-pointer transition-all",
+                isActive 
+                  ? "ring-2 ring-primary border-primary shadow-lg" 
+                  : "hover:shadow-md hover:border-primary/50"
+              )}
               onClick={() => onSelectMilestone(milestone.id)}
             >
               <div className="flex items-start gap-3">
@@ -92,7 +96,10 @@ export const MilestoneProgress = ({
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold truncate">{milestone.job_title}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold truncate">{milestone.job_title}</h4>
+                        {isActive && <Badge variant="default" className="text-xs">Selected</Badge>}
+                      </div>
                       <p className="text-sm text-muted-foreground truncate">
                         {milestone.company_name}
                       </p>

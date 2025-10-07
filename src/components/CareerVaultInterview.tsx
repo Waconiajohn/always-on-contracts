@@ -145,12 +145,42 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     }
   }, [currentMilestoneId]);
 
+  // Auto-save effect - runs every 30 seconds if there's content
+  useEffect(() => {
+    const hasContent = (userInput.trim().length > 0 || 
+                       selectedOptions.length > 0 || 
+                       customAnswerText.trim().length > 0);
+
+    if (!hasContent || !currentQuestion) return;
+
+    const autoSaveInterval = setInterval(() => {
+      console.log('[CareerVault] Auto-saving draft...');
+      saveDraft();
+    }, 30000); // Auto-save every 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [userInput, selectedOptions, customAnswerText, currentQuestion]);
+
+  // Warn before leaving with unsaved work
+  useEffect(() => {
+    const hasUnsavedWork = (userInput.trim().length > 0 || 
+                           selectedOptions.length > 0 || 
+                           customAnswerText.trim().length > 0);
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedWork) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [userInput, selectedOptions, customAnswerText]);
+
   useEffect(() => {
     calculateDynamicQuestionCount();
     loadMilestones();
-    
-    // NEW: Restore saved progress on mount
-    restoreSavedProgress();
     
     // Keep auth session alive (less aggressive - only when idle)
     let lastActivityTime = Date.now();
