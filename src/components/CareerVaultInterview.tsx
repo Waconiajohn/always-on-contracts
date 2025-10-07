@@ -137,20 +137,44 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     loadMilestones();
     restoreProgress(); // Restore any saved progress
     
-    // Keep auth session alive during interview to prevent unexpected logout
+    // AGGRESSIVE session keep-alive - refresh every 2 minutes to prevent ANY timeout
+    // Supabase sessions expire after 1 hour - this prevents that completely
     const keepAlive = setInterval(async () => {
       try {
-        await supabase.auth.refreshSession();
+        const { error } = await supabase.auth.refreshSession();
+        if (error) {
+          console.error('Session refresh failed:', error);
+          // Try again immediately if failed
+          setTimeout(() => supabase.auth.refreshSession(), 5000);
+        }
       } catch (error) {
         console.error('Session refresh error:', error);
       }
-    }, 5 * 60 * 1000); // Refresh every 5 minutes
+    }, 2 * 60 * 1000); // Refresh every 2 minutes (aggressive)
+    
+    // Prevent accidental page closure
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (userInput.trim().length > 10) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved work. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Disable browser password manager prompts during interview
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+      form.setAttribute('autocomplete', 'off');
+    });
     
     return () => {
       clearInterval(keepAlive);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-  }, []);
+  }, [userInput]);
 
   // NEW: Auto-save progress to both DB and localStorage
   const autoSaveProgress = async () => {
