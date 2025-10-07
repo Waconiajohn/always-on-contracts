@@ -85,10 +85,12 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
         })
         .eq('id', item.id);
 
-      // Regenerate resume with conversation context
-      const { data, error } = await supabase.functions.invoke('customize-resume', {
+      // Generate executive resume with conversation context
+      const { data, error } = await supabase.functions.invoke('generate-executive-resume', {
         body: { 
-          opportunityId: item.opportunity_id,
+          jobDescription: item.job_opportunities?.job_description,
+          persona: 'executive',
+          format: 'html',
           conversationResponses: responses,
         }
       });

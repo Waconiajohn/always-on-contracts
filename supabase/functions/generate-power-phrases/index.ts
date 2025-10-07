@@ -19,7 +19,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get war chest and interview responses
+    // Get Career Vault and interview responses
     const { data: vault } = await supabase
       .from('career_vault')
       .select('*')

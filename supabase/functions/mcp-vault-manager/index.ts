@@ -175,7 +175,7 @@ serve(async (req) => {
         });
     }
   } catch (error) {
-    console.error('War Chest MCP error:', error);
+    console.error('Career Vault MCP error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
@@ -188,7 +188,7 @@ async function handleCreate(supabaseClient: any, args: any) {
   const { userId, resumeText } = args;
 
   const { data, error } = await supabaseClient
-    .from('career_war_chest')
+    .from('career_vault')
     .insert({
       user_id: userId,
       resume_raw_text: resumeText,
@@ -209,7 +209,7 @@ async function handleGet(supabaseClient: any, args: any) {
   const { userId } = args;
 
   const { data, error } = await supabaseClient
-    .from('career_war_chest')
+    .from('career_vault')
     .select('*')
     .eq('user_id', userId)
     .single();

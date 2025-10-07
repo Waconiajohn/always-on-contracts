@@ -1,5 +1,8 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
+[functions.generate-executive-resume]
+verify_jwt = true
+
 [functions.create-checkout]
 verify_jwt = true
 
@@ -139,12 +142,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.financial-planning-advisor]
-verify_jwt = true
-
-[functions.extract-war-chest-intelligence]
-verify_jwt = true
-
-[functions.get-war-chest-intelligence]
 verify_jwt = true
 
 [functions.text-to-speech]

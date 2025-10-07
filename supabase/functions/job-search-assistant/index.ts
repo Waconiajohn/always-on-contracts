@@ -25,8 +25,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Build system prompt with War Chest context
-    const systemPrompt = `You are an AI Job Search Assistant powered by the user's Career War Chest.
+    // Build system prompt with Career Vault context
+    const systemPrompt = `You are an AI Job Search Assistant powered by the user's Career Vault.
 
 User's Profile:
 - Skills: ${context?.skills?.join(', ') || 'Not provided'}

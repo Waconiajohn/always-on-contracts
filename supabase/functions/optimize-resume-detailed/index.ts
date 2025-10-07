@@ -114,7 +114,7 @@ COMPETITIVE ADVANTAGES:
 ${intelligence.competitiveAdvantages.slice(0, 3).map((a: any) => `- ${a.advantage_description}`).join('\n')}
 
 **OPTIMIZATION MANDATE:**
-- Prioritize confirmed skills from War Chest over inferred skills
+- Prioritize confirmed skills from Career Vault over inferred skills
 - Use exact quantified achievements (metrics are verified, not estimated)
 - Incorporate proven power phrases for ATS optimization
 - Leverage competitive advantages to differentiate from other candidates
@@ -144,8 +144,8 @@ EXPERTISE AREAS:
 - Contract/consulting positioning for premium rates
 
 ${intelligence ? `
-CRITICAL: You have access to this candidate's verified War Chest intelligence. This is real, validated career data - not generic advice. Use it strategically:
-- When War Chest shows quantified metrics, use them exactly as provided
+CRITICAL: You have access to this candidate's verified Career Vault intelligence. This is real, validated career data - not generic advice. Use it strategically:
+- When Career Vault shows quantified metrics, use them exactly as provided
 - Prioritize confirmed skills over suggested/inferred skills
 - Use proven power phrases from the keyword bank
 - Reference verified leadership evidence and industry expertise
@@ -158,28 +158,28 @@ Phase 1 - ATS OPTIMIZATION (40% weight)
 - Skills section alignment with job requirements
 - Job title and role description matching
 - Format compatibility (ATS-friendly structure)
-${intelligence ? '- Integration of War Chest keyword bank' : ''}
+${intelligence ? '- Integration of Career Vault keyword bank' : ''}
 
 Phase 2 - HUMAN READER IMPACT (40% weight)
 - Executive summary strength (hook within 3 seconds)
 - Achievement quantification (numbers, %, $, impact scale)
 - Leadership indicators (team size, budget, scope)
 - Industry credibility signals (company names, project scale)
-${intelligence ? '- Showcase verified quantified achievements from War Chest' : ''}
+${intelligence ? '- Showcase verified quantified achievements from Career Vault' : ''}
 
 Phase 3 - EXECUTIVE POSITIONING (20% weight)
 - Strategic thinking evidence
 - Business impact (revenue, efficiency, transformation)
 - Thought leadership indicators
 - Premium positioning (contractor: bill rate justification)
-${intelligence ? '- Leverage competitive advantages from War Chest' : ''}
+${intelligence ? '- Leverage competitive advantages from Career Vault' : ''}
 
 OUTPUT REQUIREMENTS:
 1. Overall scores (0-100) for each phase
 2. Top 5 specific improvements with before/after examples
 3. Missing critical keywords with suggested placement
 4. 3-5 concrete recommendations ranked by impact
-${intelligence ? '5. Validation of War Chest data usage in optimized resume' : ''}
+${intelligence ? '5. Validation of Career Vault data usage in optimized resume' : ''}
 
 TONE: Direct, specific, actionable. No generic advice. Return valid JSON only.`
         },
@@ -198,10 +198,10 @@ ${vaultContext}
 DELIVERABLES:
 1. Comprehensive scoring across all three phases
 2. Specific keyword gaps with integration strategy
-3. Achievement enhancement suggestions (add metrics where missing, prioritize War Chest verified metrics)
+3. Achievement enhancement suggestions (add metrics where missing, prioritize Career Vault verified metrics)
 4. Executive positioning improvements
 5. Final recommendations prioritized by ROI
-${intelligence ? '6. Confirmation of which War Chest intelligence was leveraged' : ''}
+${intelligence ? '6. Confirmation of which Career Vault intelligence was leveraged' : ''}
 
 FORMAT: Return detailed JSON matching the expected schema with optimizedResume, analysis (with all score fields), improvements array, missingKeywords array, and recommendations array.`
         }

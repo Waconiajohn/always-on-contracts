@@ -43,7 +43,7 @@ serve(async (req) => {
       throw new Error('Job project not found');
     }
 
-    // Fetch War Chest data
+    // Fetch Career Vault data
     const { data: vault } = await supabaseClient
       .from('career_vault')
       .select(`

@@ -157,20 +157,20 @@ async function handleMatchToJob(supabaseClient: any, args: any) {
   const { userId, jobDescription } = args;
 
   // Get user's resume
-  const { data: warChest } = await supabaseClient
-    .from('career_war_chest')
+  const { data: vault } = await supabaseClient
+    .from('career_vault')
     .select('resume_raw_text')
     .eq('user_id', userId)
     .single();
 
-  if (!warChest?.resume_raw_text) {
+  if (!vault?.resume_raw_text) {
     throw new Error('No resume found for user');
   }
 
   // Call score-resume-match function
   const { data: matchResult, error: matchError } = await supabaseClient.functions.invoke('score-resume-match', {
     body: { 
-      resumeText: warChest.resume_raw_text,
+      resumeText: vault.resume_raw_text,
       jobDescription 
     }
   });
