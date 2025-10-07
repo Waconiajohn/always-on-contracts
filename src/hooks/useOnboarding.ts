@@ -39,14 +39,23 @@ export const useOnboarding = () => {
 
       const hasResume = (resumes?.length || 0) > 0;
 
-      // Check for profile completion
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("strategy_customized")
+      // Check for career vault and interview responses
+      const { data: vault } = await supabase
+        .from("career_vault")
+        .select("id, interview_completion_percentage")
         .eq("user_id", user.id)
         .single();
 
-      const hasCompletedInterview = profile?.strategy_customized || false;
+      // Check if user has completed at least 10 interview responses
+      let hasCompletedInterview = false;
+      if (vault) {
+        const { count } = await supabase
+          .from("vault_interview_responses")
+          .select("*", { count: 'exact', head: true })
+          .eq("vault_id", vault.id);
+        
+        hasCompletedInterview = (count || 0) >= 10;
+      }
 
       // Check for career vault review (assuming they've accessed it)
       const hasReviewedVault = localStorage.getItem(`vault_reviewed_${user.id}`) === "true";

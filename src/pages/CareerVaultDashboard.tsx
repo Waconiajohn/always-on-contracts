@@ -13,6 +13,13 @@ interface VaultStats {
   total_power_phrases: number;
   total_transferable_skills: number;
   total_hidden_competencies: number;
+  total_soft_skills: number;
+  total_leadership_philosophy: number;
+  total_executive_presence: number;
+  total_personality_traits: number;
+  total_work_style: number;
+  total_values: number;
+  total_behavioral_indicators: number;
   overall_strength_score: number;
   interview_completion_percentage: number;
 }
@@ -22,6 +29,7 @@ interface StrengthScore {
   powerPhrasesScore: number;
   transferableSkillsScore: number;
   hiddenCompetenciesScore: number;
+  intangiblesScore: number;
   quantificationScore: number;
   modernTerminologyScore: number;
   level: 'Developing' | 'Solid' | 'Strong' | 'Elite' | 'Exceptional';
@@ -53,6 +61,55 @@ interface HiddenCompetency {
   certification_equivalent: string | null;
 }
 
+interface SoftSkill {
+  id: string;
+  skill_name: string;
+  evidence: string;
+  quality_tier: string;
+}
+
+interface LeadershipPhilosophy {
+  id: string;
+  philosophy_statement: string;
+  supporting_evidence: string;
+  quality_tier: string;
+}
+
+interface ExecutivePresence {
+  id: string;
+  presence_indicator: string;
+  evidence: string;
+  quality_tier: string;
+}
+
+interface PersonalityTrait {
+  id: string;
+  trait_name: string;
+  evidence: string;
+  quality_tier: string;
+}
+
+interface WorkStyle {
+  id: string;
+  style_aspect: string;
+  evidence: string;
+  quality_tier: string;
+}
+
+interface Value {
+  id: string;
+  value_name: string;
+  evidence: string;
+  quality_tier: string;
+}
+
+interface BehavioralIndicator {
+  id: string;
+  indicator_type: string;
+  evidence: string;
+  quality_tier: string;
+}
+
 import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
 import { MarketResearchPanel } from '@/components/MarketResearchPanel';
 import { EnhancementQueue } from '@/components/EnhancementQueue';
@@ -65,45 +122,66 @@ const VaultDashboardContent = () => {
   const [powerPhrases, setPowerPhrases] = useState<PowerPhrase[]>([]);
   const [transferableSkills, setTransferableSkills] = useState<TransferableSkill[]>([]);
   const [hiddenCompetencies, setHiddenCompetencies] = useState<HiddenCompetency[]>([]);
+  const [softSkills, setSoftSkills] = useState<SoftSkill[]>([]);
+  const [leadershipPhilosophy, setLeadershipPhilosophy] = useState<LeadershipPhilosophy[]>([]);
+  const [executivePresence, setExecutivePresence] = useState<ExecutivePresence[]>([]);
+  const [personalityTraits, setPersonalityTraits] = useState<PersonalityTrait[]>([]);
+  const [workStyle, setWorkStyle] = useState<WorkStyle[]>([]);
+  const [values, setValues] = useState<Value[]>([]);
+  const [behavioralIndicators, setBehavioralIndicators] = useState<BehavioralIndicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [strengthScore, setStrengthScore] = useState<StrengthScore | null>(null);
 
   const calculateStrengthScore = (
     phrases: PowerPhrase[], 
     skills: TransferableSkill[], 
-    competencies: HiddenCompetency[]
+    competencies: HiddenCompetency[],
+    softSkills: SoftSkill[],
+    leadership: LeadershipPhilosophy[],
+    presence: ExecutivePresence[],
+    traits: PersonalityTrait[],
+    style: WorkStyle[],
+    vals: Value[],
+    behavioral: BehavioralIndicator[]
   ): StrengthScore => {
-    // Power Phrases Score (0-20 points)
-    const powerPhrasesScore = Math.min((phrases.length / 15) * 20, 20);
+    // Core Intelligence (30 points total)
+    const powerPhrasesScore = Math.min((phrases.length / 20) * 10, 10);
+    const transferableSkillsScore = Math.min((skills.length / 15) * 10, 10);
+    const hiddenCompetenciesScore = Math.min((competencies.length / 10) * 10, 10);
     
-    // Transferable Skills Score (0-20 points)
-    const transferableSkillsScore = Math.min((skills.length / 10) * 20, 20);
+    // Intangibles Intelligence (40 points total)
+    const softSkillsScore = Math.min((softSkills.length / 8) * 8, 8);
+    const leadershipScore = Math.min((leadership.length / 3) * 8, 8);
+    const presenceScore = Math.min((presence.length / 3) * 8, 8);
+    const traitsScore = Math.min((traits.length / 5) * 4, 4);
+    const styleScore = Math.min((style.length / 3) * 4, 4);
+    const valuesScore = Math.min((vals.length / 3) * 4, 4);
+    const behavioralScore = Math.min((behavioral.length / 3) * 4, 4);
     
-    // Hidden Competencies Score (0-20 points)
-    const hiddenCompetenciesScore = Math.min((competencies.length / 8) * 20, 20);
+    const intangiblesScore = softSkillsScore + leadershipScore + presenceScore + traitsScore + styleScore + valuesScore + behavioralScore;
     
-    // Quantification Density Score (0-20 points)
+    // Quality Metrics (30 points total)
     const phrasesWithMetrics = phrases.filter(p => 
       p.impact_metrics && Object.keys(p.impact_metrics).length > 0
     ).length;
     const quantificationScore = phrases.length > 0 
-      ? (phrasesWithMetrics / phrases.length) * 20 
+      ? (phrasesWithMetrics / phrases.length) * 15 
       : 0;
     
-    // Modern Terminology Score (0-20 points)
     const modernKeywords = ['AI', 'ML', 'cloud', 'digital transformation', 'automation', 
       'data science', 'agile', 'DevOps', 'analytics', 'optimization'];
     const modernPhrases = phrases.filter(p => 
       p.keywords.some(k => modernKeywords.some(mk => k.toLowerCase().includes(mk.toLowerCase())))
     ).length;
     const modernTerminologyScore = phrases.length > 0 
-      ? (modernPhrases / phrases.length) * 20 
+      ? (modernPhrases / phrases.length) * 15 
       : 0;
     
     const total = Math.round(
       powerPhrasesScore + 
       transferableSkillsScore + 
       hiddenCompetenciesScore + 
+      intangiblesScore +
       quantificationScore + 
       modernTerminologyScore
     );
@@ -119,6 +197,7 @@ const VaultDashboardContent = () => {
       powerPhrasesScore: Math.round(powerPhrasesScore),
       transferableSkillsScore: Math.round(transferableSkillsScore),
       hiddenCompetenciesScore: Math.round(hiddenCompetenciesScore),
+      intangiblesScore: Math.round(intangiblesScore),
       quantificationScore: Math.round(quantificationScore),
       modernTerminologyScore: Math.round(modernTerminologyScore),
       level
@@ -143,39 +222,55 @@ const VaultDashboardContent = () => {
             total_power_phrases: vault.total_power_phrases || 0,
             total_transferable_skills: vault.total_transferable_skills || 0,
             total_hidden_competencies: vault.total_hidden_competencies || 0,
+            total_soft_skills: vault.total_soft_skills || 0,
+            total_leadership_philosophy: vault.total_leadership_philosophy || 0,
+            total_executive_presence: vault.total_executive_presence || 0,
+            total_personality_traits: vault.total_personality_traits || 0,
+            total_work_style: vault.total_work_style || 0,
+            total_values: vault.total_values || 0,
+            total_behavioral_indicators: vault.total_behavioral_indicators || 0,
             overall_strength_score: vault.overall_strength_score || 0,
             interview_completion_percentage: vault.interview_completion_percentage || 0
           });
 
-          // Get power phrases via MCP
-          const { data: phrases } = await supabase
-            .from('vault_power_phrases')
-            .select('*')
-            .eq('vault_id', vault.id)
-            .order('confidence_score', { ascending: false });
+          // Fetch all intelligence data in parallel
+          const [phrasesData, skillsData, competenciesData, softSkillsData, leadershipData, presenceData, traitsData, styleData, valuesData, behavioralData] = await Promise.all([
+            supabase.from('vault_power_phrases').select('*').eq('vault_id', vault.id).order('confidence_score', { ascending: false }),
+            supabase.from('vault_transferable_skills').select('*').eq('vault_id', vault.id).order('confidence_score', { ascending: false }),
+            supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vault.id).order('confidence_score', { ascending: false }),
+            supabase.from('vault_soft_skills').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
+            supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
+            supabase.from('vault_executive_presence').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
+            supabase.from('vault_personality_traits').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
+            supabase.from('vault_work_style').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
+            supabase.from('vault_values').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false }),
+            supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id).order('quality_tier', { ascending: false })
+          ]);
 
-          setPowerPhrases(phrases || []);
+          setPowerPhrases(phrasesData.data || []);
+          setTransferableSkills(skillsData.data || []);
+          setHiddenCompetencies(competenciesData.data || []);
+          setSoftSkills(softSkillsData.data || []);
+          setLeadershipPhilosophy(leadershipData.data || []);
+          setExecutivePresence(presenceData.data || []);
+          setPersonalityTraits(traitsData.data || []);
+          setWorkStyle(styleData.data || []);
+          setValues(valuesData.data || []);
+          setBehavioralIndicators(behavioralData.data || []);
 
-          // Get transferable skills via MCP
-          const { data: skills } = await supabase
-            .from('vault_transferable_skills')
-            .select('*')
-            .eq('vault_id', vault.id)
-            .order('confidence_score', { ascending: false });
-
-          setTransferableSkills(skills || []);
-
-          // Get hidden competencies via MCP
-          const { data: competencies } = await supabase
-            .from('vault_hidden_competencies')
-            .select('*')
-            .eq('vault_id', vault.id)
-            .order('confidence_score', { ascending: false });
-
-          setHiddenCompetencies(competencies || []);
-
-          // Calculate strength score
-          const score = calculateStrengthScore(phrases || [], skills || [], competencies || []);
+          // Calculate strength score across all 20 categories
+          const score = calculateStrengthScore(
+            phrasesData.data || [], 
+            skillsData.data || [], 
+            competenciesData.data || [],
+            softSkillsData.data || [],
+            leadershipData.data || [],
+            presenceData.data || [],
+            traitsData.data || [],
+            styleData.data || [],
+            valuesData.data || [],
+            behavioralData.data || []
+          );
           setStrengthScore(score);
 
           // Update overall strength score in database
@@ -215,15 +310,15 @@ const VaultDashboardContent = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Your Career Vault</h1>
         <p className="text-muted-foreground">
-          A comprehensive intelligence system of your skills, achievements, and capabilities
+          A comprehensive intelligence system of your skills, achievements, and capabilities across 20 intelligence categories
         </p>
       </div>
 
-      {/* Career Vault Strength Score - Prominent Display */}
+      {/* Career Vault Strength Score */}
       {strengthScore && (
         <Card className="p-8 mb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
           <div className="flex items-center justify-between mb-6">
@@ -233,7 +328,7 @@ const VaultDashboardContent = () => {
               </div>
               <div>
                 <h2 className="text-2xl font-bold mb-1">Career Vault Strength Score</h2>
-                <p className="text-muted-foreground">Your career intelligence assessment</p>
+                <p className="text-muted-foreground">Comprehensive assessment across 20 intelligence categories</p>
               </div>
             </div>
             <div className="text-right">
@@ -249,41 +344,48 @@ const VaultDashboardContent = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Power Phrases</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.powerPhrasesScore}/20</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.powerPhrasesScore}/10</span>
               </div>
-              <Progress value={(strengthScore.powerPhrasesScore / 20) * 100} className="h-2" />
+              <Progress value={(strengthScore.powerPhrasesScore / 10) * 100} className="h-2" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Transferable Skills</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.transferableSkillsScore}/20</span>
+                <span className="text-sm font-medium">Skills</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.transferableSkillsScore}/10</span>
               </div>
-              <Progress value={(strengthScore.transferableSkillsScore / 20) * 100} className="h-2" />
+              <Progress value={(strengthScore.transferableSkillsScore / 10) * 100} className="h-2" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Hidden Competencies</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.hiddenCompetenciesScore}/20</span>
+                <span className="text-sm font-medium">Competencies</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.hiddenCompetenciesScore}/10</span>
               </div>
-              <Progress value={(strengthScore.hiddenCompetenciesScore / 20) * 100} className="h-2" />
+              <Progress value={(strengthScore.hiddenCompetenciesScore / 10) * 100} className="h-2" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Intangibles</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.intangiblesScore}/40</span>
+              </div>
+              <Progress value={(strengthScore.intangiblesScore / 40) * 100} className="h-2" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Quantification</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.quantificationScore}/20</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.quantificationScore}/15</span>
               </div>
-              <Progress value={(strengthScore.quantificationScore / 20) * 100} className="h-2" />
+              <Progress value={(strengthScore.quantificationScore / 15) * 100} className="h-2" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Modern Terms</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.modernTerminologyScore}/20</span>
+                <span className="text-sm text-muted-foreground">{strengthScore.modernTerminologyScore}/15</span>
               </div>
-              <Progress value={(strengthScore.modernTerminologyScore / 20) * 100} className="h-2" />
+              <Progress value={(strengthScore.modernTerminologyScore / 15) * 100} className="h-2" />
             </div>
           </div>
 
@@ -291,62 +393,24 @@ const VaultDashboardContent = () => {
             <div className="flex items-start gap-3">
               <Award className="w-5 h-5 text-primary mt-0.5" />
               <div>
-                <p className="font-medium mb-2">Your Career Vault Achievements:</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>✓ {stats.total_power_phrases} power phrases ready to deploy</li>
-                  <li>✓ {stats.total_transferable_skills} skills mapped to multiple opportunities</li>
-                  <li>✓ {stats.total_hidden_competencies} hidden competencies discovered</li>
-                  {strengthScore.level === 'Exceptional' && <li className="text-primary font-medium">🏆 Exceptional Career Vault - Top 5% of professionals!</li>}
-                  {strengthScore.level === 'Elite' && <li className="text-primary font-medium">⭐ Elite Career Vault - Outstanding career intelligence!</li>}
-                </ul>
+                <p className="font-medium mb-2">Career Intelligence Summary:</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                  <div>✓ {stats.total_power_phrases} power phrases</div>
+                  <div>✓ {stats.total_transferable_skills} transferable skills</div>
+                  <div>✓ {stats.total_hidden_competencies} hidden competencies</div>
+                  <div>✓ {stats.total_soft_skills} soft skills</div>
+                  <div>✓ {stats.total_leadership_philosophy} leadership insights</div>
+                  <div>✓ {stats.total_executive_presence} presence indicators</div>
+                  <div>✓ {stats.total_personality_traits} personality traits</div>
+                  <div>✓ {stats.total_work_style} work style aspects</div>
+                </div>
+                {strengthScore.level === 'Exceptional' && <p className="text-primary font-medium mt-2">🏆 Exceptional Career Vault - Top 5% of professionals!</p>}
+                {strengthScore.level === 'Elite' && <p className="text-primary font-medium mt-2">⭐ Elite Career Vault - Outstanding career intelligence!</p>}
               </div>
             </div>
           </div>
         </Card>
       )}
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <FileText className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Power Phrases</p>
-              <p className="text-2xl font-bold">{stats.total_power_phrases}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <Zap className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Transferable Skills</p>
-              <p className="text-2xl font-bold">{stats.total_transferable_skills}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <Brain className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Hidden Competencies</p>
-              <p className="text-2xl font-bold">{stats.total_hidden_competencies}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Strength Score</p>
-              <p className="text-2xl font-bold">{stats.overall_strength_score}/100</p>
-            </div>
-          </div>
-        </Card>
-      </div>
 
       {/* Interview Progress */}
       <Card className="p-6 mb-8">
@@ -355,119 +419,250 @@ const VaultDashboardContent = () => {
           <span className="text-sm text-muted-foreground">{stats.interview_completion_percentage}%</span>
         </div>
         <Progress value={stats.interview_completion_percentage} className="h-2" />
+        <p className="text-sm text-muted-foreground mt-2">
+          Continue the interview to unlock more intelligence categories
+        </p>
       </Card>
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="enhancement-queue" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="enhancement-queue">🎯 Enhancement Queue</TabsTrigger>
-          <TabsTrigger value="power-phrases">Power Phrases</TabsTrigger>
-          <TabsTrigger value="transferable-skills">Skills</TabsTrigger>
-          <TabsTrigger value="intangibles">🧠 Intangibles</TabsTrigger>
-          <TabsTrigger value="responses">All Responses</TabsTrigger>
-          <TabsTrigger value="market-research">Market Intel</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-max min-w-full">
+            <TabsTrigger value="enhancement-queue">🎯 Queue</TabsTrigger>
+            <TabsTrigger value="power-phrases">Phrases</TabsTrigger>
+            <TabsTrigger value="transferable-skills">Skills</TabsTrigger>
+            <TabsTrigger value="hidden-competencies">Competencies</TabsTrigger>
+            <TabsTrigger value="soft-skills">🧠 Soft Skills</TabsTrigger>
+            <TabsTrigger value="leadership">🎯 Leadership</TabsTrigger>
+            <TabsTrigger value="presence">👔 Presence</TabsTrigger>
+            <TabsTrigger value="traits">🎭 Traits</TabsTrigger>
+            <TabsTrigger value="work-style">⚙️ Style</TabsTrigger>
+            <TabsTrigger value="values">💎 Values</TabsTrigger>
+            <TabsTrigger value="behavioral">🔍 Behavioral</TabsTrigger>
+            <TabsTrigger value="responses">All</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="enhancement-queue">
           <EnhancementQueue vaultId={vaultId} />
         </TabsContent>
 
         <TabsContent value="power-phrases" className="space-y-4">
-          {powerPhrases.map((phrase) => (
-            <Card key={phrase.id} className="p-6">
-              <div className="flex items-start justify-between mb-2">
-                <Badge variant="secondary">{phrase.category}</Badge>
-                <Badge variant={phrase.confidence_score > 80 ? "default" : "outline"}>
-                  {phrase.confidence_score}% confidence
-                </Badge>
-              </div>
-              <p className="text-lg mb-3">{phrase.power_phrase}</p>
-              <div className="flex flex-wrap gap-2">
-                {phrase.keywords.map((keyword, idx) => (
-                  <Badge key={idx} variant="outline" className="text-xs">
-                    {keyword}
+          {powerPhrases.length > 0 ? (
+            powerPhrases.map((phrase) => (
+              <Card key={phrase.id} className="p-6">
+                <div className="flex items-start justify-between mb-2">
+                  <Badge variant="secondary">{phrase.category}</Badge>
+                  <Badge variant={phrase.confidence_score > 80 ? "default" : "outline"}>
+                    {phrase.confidence_score}% confidence
                   </Badge>
-                ))}
-              </div>
+                </div>
+                <p className="text-lg mb-3">{phrase.power_phrase}</p>
+                <div className="flex flex-wrap gap-2">
+                  {phrase.keywords.map((keyword, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No power phrases yet. Continue your interview to build your vault.</p>
             </Card>
-          ))}
+          )}
         </TabsContent>
 
         <TabsContent value="transferable-skills" className="space-y-4">
-          {transferableSkills.map((skill) => (
-            <Card key={skill.id} className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <h4 className="text-lg font-semibold">{skill.stated_skill}</h4>
-                <Badge variant={skill.confidence_score > 80 ? "default" : "outline"}>
-                  {skill.confidence_score}% confidence
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">{skill.evidence}</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="text-sm font-medium">Also qualifies for:</span>
-                {skill.equivalent_skills.map((eq, idx) => (
-                  <Badge key={idx} variant="secondary">
-                    {eq}
+          {transferableSkills.length > 0 ? (
+            transferableSkills.map((skill) => (
+              <Card key={skill.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{skill.stated_skill}</h4>
+                  <Badge variant={skill.confidence_score > 80 ? "default" : "outline"}>
+                    {skill.confidence_score}% confidence
                   </Badge>
-                ))}
-              </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">{skill.evidence}</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-sm font-medium">Also qualifies for:</span>
+                  {skill.equivalent_skills.map((eq, idx) => (
+                    <Badge key={idx} variant="secondary">
+                      {eq}
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No transferable skills yet. Continue your interview to build your vault.</p>
             </Card>
-          ))}
+          )}
         </TabsContent>
 
-        <TabsContent value="intangibles">
-          <Card className="p-6">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold mb-2">🧠 Intangibles Intelligence</h3>
-              <p className="text-muted-foreground">
-                Soft skills, leadership philosophy, executive presence, personality traits, work style, values, and behavioral patterns
-              </p>
-            </div>
-            <div className="grid gap-4">
-              {hiddenCompetencies.length > 0 ? (
-                hiddenCompetencies.map((comp) => (
-                  <Card key={comp.id} className="p-4 bg-muted/50">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold">{comp.competency_area}</h4>
-                      <Badge variant={comp.confidence_score > 80 ? "default" : "outline"}>
-                        {comp.confidence_score}%
-                      </Badge>
-                    </div>
-                    <p className="text-sm mb-2">{comp.inferred_capability}</p>
-                    {comp.supporting_evidence.length > 0 && (
-                      <ul className="text-xs text-muted-foreground space-y-1">
-                        {comp.supporting_evidence.slice(0, 2).map((ev, idx) => (
-                          <li key={idx}>• {ev}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </Card>
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Complete more of the Career Vault interview to reveal intangibles intelligence
-                </p>
-              )}
-            </div>
-          </Card>
+        <TabsContent value="hidden-competencies" className="space-y-4">
+          {hiddenCompetencies.length > 0 ? (
+            hiddenCompetencies.map((comp) => (
+              <Card key={comp.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{comp.competency_area}</h4>
+                  <Badge variant={comp.confidence_score > 80 ? "default" : "outline"}>
+                    {comp.confidence_score}% confidence
+                  </Badge>
+                </div>
+                <p className="text-sm mb-3">{comp.inferred_capability}</p>
+                {comp.certification_equivalent && (
+                  <Badge variant="secondary">≈ {comp.certification_equivalent}</Badge>
+                )}
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No hidden competencies yet. Continue your interview to discover them.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="soft-skills" className="space-y-4">
+          {softSkills.length > 0 ? (
+            softSkills.map((skill) => (
+              <Card key={skill.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{skill.skill_name}</h4>
+                  <Badge variant={skill.quality_tier === 'executive' ? 'default' : 'secondary'}>
+                    {skill.quality_tier}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{skill.evidence}</p>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No soft skills documented yet. Continue your interview to reveal them.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="leadership" className="space-y-4">
+          {leadershipPhilosophy.length > 0 ? (
+            leadershipPhilosophy.map((philosophy) => (
+              <Card key={philosophy.id} className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
+                <Badge variant="default" className="mb-3">{philosophy.quality_tier} Leadership</Badge>
+                <p className="text-lg font-medium mb-3">{philosophy.philosophy_statement}</p>
+                <p className="text-sm text-muted-foreground">{philosophy.supporting_evidence}</p>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No leadership philosophy documented yet. Continue your interview.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="presence" className="space-y-4">
+          {executivePresence.length > 0 ? (
+            executivePresence.map((presence) => (
+              <Card key={presence.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{presence.presence_indicator}</h4>
+                  <Badge variant="default">{presence.quality_tier}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{presence.evidence}</p>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No executive presence indicators yet. Continue your interview.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="traits" className="space-y-4">
+          {personalityTraits.length > 0 ? (
+            personalityTraits.map((trait) => (
+              <Card key={trait.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{trait.trait_name}</h4>
+                  <Badge variant="secondary">{trait.quality_tier}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{trait.evidence}</p>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No personality traits documented yet. Continue your interview.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="work-style" className="space-y-4">
+          {workStyle.length > 0 ? (
+            workStyle.map((style) => (
+              <Card key={style.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{style.style_aspect}</h4>
+                  <Badge variant="secondary">{style.quality_tier}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{style.evidence}</p>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No work style preferences documented yet. Continue your interview.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="values" className="space-y-4">
+          {values.length > 0 ? (
+            values.map((value) => (
+              <Card key={value.id} className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{value.value_name}</h4>
+                  <Badge variant="default">{value.quality_tier}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{value.evidence}</p>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No core values documented yet. Continue your interview.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="behavioral" className="space-y-4">
+          {behavioralIndicators.length > 0 ? (
+            behavioralIndicators.map((indicator) => (
+              <Card key={indicator.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h4 className="text-lg font-semibold">{indicator.indicator_type}</h4>
+                  <Badge variant="secondary">{indicator.quality_tier}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{indicator.evidence}</p>
+              </Card>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No behavioral patterns documented yet. Continue your interview.</p>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="responses">
           <InterviewResponsesTab vaultId={vaultId} />
-        </TabsContent>
-
-        <TabsContent value="market-research">
-          <MarketResearchPanel />
         </TabsContent>
       </Tabs>
     </div>
   );
 };
 
-export default function CareerVaultDashboard() {
+export const CareerVaultDashboard = () => {
   return (
     <ProtectedRoute>
       <VaultDashboardContent />
     </ProtectedRoute>
   );
-}
+};
