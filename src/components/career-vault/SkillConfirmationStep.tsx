@@ -45,6 +45,15 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user');
 
+      // Get confirmed skill names
+      const { data: confirmedSkills } = await supabase
+        .from('vault_confirmed_skills')
+        .select('skill_name')
+        .eq('user_id', user.id);
+
+      const confirmedNames = new Set((confirmedSkills || []).map(s => s.skill_name));
+
+      // Get all taxonomy skills
       const { data, error } = await supabase
         .from('vault_skill_taxonomy')
         .select('*')
@@ -54,15 +63,10 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
 
       if (error) throw error;
 
-      setSkills(data || []);
-      
-      // Get confirmed count
-      const { count } = await supabase
-        .from('vault_confirmed_skills')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      setConfirmedCount(count || 0);
+      // Filter out already confirmed skills
+      const unconfirmedSkills = (data || []).filter(skill => !confirmedNames.has(skill.skill_name));
+      setSkills(unconfirmedSkills);
+      setConfirmedCount(confirmedNames.size);
     } catch (error) {
       console.error('Error fetching skills:', error);
       toast.error('Failed to load skills');
@@ -179,7 +183,9 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
     }
   };
 
-  const progressPercentage = skills.length > 0 ? (confirmedCount / skills.length) * 100 : 0;
+  // Calculate progress based on total original skills (confirmed + unconfirmed)
+  const totalSkills = confirmedCount + skills.length;
+  const progressPercentage = totalSkills > 0 ? (confirmedCount / totalSkills) * 100 : 0;
 
   if (loading) {
     return (
@@ -202,7 +208,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
-            {confirmedCount} of {skills.length} skills confirmed
+            {confirmedCount} of {totalSkills} skills confirmed ({skills.length} remaining)
           </span>
           <span className="text-muted-foreground">{Math.round(progressPercentage)}%</span>
         </div>

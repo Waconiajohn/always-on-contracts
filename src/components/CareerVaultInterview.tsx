@@ -130,6 +130,17 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     startInterview();
     calculateDynamicQuestionCount();
     loadMilestones();
+    
+    // Keep auth session alive during interview to prevent unexpected logout
+    const keepAlive = setInterval(async () => {
+      try {
+        await supabase.auth.refreshSession();
+      } catch (error) {
+        console.error('Session refresh error:', error);
+      }
+    }, 5 * 60 * 1000); // Refresh every 5 minutes
+    
+    return () => clearInterval(keepAlive);
   }, []);
 
   const calculateDynamicQuestionCount = async () => {
@@ -451,7 +462,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           intelligenceValue < 30 ? 'high' :
           intelligenceValue < 60 ? 'medium' : 'low';
         
-        const { data: savedResponse } = await supabase
+        const { data: savedResponse, error: saveError } = await supabase
           .from('vault_interview_responses')
           .insert([{
             vault_id: vaultId,
@@ -465,13 +476,26 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
             enhancement_priority: enhancementPriority,
             completeness_score: Math.round(completenessScore),
             specificity_score: specificityScore,
-            intelligence_value: Math.round(intelligenceValue)
+            intelligence_value: Math.round(intelligenceValue),
+            milestone_id: currentMilestoneId
           }])
           .select()
           .single();
 
+        if (saveError) {
+          console.error('Error saving response:', saveError);
+          toast({
+            title: 'Save Error',
+            description: 'Failed to save your response. Please try again.',
+            variant: 'destructive'
+          });
+          setIsValidating(false);
+          return;
+        }
+
         if (savedResponse) {
           setCurrentResponseId(savedResponse.id);
+          console.log('✅ Response saved:', savedResponse.id);
         }
 
         // Step 3: Extract intelligence in real-time
