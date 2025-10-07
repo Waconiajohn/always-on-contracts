@@ -149,6 +149,9 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     calculateDynamicQuestionCount();
     loadMilestones();
     
+    // NEW: Restore saved progress on mount
+    restoreSavedProgress();
+    
     // Keep auth session alive (less aggressive - only when idle)
     let lastActivityTime = Date.now();
     const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -298,11 +301,18 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       // Get vault ID
       const { data: vault } = await supabase
         .from('career_vault')
-        .select('id')
+        .select('id, interview_completion_percentage')
         .eq('user_id', user.id)
         .single();
 
       if (!vault) return;
+      
+      setVaultId(vault.id);
+      
+      // Set completion percentage from vault
+      if (vault.interview_completion_percentage) {
+        setCompletionPercentage(vault.interview_completion_percentage);
+      }
 
       // Load milestones
       const { data: milestonesData } = await supabase
@@ -325,6 +335,64 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       }
     } catch (error) {
       console.error('Error loading milestones:', error);
+    }
+  };
+
+  const restoreSavedProgress = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check for saved drafts in database
+      const { data: drafts } = await supabase
+        .from('vault_interview_responses')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (drafts && drafts.length > 0) {
+        const lastDraft = drafts[0];
+        
+        toast({
+          title: "Welcome back!",
+          description: `Found saved progress from ${new Date(lastDraft.created_at).toLocaleDateString()}. Continuing where you left off...`,
+        });
+
+        // Restore state
+        setUserInput(lastDraft.response || '');
+        setQualityScore(lastDraft.quality_score || 0);
+        setCurrentPhase(lastDraft.phase || 'discovery');
+        
+        // Don't auto-load the old question - just show user they have saved work
+        console.log('[RESTORE] Found draft:', lastDraft);
+      }
+
+      // Check sessionStorage for very recent progress
+      const sessionData = sessionStorage.getItem('career_vault_interview_progress');
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        const timeSaved = new Date(parsed.timestamp).getTime();
+        const now = new Date().getTime();
+        
+        // Only restore if saved within last hour
+        if (now - timeSaved < 60 * 60 * 1000) {
+          console.log('[RESTORE] Restoring from session storage');
+          setUserInput(parsed.userInput || '');
+          setSelectedOptions(parsed.selectedOptions || []);
+          setCompletionPercentage(parsed.completionPercentage || 0);
+          
+          toast({
+            title: "Progress restored",
+            description: "Continuing from your last session",
+          });
+        } else {
+          sessionStorage.removeItem('career_vault_interview_progress');
+        }
+      }
+    } catch (error) {
+      console.error('[RESTORE] Error:', error);
     }
   };
 
