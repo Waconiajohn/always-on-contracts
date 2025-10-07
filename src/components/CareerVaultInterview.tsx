@@ -932,81 +932,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     handleAcceptAndContinue();
   };
 
-      if (validationError) throw validationError;
-
-      const validation = validationData as ValidationResult;
-      setQualityScore(validation.quality_score);
-
-      if (validation.is_sufficient && validation.quality_score >= 70) {
-        // Good enough - save and proceed
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        if (vaultId) {
-          await supabase
-            .from('vault_interview_responses')
-            .insert([{
-              vault_id: vaultId,
-              user_id: user.id,
-              question: currentSubQuestion.prompt,
-              response: enhancedAnswer,
-              quality_score: validation.quality_score,
-              validation_feedback: validation as any,
-              phase: currentPhase,
-            }]);
-        }
-
-        // Move to next question
-        if (currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1) {
-          setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
-          
-          // Reset state for next sub-question
-          const nextSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex + 1];
-          if (nextSubQuestion?.answer_options) {
-            setQuestionType('multiple_choice_with_custom');
-            setAnswerOptions(nextSubQuestion.answer_options);
-          } else if (nextSubQuestion?.question_type === 'star') {
-            setQuestionType('star');
-          } else {
-            setQuestionType('text');
-          }
-          setSelectedOptions([]);
-          setCustomAnswerText('');
-        } else {
-          setCompletionPercentage(Math.min(100, completionPercentage + 10));
-          const { data } = await supabase.functions.invoke('generate-interview-question', {
-            body: { 
-              phase: currentPhase,
-              generate_answer_options: true
-            }
-          });
-          if (data?.question) {
-            setCurrentQuestion(data.question);
-            setCurrentSubQuestionIndex(0);
-            
-            // Set question type for new question
-            const firstSubQuestion = data.question.questionsToExpand[0];
-            if (firstSubQuestion?.answer_options) {
-              setQuestionType('multiple_choice_with_custom');
-              setAnswerOptions(firstSubQuestion.answer_options);
-            } else if (firstSubQuestion?.question_type === 'star') {
-              setQuestionType('star');
-            } else {
-              setQuestionType('text');
-            }
-            setSelectedOptions([]);
-            setCustomAnswerText('');
-          }
-        }
-
-        setUserInput('');
-        setQualityScore(0);
-        toast({
-          title: 'Great!',
-          description: 'Your enhanced response looks good. Moving forward.',
-        });
-      } else {
-        // Still needs improvement
   const fetchEnhancedAnswer = async (question: string, currentAnswer: string, validationFeedback: any) => {
     try {
       const { data } = await supabase.functions.invoke('update-strong-answer', {
@@ -1044,12 +969,13 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       }
 
       // Save the response
+      const currentSubQuestion = currentQuestion.questionsToExpand[currentSubQuestionIndex];
       await supabase
         .from('vault_interview_responses')
         .insert([{
           vault_id: vaultId,
           user_id: user.id,
-          question: currentSubQuestion.prompt,
+          question: currentSubQuestion?.prompt || '',
           response: responseToSave,
           quality_score: qualityScore,
           validation_feedback: validationFeedback as any,
@@ -1184,22 +1110,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSkipGuidedPrompts = () => {
-    const newSkipAttempts = skipAttempts + 1;
-    setSkipAttempts(newSkipAttempts);
-    setGuidedPrompts(null);
-    
-    if (newSkipAttempts >= 2) {
-      // Allow progression
-      handleSubmit();
-    } else {
-      toast({
-        title: 'Noted',
-        description: 'You can enhance this later. Click Submit to continue.',
-      });
     }
   };
 
