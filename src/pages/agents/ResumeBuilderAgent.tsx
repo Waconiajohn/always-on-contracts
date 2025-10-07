@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles } from "lucide-react";
+import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,9 @@ const ResumeBuilderAgentContent = () => {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generatedResume, setGeneratedResume] = useState<any>(null);
+  const [generating, setGenerating] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<'html' | 'docx' | 'pdf'>('html');
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -64,21 +67,31 @@ const ResumeBuilderAgentContent = () => {
       return;
     }
 
-    toast({ title: "Generating custom resume...", description: "This may take a moment" });
+    setGenerating(true);
+    toast({ 
+      title: "Generating executive resume...", 
+      description: "Using all 20 Career Vault intelligence categories with 3-pass AI review" 
+    });
     
-    const { data, error } = await supabase.functions.invoke('customize-resume', {
+    const { data, error } = await supabase.functions.invoke('generate-executive-resume', {
       body: { 
         jobDescription,
-        selectedPhrases,
-        selectedSkills,
-        persona: selectedPersona
+        persona: selectedPersona,
+        format: selectedFormat
       }
     });
+
+    setGenerating(false);
 
     if (error) {
       toast({ title: "Error generating resume", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Resume generated!", description: "Your custom resume is ready" });
+      setGeneratedResume(data);
+      setActiveTab('compare');
+      toast({ 
+        title: "Resume generated!", 
+        description: `${data.metadata.jobTitle} resume ready with hiring manager review` 
+      });
     }
   };
 
@@ -240,12 +253,34 @@ const ResumeBuilderAgentContent = () => {
                   />
                 )}
                 
-                <Button onClick={handleGenerateResume} className="w-full" disabled={!selectedPersona}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Generate Custom Resume
-                </Button>
-                <div className="text-sm text-muted-foreground">
-                  Selected: {selectedPhrases.length} power phrases, {selectedSkills.length} skills{selectedPersona && `, ${recommendation?.personas.find(p => p.id === selectedPersona)?.name} persona`}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Output Format</label>
+                    <div className="flex gap-2">
+                      {(['html', 'docx', 'pdf'] as const).map((fmt) => (
+                        <Button
+                          key={fmt}
+                          variant={selectedFormat === fmt ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedFormat(fmt)}
+                        >
+                          {fmt.toUpperCase()}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button onClick={handleGenerateResume} className="w-full" disabled={!selectedPersona || generating}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    {generating ? 'Generating...' : 'Generate Executive Resume'}
+                  </Button>
+                  
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>✓ All 20 intelligence categories</p>
+                    <p>✓ 3-pass AI generation with hiring manager review</p>
+                    <p>✓ Gap coverage for unmatched requirements</p>
+                    <p>✓ ATS-optimized with exact keywords</p>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -260,10 +295,42 @@ const ResumeBuilderAgentContent = () => {
 
               <TabsContent value="compare" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-300px)]">
-                  <div className="text-center text-muted-foreground py-12">
-                    <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p>Resume preview will appear here</p>
-                  </div>
+                  {!generatedResume ? (
+                    <div className="text-center text-muted-foreground py-12">
+                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <p>Generate a resume to see preview</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-muted rounded">
+                        <div>
+                          <p className="font-semibold">{generatedResume.metadata.jobTitle}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {generatedResume.metadata.passes.final}
+                          </p>
+                        </div>
+                        <Button onClick={() => {
+                          const blob = new Blob([generatedResume.htmlContent], { type: 'text/html' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `resume-${Date.now()}.html`;
+                          a.click();
+                          toast({ title: "Resume downloaded!" });
+                        }}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+
+                      <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+
+                      <div className="p-4 bg-muted rounded space-y-2 text-sm">
+                        <p className="font-semibold">Hiring Manager Review:</p>
+                        <p className="text-muted-foreground">{generatedResume.metadata.passes.review}</p>
+                      </div>
+                    </div>
+                  )}
                 </ScrollArea>
               </TabsContent>
             </Tabs>
