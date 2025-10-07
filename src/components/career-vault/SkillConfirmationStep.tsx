@@ -6,25 +6,36 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SkillCard } from './SkillCard';
-import { Loader2, Search, Plus } from 'lucide-react';
+import { Loader2, Search, Plus, Save, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { syncVaultSkillsToProfile } from '@/lib/services/profileSync';
+import { useSessionResilience } from '@/hooks/useSessionResilience';
+import { useNavigate } from 'react-router-dom';
 
 interface SkillConfirmationStepProps {
   onComplete: () => void;
 }
 
+const SESSION_STORAGE_KEY = 'skillConfirmationProgress';
+
 export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps) => {
+  const navigate = useNavigate();
+  const { withSessionValidation, isRefreshing } = useSessionResilience({
+    onSessionLost: () => navigate('/auth')
+  });
+
   const [loading, setLoading] = useState(true);
   const [skills, setSkills] = useState<any[]>([]);
   const [filteredSkills, setFilteredSkills] = useState<any[]>([]);
   const [confirmedCount, setConfirmedCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'resume' | 'inferred' | 'growth'>('all');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [isAddingCustomSkill, setIsAddingCustomSkill] = useState(false);
   const [customSkillName, setCustomSkillName] = useState('');
@@ -33,12 +44,61 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
   const [customNotes, setCustomNotes] = useState('');
 
   useEffect(() => {
+    restoreProgress();
     fetchSkills();
   }, []);
 
   useEffect(() => {
     applyFilters();
   }, [skills, searchQuery, activeFilter]);
+
+  // Auto-save to session storage whenever confirmed count changes
+  useEffect(() => {
+    if (confirmedCount > 0) {
+      saveProgressToSession();
+    }
+  }, [confirmedCount]);
+
+  const saveProgressToSession = () => {
+    try {
+      const progress = {
+        confirmedCount,
+        timestamp: new Date().toISOString()
+      };
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(progress));
+      console.log('Progress saved to session storage:', progress);
+    } catch (error) {
+      console.error('Error saving to session storage:', error);
+    }
+  };
+
+  const restoreProgress = () => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        const progress = JSON.parse(saved);
+        const savedTime = new Date(progress.timestamp);
+        const now = new Date();
+        const hoursSince = (now.getTime() - savedTime.getTime()) / (1000 * 60 * 60);
+        
+        // Only restore if saved within last 24 hours
+        if (hoursSince < 24) {
+          toast.info(`Restoring your progress from ${savedTime.toLocaleTimeString()}`, {
+            duration: 3000
+          });
+        } else {
+          // Clear old progress
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring progress:', error);
+    }
+  };
+
+  const clearProgress = () => {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  };
 
   const fetchSkills = async () => {
     try {
@@ -93,7 +153,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
   };
 
   const handleConfirmSkill = async (skillId: string, data: any) => {
-    try {
+    const result = await withSessionValidation(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user');
 
@@ -113,9 +173,11 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
 
       setConfirmedCount((prev) => prev + 1);
       toast.success(`Confirmed: ${skill.skill_name}`);
-    } catch (error) {
-      console.error('Error confirming skill:', error);
-      toast.error('Failed to confirm skill');
+      return true;
+    }, 'confirm skill');
+
+    if (!result) {
+      toast.error('Failed to confirm skill. Please try again.');
     }
   };
 
@@ -130,7 +192,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       return;
     }
 
-    try {
+    const result = await withSessionValidation(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user');
 
@@ -155,9 +217,32 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       setCustomCategory('technical');
       setCustomNotes('');
       setIsAddingCustomSkill(false);
-    } catch (error) {
-      console.error('Error adding custom skill:', error);
-      toast.error('Failed to add custom skill');
+      return true;
+    }, 'add custom skill');
+
+    if (!result) {
+      toast.error('Failed to add custom skill. Please try again.');
+    }
+  };
+
+  const handleSaveProgress = async () => {
+    setIsSaving(true);
+    
+    const result = await withSessionValidation(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user');
+      
+      // Sync confirmed skills to profile
+      await syncVaultSkillsToProfile(user.id);
+      setLastSaved(new Date());
+      toast.success('Progress saved successfully');
+      return true;
+    }, 'save progress');
+
+    setIsSaving(false);
+
+    if (!result) {
+      toast.error('Failed to save progress. Please try again.');
     }
   };
 
@@ -167,7 +252,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       return;
     }
     
-    try {
+    const result = await withSessionValidation(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user');
       
@@ -175,11 +260,15 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       await syncVaultSkillsToProfile(user.id);
       toast.success('Skills synced to your profile');
       
+      // Clear session storage on successful completion
+      clearProgress();
+      
       onComplete();
-    } catch (error) {
-      console.error('Error syncing skills:', error);
-      // Don't block progression if sync fails
-      onComplete();
+      return true;
+    }, 'continue to interview');
+
+    if (!result) {
+      toast.error('Failed to save and continue. Please try again.');
     }
   };
 
@@ -210,9 +299,38 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
           <span className="font-medium">
             {confirmedCount} of {totalSkills} skills confirmed ({skills.length} remaining)
           </span>
-          <span className="text-muted-foreground">{Math.round(progressPercentage)}%</span>
+          <div className="flex items-center gap-3">
+            {lastSaved && (
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Saved {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+            <span className="text-muted-foreground">{Math.round(progressPercentage)}%</span>
+          </div>
         </div>
         <Progress value={progressPercentage} className="h-2" />
+      </div>
+
+      {/* Save Progress Button */}
+      <div className="flex justify-center">
+        <Button 
+          onClick={handleSaveProgress} 
+          variant="outline" 
+          disabled={isSaving || isRefreshing || confirmedCount === 0}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Progress
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Filters and Search */}
@@ -336,8 +454,20 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
 
       {/* Continue Button */}
       <div className="flex justify-center pt-6">
-        <Button onClick={handleContinue} size="lg" className="px-8">
-          Continue to Interview →
+        <Button 
+          onClick={handleContinue} 
+          size="lg" 
+          className="px-8"
+          disabled={isRefreshing || confirmedCount === 0}
+        >
+          {isRefreshing ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Validating session...
+            </>
+          ) : (
+            'Continue to Interview →'
+          )}
         </Button>
       </div>
     </div>
