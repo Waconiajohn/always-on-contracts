@@ -106,6 +106,29 @@ serve(async (req) => {
       projects: intelligence?.counts.projects || 0
     });
 
+    // Check for already-asked questions to prevent duplicates
+    const { data: existingResponses } = await supabase
+      .from('vault_interview_responses')
+      .select('question')
+      .eq('user_id', user.id);
+    
+    const askedQuestions = new Set(
+      (existingResponses || []).map(r => r.question.toLowerCase().trim())
+    );
+    
+    console.log('[GENERATE-INTERVIEW-QUESTION] Already asked', askedQuestions.size, 'questions');
+    
+    // If milestone-specific, filter to only questions about this milestone
+    if (milestone_id && milestoneContext) {
+      const { data: milestoneResponses } = await supabase
+        .from('vault_interview_responses')
+        .select('question')
+        .eq('milestone_id', milestone_id);
+      
+      console.log('[GENERATE-INTERVIEW-QUESTION] Milestone', milestoneContext.job_title, 'has', 
+        milestoneResponses?.length || 0, 'answered questions');
+    }
+
     // 6-Phase Enhanced Interview Strategy
     const interviewPhases = [
       {
@@ -239,6 +262,13 @@ TARGET INTELLIGENCE CATEGORIES: ${currentPhase.targetCategories.join(', ')}
 OVERALL COMPLETION: ${completionPercentage}%
 
 ${vaultContext}
+
+🚫 **CRITICAL: AVOID DUPLICATE QUESTIONS**
+Already asked ${askedQuestions.size} questions. DO NOT ask:
+${Array.from(askedQuestions).slice(0, 20).map(q => `- "${q}"`).join('\n')}
+${askedQuestions.size > 20 ? `... and ${askedQuestions.size - 20} more` : ''}
+
+Generate a COMPLETELY NEW question that explores different aspects of their experience.
 
 Your goal is to extract SPECIFIC, QUANTIFIED, and COMPELLING career intelligence across 13 categories:
 

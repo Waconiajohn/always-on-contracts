@@ -137,8 +137,15 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     }
   }, [propMilestoneId]);
 
+  // When milestone changes, fetch a new question for that milestone
   useEffect(() => {
-    startInterview();
+    if (currentMilestoneId) {
+      console.log('[INTERVIEW] Milestone changed to:', currentMilestoneId);
+      startInterview();
+    }
+  }, [currentMilestoneId]);
+
+  useEffect(() => {
     calculateDynamicQuestionCount();
     loadMilestones();
     
@@ -788,7 +795,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           phase: currentPhase,
           previousResponse: userInput,
           generate_answer_options: true,
-          confirmed_skills: confirmedSkills || []
+          confirmed_skills: confirmedSkills || [],
+          milestone_id: currentMilestoneId
         }
       });
 
@@ -1015,7 +1023,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           body: { 
             phase: currentPhase,
             generate_answer_options: true,
-            confirmed_skills: []
+            confirmed_skills: [],
+            milestone_id: currentMilestoneId
           }
         });
         if (data?.question) {
@@ -1068,7 +1077,10 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     try {
       setCompletionPercentage(Math.min(100, completionPercentage + 10));
       const { data } = await supabase.functions.invoke('generate-interview-question', {
-        body: { phase: currentPhase }
+        body: { 
+          phase: currentPhase,
+          milestone_id: currentMilestoneId
+        }
       });
       
       if (data?.question) {

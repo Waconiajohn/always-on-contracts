@@ -116,7 +116,9 @@ Guidelines:
       description: m.description,
       key_achievements: m.key_achievements || [],
       questions_asked: m.estimated_question_count || 3,
-      completion_percentage: 0
+      questions_answered: 0,
+      completion_percentage: 0,
+      intelligence_extracted: 0
     }));
 
     const { data: insertedMilestones, error: insertError } = await supabase
