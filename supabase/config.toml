@@ -96,7 +96,7 @@ verify_jwt = true
 [functions.orchestrator-agent]
 verify_jwt = true
 
-[functions.mcp-warchest-manager]
+[functions.mcp-vault-manager]
 verify_jwt = true
 
 [functions.mcp-persona-memory]

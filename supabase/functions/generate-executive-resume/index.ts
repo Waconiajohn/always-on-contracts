@@ -394,7 +394,7 @@ Create the FINAL refined resume incorporating all feedback. Use the same 5-secti
           intelligenceUsed: {
             powerPhrases: intelligence.powerPhrases.length,
             skills: intelligence.transferableSkills.length,
-            total: Object.values(intelligence.counts).reduce((a: number, b: number) => a + b, 0)
+            total: (Object.values(intelligence.counts) as number[]).reduce((a, b) => a + b, 0)
           }
         }
       })
