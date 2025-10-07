@@ -189,23 +189,42 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
   // FIXED: Only save drafts explicitly (no auto-save during typing)
   const saveDraft = async () => {
-    if (!currentQuestion || userInput.trim().length < 10) {
-      toast({
-        title: "Nothing to save",
-        description: "Please write at least a few words before saving",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+    setSaveStatus('saving');
     setIsSaving(true);
     
     try {
+      // Determine the response content based on question type
+      let responseContent = '';
+      
+      if (questionType === 'multiple_choice_with_custom') {
+        // Combine selected options and custom text
+        const selectedText = selectedOptions.length > 0 ? `Selected: ${selectedOptions.join(', ')}` : '';
+        const customText = customAnswerText.trim() ? `Additional details: ${customAnswerText}` : '';
+        responseContent = [selectedText, customText].filter(Boolean).join('\n\n');
+      } else if (questionType === 'star') {
+        // For STAR, use the structured story data
+        responseContent = userInput || JSON.stringify(starStoryData);
+      } else {
+        // For text questions
+        responseContent = userInput;
+      }
+
+      if (responseContent.trim().length < 10) {
+        toast({
+          title: "Nothing to save",
+          description: "Please write at least a few words before saving",
+          variant: "destructive"
+        });
+        setSaveStatus('error');
+        return;
+      }
+      
       const progressData = {
         vault_id: vaultId,
         question: currentQuestion,
-        userInput,
+        userInput: responseContent,
         selectedOptions,
+        customAnswerText,
         phase: currentPhase,
         completionPercentage,
         starStoryData,
@@ -228,11 +247,11 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       const responseData = {
         vault_id: vaultId || null,
         user_id: user.id,
-        question: currentQuestion.questionsToExpand?.[0]?.prompt || 'Current Question',
-        response: userInput,
+        question: currentQuestion?.questionsToExpand?.[currentSubQuestionIndex]?.prompt || 'Current Question',
+        response: responseContent,
         phase: currentPhase || 'unknown',
         quality_score: qualityScore || 0,
-        validation_feedback: { quality_score: qualityScore } as any, // Store as JSONB
+        validation_feedback: { quality_score: qualityScore } as any,
         is_draft: true
       };
 
@@ -258,13 +277,18 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
       console.log('[SAVE-DRAFT] Success:', data);
       setLastSaved(new Date());
+      setSaveStatus('saved');
       
       toast({
-        title: "Draft saved",
+        title: "Draft saved ✓",
         description: "Your progress has been saved",
       });
+      
+      // Reset to idle after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error: any) {
       console.error('[SAVE-DRAFT] Failed:', error);
+      setSaveStatus('error');
       toast({
         title: "Save failed",
         description: error.message || "Please try again or check your connection",
@@ -1573,35 +1597,65 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
                   className="min-h-[100px] resize-none"
                   disabled={isLoading || isValidating}
                 />
-                <div className="flex gap-2 justify-between items-center">
+              <div className="flex gap-2 justify-between items-center">
                   <VoiceInput
                     onTranscript={(text) => setCustomAnswerText(prev => prev + ' ' + text)}
                     isRecording={isRecording}
                     onToggleRecording={toggleRecording}
                     disabled={isLoading || isValidating}
                   />
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={(selectedOptions.length === 0 && !customAnswerText.trim()) || isLoading || isValidating}
-                    className="gap-2"
-                  >
-                    {isValidating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Validating...
-                      </>
-                    ) : isLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        Submit Answer
-                      </>
+                  <div className="flex gap-2 items-center">
+                    {lastSaved && saveStatus !== 'saving' && (
+                      <span className="text-xs text-muted-foreground">
+                        Saved {Math.round((Date.now() - lastSaved.getTime()) / 60000)}m ago
+                      </span>
                     )}
-                  </Button>
+                    <Button
+                      onClick={saveDraft}
+                      disabled={isLoading || isValidating || saveStatus === 'saving'}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      {saveStatus === 'saving' ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : saveStatus === 'saved' ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          Saved
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Save Draft
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={(selectedOptions.length === 0 && !customAnswerText.trim()) || isLoading || isValidating}
+                      className="gap-2"
+                    >
+                      {isValidating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Validating...
+                        </>
+                      ) : isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          Submit Answer
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1636,35 +1690,65 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
                 disabled={isLoading || isValidating}
               />
 
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-between items-center">
                 <VoiceInput
                   onTranscript={handleVoiceInput}
                   isRecording={isRecording}
                   onToggleRecording={toggleRecording}
                   disabled={isLoading || isValidating}
                 />
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!userInput.trim() || isLoading || isValidating}
-                  className="gap-2"
-                >
-                  {isValidating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Validating...
-                    </>
-                  ) : isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      {currentSubQuestionIndex < totalQuestions - 1 ? 'Next' : 'Continue'}
-                    </>
+                <div className="flex gap-2 items-center">
+                  {lastSaved && saveStatus !== 'saving' && (
+                    <span className="text-xs text-muted-foreground">
+                      Saved {Math.round((Date.now() - lastSaved.getTime()) / 60000)}m ago
+                    </span>
                   )}
-                </Button>
+                  <Button
+                    onClick={saveDraft}
+                    disabled={!userInput.trim() || isLoading || isValidating || saveStatus === 'saving'}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {saveStatus === 'saving' ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : saveStatus === 'saved' ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save Draft
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!userInput.trim() || isLoading || isValidating}
+                    className="gap-2"
+                  >
+                    {isValidating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Validating...
+                      </>
+                    ) : isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        {currentSubQuestionIndex < totalQuestions - 1 ? 'Next' : 'Continue'}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </>
           )}
