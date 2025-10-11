@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { subDays, subHours } from "date-fns";
-import { jobScraper } from "@/lib/mcp-client";
+import { jobSearch } from "@/lib/mcp-client";
 import { SearchFilters } from "@/components/job-search/SearchFilters";
 import { SearchResults } from "@/components/job-search/SearchResults";
 import { AIAssistant } from "@/components/job-search/AIAssistant";
@@ -226,7 +226,18 @@ const JobSearchAgentContent = () => {
 
       if (sessionError) throw sessionError;
 
-      await jobScraper.scrapeJobs(searchQuery, '', selectedSources, 100);
+      await jobSearch.searchJobs({
+        query: searchQuery,
+        location: 'us',
+        sources: selectedSources.length > 0 ? selectedSources as any : ['all'],
+        maxResults: 50,
+        filters: {
+          remote: remoteType !== 'any' ? remoteType : undefined,
+          jobType: employmentType !== 'any' ? employmentType : undefined,
+          salaryMin: salaryRange !== 'any' ? parseInt(salaryRange) : undefined
+        },
+        userId
+      });
 
       toast({
         title: "Search started",

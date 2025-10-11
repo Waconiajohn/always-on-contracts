@@ -264,6 +264,39 @@ export const networking = {
 };
 
 /**
+ * Job Search MCP Tools (Legal APIs Only)
+ */
+export const jobSearch = {
+  searchJobs: (params: {
+    query: string;
+    location?: string;
+    sources?: Array<'adzuna' | 'usajobs' | 'google_jobs' | 'all'>;
+    maxResults?: number;
+    filters?: Record<string, any>;
+    userId?: string;
+  }) => callMCPTool('jobs.search_jobs_legal', params),
+
+  monitorJobs: (params: {
+    userId: string;
+    searchCriteria: any;
+    frequency?: string;
+  }) => callMCPTool('jobs.monitor_jobs', params),
+
+  enrichJob: (params: {
+    jobId: string;
+    companyName?: string;
+  }) => callMCPTool('jobs.enrich_job', params),
+
+  deduplicateJobs: (params: {
+    sessionId: string;
+  }) => callMCPTool('jobs.deduplicate_jobs', params),
+
+  getScrapeStatus: (params: {
+    sessionId: string;
+  }) => callMCPTool('jobs.get_scrape_status', params)
+};
+
+/**
  * Market Intelligence MCP Tools
  */
 export const market = {
@@ -289,7 +322,7 @@ export const market = {
 };
 
 /**
- * Job Scraper MCP Tools
+ * Job Scraper MCP Tools (Legacy - Deprecated)
  */
 export const jobScraper = {
   scrapeJobs: async (query: string, location?: string, sources?: string[], maxResults?: number) => {
