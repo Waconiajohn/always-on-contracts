@@ -1011,6 +1011,42 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           }
         }
 
+        // Update milestone progress
+        if (currentMilestoneId) {
+          // Get current milestone data
+          const { data: milestone } = await supabase
+            .from('vault_resume_milestones')
+            .select('questions_asked, questions_answered, intelligence_extracted')
+            .eq('id', currentMilestoneId)
+            .single();
+
+          if (milestone && milestone.questions_asked) {
+            const newAnsweredCount = (milestone.questions_answered || 0) + 1;
+            const newCompletionPercentage = Math.round(
+              (newAnsweredCount / milestone.questions_asked) * 100
+            );
+
+            await supabase
+              .from('vault_resume_milestones')
+              .update({
+                questions_answered: newAnsweredCount,
+                completion_percentage: newCompletionPercentage,
+                intelligence_extracted: (milestone.intelligence_extracted || 0) + 
+                  (extracted?.extracted?.powerPhrases || 0) +
+                  (extracted?.extracted?.transferableSkills || 0) +
+                  (extracted?.extracted?.hiddenCompetencies || 0)
+              })
+              .eq('id', currentMilestoneId);
+
+            logger.debug('[MILESTONE-UPDATE] Updated progress:', {
+              milestoneId: currentMilestoneId,
+              answered: newAnsweredCount,
+              total: milestone.questions_asked,
+              percentage: newCompletionPercentage
+            });
+          }
+        }
+
         // Update interview completion percentage
         await supabase.functions.invoke('update-interview-completion');
         
