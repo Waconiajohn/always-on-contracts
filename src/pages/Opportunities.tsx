@@ -16,23 +16,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface OpportunityMatch {
   id: string;
   opportunity_id: string;
-  match_score: number;
-  status: string;
-  matching_skills: string[];
-  ai_recommendation: string;
-  created_at: string;
+  match_score: number | null;
+  status: string | null;
+  matching_skills: string[] | null;
+  ai_recommendation: string | null;
+  created_at: string | null;
   job_opportunities: {
     id: string;
     job_title: string;
     agency_id: string | null;
-    location: string;
-    job_description: string;
-    required_skills: string[];
+    location: string | null;
+    job_description: string | null;
+    required_skills: string[] | null;
     hourly_rate_min: number | null;
     hourly_rate_max: number | null;
     contract_type: string | null;
     contract_duration_months: number | null;
-    posted_date: string;
+    posted_date: string | null;
     external_url: string | null;
     contract_confidence_score: number | null;
     extracted_rate_min: number | null;
@@ -42,7 +42,7 @@ interface OpportunityMatch {
     ai_verified_at: string | null;
     staffing_agencies: {
       agency_name: string;
-      location: string;
+      location: string | null;
     } | null;
   };
 }
@@ -534,11 +534,11 @@ const OpportunitiesContent = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <CardTitle className="text-2xl">{match.job_opportunities.job_title}</CardTitle>
-                        <Badge className={getScoreColor(match.match_score)}>
-                          {match.match_score}% Match
+                        <Badge className={getScoreColor(match.match_score ?? 0)}>
+                          {match.match_score ?? 0}% Match
                         </Badge>
-                        <Badge variant={getStatusColor(match.status)}>
-                          {match.status}
+                        <Badge variant={getStatusColor(match.status ?? 'new')}>
+                          {match.status ?? 'new'}
                         </Badge>
                       </div>
                       <CardDescription className="text-base">
@@ -611,7 +611,7 @@ const OpportunitiesContent = () => {
                     <div className="flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm font-medium">
-                        Posted {new Date(match.job_opportunities.posted_date).toLocaleDateString()}
+                        {match.job_opportunities.posted_date && `Posted ${new Date(match.job_opportunities.posted_date).toLocaleDateString()}`}
                       </span>
                     </div>
                   </div>
@@ -622,7 +622,7 @@ const OpportunitiesContent = () => {
                     </p>
                   )}
 
-                  {match.matching_skills.length > 0 && (
+                  {match.matching_skills && match.matching_skills.length > 0 && (
                     <div>
                       <p className="text-sm font-semibold mb-2">Your Matching Skills:</p>
                       <div className="flex flex-wrap gap-2">
@@ -652,7 +652,7 @@ const OpportunitiesContent = () => {
                         onClick={async () => {
                           try {
                             // Open job posting in new tab - do this FIRST before async operations
-                            const newWindow = window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer');
+                            const newWindow = window.open(match.job_opportunities.external_url ?? '', '_blank', 'noopener,noreferrer');
                             
                             if (!newWindow) {
                               toast({
@@ -685,7 +685,7 @@ const OpportunitiesContent = () => {
                       <Button 
                         variant="outline"
                         onClick={() => {
-                          const newWindow = window.open(match.job_opportunities.external_url, '_blank', 'noopener,noreferrer');
+                          const newWindow = window.open(match.job_opportunities.external_url ?? '', '_blank', 'noopener,noreferrer');
                           if (!newWindow) {
                             toast({
                               title: "Popup Blocked",

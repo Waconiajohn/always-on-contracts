@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/command";
 import {
   Home,
-  LayoutDashboard,
   FolderKanban,
   Search,
   Building2,
@@ -27,7 +26,6 @@ import {
   Briefcase,
   Target,
   Brain,
-  DollarSign,
 } from "lucide-react";
 
 interface CommandItem {

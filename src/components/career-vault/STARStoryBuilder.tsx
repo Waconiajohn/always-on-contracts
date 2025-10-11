@@ -15,7 +15,6 @@ interface STARStoryBuilderProps {
 
 export const STARStoryBuilder = ({
   skillName,
-  resumeContext,
   onComplete,
   onCancel,
 }: STARStoryBuilderProps) => {

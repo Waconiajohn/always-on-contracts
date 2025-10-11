@@ -88,7 +88,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   // NEW: Auto-save state
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // New state for checkbox-driven answers
   const [questionType, setQuestionType] = useState<'text' | 'multiple_choice_with_custom' | 'star'>('text');

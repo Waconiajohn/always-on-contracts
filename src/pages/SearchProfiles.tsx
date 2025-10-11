@@ -17,23 +17,23 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 interface SearchProfile {
   id: string;
   profile_name: string;
-  is_active: boolean;
-  target_positions: string[];
-  target_industries: string[];
-  required_skills: string[];
-  preferred_skills: string[];
-  excluded_keywords: string[];
-  excluded_companies: string[];
+  is_active: boolean | null;
+  target_positions: string[] | null;
+  target_industries: string[] | null;
+  required_skills: string[] | null;
+  preferred_skills: string[] | null;
+  excluded_keywords: string[] | null;
+  excluded_companies: string[] | null;
   min_hourly_rate: number | null;
   max_hourly_rate: number | null;
   min_contract_months: number | null;
   max_contract_months: number | null;
-  remote_only: boolean;
-  hybrid_acceptable: boolean;
-  onsite_acceptable: boolean;
-  preferred_locations: string[];
-  company_size_preferences: string[];
-  minimum_match_score: number;
+  remote_only: boolean | null;
+  hybrid_acceptable: boolean | null;
+  onsite_acceptable: boolean | null;
+  preferred_locations: string[] | null;
+  company_size_preferences: string[] | null;
+  minimum_match_score: number | null;
 }
 
 const COMPANY_SIZES = ['startup', 'midsize', 'enterprise'];
@@ -736,7 +736,7 @@ function SearchProfilesContent() {
                         {profile.is_active && <Badge>Active</Badge>}
                       </CardTitle>
                       <CardDescription>
-                        {profile.target_positions.length} positions • {profile.required_skills.length} skills
+                        {(profile.target_positions ?? []).length} positions • {(profile.required_skills ?? []).length} skills
                       </CardDescription>
                     </div>
                     <Button
@@ -752,11 +752,11 @@ function SearchProfilesContent() {
                   <div>
                     <p className="text-sm font-medium mb-2">Rate Range</p>
                     <p className="text-sm text-muted-foreground">
-                      ${profile.min_hourly_rate || '—'}/hr - ${profile.max_hourly_rate || '—'}/hr
+                      ${profile.min_hourly_rate ?? '—'}/hr - ${profile.max_hourly_rate ?? '—'}/hr
                     </p>
                   </div>
 
-                  {profile.target_positions.length > 0 && (
+                  {profile.target_positions && profile.target_positions.length > 0 && (
                     <div>
                       <p className="text-sm font-medium mb-2">Target Positions</p>
                       <div className="flex flex-wrap gap-1">

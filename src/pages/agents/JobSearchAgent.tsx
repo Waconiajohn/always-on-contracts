@@ -40,17 +40,17 @@ interface JobListing {
   id: string;
   job_title: string;
   company_name: string;
-  company_logo_url?: string;
-  location?: string;
-  remote_type?: string;
-  employment_type?: string;
-  salary_min?: number;
-  salary_max?: number;
-  salary_period?: string;
-  job_description?: string;
-  posted_date?: string;
-  apply_url?: string;
-  match_score?: number;
+  company_logo_url?: string | null;
+  location?: string | null;
+  remote_type?: string | null;
+  employment_type?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  salary_period?: string | null;
+  job_description?: string | null;
+  posted_date?: string | null;
+  apply_url?: string | null;
+  match_score?: number | null;
   source: string;
   raw_data?: any;
 }
@@ -424,7 +424,7 @@ const JobSearchAgentContent = () => {
     setIsRecording(!isRecording);
   };
 
-  const formatSalary = (min?: number, max?: number, period?: string) => {
+  const formatSalary = (min?: number | null, max?: number | null, period?: string | null) => {
     if (!min && !max) return null;
     const formatted = min && max ? `$${min.toLocaleString()} - $${max.toLocaleString()}` : 
                       min ? `$${min.toLocaleString()}+` :
@@ -808,11 +808,13 @@ const JobSearchAgentContent = () => {
                             </div>
 
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" asChild>
-                                <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
-                                  View
-                                </a>
-                              </Button>
+                              {job.apply_url && (
+                                <Button variant="outline" size="sm" asChild>
+                                  <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
+                                    View
+                                  </a>
+                                </Button>
+                              )}
                               <Button size="sm" className="gap-1">
                                 <Send className="h-3 w-3" />
                                 Apply

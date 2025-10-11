@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
   Home,
-  LayoutDashboard,
   FolderKanban,
   Search,
   Building2,
@@ -14,9 +13,7 @@ import {
   Users,
   FileText,
   Key,
-  TestTube,
   TrendingUp,
-  Briefcase,
   Target,
   Brain,
   LogOut,

@@ -25,23 +25,23 @@ interface OutreachRecord {
   id: string;
   user_id: string;
   agency_id: string;
-  status: string;
+  status: string | null;
   outreach_type: string | null;
   notes: string | null;
-  last_contact_date: string;
-  response_received: boolean;
+  last_contact_date: string | null;
+  response_received: boolean | null;
   response_date: string | null;
   next_follow_up_date: string | null;
-  email_sent_count: number;
+  email_sent_count: number | null;
   last_email_sent_date: string | null;
-  created_at: string;
+  created_at: string | null;
   staffing_agencies: {
     agency_name: string;
     contact_email: string | null;
     contact_phone: string | null;
     website: string | null;
     specialization: string[] | null;
-  };
+  } | null;
 }
 
 const OutreachContent = () => {
@@ -102,9 +102,9 @@ const OutreachContent = () => {
   const handleEdit = (record: OutreachRecord) => {
     setEditingId(record.id);
     setEditData({
-      status: record.status,
-      outreach_type: record.outreach_type || "",
-      notes: record.notes || "",
+      status: record.status ?? '',
+      outreach_type: record.outreach_type ?? "",
+      notes: record.notes ?? "",
     });
   };
 
@@ -228,21 +228,21 @@ const OutreachContent = () => {
                     <div className="space-y-1 flex-1">
                       <CardTitle className="text-lg">
                         <Building2 className="inline w-4 h-4 mr-2" />
-                        {record.staffing_agencies.agency_name}
+                        {record.staffing_agencies?.agency_name ?? 'Unknown Agency'}
                       </CardTitle>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-3 h-3" />
-                        Last Contact: {new Date(record.last_contact_date).toLocaleDateString()}
+                        {record.last_contact_date && `Last Contact: ${new Date(record.last_contact_date).toLocaleDateString()}`}
                       </div>
                     </div>
-                    <Badge variant={getStatusColor(record.status)}>
-                      {record.status}
+                    <Badge variant={getStatusColor(record.status ?? 'pending')}>
+                      {record.status ?? 'pending'}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
                   <div className="space-y-2">
-                    {record.staffing_agencies.contact_email && (
+                    {record.staffing_agencies?.contact_email && (
                       <div className="flex items-center gap-2 text-sm">
                         <Mail className="w-4 h-4 text-muted-foreground" />
                         <a href={`mailto:${record.staffing_agencies.contact_email}`} className="text-primary hover:underline">
@@ -250,7 +250,7 @@ const OutreachContent = () => {
                         </a>
                       </div>
                     )}
-                    {record.staffing_agencies.contact_phone && (
+                    {record.staffing_agencies?.contact_phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="w-4 h-4 text-muted-foreground" />
                         <a href={`tel:${record.staffing_agencies.contact_phone}`} className="hover:underline">
@@ -258,7 +258,7 @@ const OutreachContent = () => {
                         </a>
                       </div>
                     )}
-                    {record.staffing_agencies.website && (
+                    {record.staffing_agencies?.website && (
                       <div className="flex items-center gap-2 text-sm">
                         <Globe className="w-4 h-4 text-muted-foreground" />
                         <a href={record.staffing_agencies.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
@@ -266,7 +266,7 @@ const OutreachContent = () => {
                         </a>
                       </div>
                     )}
-                    {record.staffing_agencies.specialization && record.staffing_agencies.specialization.length > 0 && (
+                    {record.staffing_agencies?.specialization && record.staffing_agencies.specialization.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {record.staffing_agencies.specialization.map((spec, idx) => (
                           <Badge key={idx} variant="outline" className="text-xs">
@@ -368,7 +368,7 @@ const OutreachContent = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Remove Outreach Record?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will remove {record.staffing_agencies.agency_name} from your tracked agencies. This action cannot be undone.
+                                This will remove {record.staffing_agencies?.agency_name ?? 'this agency'} from your tracked agencies. This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
