@@ -1,38 +1,20 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { VoiceInput } from "@/components/VoiceInput";
-import { 
-  Search, 
-  BookmarkCheck, 
-  TrendingUp, 
-  Brain, 
-  AlertTriangle, 
-  Bookmark, 
-  Sparkles,
-  MapPin,
-  DollarSign,
-  Building,
-  Clock,
-  Send,
-  SlidersHorizontal,
-  Filter,
-  X
-} from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Search, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { subDays, subHours } from "date-fns";
 import { jobScraper } from "@/lib/mcp-client";
+import { SearchFilters } from "@/components/job-search/SearchFilters";
+import { SearchResults } from "@/components/job-search/SearchResults";
+import { AIAssistant } from "@/components/job-search/AIAssistant";
+import { VaultSuggestions } from "@/components/job-search/VaultSuggestions";
+import { logger } from "@/lib/logger";
 
 interface JobListing {
   id: string;
@@ -58,23 +40,25 @@ interface AIMessage {
   content: string;
 }
 
+interface VaultData {
+  initial_analysis: any;
+  vault_transferable_skills?: Array<{ stated_skill: string }>;
+  total_transferable_skills: number | null;
+}
+
 const JobSearchAgentContent = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("search");
-  const [useTransferableSkills, setUseTransferableSkills] = useState(false);
-  const [vaultStats, setVaultStats] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  
-  // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<JobListing[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showAllFilters, setShowAllFilters] = useState(false);
   
-  // Career Vault suggestions
+  // Vault data
+  const [vaultStats, setVaultStats] = useState<VaultData | null>(null);
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]);
+  const [useTransferableSkills, setUseTransferableSkills] = useState(false);
   
   // Filters
   const [dateFilter, setDateFilter] = useState<string>('24h');
@@ -82,48 +66,39 @@ const JobSearchAgentContent = () => {
   const [employmentType, setEmploymentType] = useState<string>('any');
   const [salaryRange, setSalaryRange] = useState<string>('any');
   const [experienceLevel, setExperienceLevel] = useState<string>('any');
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>(["linkedin", "indeed", "glassdoor"]);
+  const [showAllFilters, setShowAllFilters] = useState(false);
 
-  // AI Chat state
+  // AI Chat
   const [aiMessages, setAiMessages] = useState<AIMessage[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const initUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        await loadVaultData(user.id);
-      }
-    };
-    initUser();
+    initializeUser();
     loadRecentJobs();
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [jobs, dateFilter, remoteType, employmentType, salaryRange, experienceLevel]);
+  }, [jobs, dateFilter, remoteType, employmentType, salaryRange]);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [aiMessages]);
+  const initializeUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUserId(user.id);
+      await loadVaultData(user.id);
+    }
+  };
 
   const loadVaultData = async (userId: string) => {
     try {
       const { data: vault } = await supabase
         .from('career_vault')
-        .select(`
-          *,
-          vault_transferable_skills(skill_name, source_industry, target_industry),
-          vault_power_phrases(phrase_text)
-        `)
+        .select('*, vault_transferable_skills(stated_skill)')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (vault) {
         setVaultStats(vault);
@@ -131,10 +106,9 @@ const JobSearchAgentContent = () => {
         const titles = analysis?.recommended_positions || [];
         setSuggestedTitles(titles.slice(0, 5));
 
-        const skills = vault.vault_transferable_skills?.map((s: any) => s.skill_name) || [];
+        const skills = vault.vault_transferable_skills?.map((s: any) => s.stated_skill) || [];
         setSuggestedSkills(skills.slice(0, 8));
 
-        // Send initial AI greeting
         if (titles.length > 0) {
           setAiMessages([{
             role: 'assistant',
@@ -143,11 +117,11 @@ const JobSearchAgentContent = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading Career Vault data:', error);
+      logger.error('Error loading Career Vault data', error);
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...jobs];
 
     if (dateFilter !== 'any') {
@@ -173,13 +147,11 @@ const JobSearchAgentContent = () => {
 
     if (salaryRange !== 'any') {
       const minSalary = parseInt(salaryRange);
-      filtered = filtered.filter(j => 
-        j.salary_min && j.salary_min >= minSalary
-      );
+      filtered = filtered.filter(j => j.salary_min && j.salary_min >= minSalary);
     }
 
     setFilteredJobs(filtered);
-  };
+  }, [jobs, dateFilter, remoteType, employmentType, salaryRange]);
 
   const getAppliedFiltersCount = () => {
     let count = 0;
@@ -188,8 +160,6 @@ const JobSearchAgentContent = () => {
     if (employmentType !== 'any') count++;
     if (salaryRange !== 'any') count++;
     if (experienceLevel !== 'any') count++;
-    if (selectedLocations.length > 0) count++;
-    if (selectedIndustries.length > 0) count++;
     return count;
   };
 
@@ -199,8 +169,6 @@ const JobSearchAgentContent = () => {
     setEmploymentType('any');
     setSalaryRange('any');
     setExperienceLevel('any');
-    setSelectedLocations([]);
-    setSelectedIndustries([]);
   };
 
   const loadRecentJobs = async () => {
@@ -215,7 +183,7 @@ const JobSearchAgentContent = () => {
       if (error) throw error;
       setJobs(data || []);
     } catch (error) {
-      console.error('Error loading jobs:', error);
+      logger.error('Error loading jobs', error);
     }
   };
 
@@ -229,17 +197,23 @@ const JobSearchAgentContent = () => {
       return;
     }
 
+    if (!userId) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to search for jobs",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSearching(true);
     try {
-      if (!userId) throw new Error('User not authenticated');
-
       const { data: session, error: sessionError } = await supabase
         .from('job_search_sessions')
         .insert([{
           user_id: userId,
           search_query: searchQuery,
           filters: {
-            locations: selectedLocations,
             remote_types: remoteType !== 'any' ? [remoteType] : [],
             employment_types: employmentType !== 'any' ? [employmentType] : [],
             salary_min: salaryRange !== 'any' ? parseInt(salaryRange) : null,
@@ -252,12 +226,7 @@ const JobSearchAgentContent = () => {
 
       if (sessionError) throw sessionError;
 
-      await jobScraper.scrapeJobs(
-        searchQuery,
-        selectedLocations[0],
-        selectedSources,
-        100
-      );
+      await jobScraper.scrapeJobs(searchQuery, '', selectedSources, 100);
 
       toast({
         title: "Search started",
@@ -266,7 +235,7 @@ const JobSearchAgentContent = () => {
 
       pollSearchResults(session.id);
     } catch (error: any) {
-      console.error('Search error:', error);
+      logger.error('Search error', error);
       toast({
         title: "Search failed",
         description: error.message || "Failed to start job search",
@@ -288,7 +257,7 @@ const JobSearchAgentContent = () => {
         .from('job_search_sessions')
         .select('status, results_count')
         .eq('id', sessionId)
-        .single();
+        .maybeSingle();
 
       if (session?.status === 'completed') {
         loadRecentJobs();
@@ -317,25 +286,18 @@ const JobSearchAgentContent = () => {
   };
 
   const handleSaveJob = async (jobId: string) => {
-    try {
-      if (!userId) throw new Error('User not authenticated');
+    if (!userId) return;
 
+    try {
       const { error } = await supabase
         .from('user_saved_jobs')
-        .insert([{
-          user_id: userId,
-          job_listing_id: jobId,
-          status: 'saved'
-        }]);
+        .insert([{ user_id: userId, job_listing_id: jobId, status: 'saved' }]);
 
       if (error) throw error;
 
-      toast({
-        title: "Job saved",
-        description: "Added to your saved jobs",
-      });
+      toast({ title: "Job saved", description: "Added to your saved jobs" });
     } catch (error: any) {
-      console.error('Save error:', error);
+      logger.error('Save error', error);
       toast({
         title: "Failed to save",
         description: error.message,
@@ -344,8 +306,8 @@ const JobSearchAgentContent = () => {
     }
   };
 
-  const sendAiMessage = async (userMessage?: string) => {
-    const messageToSend = userMessage || aiInput.trim();
+  const sendAiMessage = async () => {
+    const messageToSend = aiInput.trim();
     if (!messageToSend) return;
 
     const newMessages = [...aiMessages, { role: 'user' as const, content: messageToSend }];
@@ -403,7 +365,7 @@ const JobSearchAgentContent = () => {
         }
       }
     } catch (error) {
-      console.error('AI error:', error);
+      logger.error('AI error', error);
       setAiMessages([...newMessages, { 
         role: 'assistant', 
         content: 'Sorry, I encountered an error. Please try again.' 
@@ -411,22 +373,6 @@ const JobSearchAgentContent = () => {
     } finally {
       setIsAiTyping(false);
     }
-  };
-
-  const handleVoiceTranscript = (text: string) => {
-    setAiInput(text);
-  };
-
-  const handleToggleRecording = () => {
-    setIsRecording(!isRecording);
-  };
-
-  const formatSalary = (min?: number | null, max?: number | null, period?: string | null) => {
-    if (!min && !max) return null;
-    const formatted = min && max ? `$${min.toLocaleString()} - $${max.toLocaleString()}` : 
-                      min ? `$${min.toLocaleString()}+` :
-                      max ? `Up to $${max.toLocaleString()}` : null;
-    return formatted ? `${formatted} ${period || 'annual'}` : null;
   };
 
   return (
@@ -437,431 +383,91 @@ const JobSearchAgentContent = () => {
           <p className="text-muted-foreground">AI-powered job discovery with your Career Vault</p>
         </div>
 
-        {(suggestedTitles.length > 0 || suggestedSkills.length > 0) && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Suggested by Your Career Vault
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {suggestedTitles.length > 0 && (
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-2 block">Job Titles</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {suggestedTitles.map((title, idx) => (
-                      <Badge 
-                        key={idx} 
-                        variant="outline" 
-                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                        onClick={() => setSearchQuery(title)}
-                      >
-                        {title}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <VaultSuggestions
+          suggestedTitles={suggestedTitles}
+          useTransferableSkills={useTransferableSkills}
+          setUseTransferableSkills={setUseTransferableSkills}
+          onSelectTitle={setSearchQuery}
+        />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1 p-6 flex flex-col h-[calc(100vh-300px)]">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Brain className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-semibold">Search Assistant</h2>
-                <p className="text-sm text-muted-foreground">AI co-pilot</p>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+          <div className="lg:col-span-1 space-y-6">
+            <SearchFilters
+              dateFilter={dateFilter}
+              setDateFilter={setDateFilter}
+              remoteType={remoteType}
+              setRemoteType={setRemoteType}
+              employmentType={employmentType}
+              setEmploymentType={setEmploymentType}
+              salaryRange={salaryRange}
+              setSalaryRange={setSalaryRange}
+              experienceLevel={experienceLevel}
+              setExperienceLevel={setExperienceLevel}
+              selectedSources={selectedSources}
+              setSelectedSources={setSelectedSources}
+              showAllFilters={showAllFilters}
+              setShowAllFilters={setShowAllFilters}
+              onClearFilters={clearFilters}
+              appliedFiltersCount={getAppliedFiltersCount()}
+            />
 
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-4">
-                {aiMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-lg ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground ml-8'
-                        : 'bg-muted mr-8'
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  </div>
-                ))}
-                {isAiTyping && (
-                  <div className="bg-muted p-3 rounded-lg mr-8">
-                    <p className="text-sm text-muted-foreground">Typing...</p>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-            </ScrollArea>
+            <AIAssistant
+              messages={aiMessages}
+              input={aiInput}
+              setInput={setAiInput}
+              isTyping={isAiTyping}
+              isRecording={isRecording}
+              onSendMessage={sendAiMessage}
+              onVoiceTranscript={setAiInput}
+              onToggleRecording={() => setIsRecording(!isRecording)}
+            />
+          </div>
 
-            <div className="mt-4 bg-muted p-3 rounded-lg border-l-4 border-yellow-500">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                  <Label htmlFor="transferable-skills" className="text-xs font-semibold">
-                    Transferable Skills
-                  </Label>
-                </div>
-                <Switch 
-                  id="transferable-skills"
-                  checked={useTransferableSkills}
-                  onCheckedChange={setUseTransferableSkills}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Expands search to cross-industry roles
-              </p>
-              {vaultStats && (
-                <Badge variant="outline" className="text-xs mt-2">
-                  {vaultStats.total_transferable_skills} skills available
-                </Badge>
-              )}
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              <Input
-                placeholder="Ask me anything..."
-                value={aiInput}
-                onChange={(e) => setAiInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendAiMessage()}
-              />
-              <VoiceInput 
-                onTranscript={handleVoiceTranscript}
-                isRecording={isRecording}
-                onToggleRecording={handleToggleRecording}
-              />
-              <Button onClick={() => sendAiMessage()} disabled={!aiInput.trim() || isAiTyping}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="lg:col-span-2 p-6">
-            <div className="mb-6">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Job title, keyword, or company..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="text-lg h-12"
-                />
-                <Button 
-                  onClick={handleSearch} 
-                  disabled={isSearching}
-                  size="lg"
-                  className="gap-2"
-                >
-                  <Search className="h-5 w-5" />
-                  {isSearching ? "Searching..." : "Search"}
-                </Button>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Label className="font-semibold text-sm">Posted:</Label>
-                  <ToggleGroup type="single" value={dateFilter} onValueChange={(v) => v && setDateFilter(v)} size="sm">
-                    <ToggleGroupItem value="24h">Last 24h</ToggleGroupItem>
-                    <ToggleGroupItem value="3d">3 Days</ToggleGroupItem>
-                    <ToggleGroupItem value="week">Week</ToggleGroupItem>
-                    <ToggleGroupItem value="any">Any</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Label className="font-semibold text-sm">Filters:</Label>
-                  
-                  <Select value={remoteType} onValueChange={setRemoteType}>
-                    <SelectTrigger className="w-[130px] h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any Location</SelectItem>
-                      <SelectItem value="remote">Remote</SelectItem>
-                      <SelectItem value="hybrid">Hybrid</SelectItem>
-                      <SelectItem value="onsite">On-site</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={employmentType} onValueChange={setEmploymentType}>
-                    <SelectTrigger className="w-[130px] h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any Type</SelectItem>
-                      <SelectItem value="full-time">Full-Time</SelectItem>
-                      <SelectItem value="contract">Contract</SelectItem>
-                      <SelectItem value="part-time">Part-Time</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={salaryRange} onValueChange={setSalaryRange}>
-                    <SelectTrigger className="w-[130px] h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any Salary</SelectItem>
-                      <SelectItem value="50000">$50K+</SelectItem>
-                      <SelectItem value="75000">$75K+</SelectItem>
-                      <SelectItem value="100000">$100K+</SelectItem>
-                      <SelectItem value="150000">$150K+</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowAllFilters(!showAllFilters)}
-                    className="gap-2"
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    All Filters
-                    {getAppliedFiltersCount() > 0 && (
-                      <Badge variant="secondary">{getAppliedFiltersCount()}</Badge>
+          <div className="lg:col-span-3">
+            <Card className="mb-6">
+              <CardContent className="pt-6">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search for jobs (e.g. 'Senior Product Manager' or 'AI Engineer')"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSearch} disabled={isSearching}>
+                    {isSearching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
                     )}
                   </Button>
-
-                  {getAppliedFiltersCount() > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
-                      <X className="h-4 w-4" />
-                      Clear
-                    </Button>
-                  )}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              {showAllFilters && (
-                <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    Additional Filters
-                  </h3>
-                  
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Job Boards</Label>
-                      <div className="space-y-1">
-                        {['linkedin', 'indeed', 'glassdoor'].map((source) => (
-                          <div key={source} className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={selectedSources.includes(source)}
-                              onCheckedChange={(checked) => {
-                                setSelectedSources(
-                                  checked
-                                    ? [...selectedSources, source]
-                                    : selectedSources.filter((s) => s !== source)
-                                );
-                              }}
-                            />
-                            <Label className="capitalize text-sm">{source}</Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Locations</Label>
-                      <div className="space-y-1">
-                        {['New York', 'San Francisco', 'Austin', 'Remote'].map((loc) => (
-                          <div key={loc} className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={selectedLocations.includes(loc)}
-                              onCheckedChange={(checked) => {
-                                setSelectedLocations(
-                                  checked
-                                    ? [...selectedLocations, loc]
-                                    : selectedLocations.filter((l) => l !== loc)
-                                );
-                              }}
-                            />
-                            <Label className="text-sm">{loc}</Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Industries</Label>
-                      <div className="space-y-1">
-                        {['Technology', 'Finance', 'Healthcare', 'Retail'].map((industry) => (
-                          <div key={industry} className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={selectedIndustries.includes(industry)}
-                              onCheckedChange={(checked) => {
-                                setSelectedIndustries(
-                                  checked
-                                    ? [...selectedIndustries, industry]
-                                    : selectedIndustries.filter((i) => i !== industry)
-                                );
-                              }}
-                            />
-                            <Label className="text-sm">{industry}</Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="search" className="gap-2">
-                  <Search className="h-4 w-4" />
-                  Latest ({filteredJobs.length})
+            <Tabs defaultValue="results" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="results">
+                  Results ({filteredJobs.length})
                 </TabsTrigger>
-                <TabsTrigger value="saved" className="gap-2">
-                  <BookmarkCheck className="h-4 w-4" />
-                  Saved
-                </TabsTrigger>
-                <TabsTrigger value="trending" className="gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  Trending
-                </TabsTrigger>
+                <TabsTrigger value="saved">Saved Jobs</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="search" className="mt-4">
-                <ScrollArea className="h-[calc(100vh-500px)]">
-                  <div className="space-y-4">
-                    {filteredJobs.map((job) => (
-                      <Card key={job.id} className="hover:shadow-md transition-shadow">
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-2 flex-1">
-                              <div className="flex items-center gap-3">
-                                {job.company_logo_url && (
-                                  <img 
-                                    src={job.company_logo_url} 
-                                    alt={job.company_name}
-                                    className="h-10 w-10 rounded object-contain"
-                                  />
-                                )}
-                                <div>
-                                  <CardTitle className="text-lg">{job.job_title}</CardTitle>
-                                  <CardDescription className="flex items-center gap-2">
-                                    <Building className="h-3 w-3" />
-                                    {job.company_name}
-                                  </CardDescription>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap gap-2">
-                                {job.location && (
-                                  <Badge variant="secondary" className="gap-1 text-xs">
-                                    <MapPin className="h-3 w-3" />
-                                    {job.location}
-                                  </Badge>
-                                )}
-                                {job.remote_type && (
-                                  <Badge variant="secondary" className="text-xs">{job.remote_type}</Badge>
-                                )}
-                                {job.employment_type && (
-                                  <Badge variant="secondary" className="text-xs">{job.employment_type}</Badge>
-                                )}
-                                {formatSalary(job.salary_min, job.salary_max, job.salary_period) && (
-                                  <Badge variant="secondary" className="gap-1 text-xs">
-                                    <DollarSign className="h-3 w-3" />
-                                    {formatSalary(job.salary_min, job.salary_max, job.salary_period)}
-                                  </Badge>
-                                )}
-                                {job.raw_data?.is_transferable_match && (
-                                  <Badge variant="outline" className="gap-1 text-xs border-primary">
-                                    🔄 Transferable Skills
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleSaveJob(job.id)}
-                            >
-                              <Bookmark className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className="space-y-3">
-                          {job.job_description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {job.job_description}
-                            </p>
-                          )}
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              Posted {job.posted_date ? new Date(job.posted_date).toLocaleDateString() : 'recently'}
-                            </div>
-
-                            <div className="flex gap-2">
-                              {job.apply_url && (
-                                <Button variant="outline" size="sm" asChild>
-                                  <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
-                                    View
-                                  </a>
-                                </Button>
-                              )}
-                              <Button size="sm" className="gap-1">
-                                <Send className="h-3 w-3" />
-                                Apply
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-
-                    {filteredJobs.length === 0 && (
-                      <Card>
-                        <CardContent className="py-12 text-center">
-                          <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">No jobs found</h3>
-                          <p className="text-muted-foreground text-sm">
-                            Start a search or try different filters
-                          </p>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
+              <TabsContent value="results">
+                <ScrollArea className="h-[calc(100vh-350px)]">
+                  <SearchResults jobs={filteredJobs} onSaveJob={handleSaveJob} />
                 </ScrollArea>
               </TabsContent>
 
-              <TabsContent value="saved" className="mt-4">
+              <TabsContent value="saved">
                 <Card>
                   <CardContent className="py-12 text-center">
-                    <BookmarkCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No saved jobs yet</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Bookmark jobs to save them here
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="trending" className="mt-4">
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Trending opportunities</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Based on your field and market demand
-                    </p>
+                    <p className="text-muted-foreground">Saved jobs feature coming soon</p>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
-          </Card>
+          </div>
         </div>
       </div>
     </div>
