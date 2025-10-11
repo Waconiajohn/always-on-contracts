@@ -40,7 +40,7 @@ const CareerVaultOnboarding = () => {
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
-  // Check if user has already completed onboarding and redirect if so
+  // Check existing vault and determine starting step
   useEffect(() => {
     const checkExistingVault = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -48,21 +48,55 @@ const CareerVaultOnboarding = () => {
       
       setUserId(user.id);
 
-      // Check if career vault already exists and is complete
+      // Check if career vault already exists
       const { data: existingVault } = await supabase
         .from('career_vault')
-        .select('id, interview_completion_percentage')
+        .select('id, interview_completion_percentage, resume_raw_text')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (existingVault && (existingVault.interview_completion_percentage ?? 0) >= 100) {
-        // User has completed onboarding, redirect to dashboard
+      if (!existingVault) {
+        // No vault exists, start at upload
+        setCurrentStep('upload');
+        return;
+      }
+
+      // If 100% complete, redirect to dashboard
+      if ((existingVault.interview_completion_percentage ?? 0) >= 100) {
         navigate('/career-vault');
+        return;
+      }
+
+      // Check if milestones exist
+      const { data: existingMilestones } = await supabase
+        .from('vault_resume_milestones')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: false });
+
+      if (existingMilestones && existingMilestones.length > 0) {
+        // Resume has been uploaded and parsed, go to interview
+        setMilestones(existingMilestones);
+        setCurrentStep('interview');
+        toast({
+          title: "Resuming Career Vault",
+          description: `Continuing with ${existingMilestones.length} career milestones`,
+        });
+      } else if (existingVault.resume_raw_text) {
+        // Resume uploaded but no milestones, start at goals
+        setCurrentStep('goals');
+        toast({
+          title: "Resuming Career Vault",
+          description: "Let's set your career goals",
+        });
+      } else {
+        // Vault exists but no resume, start at upload
+        setCurrentStep('upload');
       }
     };
 
     checkExistingVault();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
