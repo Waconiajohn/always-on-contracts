@@ -380,14 +380,14 @@ const OpportunitiesContent = () => {
             </TabsTrigger>
           </TabsList>
 
-          {opportunities.length === 0 ? (
-            <div className="mt-6">
+          <TabsContent value="full-time" className="mt-0">
+            {opportunities.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Briefcase className="w-16 h-16 text-muted-foreground mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No Opportunities Yet</h3>
                   <p className="text-muted-foreground mb-4 text-center max-w-md">
-                    Click "Run AI Matching" to find contract opportunities that match your skills and experience.
+                    Click "Run AI Matching" to find opportunities that match your skills and experience.
                   </p>
                   <Button onClick={runAIMatching} disabled={matching}>
                     {matching ? (
@@ -399,125 +399,32 @@ const OpportunitiesContent = () => {
                   </Button>
                 </CardContent>
               </Card>
-            </div>
-          ) : (
-            <TabsContent value={activeTab} className="mt-0">
-            <div className="space-y-6">
-              {activeTab === 'full-time' && fullTimeJobs.length === 0 && (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">No full-time opportunities found. Try running AI matching.</p>
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === 'contract' && contractJobs.length === 0 && (
-                <>
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <p className="text-muted-foreground">No contract opportunities found. Try running AI matching.</p>
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Contract Tools */}
-                  <div className="grid md:grid-cols-2 gap-6 mt-6">
-                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/rate-calculator')}>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Calculator className="h-6 w-6 text-primary" />
-                          </div>
-                          <CardTitle>Rate Calculator</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="mb-4">
-                          Calculate your premium hourly rate for contract work
-                        </CardDescription>
-                        <Button className="w-full">Calculate Rate</Button>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/templates')}>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <FileText className="h-6 w-6 text-primary" />
-                          </div>
-                          <CardTitle>Templates</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="mb-4">
-                          Communication templates for contract negotiations
-                        </CardDescription>
-                        <Button className="w-full">Browse Templates</Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </>
-              )}
-              
-              {activeTab === 'contract' && contractJobs.length > 0 && (
-                <>
-                  {/* Contract Tools */}
-                  <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/rate-calculator')}>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Calculator className="h-6 w-6 text-primary" />
-                          </div>
-                          <CardTitle>Rate Calculator</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="mb-4">
-                          Calculate your premium hourly rate for contract work
-                        </CardDescription>
-                        <Button className="w-full">Calculate Rate</Button>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/templates')}>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <FileText className="h-6 w-6 text-primary" />
-                          </div>
-                          <CardTitle>Templates</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="mb-4">
-                          Communication templates for contract negotiations
-                        </CardDescription>
-                        <Button className="w-full">Browse Templates</Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </>
-              )}
-              
-              {((activeTab === 'full-time' && fullTimeJobs.length > 0) || (activeTab === 'contract' && contractJobs.length > 0)) && (
+            ) : fullTimeJobs.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground">No full-time opportunities found. Try running AI matching.</p>
+                </CardContent>
+              </Card>
+            ) : (
+            <>
+              {fullTimeJobs.length > 0 && (
                 <>
                   <div className="flex items-center justify-between bg-muted p-4 rounded-lg">
                     <div className="text-sm">
-                      <span className="font-semibold">
-                        {activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length}
-                      </span> matches found
+                      <span className="font-semibold">{fullTimeJobs.length}</span> matches found
                       <span className="text-muted-foreground ml-2">
-                        (showing {Math.min(displayLimit, activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length)})
+                        (showing {Math.min(displayLimit, fullTimeJobs.length)})
                       </span>
                     </div>
-              {(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) > displayLimit && (
+              {fullTimeJobs.length > displayLimit && (
                 <Button 
                   variant="outline" 
                   onClick={() => setDisplayLimit(prev => prev + 20)}
                 >
-                  Load More ({(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) - displayLimit} remaining)
+                  Load More ({fullTimeJobs.length - displayLimit} remaining)
                 </Button>
               )}
-              {displayLimit > 20 && (activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) > 20 && (
+              {displayLimit > 20 && fullTimeJobs.length > 20 && (
                 <Button 
                   variant="ghost" 
                   onClick={() => setDisplayLimit(20)}
@@ -527,7 +434,7 @@ const OpportunitiesContent = () => {
               )}
                   </div>
                   <div className="grid gap-6">
-                    {(activeTab === 'full-time' ? fullTimeJobs : contractJobs).slice(0, displayLimit).map((match) => (
+                    {fullTimeJobs.slice(0, displayLimit).map((match) => (
               <Card key={match.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -718,24 +625,409 @@ const OpportunitiesContent = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              ))}
                   </div>
-                  {(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) > displayLimit && (
+                  {fullTimeJobs.length > displayLimit && (
                     <div className="flex justify-center mt-6">
                       <Button 
                         onClick={() => setDisplayLimit(prev => prev + 20)}
                         variant="outline"
                         size="lg"
                       >
-                        Load More Opportunities ({(activeTab === 'full-time' ? fullTimeJobs.length : contractJobs.length) - displayLimit} remaining)
+                        Load More Opportunities ({fullTimeJobs.length - displayLimit} remaining)
                       </Button>
                     </div>
                   )}
                 </>
               )}
-            </div>
+            </>
+            )}
           </TabsContent>
+
+          <TabsContent value="contract" className="mt-0">
+            {opportunities.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Briefcase className="w-16 h-16 text-muted-foreground mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Opportunities Yet</h3>
+                  <p className="text-muted-foreground mb-4 text-center max-w-md">
+                    Click "Run AI Matching" to find opportunities that match your skills and experience.
+                  </p>
+                  <Button onClick={runAIMatching} disabled={matching}>
+                    {matching ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    {matching ? 'Matching in Progress...' : 'Find Matches'}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {contractJobs.length === 0 ? (
+              <>
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">No contract opportunities found. Try running AI matching.</p>
+                  </CardContent>
+                </Card>
+                
+                {/* Contract Tools */}
+                <div className="grid md:grid-cols-2 gap-6 mt-6">
+                  <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/rate-calculator')}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <Calculator className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle>Rate Calculator</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="mb-4">
+                        Calculate your premium hourly rate for contract work
+                      </CardDescription>
+                      <Button className="w-full">Calculate Rate</Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/templates')}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <FileText className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle>Templates</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="mb-4">
+                        Communication templates for contract negotiations
+                      </CardDescription>
+                      <Button className="w-full">Browse Templates</Button>
+                    </CardContent>
+                  </Card>
+                </div>
+                ) : (
+              {contractJobs.length > 0 && (
+                <>
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <p className="text-muted-foreground">No contract opportunities found. Try running AI matching.</p>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Contract Tools */}
+                  <div className="grid md:grid-cols-2 gap-6 mt-6">
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/rate-calculator')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Calculator className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Rate Calculator</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Calculate your premium hourly rate for contract work
+                        </CardDescription>
+                        <Button className="w-full">Calculate Rate</Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/templates')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Templates</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Communication templates for contract negotiations
+                        </CardDescription>
+                        <Button className="w-full">Browse Templates</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
+              
+              {contractJobs.length > 0 && (
+                <>
+                  {/* Contract Tools */}
+                  <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/rate-calculator')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Calculator className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Rate Calculator</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Calculate your premium hourly rate for contract work
+                        </CardDescription>
+                        <Button className="w-full">Calculate Rate</Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/templates')}>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle>Templates</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-4">
+                          Communication templates for contract negotiations
+                        </CardDescription>
+                        <Button className="w-full">Browse Templates</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-muted p-4 rounded-lg">
+                    <div className="text-sm">
+                      <span className="font-semibold">{contractJobs.length}</span> matches found
+                      <span className="text-muted-foreground ml-2">
+                        (showing {Math.min(displayLimit, contractJobs.length)})
+                      </span>
+                    </div>
+                    {contractJobs.length > displayLimit && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setDisplayLimit(prev => prev + 20)}
+                      >
+                        Load More ({contractJobs.length - displayLimit} remaining)
+                      </Button>
+                    )}
+                    {displayLimit > 20 && contractJobs.length > 20 && (
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setDisplayLimit(20)}
+                      >
+                        Show Less
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid gap-6">
+                  {contractJobs.slice(0, displayLimit).map((match) => (
+                      <Card key={match.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <CardTitle className="text-2xl">{match.job_opportunities.job_title}</CardTitle>
+                                <Badge className={getScoreColor(match.match_score ?? 0)}>
+                                  {match.match_score ?? 0}% Match
+                                </Badge>
+                                <Badge variant={getStatusColor(match.status ?? 'new')}>
+                                  {match.status ?? 'new'}
+                                </Badge>
+                              </div>
+                              <CardDescription className="text-base">
+                                {match.job_opportunities.staffing_agencies?.agency_name}
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* AI Quality Indicators */}
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {match.job_opportunities.contract_confidence_score !== null && (
+                              <Badge 
+                                variant={match.job_opportunities.contract_confidence_score >= 80 ? "default" : "secondary"}
+                                className="gap-1"
+                              >
+                                {match.job_opportunities.contract_confidence_score >= 80 ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <AlertCircle className="h-3 w-3" />
+                                )}
+                                {match.job_opportunities.contract_confidence_score}% Contract Verified
+                              </Badge>
+                            )}
+                            
+                            {match.job_opportunities.quality_score !== null && (
+                              <Badge variant="outline" className="gap-1">
+                                <TrendingUp className="h-3 w-3" />
+                                Quality: {match.job_opportunities.quality_score}/100
+                              </Badge>
+                            )}
+                            
+                            {match.job_opportunities.ai_verified_at && (
+                              <Badge variant="secondary">
+                                AI Verified
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">{match.job_opportunities.location || 'Remote'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {match.job_opportunities.extracted_rate_min && match.job_opportunities.extracted_rate_max ? (
+                                  <span className="font-medium">
+                                    ${match.job_opportunities.extracted_rate_min}-${match.job_opportunities.extracted_rate_max}/hr
+                                  </span>
+                                ) : match.job_opportunities.hourly_rate_min && match.job_opportunities.hourly_rate_max ? (
+                                  `$${match.job_opportunities.hourly_rate_min}-${match.job_opportunities.hourly_rate_max}/hr`
+                                ) : (
+                                  'Rate not specified'
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {match.job_opportunities.extracted_duration_months 
+                                  ? `${match.job_opportunities.extracted_duration_months} months`
+                                  : match.job_opportunities.contract_duration_months
+                                  ? `${match.job_opportunities.contract_duration_months} months`
+                                  : 'Duration not specified'
+                                }
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Briefcase className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">
+                                {match.job_opportunities.posted_date && `Posted ${new Date(match.job_opportunities.posted_date).toLocaleDateString()}`}
+                              </span>
+                            </div>
+                          </div>
+
+                          {match.job_opportunities.job_description && (
+                            <p className="text-sm text-muted-foreground">
+                              {match.job_opportunities.job_description}
+                            </p>
+                          )}
+
+                          {match.matching_skills && match.matching_skills.length > 0 && (
+                            <div>
+                              <p className="text-sm font-semibold mb-2">Your Matching Skills:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {match.matching_skills.map((skill, index) => (
+                                  <Badge key={index} variant="outline">{skill}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {match.ai_recommendation && (
+                            <div className="bg-muted p-4 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <Sparkles className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-semibold mb-1">AI Recommendation:</p>
+                                  <p className="text-sm">{match.ai_recommendation}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 pt-4 flex-wrap">
+                            {/* Primary CTA - Apply to Job */}
+                            {match.job_opportunities.external_url && (match.status === 'new' || match.status === 'viewed') && (
+                              <Button 
+                                onClick={async () => {
+                                  try {
+                                    // Open job posting in new tab - do this FIRST before async operations
+                                    const newWindow = window.open(match.job_opportunities.external_url ?? '', '_blank', 'noopener,noreferrer');
+                                    
+                                    if (!newWindow) {
+                                      toast({
+                                        title: "Popup Blocked",
+                                        description: "Please allow popups to open job postings",
+                                        variant: "destructive",
+                                      });
+                                      return;
+                                    }
+                                    
+                                    // Then mark as applied
+                                    await updateOpportunityStatus(match.id, 'applied');
+                                  } catch (error) {
+                                    console.error('Error opening job:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to open job posting",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Apply to Job
+                              </Button>
+                            )}
+                            
+                            {/* View posting for already applied jobs */}
+                            {match.job_opportunities.external_url && match.status === 'applied' && (
+                              <Button 
+                                variant="outline"
+                                onClick={() => {
+                                  const newWindow = window.open(match.job_opportunities.external_url ?? '', '_blank', 'noopener,noreferrer');
+                                  if (!newWindow) {
+                                    toast({
+                                      title: "Popup Blocked",
+                                      description: "Please allow popups to open job postings",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                View Posting
+                              </Button>
+                            )}
+                            
+                            {/* Status management buttons */}
+                            {match.status === 'new' && (
+                              <Button variant="outline" onClick={() => updateOpportunityStatus(match.id, 'viewed')}>
+                                Mark as Viewed
+                              </Button>
+                            )}
+                            
+                            {(match.status === 'new' || match.status === 'viewed') && (
+                              <>
+                                <Button variant="outline" onClick={() => updateOpportunityStatus(match.id, 'not_interested')}>
+                                  Not Interested
+                                </Button>
+                              </>
+                            )}
+                            
+                          </div>
+                        </CardContent>
+                      </Card>
+                ))}
+                </div>
+                {contractJobs.length > displayLimit && (
+                  <div className="flex justify-center mt-6">
+                    <Button 
+                      onClick={() => setDisplayLimit(prev => prev + 20)}
+                      variant="outline"
+                      size="lg"
+                    >
+                      Load More Opportunities ({contractJobs.length - displayLimit} remaining)
+                    </Button>
+                </div>
+              )}
+            </>
           )}
+          </TabsContent>
         </Tabs>
       </div>
     </div>
