@@ -2659,6 +2659,7 @@ export type Database = {
           id: string
           intelligence_value: number | null
           is_draft: boolean | null
+          milestone_id: string | null
           needs_enhancement: boolean | null
           phase: string
           quality_score: number | null
@@ -2681,6 +2682,7 @@ export type Database = {
           id?: string
           intelligence_value?: number | null
           is_draft?: boolean | null
+          milestone_id?: string | null
           needs_enhancement?: boolean | null
           phase: string
           quality_score?: number | null
@@ -2703,6 +2705,7 @@ export type Database = {
           id?: string
           intelligence_value?: number | null
           is_draft?: boolean | null
+          milestone_id?: string | null
           needs_enhancement?: boolean | null
           phase?: string
           quality_score?: number | null
@@ -2717,6 +2720,13 @@ export type Database = {
           version?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_interview_responses_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "vault_resume_milestones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "war_chest_interview_responses_war_chest_id_fkey"
             columns: ["vault_id"]

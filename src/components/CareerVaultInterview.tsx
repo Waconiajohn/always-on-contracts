@@ -87,7 +87,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const [answerOptions, setAnswerOptions] = useState<string[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customAnswerText, setCustomAnswerText] = useState('');
-  const [resumeText, setResumeText] = useState('');
   const [milestones, setMilestones] = useState<any[]>([]);
   const [currentMilestoneId, setCurrentMilestoneId] = useState<string | null>(null);
   const [subQuestions] = useState<any[]>([]);
@@ -257,6 +256,18 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     setIsSaving(true);
     
     try {
+      // Validate we have a milestone selected
+      if (!currentMilestoneId) {
+        toast({
+          title: "No milestone selected",
+          description: "Please select a career milestone first",
+          variant: "destructive"
+        });
+        setSaveStatus('error');
+        setIsSaving(false);
+        return;
+      }
+
       // Determine the response content based on question type
       let responseContent = '';
       
@@ -280,6 +291,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           variant: "destructive"
         });
         setSaveStatus('error');
+        setIsSaving(false);
         return;
       }
       
@@ -294,6 +306,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         starStoryData,
         subQuestions,
         currentSubQuestionIndex,
+        currentMilestoneId,
         timestamp: new Date().toISOString()
       };
 
@@ -315,6 +328,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       const responseData = {
         vault_id: vaultId,
         user_id: user.id,
+        milestone_id: currentMilestoneId,
         question: currentQuestion?.questionsToExpand?.[currentSubQuestionIndex]?.prompt || 'Current Question',
         response: responseContent,
         phase: currentPhase || 'unknown',
@@ -384,18 +398,34 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   };
   
   const loadMilestones = async () => {
+    setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to continue",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Get vault ID
-      const { data: vault } = await supabase
+      const { data: vault, error: vaultError } = await supabase
         .from('career_vault')
         .select('id, interview_completion_percentage')
         .eq('user_id', user.id)
         .single();
 
-      if (!vault) return;
+      if (vaultError || !vault) {
+        logger.error('[MILESTONES] Failed to load vault:', vaultError);
+        toast({
+          title: "Career Vault not found",
+          description: "Please complete the onboarding process first",
+          variant: "destructive"
+        });
+        return;
+      }
       
       setVaultId(vault.id);
       
@@ -405,22 +435,51 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       }
 
       // Load milestones
-      const { data: milestonesData } = await supabase
+      const { data: milestonesData, error: milestonesError } = await supabase
         .from('vault_resume_milestones')
         .select('*')
         .eq('vault_id', vault.id)
         .order('start_date', { ascending: false });
 
+      if (milestonesError) {
+        logger.error('[MILESTONES] Failed to load:', milestonesError);
+        toast({
+          title: "Error loading career milestones",
+          description: "Please try refreshing the page",
+          variant: "destructive"
+        });
+        return;
+      }
+
       if (milestonesData && milestonesData.length > 0) {
+        logger.info('[MILESTONES] Loaded milestones:', { count: milestonesData.length });
         setMilestones(milestonesData);
-        // Set first incomplete milestone as current
-        const firstIncomplete = milestonesData.find(m => (m.completion_percentage ?? 0) < 100);
-        if (firstIncomplete) {
-          setCurrentMilestoneId(firstIncomplete.id);
+        
+        // Set first incomplete milestone as current (if not already set)
+        if (!currentMilestoneId) {
+          const firstIncomplete = milestonesData.find(m => (m.completion_percentage ?? 0) < 100);
+          const milestoneToSelect = firstIncomplete || milestonesData[0];
+          if (milestoneToSelect) {
+            logger.debug('[MILESTONES] Auto-selecting milestone:', { id: milestoneToSelect.id });
+            setCurrentMilestoneId(milestoneToSelect.id);
+          }
         }
+      } else {
+        toast({
+          title: "No career milestones found",
+          description: "Please upload your resume in the onboarding flow",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error('Error loading milestones:', error);
+      logger.error('[MILESTONES] Unexpected error:', error);
+      toast({
+        title: "Error loading milestones",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -575,26 +634,32 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   };
 
   const startInterview = async () => {
+    if (!currentMilestoneId) {
+      logger.warn('[INTERVIEW] Cannot start - no milestone selected');
+      toast({
+        title: "Select a milestone",
+        description: "Please choose a career experience from the list to begin",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!vaultId) {
+      logger.warn('[INTERVIEW] Cannot start - no vault ID');
+      toast({
+        title: "Vault not initialized",
+        description: "Please refresh the page and try again",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     logger.debug('[INTERVIEW] Starting interview for milestone:', { currentMilestoneId });
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-
-      // Get career vault ID
-      const { data: vault } = await supabase
-        .from('career_vault')
-        .select('id, resume_raw_text')
-        .eq('user_id', user.id)
-        .single();
-
-      if (vault) {
-        setVaultId(vault.id);
-        setResumeText(vault.resume_raw_text || '');
-      } else {
-        throw new Error('Career vault not found');
-      }
 
       // Get confirmed skills for context
       const { data: confirmedSkills } = await supabase
@@ -615,7 +680,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
       if (error) {
         logger.error('[INTERVIEW] Error from generate-interview-question:', error);
-        throw error;
+        throw new Error(`Failed to generate question: ${error.message}`);
       }
 
       if (data?.question) {
@@ -636,8 +701,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         }
         
         toast({
-          title: 'Ready to start!',
-          description: 'Answer the questions below to build your Career Vault',
+          title: 'Question loaded!',
+          description: 'Answer the question below to build your Career Vault',
         });
       } else {
         throw new Error('No question received from server');
@@ -646,10 +711,12 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       console.error('Error starting interview:', error);
       logger.error('[INTERVIEW] Start failed:', error);
       toast({
-        title: 'Error Starting Interview',
-        description: error instanceof Error ? error.message : 'Failed to start interview. Please try again or contact support.',
+        title: 'Unable to load question',
+        description: error instanceof Error ? error.message : 'This milestone may not have enough data. Try selecting another one.',
         variant: 'destructive'
       });
+      // Clear the current question to show the selection UI
+      setCurrentQuestion(null);
     } finally {
       setIsLoading(false);
     }
@@ -1843,7 +1910,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
                 setUserInput(story);
                 handleSubmit();
               }}
-              resumeContext={resumeText}
+              resumeContext=""
               skillName={currentQuestion.questionsToExpand[currentSubQuestionIndex].prompt}
             />
           )}
