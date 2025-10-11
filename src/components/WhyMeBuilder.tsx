@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Mic, Save, Sparkles, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 interface WhyMeNarrative {
   id: string;
@@ -54,7 +55,7 @@ export const WhyMeBuilder: React.FC<WhyMeBuilderProps> = ({ userId, narratives, 
       });
 
       // You could display these questions in a dialog
-      console.log('Generated questions:', data);
+      logger.debug('Generated questions:', { data });
     } catch (error) {
       console.error('Error generating questions:', error);
       toast({

@@ -11,6 +11,7 @@ import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { AIAnalysisStep } from '@/components/career-vault/AIAnalysisStep';
 import { SkillConfirmationStep } from '@/components/career-vault/SkillConfirmationStep';
 import { MilestoneProgress } from '@/components/career-vault/MilestoneProgress';
+import { logger } from '@/lib/logger';
 
 type OnboardingStep = 'upload' | 'goals' | 'analysis' | 'skills' | 'interview' | 'complete';
 
@@ -117,9 +118,9 @@ const CareerVaultOnboarding = () => {
           description: processData.error || "Failed to process resume",
           variant: "destructive"
         });
-        
+
         if (processData.solutions) {
-          console.log("Suggested solutions:", processData.solutions);
+          logger.debug("Suggested solutions:", { solutions: processData.solutions });
         }
         return;
       }
@@ -160,7 +161,7 @@ const CareerVaultOnboarding = () => {
         .maybeSingle();
 
       if (vault && vault.resume_raw_text) {
-        console.log('Parsing resume into milestones...');
+        logger.debug('Parsing resume into milestones...');
         const { data: milestonesData, error: parseError } = await supabase.functions.invoke('parse-resume-milestones', {
           body: {
             resumeText: vault.resume_raw_text,

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 /**
  * Syncs confirmed skills from Career Vault to user profile
@@ -13,7 +14,7 @@ export const syncVaultSkillsToProfile = async (userId: string): Promise<void> =>
       .eq('user_id', userId);
 
     if (!confirmedSkills || confirmedSkills.length === 0) {
-      console.log('No confirmed skills found to sync');
+      logger.debug('No confirmed skills found to sync');
       return;
     }
 
@@ -34,7 +35,7 @@ export const syncVaultSkillsToProfile = async (userId: string): Promise<void> =>
       throw error;
     }
 
-    console.log(`Synced ${skillNames.length} skills to profile`);
+    logger.debug(`Synced skills to profile`, { count: skillNames.length });
   } catch (error) {
     console.error('Failed to sync Career Vault skills to profile:', error);
     throw error;

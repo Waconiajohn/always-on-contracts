@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { syncVaultSkillsToProfile } from '@/lib/services/profileSync';
 import { useSessionResilience } from '@/hooks/useSessionResilience';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '@/lib/logger';
 
 interface SkillConfirmationStepProps {
   onComplete: () => void;
@@ -66,7 +67,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
         timestamp: new Date().toISOString()
       };
       sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(progress));
-      console.log('Progress saved to session storage:', progress);
+      logger.debug('Progress saved to session storage:', { progress });
     } catch (error) {
       console.error('Error saving to session storage:', error);
     }

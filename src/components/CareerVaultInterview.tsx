@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { STARStoryBuilder } from './career-vault/STARStoryBuilder';
 import { WorkingKnowledgeAssessment } from './career-vault/WorkingKnowledgeAssessment';
+import { logger } from '@/lib/logger';
 
 interface KnownDataItem {
   label: string;
@@ -140,7 +141,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   // When milestone changes, fetch a new question for that milestone
   useEffect(() => {
     if (currentMilestoneId) {
-      console.log('[INTERVIEW] Milestone changed to:', currentMilestoneId);
+      logger.debug('[INTERVIEW] Milestone changed to:', { currentMilestoneId });
       startInterview();
     }
   }, [currentMilestoneId]);
@@ -154,7 +155,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     if (!hasContent || !currentQuestion) return;
 
     const autoSaveInterval = setInterval(() => {
-      console.log('[CareerVault] Auto-saving draft...');
+      logger.debug('[CareerVault] Auto-saving draft...');
       saveDraft();
     }, 30000); // Auto-save every 30 seconds
 
@@ -272,7 +273,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         throw new Error('Not authenticated - please log in');
       }
 
-      console.log('[SAVE-DRAFT] Saving to database for user:', user.id);
+      logger.debug('[SAVE-DRAFT] Saving to database for user:', { userId: user.id });
 
       const responseData = {
         vault_id: vaultId || null,
@@ -285,7 +286,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         is_draft: true
       };
 
-      console.log('[SAVE-DRAFT] Data:', responseData);
+      logger.debug('[SAVE-DRAFT] Data:', { responseData });
 
       const { error, data } = await supabase
         .from('vault_interview_responses')
@@ -305,7 +306,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         throw error;
       }
 
-      console.log('[SAVE-DRAFT] Success:', data);
+      logger.debug('[SAVE-DRAFT] Success:', { data });
       setLastSaved(new Date());
       setSaveStatus('saved');
       
@@ -406,7 +407,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         .order('created_at', { ascending: false })
         .limit(1);
 
-      console.log('[RESTORE] Found', count, 'total saved responses');
+      logger.debug('[RESTORE] Found total saved responses', { count });
 
       if (drafts && drafts.length > 0) {
         const lastDraft = drafts[0];
@@ -421,7 +422,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         setQualityScore(lastDraft.quality_score || 0);
         setCurrentPhase(lastDraft.phase || 'discovery');
         
-        console.log('[RESTORE] Restored draft:', lastDraft.question);
+        logger.debug('[RESTORE] Restored draft:', { question: lastDraft.question });
       } else {
         // Check if user has ANY responses (not just drafts)
         const { count: totalCount } = await supabase
@@ -435,7 +436,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
             description: `You have ${totalCount} completed ${totalCount === 1 ? 'response' : 'responses'}. Continue from where you left off!`,
           });
         } else {
-          console.log('[RESTORE] No saved progress found - starting fresh');
+          logger.debug('[RESTORE] No saved progress found - starting fresh');
         }
       }
 
@@ -448,7 +449,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         
         // Only restore if saved within last hour
         if (now - timeSaved < 60 * 60 * 1000) {
-          console.log('[RESTORE] Restoring from session storage');
+          logger.debug('[RESTORE] Restoring from session storage');
           setUserInput(parsed.userInput || '');
           setSelectedOptions(parsed.selectedOptions || []);
           setCompletionPercentage(parsed.completionPercentage || 0);
@@ -767,7 +768,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           intelligenceValue < 30 ? 'high' :
           intelligenceValue < 60 ? 'medium' : 'low';
         
-        console.log('[SUBMIT] Saving response to database...');
+        logger.debug('[SUBMIT] Saving response to database...');
         const { data: savedResponse, error: saveError } = await supabase
           .from('vault_interview_responses')
           .insert([{
@@ -796,7 +797,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           throw saveError;
         }
         
-        console.log('[SUBMIT] Response saved:', savedResponse.id);
+        logger.debug('[SUBMIT] Response saved:', { responseId: savedResponse.id });
 
         if (saveError) {
           console.error('Error saving response:', saveError);
@@ -847,14 +848,14 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
             setIsValidating(false);
             return;
           }
-          
+
           if (retryResponse) {
             setCurrentResponseId(retryResponse.id);
-            console.log('✅ Response saved (retry):', retryResponse.id);
+            logger.debug('Response saved (retry):', { responseId: retryResponse.id });
           }
         } else if (savedResponse) {
           setCurrentResponseId(savedResponse.id);
-          console.log('✅ Response saved:', savedResponse.id);
+          logger.debug('Response saved:', { responseId: savedResponse.id });
           
           // Clear session storage after successful save
           sessionStorage.removeItem('career_vault_interview_progress');
@@ -1097,9 +1098,9 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
   const handleAcceptAndContinue = async () => {
     if (!currentQuestion) return;
-    
-    console.log('[INTERVIEW]', { action: 'accept_continue', score: qualityScore, hasMoreSubQuestions: currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1 });
-    
+
+    logger.debug('[INTERVIEW] Accept and continue', { action: 'accept_continue', score: qualityScore, hasMoreSubQuestions: currentSubQuestionIndex < currentQuestion.questionsToExpand.length - 1 });
+
     setIsLoading(true);
     setSaveStatus('idle');
     
