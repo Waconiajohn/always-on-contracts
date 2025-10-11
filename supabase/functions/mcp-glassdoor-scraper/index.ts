@@ -11,9 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const { searchQuery, location, minSalary } = await req.json();
+    // LEGAL COMPLIANCE: Glassdoor scraping disabled
+    // Glassdoor has strict Terms of Service and actively pursues legal action against scrapers
+    console.log('[DISABLED] Glassdoor scraping disabled for legal compliance');
     
-    console.log('[MCP-GLASSDOOR] Scraping jobs:', { searchQuery, location, minSalary });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Glassdoor scraping has been disabled for legal compliance. Please use official job APIs.',
+        legalNotice: 'Migrated to Adzuna API, SearchAPI Google Jobs, and USAJobs API for legal job aggregation'
+      }),
+      { 
+        status: 410, // Gone
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
 
     const APIFY_API_KEY = Deno.env.get('APIFY_API_KEY');
     if (!APIFY_API_KEY) {

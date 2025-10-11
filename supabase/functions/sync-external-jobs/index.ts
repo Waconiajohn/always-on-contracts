@@ -283,19 +283,9 @@ serve(async (req) => {
       console.error('Error fetching Krop:', error);
     }
 
-    // Fetch from LinkedIn via Apify
-    const apifyApiKey = Deno.env.get('APIFY_API_KEY');
-    if (apifyApiKey) {
-      try {
-        const jobs = await fetchLinkedInViaApify(apifyApiKey);
-        allJobs.push(...jobs);
-        console.log(`Fetched ${jobs.length} jobs from LinkedIn (Apify)`);
-      } catch (error) {
-        console.error('Error fetching LinkedIn via Apify:', error);
-      }
-    } else {
-      console.log('APIFY_API_KEY not configured, skipping LinkedIn scraping');
-    }
+    // LEGAL COMPLIANCE: LinkedIn scraping disabled per LinkedIn v. Proxycurl (2025) ruling
+    // LinkedIn has zero-tolerance policy on scraping and actively pursues legal action
+    console.log('[DISABLED] LinkedIn scraping disabled for legal compliance');
 
     console.log(`Total jobs fetched: ${allJobs.length}`);
 

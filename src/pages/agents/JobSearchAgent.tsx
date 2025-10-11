@@ -66,7 +66,7 @@ const JobSearchAgentContent = () => {
   const [employmentType, setEmploymentType] = useState<string>('any');
   const [salaryRange, setSalaryRange] = useState<string>('any');
   const [experienceLevel, setExperienceLevel] = useState<string>('any');
-  const [selectedSources, setSelectedSources] = useState<string[]>(["linkedin", "indeed", "glassdoor"]);
+  const [selectedSources, setSelectedSources] = useState<string[]>(["google_jobs", "adzuna", "usajobs"]);
   const [showAllFilters, setShowAllFilters] = useState(false);
 
   // AI Chat

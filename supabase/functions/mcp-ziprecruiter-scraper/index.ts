@@ -11,9 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const { searchQuery, location, radius, daysBack } = await req.json();
+    // LEGAL COMPLIANCE: ZipRecruiter scraping disabled
+    // ZipRecruiter has strict Terms of Service and actively blocks scrapers
+    console.log('[DISABLED] ZipRecruiter scraping disabled for legal compliance');
     
-    console.log('[MCP-ZIPRECRUITER] Scraping jobs:', { searchQuery, location, radius, daysBack });
+    return new Response(
+      JSON.stringify({ 
+        error: 'ZipRecruiter scraping has been disabled for legal compliance. Please use official job APIs.',
+        legalNotice: 'Migrated to Adzuna API, SearchAPI Google Jobs, and USAJobs API for legal job aggregation'
+      }),
+      { 
+        status: 410, // Gone
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
 
     const APIFY_API_KEY = Deno.env.get('APIFY_API_KEY');
     if (!APIFY_API_KEY) {

@@ -32,20 +32,44 @@ serve(async (req) => {
       case 'tools/list':
         return new Response(JSON.stringify({
           tools: [
-            {
-              name: 'scrape_jobs',
-              description: 'Scrape job listings from multiple sources',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  query: { type: 'string' },
-                  location: { type: 'string' },
-                  sources: { type: 'array', items: { type: 'string' } },
-                  maxResults: { type: 'number' }
+        {
+          name: 'search_jobs_legal',
+          description: 'Search job listings using 100% legal APIs (Adzuna, USAJobs, Google Jobs)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'Job search query (e.g., "Senior React Developer")'
+              },
+              location: {
+                type: 'string',
+                description: 'Location for job search (e.g., "San Francisco, CA" or "us" for USA)'
+              },
+              sources: {
+                type: 'array',
+                items: { 
+                  type: 'string',
+                  enum: ['adzuna', 'usajobs', 'google_jobs', 'all']
                 },
-                required: ['query']
+                description: 'Legal job APIs to query (default: all)'
+              },
+              maxResults: {
+                type: 'number',
+                description: 'Maximum results per source (default: 50)'
+              },
+              filters: {
+                type: 'object',
+                description: 'Additional filters (remote, salary range, job type, etc.)'
+              },
+              userId: {
+                type: 'string',
+                description: 'User ID for tracking searches'
               }
             },
+            required: ['query']
+          }
+        },
             {
               name: 'monitor_jobs',
               description: 'Set up continuous job monitoring',
@@ -103,8 +127,8 @@ serve(async (req) => {
         const args = params?.arguments || {};
 
         switch (toolName) {
-          case 'scrape_jobs':
-            return await handleScrapeJobs(supabaseClient, args);
+          case 'search_jobs_legal':
+            return await handleSearchJobsLegal(supabaseClient, args);
           case 'monitor_jobs':
             return await handleMonitorJobs(supabaseClient, args);
           case 'enrich_job':
@@ -136,99 +160,139 @@ serve(async (req) => {
   }
 });
 
-async function handleScrapeJobs(supabaseClient: any, args: any) {
-  const { query, location, sources = ['linkedin', 'indeed'], maxResults = 50, includeTransferableSkills = false, userId } = args;
+async function handleSearchJobsLegal(supabaseClient: any, args: any) {
+  const { 
+    query, 
+    location = 'us', 
+    sources = ['all'],
+    maxResults = 50,
+    filters = {},
+    userId
+  } = args;
 
-  let expandedQuery = query;
+  console.log('[MCP] Searching jobs via legal APIs:', { query, location, sources, maxResults });
 
-  // If transferable skills enabled, expand query
-  if (includeTransferableSkills && userId) {
-    const { data: transferableSkills } = await supabaseClient
-      .from('vault_transferable_skills')
-      .select('skill_name, source_industry, target_industry')
-      .eq('user_id', userId)
-      .limit(10);
-
-    if (transferableSkills && transferableSkills.length > 0) {
-      // Build expanded query with OR clauses
-      const additionalTerms = transferableSkills
-        .map((skill: any) => `"${skill.skill_name}"`)
-        .slice(0, 5); // Limit to 5 additional terms to keep query reasonable
-      
-      expandedQuery = `${query} OR ${additionalTerms.join(' OR ')}`;
-      console.log('Expanded query with transferable skills:', expandedQuery);
-    }
-  }
+  // Determine which sources to query
+  const sourcesToQuery = sources.includes('all') 
+    ? ['adzuna', 'usajobs', 'google_jobs']
+    : sources;
 
   // Create search session
   const { data: session, error: sessionError } = await supabaseClient
     .from('job_search_sessions')
     .insert({
       user_id: userId || '00000000-0000-0000-0000-000000000000',
-      search_query: expandedQuery,
-      filters: { 
-        location, 
-        sources, 
-        maxResults, 
-        includeTransferableSkills,
-        originalQuery: query 
-      },
-      status: 'pending'
+      search_query: query,
+      filters: { location, sources: sourcesToQuery, ...filters },
+      status: 'in_progress'
     })
     .select()
     .single();
 
-  if (sessionError) throw sessionError;
+  if (sessionError) {
+    throw new Error(`Failed to create search session: ${sessionError.message}`);
+  }
 
-  // Call existing scrape-jobs function with expanded query
-  const { data: scrapeResult, error: scrapeError } = await supabaseClient.functions.invoke('scrape-jobs', {
-    body: { 
-      query: expandedQuery, 
-      location, 
-      sources, 
-      maxResults, 
-      sessionId: session.id,
-      metadata: { includeTransferableSkills }
+  const sessionId = session.id;
+  const allJobs: any[] = [];
+
+  // Query each legal API
+  for (const source of sourcesToQuery) {
+    try {
+      let functionName = '';
+      switch (source) {
+        case 'adzuna':
+          functionName = 'mcp-adzuna-api';
+          break;
+        case 'usajobs':
+          functionName = 'mcp-usajobs-api';
+          break;
+        case 'google_jobs':
+          functionName = 'mcp-searchapi-google';
+          break;
+        default:
+          console.warn(`Unknown source: ${source}`);
+          continue;
+      }
+
+      const { data, error } = await supabaseClient.functions.invoke(functionName, {
+        body: { query, location, maxResults, filters }
+      });
+
+      if (error) {
+        console.error(`Error querying ${source}:`, error);
+        continue;
+      }
+
+      if (data?.jobs) {
+        allJobs.push(...data.jobs);
+        console.log(`[MCP] Retrieved ${data.jobs.length} jobs from ${source}`);
+      }
+    } catch (error) {
+      console.error(`Exception querying ${source}:`, error);
     }
-  });
-
-  if (scrapeError) {
-    await supabaseClient
-      .from('job_search_sessions')
-      .update({ 
-        status: 'failed', 
-        error_message: scrapeError.message,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', session.id);
-    
-    throw scrapeError;
   }
 
-  // Tag results with transferable skills flag if applicable
-  if (includeTransferableSkills && scrapeResult?.jobs) {
-    const { error: updateError } = await supabaseClient
+  // Store jobs in database
+  if (allJobs.length > 0) {
+    const jobsToInsert = allJobs.map(job => ({
+      search_session_id: sessionId,
+      external_id: job.id,
+      source: job.source,
+      job_title: job.title,
+      company_name: job.company,
+      location: job.location,
+      job_description: job.description,
+      apply_url: job.url,
+      posted_date: job.postedDate,
+      salary_min: job.salary?.min,
+      salary_max: job.salary?.max,
+      salary_currency: job.salary?.currency || 'USD',
+      employment_type: job.jobType || job.contractType,
+      remote_type: job.remote ? 'remote' : null,
+      raw_data: job,
+      is_active: true
+    }));
+
+    const { error: insertError } = await supabaseClient
       .from('job_listings')
-      .update({ 
-        raw_data: supabaseClient.rpc('jsonb_set', {
-          target: 'raw_data',
-          path: '{is_transferable_match}',
-          new_value: 'true'
-        })
-      })
-      .eq('search_session_id', session.id);
+      .upsert(jobsToInsert, { 
+        onConflict: 'external_id,source',
+        ignoreDuplicates: false 
+      });
 
-    if (updateError) console.error('Error tagging transferable jobs:', updateError);
+    if (insertError) {
+      console.error('Error inserting jobs:', insertError);
+    }
   }
 
-  return new Response(JSON.stringify({ 
-    success: true, 
-    sessionId: session.id,
-    data: scrapeResult,
-    expandedQuery: includeTransferableSkills ? expandedQuery : null
+  // Update session
+  await supabaseClient
+    .from('job_search_sessions')
+    .update({
+      status: 'completed',
+      results_count: allJobs.length,
+      completed_at: new Date().toISOString()
+    })
+    .eq('id', sessionId);
+
+  console.log(`[MCP] Search complete: ${allJobs.length} jobs from ${sourcesToQuery.length} legal sources`);
+
+  return new Response(JSON.stringify({
+    success: true,
+    jobCount: allJobs.length,
+    sources: sourcesToQuery,
+    sessionId: sessionId,
+    legalCompliance: '100% legal - No scraping used'
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
+}
+
+async function handleScrapeJobs(supabaseClient: any, args: any) {
+  // Legacy function - redirect to legal version
+  console.log('[DEPRECATED] handleScrapeJobs is deprecated. Use handleSearchJobsLegal instead.');
+  return handleSearchJobsLegal(supabaseClient, args);
 }
 
 async function handleMonitorJobs(supabaseClient: any, args: any) {

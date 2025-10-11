@@ -11,9 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const { searchQuery, location, jobType, remote } = await req.json();
+    // LEGAL COMPLIANCE: Indeed scraping disabled
+    // Indeed actively blocks scrapers and has strict anti-scraping policies
+    console.log('[DISABLED] Indeed scraping disabled for legal compliance');
     
-    console.log('[MCP-INDEED] Scraping jobs:', { searchQuery, location, jobType, remote });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Indeed scraping has been disabled for legal compliance. Please use official job APIs.',
+        legalNotice: 'Migrated to Adzuna API, SearchAPI Google Jobs, and USAJobs API for legal job aggregation'
+      }),
+      { 
+        status: 410, // Gone
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
 
     const APIFY_API_KEY = Deno.env.get('APIFY_API_KEY');
     if (!APIFY_API_KEY) {

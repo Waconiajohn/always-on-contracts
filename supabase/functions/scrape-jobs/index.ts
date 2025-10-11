@@ -129,53 +129,12 @@ serve(async (req) => {
   }
 });
 
+// LEGAL COMPLIANCE: LinkedIn scraping disabled per LinkedIn v. Proxycurl (2025) ruling
+// LinkedIn has zero-tolerance policy on scraping and actively pursues legal action
+// Replaced with legal SearchAPI for Google Jobs
 async function scrapeLinkedInJobs(query: string, filters: any, apiKey: string) {
-  console.log('Scraping LinkedIn with Apify');
-  
-  // Use Apify's LinkedIn Jobs Scraper
-  const response = await fetch('https://api.apify.com/v2/acts/voyager~linkedin-jobs-scraper/run-sync?token=' + apiKey, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      queries: [query],
-      maxResults: 50,
-      location: filters.locations?.[0] || '',
-      datePosted: 'anyTime',
-      employmentType: filters.employment_types || [],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Apify API error: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  
-  return (data.defaultDatasetId ? 
-    await fetchApifyDataset(data.defaultDatasetId, apiKey) : 
-    []
-  ).map((job: any) => ({
-    id: job.jobId || job.id,
-    source: 'linkedin',
-    title: job.title,
-    company: job.company,
-    logo: job.companyLogo,
-    location: job.location,
-    remoteType: job.workType || 'onsite',
-    employmentType: job.employmentType || 'full-time',
-    salaryMin: job.salary?.min,
-    salaryMax: job.salary?.max,
-    salaryPeriod: 'annual',
-    description: job.description,
-    requirements: [],
-    benefits: [],
-    postedDate: job.postedDate,
-    applyUrl: job.jobUrl,
-    companyUrl: job.companyUrl,
-    raw: job,
-  }));
+  console.log('[DISABLED] LinkedIn scraping disabled for legal compliance');
+  return [];
 }
 
 async function fetchApifyDataset(datasetId: string, apiKey: string) {
