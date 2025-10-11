@@ -362,6 +362,7 @@ async function validateIsResume(text: string, apiKey: string): Promise<{
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
+          max_tokens: 1024,
           messages: [
             {
               role: "system",
@@ -371,8 +372,8 @@ async function validateIsResume(text: string, apiKey: string): Promise<{
               role: "user",
               content: `Analyze if this is a professional resume/CV. Look for: contact info, work history, education, skills.
 
-TEXT (first 2000 chars):
-${text.substring(0, 2000)}
+TEXT (first 5000 chars):
+${text.substring(0, 5000)}
 
 Respond with confidence 0.0-1.0 and brief reason.`
             }
