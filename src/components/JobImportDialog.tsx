@@ -111,9 +111,10 @@ export function JobImportDialog({ open, onOpenChange, onJobImported }: JobImport
       onOpenChange(false);
     } catch (error) {
       console.error('URL import error:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to import from URL";
       toast({
         title: "Import Failed",
-        description: error.message || "Failed to import from URL",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -177,9 +178,10 @@ export function JobImportDialog({ open, onOpenChange, onJobImported }: JobImport
       }
     } catch (error) {
       console.error('File import error:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to import file";
       toast({
         title: "Import Failed",
-        description: error.message || "Failed to import file",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

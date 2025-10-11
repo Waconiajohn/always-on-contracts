@@ -54,7 +54,7 @@ const CareerVaultOnboarding = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (existingVault && existingVault.interview_completion_percentage >= 100) {
+      if (existingVault && (existingVault.interview_completion_percentage ?? 0) >= 100) {
         // User has completed onboarding, redirect to dashboard
         navigate('/career-vault');
       }

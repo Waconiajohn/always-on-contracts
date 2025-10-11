@@ -255,7 +255,7 @@ export function StarStoryBuilder() {
                   <Label htmlFor="industry">Industry</Label>
                   <Input
                     id="industry"
-                    value={editingStory.industry}
+                    value={editingStory.industry ?? ''}
                     onChange={(e) => setEditingStory({ ...editingStory, industry: e.target.value })}
                     placeholder="e.g., SaaS, Manufacturing"
                   />
@@ -264,7 +264,7 @@ export function StarStoryBuilder() {
                   <Label htmlFor="timeframe">Timeframe</Label>
                   <Input
                     id="timeframe"
-                    value={editingStory.timeframe}
+                    value={editingStory.timeframe ?? ''}
                     onChange={(e) => setEditingStory({ ...editingStory, timeframe: e.target.value })}
                     placeholder="e.g., 2020-2022"
                   />

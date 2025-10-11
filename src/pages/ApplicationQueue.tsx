@@ -15,19 +15,19 @@ interface QueueItem {
   opportunity_id: string;
   match_score: number;
   status: string;
-  created_at: string;
+  created_at: string | null;
   customized_resume_content: any;
-  ai_customization_notes: string;
+  ai_customization_notes: string | null;
   job_opportunities: {
     job_title: string;
-    location: string;
-    hourly_rate_min: number;
-    hourly_rate_max: number;
-    job_description: string;
-    external_url: string;
+    location: string | null;
+    hourly_rate_min: number | null;
+    hourly_rate_max: number | null;
+    job_description: string | null;
+    external_url: string | null;
     staffing_agencies: {
       agency_name: string;
-    };
+    } | null;
   };
 }
 

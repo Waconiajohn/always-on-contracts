@@ -20,22 +20,22 @@ interface QueueItem {
   id: string;
   file_name: string;
   status: string;
-  progress: number;
-  error_message?: string;
-  error_type?: string;
+  progress: number | null;
+  error_message?: string | null;
+  error_type?: string | null;
   created_at: string;
-  started_at?: string;
-  completed_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
 }
 
 interface ProcessingLog {
   id: string;
   file_name: string;
   file_size: number;
-  processing_time_ms?: number;
+  processing_time_ms?: number | null;
   success: boolean;
-  confidence_level?: string;
-  was_cached: boolean;
+  confidence_level?: string | null;
+  was_cached: boolean | null;
   created_at: string;
 }
 
@@ -109,10 +109,10 @@ export function ResumeProcessingMonitor() {
         
         // Calculate stats
         const successful = logsData.filter(l => l.success).length;
-        const cached = logsData.filter(l => l.was_cached).length;
+        const cached = logsData.filter(l => l.was_cached === true).length;
         const avgTime = logsData
           .filter(l => l.processing_time_ms)
-          .reduce((sum, l) => sum + (l.processing_time_ms || 0), 0) / logsData.length;
+          .reduce((sum, l) => sum + (l.processing_time_ms ?? 0), 0) / logsData.length;
         
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -322,14 +322,14 @@ export function ResumeProcessingMonitor() {
                           </>
                         )}
                       </div>
-                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getConfidenceBadge(log.confidence_level)}
-                    <span className="text-xs text-muted-foreground">
-                      {(log.file_size / 1024).toFixed(1)} KB
-                    </span>
-                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {log.confidence_level && getConfidenceBadge(log.confidence_level)}
+                  <span className="text-xs text-muted-foreground">
+                    {(log.file_size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
                 </div>
               ))}
             </div>

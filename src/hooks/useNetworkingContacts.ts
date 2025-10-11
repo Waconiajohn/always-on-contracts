@@ -14,8 +14,8 @@ export interface NetworkingContact {
   notes: string | null;
   last_contact_date: string | null;
   next_follow_up_date: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export const useNetworkingContacts = () => {

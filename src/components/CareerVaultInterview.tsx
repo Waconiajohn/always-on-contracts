@@ -275,8 +275,12 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
       logger.debug('[SAVE-DRAFT] Saving to database for user:', { userId: user.id });
 
+      if (!vaultId) {
+        throw new Error('Vault ID is required to save response');
+      }
+
       const responseData = {
-        vault_id: vaultId || null,
+        vault_id: vaultId,
         user_id: user.id,
         question: currentQuestion?.questionsToExpand?.[currentSubQuestionIndex]?.prompt || 'Current Question',
         response: responseContent,
@@ -379,13 +383,13 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       if (milestonesData && milestonesData.length > 0) {
         setMilestones(milestonesData);
         // Set first incomplete milestone as current
-        const firstIncomplete = milestonesData.find(m => m.completion_percentage < 100);
+        const firstIncomplete = milestonesData.find(m => (m.completion_percentage ?? 0) < 100);
         if (firstIncomplete) {
           setCurrentMilestoneId(firstIncomplete.id);
         }
         
         // Calculate total intelligence
-        const total = milestonesData.reduce((sum, m) => sum + (m.intelligence_extracted || 0), 0);
+        const total = milestonesData.reduce((sum, m) => sum + (m.intelligence_extracted ?? 0), 0);
         setTotalIntelligenceExtracted(total);
       }
     } catch (error) {
@@ -769,10 +773,15 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           intelligenceValue < 60 ? 'medium' : 'low';
         
         logger.debug('[SUBMIT] Saving response to database...');
+        
+        if (!vaultId) {
+          throw new Error('Vault ID is required to save response');
+        }
+        
         const { data: savedResponse, error: saveError } = await supabase
           .from('vault_interview_responses')
           .insert([{
-            vault_id: vaultId || null,
+            vault_id: vaultId,
             user_id: user.id,
             question: currentSubQuestion.prompt,
             response: responseToSave,

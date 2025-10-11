@@ -37,7 +37,7 @@ export default function AffiliatePortal() {
 
       if (affiliateData) {
         setAffiliate(affiliateData);
-        setPayoutEmail(affiliateData.payout_email || session.user.email);
+        setPayoutEmail(affiliateData.payout_email ?? session.user.email ?? '');
         loadStats(affiliateData.id);
       }
     } catch (error) {

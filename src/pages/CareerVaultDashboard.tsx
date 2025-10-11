@@ -39,8 +39,8 @@ interface PowerPhrase {
   id: string;
   category: string;
   power_phrase: string;
-  confidence_score: number;
-  keywords: string[];
+  confidence_score: number | null;
+  keywords: string[] | null;
   impact_metrics?: any;
 }
 
@@ -49,7 +49,7 @@ interface TransferableSkill {
   stated_skill: string;
   equivalent_skills: string[];
   evidence: string;
-  confidence_score: number;
+  confidence_score: number | null;
 }
 
 interface HiddenCompetency {
@@ -57,7 +57,7 @@ interface HiddenCompetency {
   competency_area: string;
   inferred_capability: string;
   supporting_evidence: string[];
-  confidence_score: number;
+  confidence_score: number | null;
   certification_equivalent: string | null;
 }
 
@@ -178,7 +178,7 @@ const VaultDashboardContent = () => {
     const modernKeywords = ['AI', 'ML', 'cloud', 'digital transformation', 'automation', 
       'data science', 'agile', 'DevOps', 'analytics', 'optimization'];
     const modernPhrases = phrases.filter(p => 
-      p.keywords.some(k => modernKeywords.some(mk => k.toLowerCase().includes(mk.toLowerCase())))
+      (p.keywords ?? []).some(k => modernKeywords.some(mk => k.toLowerCase().includes(mk.toLowerCase())))
     ).length;
     const modernTerminologyScore = phrases.length > 0 
       ? (modernPhrases / phrases.length) * 15 
@@ -460,13 +460,13 @@ const VaultDashboardContent = () => {
               <Card key={phrase.id} className="p-6">
                 <div className="flex items-start justify-between mb-2">
                   <Badge variant="secondary">{phrase.category}</Badge>
-                  <Badge variant={phrase.confidence_score > 80 ? "default" : "outline"}>
-                    {phrase.confidence_score}% confidence
+                  <Badge variant={(phrase.confidence_score ?? 0) > 80 ? "default" : "outline"}>
+                    {phrase.confidence_score ?? 0}% confidence
                   </Badge>
                 </div>
                 <p className="text-lg mb-3">{phrase.power_phrase}</p>
                 <div className="flex flex-wrap gap-2">
-                  {phrase.keywords.map((keyword, idx) => (
+                  {(phrase.keywords ?? []).map((keyword, idx) => (
                     <Badge key={idx} variant="outline" className="text-xs">
                       {keyword}
                     </Badge>
@@ -487,8 +487,8 @@ const VaultDashboardContent = () => {
               <Card key={skill.id} className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <h4 className="text-lg font-semibold">{skill.stated_skill}</h4>
-                  <Badge variant={skill.confidence_score > 80 ? "default" : "outline"}>
-                    {skill.confidence_score}% confidence
+                  <Badge variant={(skill.confidence_score ?? 0) > 80 ? "default" : "outline"}>
+                    {skill.confidence_score ?? 0}% confidence
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{skill.evidence}</p>
@@ -515,8 +515,8 @@ const VaultDashboardContent = () => {
               <Card key={comp.id} className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <h4 className="text-lg font-semibold">{comp.competency_area}</h4>
-                  <Badge variant={comp.confidence_score > 80 ? "default" : "outline"}>
-                    {comp.confidence_score}% confidence
+                  <Badge variant={(comp.confidence_score ?? 0) > 80 ? "default" : "outline"}>
+                    {comp.confidence_score ?? 0}% confidence
                   </Badge>
                 </div>
                 <p className="text-sm mb-3">{comp.inferred_capability}</p>

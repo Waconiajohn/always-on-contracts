@@ -10,9 +10,9 @@ export interface LinkedInDraft {
   post_type: string | null;
   tone: string | null;
   engagement_score: number | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export const useLinkedInDrafts = () => {

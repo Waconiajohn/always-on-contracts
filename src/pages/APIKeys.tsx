@@ -14,9 +14,9 @@ interface APIKey {
   id: string;
   key_name: string;
   api_key: string;
-  created_at: string;
+  created_at: string | null;
   last_used_at: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
 }
 
 const APIKeysContent = () => {
@@ -287,7 +287,7 @@ const APIKeysContent = () => {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Created {new Date(key.created_at).toLocaleDateString()}
+                        {key.created_at && `Created ${new Date(key.created_at).toLocaleDateString()}`}
                         {key.last_used_at && ` • Last used ${new Date(key.last_used_at).toLocaleDateString()}`}
                       </p>
                     </div>
