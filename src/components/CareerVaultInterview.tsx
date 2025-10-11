@@ -133,6 +133,18 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     }
   }, [currentMilestoneId]);
 
+  // Auto-start interview when component mounts with milestones
+  useEffect(() => {
+    // If we have milestones loaded but no current milestone or question, start automatically
+    if (milestones.length > 0 && !currentMilestoneId && !currentQuestion) {
+      const firstMilestone = milestones.find(m => (m.completion_percentage ?? 0) < 100) || milestones[0];
+      if (firstMilestone) {
+        logger.debug('[INTERVIEW] Auto-starting with first incomplete milestone');
+        setCurrentMilestoneId(firstMilestone.id);
+      }
+    }
+  }, [milestones, currentMilestoneId, currentQuestion]);
+
   // Auto-save effect - runs every 30 seconds if there's content
   useEffect(() => {
     const hasContent = (userInput.trim().length > 0 || 
@@ -527,6 +539,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
   const startInterview = async () => {
     setIsLoading(true);
+    logger.debug('[INTERVIEW] Starting interview for milestone:', { currentMilestoneId });
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -541,6 +555,8 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       if (vault) {
         setVaultId(vault.id);
         setResumeText(vault.resume_raw_text || '');
+      } else {
+        throw new Error('Career vault not found');
       }
 
       // Get confirmed skills for context
@@ -549,6 +565,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         .select('*')
         .eq('user_id', user.id);
 
+      logger.debug('[INTERVIEW] Generating question...');
       const { data, error } = await supabase.functions.invoke('generate-interview-question', {
         body: { 
           phase: 'discovery', 
@@ -559,9 +576,13 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        logger.error('[INTERVIEW] Error from generate-interview-question:', error);
+        throw error;
+      }
 
       if (data?.question) {
+        logger.debug('[INTERVIEW] Question received successfully');
         setCurrentQuestion(data.question);
         setCurrentPhase(data.phase || 'discovery');
         setCompletionPercentage(data.completionPercentage || 0);
@@ -576,12 +597,20 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         } else {
           setQuestionType('text');
         }
+        
+        toast({
+          title: 'Ready to start!',
+          description: 'Answer the questions below to build your Career Vault',
+        });
+      } else {
+        throw new Error('No question received from server');
       }
     } catch (error) {
       console.error('Error starting interview:', error);
+      logger.error('[INTERVIEW] Start failed:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to start interview. Please try again.',
+        title: 'Error Starting Interview',
+        description: error instanceof Error ? error.message : 'Failed to start interview. Please try again or contact support.',
         variant: 'destructive'
       });
     } finally {
@@ -1261,8 +1290,16 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
   if (!currentQuestion) {
     return (
-      <Card className="p-6 flex items-center justify-center h-[400px]">
+      <Card className="p-6 flex flex-col items-center justify-center h-[400px] space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center space-y-2">
+          <p className="text-sm font-medium">Loading interview questions...</p>
+          {milestones.length > 0 && !currentMilestoneId && (
+            <p className="text-xs text-muted-foreground">
+              Click on a milestone above to begin
+            </p>
+          )}
+        </div>
       </Card>
     );
   }

@@ -74,12 +74,23 @@ export const MilestoneProgress = ({
             <Card
               key={milestone.id}
               className={cn(
-                "p-4 cursor-pointer transition-all",
+                "p-4 cursor-pointer transition-all hover:bg-accent/50",
                 isActive 
-                  ? "ring-2 ring-primary border-primary shadow-lg" 
+                  ? "ring-2 ring-primary border-primary shadow-lg bg-accent/30" 
                   : "hover:shadow-md hover:border-primary/50"
               )}
-              onClick={() => onSelectMilestone(milestone.id)}
+              onClick={() => {
+                console.log('[MILESTONE] Clicked:', milestone.id, milestone.job_title);
+                onSelectMilestone(milestone.id);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectMilestone(milestone.id);
+                }
+              }}
             >
               <div className="flex items-start gap-3">
                 {/* Status Icon */}
