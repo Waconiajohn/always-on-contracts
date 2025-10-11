@@ -7,6 +7,10 @@ interface OnboardingStatus {
   hasReviewedVault: boolean;
   isOnboardingComplete: boolean;
   loading: boolean;
+  vaultCompletionPercentage: number;
+  vaultStrengthScore: number;
+  totalIntelligenceCount: number;
+  completionMilestone: 'none' | 'basic' | 'intermediate' | 'advanced' | 'elite';
 }
 
 export const useOnboarding = () => {
@@ -16,6 +20,10 @@ export const useOnboarding = () => {
     hasReviewedVault: false,
     isOnboardingComplete: false,
     loading: true,
+    vaultCompletionPercentage: 0,
+    vaultStrengthScore: 0,
+    totalIntelligenceCount: 0,
+    completionMilestone: 'none',
   });
 
   useEffect(() => {
@@ -42,7 +50,7 @@ export const useOnboarding = () => {
       // Check for career vault and interview responses
       const { data: vault } = await supabase
         .from("career_vault")
-        .select("id, interview_completion_percentage")
+        .select("id, interview_completion_percentage, overall_strength_score")
         .eq("user_id", user.id)
         .single();
 
@@ -60,6 +68,20 @@ export const useOnboarding = () => {
       // Check for career vault review (assuming they've accessed it)
       const hasReviewedVault = localStorage.getItem(`vault_reviewed_${user.id}`) === "true";
       
+      // Get vault completion metrics
+      const vaultCompletionPercentage = vault?.interview_completion_percentage || 0;
+      const vaultStrengthScore = vault?.overall_strength_score || 0;
+      
+      // Calculate total intelligence (would need to query actual tables for accurate count)
+      const totalIntelligenceCount = 0; // Placeholder
+      
+      // Determine completion milestone
+      let completionMilestone: OnboardingStatus['completionMilestone'] = 'none';
+      if (vaultCompletionPercentage >= 100) completionMilestone = 'elite';
+      else if (vaultCompletionPercentage >= 75) completionMilestone = 'advanced';
+      else if (vaultCompletionPercentage >= 50) completionMilestone = 'intermediate';
+      else if (vaultCompletionPercentage >= 25) completionMilestone = 'basic';
+      
       // Simple onboarding completion check based on key milestones
       const isOnboardingComplete = hasResume && hasCompletedInterview;
 
@@ -69,6 +91,10 @@ export const useOnboarding = () => {
         hasReviewedVault,
         isOnboardingComplete,
         loading: false,
+        vaultCompletionPercentage,
+        vaultStrengthScore,
+        totalIntelligenceCount,
+        completionMilestone,
       });
     } catch (error) {
       console.error("Error checking onboarding status:", error);

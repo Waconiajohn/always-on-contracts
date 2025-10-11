@@ -118,8 +118,12 @@ interface BehavioralIndicator {
 
 import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
 import { EnhancementQueue } from '@/components/EnhancementQueue';
+import { useNavigate } from 'react-router-dom';
+import { Rocket } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const VaultDashboardContent = () => {
+  const navigate = useNavigate();
   const [vaultId, setVaultId] = useState<string>("");
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [powerPhrases, setPowerPhrases] = useState<PowerPhrase[]>([]);
@@ -312,11 +316,21 @@ const VaultDashboardContent = () => {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Your Career Vault</h1>
-        <p className="text-muted-foreground">
-          A comprehensive intelligence system of your skills, achievements, and capabilities across 20 intelligence categories
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Your Career Vault</h1>
+          <p className="text-muted-foreground">
+            A comprehensive intelligence system of your skills, achievements, and capabilities across 20 intelligence categories
+          </p>
+        </div>
+        <Button
+          size="lg"
+          onClick={() => navigate('/agents/resume-builder')}
+          className="gap-2"
+        >
+          <Rocket className="h-5 w-5" />
+          Use My Vault
+        </Button>
       </div>
 
       {/* Career Vault Strength Score */}

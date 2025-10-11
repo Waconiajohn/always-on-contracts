@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { STARStoryBuilder } from './career-vault/STARStoryBuilder';
 import { logger } from '@/lib/logger';
+import { VaultCompletionModal } from './VaultCompletionModal';
 
 interface KnownDataItem {
   label: string;
@@ -101,6 +102,10 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   
   // STAR and sub-questions state
   const [starStoryData] = useState<any>({});
+
+  // Vault completion modal state
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [lastMilestoneShown, setLastMilestoneShown] = useState<number>(0);
 
   const { toast } = useToast();
 
@@ -984,7 +989,19 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       if (data?.question) {
         setCurrentQuestion(data.question);
         setCurrentPhase(data.phase);
-        setCompletionPercentage(data.completionPercentage);
+        
+        const newCompletion = data.completionPercentage;
+        setCompletionPercentage(newCompletion);
+        
+        // Check for milestone completion (25%, 50%, 75%, 100%)
+        const currentMilestone = Math.floor(newCompletion / 25) * 25;
+        const previousMilestone = Math.floor(completionPercentage / 25) * 25;
+        
+        if (currentMilestone > previousMilestone && currentMilestone > lastMilestoneShown && currentMilestone >= 25) {
+          setLastMilestoneShown(currentMilestone);
+          setShowCompletionModal(true);
+        }
+        
         setUserInput('');
         setValidationFeedback('');
         setGuidedPrompts(null);
@@ -1309,6 +1326,20 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
   return (
     <div className="space-y-4">
+      {/* Vault Completion Modal */}
+      <VaultCompletionModal
+        open={showCompletionModal}
+        onOpenChange={setShowCompletionModal}
+        completionPercentage={completionPercentage}
+        stats={{
+          powerPhrases: intelligenceExtracted.powerPhrases,
+          transferableSkills: intelligenceExtracted.transferableSkills,
+          hiddenCompetencies: intelligenceExtracted.hiddenCompetencies,
+          totalIntelligence: intelligenceExtracted.powerPhrases + intelligenceExtracted.transferableSkills + intelligenceExtracted.hiddenCompetencies
+        }}
+        strengthScore={qualityScore}
+      />
+      
       {/* Persona Selection & Voice Controls */}
       <Card className="p-5 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

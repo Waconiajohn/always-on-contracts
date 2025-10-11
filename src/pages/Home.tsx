@@ -96,21 +96,27 @@ const HomeContent = () => {
         title: "AI Agent Hub",
         description: "Job search, resume builder, interview prep agents",
         path: "/ai-agents",
-        locked: !vaultComplete
+        locked: false,
+        minCompletion: 0,
+        unlockMessage: "Available now"
       },
       {
         icon: Target,
         title: "Job Board",
         description: "Find opportunities with AI-powered matching",
         path: "/agents/job-search",
-        locked: !vaultComplete
+        locked: vaultCompletion < 25,
+        minCompletion: 25,
+        unlockMessage: "Available at 25% vault completion"
       },
       {
         icon: FileText,
         title: "Active Projects",
         description: "Track applications and interviews",
         path: "/projects",
-        locked: !vaultComplete
+        locked: false,
+        minCompletion: 0,
+        unlockMessage: "Available now"
       }
     ],
     careerResources: [
@@ -119,21 +125,27 @@ const HomeContent = () => {
         title: "Learning Center",
         description: "Guides, templates, and career resources",
         path: "/learn",
-        locked: false
+        locked: false,
+        minCompletion: 0,
+        unlockMessage: "Available now"
       },
       {
         icon: Calendar,
         title: "Live Training",
         description: "Join webinars and coaching sessions",
         path: "/coaching",
-        locked: !vaultComplete
+        locked: vaultCompletion < 75,
+        minCompletion: 75,
+        unlockMessage: "Available at 75% vault completion"
       },
       {
         icon: MessageSquare,
         title: "Templates",
         description: "Email templates and outreach scripts",
         path: "/templates",
-        locked: false
+        locked: false,
+        minCompletion: 0,
+        unlockMessage: "Available now"
       }
     ],
     advancedTools: [
@@ -142,21 +154,27 @@ const HomeContent = () => {
         title: "Rate Calculator",
         description: "Calculate your market value",
         path: "/rate-calculator",
-        locked: false
+        locked: false,
+        minCompletion: 0,
+        unlockMessage: "Available now"
       },
       {
         icon: Network,
         title: "Agency Matcher",
         description: "Connect with top recruiters",
         path: "/agencies",
-        locked: !vaultComplete
+        locked: vaultCompletion < 50,
+        minCompletion: 50,
+        unlockMessage: "Available at 50% vault completion"
       },
       {
         icon: Users,
         title: "Networking Hub",
         description: "Build and manage professional connections",
         path: "/outreach",
-        locked: !vaultComplete
+        locked: vaultCompletion < 50,
+        minCompletion: 50,
+        unlockMessage: "Available at 50% vault completion"
       }
     ]
   };
@@ -283,9 +301,13 @@ const HomeContent = () => {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <CardDescription>{link.description}</CardDescription>
-                      {link.locked && (
+                      {link.locked ? (
                         <Badge variant="secondary" className="mt-2 text-xs">
-                          Complete Career Vault
+                          Unlock at {link.minCompletion}%
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="mt-2 text-xs text-primary">
+                          ✓ Unlocked
                         </Badge>
                       )}
                     </CardContent>
@@ -320,9 +342,13 @@ const HomeContent = () => {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <CardDescription>{link.description}</CardDescription>
-                      {link.locked && (
+                      {link.locked ? (
                         <Badge variant="secondary" className="mt-2 text-xs">
-                          Complete Career Vault
+                          Unlock at {link.minCompletion}%
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="mt-2 text-xs text-primary">
+                          ✓ Unlocked
                         </Badge>
                       )}
                     </CardContent>
@@ -357,9 +383,13 @@ const HomeContent = () => {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <CardDescription>{link.description}</CardDescription>
-                      {link.locked && (
+                      {link.locked ? (
                         <Badge variant="secondary" className="mt-2 text-xs">
-                          Complete Career Vault
+                          Unlock at {link.minCompletion}%
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="mt-2 text-xs text-primary">
+                          ✓ Unlocked
                         </Badge>
                       )}
                     </CardContent>

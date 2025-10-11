@@ -128,6 +128,21 @@ const CareerVaultOnboarding = () => {
       setResumeText(processData.extractedText);
       setResumeAnalysis(processData.analysis);
 
+      // CRITICAL FIX: Store resume text in career_vault immediately
+      const { error: vaultError } = await supabase
+        .from('career_vault')
+        .upsert({
+          user_id: user.id,
+          resume_raw_text: processData.extractedText,
+          initial_analysis: processData.analysis || {}
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (vaultError) {
+        console.error('Failed to update career vault:', vaultError);
+      }
+
       toast({
         title: "Resume Processed",
         description: processData.cached 
@@ -152,6 +167,22 @@ const CareerVaultOnboarding = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // CRITICAL FIX: Update career vault with current resume text
+      const { error: updateError } = await supabase
+        .from('career_vault')
+        .update({ resume_raw_text: resumeText })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Failed to update career vault with resume text:', updateError);
+        toast({
+          title: 'Error',
+          description: 'Failed to save resume data. Please try again.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Parse resume into milestones BEFORE starting interview
       const { data: vault } = await supabase
