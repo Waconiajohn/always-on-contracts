@@ -37,6 +37,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
   const [activeFilter, setActiveFilter] = useState<'all' | 'resume' | 'inferred' | 'growth'>('all');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   
   const [isAddingCustomSkill, setIsAddingCustomSkill] = useState(false);
   const [customSkillName, setCustomSkillName] = useState('');
@@ -58,6 +59,17 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
     if (confirmedCount > 0) {
       saveProgressToSession();
     }
+  }, [confirmedCount]);
+
+  // Auto-save effect (every 30 seconds)
+  useEffect(() => {
+    if (confirmedCount === 0) return;
+    
+    const autoSaveInterval = setInterval(() => {
+      handleSaveProgress(true); // Pass true to indicate auto-save
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
   }, [confirmedCount]);
 
   const saveProgressToSession = () => {
@@ -226,8 +238,14 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
     }
   };
 
-  const handleSaveProgress = async () => {
-    setIsSaving(true);
+  const handleSaveProgress = async (isAutoSave: boolean = false) => {
+    if (confirmedCount === 0) return; // Silent return for auto-save
+    
+    if (isAutoSave) {
+      setIsAutoSaving(true);
+    } else {
+      setIsSaving(true);
+    }
     
     const result = await withSessionValidation(async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -236,13 +254,21 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       // Sync confirmed skills to profile
       await syncVaultSkillsToProfile(user.id);
       setLastSaved(new Date());
-      toast.success('Progress saved successfully');
+      
+      // Only show toast for manual saves
+      if (!isAutoSave) {
+        toast.success('Progress saved successfully');
+      }
       return true;
     }, 'save progress');
 
-    setIsSaving(false);
+    if (isAutoSave) {
+      setIsAutoSaving(false);
+    } else {
+      setIsSaving(false);
+    }
 
-    if (!result) {
+    if (!result && !isAutoSave) {
       toast.error('Failed to save progress. Please try again.');
     }
   };
@@ -304,7 +330,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
             {lastSaved && (
               <span className="text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                Saved {lastSaved.toLocaleTimeString()}
+                {isAutoSaving ? 'Saving...' : `Saved ${lastSaved.toLocaleTimeString()}`}
               </span>
             )}
             <span className="text-muted-foreground">{Math.round(progressPercentage)}%</span>
@@ -316,7 +342,7 @@ export const SkillConfirmationStep = ({ onComplete }: SkillConfirmationStepProps
       {/* Save Progress Button */}
       <div className="flex justify-center">
         <Button 
-          onClick={handleSaveProgress} 
+          onClick={() => handleSaveProgress(false)} 
           variant="outline" 
           disabled={isSaving || isRefreshing || confirmedCount === 0}
         >

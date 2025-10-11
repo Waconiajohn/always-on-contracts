@@ -78,7 +78,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     hiddenCompetencies: 0
   });
   
-  // NEW: Auto-save state
+  // Auto-save state
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -109,6 +109,29 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const [lastMilestoneShown, setLastMilestoneShown] = useState<number>(0);
 
   const { toast } = useToast();
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!userInput || userInput.trim().length < 10) return;
+    
+    const autoSaveInterval = setInterval(() => {
+      saveDraft();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [userInput, selectedOptions, customAnswerText]);
+
+  // Keyboard shortcut (Ctrl+S / Cmd+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveDraft();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [userInput]);
 
   // PHASE 3: Add "The Psychologist" persona for intangibles
   const personas = {
@@ -324,10 +347,13 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       setLastSaved(new Date());
       setSaveStatus('saved');
       
-      toast({
-        title: "Draft saved ✓",
-        description: "Your progress has been saved",
-      });
+      // Don't show toast for auto-save
+      if (!isSaving) {
+        toast({
+          title: "Draft saved ✓",
+          description: "Your progress has been saved",
+        });
+      }
       
       // Reset to idle after 2 seconds
       setTimeout(() => setSaveStatus('idle'), 2000);
@@ -1345,7 +1371,42 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const currentQuestionNum = currentSubQuestionIndex + 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 max-w-4xl mx-auto pb-20">
+      {/* Save Status Banner - Sticky */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b py-2">
+        <div className="flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            {saveStatus === 'saving' || isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Saving...</span>
+              </>
+            ) : saveStatus === 'saved' ? (
+              <>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-muted-foreground">Saved ✓</span>
+              </>
+            ) : lastSaved ? (
+              <span className="text-xs text-muted-foreground">
+                Last saved {new Date(lastSaved).toLocaleTimeString()}
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">Auto-save enabled</span>
+            )}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={saveDraft}
+            disabled={isSaving || !userInput || userInput.trim().length < 10}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Draft (Ctrl+S)
+          </Button>
+        </div>
+      </div>
+
       {/* Vault Completion Modal */}
       <VaultCompletionModal
         open={showCompletionModal}

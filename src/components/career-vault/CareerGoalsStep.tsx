@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Plus, Target, Building2 } from 'lucide-react';
+import { Loader2, Plus, Target, Building2, Save, ArrowRight } from 'lucide-react';
 
 interface CareerGoalsStepProps {
   resumeAnalysis: any;
@@ -26,6 +26,8 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
   
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [customIndustry, setCustomIndustry] = useState('');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Generate industry options based on resume analysis
   const getIndustryOptions = () => {
@@ -62,6 +64,64 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
   useEffect(() => {
     fetchRoleSuggestions();
   }, []);
+
+  // Auto-save effect
+  useEffect(() => {
+    if (selectedRoles.length === 0 && selectedIndustries.length === 0) return;
+    
+    const autoSaveInterval = setInterval(() => {
+      saveProgress();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [selectedRoles, selectedIndustries]);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if ((selectedRoles.length > 0 || selectedIndustries.length > 0) && !lastSaved) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [selectedRoles, selectedIndustries, lastSaved]);
+
+  const saveProgress = async () => {
+    if (selectedRoles.length === 0 || selectedIndustries.length === 0) return;
+    
+    setIsSaving(true);
+    try {
+      // Save to session storage (instant backup)
+      sessionStorage.setItem('career_goals_progress', JSON.stringify({
+        selectedRoles,
+        selectedIndustries,
+        timestamp: new Date().toISOString()
+      }));
+      
+      // Save to database (permanent)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          target_roles: selectedRoles,
+          target_industries: selectedIndustries,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const fetchRoleSuggestions = async () => {
     try {
@@ -122,29 +182,12 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
       return;
     }
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user');
-
-      // Save to profiles table
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          target_roles: selectedRoles,
-          target_industries: selectedIndustries,
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      onComplete({
-        target_roles: selectedRoles,
-        target_industries: selectedIndustries,
-      });
-    } catch (error) {
-      console.error('Error saving career goals:', error);
-      toast.error('Failed to save career goals');
-    }
+    await saveProgress();
+    toast.success('Career goals saved!');
+    onComplete({
+      target_roles: selectedRoles,
+      target_industries: selectedIndustries,
+    });
   };
 
   if (loading) {
@@ -157,6 +200,20 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Save Status Indicator */}
+      {lastSaved && (
+        <div className="text-sm text-muted-foreground text-center">
+          {isSaving ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Saving...
+            </span>
+          ) : (
+            <span>✓ Last saved {new Date(lastSaved).toLocaleTimeString()}</span>
+          )}
+        </div>
+      )}
+
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold">What are your career goals?</h2>
         <p className="text-muted-foreground">
@@ -301,9 +358,32 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
         </CardContent>
       </Card>
 
-      <div className="flex justify-center">
-        <Button onClick={handleContinue} size="lg" className="px-8">
-          Continue to Analysis →
+      <div className="flex justify-between items-center">
+        <Button
+          variant="outline"
+          onClick={saveProgress}
+          disabled={isSaving || selectedRoles.length === 0 || selectedIndustries.length === 0}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Progress
+            </>
+          )}
+        </Button>
+        
+        <Button
+          onClick={handleContinue}
+          disabled={selectedRoles.length === 0 || selectedIndustries.length === 0}
+          size="lg"
+        >
+          Continue to Analysis
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

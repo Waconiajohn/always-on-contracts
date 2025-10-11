@@ -31,6 +31,7 @@ export const AIAnalysisStep = ({
     { label: 'Generating recommendations', status: 'pending' },
   ]);
   const [progress, setProgress] = useState(0);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   useEffect(() => {
     performAnalysis();
@@ -73,6 +74,20 @@ export const AIAnalysisStep = ({
 
       if (!data.success) {
         throw new Error(data.error || 'Analysis failed');
+      }
+
+      // Auto-save analysis results
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('career_vault')
+          .update({
+            initial_analysis: data,
+            last_updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id);
+        
+        setLastSaved(new Date());
       }
 
       updateStep(2, 'complete');
@@ -150,6 +165,12 @@ export const AIAnalysisStep = ({
       <p className="text-center text-sm text-muted-foreground">
         This usually takes 30-60 seconds. Please don't close this page.
       </p>
+
+      {lastSaved && (
+        <p className="text-center text-xs text-muted-foreground">
+          ✓ Analysis saved at {new Date(lastSaved).toLocaleTimeString()}
+        </p>
+      )}
     </div>
   );
 };
