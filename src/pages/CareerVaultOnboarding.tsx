@@ -419,11 +419,21 @@ const CareerVaultOnboarding = () => {
 
       {currentStep === 'goals' && (
         <CareerGoalsStep
-          onComplete={async (data) => {
+          resumeAnalysis={null}
+          onComplete={async (goalsData) => {
             // Parse resume into milestones immediately after goals
             try {
               const { data: { user } } = await supabase.auth.getUser();
               if (!user) return;
+
+              // Save career goals to profile
+              await supabase
+                .from('profiles')
+                .update({
+                  target_roles: goalsData.target_roles,
+                  target_industries: goalsData.target_industries
+                })
+                .eq('user_id', user.id);
 
               const { data: vault } = await supabase
                 .from('career_vault')

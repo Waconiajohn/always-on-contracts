@@ -138,14 +138,25 @@ export const LinearCareerVaultInterview = ({
     setIsLoading(true);
 
     try {
+      // Get vault_id for the response
+      const { data: vaultData } = await supabase
+        .from('career_vault')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!vaultData) throw new Error('Vault not found');
+
       // Save response
       await supabase
         .from('vault_interview_responses')
         .insert({
-          question_text: currentQuestion.question,
-          response_text: userInput.trim(),
+          question: currentQuestion.question,
+          response: userInput.trim(),
           phase: 'foundation',
-          milestone_id: queueItem.milestoneId
+          milestone_id: queueItem.milestoneId,
+          vault_id: vaultData.id,
+          user_id: userId
         });
 
       // Extract intelligence
