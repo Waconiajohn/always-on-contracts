@@ -323,14 +323,22 @@ const VaultDashboardContent = () => {
             A comprehensive intelligence system of your skills, achievements, and capabilities across 20 intelligence categories
           </p>
         </div>
-        <Button
-          size="lg"
-          onClick={() => navigate('/agents/resume-builder')}
-          className="gap-2"
-        >
-          <Rocket className="h-5 w-5" />
-          Use My Vault
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/career-vault-onboarding')}
+          >
+            Update Resume
+          </Button>
+          <Button
+            size="lg"
+            onClick={() => navigate('/agents/resume-builder')}
+            className="gap-2"
+          >
+            <Rocket className="h-5 w-5" />
+            Use My Vault
+          </Button>
+        </div>
       </div>
 
       {/* Career Vault Strength Score */}

@@ -11,6 +11,7 @@ import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { AIAnalysisStep } from '@/components/career-vault/AIAnalysisStep';
 import { SkillConfirmationStep } from '@/components/career-vault/SkillConfirmationStep';
 import { MilestoneProgress } from '@/components/career-vault/MilestoneProgress';
+import { ResumeUploadChoiceModal } from '@/components/career-vault/ResumeUploadChoiceModal';
 import { logger } from '@/lib/logger';
 
 type OnboardingStep = 'upload' | 'goals' | 'analysis' | 'skills' | 'interview' | 'complete';
@@ -26,6 +27,14 @@ const CareerVaultOnboarding = () => {
   const [milestones, setMilestones] = useState<any[]>([]);
   const [currentMilestoneId, setCurrentMilestoneId] = useState<string | null>(null);
   const [totalIntelligenceExtracted, setTotalIntelligenceExtracted] = useState(0);
+  const [showResumeChoiceModal, setShowResumeChoiceModal] = useState(false);
+  const [vaultChoice, setVaultChoice] = useState<'replace' | 'enhance' | null>(null);
+  const [existingVaultStats, setExistingVaultStats] = useState<{
+    completionPercentage: number;
+    totalIntelligence: number;
+    milestoneCount: number;
+  } | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -67,11 +76,83 @@ const CareerVaultOnboarding = () => {
     const file = e.target.files?.[0];
     if (file) {
       setResumeFile(file);
+      setPendingFile(file);
     }
   };
 
-  const handleUpload = async () => {
-    if (!resumeFile) return;
+  const clearVaultData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    console.log('[VAULT-RESET] Clearing all vault data for user:', user.id);
+
+    try {
+      // Delete all related records (in order due to foreign keys)
+      await supabase.from('vault_interview_responses').delete().eq('user_id', user.id);
+      await supabase.from('vault_power_phrases').delete().eq('user_id', user.id);
+      await supabase.from('vault_transferable_skills').delete().eq('user_id', user.id);
+      await supabase.from('vault_hidden_competencies').delete().eq('user_id', user.id);
+      await supabase.from('vault_soft_skills').delete().eq('user_id', user.id);
+      await supabase.from('vault_leadership_philosophy').delete().eq('user_id', user.id);
+      await supabase.from('vault_executive_presence').delete().eq('user_id', user.id);
+      await supabase.from('vault_personality_traits').delete().eq('user_id', user.id);
+      await supabase.from('vault_work_style').delete().eq('user_id', user.id);
+      await supabase.from('vault_values_motivations').delete().eq('user_id', user.id);
+      await supabase.from('vault_behavioral_indicators').delete().eq('user_id', user.id);
+      await supabase.from('vault_resume_milestones').delete().eq('user_id', user.id);
+      await supabase.from('vault_confirmed_skills').delete().eq('user_id', user.id);
+
+      // Reset career_vault counters
+      await supabase
+        .from('career_vault')
+        .update({
+          interview_completion_percentage: 0,
+          total_power_phrases: 0,
+          total_transferable_skills: 0,
+          total_hidden_competencies: 0,
+          total_soft_skills: 0,
+          total_leadership_philosophy: 0,
+          total_executive_presence: 0,
+          total_personality_traits: 0,
+          total_work_style: 0,
+          total_values: 0,
+          total_behavioral_indicators: 0
+        })
+        .eq('user_id', user.id);
+
+      // Clear session storage
+      sessionStorage.removeItem('career-vault-goals');
+      sessionStorage.removeItem('career-vault-skills');
+
+      toast({
+        title: "Vault Reset",
+        description: "Starting fresh with your new resume",
+      });
+    } catch (error) {
+      console.error('[VAULT-RESET] Error clearing vault data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear vault data. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleVaultChoice = async (choice: 'replace' | 'enhance') => {
+    setVaultChoice(choice);
+    setShowResumeChoiceModal(false);
+
+    if (choice === 'replace') {
+      await clearVaultData();
+    }
+
+    // Continue with upload
+    await continueResumeUpload();
+  };
+
+  const continueResumeUpload = async () => {
+    if (!pendingFile) return;
 
     setIsUploading(true);
     try {
@@ -82,20 +163,20 @@ const CareerVaultOnboarding = () => {
       let fileData = '';
       let fileText = '';
       
-      if (resumeFile.type === 'text/plain') {
+      if (pendingFile.type === 'text/plain') {
         // For TXT files, read as text
-        fileText = await resumeFile.text();
+        fileText = await pendingFile.text();
       } else {
         // For PDF/DOCX, convert to base64
-        const arrayBuffer = await resumeFile.arrayBuffer();
+        const arrayBuffer = await pendingFile.arrayBuffer();
         fileData = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       }
 
       // Upload to storage first
-      const filePath = `${user.id}/${Date.now()}_${resumeFile.name}`;
+      const filePath = `${user.id}/${Date.now()}_${pendingFile.name}`;
       const { error: uploadError } = await supabase.storage
         .from('resumes')
-        .upload(filePath, resumeFile);
+        .upload(filePath, pendingFile);
 
       if (uploadError) throw uploadError;
 
@@ -103,9 +184,9 @@ const CareerVaultOnboarding = () => {
       const { data: processData, error: processError } = await supabase.functions.invoke('process-resume', {
         body: {
           ...(fileData ? { fileData } : { fileText }),
-          fileName: resumeFile.name,
-          fileSize: resumeFile.size,
-          fileType: resumeFile.type,
+          fileName: pendingFile.name,
+          fileSize: pendingFile.size,
+          fileType: pendingFile.type,
           userId: user.id
         }
       });
@@ -145,9 +226,11 @@ const CareerVaultOnboarding = () => {
 
       toast({
         title: "Resume Processed",
-        description: processData.cached 
-          ? "Found matching resume in cache - instant analysis!"
-          : "Your resume has been analyzed successfully",
+        description: vaultChoice === 'enhance' 
+          ? "Adding new experiences to your vault"
+          : processData.cached 
+            ? "Found matching resume in cache - instant analysis!"
+            : "Your resume has been analyzed successfully",
       });
 
       setCurrentStep('goals');
@@ -161,6 +244,60 @@ const CareerVaultOnboarding = () => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleUpload = async () => {
+    if (!resumeFile) return;
+
+    // Check if vault exists with data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: existingVault } = await supabase
+      .from('career_vault')
+      .select('interview_completion_percentage, id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingVault && (existingVault.interview_completion_percentage ?? 0) > 0) {
+      // Fetch milestone count
+      const { count } = await supabase
+        .from('vault_resume_milestones')
+        .select('*', { count: 'exact', head: true })
+        .eq('vault_id', existingVault.id);
+
+      // Calculate total intelligence items
+      const { data: vaultData } = await supabase
+        .from('career_vault')
+        .select('total_power_phrases, total_transferable_skills, total_hidden_competencies, total_soft_skills, total_leadership_philosophy, total_executive_presence, total_personality_traits, total_work_style, total_values, total_behavioral_indicators')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const totalIntelligence = vaultData
+        ? (vaultData.total_power_phrases || 0) +
+          (vaultData.total_transferable_skills || 0) +
+          (vaultData.total_hidden_competencies || 0) +
+          (vaultData.total_soft_skills || 0) +
+          (vaultData.total_leadership_philosophy || 0) +
+          (vaultData.total_executive_presence || 0) +
+          (vaultData.total_personality_traits || 0) +
+          (vaultData.total_work_style || 0) +
+          (vaultData.total_values || 0) +
+          (vaultData.total_behavioral_indicators || 0)
+        : 0;
+
+      setExistingVaultStats({
+        completionPercentage: existingVault.interview_completion_percentage || 0,
+        totalIntelligence,
+        milestoneCount: count || 0
+      });
+
+      setShowResumeChoiceModal(true);
+      return;
+    }
+
+    // No existing vault or vault is empty, proceed normally
+    await continueResumeUpload();
   };
 
   // Function to refresh milestone data and calculate intelligence
@@ -298,7 +435,17 @@ const CareerVaultOnboarding = () => {
   };
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
+    <>
+      {existingVaultStats && (
+        <ResumeUploadChoiceModal
+          isOpen={showResumeChoiceModal}
+          onClose={() => setShowResumeChoiceModal(false)}
+          onChoice={handleVaultChoice}
+          currentStats={existingVaultStats}
+        />
+      )}
+
+      <div className="container max-w-4xl py-8 space-y-6">
       {/* Progress Header */}
       <div className="space-y-4">
         <h1 className="text-3xl font-bold">Build Your Career Vault</h1>
@@ -458,7 +605,8 @@ const CareerVaultOnboarding = () => {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
