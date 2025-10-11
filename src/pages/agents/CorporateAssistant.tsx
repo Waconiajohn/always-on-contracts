@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Briefcase, Upload, MessageSquare, Target, CheckCircle2, Info, ChevronDown, AlertCircle, Sparkles, ArrowRight } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PreFilledQuestion } from "@/components/PreFilledQuestion";
-import { VoiceInput } from "@/components/VoiceInput";
+import { ResumeUploadStep } from "@/components/career-vault/ResumeUploadStep";
+import { InterviewStep } from "@/components/career-vault/InterviewStep";
+import { BuildingStep } from "@/components/career-vault/BuildingStep";
+import { ProgressHeader } from "@/components/career-vault/ProgressHeader";
 
 interface InterviewPhase {
   phase: 'resume_understanding' | 'skills_translation' | 'hidden_gems' | 'complete';
@@ -23,7 +19,6 @@ interface InterviewPhase {
 
 const CorporateAssistantContent = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [userId, setUserId] = useState<string>("");
   const [vaultId, setVaultId] = useState<string | null>(null);
   const [step, setStep] = useState<'upload' | 'analyzing' | 'interview' | 'building'>('upload');
@@ -460,25 +455,7 @@ const CorporateAssistantContent = () => {
   };
 
   const handleVoiceTranscript = (text: string) => {
-    // Append voice transcript to current response
-    setCurrentResponse(prev => {
-      const newText = prev ? `${prev} ${text}` : text;
-      return newText;
-    });
-  };
-
-  // Parse markdown-formatted question
-  const parseQuestion = (questionText: string) => {
-    const contextMatch = questionText.match(/\*\*CONTEXT:\*\*([\s\S]*?)(?=\*\*PLEASE SHARE:\*\*|$)/);
-    const shareMatch = questionText.match(/\*\*PLEASE SHARE:\*\*([\s\S]*?)(?=\*\*EXAMPLE|$)/);
-    const exampleMatch = questionText.match(/\*\*EXAMPLE[^:]*:\*\*([\s\S]*?)$/);
-
-    return {
-      context: contextMatch?.[1]?.trim() || '',
-      sharePoints: shareMatch?.[1]?.trim().split(/\n[-•]\s*/).filter(Boolean) || [],
-      example: exampleMatch?.[1]?.trim() || '',
-      fullText: questionText
-    };
+    setCurrentResponse(prev => (prev ? `${prev} ${text}` : text));
   };
 
   const buildVaultIntelligence = async (wcId: string) => {
@@ -537,117 +514,21 @@ const CorporateAssistantContent = () => {
         </p>
       </div>
 
-      {/* Progress Bar */}
+      {/* Progress Header */}
       {step !== 'upload' && (
-        <Card className="p-6 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Career Vault Progress</span>
-            <span className="text-sm text-muted-foreground">{Math.round(completionPercentage)}%</span>
-          </div>
-          <Progress value={completionPercentage} className="h-2" />
-          <div className="flex gap-2 mt-4">
-            <Badge variant={step === 'analyzing' ? 'default' : completionPercentage > 0 ? 'default' : 'outline'}>
-              <CheckCircle2 className="w-3 h-3 mr-1" />
-              Resume Analyzed
-            </Badge>
-            <Badge variant={step === 'interview' ? 'default' : completionPercentage >= 100 ? 'default' : 'outline'}>
-              <MessageSquare className="w-3 h-3 mr-1" />
-              Interview {completionPercentage < 100 ? 'In Progress' : 'Complete'}
-            </Badge>
-            <Badge variant={step === 'building' ? 'default' : 'outline'}>
-              <Target className="w-3 h-3 mr-1" />
-              Career Vault Built
-            </Badge>
-          </div>
-        </Card>
+        <ProgressHeader step={step} completionPercentage={completionPercentage} />
       )}
 
       {/* Step 1: Upload Resume */}
       {step === 'upload' && (
-        <Card className="p-8">
-          <div className="flex flex-col items-center text-center">
-            <Upload className="w-16 h-16 text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">Upload Your Resume</h2>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              Upload your resume (.txt, .pdf, .doc, or .docx) or paste your resume text below.
-            </p>
-            
-            <input
-              type="file"
-              accept=".txt,.pdf,.doc,.docx"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="resume-upload"
-              disabled={isParsingFile}
-            />
-            <div className="flex gap-3 mb-4">
-              <label htmlFor="resume-upload">
-                <Button size="lg" variant="outline" asChild disabled={isParsingFile}>
-                  <span>{isParsingFile ? "Parsing..." : "Upload Resume"}</span>
-                </Button>
-              </label>
-            </div>
-            
-            {/* Parsing status */}
-            {isParsingFile && (
-              <div className="w-full max-w-md mb-4 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700 dark:border-yellow-300"></div>
-                  <p className="font-medium">Extracting text from your file... This usually takes just a few seconds.</p>
-                </div>
-              </div>
-            )}
-            
-            {/* Show uploaded file status */}
-            {resumeFile && !isParsingFile && resumeText && (
-              <>
-                <div className="w-full max-w-md mb-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <div className="flex-1 text-left">
-                      <p className="font-medium">Resume parsed successfully</p>
-                      <p className="text-sm">{resumeFile.name} • {resumeText.length.toLocaleString()} characters extracted</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* What Happens Next Info - Shows after successful parsing */}
-                <div className="w-full max-w-md mb-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-left">
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">What happens next?</h3>
-                  <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
-                    <li>I'll analyze your resume</li>
-                    <li>You'll answer 25 questions about your experience</li>
-                    <li>I'll build your Career Vault with power phrases, skills, and hidden competencies</li>
-                    <li>Use your Career Vault to supercharge job applications and interviews</li>
-                  </ol>
-                </div>
-              </>
-            )}
-            
-            <div className="w-full max-w-md">
-              <Textarea
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Or paste your resume text here..."
-                className="min-h-[200px] mb-2"
-                disabled={isParsingFile}
-              />
-              {resumeText && (
-                <p className="text-xs text-muted-foreground text-right mb-4">
-                  {resumeText.length.toLocaleString()} characters
-                </p>
-              )}
-              <Button 
-                onClick={handleAnalyzeResume} 
-                size="lg" 
-                className="w-full"
-                disabled={!resumeText || isParsingFile}
-              >
-                {resumeText ? "Start Building My Career Vault" : "Add your resume to continue"}
-              </Button>
-            </div>
-          </div>
-        </Card>
+        <ResumeUploadStep
+          resumeFile={resumeFile}
+          resumeText={resumeText}
+          isParsingFile={isParsingFile}
+          onFileUpload={handleFileUpload}
+          onResumeTextChange={setResumeText}
+          onAnalyze={handleAnalyzeResume}
+        />
       )}
 
       {/* Step 2: Analyzing */}
@@ -667,231 +548,29 @@ const CorporateAssistantContent = () => {
 
       {/* Step 3: Interview */}
       {step === 'interview' && (
-        <Card className="p-8">
-          <div className="mb-6">
-            <Badge className="mb-2">{interviewPhase.title}</Badge>
-            <h2 className="text-2xl font-semibold mb-2">{interviewPhase.description}</h2>
-            <p className="text-muted-foreground text-sm">
-              Question {Math.floor((completionPercentage / 100) * 25) + 1} of 25
-            </p>
-          </div>
-
-          {aiTyping ? (
-            <div className="flex items-center gap-2 p-4 bg-muted rounded-lg mb-4">
-              <div className="animate-pulse">Assistant is typing...</div>
-            </div>
-          ) : (
-            <>
-              {/* Help Section */}
-              <Collapsible className="mb-4">
-                <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <span className="font-medium text-blue-900 dark:text-blue-100">How to Answer Well</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-3 text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                    <ul className="space-y-1 list-disc list-inside">
-                      <li>Be specific with numbers and metrics (dollars, percentages, team sizes)</li>
-                      <li>Include timeframes (months, years, quarters)</li>
-                      <li>Name tools, technologies, and methodologies</li>
-                      <li>Focus on YOUR contribution, not just team achievements</li>
-                      <li>Think "what impact did I create?" not "what did I do?"</li>
-                    </ul>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-
-              {/* Pre-Filled Question Component or Fallback */}
-              {currentQuestionData?.context && currentQuestionData?.questionsToExpand ? (
-                <div className="mb-6">
-                  <PreFilledQuestion 
-                    context={currentQuestionData.context}
-                    knownData={currentQuestionData.knownData || []}
-                    singleQuestion={currentQuestionData.questionsToExpand[currentSubQuestion]}
-                    exampleAnswer={currentQuestionData.exampleAnswer}
-                    questionNumber={currentSubQuestion + 1}
-                    totalQuestions={currentQuestionData.questionsToExpand.length}
-                  />
-                </div>
-              ) : (
-                <>
-                  {/* Fallback: Parsed Question Display (old format) */}
-                  {(() => {
-                    const parsed = parseQuestion(interviewPhase.questions[0]);
-                    return (
-                      <div className="space-y-4 mb-6">
-                        {/* Context Section */}
-                        {parsed.context && (
-                          <div className="flex gap-3 items-start p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">Why I'm asking this:</p>
-                              <p className="text-blue-800 dark:text-blue-200">{parsed.context}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Main Question with Bullet Points */}
-                        <div className="p-4 bg-muted rounded-lg border">
-                          <p className="font-semibold mb-3">Please share:</p>
-                          {parsed.sharePoints.length > 0 ? (
-                            <ul className="space-y-2">
-                              {parsed.sharePoints.map((point, idx) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <span className="text-primary mt-1">•</span>
-                                  <span>{point}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p>{parsed.fullText}</p>
-                          )}
-                        </div>
-
-                        {/* Example Section */}
-                        {parsed.example && (
-                          <div className="p-4 bg-green-50 dark:bg-green-950 border-l-4 border-green-600 dark:border-green-400 rounded">
-                            <div className="flex items-start gap-2 mb-2">
-                              <Sparkles className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                              <p className="font-medium text-green-900 dark:text-green-100">Example of a strong answer:</p>
-                            </div>
-                            <p className="text-green-800 dark:text-green-200 italic">{parsed.example}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </>
-              )}
-
-              {/* Validation Feedback */}
-              {validationFeedback && !validationFeedback.is_sufficient && (
-                <Card className="p-4 mb-4 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="font-medium text-orange-900 dark:text-orange-100 mb-2">Your answer could be stronger</p>
-                      <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">{validationFeedback.follow_up_prompt}</p>
-                      {validationFeedback.missing_elements?.length > 0 && (
-                        <div className="text-sm text-orange-800 dark:text-orange-200">
-                          <p className="font-medium mb-1">Missing:</p>
-                          <ul className="list-disc list-inside space-y-1">
-                            {validationFeedback.missing_elements.map((elem: string, idx: number) => (
-                              <li key={idx}>{elem}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {validationFeedback && validationFeedback.is_sufficient && (
-                <Card className="p-4 mb-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    <p className="text-green-800 dark:text-green-200">Great answer! Quality score: {validationFeedback.quality_score}/100</p>
-                  </div>
-                </Card>
-              )}
-
-              {/* Answer Textarea with Voice Input */}
-              <div className="flex items-start gap-3 mb-4">
-                <Textarea
-                  value={currentResponse}
-                  onChange={(e) => setCurrentResponse(e.target.value)}
-                  placeholder={
-                    currentQuestionData?.questionsToExpand?.[currentSubQuestion]?.placeholder || 
-                    "Share your experience here... Be specific with numbers, dates, and technologies."
-                  }
-                  className="min-h-[120px] flex-1"
-                  disabled={isValidating || isRecording}
-                />
-                <VoiceInput
-                  onTranscript={handleVoiceTranscript}
-                  isRecording={isRecording}
-                  onToggleRecording={() => setIsRecording(!isRecording)}
-                  disabled={isValidating}
-                />
-              </div>
-
-              <div className="flex gap-3">
-                {validationFeedback && !validationFeedback.is_sufficient ? (
-                  <>
-                    <Button onClick={handleSubmitResponse} size="lg" className="flex-1" disabled={isValidating}>
-                      {isValidating ? "Validating..." : "Improve Answer"}
-                    </Button>
-                    <Button onClick={handleAcceptAnswer} variant="outline" size="lg">
-                      Submit Anyway
-                    </Button>
-                  </>
-                ) : currentQuestionData?.questionsToExpand && 
-                   currentSubQuestion < currentQuestionData.questionsToExpand.length - 1 ? (
-                  <Button
-                    onClick={handleNextSubQuestion}
-                    disabled={!currentResponse.trim() || isValidating}
-                    size="lg"
-                    className="flex-1"
-                  >
-                    Next Question
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                ) : (
-                  <>
-                    <Button onClick={handleSubmitResponse} size="lg" className="flex-1" disabled={isValidating}>
-                      {isValidating ? "Validating..." : "Submit Answer"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => loadNextQuestion(vaultId!)}
-                    >
-                      Skip
-                    </Button>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </Card>
+        <InterviewStep
+          interviewPhase={interviewPhase}
+          completionPercentage={completionPercentage}
+          aiTyping={aiTyping}
+          currentQuestionData={currentQuestionData}
+          currentSubQuestion={currentSubQuestion}
+          currentResponse={currentResponse}
+          validationFeedback={validationFeedback}
+          isValidating={isValidating}
+          isRecording={isRecording}
+          onResponseChange={setCurrentResponse}
+          onSubmitResponse={handleSubmitResponse}
+          onAcceptAnswer={handleAcceptAnswer}
+          onNextSubQuestion={handleNextSubQuestion}
+          onSkip={() => loadNextQuestion(vaultId!)}
+          onVoiceTranscript={handleVoiceTranscript}
+          onToggleRecording={() => setIsRecording(!isRecording)}
+        />
       )}
 
       {/* Step 4: Building Career Vault */}
       {step === 'building' && (
-        <Card className="p-8">
-          <div className="flex flex-col items-center text-center">
-            {aiTyping ? (
-              <>
-                <div className="animate-pulse mb-4">
-                  <Target className="w-16 h-16 text-primary" />
-                </div>
-                <h2 className="text-2xl font-semibold mb-2">Building Your Career Vault...</h2>
-                <p className="text-muted-foreground">
-                  Creating power phrases, mapping transferable skills, and discovering hidden competencies
-                </p>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-                <h2 className="text-2xl font-semibold mb-2">Your Career Vault is Ready!</h2>
-                <p className="text-muted-foreground mb-6">
-                  You now have a complete career intelligence system. Let's put it to work.
-                </p>
-                <div className="flex gap-3">
-                  <Button size="lg" onClick={() => navigate('/agents/resume-builder')}>
-                    Build Custom Resume
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={() => navigate('/career-vault')}>
-                    View Career Vault
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
+        <BuildingStep aiTyping={aiTyping} />
       )}
     </div>
   );

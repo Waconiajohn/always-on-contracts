@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, ArrowRight, CheckCircle, Sparkles } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LinearCareerVaultInterview } from '@/components/LinearCareerVaultInterview';
 import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { ResumeUploadChoiceModal } from '@/components/career-vault/ResumeUploadChoiceModal';
+import { ResumeUploadCard } from '@/components/career-vault/ResumeUploadCard';
 import { logger } from '@/lib/logger';
 
 type OnboardingStep = 'upload' | 'goals' | 'interview' | 'complete';
@@ -409,46 +409,12 @@ const CareerVaultOnboarding = () => {
 
       {/* Step Content */}
       {currentStep === 'upload' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Your Resume</CardTitle>
-            <CardDescription>
-              Upload your current resume to kickstart your Career Vault development
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center space-y-4">
-              <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-              <div>
-                <p className="font-medium">Drop your resume here or click to browse</p>
-                <p className="text-sm text-muted-foreground">PDF, DOCX, or TXT up to 10MB</p>
-              </div>
-              <input
-                id="resume-upload"
-                type="file"
-                accept=".pdf,.docx,.txt"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <label htmlFor="resume-upload">
-                <Button variant="outline" asChild>
-                  <span>Choose File</span>
-                </Button>
-              </label>
-              {resumeFile && (
-                <p className="text-sm text-primary">Selected: {resumeFile.name}</p>
-              )}
-            </div>
-            <Button
-              onClick={handleUpload}
-              disabled={!resumeFile || isUploading}
-              className="w-full"
-            >
-              {isUploading ? 'Uploading...' : 'Continue'}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
+        <ResumeUploadCard
+          resumeFile={resumeFile}
+          isUploading={isUploading}
+          onFileSelect={handleFileSelect}
+          onUpload={handleUpload}
+        />
       )}
 
       {currentStep === 'goals' && (
@@ -518,13 +484,13 @@ const CareerVaultOnboarding = () => {
       )}
 
       {currentStep === 'complete' && (
-        <Card>
+        <Card className="animate-scale-in">
           <CardContent className="py-12 text-center space-y-4">
-            <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-full w-fit mx-auto">
-              <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
+            <div className="p-4 bg-success/10 rounded-full w-fit mx-auto animate-fade-in">
+              <CheckCircle className="h-12 w-12 text-success" />
             </div>
-            <h2 className="text-2xl font-bold">Career Vault Complete!</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-2xl font-bold animate-fade-in">Career Vault Complete!</h2>
+            <p className="text-muted-foreground animate-fade-in">
               All features are now unlocked. Redirecting to dashboard...
             </p>
           </CardContent>
