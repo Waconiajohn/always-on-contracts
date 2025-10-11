@@ -866,7 +866,7 @@ serve(async (req) => {
       solutions: errorInfo.solutions,
       details: errorMessage
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
