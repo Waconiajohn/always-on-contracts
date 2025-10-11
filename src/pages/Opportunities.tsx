@@ -639,9 +639,8 @@ const OpportunitiesContent = () => {
                     </div>
                   )}
                 </>
-              )}
-            </>
-            )}
+              </>
+            )
           </TabsContent>
 
           <TabsContent value="contract" className="mt-0">
