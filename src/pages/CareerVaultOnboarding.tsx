@@ -163,6 +163,42 @@ const CareerVaultOnboarding = () => {
     }
   };
 
+  // Function to refresh milestone data and calculate intelligence
+  const refreshMilestones = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: vault } = await supabase
+        .from('career_vault')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!vault) return;
+
+      // Load fresh milestone data
+      const { data: milestonesData } = await supabase
+        .from('vault_resume_milestones')
+        .select('*')
+        .eq('vault_id', vault.id)
+        .order('start_date', { ascending: false });
+
+      if (milestonesData) {
+        setMilestones(milestonesData);
+        
+        // Calculate total intelligence extracted
+        const totalIntelligence = milestonesData.reduce(
+          (sum, m) => sum + (m.intelligence_extracted || 0), 
+          0
+        );
+        setTotalIntelligenceExtracted(totalIntelligence);
+      }
+    } catch (error) {
+      console.error('Error refreshing milestones:', error);
+    }
+  };
+
   const handleSkillsComplete = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -210,7 +246,13 @@ const CareerVaultOnboarding = () => {
         } else if (milestonesData?.success) {
           setMilestones(milestonesData.milestones);
           setCurrentMilestoneId(milestonesData.milestones[0]?.id || null);
-          setTotalIntelligenceExtracted(0);
+          
+          // Calculate initial intelligence
+          const totalIntelligence = milestonesData.milestones.reduce(
+            (sum: number, m: any) => sum + (m.intelligence_extracted || 0), 
+            0
+          );
+          setTotalIntelligenceExtracted(totalIntelligence);
           
           toast({
             title: 'Resume parsed!',
@@ -372,7 +414,14 @@ const CareerVaultOnboarding = () => {
             <MilestoneProgress
               milestones={milestones}
               currentMilestoneId={currentMilestoneId || undefined}
-              onSelectMilestone={setCurrentMilestoneId}
+              onSelectMilestone={(id) => {
+                console.log('[ONBOARDING] Switching to milestone:', id);
+                setCurrentMilestoneId(id);
+                toast({
+                  title: 'Switching milestone',
+                  description: 'Loading questions for selected experience...'
+                });
+              }}
               totalIntelligenceExtracted={totalIntelligenceExtracted}
             />
           )}
@@ -389,6 +438,7 @@ const CareerVaultOnboarding = () => {
               <CareerVaultInterview 
                 onComplete={handleInterviewComplete}
                 currentMilestoneId={currentMilestoneId}
+                onMilestoneUpdate={refreshMilestones}
               />
             </CardContent>
           </Card>

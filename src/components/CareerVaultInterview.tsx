@@ -52,11 +52,12 @@ interface ValidationResult {
 interface CareerVaultInterviewProps {
   onComplete: () => void;
   currentMilestoneId?: string | null;
+  onMilestoneUpdate?: () => void;
 }
 
 type CoachPersona = 'mentor' | 'challenger' | 'strategist';
 
-export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMilestoneId }: CareerVaultInterviewProps) => {
+export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMilestoneId, onMilestoneUpdate }: CareerVaultInterviewProps) => {
   const [currentQuestion, setCurrentQuestion] = useState<QuestionData | null>(null);
   const [currentSubQuestionIndex, setCurrentSubQuestionIndex] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -132,8 +133,13 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
   // When milestone changes, fetch a new question for that milestone
   useEffect(() => {
-    if (currentMilestoneId) {
+    if (currentMilestoneId && vaultId) {
       logger.debug('[INTERVIEW] Milestone changed to:', { currentMilestoneId });
+      // Clear current question first to show loading state
+      setCurrentQuestion(null);
+      setUserInput('');
+      setSelectedOptions([]);
+      setCustomAnswerText('');
       startInterview();
     }
   }, [currentMilestoneId]);
@@ -914,6 +920,11 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
 
         // Update interview completion percentage
         await supabase.functions.invoke('update-interview-completion');
+        
+        // Refresh milestone data in parent component
+        if (onMilestoneUpdate) {
+          onMilestoneUpdate();
+        }
       }
 
       // Check if we need to move to next sub-question or next main question
@@ -1310,10 +1321,19 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       <Card className="p-6 flex flex-col items-center justify-center h-[400px] space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <div className="text-center space-y-2">
-          <p className="text-sm font-medium">Loading interview questions...</p>
-          {milestones.length > 0 && !currentMilestoneId && (
+          <p className="text-sm font-medium">
+            {isLoading 
+              ? 'Generating personalized questions...' 
+              : 'Loading interview...'}
+          </p>
+          {milestones.length > 0 && currentMilestoneId && (
             <p className="text-xs text-muted-foreground">
-              Click on a milestone above to begin
+              {milestones.find(m => m.id === currentMilestoneId)?.job_title || 'Loading milestone...'}
+            </p>
+          )}
+          {milestones.length > 0 && !currentMilestoneId && !isLoading && (
+            <p className="text-xs text-muted-foreground">
+              Click on a career milestone above to begin
             </p>
           )}
         </div>
