@@ -15,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { STARStoryBuilder } from './career-vault/STARStoryBuilder';
-import { WorkingKnowledgeAssessment } from './career-vault/WorkingKnowledgeAssessment';
 import { logger } from '@/lib/logger';
 
 interface KnownDataItem {
@@ -38,13 +37,6 @@ interface QuestionData {
   knownData: KnownDataItem[];
   questionsToExpand: QuestionToExpand[];
   exampleAnswer: string;
-}
-
-interface InterviewResponse {
-  question: QuestionData;
-  phase: string;
-  completionPercentage: number;
-  isComplete: boolean;
 }
 
 interface ValidationResult {
@@ -78,7 +70,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const [skipAttempts, setSkipAttempts] = useState<number>(0);
   const [enhancedStrongAnswer, setEnhancedStrongAnswer] = useState<string>('');
   const [showAcceptButton, setShowAcceptButton] = useState<boolean>(false);
-  const [currentResponseId, setCurrentResponseId] = useState<string>('');
   const [intelligenceExtracted, setIntelligenceExtracted] = useState({
     powerPhrases: 0,
     transferableSkills: 0,
@@ -94,12 +85,10 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const [answerOptions, setAnswerOptions] = useState<string[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customAnswerText, setCustomAnswerText] = useState('');
-  const [dynamicQuestionCount, setDynamicQuestionCount] = useState(50);
-  const [completenessScore, setCompletenessScore] = useState(0);
   const [resumeText, setResumeText] = useState('');
   const [milestones, setMilestones] = useState<any[]>([]);
   const [currentMilestoneId, setCurrentMilestoneId] = useState<string | null>(null);
-  const [totalIntelligenceExtracted, setTotalIntelligenceExtracted] = useState(0);
+  const [subQuestions] = useState<any[]>([]);
   
   // Audio/voice state (kept for backward compatibility, made optional)
   const [selectedPersona, setSelectedPersona] = useState<CoachPersona>('mentor');
@@ -111,9 +100,9 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // STAR and sub-questions state
-  const [starStoryData, setStarStoryData] = useState<any>({});
-  const [subQuestions, setSubQuestions] = useState<any[]>([]);
-  
+  const [starStoryData] = useState<any>({});
+  const [currentResponseId, setCurrentResponseId] = useState<string>('');
+
   const { toast } = useToast();
 
   // PHASE 3: Add "The Psychologist" persona for intangibles
@@ -341,11 +330,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       const { data } = await supabase.functions.invoke('calculate-completeness-score', {
         body: { user_id: user.id }
       });
-
-      if (data) {
-        setDynamicQuestionCount(data.recommended_question_count || 50);
-        setCompletenessScore(data.completeness_percentage || 0);
-      }
     } catch (error) {
       console.error('Error calculating question count:', error);
     }
@@ -396,7 +380,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
     }
   };
 
-  const restoreSavedProgress = async () => {
+  useEffect(() => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

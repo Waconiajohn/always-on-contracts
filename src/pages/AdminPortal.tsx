@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Gift, Users, Key, Plus } from "lucide-react";
+import { Shield, Gift, Key, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminPortal() {

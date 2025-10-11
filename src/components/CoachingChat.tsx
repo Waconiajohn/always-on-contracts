@@ -41,10 +41,10 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
     const loadSession = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+      if (!user) return;
 
-        // Load persona memories
-        const memories = await personaMemory.recall(coachPersonality as 'robert' | 'sophia' | 'nexus', 10);
+      // Load persona memories
+      await personaMemory.recall(coachPersonality as 'robert' | 'sophia' | 'nexus', 10);
 
         // Load existing session for this coach
         const { data: sessions, error } = await supabase

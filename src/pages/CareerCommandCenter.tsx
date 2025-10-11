@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Package, Search, FileText, Users, MessageSquare, 
-  Linkedin, Target, Building2, TrendingUp, FolderKanban,
+  Linkedin, Building2, TrendingUp, FolderKanban,
   BookOpen, Calendar 
 } from "lucide-react";
 

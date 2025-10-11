@@ -43,7 +43,6 @@ function SearchProfilesContent() {
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState<Partial<SearchProfile> | null>(null);
   const [newItemInput, setNewItemInput] = useState("");
-  const navigate = useNavigate();
   
   // Global job preferences
   const [targetIndustries, setTargetIndustries] = useState<string[]>([]);

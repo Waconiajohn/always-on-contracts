@@ -53,9 +53,6 @@ const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
 const CareerCommandCenter = lazy(() => import("./pages/CareerCommandCenter"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ProcessingMonitor = lazy(() => import("./pages/ProcessingMonitor"));
-const Outreach = lazy(() => import("./pages/Outreach"));
-const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
-const MCPTestDashboard = lazy(() => import("./pages/MCPTestDashboard"));
 
 // Loading fallback component
 const PageLoader = () => (

@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { careerVault } from "@/lib/mcp-client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, Zap, Brain, FileText, TrendingUp, Award, Trophy } from "lucide-react";
+import { Target, Award, Trophy } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 interface VaultStats {
@@ -118,12 +117,9 @@ interface BehavioralIndicator {
 }
 
 import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
-import { MarketResearchPanel } from '@/components/MarketResearchPanel';
 import { EnhancementQueue } from '@/components/EnhancementQueue';
 
 const VaultDashboardContent = () => {
-  const navigate = useNavigate();
-  const [userId, setUserId] = useState<string>("");
   const [vaultId, setVaultId] = useState<string>("");
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [powerPhrases, setPowerPhrases] = useState<PowerPhrase[]>([]);

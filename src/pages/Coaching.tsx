@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { CoachingChat } from "@/components/CoachingChat";
 import { StarStoryBuilder } from "@/components/StarStoryBuilder";
 
 const CoachingContent = () => {
-  const navigate = useNavigate();
   const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
 
   const coaches = [

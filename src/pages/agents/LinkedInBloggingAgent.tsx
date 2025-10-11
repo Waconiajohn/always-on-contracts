@@ -8,11 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, BarChart3, Save, Copy, Trash2, Edit } from "lucide-react";
+import { Loader2, Sparkles, BarChart3, Save, Copy, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLinkedInDrafts } from "@/hooks/useLinkedInDrafts";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { LinkedInPost, ContentAnalysis } from "@/types/linkedin";
 
 export default function LinkedInBloggingAgent() {

@@ -180,7 +180,7 @@ export const MarketResearchPanel = () => {
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold">Sources:</h4>
                 <div className="flex flex-wrap gap-2">
-                  {result.citations.slice(0, 5).map((citation, idx) => (
+                  {result.citations.slice(0, 5).map((_citation, idx) => (
                     <Badge key={idx} variant="secondary" className="text-xs">
                       <ExternalLink className="h-3 w-3 mr-1" />
                       Source {idx + 1}

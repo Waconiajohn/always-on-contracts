@@ -3,11 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { interview } from "@/lib/mcp-client";
-import { supabase } from "@/integrations/supabase/client";
 import { Brain, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -18,14 +16,13 @@ interface InterviewPrepPanelProps {
 
 export const InterviewPrepPanel = ({ userId, jobDescription }: InterviewPrepPanelProps) => {
   const [loading, setLoading] = useState(false);
-  const [questions, setQuestions] = useState<any[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [response, setResponse] = useState("");
   const [feedback, setFeedback] = useState<any>(null);
   const [starStories, setStarStories] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const generateQuestions = async () => {
+  const generatePrepScenarios = async () => {
     if (!jobDescription) {
       toast({
         title: "Job Description Required",

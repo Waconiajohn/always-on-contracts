@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppNav } from "@/components/AppNav";
@@ -7,7 +6,7 @@ import { InterviewPrepPanel } from "@/components/InterviewPrepPanel";
 import { AgencyMatcherPanel } from "@/components/AgencyMatcherPanel";
 import { MarketInsightsPanel } from "@/components/MarketInsightsPanel";
 import { supabase } from "@/integrations/supabase/client";
-import { Brain, Building2, TrendingUp, Target } from "lucide-react";
+import { Brain, Building2, TrendingUp } from "lucide-react";
 
 export default function CareerDashboard() {
   const navigate = useNavigate();

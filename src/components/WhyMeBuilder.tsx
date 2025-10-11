@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Mic, Save, Sparkles, Plus, X } from 'lucide-react';
+import { MessageSquare, Save, Sparkles, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
@@ -24,7 +24,6 @@ interface WhyMeBuilderProps {
 
 export const WhyMeBuilder: React.FC<WhyMeBuilderProps> = ({ userId, narratives, onUpdate }) => {
   const { toast } = useToast();
-  const [isRecording, setIsRecording] = useState(false);
   const [currentNarrative, setCurrentNarrative] = useState('');
   const [currentCategory, setCurrentCategory] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);

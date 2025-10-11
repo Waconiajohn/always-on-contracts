@@ -10,7 +10,6 @@ import { Briefcase, MapPin, DollarSign, Clock, Sparkles, ExternalLink, RefreshCw
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AppNav } from "@/components/AppNav";
-import { JobFeedbackDialog } from "@/components/JobFeedbackDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface OpportunityMatch {
@@ -116,7 +115,7 @@ const OpportunitiesContent = () => {
       if (!user) throw new Error('Please sign in to continue');
 
       // Use MCP job scraper to sync jobs
-      const result = await jobScraper.scrapeJobs(
+      await jobScraper.scrapeJobs(
         'contract opportunities',
         undefined,
         ['linkedin', 'indeed', 'glassdoor'],

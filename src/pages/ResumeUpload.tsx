@@ -132,7 +132,7 @@ const ResumeUploadContent = () => {
         .from("resumes")
         .getPublicUrl(filePath);
 
-      const { data: resumeData, error: resumeError } = await supabase
+      const { error: resumeError } = await supabase
         .from("resumes")
         .insert({
           user_id: session.user.id,

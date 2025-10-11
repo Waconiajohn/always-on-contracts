@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, ExternalLink, MessageSquare, TrendingUp } from 'lucide-react';
-import { JobConversation } from './JobConversation';
 import { KeywordScoreCard } from './KeywordScoreCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';

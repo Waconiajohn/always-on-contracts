@@ -9,18 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
-  ArrowLeft, Search, Building, Globe, Mail, Phone, CheckCircle, TrendingUp, 
-  MessageSquare, Calendar, ExternalLink, Copy, Check, Trash2
+  ArrowLeft, Search, Building, Globe, Mail, Phone, TrendingUp, 
+  MessageSquare, Calendar, Copy, Check, Trash2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { fetchTemplateVariables, populateTemplate, generateMailtoLink, fetchUserTemplates } from "@/lib/templateService";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
 interface OutreachRecord {
   id: string;
@@ -296,21 +291,6 @@ const AgenciesContent = () => {
     }
     
     setTemplateDialogOpen(false);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "secondary";
-      case "contacted":
-        return "default";
-      case "responded":
-        return "outline";
-      case "interview":
-        return "default";
-      default:
-        return "secondary";
-    }
   };
 
   if (loading) {

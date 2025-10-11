@@ -25,7 +25,6 @@ export function ResumeOptimizer() {
   const [step, setStep] = useState<'input' | 'analysis' | 'optimization'>('input');
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
-  const [jobAnalysis, setJobAnalysis] = useState<JobAnalysis | null>(null);
   const [result, setResult] = useState<ResumeOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [vaultData, setVaultData] = useState<any>(null);
@@ -69,8 +68,7 @@ export function ResumeOptimizer() {
     toast.success('Power phrase added to resume');
   };
 
-  const handleAnalysisComplete = (analysis: JobAnalysis) => {
-    setJobAnalysis(analysis);
+  const handleAnalysisComplete = (_analysis: JobAnalysis) => {
     setStep('optimization');
   };
 

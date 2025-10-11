@@ -17,7 +17,7 @@ interface OnboardingStep {
 
 export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep] = useState(1);
 
   const steps: OnboardingStep[] = [
     {
@@ -90,7 +90,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       </div>
 
       <div className="space-y-4">
-        {steps.map((step, index) => {
+        {steps.map((step) => {
           const Icon = step.icon;
           const isActive = currentStep === step.id;
           const isPast = step.id < currentStep;
