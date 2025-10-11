@@ -71,21 +71,59 @@ const HomeContent = () => {
   const processSteps = [
     {
       icon: Package,
-      title: "Build",
-      description: "Complete your Career Vault—extract every skill, story, and achievement from your career",
-      color: "text-primary"
+      title: "Build Your Career Intelligence",
+      shortTitle: "Build",
+      description: "Extract every skill, achievement, and story from your career history",
+      color: "text-primary",
+      details: {
+        whatItMeans: "Transform your resume and experience into a comprehensive Career Vault with 20+ intelligence categories",
+        benefits: [
+          "Extract hidden skills and competencies from your work history",
+          "Document quantified achievements and impact metrics",
+          "Build a library of STAR stories for interviews",
+          "Identify transferable skills and leadership qualities"
+        ],
+        timeInvestment: "30-60 minutes for initial build",
+        unlocks: "Unlocks all AI agents, job board access, and resume optimization tools"
+      }
     },
     {
       icon: Rocket,
-      title: "Deploy",
-      description: "AI agents craft perfect applications, find hidden opportunities, and automate your search",
-      color: "text-purple-500"
+      title: "Deploy Your Intelligence",
+      shortTitle: "Deploy",
+      description: "Use AI agents to craft perfect applications and find opportunities",
+      color: "text-purple-500",
+      details: {
+        whatItMeans: "Leverage your Career Vault intelligence across all job search activities with AI-powered automation",
+        benefits: [
+          "AI-powered job board with smart matching (25%+ vault completion)",
+          "Multi-pass resume rewriter with hiring manager review",
+          "LinkedIn profile and blogging optimization",
+          "Interview prep with coaching personas",
+          "Auto-apply agent for qualified positions"
+        ],
+        timeInvestment: "Automated once your vault is built",
+        unlocks: "Requires 25%+ Career Vault completion for full access"
+      }
     },
     {
       icon: TrendingUp,
-      title: "Dominate",
-      description: "Land interviews faster with AI-powered prep, negotiation intel, and market insights",
-      color: "text-green-500"
+      title: "Excel in Your Search",
+      shortTitle: "Excel",
+      description: "Land interviews faster with AI prep, negotiation intel, and market insights",
+      color: "text-green-500",
+      details: {
+        whatItMeans: "Dominate the interview process and negotiate from a position of strength",
+        benefits: [
+          "AI interview preparation using your vault intelligence",
+          "Follow-up email generation and communication templates",
+          "Networking strategies and outreach automation",
+          "Market intelligence and salary research",
+          "Live webinars and coaching sessions (75%+ vault completion)"
+        ],
+        timeInvestment: "Ongoing support throughout your search",
+        unlocks: "Premium features at 75%+ Career Vault completion"
+      }
     }
   ];
 
@@ -183,14 +221,92 @@ const HomeContent = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         
-        {/* Section 1: Career Vault Hero Status */}
+        {/* Section 1: The CareerIQ Process - HERO SECTION */}
+        <div className="mb-12">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent">
+              The CareerIQ Process
+            </h1>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
+              Your strategic path to career success: Build intelligence, deploy AI tools, excel in your search
+            </p>
+          </div>
+          
+          <div className="space-y-8">
+            {processSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <Card key={index} className="relative overflow-hidden border-2 hover:border-primary/50 transition-all">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full opacity-50" />
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start gap-4">
+                      <div className={`p-4 rounded-xl bg-muted/50 ${step.color} shrink-0`}>
+                        <Icon className="h-8 w-8" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Badge variant="outline" className="text-lg px-3 py-1">
+                            Step {index + 1}
+                          </Badge>
+                          <CardTitle className="text-2xl">{step.title}</CardTitle>
+                        </div>
+                        <CardDescription className="text-base mb-4">
+                          {step.description}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                        What It Means
+                      </h4>
+                      <p className="text-base">{step.details.whatItMeans}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                        What You Get
+                      </h4>
+                      <ul className="space-y-2">
+                        {step.details.benefits.map((benefit, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-1" />
+                            <span className="text-sm">{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-4 pt-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Badge variant="secondary" className="shrink-0">
+                          ⏱️ Time
+                        </Badge>
+                        <span className="text-muted-foreground">{step.details.timeInvestment}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Badge variant="secondary" className="shrink-0">
+                          🔓 Unlocks
+                        </Badge>
+                        <span className="text-muted-foreground">{step.details.unlocks}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Section 2: Career Vault Status */}
         <Card className="mb-12 border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-purple-500/5">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <CardTitle className="text-3xl flex items-center gap-3">
                   <Package className="h-8 w-8 text-primary" />
-                  Your Career Intelligence Status
+                  Your Career Vault Status
                 </CardTitle>
                 <CardDescription className="text-base">
                   {vaultComplete 
@@ -218,7 +334,7 @@ const HomeContent = () => {
                 className="flex-1"
                 onClick={() => navigate(vaultComplete ? "/career-vault" : "/career-vault/onboarding")}
               >
-                {vaultComplete ? "View Career Vault" : "Continue Career Vault"}
+                {vaultComplete ? "View Career Vault" : "Continue Building Your Vault"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               {!vaultComplete && (
@@ -229,43 +345,6 @@ const HomeContent = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Section 2: The CareerIQ Process */}
-        <div className="mb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2">The CareerIQ Process</h2>
-            <p className="text-muted-foreground text-lg">
-              Three steps to transform your career search from reactive to strategic
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {processSteps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <div className={`p-3 rounded-lg bg-muted ${step.color}`}>
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl font-bold text-muted-foreground">0{index + 1}</span>
-                          <CardTitle className="text-xl">{step.title}</CardTitle>
-                        </div>
-                        <CardDescription className="text-base leading-relaxed">
-                          {step.description}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Section 3: Quick Links by Career Stage */}
         <div className="mb-12 space-y-8">
@@ -448,7 +527,7 @@ const HomeContent = () => {
                 <>
                   <div className="text-2xl font-bold mb-2">Free Tier</div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Upgrade for unlimited AI access & premium features
+                    Upgrade to unlock premium features
                   </p>
                   <Button onClick={() => navigate('/pricing')} className="w-full">
                     View Plans
