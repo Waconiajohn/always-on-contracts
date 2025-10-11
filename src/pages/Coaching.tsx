@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, Target, Sparkles } from "lucide-react";
 import { CoachingChat } from "@/components/CoachingChat";
 import { StarStoryBuilder } from "@/components/StarStoryBuilder";
+import { WebinarSchedule } from "@/components/coaching/WebinarSchedule";
 
 const CoachingContent = () => {
   const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
@@ -47,9 +48,10 @@ const CoachingContent = () => {
       </div>
 
       <Tabs defaultValue="coaching" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="coaching">AI Coaching</TabsTrigger>
           <TabsTrigger value="star-stories">STAR Stories</TabsTrigger>
+          <TabsTrigger value="webinars">Live Webinars</TabsTrigger>
         </TabsList>
 
         <TabsContent value="coaching" className="space-y-6">
@@ -158,6 +160,10 @@ const CoachingContent = () => {
 
         <TabsContent value="star-stories">
           <StarStoryBuilder />
+        </TabsContent>
+
+        <TabsContent value="webinars">
+          <WebinarSchedule />
         </TabsContent>
       </Tabs>
     </div>
