@@ -65,13 +65,13 @@ export default function LinkedInBloggingAgent() {
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-linkedin-content', {
+      const { data, error } = await supabase.functions.invoke('analyze-linkedin-post-with-audit', {
         body: { content: analysisContent }
       });
 
       if (error) throw error;
       setAnalysisResult(data);
-      toast({ title: "Analysis complete!", description: "Check the results below" });
+      toast({ title: "Analysis complete with dual AI audit!", description: "Check the results below" });
     } catch (error: any) {
       toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
     } finally {

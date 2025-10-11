@@ -31,7 +31,7 @@ export default function LinkedInProfileBuilder() {
 
     setIsOptimizing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('optimize-linkedin-profile', {
+      const { data, error } = await supabase.functions.invoke('optimize-linkedin-with-audit', {
         body: {
           currentHeadline,
           currentAbout,
@@ -43,7 +43,7 @@ export default function LinkedInProfileBuilder() {
 
       if (error) throw error;
       setOptimizationResult(data);
-      toast({ title: "Profile optimized!", description: "Review your enhanced profile below" });
+      toast({ title: "Profile optimized with dual AI audit!", description: "Review your enhanced profile below" });
     } catch (error: any) {
       toast({ title: "Optimization failed", description: error.message, variant: "destructive" });
     } finally {

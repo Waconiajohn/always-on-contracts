@@ -116,7 +116,6 @@ interface BehavioralIndicator {
   outcome_pattern: string | null;
 }
 
-import { InterviewResponsesTab } from '@/components/InterviewResponsesTab';
 import { EnhancementQueue } from '@/components/EnhancementQueue';
 import { useNavigate } from 'react-router-dom';
 import { Rocket } from 'lucide-react';
@@ -712,7 +711,14 @@ const VaultDashboardContent = () => {
         </TabsContent>
 
         <TabsContent value="responses">
-          <InterviewResponsesTab vaultId={vaultId} />
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground mb-4">
+              This tab shows all your Career Vault intelligence in one place.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Use the individual tabs above to explore specific categories of your career vault.
+            </p>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

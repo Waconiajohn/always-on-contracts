@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { optimizeResume, ResumeOptimizationResult } from '@/lib/services/resumeOptimizer';
+import { ResumeOptimizationResult } from '@/lib/services/resumeOptimizer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -81,9 +81,17 @@ export function ResumeOptimizer() {
     setIsOptimizing(true);
 
     try {
-      const optimizationResult = await optimizeResume(resumeText, jobDescription);
-      setResult(optimizationResult);
-      toast.success('Resume optimized successfully!');
+      const { data, error } = await supabase.functions.invoke('optimize-resume-with-audit', {
+        body: {
+          resumeText,
+          jobDescription,
+          vaultData
+        }
+      });
+
+      if (error) throw error;
+      setResult(data);
+      toast.success('Resume optimized with dual AI audit!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to optimize resume');
     } finally {

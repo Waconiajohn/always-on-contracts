@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 import { InterviewFollowupPanel } from "@/components/InterviewFollowupPanel";
+import { InterviewResponsesTab } from "@/components/InterviewResponsesTab";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("practice");
@@ -151,10 +152,14 @@ const InterviewPrepAgentContent = () => {
           {/* Right: Interview Practice */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="practice" className="gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Practice
+                </TabsTrigger>
+                <TabsTrigger value="responses" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Responses
                 </TabsTrigger>
                 <TabsTrigger value="followup" className="gap-2">
                   <Mail className="h-4 w-4" />
@@ -241,6 +246,21 @@ const InterviewPrepAgentContent = () => {
                     </Button>
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="responses" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  {currentQuestion && vaultData ? (
+                    <InterviewResponsesTab 
+                      question={currentQuestion}
+                      vaultId={vaultData.id}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Generate a question in the Practice tab first
+                    </div>
+                  )}
+                </ScrollArea>
               </TabsContent>
 
               <TabsContent value="followup" className="mt-4">
