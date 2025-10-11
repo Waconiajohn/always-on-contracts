@@ -104,22 +104,41 @@ Guidelines:
 
     console.log('[PARSE-RESUME-MILESTONES] Parsed milestones:', parsed.milestones.length);
 
-    // Save milestones to database
-    const milestoneInserts = parsed.milestones.map((m: any) => ({
-      vault_id: vaultId,
-      user_id: user.id,
-      milestone_type: m.type,
-      company_name: m.company_name,
-      job_title: m.job_title,
-      start_date: m.start_date,
-      end_date: m.end_date,
-      description: m.description,
-      key_achievements: m.key_achievements || [],
-      questions_asked: m.estimated_question_count || 3,
-      questions_answered: 0,
-      completion_percentage: 0,
-      intelligence_extracted: 0
-    }));
+    // CRITICAL: Filter out blank/invalid milestones before saving
+    const milestoneInserts = parsed.milestones
+      .filter((m: any) => {
+        // Must have either job_title OR company_name (for jobs)
+        // OR have a meaningful description (for projects/achievements)
+        const hasJobInfo = m.job_title || m.company_name;
+        const hasDescription = m.description && m.description.length > 10;
+        const isValid = hasJobInfo || hasDescription;
+        
+        if (!isValid) {
+          console.log('[PARSE-RESUME-MILESTONES] Skipping blank milestone:', m);
+        }
+        
+        return isValid;
+      })
+      .map((m: any) => ({
+        vault_id: vaultId,
+        user_id: user.id,
+        milestone_type: m.type,
+        company_name: m.company_name || 'Not specified',
+        job_title: m.job_title || 'Achievement',
+        start_date: m.start_date,
+        end_date: m.end_date,
+        description: m.description,
+        key_achievements: m.key_achievements || [],
+        questions_asked: m.estimated_question_count || 3,
+        questions_answered: 0,
+        completion_percentage: 0,
+        intelligence_extracted: 0
+      }));
+
+    if (milestoneInserts.length === 0) {
+      console.error('[PARSE-RESUME-MILESTONES] No valid milestones found');
+      throw new Error('Could not extract valid career milestones from resume');
+    }
 
     const { data: insertedMilestones, error: insertError } = await supabase
       .from('vault_resume_milestones')

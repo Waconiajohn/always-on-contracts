@@ -2,31 +2,22 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Upload, MessageSquare, CheckCircle, ArrowRight, FileText } from 'lucide-react';
+import { Upload, FileText, ArrowRight, CheckCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { CareerVaultInterview } from '@/components/CareerVaultInterview';
+import { LinearCareerVaultInterview } from '@/components/LinearCareerVaultInterview';
 import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
-import { AIAnalysisStep } from '@/components/career-vault/AIAnalysisStep';
-import { SkillConfirmationStep } from '@/components/career-vault/SkillConfirmationStep';
-import { MilestoneProgress } from '@/components/career-vault/MilestoneProgress';
 import { ResumeUploadChoiceModal } from '@/components/career-vault/ResumeUploadChoiceModal';
 import { logger } from '@/lib/logger';
 
-type OnboardingStep = 'upload' | 'goals' | 'analysis' | 'skills' | 'interview' | 'complete';
+type OnboardingStep = 'upload' | 'goals' | 'interview' | 'complete';
 
 const CareerVaultOnboarding = () => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [resumeText, setResumeText] = useState('');
-  const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
-  const [targetRoles, setTargetRoles] = useState<string[]>([]);
-  const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
   const [milestones, setMilestones] = useState<any[]>([]);
-  const [currentMilestoneId, setCurrentMilestoneId] = useState<string | null>(null);
-  const [totalIntelligenceExtracted, setTotalIntelligenceExtracted] = useState(0);
   const [showResumeChoiceModal, setShowResumeChoiceModal] = useState(false);
   const [vaultChoice, setVaultChoice] = useState<'replace' | 'enhance' | null>(null);
   const [existingVaultStats, setExistingVaultStats] = useState<{
@@ -35,15 +26,14 @@ const CareerVaultOnboarding = () => {
     milestoneCount: number;
   } | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [userId, setUserId] = useState<string>('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const steps = [
-    { id: 'upload', label: 'Resume Upload', icon: Upload },
+    { id: 'upload', label: 'Upload Resume', icon: Upload },
     { id: 'goals', label: 'Career Goals', icon: FileText },
-    { id: 'analysis', label: 'AI Analysis', icon: MessageSquare },
-    { id: 'skills', label: 'Skills Review', icon: CheckCircle },
-    { id: 'interview', label: 'Interview', icon: MessageSquare },
+    { id: 'interview', label: 'Intelligence Extraction', icon: Sparkles },
     { id: 'complete', label: 'Complete', icon: CheckCircle }
   ];
 
@@ -55,6 +45,8 @@ const CareerVaultOnboarding = () => {
     const checkExistingVault = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      
+      setUserId(user.id);
 
       // Check if career vault already exists and is complete
       const { data: existingVault } = await supabase
@@ -206,11 +198,8 @@ const CareerVaultOnboarding = () => {
         return;
       }
 
-      setResumeText(processData.extractedText);
-      setResumeAnalysis(processData.analysis);
-
-      // CRITICAL FIX: Store resume text in career_vault immediately
-      const { error: vaultError } = await supabase
+      // Store resume text in career_vault immediately
+      await supabase
         .from('career_vault')
         .upsert({
           user_id: user.id,
@@ -219,10 +208,6 @@ const CareerVaultOnboarding = () => {
         }, {
           onConflict: 'user_id'
         });
-
-      if (vaultError) {
-        console.error('Failed to update career vault:', vaultError);
-      }
 
       toast({
         title: "Resume Processed",
@@ -300,7 +285,7 @@ const CareerVaultOnboarding = () => {
     await continueResumeUpload();
   };
 
-  // Function to refresh milestone data and calculate intelligence
+  // Function to refresh milestone data
   const refreshMilestones = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -323,89 +308,9 @@ const CareerVaultOnboarding = () => {
 
       if (milestonesData) {
         setMilestones(milestonesData);
-        
-        // Calculate total intelligence extracted
-        const totalIntelligence = milestonesData.reduce(
-          (sum, m) => sum + (m.intelligence_extracted || 0), 
-          0
-        );
-        setTotalIntelligenceExtracted(totalIntelligence);
       }
     } catch (error) {
       console.error('Error refreshing milestones:', error);
-    }
-  };
-
-  const handleSkillsComplete = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // CRITICAL FIX: Update career vault with current resume text
-      const { error: updateError } = await supabase
-        .from('career_vault')
-        .update({ resume_raw_text: resumeText })
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Failed to update career vault with resume text:', updateError);
-        toast({
-          title: 'Error',
-          description: 'Failed to save resume data. Please try again.',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      // Parse resume into milestones BEFORE starting interview
-      const { data: vault } = await supabase
-        .from('career_vault')
-        .select('id, resume_raw_text')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (vault && vault.resume_raw_text) {
-        logger.debug('Parsing resume into milestones...');
-        const { data: milestonesData, error: parseError } = await supabase.functions.invoke('parse-resume-milestones', {
-          body: {
-            resumeText: vault.resume_raw_text,
-            vaultId: vault.id
-          }
-        });
-
-        if (parseError) {
-          console.error('Error parsing milestones:', parseError);
-          toast({
-            title: 'Warning',
-            description: 'Could not parse resume milestones, proceeding with standard interview',
-            variant: 'destructive'
-          });
-        } else if (milestonesData?.success) {
-          setMilestones(milestonesData.milestones);
-          setCurrentMilestoneId(milestonesData.milestones[0]?.id || null);
-          
-          // Calculate initial intelligence
-          const totalIntelligence = milestonesData.milestones.reduce(
-            (sum: number, m: any) => sum + (m.intelligence_extracted || 0), 
-            0
-          );
-          setTotalIntelligenceExtracted(totalIntelligence);
-          
-          toast({
-            title: 'Resume parsed!',
-            description: `Found ${milestonesData.milestones.length} career milestones to expand on`,
-          });
-        }
-      }
-
-      setCurrentStep('interview');
-    } catch (error) {
-      console.error('Error starting interview:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to start interview. Please try again.',
-        variant: 'destructive'
-      });
     }
   };
 
@@ -450,7 +355,7 @@ const CareerVaultOnboarding = () => {
       <div className="space-y-4">
         <h1 className="text-3xl font-bold">Build Your Career Vault</h1>
         <p className="text-muted-foreground">
-          Let's gather your career intelligence in 4 simple steps
+          Extract your career intelligence in 4 simple steps
         </p>
         <Progress value={progress} className="h-2" />
         <div className="flex justify-between">
@@ -485,11 +390,11 @@ const CareerVaultOnboarding = () => {
                 <p className="text-sm text-muted-foreground">PDF, DOCX, or TXT up to 10MB</p>
               </div>
               <input
+                id="resume-upload"
                 type="file"
-                accept=".pdf,.doc,.docx,.txt"
+                accept=".pdf,.docx,.txt"
                 onChange={handleFileSelect}
                 className="hidden"
-                id="resume-upload"
               />
               <label htmlFor="resume-upload">
                 <Button variant="outline" asChild>
@@ -512,84 +417,60 @@ const CareerVaultOnboarding = () => {
         </Card>
       )}
 
-      {currentStep === 'goals' && resumeAnalysis && (
-        <CareerGoalsStep 
-          resumeAnalysis={resumeAnalysis}
-          onComplete={async () => {
-            // Fetch target roles and industries from profile
+      {currentStep === 'goals' && (
+        <CareerGoalsStep
+          onComplete={async (data) => {
+            // Parse resume into milestones immediately after goals
             try {
               const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                const { data: profile } = await supabase
-                  .from('profiles')
-                  .select('target_roles, target_industries')
-                  .eq('user_id', user.id)
-                  .single();
-                
-                if (profile) {
-                  setTargetRoles(profile.target_roles || []);
-                  setTargetIndustries(profile.target_industries || []);
+              if (!user) return;
+
+              const { data: vault } = await supabase
+                .from('career_vault')
+                .select('id, resume_raw_text')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+              if (vault && vault.resume_raw_text) {
+                const { data: milestonesData, error: parseError } = await supabase.functions.invoke('parse-resume-milestones', {
+                  body: {
+                    resumeText: vault.resume_raw_text,
+                    vaultId: vault.id
+                  }
+                });
+
+                if (parseError) {
+                  console.error('Error parsing milestones:', parseError);
+                  toast({
+                    title: 'Warning',
+                    description: 'Could not parse resume milestones',
+                    variant: 'destructive'
+                  });
+                } else if (milestonesData?.success) {
+                  setMilestones(milestonesData.milestones);
+                  
+                  toast({
+                    title: 'Resume parsed!',
+                    description: `Found ${milestonesData.milestones.length} career milestones`,
+                  });
                 }
               }
             } catch (error) {
-              console.error('Error fetching profile data:', error);
+              console.error('Error parsing milestones:', error);
             }
-            setCurrentStep('analysis');
+            
+            setCurrentStep('interview');
           }}
         />
       )}
 
-      {currentStep === 'analysis' && resumeText && (
-        <AIAnalysisStep
-          resumeText={resumeText}
-          targetRoles={targetRoles}
-          targetIndustries={targetIndustries}
-          onComplete={() => setCurrentStep('skills')}
+      {currentStep === 'interview' && milestones.length > 0 && (
+        <LinearCareerVaultInterview
+          userId={userId}
+          milestones={milestones}
+          onComplete={handleInterviewComplete}
+          onMilestoneUpdate={refreshMilestones}
         />
-      )}
-
-      {currentStep === 'skills' && (
-        <SkillConfirmationStep 
-          onComplete={handleSkillsComplete}
-        />
-      )}
-
-      {currentStep === 'interview' && (
-        <div className="space-y-6">
-          {/* Milestone Progress Sidebar */}
-          {milestones.length > 0 && (
-            <MilestoneProgress
-              milestones={milestones}
-              currentMilestoneId={currentMilestoneId || undefined}
-              onSelectMilestone={(id) => {
-                console.log('[ONBOARDING] Switching to milestone:', id);
-                setCurrentMilestoneId(id);
-                toast({
-                  title: 'Switching milestone',
-                  description: 'Loading questions for selected experience...'
-                });
-              }}
-              totalIntelligenceExtracted={totalIntelligenceExtracted}
-            />
-          )}
-
-          {/* Interview Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Resume Intelligence Extraction</CardTitle>
-              <CardDescription>
-                Let's expand on your career milestones with specific examples and quantified achievements
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CareerVaultInterview 
-                onComplete={handleInterviewComplete}
-                currentMilestoneId={currentMilestoneId}
-                onMilestoneUpdate={refreshMilestones}
-              />
-            </CardContent>
-          </Card>
-        </div>
       )}
 
       {currentStep === 'complete' && (
