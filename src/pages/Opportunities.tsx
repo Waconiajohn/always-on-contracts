@@ -379,28 +379,29 @@ const OpportunitiesContent = () => {
               Contract ({contractJobs.length})
             </TabsTrigger>
           </TabsList>
-        </Tabs>
 
-        {opportunities.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Briefcase className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Opportunities Yet</h3>
-              <p className="text-muted-foreground mb-4 text-center max-w-md">
-                Click "Run AI Matching" to find contract opportunities that match your skills and experience.
-              </p>
-              <Button onClick={runAIMatching} disabled={matching}>
-                {matching ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 mr-2" />
-                )}
-                {matching ? 'Matching in Progress...' : 'Find Matches'}
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <TabsContent value={activeTab} className="mt-0">
+          {opportunities.length === 0 ? (
+            <div className="mt-6">
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Briefcase className="w-16 h-16 text-muted-foreground mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Opportunities Yet</h3>
+                  <p className="text-muted-foreground mb-4 text-center max-w-md">
+                    Click "Run AI Matching" to find contract opportunities that match your skills and experience.
+                  </p>
+                  <Button onClick={runAIMatching} disabled={matching}>
+                    {matching ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    {matching ? 'Matching in Progress...' : 'Find Matches'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <TabsContent value={activeTab} className="mt-0">
             <div className="space-y-6">
               {activeTab === 'full-time' && fullTimeJobs.length === 0 && (
                 <Card>
@@ -734,7 +735,8 @@ const OpportunitiesContent = () => {
               )}
             </div>
           </TabsContent>
-        )}
+          )}
+        </Tabs>
       </div>
     </div>
   );
