@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { subDays, subHours } from "date-fns";
 import { jobScraper } from "@/lib/mcp-client";

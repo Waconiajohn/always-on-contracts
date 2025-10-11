@@ -35,7 +35,6 @@ export const InterviewPrepPanel = ({ userId, jobDescription }: InterviewPrepPane
     setLoading(true);
     try {
       const result = await interview.generateQuestions(userId, jobDescription);
-      setQuestions(result.data?.questions || [result.data]);
       if (result.data?.questions?.[0]) {
         setCurrentQuestion(result.data.questions[0]);
       }
@@ -120,7 +119,7 @@ export const InterviewPrepPanel = ({ userId, jobDescription }: InterviewPrepPane
             </CardHeader>
             <CardContent className="space-y-4">
               {!currentQuestion ? (
-                <Button onClick={generateQuestions} disabled={loading || !jobDescription}>
+                <Button onClick={generatePrepScenarios} disabled={loading || !jobDescription}>
                   {loading ? "Generating..." : "Generate Practice Questions"}
                 </Button>
               ) : (
@@ -150,7 +149,7 @@ export const InterviewPrepPanel = ({ userId, jobDescription }: InterviewPrepPane
                     <Button onClick={validateResponse} disabled={loading || !response}>
                       {loading ? "Evaluating..." : "Get Feedback"}
                     </Button>
-                    <Button variant="outline" onClick={generateQuestions} disabled={loading}>
+                    <Button variant="outline" onClick={generatePrepScenarios} disabled={loading}>
                       New Question
                     </Button>
                   </div>

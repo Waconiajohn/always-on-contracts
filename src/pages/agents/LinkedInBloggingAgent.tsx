@@ -25,7 +25,7 @@ export default function LinkedInBloggingAgent() {
   const [analysisResult, setAnalysisResult] = useState<ContentAnalysis | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [editingDraft, setEditingDraft] = useState<string | null>(null);
+  const [_editingDraft, _setEditingDraft] = useState<string | null>(null);
   const { toast } = useToast();
   const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
 

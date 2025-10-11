@@ -101,7 +101,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   
   // STAR and sub-questions state
   const [starStoryData] = useState<any>({});
-  const [currentResponseId, setCurrentResponseId] = useState<string>('');
 
   const { toast } = useToast();
 
@@ -327,7 +326,7 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase.functions.invoke('calculate-completeness-score', {
+      await supabase.functions.invoke('calculate-completeness-score', {
         body: { user_id: user.id }
       });
     } catch (error) {
@@ -370,10 +369,6 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
         if (firstIncomplete) {
           setCurrentMilestoneId(firstIncomplete.id);
         }
-        
-        // Calculate total intelligence
-        const total = milestonesData.reduce((sum, m) => sum + (m.intelligence_extracted ?? 0), 0);
-        setTotalIntelligenceExtracted(total);
       }
     } catch (error) {
       console.error('Error loading milestones:', error);
@@ -381,12 +376,13 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
   };
 
   useEffect(() => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const restoreProgress = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      // Check for saved drafts in database
-      const { data: drafts, count } = await supabase
+        // Check for saved drafts in database
+        const { data: drafts, count } = await supabase
         .from('vault_interview_responses')
         .select('*', { count: 'exact' })
         .eq('user_id', user.id)
@@ -453,6 +449,9 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
       console.error('[RESTORE] Error:', error);
     }
   };
+
+  restoreProgress();
+  }, []);
 
   const playQuestionAudio = async (text: string) => {
     if (!voiceEnabled) return;
@@ -842,11 +841,9 @@ export const CareerVaultInterview = ({ onComplete, currentMilestoneId: propMiles
           }
 
           if (retryResponse) {
-            setCurrentResponseId(retryResponse.id);
             logger.debug('Response saved (retry):', { responseId: retryResponse.id });
           }
         } else if (savedResponse) {
-          setCurrentResponseId(savedResponse.id);
           logger.debug('Response saved:', { responseId: savedResponse.id });
           
           // Clear session storage after successful save

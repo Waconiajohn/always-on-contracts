@@ -212,8 +212,6 @@ const VaultDashboardContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      setUserId(user.id);
-
       try {
         // Get career vault data via MCP
         const vaultResponse = await careerVault.get();
