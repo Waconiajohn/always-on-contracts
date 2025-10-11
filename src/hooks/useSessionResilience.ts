@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface SessionResilienceOptions {
   maxRetries?: number;
@@ -41,7 +42,7 @@ export function useSessionResilience(options: SessionResilienceOptions = {}) {
           return true;
         }
       } catch (error: any) {
-        console.error(`Session refresh attempt ${attempt + 1} failed:`, error);
+        logger.error(`Session refresh attempt ${attempt + 1} failed`, error);
         
         // If this is the last attempt, fail
         if (attempt === maxRetries - 1) {
@@ -97,14 +98,14 @@ export function useSessionResilience(options: SessionResilienceOptions = {}) {
         const fiveMinutesInMs = 5 * 60 * 1000;
         
         if (expiresInMs < fiveMinutesInMs) {
-          console.log('Session expiring soon, refreshing proactively...');
+          logger.debug('Session expiring soon, refreshing proactively');
           return await refreshSessionWithRetry();
         }
       }
-      
+
       return true;
     } catch (error) {
-      console.error('Error checking session:', error);
+      logger.error('Error checking session', error);
       return await refreshSessionWithRetry();
     }
   }, [refreshSessionWithRetry]);
@@ -134,17 +135,17 @@ export function useSessionResilience(options: SessionResilienceOptions = {}) {
         error?.code === 'PGRST301';
 
       if (isAuthError) {
-        console.log(`Auth error during ${operationName}, attempting to refresh session...`);
-        
+        logger.debug(`Auth error during ${operationName}, attempting to refresh session`);
+
         // Try to refresh session
         const refreshed = await refreshSessionWithRetry();
-        
+
         if (refreshed) {
           // Retry the operation once after successful refresh
           try {
             return await operation();
           } catch (retryError) {
-            console.error(`${operationName} failed after session refresh:`, retryError);
+            logger.error(`${operationName} failed after session refresh`, retryError);
             throw retryError;
           }
         }

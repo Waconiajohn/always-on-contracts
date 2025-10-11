@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 const HomeContent = () => {
   const navigate = useNavigate();
@@ -43,10 +44,10 @@ const HomeContent = () => {
         .from('vault_interview_responses')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
-      
-      console.log('[HOME] Saved responses:', count);
+
+      logger.debug('Saved interview responses loaded', { count });
     } catch (error) {
-      console.error('Error checking Career Vault status:', error);
+      logger.error('Error checking Career Vault status', error);
     }
   };
 
@@ -63,7 +64,7 @@ const HomeContent = () => {
 
       setActiveOpportunities(count || 0);
     } catch (error) {
-      console.error('Error loading opportunities:', error);
+      logger.error('Error loading opportunities', error);
     }
   };
 

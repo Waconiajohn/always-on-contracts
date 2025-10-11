@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, AlertCircle, Volume2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
@@ -35,15 +36,15 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, onRec
       stream.getTracks().forEach(track => track.stop());
       setPermissionGranted(true);
       setMicStatus('idle');
-      
-      console.log('[VOICE] Microphone permission granted');
+
+      logger.debug('Microphone permission granted');
       toast({
         title: "Microphone Ready",
         description: "Click the mic button to start recording",
       });
       return true;
     } catch (error: any) {
-      console.error('[VOICE] Permission error:', error);
+      logger.error('Voice input permission error', error);
       setPermissionGranted(false);
       setMicStatus('error');
       
@@ -79,7 +80,7 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, onRec
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
-      console.log('[VOICE] Recording started');
+      logger.debug('Voice recording started');
       setMicStatus('recording');
       onRecordingStateChange?.(true);
       
@@ -106,14 +107,14 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, onRec
       }
 
       if (final) {
-        console.log('[VOICE] Final transcript:', final);
+        logger.debug('Voice transcript received', { transcript: final });
         onTranscript(final);
       }
       setInterimTranscript(interim);
     };
 
     recognition.onerror = (event: any) => {
-      console.error('[VOICE] Recognition error:', event.error);
+      logger.error('Voice recognition error', new Error(event.error));
       setMicStatus('error');
       onRecordingStateChange?.(false);
       
@@ -144,7 +145,7 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, onRec
     };
 
     recognition.onend = () => {
-      console.log('[VOICE] Recording ended');
+      logger.debug('Voice recording ended');
       setMicStatus('idle');
       onRecordingStateChange?.(false);
       
@@ -162,7 +163,7 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, onRec
           setMicStatus('recording');
           recognition.start();
         } catch (error) {
-          console.error('[VOICE] Restart error:', error);
+          logger.error('Voice recognition restart error', error);
           setMicStatus('error');
         }
       }
@@ -182,18 +183,18 @@ export const VoiceInput = ({ onTranscript, isRecording, onToggleRecording, onRec
 
     if (isRecording) {
       try {
-        console.log('[VOICE] Starting recognition...');
+        logger.debug('Starting voice recognition');
         recognitionRef.current.start();
       } catch (error) {
-        console.error('[VOICE] Start error:', error);
+        logger.error('Voice recognition start error', error);
       }
     } else {
       try {
-        console.log('[VOICE] Stopping recognition...');
+        logger.debug('Stopping voice recognition');
         recognitionRef.current.stop();
         setInterimTranscript("");
       } catch (error) {
-        console.error('[VOICE] Stop error:', error);
+        logger.error('Voice recognition stop error', error);
       }
     }
   }, [isRecording, permissionGranted]);
