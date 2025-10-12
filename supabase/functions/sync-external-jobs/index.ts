@@ -265,6 +265,15 @@ serve(async (req) => {
       console.error('Error fetching Workable:', error);
     }
 
+    // Jooble (Global job aggregator - API KEY REQUIRED)
+    try {
+      const jobs = await fetchJooble();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Jooble`);
+    } catch (error) {
+      console.error('Error fetching Jooble:', error);
+    }
+
     // Stack Overflow Jobs (tech-focused)
     try {
       const jobs = await fetchStackOverflow();
@@ -1652,6 +1661,91 @@ async function fetchLinkedInViaApify(apiKey: string): Promise<ExternalJob[]> {
     });
   } catch (error) {
     console.error('LinkedIn Apify fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchJooble(): Promise<ExternalJob[]> {
+  try {
+    const joobleApiKey = Deno.env.get('JOOBLE_API_KEY');
+    if (!joobleApiKey) {
+      console.log('Jooble API key not configured, skipping...');
+      return [];
+    }
+
+    console.log('Fetching Jooble jobs via API...');
+    const jobs: ExternalJob[] = [];
+    
+    // Search queries focusing on US-based jobs
+    const searchQueries = [
+      { keywords: 'software engineer', location: 'United States' },
+      { keywords: 'developer', location: 'United States' },
+      { keywords: 'data scientist', location: 'United States' },
+      { keywords: 'product manager', location: 'United States' },
+      { keywords: 'contract developer', location: 'United States' },
+      { keywords: 'freelance engineer', location: 'United States' },
+    ];
+    
+    for (const query of searchQueries) {
+      try {
+        const url = `https://jooble.org/api/${joobleApiKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            keywords: query.keywords,
+            location: query.location,
+            page: 1,
+          }),
+        });
+        
+        if (!res.ok) {
+          console.log(`Jooble API returned ${res.status} for query: ${query.keywords}`);
+          continue;
+        }
+        
+        const data = await res.json();
+        
+        if (data.jobs && Array.isArray(data.jobs)) {
+          for (const job of data.jobs) {
+            const jobId = job.id || Math.random().toString(36).substring(7);
+            
+            // Filter for US jobs only
+            const location = job.location || '';
+            const isUS = /united states|usa|u\.s\./i.test(location) || 
+                        /\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/i.test(location);
+            
+            if (!isUS) continue;
+            
+            jobs.push({
+              title: cleanText(job.title || 'Untitled Position'),
+              company: cleanText(job.company || 'Unknown Company'),
+              location: cleanText(location) || 'United States',
+              type: job.type?.toLowerCase().includes('contract') ? 'contract' : 'full-time',
+              remote: /remote/i.test(JSON.stringify(job)),
+              postedAt: job.updated || job.date || new Date().toISOString(),
+              url: job.link || job.url || '',
+              source: 'jooble',
+              externalId: `jooble-${jobId}`,
+              description: cleanText(job.snippet || job.description || job.title),
+              skills: [],
+            });
+          }
+        }
+        
+        // Rate limiting - respect Jooble's API limits
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (queryError) {
+        console.error(`Error fetching Jooble jobs for query "${query.keywords}":`, queryError);
+      }
+    }
+    
+    console.log(`Total Jooble jobs fetched: ${jobs.length}`);
+    return jobs;
+  } catch (error) {
+    console.error('Jooble fetch error:', error);
     return [];
   }
 }
