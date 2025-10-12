@@ -51,7 +51,9 @@ const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboarding")
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
-const CareerCommandCenter = lazy(() => import("./pages/CareerCommandCenter"));
+const CommandCenter = lazy(() => import("./pages/CommandCenter"));
+const DailyWorkflow = lazy(() => import("./pages/DailyWorkflow"));
+const SalaryNegotiation = lazy(() => import("./pages/SalaryNegotiation"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ProcessingMonitor = lazy(() => import("./pages/ProcessingMonitor"));
 
@@ -107,7 +109,10 @@ const App = () => (
         <Route path="/agents/career-trends" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
         <Route path="/agents/financial-planning" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
         <Route path="/career-tools" element={<ProtectedRoute><CareerDashboard /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><CareerCommandCenter /></ProtectedRoute>} />
+        <Route path="/command-center" element={<ProtectedRoute><CommandCenter /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<Navigate to="/command-center" replace />} />
+        <Route path="/daily-workflow" element={<ProtectedRoute><DailyWorkflow /></ProtectedRoute>} />
+        <Route path="/salary-negotiation" element={<ProtectedRoute><SalaryNegotiation /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/affiliate-portal" element={<ProtectedRoute><AffiliatePortal /></ProtectedRoute>} />

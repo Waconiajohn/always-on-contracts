@@ -163,9 +163,9 @@ export default function ApplicationQueue() {
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold">Application Queue</h1>
+            <h1 className="text-3xl font-bold">Application Queue - Review & Apply</h1>
             <p className="text-muted-foreground mt-2">
-              Review and approve automated job applications
+              Review AI-customized resumes and approve applications before submitting
             </p>
           </div>
 
