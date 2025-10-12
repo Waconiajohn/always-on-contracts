@@ -163,6 +163,7 @@ export default function FinancialPlanningAssistant() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="5-phase-vulnerability">5-Phase Vulnerability Assessment</SelectItem>
                   <SelectItem value="comprehensive">Comprehensive Planning</SelectItem>
                   <SelectItem value="retirement-planning">Retirement Planning</SelectItem>
                   <SelectItem value="career-transition">Career Transition</SelectItem>

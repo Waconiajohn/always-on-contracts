@@ -1,13 +1,24 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { BookOpen, Video, FileText, Search } from 'lucide-react';
+import { BookOpen, Video, FileText, Search, Shield } from 'lucide-react';
 import { useState } from 'react';
+import { learningArticles } from '@/data/researchContent';
 
 const LearningCenter = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
+    {
+      title: 'Executive Career & Financial Crisis Management',
+      icon: Shield,
+      resources: learningArticles.map(article => ({
+        title: article.title,
+        type: 'Article',
+        coming: false,
+        content: article.content
+      }))
+    },
     {
       title: 'Resume Writing',
       icon: FileText,

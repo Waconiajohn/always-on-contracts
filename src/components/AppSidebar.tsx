@@ -20,6 +20,8 @@ import {
   DollarSign,
   Shield,
   Package,
+  BookOpen,
+  LineChart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +57,8 @@ const jobSearchItems = [
 const toolsItems = [
   { path: "/coaching", label: "Coaching", icon: MessageSquare },
   { path: "/ai-agents", label: "AI Agents", icon: Brain },
+  { path: "/research-hub", label: "Research Hub", icon: LineChart },
+  { path: "/learning-center", label: "Learning Center", icon: BookOpen },
   { path: "/rate-calculator", label: "Rate Calculator", icon: Calculator },
 ];
 

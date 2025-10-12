@@ -93,6 +93,7 @@ const HomeContent = () => {
     { icon: Bot, title: "AI Coach", path: "/coaching", locked: false, minCompletion: 0 },
     { icon: Briefcase, title: "Opportunities", path: "/opportunities", locked: false, minCompletion: 0 },
     { icon: FileText, title: "Templates", path: "/templates", locked: false, minCompletion: 0 },
+    { icon: Shield, title: "Research Hub", path: "/research-hub", locked: false, minCompletion: 0 },
   ];
 
   const featureDetails = {

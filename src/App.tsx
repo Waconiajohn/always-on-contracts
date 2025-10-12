@@ -49,6 +49,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboard"));
 const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboarding"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
+const ResearchHub = lazy(() => import("./pages/ResearchHub"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
 const CareerCommandCenter = lazy(() => import("./pages/CareerCommandCenter"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -119,6 +120,8 @@ const App = () => (
             <Route path="/war-chest" element={<Navigate to="/career-vault" replace />} />
             <Route path="/war-chest/onboarding" element={<Navigate to="/career-vault/onboarding" replace />} />
             <Route path="/learn" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
+            <Route path="/learning-center" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
+            <Route path="/research-hub" element={<ProtectedRoute><ResearchHub /></ProtectedRoute>} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
             <Route path="/processing-monitor" element={<ProtectedRoute><ProcessingMonitor /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

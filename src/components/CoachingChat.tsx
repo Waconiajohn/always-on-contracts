@@ -72,9 +72,9 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
 
         // If no session or history, send initial greeting with context from memories
         const greetings: Record<string, string> = {
-          robert: "Hello, I'm Robert. I'm here to help you position yourself strategically for your next executive role. What brings you here today?",
-          sophia: "Hi there, I'm Sophia. I help executives like you develop authentic narratives that resonate. What would you like to work on?",
-          nexus: "Greetings, I'm Nexus. I use data-driven insights to optimize your career strategy. What can I analyze for you today?"
+          robert: "Hello, I'm Robert. I'm here to help you position yourself strategically for your next executive role and coordinate your career decisions with your financial security. What brings you here today?",
+          sophia: "Hi there, I'm Sophia. I help executives like you develop authentic narratives that resonate while ensuring your career transitions protect your financial wellbeing. What would you like to work on?",
+          nexus: "Greetings, I'm Nexus. I use data-driven insights to optimize your career strategy and integrate it with comprehensive financial planning for maximum lifetime value. What can I analyze for you today?"
         };
         
         setMessages([{ 
