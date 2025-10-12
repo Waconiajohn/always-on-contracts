@@ -210,11 +210,11 @@ export function InterviewResponsesTab({ question, vaultId }: InterviewResponsesT
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                  <p className="text-sm font-medium mb-2">🤖 Gemini Analysis</p>
+                  <p className="text-sm font-medium mb-2">🤖 Primary AI Analysis</p>
                   <p className="text-xs text-muted-foreground">{analysis.geminiAnalysis.summary}</p>
                 </div>
                 <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                  <p className="text-sm font-medium mb-2">🔍 Perplexity Fact-Check</p>
+                  <p className="text-sm font-medium mb-2">🔍 Verification AI Fact-Check</p>
                   <p className="text-xs text-muted-foreground">{analysis.perplexityAnalysis.summary}</p>
                 </div>
               </CardContent>

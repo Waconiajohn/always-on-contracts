@@ -14,13 +14,13 @@ export const AIActivityBanner = () => {
   const [activities] = useState<AIActivity[]>([
     {
       id: '1',
-      system: 'Gemini',
+      system: 'AI Analysis',
       message: 'Career vault analysis complete',
       status: 'complete'
     },
     {
       id: '2',
-      system: 'Perplexity',
+      system: 'AI Verification',
       message: 'Market data verified',
       status: 'complete'
     }

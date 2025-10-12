@@ -81,7 +81,7 @@ export const MarketResearchPanel = () => {
           Market Intelligence
         </CardTitle>
         <CardDescription>
-          Real-time market research powered by Perplexity AI
+          Real-time market research powered by advanced AI
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

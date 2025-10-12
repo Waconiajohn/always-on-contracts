@@ -198,12 +198,17 @@ const OpportunitiesContent = () => {
         <AppNav />
         <main className="container mx-auto p-6 space-y-6">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold">Job Board</h1>
-              <p className="text-muted-foreground mt-2">
-                AI-powered job matching based on your profile
+          <div>
+            <h1 className="text-4xl font-bold">Job Board</h1>
+            <p className="text-muted-foreground mt-2">
+              AI-powered job matching based on your current Career Vault profile
+            </p>
+            {opportunities.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                💡 Updated your resume? Click "Clear & Re-match" to get fresh recommendations
               </p>
-            </div>
+            )}
+          </div>
             <div className="flex gap-2">
               <Button
                 onClick={syncExternalJobs}
