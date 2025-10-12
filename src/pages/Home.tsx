@@ -27,15 +27,11 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AISystemsStatusWidget } from "@/components/home/AISystemsStatusWidget";
-import { VaultPowerWidget } from "@/components/home/VaultPowerWidget";
-import { QuickLaunchWidget } from "@/components/home/QuickLaunchWidget";
 import { AIActivityBanner } from "@/components/home/AIActivityBanner";
 import { useJourneyState } from "@/hooks/useJourneyState";
 import { CelebrationBanner } from "@/components/home/CelebrationBanner";
 import { JourneyStateCard } from "@/components/home/JourneyStateCard";
 import { ActivityFeed } from "@/components/home/ActivityFeed";
-import { NextStepsCard } from "@/components/home/NextStepsCard";
 
 const HomeContent = () => {
   const navigate = useNavigate();
@@ -226,90 +222,79 @@ const HomeContent = () => {
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Center Content */}
-          <div className="lg:col-span-9 space-y-6">
-            {/* Quick Access Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {allTools.map((tool) => {
-                const hasDualAI = ['Resume Optimizer', 'Interview Prep', 'Job Search'].includes(tool.title);
-                
-                return (
-                  <Card 
-                    key={tool.title}
-                    className={`group cursor-pointer transition-all hover:scale-105 ${
-                      tool.locked 
-                        ? 'opacity-40 grayscale' 
-                        : 'hover:shadow-ai-subtle hover:border-ai-primary/50'
-                    }`}
-                    onClick={() => !tool.locked && navigate(tool.path)}
-                  >
-                    <CardContent className="p-4 text-center relative">
-                      {hasDualAI && !tool.locked && (
-                        <Badge 
-                          variant="secondary" 
-                          className="absolute top-2 right-2 text-[8px] px-1.5 py-0 bg-ai-primary/10 text-ai-primary border-ai-primary/20"
-                        >
-                          <Shield className="h-2 w-2 mr-0.5" />
-                          Dual-AI
-                        </Badge>
-                      )}
-                      <tool.icon className={`h-8 w-8 mx-auto mb-2 ${tool.locked ? '' : 'text-ai-primary'}`} />
-                      <p className="text-xs font-medium mb-1">{tool.title}</p>
-                      {tool.locked && (
-                        <Badge variant="outline" className="text-[10px] mt-1">
-                          <Lock className="h-2 w-2 mr-1" />
-                          {tool.minCompletion}%
-                        </Badge>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Recent Activity Feed */}
-            <ActivityFeed />
-
-            {/* Stats Snapshot */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="hover:border-ai-primary/50 transition-all cursor-pointer" onClick={() => navigate('/opportunities')}>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Briefcase className="h-5 w-5 text-ai-primary" />
-                    <h3 className="text-lg font-semibold">Active Jobs</h3>
-                  </div>
-                  <p className="text-3xl font-bold mb-3">{activeJobs}</p>
-                  <Button variant="outline" size="sm" className="w-full">
-                    View All
-                    <ArrowRight className="ml-2 h-3 w-3" />
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:border-ai-secondary/50 transition-all cursor-pointer" onClick={() => navigate('/pricing')}>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="h-5 w-5 text-ai-secondary" />
-                    <h3 className="text-lg font-semibold">AI Stats</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">12 Agents Working</p>
-                  <Button variant="outline" size="sm" className="w-full">
-                    View Details
-                    <ArrowRight className="ml-2 h-3 w-3" />
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Quick Access Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {allTools.map((tool) => {
+              const hasDualAI = ['Resume Optimizer', 'Interview Prep', 'Job Search'].includes(tool.title);
+              
+              return (
+                <Card 
+                  key={tool.title}
+                  className={`group cursor-pointer transition-all hover:scale-105 ${
+                    tool.locked 
+                      ? 'opacity-40 grayscale' 
+                      : 'hover:shadow-ai-subtle hover:border-ai-primary/50'
+                  }`}
+                  onClick={() => !tool.locked && navigate(tool.path)}
+                >
+                  <CardContent className="p-4 text-center relative">
+                    {hasDualAI && !tool.locked && (
+                      <Badge 
+                        variant="secondary" 
+                        className="absolute top-2 right-2 text-[8px] px-1.5 py-0 bg-ai-primary/10 text-ai-primary border-ai-primary/20"
+                      >
+                        <Shield className="h-2 w-2 mr-0.5" />
+                        Dual-AI
+                      </Badge>
+                    )}
+                    <tool.icon className={`h-8 w-8 mx-auto mb-2 ${tool.locked ? '' : 'text-ai-primary'}`} />
+                    <p className="text-xs font-medium mb-1">{tool.title}</p>
+                    {tool.locked && (
+                      <Badge variant="outline" className="text-[10px] mt-1">
+                        <Lock className="h-2 w-2 mr-1" />
+                        {tool.minCompletion}%
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
-          {/* Right Sidebar - Widgets */}
-          <div className="lg:col-span-3 space-y-4">
-            <NextStepsCard journeyState={journeyState.state} />
-            <AISystemsStatusWidget />
-            <VaultPowerWidget completion={vaultCompletion} />
-            <QuickLaunchWidget />
+          {/* Recent Activity Feed */}
+          <ActivityFeed />
+
+          {/* Stats Snapshot */}
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="hover:border-ai-primary/50 transition-all cursor-pointer" onClick={() => navigate('/opportunities')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Briefcase className="h-5 w-5 text-ai-primary" />
+                  <h3 className="text-lg font-semibold">Active Jobs</h3>
+                </div>
+                <p className="text-3xl font-bold mb-3">{activeJobs}</p>
+                <Button variant="outline" size="sm" className="w-full">
+                  View All
+                  <ArrowRight className="ml-2 h-3 w-3" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:border-ai-secondary/50 transition-all cursor-pointer" onClick={() => navigate('/pricing')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Sparkles className="h-5 w-5 text-ai-secondary" />
+                  <h3 className="text-lg font-semibold">AI Stats</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">12 Agents Working</p>
+                <Button variant="outline" size="sm" className="w-full">
+                  View Details
+                  <ArrowRight className="ml-2 h-3 w-3" />
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

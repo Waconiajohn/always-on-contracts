@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
-import { Target, TrendingUp, Rocket, Briefcase, Users } from "lucide-react";
+import { Target, TrendingUp, Rocket, Briefcase, Users, CheckCircle2 } from "lucide-react";
 import type { JourneyState } from "@/hooks/useJourneyState";
 
 interface JourneyStateCardProps {
@@ -93,13 +93,29 @@ export const JourneyStateCard = ({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-6">
           <Button onClick={() => navigate('/opportunities')}>
             Find More Jobs
           </Button>
           <Button variant="outline" onClick={() => navigate('/application-queue')}>
             View Queue
           </Button>
+        </div>
+
+        {/* Abbreviated Steps */}
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">Step 1: Build</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Rocket className="h-4 w-4 text-primary" />
+            <span className="font-semibold">Step 2: Deploy</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm opacity-50">
+            <Users className="h-4 w-4" />
+            <span className="text-muted-foreground">Step 3: Win</span>
+          </div>
         </div>
       </Card>
     );
@@ -125,13 +141,29 @@ export const JourneyStateCard = ({
           <p className="text-sm">Focus on interview preparation and follow-up communications</p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-6">
           <Button onClick={() => navigate('/agents/interview-prep')}>
             Prepare for Interview
           </Button>
           <Button variant="outline" onClick={() => navigate('/projects')}>
             View All Projects
           </Button>
+        </div>
+
+        {/* Abbreviated Steps */}
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">Step 1: Build</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">Step 2: Deploy</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Users className="h-4 w-4 text-primary" />
+            <span className="font-semibold">Step 3: Win</span>
+          </div>
         </div>
       </Card>
     );
