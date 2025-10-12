@@ -100,16 +100,18 @@ const HomeContent = () => {
       title: "12 Specialized AI Agents",
       description: "A full suite of AI-powered career tools working together to accelerate your job search and optimize every aspect of your career strategy.",
       features: [
-        "Job Search Agent - Intelligent opportunity matching",
-        "Resume Optimizer - Multi-AI resume enhancement", 
-        "Interview Prep Agent - Practice with AI feedback",
-        "LinkedIn Builder - Profile optimization",
-        "Networking Agent - Connection strategies",
-        "Auto-Apply Agent - Smart application automation",
-        "Career Trends Scout - Market intelligence",
-        "Agency Matcher - Recruiter connections",
-        "Financial Planning - Compensation analysis",
-        "+ 3 more specialized agents"
+        "Job Search Agent - Scours the market 24/7, matching opportunities to your unique profile and career goals",
+        "Resume Optimizer - Transforms your experience into ATS-friendly, compelling narratives that get you interviews", 
+        "Interview Prep Agent - Simulates real interviews, provides feedback, and helps you craft winning answers",
+        "LinkedIn Builder - Optimizes your profile for maximum visibility and positions you as an industry authority",
+        "Networking Agent - Identifies key connections, crafts personalized outreach, and tracks relationship building",
+        "Auto-Apply Agent - Intelligently applies to pre-screened opportunities while you sleep",
+        "Career Trends Scout - Monitors industry shifts and emerging opportunities before they hit job boards",
+        "Agency Matcher - Connects you with specialized recruiters who have your dream roles",
+        "Financial Planning Assistant - Analyzes compensation packages and negotiation strategies",
+        "Resume Builder Agent - Guides you through creating powerful, achievement-focused resumes",
+        "LinkedIn Blogging Agent - Generates thought leadership content to boost your professional brand",
+        "Corporate Assistant - Helps navigate internal advancement and career transitions"
       ]
     },
     verification: {
@@ -205,61 +207,62 @@ const HomeContent = () => {
         {/* AI Activity Banner */}
         <AIActivityBanner />
 
-        {/* Process Pillars */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {['Build', 'Deploy', 'Win'].map((stage, i) => {
-            const descriptions = [
-              'Foundation vault with AI-extracted intelligence',
-              'Smart matching and targeted applications',
-              'Interview mastery and offer optimization'
-            ];
-            const completionPercentages = [
-              Math.min(vaultCompletion, 100),
-              vaultComplete ? 25 : 0,
-              0
-            ];
-            const colors = ['text-ai-primary', 'text-ai-secondary', 'text-ai-active'];
-            
-            return (
-              <Card key={stage} className="glass hover:border-ai-primary/50 transition-all group cursor-pointer hover:shadow-ai-subtle">
-                <CardContent className="p-6 text-center">
-                  {/* Radial progress */}
-                  <div className="relative w-24 h-24 mx-auto mb-4">
-                    <svg className="transform -rotate-90" viewBox="0 0 96 96">
-                      <circle 
-                        cx="48" 
-                        cy="48" 
-                        r="44" 
-                        stroke="currentColor" 
-                        className="text-muted/30" 
-                        strokeWidth="8" 
-                        fill="none" 
-                      />
-                      <circle 
-                        cx="48" 
-                        cy="48" 
-                        r="44" 
-                        stroke="currentColor" 
-                        className={`${colors[i]} transition-all duration-1000`}
-                        strokeWidth="8" 
-                        fill="none" 
-                        strokeDasharray={`${completionPercentages[i] * 2.76} 276`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold">
-                      {completionPercentages[i]}%
+        {/* Strategic Process Framework */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <Card className="glass hover:border-ai-primary/50 transition-all group">
+            <CardContent className="p-8">
+              <div className="space-y-8">
+                {/* Build Phase */}
+                <div className="flex gap-6 items-start">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-primary/20 to-ai-primary/5 flex items-center justify-center">
+                      <Package className="h-8 w-8 text-ai-primary" />
                     </div>
                   </div>
-                  
-                  <h3 className="font-semibold text-lg mb-2">{stage}</h3>
-                  <p className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                    {descriptions[i]}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold mb-2 text-ai-primary">Build: Your Career Vault</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      We start by building the ultimate professional assessment of who you are. Through AI-guided interviews, we extract your personality traits, soft skills, leadership philosophy, technical competencies, and career aspirations. This creates your "Why Me" story—the compelling narrative of your unique value proposition that no other candidate can claim.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-transparent via-ai-primary/30 to-transparent" />
+
+                {/* Deploy Phase */}
+                <div className="flex gap-6 items-start">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-secondary/20 to-ai-secondary/5 flex items-center justify-center">
+                      <Zap className="h-8 w-8 text-ai-secondary" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold mb-2 text-ai-secondary">Deploy: Intelligent Targeting</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      With your vault complete, our AI agents activate. They scan opportunities across multiple sources, customize your resume for each application, generate tailored cover letters, and either queue high-potential matches for your review or auto-apply based on your preferences. Every application is optimized using your vault intelligence.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-transparent via-ai-active/30 to-transparent" />
+
+                {/* Win Phase */}
+                <div className="flex gap-6 items-start">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-active/20 to-ai-active/5 flex items-center justify-center">
+                      <CheckCircle2 className="h-8 w-8 text-ai-active" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold mb-2 text-ai-active">Win: Interview Mastery</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      When interviews come, you're ready. Our Interview Prep Agent pulls from your vault to craft authentic, compelling answers to any question. We simulate real interviews, provide feedback, and help you master your "Why Me" story. You walk in confident, knowing exactly how to position your unique value.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Career Vault Status - Elevated */}
