@@ -40,6 +40,37 @@ export const JourneyStateCard = ({
             </Button>
           </div>
         </div>
+
+        {/* Abbreviated Steps - Show what's coming */}
+        <div className="grid grid-cols-3 gap-4 pt-6 mt-6 border-t">
+          <div className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Target className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold">Step 1: Build</p>
+            <p className="text-xs text-muted-foreground mt-1">Career Vault Interview</p>
+          </div>
+          <div className="text-center opacity-60">
+            <div className="flex justify-center mb-2">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                <Rocket className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold">Step 2: Deploy</p>
+            <p className="text-xs text-muted-foreground mt-1">Apply to jobs & network</p>
+          </div>
+          <div className="text-center opacity-60">
+            <div className="flex justify-center mb-2">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                <Users className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold">Step 3: Win</p>
+            <p className="text-xs text-muted-foreground mt-1">Interviews & offers</p>
+          </div>
+        </div>
       </Card>
     );
   }
@@ -57,13 +88,44 @@ export const JourneyStateCard = ({
           </div>
         </div>
         <Progress value={vaultCompletion} className="h-3 mb-4" />
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-6">
           <Button onClick={() => navigate('/career-vault')}>
             Continue Interview
           </Button>
           <Button variant="outline" onClick={() => navigate('/ai-agents')}>
             Preview Features
           </Button>
+        </div>
+
+        {/* Abbreviated Steps - Show progress */}
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Target className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold">Step 1: Build</p>
+            <p className="text-xs text-primary mt-1">{vaultCompletion}% Complete</p>
+          </div>
+          <div className="text-center opacity-60">
+            <div className="flex justify-center mb-2">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                <Rocket className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold">Step 2: Deploy</p>
+            <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
+          </div>
+          <div className="text-center opacity-60">
+            <div className="flex justify-center mb-2">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                <Users className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold">Step 3: Win</p>
+            <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
+          </div>
         </div>
       </Card>
     );
