@@ -325,7 +325,7 @@ const VaultDashboardContent = () => {
               <p className="text-xs text-muted-foreground">Undiscovered strengths</p>
             </div>
           </div>
-          <Button size="lg" onClick={() => navigate('/career-vault-onboarding')}>
+          <Button size="lg" onClick={() => navigate('/career-vault/onboarding')}>
             Build Your Career Vault
           </Button>
         </Card>
@@ -345,7 +345,7 @@ const VaultDashboardContent = () => {
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={() => navigate('/career-vault-onboarding')}
+            onClick={() => navigate('/career-vault/onboarding')}
           >
             Update Resume
           </Button>

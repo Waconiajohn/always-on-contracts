@@ -35,7 +35,7 @@ export const JourneyStateCard = ({
               Create your AI-powered career intelligence system in 15 minutes. 
               Unlock all features and start landing opportunities faster.
             </p>
-            <Button size="lg" onClick={() => navigate('/career-vault-onboarding')}>
+            <Button size="lg" onClick={() => navigate('/career-vault/onboarding')}>
               Start Building
             </Button>
           </div>
@@ -89,7 +89,7 @@ export const JourneyStateCard = ({
         </div>
         <Progress value={vaultCompletion} className="h-3 mb-4" />
         <div className="flex gap-2 mb-6">
-          <Button onClick={() => navigate('/career-vault-onboarding')}>
+          <Button onClick={() => navigate('/career-vault/onboarding')}>
             Continue Interview
           </Button>
           <Button variant="outline" onClick={() => navigate('/ai-agents')}>

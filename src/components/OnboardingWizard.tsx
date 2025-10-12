@@ -26,7 +26,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       description: "Share your most comprehensive resume with us",
       icon: Upload,
       completed: false,
-      route: "/career-vault-onboarding"
+      route: "/career-vault/onboarding"
     },
     {
       id: 2,
@@ -34,7 +34,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       description: "AI-guided interview to build your career intelligence",
       icon: MessageSquare,
       completed: false,
-      route: "/career-vault-onboarding"
+      route: "/career-vault/onboarding"
     },
     {
       id: 3,
@@ -42,7 +42,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       description: "Answer 20-30 questions to expand your Career Vault",
       icon: Target,
       completed: false,
-      route: "/career-vault-onboarding"
+      route: "/career-vault/onboarding"
     },
     {
       id: 4,
