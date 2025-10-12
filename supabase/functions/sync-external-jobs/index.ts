@@ -283,6 +283,62 @@ serve(async (req) => {
       console.error('Error fetching Krop:', error);
     }
 
+    // NEW FREE APIS - No registration required
+
+    // Arbeitnow (European remote jobs)
+    try {
+      const jobs = await fetchArbeitnow();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Arbeitnow`);
+    } catch (error) {
+      console.error('Error fetching Arbeitnow:', error);
+    }
+
+    // Working Nomads (remote jobs)
+    try {
+      const jobs = await fetchWorkingNomads();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Working Nomads`);
+    } catch (error) {
+      console.error('Error fetching Working Nomads:', error);
+    }
+
+    // GitHub Jobs (if still available)
+    try {
+      const jobs = await fetchGitHubJobs();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from GitHub Jobs`);
+    } catch (error) {
+      console.error('Error fetching GitHub Jobs:', error);
+    }
+
+    // Hacker News Jobs (monthly Who's Hiring thread)
+    try {
+      const jobs = await fetchHackerNewsJobs();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Hacker News`);
+    } catch (error) {
+      console.error('Error fetching Hacker News:', error);
+    }
+
+    // German Jobsuche API (German government jobs)
+    try {
+      const jobs = await fetchGermanJobsuche();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from German Jobsuche`);
+    } catch (error) {
+      console.error('Error fetching German Jobsuche:', error);
+    }
+
+    // ReliefWeb (humanitarian/nonprofit)
+    try {
+      const jobs = await fetchReliefWeb();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from ReliefWeb`);
+    } catch (error) {
+      console.error('Error fetching ReliefWeb:', error);
+    }
+
     // LEGAL COMPLIANCE: LinkedIn scraping disabled per LinkedIn v. Proxycurl (2025) ruling
     // LinkedIn has zero-tolerance policy on scraping and actively pursues legal action
     console.log('[DISABLED] LinkedIn scraping disabled for legal compliance');
@@ -1202,6 +1258,195 @@ async function fetchKrop(): Promise<ExternalJob[]> {
     return jobs;
   } catch (error) {
     console.error('Krop fetch error:', error);
+    return [];
+  }
+}
+
+// NEW FREE APIs - No registration required
+
+async function fetchArbeitnow(): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://www.arbeitnow.com/api/job-board-api', {
+      headers: { 'Accept': 'application/json; charset=utf-8' }
+    });
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const jobs = data.data || [];
+    
+    return jobs.map((j: any) => ({
+      title: cleanText(j.title),
+      company: cleanText(j.company_name),
+      location: cleanText(j.location) || 'Remote',
+      type: 'contract',
+      remote: j.remote || true,
+      postedAt: j.created_at,
+      url: j.url,
+      source: 'arbeitnow',
+      externalId: `an-${j.slug}`,
+      description: cleanText(j.description) || cleanText(j.title),
+      skills: j.tags || [],
+    }));
+  } catch (error) {
+    console.error('Arbeitnow fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchWorkingNomads(): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://www.workingnomads.com/api/exposed_jobs/', {
+      headers: { 'Accept': 'application/json; charset=utf-8' }
+    });
+    if (!res.ok) return [];
+    
+    const jobs = await res.json();
+    
+    return jobs.map((j: any) => ({
+      title: cleanText(j.title),
+      company: cleanText(j.company_name),
+      location: 'Remote',
+      type: 'contract',
+      remote: true,
+      postedAt: j.pub_date,
+      url: j.url,
+      source: 'workingnomads',
+      externalId: `wn-${j.id}`,
+      description: cleanText(j.description) || cleanText(j.title),
+      skills: j.tags ? j.tags.split(',') : [],
+    }));
+  } catch (error) {
+    console.error('Working Nomads fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchGitHubJobs(): Promise<ExternalJob[]> {
+  try {
+    // Note: GitHub Jobs API was deprecated in May 2021
+    // Keeping this as placeholder in case it comes back or alternative exists
+    console.log('[INFO] GitHub Jobs API is deprecated, skipping');
+    return [];
+  } catch (error) {
+    console.error('GitHub Jobs fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchHackerNewsJobs(): Promise<ExternalJob[]> {
+  try {
+    // Fetch the latest "Who is Hiring?" thread from Hacker News
+    // This requires searching for the thread first
+    const searchRes = await fetch('https://hn.algolia.com/api/v1/search?query=who%20is%20hiring&tags=story', {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!searchRes.ok) return [];
+    
+    const searchData = await searchRes.json();
+    const latestThread = searchData.hits?.[0];
+    
+    if (!latestThread) return [];
+    
+    // Fetch comments from the thread
+    const commentsRes = await fetch(`https://hn.algolia.com/api/v1/items/${latestThread.objectID}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!commentsRes.ok) return [];
+    
+    const threadData = await commentsRes.json();
+    const comments = threadData.children || [];
+    
+    // Parse job postings from comments
+    const jobs: ExternalJob[] = [];
+    
+    for (const comment of comments.slice(0, 100)) { // Limit to first 100 comments
+      if (!comment.text) continue;
+      
+      const text = comment.text;
+      // Basic parsing - look for company names and job titles
+      const companyMatch = text.match(/^([A-Z][A-Za-z0-9\s&.]+)\s*\|/);
+      const company = companyMatch ? cleanText(companyMatch[1]) : 'Hacker News Hiring';
+      
+      jobs.push({
+        title: 'See posting for details',
+        company,
+        location: text.includes('REMOTE') || text.includes('Remote') ? 'Remote' : 'Various',
+        type: 'contract',
+        remote: text.includes('REMOTE') || text.includes('Remote'),
+        postedAt: new Date(comment.created_at).toISOString(),
+        url: `https://news.ycombinator.com/item?id=${comment.id}`,
+        source: 'hackernews',
+        externalId: `hn-${comment.id}`,
+        description: cleanText(text.substring(0, 500)),
+      });
+    }
+    
+    return jobs;
+  } catch (error) {
+    console.error('Hacker News fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchGermanJobsuche(): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://jobsuche.api.bund.dev/pc/v0/jobs?&was=contract&wo=&page=1&anzahl=100', {
+      headers: { 'Accept': 'application/json; charset=utf-8' }
+    });
+    
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const jobs = data.stellenangebote || [];
+    
+    return jobs.map((j: any) => ({
+      title: cleanText(j.titel),
+      company: cleanText(j.arbeitgeber) || 'German Government',
+      location: cleanText(j.arbeitsort?.ort) || 'Germany',
+      type: 'contract',
+      remote: false,
+      postedAt: j.aktuelleVeroeffentlichungsdatum,
+      url: j.referenznummer ? `https://www.arbeitsagentur.de/jobsuche/jobdetail/${j.referenznummer}` : '',
+      source: 'german-jobsuche',
+      externalId: `gj-${j.referenznummer}`,
+      description: cleanText(j.beschreibung) || cleanText(j.titel),
+    }));
+  } catch (error) {
+    console.error('German Jobsuche fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchReliefWeb(): Promise<ExternalJob[]> {
+  try {
+    const res = await fetch('https://api.reliefweb.int/v1/jobs?appname=career-command-post&limit=100&filter[field]=theme.name&filter[value]=Contract', {
+      headers: { 'Accept': 'application/json; charset=utf-8' }
+    });
+    
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const jobs = data.data || [];
+    
+    return jobs.map((item: any) => {
+      const j = item.fields;
+      return {
+        title: cleanText(j.title),
+        company: cleanText(j.source?.[0]?.name) || 'Humanitarian Organization',
+        location: cleanText(j.country?.[0]?.name) || 'International',
+        type: 'contract',
+        remote: false,
+        postedAt: j.date?.created,
+        url: j.url_alias ? `https://reliefweb.int${j.url_alias}` : j.url,
+        source: 'reliefweb',
+        externalId: `rw-${item.id}`,
+        description: cleanText(j.body) || cleanText(j.title),
+      };
+    });
+  } catch (error) {
+    console.error('ReliefWeb fetch error:', error);
     return [];
   }
 }
