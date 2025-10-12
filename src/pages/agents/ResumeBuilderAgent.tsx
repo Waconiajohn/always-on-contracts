@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { JobImportDialog } from "@/components/JobImportDialog";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
+import { TemplateSelector } from "@/components/resume/TemplateSelector";
 
 const ResumeBuilderAgentContent = () => {
   const [activeTab, setActiveTab] = useState("current");
@@ -27,6 +28,8 @@ const ResumeBuilderAgentContent = () => {
   const [generatedResume, setGeneratedResume] = useState<any>(null);
   const [generating, setGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<'html' | 'docx' | 'pdf'>('html');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -204,17 +207,19 @@ const ResumeBuilderAgentContent = () => {
               </TabsList>
 
               <TabsContent value="current" className="mt-4 space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium">Job Description</label>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setImportDialogOpen(true)}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import Job
-                  </Button>
-                </div>
+                {!showTemplateSelector ? (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium">Job Description</label>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setImportDialogOpen(true)}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Import Job
+                      </Button>
+                    </div>
                 
                 {jobTitle && (
                   <div className="p-3 bg-muted rounded-md space-y-1">
@@ -241,47 +246,80 @@ const ResumeBuilderAgentContent = () => {
                   </Button>
                 )}
 
-                {recommendation && (
-                  <PersonaSelector
-                    personas={recommendation.personas}
-                    recommendedPersona={recommendation.recommendedPersona}
-                    reasoning={recommendation.reasoning}
-                    confidence={recommendation.confidence}
-                    selectedPersona={selectedPersona}
-                    onSelectPersona={setSelectedPersona}
-                    agentType="resume"
-                  />
-                )}
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Output Format</label>
-                    <div className="flex gap-2">
-                      {(['html', 'docx', 'pdf'] as const).map((fmt) => (
-                        <Button
-                          key={fmt}
-                          variant={selectedFormat === fmt ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedFormat(fmt)}
+                    {recommendation && (
+                      <PersonaSelector
+                        personas={recommendation.personas}
+                        recommendedPersona={recommendation.recommendedPersona}
+                        reasoning={recommendation.reasoning}
+                        confidence={recommendation.confidence}
+                        selectedPersona={selectedPersona}
+                        onSelectPersona={setSelectedPersona}
+                        agentType="resume"
+                      />
+                    )}
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Resume Template</label>
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => setShowTemplateSelector(true)}
                         >
-                          {fmt.toUpperCase()}
+                          <FileText className="h-4 w-4 mr-2" />
+                          {selectedTemplate === 'modern' ? 'Modern Professional' : 
+                           selectedTemplate === 'executive' ? 'Executive Classic' : 
+                           'Technical Hybrid'} Template
                         </Button>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
 
-                  <Button onClick={handleGenerateResume} className="w-full" disabled={!selectedPersona || generating}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    {generating ? 'Generating...' : 'Generate Executive Resume'}
-                  </Button>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Output Format</label>
+                        <div className="flex gap-2">
+                          {(['html', 'docx', 'pdf'] as const).map((fmt) => (
+                            <Button
+                              key={fmt}
+                              variant={selectedFormat === fmt ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setSelectedFormat(fmt)}
+                            >
+                              {fmt.toUpperCase()}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Button onClick={handleGenerateResume} className="w-full" disabled={!selectedPersona || generating}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        {generating ? 'Generating...' : 'Generate Executive Resume'}
+                      </Button>
                   
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <p>✓ All 20 intelligence categories</p>
-                    <p>✓ 3-pass AI generation with hiring manager review</p>
-                    <p>✓ Gap coverage for unmatched requirements</p>
-                    <p>✓ ATS-optimized with exact keywords</p>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>✓ All 20 intelligence categories</p>
+                        <p>✓ 3-pass AI generation with hiring manager review</p>
+                        <p>✓ Gap coverage for unmatched requirements</p>
+                        <p>✓ ATS-optimized with exact keywords</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <TemplateSelector
+                      selectedTemplate={selectedTemplate}
+                      onSelectTemplate={(template) => {
+                        setSelectedTemplate(template);
+                        setShowTemplateSelector(false);
+                      }}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowTemplateSelector(false)}
+                      className="w-full"
+                    >
+                      Back to Resume Builder
+                    </Button>
                   </div>
-                </div>
+                )}
               </TabsContent>
 
               <TabsContent value="history" className="mt-4">

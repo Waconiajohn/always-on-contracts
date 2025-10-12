@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, ExternalLink, MessageSquare, TrendingUp } from 'lucide-react';
+import { CheckCircle, XCircle, ExternalLink, MessageSquare, TrendingUp, Users } from 'lucide-react';
 import { KeywordScoreCard } from './KeywordScoreCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface QueueItemProps {
   item: any;
@@ -21,10 +22,25 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
   isPending,
 }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showConversation, setShowConversation] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [qualifications, setQualifications] = useState(item.critical_qualifications || []);
   const [keywordAnalysis, setKeywordAnalysis] = useState(item.keyword_analysis);
+
+  const handleNetworkJob = () => {
+    // Navigate to networking agent with pre-filled job info
+    const jobInfo = encodeURIComponent(JSON.stringify({
+      jobTitle: item.job_opportunities.job_title,
+      companyName: item.job_opportunities.staffing_agencies?.agency_name || "Unknown Company",
+      jobDescription: item.job_opportunities.job_description
+    }));
+    navigate(`/agents/networking?job=${jobInfo}`);
+    toast({
+      title: "Opening Networking Agent",
+      description: "Pre-filled with job details for targeted outreach",
+    });
+  };
 
   const startConversation = async () => {
     if (qualifications.length === 0) {
@@ -281,23 +297,33 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
           </div>
         )}
 
-        {/* External Link */}
-        {item.job_opportunities.external_url && (
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-          >
-            <a
-              href={item.job_opportunities.external_url}
-              target="_blank"
-              rel="noopener noreferrer"
+        {/* External Link and Networking */}
+        <div className="flex gap-2">
+          {item.job_opportunities.external_url && (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
             >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Original Posting
-            </a>
+              <a
+                href={item.job_opportunities.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Posting
+              </a>
+            </Button>
+          )}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleNetworkJob}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Network This Job
           </Button>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

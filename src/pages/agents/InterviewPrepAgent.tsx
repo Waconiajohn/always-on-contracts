@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, Target, Brain, Lightbulb, Sparkles, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,14 +12,18 @@ import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 import { InterviewFollowupPanel } from "@/components/InterviewFollowupPanel";
 import { InterviewResponsesTab } from "@/components/InterviewResponsesTab";
+import { JobSelector } from "@/components/interview/JobSelector";
+import { AppNav } from "@/components/AppNav";
+import { Separator } from "@/components/ui/separator";
 
 const InterviewPrepAgentContent = () => {
-  const [activeTab, setActiveTab] = useState("practice");
+  const [activeTab, setActiveTab] = useState("select-job");
   const [vaultData, setVaultData] = useState<any>(null);
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [jobDescription, setJobDescription] = useState("");
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation } = usePersonaRecommendation('interview');
 
@@ -59,6 +62,16 @@ const InterviewPrepAgentContent = () => {
     getRecommendation(jobDescription);
   };
 
+  const handleJobSelected = (job: any) => {
+    setSelectedJob(job);
+    setJobDescription(job.job_description || "");
+    setActiveTab("practice");
+    toast({
+      title: "Job Selected",
+      description: `Preparing interview materials for ${job.job_title}`,
+    });
+  };
+
   const generateInterviewQuestion = async () => {
     if (!vaultData) return;
 
@@ -80,14 +93,19 @@ const InterviewPrepAgentContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Interview Prep Agent</h1>
-          <p className="text-muted-foreground">Practice discussing your Career Vault competencies</p>
-        </div>
+    <div className="min-h-screen flex w-full">
+      <div className="flex-1">
+        <AppNav />
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold mb-2">Interview Prep Agent</h1>
+            <p className="text-muted-foreground">Practice with job-specific materials from your pipeline</p>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {!selectedJob ? (
+            <JobSelector onJobSelected={handleJobSelected} />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Career Vault Reference */}
           <Card className="lg:col-span-1 p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -95,12 +113,29 @@ const InterviewPrepAgentContent = () => {
                 <Brain className="h-8 w-8 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold">Your Talking Points</h2>
-                <p className="text-sm text-muted-foreground">From Career Vault</p>
+                <h2 className="font-semibold">Selected Job</h2>
+                <p className="text-sm text-muted-foreground">{selectedJob.job_title}</p>
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-250px)]">
+            <div className="space-y-3 mb-4">
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <p className="font-medium mb-1">Company</p>
+                <p className="text-muted-foreground">{selectedJob.company_name}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <p className="font-medium mb-1">Interview Stage</p>
+                <Badge>{selectedJob.interviewStage}</Badge>
+              </div>
+              <Button variant="outline" size="sm" className="w-full" onClick={() => setSelectedJob(null)}>
+                Change Job
+              </Button>
+            </div>
+
+            <Separator className="my-4" />
+
+            <h3 className="text-sm font-semibold mb-2">Your Talking Points</h3>
+            <ScrollArea className="h-[calc(100vh-450px)]">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
               ) : !vaultData ? (
@@ -152,7 +187,7 @@ const InterviewPrepAgentContent = () => {
           {/* Right: Interview Practice */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="practice" className="gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Practice
@@ -165,10 +200,6 @@ const InterviewPrepAgentContent = () => {
                   <Mail className="h-4 w-4" />
                   Follow-up
                 </TabsTrigger>
-                <TabsTrigger value="scenarios" className="gap-2">
-                  <Target className="h-4 w-4" />
-                  Scenarios
-                </TabsTrigger>
                 <TabsTrigger value="tips" className="gap-2">
                   <Lightbulb className="h-4 w-4" />
                   Tips
@@ -178,19 +209,17 @@ const InterviewPrepAgentContent = () => {
               <TabsContent value="practice" className="mt-4 space-y-4">
                 {!recommendation ? (
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Job Description</label>
-                      <Textarea
-                        placeholder="Paste the job description here to get personalized coaching recommendations..."
-                        value={jobDescription}
-                        onChange={(e) => setJobDescription(e.target.value)}
-                        rows={6}
-                        className="resize-none"
-                      />
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                      <p className="text-sm font-medium mb-2">Interview Details</p>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>• Job: {selectedJob.job_title}</p>
+                        <p>• Stage: {selectedJob.interviewStage}</p>
+                        <p>• Resume on file: {selectedJob.resume_version_id ? 'Yes' : 'No'}</p>
+                      </div>
                     </div>
                     <Button 
                       onClick={handleGetRecommendation} 
-                      disabled={personaLoading || !jobDescription.trim()}
+                      disabled={personaLoading}
                       className="w-full"
                     >
                       <Sparkles className="mr-2 h-4 w-4" />
@@ -269,31 +298,6 @@ const InterviewPrepAgentContent = () => {
                 </ScrollArea>
               </TabsContent>
 
-              <TabsContent value="scenarios" className="mt-4">
-                <ScrollArea className="h-[calc(100vh-300px)]">
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h3 className="font-semibold mb-2">Technical Deep-Dive</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Practice explaining complex technical concepts using examples from your Career Vault
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h3 className="font-semibold mb-2">Leadership & Impact</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Discuss how your hidden competencies demonstrate leadership potential
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h3 className="font-semibold mb-2">Transferable Skills</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Explain how your experience in one domain applies to another
-                      </p>
-                    </div>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
               <TabsContent value="tips" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-300px)]">
                   <div className="space-y-4">
@@ -324,6 +328,8 @@ const InterviewPrepAgentContent = () => {
               </TabsContent>
             </Tabs>
           </Card>
+        </div>
+          )}
         </div>
       </div>
     </div>

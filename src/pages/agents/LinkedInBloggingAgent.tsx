@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLinkedInDrafts } from "@/hooks/useLinkedInDrafts";
 import type { LinkedInPost, ContentAnalysis } from "@/types/linkedin";
+import { WeeklyPostingCalendar } from "@/components/linkedin/WeeklyPostingCalendar";
+import { AppNav } from "@/components/AppNav";
 
 export default function LinkedInBloggingAgent() {
   const [topic, setTopic] = useState("");
@@ -28,6 +30,20 @@ export default function LinkedInBloggingAgent() {
   const [_editingDraft, _setEditingDraft] = useState<string | null>(null);
   const { toast } = useToast();
   const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
+
+  const postsThisWeek = [
+    { day: 'Monday', status: 'published' as const, title: '5 Ways to Position Your Executive Experience' },
+    { day: 'Tuesday', status: 'draft' as const, title: 'The Hidden Competency Recruiters Miss' },
+    { day: 'Wednesday', status: 'not_started' as const },
+    { day: 'Thursday', status: 'not_started' as const },
+  ];
+
+  const handleGenerateWeek = () => {
+    toast({ 
+      title: "Generating weekly posts...", 
+      description: "Creating 4 posts from your Career Vault insights" 
+    });
+  };
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -121,13 +137,21 @@ export default function LinkedInBloggingAgent() {
   };
 
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">LinkedIn Blogging Agent</h1>
-        <p className="text-muted-foreground">AI-powered content creation and analysis for LinkedIn thought leadership</p>
-      </div>
+    <div className="min-h-screen flex w-full">
+      <div className="flex-1">
+        <AppNav />
+        <div className="container py-8">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2">LinkedIn Blogging Agent</h1>
+            <p className="text-muted-foreground">AI-powered content for thought leadership (M/T/W/Th)</p>
+          </div>
 
-      <Tabs defaultValue="generator" className="space-y-6">
+          <WeeklyPostingCalendar 
+            postsThisWeek={postsThisWeek}
+            onGenerateWeek={handleGenerateWeek}
+          />
+
+          <Tabs defaultValue="generator" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="generator">Content Generator</TabsTrigger>
           <TabsTrigger value="analyzer">Content Analyzer</TabsTrigger>
@@ -442,6 +466,8 @@ export default function LinkedInBloggingAgent() {
           </Card>
         </TabsContent>
       </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

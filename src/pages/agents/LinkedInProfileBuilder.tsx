@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, TrendingUp } from "lucide-react";
+import { Loader2, Sparkles, TrendingUp, Copy, Check, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AppNav } from "@/components/AppNav";
+import { Separator } from "@/components/ui/separator";
 
 export default function LinkedInProfileBuilder() {
   const [currentHeadline, setCurrentHeadline] = useState("");
@@ -17,7 +19,38 @@ export default function LinkedInProfileBuilder() {
   const [skills, setSkills] = useState("");
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [vaultData, setVaultData] = useState<any>(null);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchVaultData();
+  }, []);
+
+  const fetchVaultData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: vault } = await supabase
+      .from('career_vault')
+      .select(`
+        *,
+        vault_power_phrases(power_phrase, category),
+        vault_transferable_skills(stated_skill, evidence),
+        vault_hidden_competencies(competency_area, inferred_capability)
+      `)
+      .eq('user_id', user.id)
+      .single();
+
+    setVaultData(vault);
+  };
+
+  const handleCopy = (text: string, section: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSection(section);
+    toast({ title: "Copied!", description: "Content copied to clipboard" });
+    setTimeout(() => setCopiedSection(null), 2000);
+  };
 
   const handleOptimize = async () => {
     if (!targetRole.trim() || !industry.trim()) {
@@ -52,13 +85,43 @@ export default function LinkedInProfileBuilder() {
   };
 
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">LinkedIn Profile Builder</h1>
-        <p className="text-muted-foreground">Optimize your LinkedIn profile for maximum recruiter visibility</p>
-      </div>
+    <div className="min-h-screen flex w-full">
+      <div className="flex-1">
+        <AppNav />
+        <div className="container py-8">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2">LinkedIn Profile Builder - Step 2</h1>
+            <p className="text-muted-foreground">Build with Career Vault intelligence for recruiter visibility</p>
+          </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+          {vaultData && (
+            <Card className="mb-6 bg-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <Package className="h-6 w-6 text-primary mt-1" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-2">Your Career Vault Intelligence</h3>
+                    <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <p className="font-medium">{vaultData.vault_power_phrases?.length || 0} Power Phrases</p>
+                        <p className="text-muted-foreground">Extracted from experience</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">{vaultData.vault_transferable_skills?.length || 0} Transferable Skills</p>
+                        <p className="text-muted-foreground">Identified capabilities</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">{vaultData.vault_hidden_competencies?.length || 0} Hidden Competencies</p>
+                        <p className="text-muted-foreground">Discovered strengths</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Current Profile</CardTitle>
@@ -133,7 +196,7 @@ export default function LinkedInProfileBuilder() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle>Optimized Profile</CardTitle>
+                  <CardTitle>Optimized Profile - Copy & Paste Sections</CardTitle>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="default">Score: {optimizationResult.optimizationScore}/100</Badge>
                     <Badge variant="outline">{optimizationResult.recruiterAppeal}</Badge>
@@ -144,26 +207,60 @@ export default function LinkedInProfileBuilder() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label className="text-base font-semibold">Optimized Headline</Label>
-                <div className="mt-2 p-3 bg-muted rounded-md">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-base font-semibold">📝 Headline (120 chars)</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(optimizationResult.optimizedHeadline, 'headline')}
+                  >
+                    {copiedSection === 'headline' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                    {copiedSection === 'headline' ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
+                <div className="p-3 bg-muted rounded-md border-2 border-dashed">
                   <p className="text-sm">{optimizationResult.optimizedHeadline}</p>
                 </div>
               </div>
 
+              <Separator />
+
               <div>
-                <Label className="text-base font-semibold">Optimized About Section</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-base font-semibold">📝 About Section (2,600 chars)</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(optimizationResult.optimizedAbout, 'about')}
+                  >
+                    {copiedSection === 'about' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                    {copiedSection === 'about' ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
                 <Textarea
                   value={optimizationResult.optimizedAbout}
                   readOnly
                   rows={12}
-                  className="mt-2 font-mono text-sm"
+                  className="font-mono text-sm border-2 border-dashed"
                 />
               </div>
 
+              <Separator />
+
               {optimizationResult.prioritizedSkills?.length > 0 && (
                 <div>
-                  <Label className="text-base font-semibold">Prioritized Skills</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-base font-semibold">📝 Featured Skills (50 max)</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopy(optimizationResult.prioritizedSkills.join(', '), 'skills')}
+                    >
+                      {copiedSection === 'skills' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                      {copiedSection === 'skills' ? 'Copied!' : 'Copy List'}
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-md border-2 border-dashed">
                     {optimizationResult.prioritizedSkills.map((skill: string, idx: number) => (
                       <Badge key={idx} variant={idx < 3 ? "default" : "secondary"}>
                         {skill}
@@ -171,10 +268,12 @@ export default function LinkedInProfileBuilder() {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Top 3 skills are heavily weighted by LinkedIn's algorithm
+                    💡 Top 3 skills are heavily weighted by LinkedIn's recruiter search algorithm
                   </p>
                 </div>
               )}
+
+              <Separator />
 
               {optimizationResult.keywordStrategy && (
                 <div>
@@ -234,9 +333,39 @@ export default function LinkedInProfileBuilder() {
                   </div>
                 </div>
               )}
+
+              <Separator />
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-900">
+                <h4 className="font-semibold text-sm mb-3">✅ Implementation Checklist</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="font-mono">☐</span>
+                    <p><strong>Step 1:</strong> Open LinkedIn → Edit profile → Click headline section</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-mono">☐</span>
+                    <p><strong>Step 2:</strong> Copy optimized headline above and paste into LinkedIn</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-mono">☐</span>
+                    <p><strong>Step 3:</strong> Edit About section → Copy and paste optimized content</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-mono">☐</span>
+                    <p><strong>Step 4:</strong> Go to Skills section → Add skills in priority order (top 3 first)</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-mono">☐</span>
+                    <p><strong>Step 5:</strong> Check profile completeness → Target: 100% "All-Star" profile</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );
