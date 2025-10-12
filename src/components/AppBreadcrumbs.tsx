@@ -33,7 +33,7 @@ const routeNames: Record<string, string> = {
   "search-profiles": "Search Profiles",
   onboarding: "Onboarding",
   agents: "Agents",
-  "corporate-assistant": "Corporate Assistant",
+  "corporate-assistant": "Career Vault Interview",
   "resume-builder": "Resume Builder",
   "job-search-agent": "Job Search Agent",
   "interview-prep": "Interview Prep",

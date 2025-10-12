@@ -304,10 +304,30 @@ const VaultDashboardContent = () => {
   if (!stats) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
-        <Card className="p-8 text-center">
-          <Target className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold mb-2">No Career Vault Yet</h2>
-          <p className="text-muted-foreground">Complete your interview with the Corporate Assistant to build your Career Vault.</p>
+        <Card className="p-8 text-center max-w-2xl mx-auto">
+          <Target className="w-16 h-16 mx-auto mb-4 text-primary" />
+          <h2 className="text-2xl font-semibold mb-2">Build Your Career Vault</h2>
+          <p className="text-muted-foreground mb-6">
+            Create your AI-powered career intelligence system in just 15 minutes. 
+            Upload your resume, complete a guided interview, and unlock:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-left">
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="font-semibold text-sm mb-1">Power Phrases</p>
+              <p className="text-xs text-muted-foreground">Quantified achievements</p>
+            </div>
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="font-semibold text-sm mb-1">Transferable Skills</p>
+              <p className="text-xs text-muted-foreground">Cross-role capabilities</p>
+            </div>
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="font-semibold text-sm mb-1">Hidden Competencies</p>
+              <p className="text-xs text-muted-foreground">Undiscovered strengths</p>
+            </div>
+          </div>
+          <Button size="lg" onClick={() => navigate('/career-vault-onboarding')}>
+            Build Your Career Vault
+          </Button>
         </Card>
       </div>
     );

@@ -14,7 +14,7 @@ export const AISystemsStatusWidget = () => {
     { name: "Market Intelligence", active: true },
     { name: "Agency Matcher", active: true },
     { name: "Financial Planning", active: true },
-    { name: "Corporate Assistant", active: true },
+    { name: "Career Vault Builder", active: true },
     { name: "Resume Builder", active: true },
   ];
 

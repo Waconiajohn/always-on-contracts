@@ -26,15 +26,15 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       description: "Share your most comprehensive resume with us",
       icon: Upload,
       completed: false,
-      route: "/agents/corporate-assistant"
+      route: "/career-vault-onboarding"
     },
     {
       id: 2,
-      title: "Meet Your Corporate Assistant",
-      description: "AI-powered career strategist to build your Career Vault",
+      title: "Start Career Vault Interview",
+      description: "AI-guided interview to build your career intelligence",
       icon: MessageSquare,
       completed: false,
-      route: "/agents/corporate-assistant"
+      route: "/career-vault-onboarding"
     },
     {
       id: 3,
@@ -42,7 +42,7 @@ export const OnboardingWizard = ({ onClose }: { onClose?: () => void }) => {
       description: "Answer 20-30 questions to expand your Career Vault",
       icon: Target,
       completed: false,
-      route: "/agents/corporate-assistant"
+      route: "/career-vault-onboarding"
     },
     {
       id: 4,

@@ -111,7 +111,7 @@ const HomeContent = () => {
         "Financial Planning Assistant - Analyzes compensation packages and negotiation strategies",
         "Resume Builder Agent - Guides you through creating powerful, achievement-focused resumes",
         "LinkedIn Blogging Agent - Generates thought leadership content to boost your professional brand",
-        "Corporate Assistant - Helps navigate internal advancement and career transitions"
+        "Career Vault Builder - Extracts your career intelligence through guided interview process"
       ]
     },
     verification: {
