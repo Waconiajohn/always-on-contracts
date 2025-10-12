@@ -45,6 +45,15 @@
     --sidebar-accent-foreground: 225 75% 8%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 217 91% 60%;
+    
+    /* AI System Colors */
+    --ai-primary: 217 91% 60%;
+    --ai-secondary: 189 100% 50%;
+    --ai-accent: 217 91% 40%;
+    --ai-glow: 217 91% 60%;
+    --ai-active: 142 76% 36%;
+    --ai-processing: 38 92% 50%;
+    --ai-complete: 271 81% 56%;
   }
 
 .dark {
@@ -81,6 +90,15 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 225 60% 18%;
     --sidebar-ring: 217 91% 60%;
+    
+    /* AI System Colors - Dark Mode */
+    --ai-primary: 217 91% 60%;
+    --ai-secondary: 189 100% 50%;
+    --ai-accent: 217 91% 70%;
+    --ai-glow: 217 91% 60%;
+    --ai-active: 142 76% 36%;
+    --ai-processing: 38 92% 50%;
+    --ai-complete: 271 81% 56%;
   }
 }
 

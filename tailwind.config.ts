@@ -57,12 +57,19 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        'neon-blue': '197 100% 50%',
-        'neon-purple': '280 100% 50%',
+        'ai': {
+          primary: "hsl(var(--ai-primary))",
+          secondary: "hsl(var(--ai-secondary))",
+          accent: "hsl(var(--ai-accent))",
+          active: "hsl(var(--ai-active))",
+          processing: "hsl(var(--ai-processing))",
+          complete: "hsl(var(--ai-complete))",
+        },
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(59, 130, 246, 0.5)',
-        'glow-lg': '0 0 40px rgba(59, 130, 246, 0.6)',
+        'glow': '0 0 20px hsl(var(--ai-glow) / 0.5)',
+        'glow-lg': '0 0 40px hsl(var(--ai-glow) / 0.6)',
+        'ai-subtle': '0 0 15px hsl(var(--ai-primary) / 0.3)',
       },
       borderRadius: {
         lg: "var(--radius)",
