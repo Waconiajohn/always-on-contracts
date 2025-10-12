@@ -32,6 +32,7 @@ import { useJourneyState } from "@/hooks/useJourneyState";
 import { CelebrationBanner } from "@/components/home/CelebrationBanner";
 import { JourneyStateCard } from "@/components/home/JourneyStateCard";
 import { ActivityFeed } from "@/components/home/ActivityFeed";
+import { SchedulingCTA } from "@/components/SchedulingCTA";
 
 const HomeContent = () => {
   const navigate = useNavigate();
@@ -296,6 +297,11 @@ const HomeContent = () => {
                 </Button>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Financial Planning CTA */}
+          <div className="mt-8">
+            <SchedulingCTA variant="compact" />
           </div>
         </div>
       </div>

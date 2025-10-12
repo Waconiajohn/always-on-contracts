@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Shield, DollarSign, Heart, FileText, Award, BookOpen, ExternalLink } from "lucide-react";
 import { executiveSummaryStats, topTierManagers, marketComparisons, citations, disclaimerText } from "@/data/researchContent";
+import { SchedulingCTA } from "@/components/SchedulingCTA";
 
 const ResearchHub = () => {
   return (
@@ -459,8 +460,13 @@ const ResearchHub = () => {
           </TabsContent>
         </Tabs>
 
+        {/* CTA Section */}
+        <div className="my-12">
+          <SchedulingCTA />
+        </div>
+
         {/* Disclaimer */}
-        <Card className="mt-12 bg-muted/50">
+        <Card className="mt-8 bg-muted/50">
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground whitespace-pre-line">{disclaimerText}</p>
           </CardContent>

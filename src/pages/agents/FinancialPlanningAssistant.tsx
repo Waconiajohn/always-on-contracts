@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SchedulingCTA } from "@/components/SchedulingCTA";
 
 export default function FinancialPlanningAssistant() {
   const [currentAge, setCurrentAge] = useState("");
@@ -312,6 +313,12 @@ export default function FinancialPlanningAssistant() {
                   )}
                 </CardContent>
               </Card>
+            )}
+
+            {advisoryResult && (
+              <div className="mt-6">
+                <SchedulingCTA variant="compact" />
+              </div>
             )}
           </div>
         )}
