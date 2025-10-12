@@ -66,7 +66,7 @@ const JobSearchAgentContent = () => {
   const [employmentType, setEmploymentType] = useState<string>('any');
   const [salaryRange, setSalaryRange] = useState<string>('any');
   const [experienceLevel, setExperienceLevel] = useState<string>('any');
-  const [selectedSources, setSelectedSources] = useState<string[]>(["google_jobs", "adzuna", "usajobs"]);
+  const [selectedSources, setSelectedSources] = useState<string[]>(["google_jobs"]);
   const [showAllFilters, setShowAllFilters] = useState(false);
 
   // AI Chat
@@ -228,13 +228,13 @@ const JobSearchAgentContent = () => {
 
       await jobSearch.searchJobs({
         query: searchQuery,
-        location: 'us',
-        sources: selectedSources.length > 0 ? selectedSources as any : ['all'],
+        location: '',
+        sources: ['google_jobs'],
         maxResults: 50,
         filters: {
-          remote: remoteType !== 'any' ? remoteType : undefined,
+          remote: remoteType === 'remote',
           jobType: employmentType !== 'any' ? employmentType : undefined,
-          salaryMin: salaryRange !== 'any' ? parseInt(salaryRange) : undefined
+          datePosted: 'month'
         },
         userId
       });

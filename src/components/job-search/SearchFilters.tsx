@@ -26,9 +26,9 @@ interface SearchFiltersProps {
 }
 
 const JOB_SOURCES = [
-  { id: "linkedin", label: "LinkedIn" },
-  { id: "indeed", label: "Indeed" },
-  { id: "glassdoor", label: "Glassdoor" },
+  { id: "google_jobs", label: "Google Jobs", active: true },
+  { id: "adzuna", label: "Adzuna", active: false },
+  { id: "usajobs", label: "USAJobs", active: false },
 ];
 
 export const SearchFilters = ({
@@ -116,9 +116,14 @@ export const SearchFilters = ({
                   id={source.id}
                   checked={selectedSources.includes(source.id)}
                   onCheckedChange={() => handleSourceToggle(source.id)}
+                  disabled={!source.active}
                 />
-                <Label htmlFor={source.id} className="cursor-pointer">
+                <Label 
+                  htmlFor={source.id} 
+                  className={source.active ? "cursor-pointer" : "cursor-not-allowed opacity-50"}
+                >
                   {source.label}
+                  {!source.active && " (Coming Soon)"}
                 </Label>
               </div>
             ))}
