@@ -38,11 +38,73 @@ export default function LinkedInBloggingAgent() {
     { day: 'Thursday', status: 'not_started' as const },
   ];
 
-  const handleGenerateWeek = () => {
+  const handleGenerateWeek = async () => {
+    setIsGenerating(true);
     toast({ 
       title: "Generating weekly posts...", 
       description: "Creating 4 posts from your Career Vault insights" 
     });
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get next Monday-Thursday dates
+      const today = new Date();
+      const nextMonday = new Date(today);
+      nextMonday.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
+
+      const postTopics = [
+        "5 ways to position your executive experience in a competitive market",
+        "The hidden competency recruiters miss on your resume",
+        "How to articulate transferable skills for career transitions",
+        "Building a personal brand that attracts executive recruiters"
+      ];
+
+      for (let i = 0; i < 4; i++) {
+        const scheduledDate = new Date(nextMonday);
+        scheduledDate.setDate(nextMonday.getDate() + i);
+        scheduledDate.setHours(9, 0, 0, 0); // 9 AM
+
+        const { data: post, error: generateError } = await supabase.functions.invoke('generate-linkedin-post', {
+          body: {
+            topic: postTopics[i],
+            tone: 'professional',
+            postType: 'thought-leadership',
+            targetAudience: 'executive recruiters and hiring managers',
+            keyPoints: []
+          }
+        });
+
+        if (generateError) throw generateError;
+
+        await supabase.from('linkedin_posts').insert({
+          user_id: user.id,
+          title: post.title,
+          content: post.content,
+          hashtags: post.hashtags,
+          post_type: post.postType,
+          tone: 'professional',
+          status: 'draft',
+          scheduled_for: scheduledDate.toISOString(),
+          engagement_score: parseInt(post.hookStrength) || 0
+        });
+      }
+
+      toast({ 
+        title: "Week scheduled!", 
+        description: "4 posts generated and scheduled for next week"
+      });
+      fetchDrafts();
+    } catch (error: any) {
+      toast({ 
+        title: "Generation failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleGenerate = async () => {
@@ -109,6 +171,7 @@ export default function LinkedInBloggingAgent() {
         hashtags: generatedPost.hashtags,
         post_type: generatedPost.postType,
         tone: tone,
+        status: 'draft',
         engagement_score: parseInt(generatedPost.hookStrength) || 0
       });
 

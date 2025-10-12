@@ -91,6 +91,37 @@ const ResumeBuilderAgentContent = () => {
     } else {
       setGeneratedResume(data);
       setActiveTab('compare');
+      
+      // Save resume version to database
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: templates } = await supabase
+            .from('resume_templates')
+            .select('id')
+            .eq('template_type', selectedTemplate)
+            .single();
+
+          await supabase.from('resume_versions').insert({
+            user_id: user.id,
+            version_name: `${jobTitle || 'Resume'} - ${new Date().toLocaleDateString()}`,
+            template_id: templates?.id || null,
+            content: data,
+            html_content: data.optimizedResume,
+            customizations: {
+              persona: selectedPersona,
+              selected_phrases: selectedPhrases,
+              selected_skills: selectedSkills,
+              job_title: jobTitle,
+              company_name: companyName
+            },
+            match_score: data.metadata?.matchScore || null
+          });
+        }
+      } catch (saveError) {
+        console.error('Error saving resume version:', saveError);
+      }
+      
       toast({ 
         title: "Resume generated!", 
         description: `${data.metadata.jobTitle} resume ready with hiring manager review` 

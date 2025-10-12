@@ -66,10 +66,46 @@ const InterviewPrepAgentContent = () => {
     setSelectedJob(job);
     setJobDescription(job.job_description || "");
     setActiveTab("practice");
+    
+    // Create interview prep session
+    createPrepSession(job);
+    
     toast({
       title: "Job Selected",
       description: `Preparing interview materials for ${job.job_title}`,
     });
+  };
+
+  const createPrepSession = async (job: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('interview_prep_sessions')
+        .insert({
+          user_id: user.id,
+          job_project_id: job.id,
+          interview_stage: job.interview_stage || 'hr_screen',
+          interview_date: job.interview_date || null,
+          prep_materials: {
+            job_title: job.job_title,
+            company_name: job.company_name,
+            job_description: job.job_description
+          },
+          questions_prepared: []
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating prep session:', error);
+      } else {
+        console.log('Prep session created:', data);
+      }
+    } catch (error) {
+      console.error('Error in createPrepSession:', error);
+    }
   };
 
   const generateInterviewQuestion = async () => {

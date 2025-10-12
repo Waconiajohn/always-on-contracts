@@ -76,6 +76,47 @@ export default function LinkedInProfileBuilder() {
 
       if (error) throw error;
       setOptimizationResult(data);
+      
+      // Save optimized sections to database
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && data?.optimizedProfile) {
+          // Save headline
+          await supabase.from('linkedin_profile_sections').insert({
+            user_id: user.id,
+            section_type: 'headline',
+            content: data.optimizedProfile.headline,
+            optimization_score: data.scores?.overallScore || null
+          });
+
+          // Save about
+          await supabase.from('linkedin_profile_sections').insert({
+            user_id: user.id,
+            section_type: 'about',
+            content: data.optimizedProfile.about,
+            optimization_score: data.scores?.overallScore || null
+          });
+
+          // Save skills
+          if (data.optimizedProfile.skills) {
+            await supabase.from('linkedin_profile_sections').insert({
+              user_id: user.id,
+              section_type: 'skills',
+              content: JSON.stringify(data.optimizedProfile.skills),
+              optimization_score: data.scores?.overallScore || null
+            });
+          }
+
+          // Mark profile as complete
+          await supabase
+            .from('profiles')
+            .update({ linkedin_profile_complete: true })
+            .eq('user_id', user.id);
+        }
+      } catch (saveError) {
+        console.error('Error saving LinkedIn sections:', saveError);
+      }
+      
       toast({ title: "Profile optimized with dual AI audit!", description: "Review your enhanced profile below" });
     } catch (error: any) {
       toast({ title: "Optimization failed", description: error.message, variant: "destructive" });

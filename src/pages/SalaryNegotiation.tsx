@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { AppNav } from "@/components/AppNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SalaryNegotiation = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
@@ -28,6 +30,20 @@ const SalaryNegotiation = () => {
     offeredBonus: "",
     offeredEquity: ""
   });
+
+  // Pre-fill from Projects page if navigated from there
+  useEffect(() => {
+    if (location.state) {
+      setFormData({
+        jobTitle: location.state.jobTitle || "",
+        location: location.state.location || "",
+        yearsExperience: formData.yearsExperience,
+        offeredBase: location.state.offeredBase?.toString() || "",
+        offeredBonus: location.state.offeredBonus?.toString() || "",
+        offeredEquity: location.state.offeredEquity?.toString() || ""
+      });
+    }
+  }, [location]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
