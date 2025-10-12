@@ -4,6 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Package, 
   ArrowRight, 
@@ -32,6 +39,7 @@ const HomeContent = () => {
   const [vaultCompletion, setVaultCompletion] = useState(0);
   const [activeJobs, setActiveJobs] = useState(0);
   const [stats, setStats] = useState({ powerPhrases: 0, skills: 0, competencies: 0 });
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -87,6 +95,49 @@ const HomeContent = () => {
     { icon: FileText, title: "Templates", path: "/templates", locked: false, minCompletion: 0 },
   ];
 
+  const featureDetails = {
+    agents: {
+      title: "12 Specialized AI Agents",
+      description: "A full suite of AI-powered career tools working together to accelerate your job search and optimize every aspect of your career strategy.",
+      features: [
+        "Job Search Agent - Intelligent opportunity matching",
+        "Resume Optimizer - Multi-AI resume enhancement", 
+        "Interview Prep Agent - Practice with AI feedback",
+        "LinkedIn Builder - Profile optimization",
+        "Networking Agent - Connection strategies",
+        "Auto-Apply Agent - Smart application automation",
+        "Career Trends Scout - Market intelligence",
+        "Agency Matcher - Recruiter connections",
+        "Financial Planning - Compensation analysis",
+        "+ 3 more specialized agents"
+      ]
+    },
+    verification: {
+      title: "Dual-AI Verification System",
+      description: "Every critical decision and recommendation goes through our proprietary dual-AI verification process for maximum accuracy and reliability.",
+      features: [
+        "Cross-validation by multiple AI systems",
+        "Reduced hallucinations and errors",
+        "Higher quality recommendations",
+        "Fact-checking against live data sources",
+        "Continuous accuracy monitoring",
+        "Industry-leading reliability standards"
+      ]
+    },
+    active: {
+      title: "All Systems Operational",
+      description: "Real-time monitoring ensures all AI agents are active and ready to assist you 24/7 with your career needs.",
+      features: [
+        "24/7 availability",
+        "Real-time processing",
+        "Instant AI responses",
+        "Continuous learning from latest data",
+        "Live market intelligence updates",
+        "Always up-to-date with industry trends"
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -98,18 +149,31 @@ const HomeContent = () => {
           
           {/* Content */}
           <div className="relative z-10 text-center space-y-6">
-            <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Badge variant="secondary" className="bg-ai-primary/10 text-ai-primary border-ai-primary/20 px-3 py-1">
-                <Bot className="h-3.5 w-3.5 mr-1.5" />
-                12 AI Agents
+            {/* Prominent Feature Badges */}
+            <div className="flex items-center justify-center gap-4 flex-wrap mb-4">
+              <Badge 
+                variant="secondary" 
+                className="bg-ai-primary/10 text-ai-primary border-ai-primary/20 px-5 py-2.5 text-base cursor-pointer hover:bg-ai-primary/20 hover:scale-105 transition-all hover:shadow-ai-subtle"
+                onClick={() => setSelectedFeature('agents')}
+              >
+                <Bot className="h-5 w-5 mr-2" />
+                <span className="font-semibold">12 AI Agents</span>
               </Badge>
-              <Badge variant="secondary" className="bg-ai-secondary/10 text-ai-secondary border-ai-secondary/20 px-3 py-1">
-                <Shield className="h-3.5 w-3.5 mr-1.5" />
-                Dual-AI Verification
+              <Badge 
+                variant="secondary" 
+                className="bg-ai-secondary/10 text-ai-secondary border-ai-secondary/20 px-5 py-2.5 text-base cursor-pointer hover:bg-ai-secondary/20 hover:scale-105 transition-all hover:shadow-ai-subtle"
+                onClick={() => setSelectedFeature('verification')}
+              >
+                <Shield className="h-5 w-5 mr-2" />
+                <span className="font-semibold">Dual-AI Verification</span>
               </Badge>
-              <Badge variant="secondary" className="bg-ai-active/10 text-ai-active border-ai-active/20 px-3 py-1">
-                <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                All Systems Active
+              <Badge 
+                variant="secondary" 
+                className="bg-ai-active/10 text-ai-active border-ai-active/20 px-5 py-2.5 text-base cursor-pointer hover:bg-ai-active/20 hover:scale-105 transition-all hover:shadow-ai-subtle"
+                onClick={() => setSelectedFeature('active')}
+              >
+                <CheckCircle2 className="h-5 w-5 mr-2" />
+                <span className="font-semibold">All Systems Active</span>
               </Badge>
             </div>
             
@@ -117,7 +181,7 @@ const HomeContent = () => {
               AI-Powered Career Intelligence Platform
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Every decision verified by dual AI systems. Gemini analyzes, Perplexity verifies.
+              Every decision cross-verified by multiple AI systems for maximum accuracy and reliability.
             </p>
             
             {/* Live stats bar */}
@@ -350,6 +414,31 @@ const HomeContent = () => {
           </div>
         </div>
       </div>
+
+      {/* Feature Details Dialog */}
+      <Dialog open={selectedFeature !== null} onOpenChange={() => setSelectedFeature(null)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              {selectedFeature === 'agents' && <Bot className="h-6 w-6 text-ai-primary" />}
+              {selectedFeature === 'verification' && <Shield className="h-6 w-6 text-ai-secondary" />}
+              {selectedFeature === 'active' && <CheckCircle2 className="h-6 w-6 text-ai-active" />}
+              {selectedFeature && featureDetails[selectedFeature as keyof typeof featureDetails].title}
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              {selectedFeature && featureDetails[selectedFeature as keyof typeof featureDetails].description}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-4">
+            {selectedFeature && featureDetails[selectedFeature as keyof typeof featureDetails].features.map((feature, index) => (
+              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <CheckCircle2 className="h-5 w-5 text-ai-primary mt-0.5 flex-shrink-0" />
+                <span className="text-sm">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
