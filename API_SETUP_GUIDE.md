@@ -24,7 +24,6 @@ These were just implemented with no API key required:
 - Working Nomads
 - GitHub Jobs
 - Hacker News Jobs
-- German Jobsuche
 - ReliefWeb
 - JobStreet (limited)
 

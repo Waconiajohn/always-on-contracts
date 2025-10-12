@@ -339,15 +339,6 @@ serve(async (req) => {
       console.error('Error fetching Hacker News:', error);
     }
 
-    // German Jobsuche API (German government jobs)
-    try {
-      const jobs = await fetchGermanJobsuche();
-      allJobs.push(...jobs);
-      console.log(`Fetched ${jobs.length} jobs from German Jobsuche`);
-    } catch (error) {
-      console.error('Error fetching German Jobsuche:', error);
-    }
-
     // ReliefWeb (humanitarian/nonprofit)
     try {
       const jobs = await fetchReliefWeb();
@@ -1504,35 +1495,6 @@ async function fetchHackerNewsJobs(): Promise<ExternalJob[]> {
     return jobs;
   } catch (error) {
     console.error('Hacker News fetch error:', error);
-    return [];
-  }
-}
-
-async function fetchGermanJobsuche(): Promise<ExternalJob[]> {
-  try {
-    const res = await fetch('https://jobsuche.api.bund.dev/pc/v0/jobs?&was=contract&wo=&page=1&anzahl=100', {
-      headers: { 'Accept': 'application/json; charset=utf-8' }
-    });
-    
-    if (!res.ok) return [];
-    
-    const data = await res.json();
-    const jobs = data.stellenangebote || [];
-    
-    return jobs.map((j: any) => ({
-      title: cleanText(j.titel),
-      company: cleanText(j.arbeitgeber) || 'German Government',
-      location: cleanText(j.arbeitsort?.ort) || 'Germany',
-      type: 'contract',
-      remote: false,
-      postedAt: j.aktuelleVeroeffentlichungsdatum,
-      url: j.referenznummer ? `https://www.arbeitsagentur.de/jobsuche/jobdetail/${j.referenznummer}` : '',
-      source: 'german-jobsuche',
-      externalId: `gj-${j.referenznummer}`,
-      description: cleanText(j.beschreibung) || cleanText(j.titel),
-    }));
-  } catch (error) {
-    console.error('German Jobsuche fetch error:', error);
     return [];
   }
 }
