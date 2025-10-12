@@ -194,3 +194,9 @@ verify_jwt = true
 
 [functions.update-interview-completion]
 verify_jwt = true
+
+[functions.generate-salary-report]
+verify_jwt = true
+
+[functions.analyze-competitive-position]
+verify_jwt = true

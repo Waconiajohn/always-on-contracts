@@ -319,8 +319,11 @@ export type Database = {
           customized_resume_content: Json | null
           customized_resume_url: string | null
           id: string
+          interview_prep_session_id: string | null
           keyword_analysis: Json | null
           match_score: number
+          networking_contacts: Json | null
+          networking_initiated: boolean | null
           opportunity_id: string
           reviewed_at: string | null
           status: string
@@ -335,8 +338,11 @@ export type Database = {
           customized_resume_content?: Json | null
           customized_resume_url?: string | null
           id?: string
+          interview_prep_session_id?: string | null
           keyword_analysis?: Json | null
           match_score: number
+          networking_contacts?: Json | null
+          networking_initiated?: boolean | null
           opportunity_id: string
           reviewed_at?: string | null
           status?: string
@@ -351,14 +357,24 @@ export type Database = {
           customized_resume_content?: Json | null
           customized_resume_url?: string | null
           id?: string
+          interview_prep_session_id?: string | null
           keyword_analysis?: Json | null
           match_score?: number
+          networking_contacts?: Json | null
+          networking_initiated?: boolean | null
           opportunity_id?: string
           reviewed_at?: string | null
           status?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "application_queue_interview_prep_session_id_fkey"
+            columns: ["interview_prep_session_id"]
+            isOneToOne: false
+            referencedRelation: "interview_prep_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "application_queue_opportunity_id_fkey"
             columns: ["opportunity_id"]
@@ -738,6 +754,56 @@ export type Database = {
           },
         ]
       }
+      interview_prep_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          interview_date: string | null
+          interview_stage: string
+          job_project_id: string
+          notes: string | null
+          prep_materials: Json | null
+          questions_prepared: Json | null
+          star_stories_used: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interview_date?: string | null
+          interview_stage: string
+          job_project_id: string
+          notes?: string | null
+          prep_materials?: Json | null
+          questions_prepared?: Json | null
+          star_stories_used?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interview_date?: string | null
+          interview_stage?: string
+          job_project_id?: string
+          notes?: string | null
+          prep_materials?: Json | null
+          questions_prepared?: Json | null
+          star_stories_used?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_prep_sessions_job_project_id_fkey"
+            columns: ["job_project_id"]
+            isOneToOne: false
+            referencedRelation: "job_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_alerts: {
         Row: {
           alert_name: string
@@ -1062,11 +1128,17 @@ export type Database = {
           job_source: string | null
           job_title: string | null
           metadata: Json | null
+          networking_campaign_id: string | null
           next_follow_up_date: string | null
           notes: string | null
+          offer_amount: number | null
+          offer_bonus: number | null
+          offer_equity: number | null
+          offer_received_date: string | null
           opportunity_id: string | null
           project_name: string
           resume_version_id: string | null
+          salary_negotiation_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -1087,11 +1159,17 @@ export type Database = {
           job_source?: string | null
           job_title?: string | null
           metadata?: Json | null
+          networking_campaign_id?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
+          offer_amount?: number | null
+          offer_bonus?: number | null
+          offer_equity?: number | null
+          offer_received_date?: string | null
           opportunity_id?: string | null
           project_name: string
           resume_version_id?: string | null
+          salary_negotiation_id?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -1112,11 +1190,17 @@ export type Database = {
           job_source?: string | null
           job_title?: string | null
           metadata?: Json | null
+          networking_campaign_id?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
+          offer_amount?: number | null
+          offer_bonus?: number | null
+          offer_equity?: number | null
+          offer_received_date?: string | null
           opportunity_id?: string | null
           project_name?: string
           resume_version_id?: string | null
+          salary_negotiation_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -1130,10 +1214,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "job_projects_networking_campaign_id_fkey"
+            columns: ["networking_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_tracking"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "job_projects_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "job_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_projects_salary_negotiation_id_fkey"
+            columns: ["salary_negotiation_id"]
+            isOneToOne: false
+            referencedRelation: "salary_negotiations"
             referencedColumns: ["id"]
           },
         ]
@@ -1179,42 +1277,84 @@ export type Database = {
           analysis_data: Json | null
           content: string
           created_at: string | null
+          engagement_metrics: Json | null
           engagement_score: number | null
           hashtags: string[] | null
           id: string
           post_type: string | null
+          posted_to_groups: string[] | null
+          scheduled_for: string | null
           status: string | null
           title: string | null
           tone: string | null
           updated_at: string | null
           user_id: string
+          vault_sources: string[] | null
         }
         Insert: {
           analysis_data?: Json | null
           content: string
           created_at?: string | null
+          engagement_metrics?: Json | null
           engagement_score?: number | null
           hashtags?: string[] | null
           id?: string
           post_type?: string | null
+          posted_to_groups?: string[] | null
+          scheduled_for?: string | null
           status?: string | null
           title?: string | null
           tone?: string | null
           updated_at?: string | null
           user_id: string
+          vault_sources?: string[] | null
         }
         Update: {
           analysis_data?: Json | null
           content?: string
           created_at?: string | null
+          engagement_metrics?: Json | null
           engagement_score?: number | null
           hashtags?: string[] | null
           id?: string
           post_type?: string | null
+          posted_to_groups?: string[] | null
+          scheduled_for?: string | null
           status?: string | null
           title?: string | null
           tone?: string | null
           updated_at?: string | null
+          user_id?: string
+          vault_sources?: string[] | null
+        }
+        Relationships: []
+      }
+      linkedin_profile_sections: {
+        Row: {
+          content: string
+          generated_at: string
+          id: string
+          is_active: boolean | null
+          optimization_score: number | null
+          section_type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          generated_at?: string
+          id?: string
+          is_active?: boolean | null
+          optimization_score?: number | null
+          section_type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          generated_at?: string
+          id?: string
+          is_active?: boolean | null
+          optimization_score?: number | null
+          section_type?: string
           user_id?: string
         }
         Relationships: []
@@ -1563,12 +1703,16 @@ export type Database = {
           industry_preferences: Json | null
           key_achievements: string[] | null
           last_activity_at: string | null
+          linkedin_profile_complete: boolean | null
           match_threshold_auto_apply: number | null
           match_threshold_queue: number | null
           max_daily_applications: number | null
           phone: string | null
           preferred_location: string | null
+          resume_template_preference: string | null
           role_preferences: Json | null
+          salary_expectations_max: number | null
+          salary_expectations_min: number | null
           strategy_customized: boolean | null
           subscription_tier: string | null
           target_industries: string[] | null
@@ -1601,12 +1745,16 @@ export type Database = {
           industry_preferences?: Json | null
           key_achievements?: string[] | null
           last_activity_at?: string | null
+          linkedin_profile_complete?: boolean | null
           match_threshold_auto_apply?: number | null
           match_threshold_queue?: number | null
           max_daily_applications?: number | null
           phone?: string | null
           preferred_location?: string | null
+          resume_template_preference?: string | null
           role_preferences?: Json | null
+          salary_expectations_max?: number | null
+          salary_expectations_min?: number | null
           strategy_customized?: boolean | null
           subscription_tier?: string | null
           target_industries?: string[] | null
@@ -1639,12 +1787,16 @@ export type Database = {
           industry_preferences?: Json | null
           key_achievements?: string[] | null
           last_activity_at?: string | null
+          linkedin_profile_complete?: boolean | null
           match_threshold_auto_apply?: number | null
           match_threshold_queue?: number | null
           max_daily_applications?: number | null
           phone?: string | null
           preferred_location?: string | null
+          resume_template_preference?: string | null
           role_preferences?: Json | null
+          salary_expectations_max?: number | null
+          salary_expectations_min?: number | null
           strategy_customized?: boolean | null
           subscription_tier?: string | null
           target_industries?: string[] | null
@@ -1658,7 +1810,15 @@ export type Database = {
           work_style_preferences?: Json | null
           years_experience?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_resume_template_preference_fkey"
+            columns: ["resume_template_preference"]
+            isOneToOne: false
+            referencedRelation: "resume_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promo_codes: {
         Row: {
@@ -1950,6 +2110,99 @@ export type Database = {
         }
         Relationships: []
       }
+      resume_templates: {
+        Row: {
+          created_at: string
+          css_styles: string | null
+          description: string | null
+          features: Json | null
+          html_structure: string | null
+          id: string
+          is_active: boolean | null
+          template_name: string
+          template_type: string
+        }
+        Insert: {
+          created_at?: string
+          css_styles?: string | null
+          description?: string | null
+          features?: Json | null
+          html_structure?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_name: string
+          template_type: string
+        }
+        Update: {
+          created_at?: string
+          css_styles?: string | null
+          description?: string | null
+          features?: Json | null
+          html_structure?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_name?: string
+          template_type?: string
+        }
+        Relationships: []
+      }
+      resume_versions: {
+        Row: {
+          content: Json
+          created_at: string
+          customizations: Json | null
+          html_content: string | null
+          id: string
+          job_project_id: string | null
+          match_score: number | null
+          template_id: string | null
+          updated_at: string
+          user_id: string
+          version_name: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          customizations?: Json | null
+          html_content?: string | null
+          id?: string
+          job_project_id?: string | null
+          match_score?: number | null
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+          version_name: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          customizations?: Json | null
+          html_content?: string | null
+          id?: string
+          job_project_id?: string | null
+          match_score?: number | null
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+          version_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_versions_job_project_id_fkey"
+            columns: ["job_project_id"]
+            isOneToOne: false
+            referencedRelation: "job_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "resume_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resumes: {
         Row: {
           file_name: string
@@ -2012,6 +2265,120 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      salary_market_data: {
+        Row: {
+          data_sources: Json | null
+          expires_at: string
+          id: string
+          industry: string | null
+          job_title: string
+          location: string
+          market_data: Json
+          percentile_25: number | null
+          percentile_50: number | null
+          percentile_75: number | null
+          percentile_90: number | null
+          researched_at: string
+          skill_premiums: Json | null
+          years_experience: number | null
+        }
+        Insert: {
+          data_sources?: Json | null
+          expires_at?: string
+          id?: string
+          industry?: string | null
+          job_title: string
+          location: string
+          market_data?: Json
+          percentile_25?: number | null
+          percentile_50?: number | null
+          percentile_75?: number | null
+          percentile_90?: number | null
+          researched_at?: string
+          skill_premiums?: Json | null
+          years_experience?: number | null
+        }
+        Update: {
+          data_sources?: Json | null
+          expires_at?: string
+          id?: string
+          industry?: string | null
+          job_title?: string
+          location?: string
+          market_data?: Json
+          percentile_25?: number | null
+          percentile_50?: number | null
+          percentile_75?: number | null
+          percentile_90?: number | null
+          researched_at?: string
+          skill_premiums?: Json | null
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
+      salary_negotiations: {
+        Row: {
+          competitive_analysis: Json | null
+          competitive_score: number | null
+          created_at: string
+          final_offer_details: Json | null
+          id: string
+          job_project_id: string | null
+          market_data_id: string | null
+          negotiation_script: string | null
+          offer_details: Json
+          outcome: string | null
+          report_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          competitive_analysis?: Json | null
+          competitive_score?: number | null
+          created_at?: string
+          final_offer_details?: Json | null
+          id?: string
+          job_project_id?: string | null
+          market_data_id?: string | null
+          negotiation_script?: string | null
+          offer_details?: Json
+          outcome?: string | null
+          report_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          competitive_analysis?: Json | null
+          competitive_score?: number | null
+          created_at?: string
+          final_offer_details?: Json | null
+          id?: string
+          job_project_id?: string | null
+          market_data_id?: string | null
+          negotiation_script?: string | null
+          offer_details?: Json
+          outcome?: string | null
+          report_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_negotiations_job_project_id_fkey"
+            columns: ["job_project_id"]
+            isOneToOne: false
+            referencedRelation: "job_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_negotiations_market_data_id_fkey"
+            columns: ["market_data_id"]
+            isOneToOne: false
+            referencedRelation: "salary_market_data"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       staffing_agencies: {
         Row: {

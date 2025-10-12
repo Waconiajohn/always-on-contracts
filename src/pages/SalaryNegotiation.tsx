@@ -7,12 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { DollarSign, TrendingUp, Copy, Check } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DollarSign, TrendingUp, Copy, Check, Sparkles, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const SalaryNegotiation = () => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [marketData, setMarketData] = useState<any>(null);
+  const [competitiveAnalysis, setCompetitiveAnalysis] = useState<any>(null);
+  const [aiNegotiationScript, setAiNegotiationScript] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     jobTitle: "",
     location: "",
@@ -30,6 +37,62 @@ const SalaryNegotiation = () => {
       description: "Negotiation script copied to clipboard",
     });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleGenerateReport = async () => {
+    if (!formData.jobTitle || !formData.location || !formData.yearsExperience) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in job title, location, and years of experience",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const { data, error: functionError } = await supabase.functions.invoke('generate-salary-report', {
+        body: {
+          job_title: formData.jobTitle,
+          location: formData.location,
+          years_experience: parseInt(formData.yearsExperience),
+          offer_details: {
+            base_salary: parseFloat(formData.offeredBase) || null,
+            bonus_percent: parseFloat(formData.offeredBonus) || null,
+            equity_value: parseFloat(formData.offeredEquity) || null
+          }
+        }
+      });
+
+      if (functionError) {
+        throw new Error(functionError.message);
+      }
+
+      if (data?.success) {
+        setMarketData(data.market_data);
+        setCompetitiveAnalysis(data.competitive_analysis);
+        setAiNegotiationScript(data.negotiation_script);
+        
+        toast({
+          title: "Salary Intelligence Generated!",
+          description: "Your personalized salary report is ready",
+        });
+      } else {
+        throw new Error(data?.error || 'Failed to generate report');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate salary report';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const sampleScript = `Thank you for the offer. I'm excited about the opportunity to bring my experience in ${formData.jobTitle || '[your expertise]'} to [Company Name].
@@ -57,17 +120,163 @@ I'm happy to discuss this further and find a mutually beneficial arrangement.`;
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
-                <TrendingUp className="h-6 w-6 text-primary mt-1" />
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Coming Soon: PayScale Integration</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We're integrating with PayScale.com to provide real-time market salary data. 
-                    For now, use this tool to structure your negotiation approach.
+                <Sparkles className="h-6 w-6 text-primary mt-1" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-2">AI-Powered Salary Intelligence</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Get real-time market research from multiple sources, competitive positioning analysis from your Career Vault, and a personalized negotiation script.
                   </p>
+                  <Button 
+                    onClick={handleGenerateReport}
+                    disabled={isGenerating || !formData.jobTitle || !formData.location || !formData.yearsExperience}
+                    className="gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {isGenerating ? "Researching Market Data..." : "Generate Salary Intelligence Report"}
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {marketData && (
+            <>
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Market Data Analysis
+                  </CardTitle>
+                  <CardDescription>Real-time salary data from multiple sources</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">25th Percentile</p>
+                      <p className="text-2xl font-bold">
+                        ${marketData?.extracted_data?.percentile_25?.toLocaleString() || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Median (50th)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        ${marketData?.extracted_data?.percentile_50?.toLocaleString() || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">75th Percentile</p>
+                      <p className="text-2xl font-bold">
+                        ${marketData?.extracted_data?.percentile_75?.toLocaleString() || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">90th Percentile</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        ${marketData?.extracted_data?.percentile_90?.toLocaleString() || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {formData.offeredBase && marketData?.extracted_data?.percentile_50 && (
+                    <Alert>
+                      <TrendingUp className="h-4 w-4" />
+                      <AlertDescription>
+                        Your offer is {' '}
+                        <strong>
+                          {((parseFloat(formData.offeredBase) / marketData.extracted_data.percentile_50 - 1) * 100).toFixed(1)}%
+                        </strong>
+                        {' '}{parseFloat(formData.offeredBase) > marketData.extracted_data.percentile_50 ? 'above' : 'below'} market median
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Data Sources</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {marketData?.data_sources?.map((source: string, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {source}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {competitiveAnalysis && (
+                <Card className="border-green-200 bg-green-50/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-green-600" />
+                      Your Competitive Position
+                    </CardTitle>
+                    <CardDescription>Analysis based on your Career Vault</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <p className="text-4xl font-bold text-green-600">
+                          {competitiveAnalysis.competitive_score}/100
+                        </p>
+                        <p className="text-xs text-muted-foreground">Competitive Score</p>
+                      </div>
+                      <Separator orientation="vertical" className="h-16" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-2">
+                          You rank in the <strong>{competitiveAnalysis.target_percentile}th percentile</strong> for this role
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {competitiveAnalysis.recommended_positioning}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm">Your Above-Market Strengths</h4>
+                      <div className="grid gap-2">
+                        {competitiveAnalysis.above_market_strengths?.map((strength: string, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2 text-sm">
+                            <Check className="h-4 w-4 text-green-600 mt-0.5" />
+                            <span>{strength}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {competitiveAnalysis.skill_premiums && Object.keys(competitiveAnalysis.skill_premiums).length > 0 && (
+                      <>
+                        <Separator />
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">Skill Premium Analysis</h4>
+                          {Object.entries(competitiveAnalysis.skill_premiums).map(([skill, data]: [string, any]) => (
+                            data.has_skill && (
+                              <div key={skill} className="flex justify-between items-center text-sm">
+                                <span>{skill}</span>
+                                <Badge variant="outline" className="text-green-600">
+                                  +${data.estimated_value_add?.toLocaleString() || 'TBD'}
+                                </Badge>
+                              </div>
+                            )
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
@@ -218,12 +427,14 @@ I'm happy to discuss this further and find a mutually beneficial arrangement.`;
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle>Negotiation Script</CardTitle>
-                  <CardDescription>Professional counter-offer template</CardDescription>
+                  <CardDescription>
+                    {aiNegotiationScript ? "AI-generated personalized script" : "Professional counter-offer template"}
+                  </CardDescription>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleCopy(sampleScript)}
+                  onClick={() => handleCopy(aiNegotiationScript || sampleScript)}
                 >
                   {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                   {copied ? "Copied!" : "Copy Script"}
@@ -232,13 +443,17 @@ I'm happy to discuss this further and find a mutually beneficial arrangement.`;
             </CardHeader>
             <CardContent>
               <Textarea
-                value={sampleScript}
+                value={aiNegotiationScript || sampleScript}
                 readOnly
                 rows={12}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-4">
-                💡 Tip: Customize this script with specific achievements from your Career Vault and research comparable salaries for your market.
+                {aiNegotiationScript ? (
+                  <>✨ This script was generated using your Career Vault data and real-time market research</>
+                ) : (
+                  <>💡 Tip: Generate your Salary Intelligence Report above to get a personalized script with market data and your achievements</>
+                )}
               </p>
             </CardContent>
           </Card>
