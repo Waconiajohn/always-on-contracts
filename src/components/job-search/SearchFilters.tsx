@@ -3,7 +3,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { SlidersHorizontal, X, Filter } from "lucide-react";
 
 interface SearchFiltersProps {
@@ -17,19 +16,11 @@ interface SearchFiltersProps {
   setSalaryRange: (value: string) => void;
   experienceLevel: string;
   setExperienceLevel: (value: string) => void;
-  selectedSources: string[];
-  setSelectedSources: (sources: string[]) => void;
   showAllFilters: boolean;
   setShowAllFilters: (show: boolean) => void;
   onClearFilters: () => void;
   appliedFiltersCount: number;
 }
-
-const JOB_SOURCES = [
-  { id: "google_jobs", label: "Google Jobs", active: true },
-  { id: "adzuna", label: "Adzuna", active: false },
-  { id: "usajobs", label: "USAJobs", active: false },
-];
 
 export const SearchFilters = ({
   dateFilter,
@@ -42,21 +33,11 @@ export const SearchFilters = ({
   setSalaryRange,
   experienceLevel,
   setExperienceLevel,
-  selectedSources,
-  setSelectedSources,
   showAllFilters,
   setShowAllFilters,
   onClearFilters,
   appliedFiltersCount,
 }: SearchFiltersProps) => {
-  const handleSourceToggle = (sourceId: string) => {
-    setSelectedSources(
-      selectedSources.includes(sourceId)
-        ? selectedSources.filter(s => s !== sourceId)
-        : [...selectedSources, sourceId]
-    );
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -107,28 +88,6 @@ export const SearchFilters = ({
           </Select>
         </div>
 
-        <div>
-          <Label>Job Sources</Label>
-          <div className="space-y-2 mt-2">
-            {JOB_SOURCES.map(source => (
-              <div key={source.id} className="flex items-center gap-2">
-                <Checkbox
-                  id={source.id}
-                  checked={selectedSources.includes(source.id)}
-                  onCheckedChange={() => handleSourceToggle(source.id)}
-                  disabled={!source.active}
-                />
-                <Label 
-                  htmlFor={source.id} 
-                  className={source.active ? "cursor-pointer" : "cursor-not-allowed opacity-50"}
-                >
-                  {source.label}
-                  {!source.active && " (Coming Soon)"}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {showAllFilters && (
           <>

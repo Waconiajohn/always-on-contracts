@@ -223,15 +223,18 @@ const HomeContent = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-3">
                       <h3 className="text-xl font-bold text-ai-primary">Build: Your Career Vault</h3>
                       <Badge variant="secondary" className="bg-ai-primary/10 text-ai-primary border-ai-primary/20">
                         {vaultCompletion}%
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Your Career Vault is the nuclear reactor powering all 12 AI agents. It's a comprehensive knowledge base capturing your skills, achievements, leadership philosophy, and "Why Me" story—the engine that feeds personalized intelligence to every tool.
-                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>Single knowledge base of your entire professional identity</li>
+                      <li>Nuclear reactor powering all 12 AI agents</li>
+                      <li>Captures skills, achievements, leadership & "Why Me" story</li>
+                      <li>Continuously feeds personalized intelligence to every tool</li>
+                    </ul>
                   </div>
                 </div>
 
@@ -248,15 +251,18 @@ const HomeContent = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-3">
                       <h3 className="text-xl font-bold text-ai-secondary">Deploy: Intelligent Targeting</h3>
                       <Badge variant="secondary" className="bg-ai-secondary/10 text-ai-secondary border-ai-secondary/20">
                         {activeJobs} Active
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      AI agents scan opportunities, customize resumes, and deploy applications using your vault intelligence. Every application is personalized and optimized for maximum impact—either auto-applied or queued for your review.
-                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>AI scans opportunities using vault intelligence</li>
+                      <li>Customizes resumes for each role automatically</li>
+                      <li>Deploys applications: auto-applied or queued</li>
+                      <li>Every submission personalized for maximum impact</li>
+                    </ul>
                   </div>
                 </div>
 
@@ -273,12 +279,15 @@ const HomeContent = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-3">
                       <h3 className="text-xl font-bold text-ai-active">Win: Interview Mastery</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Interview Prep Agent pulls from your vault to craft authentic answers to any question. Practice with AI simulations, get real-time feedback, and master your "Why Me" story to win the offer.
-                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>Pulls vault data to craft authentic answers</li>
+                      <li>Practice with AI interview simulations</li>
+                      <li>Get real-time feedback on responses</li>
+                      <li>Master your "Why Me" story to win offers</li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -286,72 +295,29 @@ const HomeContent = () => {
           </Card>
         </div>
 
-        {/* Career Vault Status - Elevated */}
-        <Card className="relative overflow-hidden border-2 border-ai-primary/30 mb-8">
-          {/* Animated background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-ai-primary/10 via-ai-secondary/10 to-transparent opacity-50" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-ai-primary/20 rounded-full blur-3xl animate-float" />
-          
-          <CardContent className="relative z-10 p-8">
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Package className="h-12 w-12 text-ai-primary animate-pulse-subtle" />
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-ai-primary rounded-full animate-ping" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="text-2xl font-bold">Career Vault</h2>
-                    <Badge variant="secondary" className="text-[10px] bg-ai-primary/10 text-ai-primary border-ai-primary/20">
-                      <Bot className="h-2.5 w-2.5 mr-1" />
-                      12 AI Agents
+        {/* Compact Career Vault Indicator */}
+        <Card className="mb-8 border-ai-primary/20 hover:border-ai-primary/40 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <Package className="h-6 w-6 text-ai-primary" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Career Vault</span>
+                    <Badge variant="secondary" className="text-[10px] bg-ai-primary/10 text-ai-primary">
+                      {vaultCompletion}% Complete
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {vaultComplete ? "Fully loaded and ready" : `${vaultCompletion}% complete`}
-                  </p>
+                  <Progress value={vaultCompletion} className="h-1.5 mt-1.5" />
                 </div>
               </div>
-              
-              {/* Circular progress indicator */}
-              <div className="relative w-20 h-20">
-                <svg className="transform -rotate-90" viewBox="0 0 80 80">
-                  <circle 
-                    cx="40" 
-                    cy="40" 
-                    r="36" 
-                    stroke="currentColor" 
-                    className="text-muted/30" 
-                    strokeWidth="8" 
-                    fill="none" 
-                  />
-                  <circle 
-                    cx="40" 
-                    cy="40" 
-                    r="36" 
-                    stroke="currentColor" 
-                    className="text-ai-primary transition-all duration-1000" 
-                    strokeWidth="8" 
-                    fill="none" 
-                    strokeDasharray={`${vaultCompletion * 2.26} 226`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-xl font-bold">
-                  {vaultCompletion}%
-                </div>
-              </div>
+              <Button 
+                size="sm"
+                onClick={() => navigate(vaultComplete ? '/career-vault' : '/career-vault-onboarding')}
+              >
+                {vaultComplete ? "View" : "Build"}
+              </Button>
             </div>
-            
-            <Progress value={vaultCompletion} className="h-3 mb-6" />
-            
-            <Button 
-              size="lg" 
-              className="w-full group"
-              onClick={() => navigate(vaultComplete ? '/career-vault' : '/career-vault-onboarding')}
-            >
-              {vaultComplete ? "View Career Vault" : "Continue Building"}
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
           </CardContent>
         </Card>
 

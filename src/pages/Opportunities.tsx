@@ -11,6 +11,7 @@ import { OpportunityMatch, JobType } from "@/types/opportunities";
 import { FullTimeJobsList } from "@/components/opportunities/FullTimeJobsList";
 import { ContractJobsList } from "@/components/opportunities/ContractJobsList";
 import { EmptyJobsState } from "@/components/opportunities/EmptyJobsState";
+import { BooleanSearchBuilder } from "@/components/opportunities/BooleanSearchBuilder";
 
 const OpportunitiesContent = () => {
   const [opportunities, setOpportunities] = useState<OpportunityMatch[]>([]);
@@ -196,19 +197,27 @@ const OpportunitiesContent = () => {
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
         <AppNav />
-        <main className="container mx-auto p-6 space-y-6">
-          <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold">Job Board</h1>
-            <p className="text-muted-foreground mt-2">
-              AI-powered job matching based on your current Career Vault profile
-            </p>
-            {opportunities.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                💡 Updated your resume? Click "Clear & Re-match" to get fresh recommendations
-              </p>
-            )}
-          </div>
+        <main className="container mx-auto p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Sidebar - Boolean Search Builder */}
+            <div className="lg:col-span-3">
+              <BooleanSearchBuilder />
+            </div>
+
+            {/* Main Content */}
+            <div className="lg:col-span-9 space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-4xl font-bold">Job Board</h1>
+                  <p className="text-muted-foreground mt-2">
+                    AI-powered job matching based on your current Career Vault profile
+                  </p>
+                  {opportunities.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      💡 Updated your resume? Click "Clear & Re-match" to get fresh recommendations
+                    </p>
+                  )}
+                </div>
             <div className="flex gap-2">
               <Button
                 onClick={syncExternalJobs}
@@ -236,10 +245,10 @@ const OpportunitiesContent = () => {
                   Clear & Re-match
                 </Button>
               )}
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {opportunities.length === 0 ? (
+              {opportunities.length === 0 ? (
             <EmptyJobsState onMatch={runAIMatching} matching={matching} />
           ) : (
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as JobType)}>
@@ -280,6 +289,8 @@ const OpportunitiesContent = () => {
               </TabsContent>
             </Tabs>
           )}
+            </div>
+          </div>
         </main>
       </div>
     </div>

@@ -66,7 +66,6 @@ const JobSearchAgentContent = () => {
   const [employmentType, setEmploymentType] = useState<string>('any');
   const [salaryRange, setSalaryRange] = useState<string>('any');
   const [experienceLevel, setExperienceLevel] = useState<string>('any');
-  const [selectedSources, setSelectedSources] = useState<string[]>(["google_jobs"]);
   const [showAllFilters, setShowAllFilters] = useState(false);
 
   // AI Chat
@@ -217,7 +216,7 @@ const JobSearchAgentContent = () => {
             remote_types: remoteType !== 'any' ? [remoteType] : [],
             employment_types: employmentType !== 'any' ? [employmentType] : [],
             salary_min: salaryRange !== 'any' ? parseInt(salaryRange) : null,
-            sources: selectedSources,
+            sources: ['google_jobs'],
             includeTransferableSkills: useTransferableSkills
           }
         }])
@@ -414,8 +413,6 @@ const JobSearchAgentContent = () => {
               setSalaryRange={setSalaryRange}
               experienceLevel={experienceLevel}
               setExperienceLevel={setExperienceLevel}
-              selectedSources={selectedSources}
-              setSelectedSources={setSelectedSources}
               showAllFilters={showAllFilters}
               setShowAllFilters={setShowAllFilters}
               onClearFilters={clearFilters}
