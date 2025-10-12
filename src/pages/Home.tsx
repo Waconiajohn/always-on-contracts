@@ -211,18 +211,26 @@ const HomeContent = () => {
         <div className="grid grid-cols-1 gap-6 mb-8">
           <Card className="glass hover:border-ai-primary/50 transition-all group">
             <CardContent className="p-8">
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {/* Build Phase */}
-                <div className="flex gap-6 items-start">
+                <div 
+                  className="flex gap-6 items-start cursor-pointer hover:bg-ai-primary/5 p-4 rounded-lg transition-all group/item"
+                  onClick={() => navigate('/career-vault-onboarding')}
+                >
                   <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-primary/20 to-ai-primary/5 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-primary/20 to-ai-primary/5 flex items-center justify-center group-hover/item:scale-110 transition-transform">
                       <Package className="h-8 w-8 text-ai-primary" />
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2 text-ai-primary">Build: Your Career Vault</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      We start by building the ultimate professional assessment of who you are. Through AI-guided interviews, we extract your personality traits, soft skills, leadership philosophy, technical competencies, and career aspirations. This creates your "Why Me" story—the compelling narrative of your unique value proposition that no other candidate can claim.
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-ai-primary">Build: Your Career Vault</h3>
+                      <Badge variant="secondary" className="bg-ai-primary/10 text-ai-primary border-ai-primary/20">
+                        {vaultCompletion}%
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your Career Vault is the nuclear reactor powering all 12 AI agents. It's a comprehensive knowledge base capturing your skills, achievements, leadership philosophy, and "Why Me" story—the engine that feeds personalized intelligence to every tool.
                     </p>
                   </div>
                 </div>
@@ -230,16 +238,24 @@ const HomeContent = () => {
                 <div className="h-px bg-gradient-to-r from-transparent via-ai-primary/30 to-transparent" />
 
                 {/* Deploy Phase */}
-                <div className="flex gap-6 items-start">
+                <div 
+                  className="flex gap-6 items-start cursor-pointer hover:bg-ai-secondary/5 p-4 rounded-lg transition-all group/item"
+                  onClick={() => navigate('/opportunities')}
+                >
                   <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-secondary/20 to-ai-secondary/5 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-secondary/20 to-ai-secondary/5 flex items-center justify-center group-hover/item:scale-110 transition-transform">
                       <Zap className="h-8 w-8 text-ai-secondary" />
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2 text-ai-secondary">Deploy: Intelligent Targeting</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      With your vault complete, our AI agents activate. They scan opportunities across multiple sources, customize your resume for each application, generate tailored cover letters, and either queue high-potential matches for your review or auto-apply based on your preferences. Every application is optimized using your vault intelligence.
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-ai-secondary">Deploy: Intelligent Targeting</h3>
+                      <Badge variant="secondary" className="bg-ai-secondary/10 text-ai-secondary border-ai-secondary/20">
+                        {activeJobs} Active
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      AI agents scan opportunities, customize resumes, and deploy applications using your vault intelligence. Every application is personalized and optimized for maximum impact—either auto-applied or queued for your review.
                     </p>
                   </div>
                 </div>
@@ -247,16 +263,21 @@ const HomeContent = () => {
                 <div className="h-px bg-gradient-to-r from-transparent via-ai-active/30 to-transparent" />
 
                 {/* Win Phase */}
-                <div className="flex gap-6 items-start">
+                <div 
+                  className="flex gap-6 items-start cursor-pointer hover:bg-ai-active/5 p-4 rounded-lg transition-all group/item"
+                  onClick={() => navigate('/agents/interview-prep')}
+                >
                   <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-active/20 to-ai-active/5 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-active/20 to-ai-active/5 flex items-center justify-center group-hover/item:scale-110 transition-transform">
                       <CheckCircle2 className="h-8 w-8 text-ai-active" />
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2 text-ai-active">Win: Interview Mastery</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      When interviews come, you're ready. Our Interview Prep Agent pulls from your vault to craft authentic, compelling answers to any question. We simulate real interviews, provide feedback, and help you master your "Why Me" story. You walk in confident, knowing exactly how to position your unique value.
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-ai-active">Win: Interview Mastery</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Interview Prep Agent pulls from your vault to craft authentic answers to any question. Practice with AI simulations, get real-time feedback, and master your "Why Me" story to win the offer.
                     </p>
                   </div>
                 </div>

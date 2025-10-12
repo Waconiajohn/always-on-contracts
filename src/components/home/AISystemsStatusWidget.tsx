@@ -50,7 +50,7 @@ export const AISystemsStatusWidget = () => {
           <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-ai-active" />
-              <span className="text-xs font-medium">Gemini + Perplexity</span>
+              <span className="text-xs font-medium">Multi-AI Powered</span>
             </div>
           </div>
         </div>
