@@ -40,7 +40,6 @@ const LinkedInProfileBuilder = lazy(() => import("./pages/agents/LinkedInProfile
 const NetworkingAgent = lazy(() => import("./pages/agents/NetworkingAgentComplete"));
 const CareerTrendsScout = lazy(() => import("./pages/agents/CareerTrendsScout"));
 const FinancialPlanningAssistant = lazy(() => import("./pages/agents/FinancialPlanningAssistant"));
-const CareerDashboard = lazy(() => import("./pages/CareerDashboard"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
 const RedeemCode = lazy(() => import("./pages/RedeemCode"));
@@ -108,7 +107,7 @@ const App = () => (
         <Route path="/agents/networking" element={<ProtectedRoute><NetworkingAgent /></ProtectedRoute>} />
         <Route path="/agents/career-trends" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
         <Route path="/agents/financial-planning" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
-        <Route path="/career-tools" element={<ProtectedRoute><CareerDashboard /></ProtectedRoute>} />
+        <Route path="/career-tools" element={<Navigate to="/command-center" replace />} />
         <Route path="/command-center" element={<ProtectedRoute><CommandCenter /></ProtectedRoute>} />
         <Route path="/dashboard" element={<Navigate to="/command-center" replace />} />
         <Route path="/daily-workflow" element={<ProtectedRoute><DailyWorkflow /></ProtectedRoute>} />
