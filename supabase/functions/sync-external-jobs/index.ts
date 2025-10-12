@@ -247,13 +247,22 @@ serve(async (req) => {
       }
     }
 
-    // Dice (tech job board)
+    // Dice (tech job board - NO KEY NEEDED)
     try {
       const jobs = await fetchDice();
       allJobs.push(...jobs);
       console.log(`Fetched ${jobs.length} jobs from Dice`);
     } catch (error) {
       console.error('Error fetching Dice:', error);
+    }
+
+    // Workable (ATS platform - NO KEY NEEDED)
+    try {
+      const jobs = await fetchWorkable();
+      allJobs.push(...jobs);
+      console.log(`Fetched ${jobs.length} jobs from Workable`);
+    } catch (error) {
+      console.error('Error fetching Workable:', error);
     }
 
     // Stack Overflow Jobs (tech-focused)
@@ -1072,48 +1081,148 @@ async function fetchBuiltIn(city: string): Promise<ExternalJob[]> {
 
 async function fetchDice(): Promise<ExternalJob[]> {
   try {
-    // Dice tech job board - RSS feed
-    const res = await fetch('https://www.dice.com/jobs/rss?q=contract');
-    if (!res.ok) return [];
-    
-    const text = await res.text();
+    console.log('Fetching Dice jobs via official API...');
     const jobs: ExternalJob[] = [];
     
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/;
-    const linkRegex = /<link>(.*?)<\/link>/;
-    const descRegex = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/;
-    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    // Dice API supports various search queries - focusing on US tech jobs
+    const searchQueries = [
+      'software engineer',
+      'developer',
+      'data scientist',
+      'product manager',
+      'designer',
+      'contract'
+    ];
     
-    let match;
-    while ((match = itemRegex.exec(text)) !== null) {
-      const item = match[1];
-      const titleMatch = item.match(titleRegex);
-      const linkMatch = item.match(linkRegex);
-      const descMatch = item.match(descRegex);
-      const dateMatch = item.match(dateRegex);
-      
-      if (titleMatch && linkMatch) {
-        const jobId = linkMatch[1].split('/').pop() || Math.random().toString(36).substring(7);
-        jobs.push({
-          title: titleMatch[1],
-          company: 'Dice Listing',
-          location: 'Various',
-          type: 'contract',
-          remote: /remote/i.test(item),
-          postedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
-          url: linkMatch[1],
-          source: 'dice',
-          externalId: `dc-${jobId}`,
-          description: descMatch ? descMatch[1].replace(/<[^>]*>/g, '') : titleMatch[1],
-          skills: [],
+    for (const query of searchQueries) {
+      try {
+        // Dice public API endpoint - no authentication required
+        const url = `https://www.dice.com/api/v1/jobs/search?q=${encodeURIComponent(query)}&location=United%20States&pageSize=100`;
+        const res = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; JobAggregator/1.0)'
+          }
         });
+        
+        if (!res.ok) {
+          console.log(`Dice API returned ${res.status} for query: ${query}`);
+          continue;
+        }
+        
+        const data = await res.json();
+        
+        if (data.data && Array.isArray(data.data)) {
+          for (const job of data.data) {
+            const jobId = job.id || job.jobId || Math.random().toString(36).substring(7);
+            jobs.push({
+              title: cleanText(job.title || 'Untitled Position'),
+              company: cleanText(job.employerName || job.company || 'Unknown Company'),
+              location: cleanText(job.jobLocation?.displayName || job.location) || 'United States',
+              type: job.employmentType?.toLowerCase().includes('contract') ? 'contract' : 'full-time',
+              remote: job.isRemote || /remote/i.test(JSON.stringify(job)),
+              postedAt: job.postedDate || job.modifiedDate || new Date().toISOString(),
+              url: job.detailsPageUrl || job.url || `https://www.dice.com/jobs/detail/${jobId}`,
+              source: 'dice',
+              externalId: `dice-${jobId}`,
+              description: cleanText(job.summary || job.description || job.title),
+              skills: Array.isArray(job.skills) ? job.skills.map((s: any) => typeof s === 'string' ? s : s.name).filter(Boolean) : [],
+            });
+          }
+        }
+        
+        // Rate limiting - be nice to Dice's servers
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (queryError) {
+        console.error(`Error fetching Dice jobs for query "${query}":`, queryError);
       }
     }
     
+    console.log(`Total Dice jobs fetched: ${jobs.length}`);
     return jobs;
   } catch (error) {
     console.error('Dice fetch error:', error);
+    return [];
+  }
+}
+
+async function fetchWorkable(): Promise<ExternalJob[]> {
+  try {
+    console.log('Fetching Workable jobs via public API...');
+    const jobs: ExternalJob[] = [];
+    
+    // List of major companies using Workable ATS - focusing on US companies
+    // These are public job boards that don't require authentication
+    const workableCompanies = [
+      'gitlab', 'notion', 'zapier', 'airtable', 'miro', 'loom',
+      'amplitude', 'segment', 'launchdarkly', 'productboard',
+      'carta', 'gusto', 'rippling', 'lattice', 'greenhouse',
+      'lever', 'workable', 'ashby', 'dover', 'gem',
+      'fivetran', 'airbyte', 'dbt', 'monte-carlo', 'datafold',
+      'prefect', 'dagster', 'astronomer', 'temporal', 'retool',
+      'flatfile', 'tray', 'merge', 'rutter', 'finch',
+      'plaid', 'unit', 'increase', 'column', 'modern-treasury',
+      'ramp', 'brex', 'deel', 'remote', 'oyster',
+      'papaya-global', 'plane', 'cord', 'liveblocks', 'clerk'
+    ];
+    
+    for (const company of workableCompanies) {
+      try {
+        // Workable public API endpoint - no authentication required
+        const url = `https://apply.workable.com/api/v3/accounts/${company}/jobs`;
+        const res = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; JobAggregator/1.0)'
+          }
+        });
+        
+        if (!res.ok) {
+          // Company might not use Workable or endpoint is different
+          continue;
+        }
+        
+        const data = await res.json();
+        
+        if (data.jobs && Array.isArray(data.jobs)) {
+          for (const job of data.jobs) {
+            const jobId = job.id || job.shortcode || Math.random().toString(36).substring(7);
+            
+            // Filter for US-based jobs only
+            const location = job.location || job.city || '';
+            const isUS = /united states|usa|u\.s\.|remote/i.test(location) || 
+                        /\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/i.test(location);
+            
+            if (!isUS) continue;
+            
+            jobs.push({
+              title: cleanText(job.title || 'Untitled Position'),
+              company: cleanText(job.company_name || company),
+              location: cleanText(location) || 'United States',
+              type: job.employment_type?.toLowerCase() === 'contractor' ? 'contract' : 'full-time',
+              remote: job.telecommuting || /remote/i.test(JSON.stringify(job)),
+              postedAt: job.created_at || job.published_on || new Date().toISOString(),
+              url: job.application_url || job.url || `https://apply.workable.com/${company}/j/${jobId}/`,
+              source: 'workable',
+              externalId: `workable-${company}-${jobId}`,
+              description: cleanText(job.description || job.requirements || job.title),
+              skills: [],
+            });
+          }
+        }
+        
+        // Rate limiting - be respectful of Workable's servers
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (companyError) {
+        // Silently continue - company might not be using Workable
+        continue;
+      }
+    }
+    
+    console.log(`Total Workable jobs fetched: ${jobs.length}`);
+    return jobs;
+  } catch (error) {
+    console.error('Workable fetch error:', error);
     return [];
   }
 }
