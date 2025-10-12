@@ -3,7 +3,6 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { 
-  Package, 
   ArrowRight, 
   Lock,
   FileText,
@@ -33,6 +31,11 @@ import { AISystemsStatusWidget } from "@/components/home/AISystemsStatusWidget";
 import { VaultPowerWidget } from "@/components/home/VaultPowerWidget";
 import { QuickLaunchWidget } from "@/components/home/QuickLaunchWidget";
 import { AIActivityBanner } from "@/components/home/AIActivityBanner";
+import { useJourneyState } from "@/hooks/useJourneyState";
+import { CelebrationBanner } from "@/components/home/CelebrationBanner";
+import { JourneyStateCard } from "@/components/home/JourneyStateCard";
+import { ActivityFeed } from "@/components/home/ActivityFeed";
+import { NextStepsCard } from "@/components/home/NextStepsCard";
 
 const HomeContent = () => {
   const navigate = useNavigate();
@@ -40,6 +43,7 @@ const HomeContent = () => {
   const [activeJobs, setActiveJobs] = useState(0);
   const [stats, setStats] = useState({ powerPhrases: 0, skills: 0, competencies: 0 });
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const journeyState = useJourneyState();
 
   useEffect(() => {
     loadData();
@@ -207,119 +211,20 @@ const HomeContent = () => {
         {/* AI Activity Banner */}
         <AIActivityBanner />
 
-        {/* Strategic Process Framework */}
-        <div className="grid grid-cols-1 gap-6 mb-8">
-          <Card className="glass hover:border-ai-primary/50 transition-all group">
-            <CardContent className="p-8">
-              <div className="space-y-6">
-                {/* Build Phase */}
-                <div 
-                  className="flex gap-6 items-start cursor-pointer hover:bg-ai-primary/5 p-4 rounded-lg transition-all group/item"
-                  onClick={() => navigate('/career-vault-onboarding')}
-                >
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-primary/20 to-ai-primary/5 flex items-center justify-center group-hover/item:scale-110 transition-transform">
-                      <Package className="h-8 w-8 text-ai-primary" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold text-ai-primary">Build: Your Career Vault</h3>
-                      <Badge variant="secondary" className="bg-ai-primary/10 text-ai-primary border-ai-primary/20">
-                        {vaultCompletion}%
-                      </Badge>
-                    </div>
-                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                      <li>Single knowledge base of your entire professional identity</li>
-                      <li>Nuclear reactor powering all 12 AI agents</li>
-                      <li>Captures skills, achievements, leadership & "Why Me" story</li>
-                      <li>Continuously feeds personalized intelligence to every tool</li>
-                    </ul>
-                  </div>
-                </div>
+        {/* Celebration Banner - Only shown first time vault hits 100% */}
+        {journeyState.state === 'vault-complete-first-time' && !journeyState.celebrationSeen && (
+          <CelebrationBanner onDismiss={journeyState.markCelebrationSeen} />
+        )}
 
-                <div className="h-px bg-gradient-to-r from-transparent via-ai-primary/30 to-transparent" />
-
-                {/* Deploy Phase */}
-                <div 
-                  className="flex gap-6 items-start cursor-pointer hover:bg-ai-secondary/5 p-4 rounded-lg transition-all group/item"
-                  onClick={() => navigate('/opportunities')}
-                >
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-secondary/20 to-ai-secondary/5 flex items-center justify-center group-hover/item:scale-110 transition-transform">
-                      <Zap className="h-8 w-8 text-ai-secondary" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold text-ai-secondary">Deploy: Intelligent Targeting</h3>
-                      <Badge variant="secondary" className="bg-ai-secondary/10 text-ai-secondary border-ai-secondary/20">
-                        {activeJobs} Active
-                      </Badge>
-                    </div>
-                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                      <li>AI scans opportunities using vault intelligence</li>
-                      <li>Customizes resumes for each role automatically</li>
-                      <li>Deploys applications: auto-applied or queued</li>
-                      <li>Every submission personalized for maximum impact</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="h-px bg-gradient-to-r from-transparent via-ai-active/30 to-transparent" />
-
-                {/* Win Phase */}
-                <div 
-                  className="flex gap-6 items-start cursor-pointer hover:bg-ai-active/5 p-4 rounded-lg transition-all group/item"
-                  onClick={() => navigate('/agents/interview-prep')}
-                >
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ai-active/20 to-ai-active/5 flex items-center justify-center group-hover/item:scale-110 transition-transform">
-                      <CheckCircle2 className="h-8 w-8 text-ai-active" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold text-ai-active">Win: Interview Mastery</h3>
-                    </div>
-                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                      <li>Pulls vault data to craft authentic answers</li>
-                      <li>Practice with AI interview simulations</li>
-                      <li>Get real-time feedback on responses</li>
-                      <li>Master your "Why Me" story to win offers</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Dynamic Journey State Card */}
+        <div className="mb-8">
+          <JourneyStateCard
+            state={journeyState.state}
+            vaultCompletion={journeyState.vaultCompletion}
+            activeApplications={journeyState.activeApplications}
+            upcomingInterviews={journeyState.upcomingInterviews}
+          />
         </div>
-
-        {/* Compact Career Vault Indicator */}
-        <Card className="mb-8 border-ai-primary/20 hover:border-ai-primary/40 transition-colors">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 flex-1">
-                <Package className="h-6 w-6 text-ai-primary" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Career Vault</span>
-                    <Badge variant="secondary" className="text-[10px] bg-ai-primary/10 text-ai-primary">
-                      {vaultCompletion}% Complete
-                    </Badge>
-                  </div>
-                  <Progress value={vaultCompletion} className="h-1.5 mt-1.5" />
-                </div>
-              </div>
-              <Button 
-                size="sm"
-                onClick={() => navigate(vaultComplete ? '/career-vault' : '/career-vault-onboarding')}
-              >
-                {vaultComplete ? "View" : "Build"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -364,6 +269,9 @@ const HomeContent = () => {
               })}
             </div>
 
+            {/* Recent Activity Feed */}
+            <ActivityFeed />
+
             {/* Stats Snapshot */}
             <div className="grid grid-cols-2 gap-4">
               <Card className="hover:border-ai-primary/50 transition-all cursor-pointer" onClick={() => navigate('/opportunities')}>
@@ -398,6 +306,7 @@ const HomeContent = () => {
 
           {/* Right Sidebar - Widgets */}
           <div className="lg:col-span-3 space-y-4">
+            <NextStepsCard journeyState={journeyState.state} />
             <AISystemsStatusWidget />
             <VaultPowerWidget completion={vaultCompletion} />
             <QuickLaunchWidget />

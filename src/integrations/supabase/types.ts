@@ -1562,6 +1562,7 @@ export type Database = {
           id: string
           industry_preferences: Json | null
           key_achievements: string[] | null
+          last_activity_at: string | null
           match_threshold_auto_apply: number | null
           match_threshold_queue: number | null
           max_daily_applications: number | null
@@ -1576,6 +1577,7 @@ export type Database = {
           target_salary: string | null
           updated_at: string | null
           user_id: string
+          vault_completion_celebration_seen: boolean | null
           why_me_narratives: Json | null
           work_style_preferences: Json | null
           years_experience: number | null
@@ -1598,6 +1600,7 @@ export type Database = {
           id?: string
           industry_preferences?: Json | null
           key_achievements?: string[] | null
+          last_activity_at?: string | null
           match_threshold_auto_apply?: number | null
           match_threshold_queue?: number | null
           max_daily_applications?: number | null
@@ -1612,6 +1615,7 @@ export type Database = {
           target_salary?: string | null
           updated_at?: string | null
           user_id: string
+          vault_completion_celebration_seen?: boolean | null
           why_me_narratives?: Json | null
           work_style_preferences?: Json | null
           years_experience?: number | null
@@ -1634,6 +1638,7 @@ export type Database = {
           id?: string
           industry_preferences?: Json | null
           key_achievements?: string[] | null
+          last_activity_at?: string | null
           match_threshold_auto_apply?: number | null
           match_threshold_queue?: number | null
           max_daily_applications?: number | null
@@ -1648,6 +1653,7 @@ export type Database = {
           target_salary?: string | null
           updated_at?: string | null
           user_id?: string
+          vault_completion_celebration_seen?: boolean | null
           why_me_narratives?: Json | null
           work_style_preferences?: Json | null
           years_experience?: number | null
@@ -2228,6 +2234,33 @@ export type Database = {
           tier?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_activities: {
+        Row: {
+          activity_description: string | null
+          activity_type: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_description?: string | null
+          activity_type: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_description?: string | null
+          activity_type?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
         }
         Relationships: []
       }
