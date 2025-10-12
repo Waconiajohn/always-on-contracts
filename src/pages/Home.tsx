@@ -254,7 +254,7 @@ const HomeContent = () => {
                     {tool.locked && (
                       <Badge variant="outline" className="text-[10px] mt-1">
                         <Lock className="h-2 w-2 mr-1" />
-                        {tool.minCompletion}%
+                        Complete Vault
                       </Badge>
                     )}
                   </CardContent>
