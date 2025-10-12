@@ -69,6 +69,50 @@ export const JourneyStateCard = ({
     );
   }
 
+  if (state === 'vault-complete-first-time') {
+    return (
+      <Card className="p-6 bg-gradient-to-br from-primary/5 to-background">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <CheckCircle2 className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold">Vault Complete - Ready to Deploy!</h3>
+            <p className="text-sm text-muted-foreground">Your career intelligence system is built. Time to start applying!</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          <Button onClick={() => navigate('/opportunities')}>
+            Search for Jobs
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/agents/resume-builder')}>
+            Build Resume
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/ai-agents')}>
+            Explore AI Agents
+          </Button>
+        </div>
+
+        {/* Abbreviated Steps */}
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <span className="font-semibold">Step 1: Build ✓</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Rocket className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Step 2: Deploy</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm opacity-50">
+            <Users className="h-4 w-4" />
+            <span className="text-muted-foreground">Step 3: Win</span>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   if (state === 'actively-deploying') {
     return (
       <Card className="p-6">
