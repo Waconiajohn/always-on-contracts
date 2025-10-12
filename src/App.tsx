@@ -106,7 +106,7 @@ const App = () => (
         <Route path="/agents/career-trends" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
         <Route path="/agents/financial-planning" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
         <Route path="/career-tools" element={<ProtectedRoute><CareerDashboard /></ProtectedRoute>} />
-        <Route path="/career-command-center" element={<ProtectedRoute><CareerCommandCenter /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><CareerCommandCenter /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/affiliate-portal" element={<ProtectedRoute><AffiliatePortal /></ProtectedRoute>} />

@@ -14,7 +14,6 @@ import {
   FileText,
   Key,
   TrendingUp,
-  Target,
   Brain,
   LogOut,
   Command,
@@ -41,7 +40,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import logo from "@/assets/logo.png";
 
 const navItems = [
-  { path: "/home", label: "Home", icon: Home },
+  { path: "/dashboard", label: "Dashboard", icon: Home },
   { path: "/career-vault", label: "Career Vault", icon: Package },
   { path: "/projects", label: "Projects", icon: FolderKanban },
 ];
@@ -55,7 +54,6 @@ const jobSearchItems = [
 
 const toolsItems = [
   { path: "/coaching", label: "Coaching", icon: MessageSquare },
-  { path: "/career-command-center", label: "Command Center", icon: Target },
   { path: "/ai-agents", label: "AI Agents", icon: Brain },
   { path: "/rate-calculator", label: "Rate Calculator", icon: Calculator },
 ];
