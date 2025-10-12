@@ -1081,7 +1081,8 @@ async function fetchBuiltIn(city: string): Promise<ExternalJob[]> {
 
 async function fetchDice(): Promise<ExternalJob[]> {
   try {
-    console.log('Fetching Dice jobs via official API...');
+    const startTime = Date.now();
+    console.log('🔍 [DICE] Starting Dice API fetch...');
     const jobs: ExternalJob[] = [];
     
     // Dice API supports various search queries - focusing on US tech jobs
@@ -1095,9 +1096,12 @@ async function fetchDice(): Promise<ExternalJob[]> {
     ];
     
     for (const query of searchQueries) {
+      const queryStartTime = Date.now();
       try {
         // Dice public API endpoint - no authentication required
         const url = `https://www.dice.com/api/v1/jobs/search?q=${encodeURIComponent(query)}&location=United%20States&pageSize=100`;
+        console.log(`[DICE] Fetching: ${url}`);
+        
         const res = await fetch(url, {
           headers: {
             'Accept': 'application/json',
@@ -1105,14 +1109,25 @@ async function fetchDice(): Promise<ExternalJob[]> {
           }
         });
         
+        console.log(`[DICE] Response for "${query}": Status ${res.status}, Content-Type: ${res.headers.get('content-type')}`);
+        
         if (!res.ok) {
-          console.log(`Dice API returned ${res.status} for query: ${query}`);
+          const errorBody = await res.text();
+          console.error(`[DICE] ❌ API returned ${res.status} for query: ${query}`);
+          console.error(`[DICE] Error body: ${errorBody.substring(0, 200)}`);
           continue;
         }
         
         const data = await res.json();
+        console.log(`[DICE] ✅ Parsed JSON response structure:`, {
+          hasData: !!data.data,
+          isArray: Array.isArray(data.data),
+          jobCount: data.data?.length || 0,
+          topLevelKeys: Object.keys(data).join(', ')
+        });
         
         if (data.data && Array.isArray(data.data)) {
+          const beforeCount = jobs.length;
           for (const job of data.data) {
             const jobId = job.id || job.jobId || Math.random().toString(36).substring(7);
             jobs.push({
@@ -1129,26 +1144,51 @@ async function fetchDice(): Promise<ExternalJob[]> {
               skills: Array.isArray(job.skills) ? job.skills.map((s: any) => typeof s === 'string' ? s : s.name).filter(Boolean) : [],
             });
           }
+          
+          // Log first job as validation sample
+          if (beforeCount === 0 && jobs.length > 0) {
+            console.log(`[DICE] 📋 Sample job:`, {
+              title: jobs[0].title,
+              company: jobs[0].company,
+              location: jobs[0].location,
+              type: jobs[0].type,
+              hasDescription: !!jobs[0].description,
+              skillsCount: jobs[0].skills?.length || 0
+            });
+          }
+          
+          const addedCount = jobs.length - beforeCount;
+          console.log(`[DICE] ✅ Added ${addedCount} jobs from query "${query}" (${Date.now() - queryStartTime}ms)`);
+        } else {
+          console.log(`[DICE] ⚠️ No jobs array found in response for "${query}"`);
         }
         
         // Rate limiting - be nice to Dice's servers
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (queryError) {
-        console.error(`Error fetching Dice jobs for query "${query}":`, queryError);
+        console.error(`[DICE] ❌ Error fetching for query "${query}":`, queryError);
+        if (queryError instanceof Error) {
+          console.error(`[DICE] Error stack:`, queryError.stack);
+        }
       }
     }
     
-    console.log(`Total Dice jobs fetched: ${jobs.length}`);
+    const totalTime = Date.now() - startTime;
+    console.log(`[DICE] 🎯 COMPLETE: ${jobs.length} total jobs fetched in ${totalTime}ms`);
     return jobs;
   } catch (error) {
-    console.error('Dice fetch error:', error);
+    console.error('[DICE] ❌ Critical fetch error:', error);
+    if (error instanceof Error) {
+      console.error('[DICE] Error stack:', error.stack);
+    }
     return [];
   }
 }
 
 async function fetchWorkable(): Promise<ExternalJob[]> {
   try {
-    console.log('Fetching Workable jobs via public API...');
+    const startTime = Date.now();
+    console.log('🔍 [WORKABLE] Starting Workable API fetch...');
     const jobs: ExternalJob[] = [];
     
     // List of major companies using Workable ATS - focusing on US companies
@@ -1166,7 +1206,12 @@ async function fetchWorkable(): Promise<ExternalJob[]> {
       'papaya-global', 'plane', 'cord', 'liveblocks', 'clerk'
     ];
     
+    console.log(`[WORKABLE] Testing ${workableCompanies.length} companies...`);
+    let successfulCompanies = 0;
+    let failedCompanies = 0;
+    
     for (const company of workableCompanies) {
+      const companyStartTime = Date.now();
       try {
         // Workable public API endpoint - no authentication required
         const url = `https://apply.workable.com/api/v3/accounts/${company}/jobs`;
@@ -1177,14 +1222,31 @@ async function fetchWorkable(): Promise<ExternalJob[]> {
           }
         });
         
+        console.log(`[WORKABLE] ${company}: Status ${res.status}, Content-Type: ${res.headers.get('content-type')}`);
+        
         if (!res.ok) {
+          failedCompanies++;
           // Company might not use Workable or endpoint is different
+          if (res.status !== 404) {
+            const errorBody = await res.text();
+            console.log(`[WORKABLE] ⚠️ ${company} returned ${res.status}: ${errorBody.substring(0, 100)}`);
+          }
           continue;
         }
         
         const data = await res.json();
+        console.log(`[WORKABLE] ${company} response structure:`, {
+          hasJobs: !!data.jobs,
+          isArray: Array.isArray(data.jobs),
+          jobCount: data.jobs?.length || 0,
+          topLevelKeys: Object.keys(data).join(', ')
+        });
         
         if (data.jobs && Array.isArray(data.jobs)) {
+          const beforeCount = jobs.length;
+          let usJobsCount = 0;
+          let nonUSJobsCount = 0;
+          
           for (const job of data.jobs) {
             const jobId = job.id || job.shortcode || Math.random().toString(36).substring(7);
             
@@ -1193,8 +1255,12 @@ async function fetchWorkable(): Promise<ExternalJob[]> {
             const isUS = /united states|usa|u\.s\.|remote/i.test(location) || 
                         /\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/i.test(location);
             
-            if (!isUS) continue;
+            if (!isUS) {
+              nonUSJobsCount++;
+              continue;
+            }
             
+            usJobsCount++;
             jobs.push({
               title: cleanText(job.title || 'Untitled Position'),
               company: cleanText(job.company_name || company),
@@ -1209,20 +1275,41 @@ async function fetchWorkable(): Promise<ExternalJob[]> {
               skills: [],
             });
           }
+          
+          // Log first job as validation sample
+          if (beforeCount === 0 && jobs.length > 0) {
+            console.log(`[WORKABLE] 📋 Sample job:`, {
+              title: jobs[0].title,
+              company: jobs[0].company,
+              location: jobs[0].location,
+              type: jobs[0].type,
+              hasDescription: !!jobs[0].description
+            });
+          }
+          
+          successfulCompanies++;
+          console.log(`[WORKABLE] ✅ ${company}: Added ${usJobsCount} US jobs (filtered ${nonUSJobsCount} non-US) (${Date.now() - companyStartTime}ms)`);
+        } else {
+          console.log(`[WORKABLE] ⚠️ ${company}: No jobs array in response`);
         }
         
         // Rate limiting - be respectful of Workable's servers
         await new Promise(resolve => setTimeout(resolve, 300));
       } catch (companyError) {
-        // Silently continue - company might not be using Workable
+        failedCompanies++;
+        console.error(`[WORKABLE] ❌ ${company} error:`, companyError);
         continue;
       }
     }
     
-    console.log(`Total Workable jobs fetched: ${jobs.length}`);
+    const totalTime = Date.now() - startTime;
+    console.log(`[WORKABLE] 🎯 COMPLETE: ${jobs.length} total jobs from ${successfulCompanies} companies (${failedCompanies} failed) in ${totalTime}ms`);
     return jobs;
   } catch (error) {
-    console.error('Workable fetch error:', error);
+    console.error('[WORKABLE] ❌ Critical fetch error:', error);
+    if (error instanceof Error) {
+      console.error('[WORKABLE] Error stack:', error.stack);
+    }
     return [];
   }
 }
@@ -1629,13 +1716,15 @@ async function fetchLinkedInViaApify(apiKey: string): Promise<ExternalJob[]> {
 
 async function fetchJooble(): Promise<ExternalJob[]> {
   try {
+    const startTime = Date.now();
     const joobleApiKey = Deno.env.get('JOOBLE_API_KEY');
     if (!joobleApiKey) {
-      console.log('Jooble API key not configured, skipping...');
+      console.log('[JOOBLE] ⚠️ API key not configured, skipping...');
       return [];
     }
 
-    console.log('Fetching Jooble jobs via API...');
+    console.log('🔍 [JOOBLE] Starting Jooble API fetch...');
+    console.log(`[JOOBLE] API Key present: ${joobleApiKey.substring(0, 8)}...`);
     const jobs: ExternalJob[] = [];
     
     // Search queries focusing on US-based jobs
@@ -1649,28 +1738,49 @@ async function fetchJooble(): Promise<ExternalJob[]> {
     ];
     
     for (const query of searchQueries) {
+      const queryStartTime = Date.now();
       try {
         const url = `https://jooble.org/api/${joobleApiKey}`;
+        const requestBody = {
+          keywords: query.keywords,
+          location: query.location,
+          page: 1,
+        };
+        
+        console.log(`[JOOBLE] Fetching: POST ${url}`);
+        console.log(`[JOOBLE] Request body:`, requestBody);
+        
         const res = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            keywords: query.keywords,
-            location: query.location,
-            page: 1,
-          }),
+          body: JSON.stringify(requestBody),
         });
         
+        console.log(`[JOOBLE] Response for "${query.keywords}": Status ${res.status}, Content-Type: ${res.headers.get('content-type')}`);
+        
         if (!res.ok) {
-          console.log(`Jooble API returned ${res.status} for query: ${query.keywords}`);
+          const errorBody = await res.text();
+          console.error(`[JOOBLE] ❌ API returned ${res.status} for query: ${query.keywords}`);
+          console.error(`[JOOBLE] Error body: ${errorBody.substring(0, 200)}`);
           continue;
         }
         
         const data = await res.json();
+        console.log(`[JOOBLE] ✅ Parsed JSON response structure:`, {
+          hasJobs: !!data.jobs,
+          isArray: Array.isArray(data.jobs),
+          jobCount: data.jobs?.length || 0,
+          totalCount: data.totalCount,
+          topLevelKeys: Object.keys(data).join(', ')
+        });
         
         if (data.jobs && Array.isArray(data.jobs)) {
+          const beforeCount = jobs.length;
+          let usJobsCount = 0;
+          let nonUSJobsCount = 0;
+          
           for (const job of data.jobs) {
             const jobId = job.id || Math.random().toString(36).substring(7);
             
@@ -1679,8 +1789,12 @@ async function fetchJooble(): Promise<ExternalJob[]> {
             const isUS = /united states|usa|u\.s\./i.test(location) || 
                         /\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/i.test(location);
             
-            if (!isUS) continue;
+            if (!isUS) {
+              nonUSJobsCount++;
+              continue;
+            }
             
+            usJobsCount++;
             jobs.push({
               title: cleanText(job.title || 'Untitled Position'),
               company: cleanText(job.company || 'Unknown Company'),
@@ -1695,19 +1809,42 @@ async function fetchJooble(): Promise<ExternalJob[]> {
               skills: [],
             });
           }
+          
+          // Log first job as validation sample
+          if (beforeCount === 0 && jobs.length > 0) {
+            console.log(`[JOOBLE] 📋 Sample job:`, {
+              title: jobs[0].title,
+              company: jobs[0].company,
+              location: jobs[0].location,
+              type: jobs[0].type,
+              hasURL: !!jobs[0].url,
+              hasDescription: !!jobs[0].description
+            });
+          }
+          
+          console.log(`[JOOBLE] ✅ Added ${usJobsCount} US jobs (filtered ${nonUSJobsCount} non-US) from "${query.keywords}" (${Date.now() - queryStartTime}ms)`);
+        } else {
+          console.log(`[JOOBLE] ⚠️ No jobs array found in response for "${query.keywords}"`);
         }
         
         // Rate limiting - respect Jooble's API limits
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (queryError) {
-        console.error(`Error fetching Jooble jobs for query "${query.keywords}":`, queryError);
+        console.error(`[JOOBLE] ❌ Error fetching for query "${query.keywords}":`, queryError);
+        if (queryError instanceof Error) {
+          console.error(`[JOOBLE] Error stack:`, queryError.stack);
+        }
       }
     }
     
-    console.log(`Total Jooble jobs fetched: ${jobs.length}`);
+    const totalTime = Date.now() - startTime;
+    console.log(`[JOOBLE] 🎯 COMPLETE: ${jobs.length} total jobs fetched in ${totalTime}ms`);
     return jobs;
   } catch (error) {
-    console.error('Jooble fetch error:', error);
+    console.error('[JOOBLE] ❌ Critical fetch error:', error);
+    if (error instanceof Error) {
+      console.error('[JOOBLE] Error stack:', error.stack);
+    }
     return [];
   }
 }
