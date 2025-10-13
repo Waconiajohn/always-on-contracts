@@ -22,6 +22,8 @@ const Coaching = lazy(() => import("./pages/Coaching"));
 const ResumeOptimizer = lazy(() => import("./pages/ResumeOptimizer"));
 const Agencies = lazy(() => import("./pages/Agencies"));
 const Opportunities = lazy(() => import("./pages/Opportunities"));
+const JobSearch = lazy(() => import("./pages/JobSearch"));
+const BooleanSearch = lazy(() => import("./pages/BooleanSearch"));
 const RateCalculator = lazy(() => import("./pages/RateCalculator"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Templates = lazy(() => import("./pages/Templates"));
@@ -89,6 +91,8 @@ const App = () => (
           <Route path="/resume-optimizer" element={<ProtectedRoute><ResumeOptimizer /></ProtectedRoute>} />
           <Route path="/agencies" element={<ProtectedRoute><Agencies /></ProtectedRoute>} />
           <Route path="/opportunities" element={<ProtectedRoute><Opportunities /></ProtectedRoute>} />
+          <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
+          <Route path="/boolean-search" element={<ProtectedRoute><BooleanSearch /></ProtectedRoute>} />
           <Route path="/rate-calculator" element={<ProtectedRoute><RateCalculator /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />

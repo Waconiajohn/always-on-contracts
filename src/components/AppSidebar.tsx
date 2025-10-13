@@ -44,6 +44,7 @@ import logo from "@/assets/logo.png";
 
 const mainNavItems = [
   { path: "/home", label: "Home", icon: Home },
+  { path: "/job-search", label: "Job Search", icon: Search },
   { path: "/ai-agents", label: "AI Agents", icon: Brain },
   { path: "/command-center", label: "Command Center", icon: Package },
   { path: "/research-hub", label: "Research Hub", icon: LineChart },
@@ -76,6 +77,7 @@ const toolsItems = [
   { path: "/coaching", label: "AI Coach", icon: Brain },
   { path: "/learning-center", label: "Learning Center", icon: BookOpen },
   { path: "/daily-workflow", label: "Daily Workflow Guide", icon: Calendar },
+  { path: "/boolean-search", label: "Boolean Search", icon: Search },
   { path: "/agencies", label: "Agencies", icon: Building2 },
   { path: "/agents/financial-planning", label: "Financial Planning", icon: DollarSign },
   { path: "/agents/career-trends", label: "Career Trends", icon: TrendingUp },
