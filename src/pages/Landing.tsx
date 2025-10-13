@@ -342,28 +342,28 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Why This Matters Section */}
+      {/* Stakes Section */}
       <section className="py-12 bg-gradient-to-br from-destructive/5 via-background to-destructive/5 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
-              <Badge variant="destructive" className="mb-2">The Research Doesn't Lie</Badge>
+              <Badge variant="destructive" className="mb-2">Why This Can't Wait</Badge>
               <h2 className="text-3xl md:text-4xl font-bold">
-                The $3 Trillion Crisis—And How CareerIQ Changes Everything
+                Every Month You Wait Costs You—Financially and Emotionally
               </h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                Age discrimination has created the largest wealth destruction crisis in American history. 
-                But your strategy can change your outcome.
+                The research is clear: traditional job search methods for executives 50+ lead to wealth destruction. 
+                But when you fix these mistakes with the right system, everything changes.
               </p>
             </div>
             
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Left Column: The Crisis */}
+              {/* Left Column: The Cost of Inaction */}
               <Card className="border-destructive/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
                     <span className="text-2xl">⚠️</span>
-                    The Crisis (Traditional Job Search)
+                    The Cost of Making These Mistakes
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -371,41 +371,41 @@ export default function Landing() {
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">$3 trillion in lost lifetime earnings</p>
-                        <p className="text-sm text-muted-foreground">The single largest wealth destruction crisis affecting experienced workers</p>
+                        <p className="font-semibold">14+ month job searches (vs 4 months for younger candidates)</p>
+                        <p className="text-sm text-muted-foreground">Every month depletes savings by $5K-$15K while permanent roles vanish</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">64% of executive search firms show documented bias</p>
-                        <p className="text-sm text-muted-foreground">Against candidates over 50—systematic, not coincidental</p>
+                        <p className="font-semibold">Permanent ATS damage from low-scoring résumés</p>
+                        <p className="text-sm text-muted-foreground">Every bad application burns bridges—you can't apply to that company again</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">"Cultural fit" rejections increase 340%</p>
-                        <p className="text-sm text-muted-foreground">For executives over 55—age bias disguised as preference</p>
+                        <p className="font-semibold">15-25% salary degradation when you finally accept an offer</p>
+                        <p className="text-sm text-muted-foreground">Desperation pricing—you lose $500K-$1.2M in lifetime earnings</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">Traditional outplacement: 47% placement rate</p>
-                        <p className="text-sm text-muted-foreground">For executives 50+, taking 14+ months on average</p>
+                        <p className="font-semibold">Networking resources burned incorrectly</p>
+                        <p className="text-sm text-muted-foreground">You only get 1-2 touches per key contact—once they're gone, they're gone forever</p>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Right Column: The Solution */}
+              {/* Right Column: The Results When You Fix It */}
               <Card className="border-primary/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary">
                     <span className="text-2xl">✓</span>
-                    The Solution (CareerIQ Strategy)
+                    What Changes When You Fix These Mistakes
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -413,29 +413,29 @@ export default function Landing() {
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">CareerIQ users: 3-5X faster placement</p>
-                        <p className="text-sm text-muted-foreground">3-5 months vs 14+ month market average for executives 50+</p>
+                        <p className="font-semibold">3-5 month placements (3-5X faster)</p>
+                        <p className="text-sm text-muted-foreground">Stop the financial bleeding—savings protected, timeline compressed</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">Contract pathways: 83% faster engagement</p>
-                        <p className="text-sm text-muted-foreground">3 months vs 18 months—bypass age-biased traditional hiring entirely</p>
+                        <p className="font-semibold">High-scoring résumés that BUILD your reputation</p>
+                        <p className="text-sm text-muted-foreground">Every application strengthens your position—no more burning bridges</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">Average salary increase: $35K</p>
-                        <p className="text-sm text-muted-foreground">vs 15-25% degradation in traditional market—your experience valued, not discounted</p>
+                        <p className="font-semibold">Average $35K salary increase</p>
+                        <p className="text-sm text-muted-foreground">Negotiate from strength—your experience becomes premium value, not discount liability</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">Strategic positioning eliminates "overqualified" rejections</p>
-                        <p className="text-sm text-muted-foreground">Turn decades of experience into competitive advantage, not liability</p>
+                        <p className="font-semibold">Access the hidden 80% of opportunities</p>
+                        <p className="text-sm text-muted-foreground">Stop competing for posted jobs—get direct access to decision-makers and unlisted roles</p>
                       </div>
                     </div>
                   </div>
@@ -459,10 +459,10 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Don't Just Take Our Word For It
+                Real Executives, Real Results
               </h2>
               <p className="text-xl text-muted-foreground">
-                Hear what our clients have to say
+                They fixed the mistakes. Here's what happened.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
@@ -506,10 +506,10 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold">
-                How We Make The Magic Happen
+                Three Steps to Fix Everything
               </h2>
               <p className="text-xl text-muted-foreground">
-                Three simple steps to career intelligence
+                From broken job search to strategic career intelligence
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
