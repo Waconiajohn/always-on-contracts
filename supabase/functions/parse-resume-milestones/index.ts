@@ -29,19 +29,43 @@ serve(async (req) => {
 
     if (userError || !user) throw new Error('Unauthorized');
 
-    const { resumeText, vaultId } = await req.json();
+    const { resumeText, vaultId, targetRoles = [], targetIndustries = [] } = await req.json();
 
-    console.log('[PARSE-RESUME-MILESTONES] Parsing resume into structured milestones...');
+    console.log('[PARSE-RESUME-MILESTONES] Parsing resume with career focus:', { targetRoles, targetIndustries });
 
-    const systemPrompt = `You are an expert resume parser. Extract ONLY job positions from resumes. Do NOT extract standalone achievements or projects.`;
+    // Delete existing milestones to prevent duplicates
+    const { error: deleteError } = await supabase
+      .from('vault_resume_milestones')
+      .delete()
+      .eq('vault_id', vaultId)
+      .eq('user_id', user.id);
 
-    const prompt = `Parse this resume and extract ONLY job positions (employment history). Each job should include the achievements within that role context.
+    if (deleteError) {
+      console.error('[PARSE-RESUME-MILESTONES] Error deleting old milestones:', deleteError);
+    }
 
-CRITICAL RULES:
-- Extract ONLY jobs/positions (employment roles with company, title, dates)
-- Do NOT create separate entries for achievements - include them within the job context
-- Do NOT create project-only entries unless they were paid contract/freelance work
-- Every entry MUST have: company_name, job_title, start_date, end_date
+    const careerFocusContext = targetRoles.length > 0 || targetIndustries.length > 0
+      ? `\n\nUSER'S CAREER FOCUS:
+- Target Roles: ${targetRoles.join(', ') || 'Any'}
+- Target Industries: ${targetIndustries.join(', ') || 'Any'}
+
+PRIORITIZE jobs that are most relevant to this career focus. Score each job's relevance (0-100%).`
+      : '';
+
+    const systemPrompt = `You are an expert resume parser specialized in career trajectory analysis. Extract job positions and assess their relevance to the user's career goals.`;
+
+    const prompt = `Parse this resume and extract job positions (employment history), prioritizing relevance to the user's career focus.
+
+${careerFocusContext}
+
+EXTRACTION RULES:
+1. Extract ONLY jobs/positions (employment roles with company, title, dates)
+2. Do NOT create separate entries for achievements - include them within the job context
+3. Do NOT create project-only entries unless they were paid contract/freelance work
+4. Every entry MUST have: company_name, job_title, start_date, end_date
+5. Assign a relevance_score (0-100%) based on alignment with target roles/industries
+6. PRIORITIZE: Recent + Senior + Relevant jobs
+7. LIMIT: Extract 8-12 MOST RELEVANT jobs maximum
 
 RESUME TEXT:
 ${resumeText}
@@ -57,18 +81,30 @@ Return as JSON:
       "end_date": "YYYY-MM or 'Present' (REQUIRED)",
       "description": "Brief role summary",
       "key_achievements": ["Achievement 1", "Achievement 2", "Achievement 3"],
-      "estimated_question_count": 3
+      "relevance_score": 85,
+      "relevance_reason": "Aligns with target VP Operations in Oil & Gas",
+      "estimated_question_count": 6
     }
   ],
-  "total_estimated_questions": 30
+  "total_estimated_questions": 35
 }
 
-Guidelines:
-- Target 10-15 total jobs (typical resume length)
-- Each job gets 2-3 questions = ~30 total questions
-- Prioritize most recent and most senior roles
-- If resume has >15 jobs, prioritize the most impactful ones
-- SKIP any entry where company_name, job_title, start_date, or end_date is missing`;
+SCORING GUIDELINES:
+- 90-100%: Perfect match to target role + industry
+- 70-89%: Strong match (either role OR industry aligned)
+- 50-69%: Moderate match (transferable skills/experience)
+- Below 50%: Low relevance (skip unless critical to career narrative)
+
+QUESTION ALLOCATION:
+- Most recent role (last 2 years): 6-8 questions
+- Previous 2-3 key roles: 4-5 questions each
+- Earlier career-defining roles: 2-3 questions
+- Target: 30-40 total questions maximum
+
+OUTPUT REQUIREMENTS:
+- Return 8-12 jobs maximum
+- Sort by: relevance_score DESC, then recency
+- SKIP any entry missing required fields`;
 
     console.log('[PARSE-RESUME-MILESTONES] Calling Gemini 2.5 Flash...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -106,10 +142,10 @@ Guidelines:
 
     console.log('[PARSE-RESUME-MILESTONES] Parsed milestones:', parsed.milestones.length);
 
-    // CRITICAL: Only accept jobs with complete data
+    // CRITICAL: Only accept jobs with complete data AND filter by relevance
     const milestoneInserts = parsed.milestones
       .filter((m: any) => {
-        // MUST have ALL required fields for a job
+        // MUST have ALL required fields
         const hasAllRequiredFields = 
           m.company_name && 
           m.job_title && 
@@ -117,33 +153,54 @@ Guidelines:
           m.end_date &&
           m.type === 'job';
         
+        // Filter by relevance if career focus is set
+        const isRelevant = targetRoles.length === 0 && targetIndustries.length === 0
+          ? true // No career focus = accept all
+          : (m.relevance_score || 0) >= 50; // With focus = require 50%+ relevance
+        
         if (!hasAllRequiredFields) {
           console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete job:', {
             company: m.company_name || 'MISSING',
             title: m.job_title || 'MISSING',
             start: m.start_date || 'MISSING',
-            end: m.end_date || 'MISSING',
-            type: m.type
+            end: m.end_date || 'MISSING'
+          });
+        } else if (!isRelevant) {
+          console.log('[PARSE-RESUME-MILESTONES] Skipping low-relevance job:', {
+            company: m.company_name,
+            title: m.job_title,
+            relevance: m.relevance_score,
+            reason: 'Below 50% relevance threshold'
           });
         }
         
-        return hasAllRequiredFields;
+        return hasAllRequiredFields && isRelevant;
       })
-      .map((m: any) => ({
-        vault_id: vaultId,
-        user_id: user.id,
-        milestone_type: 'job',
-        company_name: m.company_name,
-        job_title: m.job_title,
-        start_date: m.start_date,
-        end_date: m.end_date,
-        description: m.description || '',
-        key_achievements: m.key_achievements || [],
-        questions_asked: Math.min(m.estimated_question_count || 3, 3), // Cap at 3 questions per job
-        questions_answered: 0,
-        completion_percentage: 0,
-        intelligence_extracted: 0
-      }));
+      .slice(0, 12) // Hard cap at 12 milestones
+      .map((m: any, index: number) => {
+        // Dynamic question allocation based on priority
+        let questionsForJob = 3; // Default
+        if (index === 0) questionsForJob = 8; // Most recent: 8 questions
+        else if (index <= 2) questionsForJob = 5; // Next 2: 5 questions each
+        else if (index <= 5) questionsForJob = 3; // Next 3: 3 questions each
+        else questionsForJob = 2; // Older roles: 2 questions
+
+        return {
+          vault_id: vaultId,
+          user_id: user.id,
+          milestone_type: 'job',
+          company_name: m.company_name,
+          job_title: m.job_title,
+          start_date: m.start_date,
+          end_date: m.end_date,
+          description: m.description || '',
+          key_achievements: m.key_achievements || [],
+          questions_asked: questionsForJob,
+          questions_answered: 0,
+          completion_percentage: 0,
+          intelligence_extracted: 0
+        };
+      });
 
     if (milestoneInserts.length === 0) {
       console.error('[PARSE-RESUME-MILESTONES] No valid milestones found');

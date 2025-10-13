@@ -21,6 +21,7 @@ const CareerVaultOnboarding = () => {
   const [milestones, setMilestones] = useState<any[]>([]);
   const [showResumeChoiceModal, setShowResumeChoiceModal] = useState(false);
   const [vaultChoice, setVaultChoice] = useState<'replace' | 'enhance' | null>(null);
+  const [careerGoals, setCareerGoals] = useState<{ target_roles: string[]; target_industries: string[] } | null>(null);
   const [existingVaultStats, setExistingVaultStats] = useState<{
     completionPercentage: number;
     totalIntelligence: number;
@@ -234,8 +235,8 @@ const CareerVaultOnboarding = () => {
         return;
       }
 
-      // Store resume text in career_vault immediately
-      await supabase
+      // Store resume text in career_vault immediately, but DON'T parse milestones yet
+      const { data: vaultData } = await supabase
         .from('career_vault')
         .upsert({
           user_id: user.id,
@@ -243,17 +244,21 @@ const CareerVaultOnboarding = () => {
           initial_analysis: processData.analysis || {}
         }, {
           onConflict: 'user_id'
-        });
+        })
+        .select()
+        .single();
+
+      // Store vault ID for later milestone parsing
+      if (vaultData) {
+        sessionStorage.setItem('careerVaultId', vaultData.id);
+      }
 
       toast({
-        title: "Resume Processed",
-        description: vaultChoice === 'enhance' 
-          ? "Adding new experiences to your vault"
-          : processData.cached 
-            ? "Found matching resume in cache - instant analysis!"
-            : "Your resume has been analyzed successfully",
+        title: "Resume Uploaded",
+        description: "Now let's define your career focus to build a targeted vault.",
       });
 
+      // Go to career goals BEFORE parsing milestones
       setCurrentStep('goals');
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -444,26 +449,44 @@ const CareerVaultOnboarding = () => {
                 .maybeSingle();
 
               if (vault && vault.resume_raw_text) {
+                toast({
+                  title: "Building Your Focused Vault",
+                  description: "Extracting career milestones relevant to your goals..."
+                });
+
                 const { data: milestonesData, error: parseError } = await supabase.functions.invoke('parse-resume-milestones', {
                   body: {
                     resumeText: vault.resume_raw_text,
-                    vaultId: vault.id
+                    vaultId: vault.id,
+                    targetRoles: goalsData.target_roles,
+                    targetIndustries: goalsData.target_industries
                   }
                 });
 
                 if (parseError) {
                   console.error('Error parsing milestones:', parseError);
                   toast({
-                    title: 'Warning',
-                    description: 'Could not parse resume milestones',
+                    title: 'Error',
+                    description: 'Failed to parse career milestones',
                     variant: 'destructive'
                   });
                 } else if (milestonesData?.success) {
                   setMilestones(milestonesData.milestones);
+                  setCareerGoals(goalsData);
                   
+                  // Update vault with career focus
+                  await supabase
+                    .from('career_vault')
+                    .update({
+                      target_roles: goalsData.target_roles,
+                      target_industries: goalsData.target_industries,
+                      focus_set_at: new Date().toISOString()
+                    })
+                    .eq('id', vault.id);
+
                   toast({
-                    title: 'Resume parsed!',
-                    description: `Found ${milestonesData.milestones.length} career milestones`,
+                    title: 'Career Vault Ready',
+                    description: `Found ${milestonesData.milestones.length} relevant career milestones for ${goalsData.target_roles.join(', ')}`,
                   });
                 }
               }

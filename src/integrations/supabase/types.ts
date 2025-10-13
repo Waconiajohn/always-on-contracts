@@ -538,12 +538,15 @@ export type Database = {
       career_vault: {
         Row: {
           created_at: string
+          focus_set_at: string | null
           id: string
           initial_analysis: Json | null
           interview_completion_percentage: number | null
           last_updated_at: string
           overall_strength_score: number | null
           resume_raw_text: string | null
+          target_industries: string[] | null
+          target_roles: string[] | null
           total_behavioral_indicators: number | null
           total_executive_presence: number | null
           total_hidden_competencies: number | null
@@ -555,15 +558,19 @@ export type Database = {
           total_values: number | null
           total_work_style: number | null
           user_id: string
+          vault_name: string | null
         }
         Insert: {
           created_at?: string
+          focus_set_at?: string | null
           id?: string
           initial_analysis?: Json | null
           interview_completion_percentage?: number | null
           last_updated_at?: string
           overall_strength_score?: number | null
           resume_raw_text?: string | null
+          target_industries?: string[] | null
+          target_roles?: string[] | null
           total_behavioral_indicators?: number | null
           total_executive_presence?: number | null
           total_hidden_competencies?: number | null
@@ -575,15 +582,19 @@ export type Database = {
           total_values?: number | null
           total_work_style?: number | null
           user_id: string
+          vault_name?: string | null
         }
         Update: {
           created_at?: string
+          focus_set_at?: string | null
           id?: string
           initial_analysis?: Json | null
           interview_completion_percentage?: number | null
           last_updated_at?: string
           overall_strength_score?: number | null
           resume_raw_text?: string | null
+          target_industries?: string[] | null
+          target_roles?: string[] | null
           total_behavioral_indicators?: number | null
           total_executive_presence?: number | null
           total_hidden_competencies?: number | null
@@ -595,6 +606,7 @@ export type Database = {
           total_values?: number | null
           total_work_style?: number | null
           user_id?: string
+          vault_name?: string | null
         }
         Relationships: []
       }

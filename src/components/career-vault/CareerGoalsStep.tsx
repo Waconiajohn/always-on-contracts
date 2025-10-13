@@ -182,8 +182,33 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
       return;
     }
 
+    // CRITICAL: Save to profiles table before continuing
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        target_roles: selectedRoles,
+        role_preferences: selectedRoles,
+        industry_preferences: selectedIndustries
+      })
+      .eq('user_id', user.id);
+
+    if (profileError) {
+      console.error('Error saving career goals:', profileError);
+      toast.error('Failed to save career goals');
+      return;
+    }
+
     await saveProgress();
     toast.success('Career goals saved!');
+    
+    console.log('[CAREER-GOALS] Saved career focus:', { selectedRoles, selectedIndustries });
+    
     onComplete({
       target_roles: selectedRoles,
       target_industries: selectedIndustries,
