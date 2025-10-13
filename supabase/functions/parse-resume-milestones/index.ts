@@ -33,13 +33,15 @@ serve(async (req) => {
 
     console.log('[PARSE-RESUME-MILESTONES] Parsing resume into structured milestones...');
 
-    const systemPrompt = `You are an expert resume parser. Extract discrete career milestones (jobs, projects, achievements) from resumes in a structured format.`;
+    const systemPrompt = `You are an expert resume parser. Extract ONLY job positions from resumes. Do NOT extract standalone achievements or projects.`;
 
-    const prompt = `Parse this resume into structured milestones. Focus on extracting:
+    const prompt = `Parse this resume and extract ONLY job positions (employment history). Each job should include the achievements within that role context.
 
-1. **Jobs**: Each position held with company, title, dates, key responsibilities
-2. **Major Projects**: Significant projects with clear outcomes
-3. **Key Achievements**: Quantifiable accomplishments that stand alone
+CRITICAL RULES:
+- Extract ONLY jobs/positions (employment roles with company, title, dates)
+- Do NOT create separate entries for achievements - include them within the job context
+- Do NOT create project-only entries unless they were paid contract/freelance work
+- Every entry MUST have: company_name, job_title, start_date, end_date
 
 RESUME TEXT:
 ${resumeText}
@@ -48,25 +50,25 @@ Return as JSON:
 {
   "milestones": [
     {
-      "type": "job|project|achievement",
-      "company_name": "Company name (for jobs)",
-      "job_title": "Job title (for jobs)",
-      "start_date": "YYYY-MM or just year",
-      "end_date": "YYYY-MM or 'Present'",
-      "description": "Brief summary",
-      "key_achievements": ["Achievement 1", "Achievement 2"],
-      "estimated_question_count": 2-5 (based on role seniority/impact)
+      "type": "job",
+      "company_name": "Full company name (REQUIRED)",
+      "job_title": "Job title (REQUIRED)",
+      "start_date": "YYYY-MM or YYYY (REQUIRED)",
+      "end_date": "YYYY-MM or 'Present' (REQUIRED)",
+      "description": "Brief role summary",
+      "key_achievements": ["Achievement 1", "Achievement 2", "Achievement 3"],
+      "estimated_question_count": 3
     }
   ],
-  "total_estimated_questions": 25-50
+  "total_estimated_questions": 30
 }
 
 Guidelines:
-- For senior roles or longer tenures: 3-5 questions
-- For junior roles or short tenures: 2-3 questions
-- For major projects: 2-4 questions
-- For achievements: 1-2 questions
-- Prioritize roles/projects with quantifiable impact`;
+- Target 10-15 total jobs (typical resume length)
+- Each job gets 2-3 questions = ~30 total questions
+- Prioritize most recent and most senior roles
+- If resume has >15 jobs, prioritize the most impactful ones
+- SKIP any entry where company_name, job_title, start_date, or end_date is missing`;
 
     console.log('[PARSE-RESUME-MILESTONES] Calling Gemini 2.5 Flash...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -104,32 +106,40 @@ Guidelines:
 
     console.log('[PARSE-RESUME-MILESTONES] Parsed milestones:', parsed.milestones.length);
 
-    // CRITICAL: Filter out blank/invalid milestones before saving
+    // CRITICAL: Only accept jobs with complete data
     const milestoneInserts = parsed.milestones
       .filter((m: any) => {
-        // Must have either job_title OR company_name (for jobs)
-        // OR have a meaningful description (for projects/achievements)
-        const hasJobInfo = m.job_title || m.company_name;
-        const hasDescription = m.description && m.description.length > 10;
-        const isValid = hasJobInfo || hasDescription;
+        // MUST have ALL required fields for a job
+        const hasAllRequiredFields = 
+          m.company_name && 
+          m.job_title && 
+          m.start_date && 
+          m.end_date &&
+          m.type === 'job';
         
-        if (!isValid) {
-          console.log('[PARSE-RESUME-MILESTONES] Skipping blank milestone:', m);
+        if (!hasAllRequiredFields) {
+          console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete job:', {
+            company: m.company_name || 'MISSING',
+            title: m.job_title || 'MISSING',
+            start: m.start_date || 'MISSING',
+            end: m.end_date || 'MISSING',
+            type: m.type
+          });
         }
         
-        return isValid;
+        return hasAllRequiredFields;
       })
       .map((m: any) => ({
         vault_id: vaultId,
         user_id: user.id,
-        milestone_type: m.type,
-        company_name: m.company_name || 'Not specified',
-        job_title: m.job_title || 'Achievement',
+        milestone_type: 'job',
+        company_name: m.company_name,
+        job_title: m.job_title,
         start_date: m.start_date,
         end_date: m.end_date,
-        description: m.description,
+        description: m.description || '',
         key_achievements: m.key_achievements || [],
-        questions_asked: m.estimated_question_count || 3,
+        questions_asked: Math.min(m.estimated_question_count || 3, 3), // Cap at 3 questions per job
         questions_answered: 0,
         completion_percentage: 0,
         intelligence_extracted: 0

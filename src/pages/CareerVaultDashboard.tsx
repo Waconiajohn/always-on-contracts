@@ -118,11 +118,13 @@ interface BehavioralIndicator {
 
 import { EnhancementQueue } from '@/components/EnhancementQueue';
 import { useNavigate } from 'react-router-dom';
-import { Rocket } from 'lucide-react';
+import { Rocket, Upload, PlayCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
 
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
+  const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [vaultId, setVaultId] = useState<string>("");
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [powerPhrases, setPowerPhrases] = useState<PowerPhrase[]>([]);
@@ -293,6 +295,10 @@ const VaultDashboardContent = () => {
     fetchData();
   }, []);
 
+  const handleResumeUploaded = () => {
+    window.location.reload();
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
@@ -335,6 +341,56 @@ const VaultDashboardContent = () => {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
+      {/* Master Controls Section */}
+      <Card className="mb-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold mb-1">Vault Status</h2>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span>Interview: {stats.interview_completion_percentage}% complete</span>
+              <span>•</span>
+              <span>{stats.total_power_phrases + stats.total_transferable_skills + stats.total_hidden_competencies} intelligence items</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setResumeModalOpen(true)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Manage Resume
+            </Button>
+            {stats.interview_completion_percentage < 100 && (
+              <Button 
+                size="sm"
+                onClick={() => navigate('/career-vault/onboarding')}
+              >
+                <PlayCircle className="h-4 w-4 mr-2" />
+                Continue Interview
+              </Button>
+            )}
+            {stats.interview_completion_percentage === 100 && (
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/career-vault/onboarding')}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restart Interview
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <ResumeManagementModal
+        open={resumeModalOpen}
+        onOpenChange={setResumeModalOpen}
+        vaultId={vaultId}
+        onResumeUploaded={handleResumeUploaded}
+      />
+
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">Your Career Vault</h1>

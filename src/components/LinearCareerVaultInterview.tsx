@@ -312,9 +312,13 @@ export const LinearCareerVaultInterview = ({
               <Badge variant="secondary" className="mb-2">
                 Question {queueItem.questionNumber} of {queueItem.totalForMilestone}
               </Badge>
-              <CardTitle className="text-xl">{queueItem.milestoneContext.jobTitle}</CardTitle>
+              <CardTitle className="text-xl">
+                {queueItem.milestoneContext.jobTitle || 'Career Milestone'}
+              </CardTitle>
               <p className="text-sm text-muted-foreground">
-                {queueItem.milestoneContext.company} • {queueItem.milestoneContext.dates}
+                {queueItem.milestoneContext.company || 'Your Experience'}
+                {queueItem.milestoneContext.dates && queueItem.milestoneContext.dates !== ' - ' && 
+                  ` • ${queueItem.milestoneContext.dates}`}
               </p>
             </div>
           </div>
@@ -372,6 +376,19 @@ export const LinearCareerVaultInterview = ({
               </Button>
 
               <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    toast({
+                      title: 'Progress Saved',
+                      description: `You've completed ${completedQuestions} of ${questionQueue.length} questions.`,
+                    });
+                    window.location.href = '/career-vault';
+                  }}
+                  disabled={isLoading}
+                >
+                  Save & Exit
+                </Button>
                 <Button
                   variant="ghost"
                   onClick={handleSkip}
