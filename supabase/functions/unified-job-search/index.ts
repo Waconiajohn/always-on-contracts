@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { differenceInDays } from "https://esm.sh/date-fns@3.0.0";
+
+// Simple date difference function
+function differenceInDays(date1: Date, date2: Date): number {
+  const diffTime = Math.abs(date1.getTime() - date2.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,7 +63,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const enabledSources = sources || ['google_jobs', 'adzuna', 'usajobs', 'company_boards'];
+    const enabledSources = sources || ['google_jobs', 'company_boards'];
     const allJobs: JobResult[] = [];
     const sourceStats: Record<string, { count: number; status: string }> = {};
     const startTime = Date.now();
@@ -76,36 +81,6 @@ serve(async (req) => {
           .catch(error => {
             console.error('Google Jobs error:', error);
             sourceStats.google_jobs = { count: 0, status: 'error' };
-            return [];
-          })
-      );
-    }
-
-    if (enabledSources.includes('adzuna')) {
-      searchPromises.push(
-        searchAdzuna(query, location, searchFilters)
-          .then(jobs => {
-            sourceStats.adzuna = { count: jobs.length, status: 'success' };
-            return jobs;
-          })
-          .catch(error => {
-            console.error('Adzuna error:', error);
-            sourceStats.adzuna = { count: 0, status: 'error' };
-            return [];
-          })
-      );
-    }
-
-    if (enabledSources.includes('usajobs')) {
-      searchPromises.push(
-        searchUSAJobs(query, location, searchFilters)
-          .then(jobs => {
-            sourceStats.usajobs = { count: jobs.length, status: 'success' };
-            return jobs;
-          })
-          .catch(error => {
-            console.error('USAJobs error:', error);
-            sourceStats.usajobs = { count: 0, status: 'error' };
             return [];
           })
       );
@@ -155,7 +130,7 @@ serve(async (req) => {
 
     // Sort by match score (if available) and then by posted date
     scoredJobs.sort((a, b) => {
-      if (a.match_score !== undefined && b.match_score !== undefined && a.match_score !== b.match_score) {
+      if (a.match_score && b.match_score && a.match_score !== b.match_score) {
         return b.match_score - a.match_score;
       }
       return new Date(b.posted_date).getTime() - new Date(a.posted_date).getTime();
@@ -217,108 +192,6 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
         source: 'Google Jobs',
         remote_type: job.location?.toLowerCase().includes('remote') ? 'remote' : null,
         employment_type: job.detected_extensions?.schedule_type || null
-      });
-    }
-  }
-
-  return jobs;
-}
-
-async function searchAdzuna(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
-  const appId = Deno.env.get('ADZUNA_APP_ID');
-  const apiKey = Deno.env.get('ADZUNA_API_KEY');
-  
-  if (!appId || !apiKey) {
-    console.warn('Adzuna API keys not configured');
-    return [];
-  }
-
-  const country = 'us';
-  const params = new URLSearchParams({
-    app_id: appId,
-    app_key: apiKey,
-    results_per_page: '50',
-    what: query,
-    where: location || '',
-    content-type: 'application/json'
-  });
-
-  const response = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`);
-  if (!response.ok) throw new Error('Adzuna API failed');
-
-  const data = await response.json();
-  const jobs: JobResult[] = [];
-
-  if (data.results) {
-    for (const job of data.results) {
-      if (!job.created) continue; // Skip jobs without posting dates
-
-      jobs.push({
-        id: `adzuna_${job.id}`,
-        title: job.title,
-        company: job.company.display_name,
-        location: job.location.display_name,
-        salary_min: job.salary_min,
-        salary_max: job.salary_max,
-        description: job.description,
-        posted_date: job.created,
-        apply_url: job.redirect_url,
-        source: 'Adzuna',
-        employment_type: job.contract_type || null
-      });
-    }
-  }
-
-  return jobs;
-}
-
-async function searchUSAJobs(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
-  const apiKey = Deno.env.get('USAJOBS_API_KEY');
-  const email = Deno.env.get('USAJOBS_EMAIL');
-  
-  if (!apiKey || !email) {
-    console.warn('USAJobs API keys not configured');
-    return [];
-  }
-
-  const params = new URLSearchParams({
-    Keyword: query,
-    ResultsPerPage: '50'
-  });
-
-  if (location) {
-    params.append('LocationName', location);
-  }
-
-  const response = await fetch(`https://data.usajobs.gov/api/search?${params}`, {
-    headers: {
-      'Authorization-Key': apiKey,
-      'User-Agent': email
-    }
-  });
-
-  if (!response.ok) throw new Error('USAJobs API failed');
-
-  const data = await response.json();
-  const jobs: JobResult[] = [];
-
-  if (data.SearchResult?.SearchResultItems) {
-    for (const item of data.SearchResult.SearchResultItems) {
-      const job = item.MatchedObjectDescriptor;
-      if (!job.PublicationStartDate) continue;
-
-      jobs.push({
-        id: `usajobs_${job.PositionID}`,
-        title: job.PositionTitle,
-        company: job.OrganizationName,
-        location: job.PositionLocationDisplay,
-        salary_min: job.PositionRemuneration?.[0]?.MinimumRange,
-        salary_max: job.PositionRemuneration?.[0]?.MaximumRange,
-        description: job.QualificationSummary,
-        posted_date: job.PublicationStartDate,
-        apply_url: job.ApplyURI?.[0],
-        source: 'USAJobs',
-        employment_type: 'full-time'
       });
     }
   }
@@ -434,7 +307,7 @@ async function scoreWithVault(jobs: JobResult[], userId: string, supabaseClient:
       }
 
       // Skills match (5 points per skill, max 40)
-      const matchingSkills = skills.filter(skill => jobText.includes(skill));
+      const matchingSkills = skills.filter((skill: string) => jobText.includes(skill));
       score += Math.min(matchingSkills.length * 5, 40);
 
       // Freshness bonus (10 points for <7 days)

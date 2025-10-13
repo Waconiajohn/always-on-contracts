@@ -107,7 +107,7 @@ const JobSearchContent = () => {
             employmentType
           },
           userId: userId || undefined,
-          sources: ['google_jobs', 'adzuna', 'usajobs', 'company_boards']
+          sources: ['google_jobs', 'company_boards']
         }
       });
 
@@ -350,16 +350,10 @@ const JobSearchContent = () => {
               <div className="flex items-center gap-4">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <div className="flex-1">
-                  <p className="font-medium">Searching 4 sources...</p>
+                  <p className="font-medium">Searching 2 sources...</p>
                   <div className="flex gap-3 mt-2 text-sm">
                     <span className={sourceStats.google_jobs?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
                       Google Jobs {sourceStats.google_jobs?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.adzuna?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Adzuna {sourceStats.adzuna?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.usajobs?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      USAJobs {sourceStats.usajobs?.status === 'success' ? '✓' : '⏳'}
                     </span>
                     <span className={sourceStats.company_boards?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
                       Company Boards {sourceStats.company_boards?.status === 'success' ? '✓' : '⏳'}
