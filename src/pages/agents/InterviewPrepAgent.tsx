@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Target, Brain, Lightbulb, Sparkles, Mail } from "lucide-react";
+import { MessageSquare, Target, Brain, Lightbulb, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,7 @@ const InterviewPrepAgentContent = () => {
   const [jobDescription, setJobDescription] = useState("");
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<any>(null);
-  const [companyResearch, setCompanyResearch] = useState<any>(null);
+  const [companyResearch] = useState<any>(null);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation } = usePersonaRecommendation('interview');
 
