@@ -1291,14 +1291,18 @@ export type Database = {
           created_at: string | null
           engagement_metrics: Json | null
           engagement_score: number | null
+          focus_statement: string | null
           hashtags: string[] | null
           id: string
+          part_number: number | null
           post_type: string | null
           posted_to_groups: string[] | null
           scheduled_for: string | null
+          series_id: string | null
           status: string | null
           title: string | null
           tone: string | null
+          total_parts: number | null
           updated_at: string | null
           user_id: string
           vault_sources: string[] | null
@@ -1309,14 +1313,18 @@ export type Database = {
           created_at?: string | null
           engagement_metrics?: Json | null
           engagement_score?: number | null
+          focus_statement?: string | null
           hashtags?: string[] | null
           id?: string
+          part_number?: number | null
           post_type?: string | null
           posted_to_groups?: string[] | null
           scheduled_for?: string | null
+          series_id?: string | null
           status?: string | null
           title?: string | null
           tone?: string | null
+          total_parts?: number | null
           updated_at?: string | null
           user_id: string
           vault_sources?: string[] | null
@@ -1327,19 +1335,31 @@ export type Database = {
           created_at?: string | null
           engagement_metrics?: Json | null
           engagement_score?: number | null
+          focus_statement?: string | null
           hashtags?: string[] | null
           id?: string
+          part_number?: number | null
           post_type?: string | null
           posted_to_groups?: string[] | null
           scheduled_for?: string | null
+          series_id?: string | null
           status?: string | null
           title?: string | null
           tone?: string | null
+          total_parts?: number | null
           updated_at?: string | null
           user_id?: string
           vault_sources?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "linkedin_posts_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "linkedin_series"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       linkedin_profile_sections: {
         Row: {
@@ -1407,6 +1427,51 @@ export type Database = {
           optimized_content?: Json | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      linkedin_series: {
+        Row: {
+          created_at: string
+          experience_years: number | null
+          id: string
+          industry: string | null
+          outline_data: Json | null
+          series_length: number
+          series_title: string
+          series_topic: string
+          target_audience: string | null
+          updated_at: string
+          user_id: string
+          user_role: string | null
+        }
+        Insert: {
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          industry?: string | null
+          outline_data?: Json | null
+          series_length: number
+          series_title: string
+          series_topic: string
+          target_audience?: string | null
+          updated_at?: string
+          user_id: string
+          user_role?: string | null
+        }
+        Update: {
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          industry?: string | null
+          outline_data?: Json | null
+          series_length?: number
+          series_title?: string
+          series_topic?: string
+          target_audience?: string | null
+          updated_at?: string
+          user_id?: string
+          user_role?: string | null
         }
         Relationships: []
       }

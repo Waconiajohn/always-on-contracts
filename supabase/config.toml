@@ -1,5 +1,8 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
+[functions.generate-series-outline]
+verify_jwt = true
+
 [functions.generate-executive-resume]
 verify_jwt = true
 

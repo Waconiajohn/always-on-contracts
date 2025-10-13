@@ -15,6 +15,11 @@ import { useLinkedInDrafts } from "@/hooks/useLinkedInDrafts";
 import type { LinkedInPost, ContentAnalysis } from "@/types/linkedin";
 import { WeeklyPostingCalendar } from "@/components/linkedin/WeeklyPostingCalendar";
 import { AppNav } from "@/components/AppNav";
+import { SeriesPlanner } from "@/components/linkedin/SeriesPlanner";
+import { HumanWritingAnalyzer } from "@/components/linkedin/HumanWritingAnalyzer";
+import { QualityCheckModal } from "@/components/linkedin/QualityCheckModal";
+import { SeriesDashboard } from "@/components/linkedin/SeriesDashboard";
+import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
 
 export default function LinkedInBloggingAgent() {
   const [topic, setTopic] = useState("");
@@ -28,6 +33,8 @@ export default function LinkedInBloggingAgent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [_editingDraft, _setEditingDraft] = useState<string | null>(null);
+  const [showQualityCheck, setShowQualityCheck] = useState(false);
+  const [editingContent, setEditingContent] = useState("");
   const { toast } = useToast();
   const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
 
@@ -157,6 +164,12 @@ export default function LinkedInBloggingAgent() {
     }
   };
 
+  const handleSaveWithCheck = () => {
+    if (!generatedPost) return;
+    setEditingContent(generatedPost.content);
+    setShowQualityCheck(true);
+  };
+
   const handleSave = async () => {
     if (!generatedPost) return;
 
@@ -177,6 +190,7 @@ export default function LinkedInBloggingAgent() {
 
       if (error) throw error;
       toast({ title: "Saved!", description: "Post saved to your drafts" });
+      setShowQualityCheck(false);
       fetchDrafts();
     } catch (error: any) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
@@ -215,10 +229,12 @@ export default function LinkedInBloggingAgent() {
           />
 
           <Tabs defaultValue="generator" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="generator">Content Generator</TabsTrigger>
-          <TabsTrigger value="analyzer">Content Analyzer</TabsTrigger>
-          <TabsTrigger value="drafts">Saved Drafts</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="generator">Generator</TabsTrigger>
+          <TabsTrigger value="series">Series Builder</TabsTrigger>
+          <TabsTrigger value="analyzer">Analyzer</TabsTrigger>
+          <TabsTrigger value="dashboard">My Series</TabsTrigger>
+          <TabsTrigger value="drafts">Drafts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="generator" className="space-y-6">
@@ -314,7 +330,7 @@ export default function LinkedInBloggingAgent() {
                       <Button size="sm" variant="outline" onClick={handleCopy}>
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" onClick={handleSave}>
+                      <Button size="sm" onClick={handleSaveWithCheck}>
                         <Save className="h-4 w-4 mr-1" /> Save
                       </Button>
                     </div>
@@ -322,14 +338,19 @@ export default function LinkedInBloggingAgent() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label>Generated Content</Label>
+                    <div className="flex justify-between items-center mb-2">
+                      <Label>Generated Content</Label>
+                      <CharacterCounter current={generatedPost.content.length} max={3000} />
+                    </div>
                     <Textarea
                       value={generatedPost.content}
-                      readOnly
+                      onChange={(e) => setGeneratedPost({ ...generatedPost, content: e.target.value })}
                       rows={12}
                       className="mt-2 font-mono text-sm"
                     />
                   </div>
+                  
+                  <HumanWritingAnalyzer content={generatedPost.content} />
 
                   {generatedPost.hashtags?.length > 0 && (
                     <div>
@@ -361,6 +382,14 @@ export default function LinkedInBloggingAgent() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="series" className="space-y-6">
+          <SeriesPlanner />
+        </TabsContent>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          <SeriesDashboard />
         </TabsContent>
 
         <TabsContent value="analyzer" className="space-y-6">
@@ -531,6 +560,13 @@ export default function LinkedInBloggingAgent() {
       </Tabs>
         </div>
       </div>
+      
+      <QualityCheckModal
+        open={showQualityCheck}
+        onOpenChange={setShowQualityCheck}
+        content={editingContent}
+        onSave={handleSave}
+      />
     </div>
   );
 }

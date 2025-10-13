@@ -12,15 +12,51 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, tone, postType, targetAudience, keyPoints, userProfile } = await req.json();
+    const { 
+      topic, 
+      tone, 
+      postType, 
+      targetAudience, 
+      keyPoints, 
+      userProfile,
+      seriesId,
+      partNumber,
+      totalParts,
+      focusStatement,
+      seriesTitle 
+    } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    // Build series context if applicable
+    let seriesContext = '';
+    if (seriesId && partNumber && totalParts) {
+      seriesContext = `
+SERIES CONTEXT:
+- This is Part ${partNumber} of ${totalParts} in series: "${seriesTitle || topic}"
+- Focus for this part: ${focusStatement}
+${partNumber > 1 ? `- Reference Part ${partNumber - 1} briefly if relevant (e.g., "In Part ${partNumber - 1}, we covered...")` : ''}
+${partNumber < totalParts ? `- Tease Part ${partNumber + 1} subtly (e.g., "Next, we'll explore...")` : ''}
+
+CRITICAL FOR SERIES POSTS:
+- Keep to 240-260 words MAXIMUM
+- Discuss ONLY ONE concept (the focus statement)
+- Use conversational tone with contractions (you'll, we're, it's)
+- Start with a PROBLEM/CHALLENGE that commonly occurs
+- End with a specific question for readers
+- NO jargon: avoid "utilize," "leverage," "synergy," "holistic," "implement"
+- Use executive vocabulary: cost, margin, deadlines, systems, staff, results
+- Acknowledge trade-offs and limitations (no universal solutions)
+- Max 18 words per sentence
+`;
+    }
+
     // Elite LinkedIn content strategist persona
     const systemPrompt = `You are an elite LinkedIn content strategist with 15+ years of experience building executive thought leadership for Fortune 500 leaders.
+${seriesContext}
 
 CORE EXPERTISE:
 - Viral content psychology and engagement mechanics
@@ -75,6 +111,8 @@ FORBIDDEN ELEMENTS:
 - Excessive self-promotion
 - Corporate jargon without translation
 - More than 5 hashtags
+
+${seriesId ? 'FOR SERIES POSTS: Every post MUST acknowledge a common failure/challenge. Use phrases like "this usually backfires," "teams struggle because," "I\'ve seen this fail when"' : ''}
 
 Return JSON with:
 {
