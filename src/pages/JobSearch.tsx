@@ -393,13 +393,29 @@ const JobSearchContent = () => {
               <div className="flex items-center gap-4">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <div className="flex-1">
-                  <p className="font-medium">Searching 2 sources...</p>
-                  <div className="flex gap-3 mt-2 text-sm">
+                  <p className="font-medium">Searching 7 sources...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Google Jobs + 6 ATS systems (150+ companies)</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-sm">
                     <span className={sourceStats.google_jobs?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
                       Google Jobs {sourceStats.google_jobs?.status === 'success' ? '✓' : '⏳'}
                     </span>
-                    <span className={sourceStats.company_boards?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Company Boards {sourceStats.company_boards?.status === 'success' ? '✓' : '⏳'}
+                    <span className={sourceStats.greenhouse?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
+                      Greenhouse {sourceStats.greenhouse?.status === 'success' ? '✓' : '⏳'}
+                    </span>
+                    <span className={sourceStats.lever?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
+                      Lever {sourceStats.lever?.status === 'success' ? '✓' : '⏳'}
+                    </span>
+                    <span className={sourceStats.workday?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
+                      Workday {sourceStats.workday?.status === 'success' ? '✓' : '⏳'}
+                    </span>
+                    <span className={sourceStats.recruitee?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
+                      Recruitee {sourceStats.recruitee?.status === 'success' ? '✓' : '⏳'}
+                    </span>
+                    <span className={sourceStats.workable?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
+                      Workable {sourceStats.workable?.status === 'success' ? '✓' : '⏳'}
+                    </span>
+                    <span className={sourceStats.ashby?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
+                      Ashby {sourceStats.ashby?.status === 'success' ? '✓' : '⏳'}
                     </span>
                   </div>
                 </div>
