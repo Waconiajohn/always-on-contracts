@@ -198,30 +198,30 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
 
   const data = await response.json();
   console.log(`[Google Jobs] Full response keys:`, Object.keys(data));
-  console.log(`[Google Jobs] Full API response:`, JSON.stringify(data, null, 2));
-  console.log(`[Google Jobs] jobs_results length: ${data.jobs_results?.length || 0}`);
+  console.log(`[Google Jobs] Jobs array length: ${data.jobs?.length || 0}`);
   
   const jobs: JobResult[] = [];
 
-  if (data.jobs_results && data.jobs_results.length > 0) {
-    for (const job of data.jobs_results) {
+  if (data.jobs && data.jobs.length > 0) {
+    for (const job of data.jobs) {
       if (!job.detected_extensions?.posted_at) continue; // Skip jobs without posting dates
 
       jobs.push({
-        id: `google_${job.job_id || Math.random()}`,
+        id: `google_${job.position || Math.random()}`,
         title: job.title,
         company: job.company_name,
         location: job.location,
         description: job.description,
         posted_date: parseGoogleDate(job.detected_extensions.posted_at),
-        apply_url: job.apply_options?.[0]?.link || job.share_url,
+        apply_url: job.apply_link,
         source: 'Google Jobs',
         remote_type: job.location?.toLowerCase().includes('remote') ? 'remote' : null,
-        employment_type: job.detected_extensions?.schedule_type || null
+        employment_type: job.detected_extensions?.schedule || null
       });
     }
   }
 
+  console.log(`[Google Jobs] Parsed ${jobs.length} jobs successfully`);
   return jobs;
 }
 
