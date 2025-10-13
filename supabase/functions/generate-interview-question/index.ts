@@ -316,7 +316,7 @@ ${generate_answer_options ? `{
   "isComplete": false
 }` : `{
   "question": {
-    "context": "Why I'm asking this - explain the strategic value",
+    "context": "STRATEGIC VALUE ONLY - Explain which intelligence categories this question extracts (e.g., 'Identifies leadership evidence and quantifiable business impact'). DO NOT restate or rephrase the question. DO NOT use conversational filler like 'I'd love to hear...' or 'Tell me about...'",
     "knownData": [
       {
         "label": "Current Role",
@@ -337,6 +337,19 @@ ${generate_answer_options ? `{
   "completionPercentage": ${completionPercentage},
   "isComplete": false
 }`}
+
+CONTEXT FIELD RULES:
+✅ GOOD context examples:
+- "Extracts leadership evidence and team management capabilities"
+- "Identifies quantifiable business impact and problem-solving approaches"
+- "Reveals technical depth and industry-specific expertise"
+
+❌ BAD context examples (DO NOT USE):
+- "I'd love to hear about your experience..." (redundant rephrasing)
+- "Tell me more about how you..." (restating the question)
+- "That's wonderful! Let me ask about..." (conversational filler)
+
+The context field is NOT a second question or intro—it's a brief explanation of WHY we're asking for strategic Career Vault building purposes.
 
 CRITICAL INSTRUCTIONS (PHASE 2 FIX - Use FULL resume context):
 1. FULL RESUME TEXT: ${vault?.resume_raw_text?.substring(0, 800) || 'N/A'}
