@@ -170,7 +170,7 @@ serve(async (req) => {
 async function searchGoogleJobs(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
   const searchApiKey = Deno.env.get('SEARCHAPI_KEY');
   if (!searchApiKey) {
-    console.warn('SEARCHAPI_KEY not configured');
+    console.warn('[Google Jobs] SEARCHAPI_KEY not configured');
     return [];
   }
 
@@ -184,13 +184,23 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
     api_key: searchApiKey
   });
 
-  const response = await fetch(`https://www.searchapi.io/api/v1/search?${params}`);
-      if (!response.ok) throw new Error('Google Jobs API failed');
+  const url = `https://www.searchapi.io/api/v1/search?${params}`;
+  console.log(`[Google Jobs] Calling API with query: "${searchQuery}", location: "${location || 'United States'}"`);
+  
+  const response = await fetch(url);
+  console.log(`[Google Jobs] API Status: ${response.status} ${response.statusText}`);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[Google Jobs] API Error: ${errorText}`);
+    throw new Error(`Google Jobs API failed: ${response.status} - ${errorText}`);
+  }
 
   const data = await response.json();
-  const jobs: JobResult[] = [];
+  console.log(`[Google Jobs] Raw API response:`, JSON.stringify(data, null, 2).substring(0, 500));
+  console.log(`[Google Jobs] Jobs found: ${data.jobs_results?.length || 0}`);
   
-  console.log(`[Google Jobs] Raw API response: ${data.jobs_results?.length || 0} jobs`);
+  const jobs: JobResult[] = [];
 
   if (data.jobs_results) {
     for (const job of data.jobs_results) {
