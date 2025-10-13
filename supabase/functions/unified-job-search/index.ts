@@ -88,15 +88,68 @@ serve(async (req) => {
     }
 
     if (enabledSources.includes('company_boards')) {
+      // Search all ATS systems in parallel
       searchPromises.push(
         searchCompanyBoards(query, searchFilters)
           .then(jobs => {
-            sourceStats.company_boards = { count: jobs.length, status: 'success' };
+            sourceStats.greenhouse = { count: jobs.length, status: 'success' };
             return jobs;
           })
           .catch(error => {
-            console.error('Company boards error:', error);
-            sourceStats.company_boards = { count: 0, status: 'error' };
+            console.error('Greenhouse boards error:', error);
+            sourceStats.greenhouse = { count: 0, status: 'error' };
+            return [];
+          })
+      );
+      
+      searchPromises.push(
+        searchLeverBoards(query, searchFilters)
+          .then(jobs => {
+            sourceStats.lever = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('Lever boards error:', error);
+            sourceStats.lever = { count: 0, status: 'error' };
+            return [];
+          })
+      );
+      
+      searchPromises.push(
+        searchWorkdayBoards(query, searchFilters)
+          .then(jobs => {
+            sourceStats.workday = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('Workday boards error:', error);
+            sourceStats.workday = { count: 0, status: 'error' };
+            return [];
+          })
+      );
+      
+      searchPromises.push(
+        searchSmartRecruitersBoards(query, searchFilters)
+          .then(jobs => {
+            sourceStats.smartrecruiters = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('SmartRecruiters boards error:', error);
+            sourceStats.smartrecruiters = { count: 0, status: 'error' };
+            return [];
+          })
+      );
+      
+      searchPromises.push(
+        searchAshbyBoards(query, searchFilters)
+          .then(jobs => {
+            sourceStats.ashby = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('Ashby boards error:', error);
+            sourceStats.ashby = { count: 0, status: 'error' };
             return [];
           })
       );
@@ -274,8 +327,8 @@ async function searchCompanyBoards(query: string, filters: SearchFilters): Promi
           
           const jobText = `${job.title} ${job.content || ''}`.toLowerCase();
           
-          // More flexible matching: check if any search term appears in job text
-          const matches = searchTerms.some(term => jobText.includes(term));
+          // Strict matching: ALL search terms must be present
+          const matches = searchTerms.every(term => jobText.includes(term));
           
           if (!matches) {
             console.log(`[Company Boards] ${board} - Filtered out: "${job.title}" (no match)`);
@@ -333,6 +386,303 @@ async function searchCompanyBoards(query: string, filters: SearchFilters): Promi
     4. Company board names may be different than expected`);
   }
 
+  return jobs;
+}
+
+// Lever ATS Search
+async function searchLeverBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[Lever] Starting search for query: "${query}"`);
+  const jobs: JobResult[] = [];
+  const searchTerms = query.toLowerCase().split(' ');
+  
+  const leverCompanies = [
+    'netflix', 'shopify', 'stripe', 'squarespace', 'grammarly', 'canva',
+    'reddit', 'discord', 'figma', 'miro', 'airtable', 'monday'
+  ];
+  
+  console.log(`[Lever] Searching ${leverCompanies.length} companies`);
+  
+  const leverPromises = leverCompanies.map(async (company) => {
+    try {
+      const url = `https://api.lever.co/v0/postings/${company}?mode=json`;
+      console.log(`[Lever] Fetching: ${company}`);
+      
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (!response.ok) {
+        console.log(`[Lever] ${company} returned status ${response.status}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log(`[Lever] ${company} has ${data.length || 0} total jobs`);
+      
+      const filtered = (data || [])
+        .filter((job: any) => {
+          const jobText = `${job.text} ${job.description || ''}`.toLowerCase();
+          const matches = searchTerms.every(term => jobText.includes(term));
+          
+          if (matches) {
+            console.log(`[Lever] ${company} - Match: "${job.text}"`);
+          }
+          return matches;
+        })
+        .map((job: any) => ({
+          id: `lever_${company}_${job.id}`,
+          title: job.text,
+          company: company.charAt(0).toUpperCase() + company.slice(1),
+          location: job.categories?.location || job.workplaceType || 'Remote',
+          description: job.descriptionPlain || job.description,
+          posted_date: new Date(job.createdAt).toISOString(),
+          apply_url: job.hostedUrl || job.applyUrl,
+          source: 'Lever',
+          employment_type: job.categories?.commitment || 'full-time'
+        }));
+      
+      return filtered;
+    } catch (error) {
+      console.error(`[Lever] Error fetching ${company}:`, error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  });
+
+  const results = await Promise.allSettled(leverPromises);
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      jobs.push(...result.value);
+    }
+  });
+
+  console.log(`[Lever] Search complete: ${jobs.length} matching jobs`);
+  return jobs;
+}
+
+// Workday ATS Search
+async function searchWorkdayBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[Workday] Starting search for query: "${query}"`);
+  const jobs: JobResult[] = [];
+  const searchTerms = query.toLowerCase().split(' ');
+  
+  // Major companies using Workday
+  const workdayCompanies = [
+    { id: 'shell', site: 'Shell_Careers' },
+    { id: 'bp', site: 'bp' },
+    { id: 'chevron', site: 'Chevron' },
+    { id: 'conocophillips', site: 'ConocoPhillips' },
+    { id: 'halliburton', site: 'Halliburton' },
+    { id: 'slb', site: 'SLB' },
+    { id: 'baker-hughes', site: 'BakerHughes' }
+  ];
+  
+  console.log(`[Workday] Searching ${workdayCompanies.length} companies`);
+  
+  const workdayPromises = workdayCompanies.map(async ({ id, site }) => {
+    try {
+      // Workday job search API endpoint
+      const url = `https://${id}.wd1.myworkdayjobs.com/wday/cxs/${site}/jobs`;
+      console.log(`[Workday] Fetching: ${id}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          appliedFacets: {},
+          limit: 20,
+          offset: 0,
+          searchText: query
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (!response.ok) {
+        console.log(`[Workday] ${id} returned status ${response.status}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      const totalJobs = data.jobPostings?.length || 0;
+      console.log(`[Workday] ${id} has ${totalJobs} jobs for query`);
+      
+      const filtered = (data.jobPostings || [])
+        .filter((job: any) => {
+          const jobText = `${job.title} ${job.bulletFields?.join(' ') || ''}`.toLowerCase();
+          const matches = searchTerms.every(term => jobText.includes(term));
+          
+          if (matches) {
+            console.log(`[Workday] ${id} - Match: "${job.title}"`);
+          }
+          return matches;
+        })
+        .map((job: any) => ({
+          id: `workday_${id}_${job.bulletFields?.[0] || Math.random()}`,
+          title: job.title,
+          company: id.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          location: job.locationsText || 'Multiple Locations',
+          description: job.bulletFields?.join('\n'),
+          posted_date: job.postedOn || new Date().toISOString(),
+          apply_url: `https://${id}.wd1.myworkdayjobs.com/en-US/${site}${job.externalPath}`,
+          source: 'Workday',
+          employment_type: 'full-time'
+        }));
+      
+      return filtered;
+    } catch (error) {
+      console.error(`[Workday] Error fetching ${id}:`, error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  });
+
+  const results = await Promise.allSettled(workdayPromises);
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      jobs.push(...result.value);
+    }
+  });
+
+  console.log(`[Workday] Search complete: ${jobs.length} matching jobs`);
+  return jobs;
+}
+
+// SmartRecruiters ATS Search
+async function searchSmartRecruitersBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[SmartRecruiters] Starting search for query: "${query}"`);
+  const jobs: JobResult[] = [];
+  const searchTerms = query.toLowerCase().split(' ');
+  
+  const smartRecruitersCompanies = [
+    'bosch', 'visa', 'ikea', 'skechers', 'mcdonalds', 'adidas'
+  ];
+  
+  console.log(`[SmartRecruiters] Searching ${smartRecruitersCompanies.length} companies`);
+  
+  const smartRecruitersPromises = smartRecruitersCompanies.map(async (company) => {
+    try {
+      const url = `https://api.smartrecruiters.com/v1/companies/${company}/postings`;
+      console.log(`[SmartRecruiters] Fetching: ${company}`);
+      
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (!response.ok) {
+        console.log(`[SmartRecruiters] ${company} returned status ${response.status}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log(`[SmartRecruiters] ${company} has ${data.content?.length || 0} total jobs`);
+      
+      const filtered = (data.content || [])
+        .filter((job: any) => {
+          const jobText = `${job.name} ${job.description || ''}`.toLowerCase();
+          const matches = searchTerms.every(term => jobText.includes(term));
+          
+          if (matches) {
+            console.log(`[SmartRecruiters] ${company} - Match: "${job.name}"`);
+          }
+          return matches;
+        })
+        .map((job: any) => ({
+          id: `smartrecruiters_${company}_${job.id}`,
+          title: job.name,
+          company: company.charAt(0).toUpperCase() + company.slice(1),
+          location: job.location?.city || 'Remote',
+          description: job.description,
+          posted_date: job.releasedDate || new Date().toISOString(),
+          apply_url: `https://jobs.smartrecruiters.com/${company}/${job.id}`,
+          source: 'SmartRecruiters',
+          employment_type: job.typeOfEmployment?.label || 'full-time'
+        }));
+      
+      return filtered;
+    } catch (error) {
+      console.error(`[SmartRecruiters] Error fetching ${company}:`, error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  });
+
+  const results = await Promise.allSettled(smartRecruitersPromises);
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      jobs.push(...result.value);
+    }
+  });
+
+  console.log(`[SmartRecruiters] Search complete: ${jobs.length} matching jobs`);
+  return jobs;
+}
+
+// Ashby ATS Search
+async function searchAshbyBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[Ashby] Starting search for query: "${query}"`);
+  const jobs: JobResult[] = [];
+  const searchTerms = query.toLowerCase().split(' ');
+  
+  const ashbyCompanies = [
+    'notion', 'linear', 'ramp', 'watershed', 'vanta', 'merge', 'hex'
+  ];
+  
+  console.log(`[Ashby] Searching ${ashbyCompanies.length} companies`);
+  
+  const ashbyPromises = ashbyCompanies.map(async (company) => {
+    try {
+      const url = `https://jobs.ashbyhq.com/${company}/jobs/api/non-user-facing-job-board`;
+      console.log(`[Ashby] Fetching: ${company}`);
+      
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (!response.ok) {
+        console.log(`[Ashby] ${company} returned status ${response.status}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log(`[Ashby] ${company} has ${data.jobs?.length || 0} total jobs`);
+      
+      const filtered = (data.jobs || [])
+        .filter((job: any) => {
+          const jobText = `${job.title} ${job.description || ''}`.toLowerCase();
+          const matches = searchTerms.every(term => jobText.includes(term));
+          
+          if (matches) {
+            console.log(`[Ashby] ${company} - Match: "${job.title}"`);
+          }
+          return matches;
+        })
+        .map((job: any) => ({
+          id: `ashby_${company}_${job.id}`,
+          title: job.title,
+          company: company.charAt(0).toUpperCase() + company.slice(1),
+          location: job.locationName || 'Remote',
+          description: job.description,
+          posted_date: job.publishedDate || new Date().toISOString(),
+          apply_url: `https://jobs.ashbyhq.com/${company}/${job.id}`,
+          source: 'Ashby',
+          employment_type: job.employmentType || 'full-time'
+        }));
+      
+      return filtered;
+    } catch (error) {
+      console.error(`[Ashby] Error fetching ${company}:`, error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  });
+
+  const results = await Promise.allSettled(ashbyPromises);
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      jobs.push(...result.value);
+    }
+  });
+
+  console.log(`[Ashby] Search complete: ${jobs.length} matching jobs`);
   return jobs;
 }
 
