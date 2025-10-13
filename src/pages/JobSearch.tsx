@@ -46,6 +46,7 @@ const JobSearchContent = () => {
   const [remoteType, setRemoteType] = useState<string>('any');
   const [employmentType, setEmploymentType] = useState<string>('any');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [booleanString, setBooleanString] = useState('');
   
   // Vault suggestions
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
@@ -104,7 +105,8 @@ const JobSearchContent = () => {
             datePosted: dateFilter,
             contractOnly,
             remoteType,
-            employmentType
+            employmentType,
+            booleanString: booleanString.trim() || undefined
           },
           userId: userId || undefined,
           sources: ['google_jobs', 'company_boards']
@@ -201,8 +203,9 @@ const JobSearchContent = () => {
     if (contractOnly) count++;
     if (remoteType !== 'any') count++;
     if (employmentType !== 'any') count++;
+    if (booleanString.trim()) count++;
     return count;
-  }, [dateFilter, contractOnly, remoteType, employmentType]);
+  }, [dateFilter, contractOnly, remoteType, employmentType, booleanString]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -336,8 +339,33 @@ const JobSearchContent = () => {
                   Advanced Filters {appliedFiltersCount > 0 && `(${appliedFiltersCount} applied)`}
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="pt-4 space-y-2">
-                <p className="text-sm text-muted-foreground">Additional filters coming soon...</p>
+              <CollapsibleContent className="pt-4 space-y-4">
+                <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="font-semibold">🚀 Boolean Search String</Label>
+                    <Badge variant="secondary" className="text-xs">Google Jobs Only</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Use advanced boolean operators (AND, OR, NOT) for precise searches. 
+                    Note: This works best with Google Jobs; may not apply to all sources.
+                  </p>
+                  <Input
+                    placeholder='e.g., ("Product Manager" OR "Program Manager") AND (Agile OR Scrum) NOT "junior"'
+                    value={booleanString}
+                    onChange={(e) => setBooleanString(e.target.value)}
+                    className="font-mono text-sm"
+                  />
+                  {booleanString && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setBooleanString('')}
+                      className="mt-2"
+                    >
+                      Clear Boolean String
+                    </Button>
+                  )}
+                </div>
               </CollapsibleContent>
             </Collapsible>
           </CardContent>

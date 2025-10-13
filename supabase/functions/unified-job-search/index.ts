@@ -20,6 +20,7 @@ interface SearchFilters {
   salaryMin?: number;
   salaryMax?: number;
   experienceLevel?: string;
+  booleanString?: string;
 }
 
 interface JobResult {
@@ -164,9 +165,12 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
     return [];
   }
 
+  // Use boolean string if provided, otherwise use regular query
+  const searchQuery = filters.booleanString?.trim() || query;
+
   const params = new URLSearchParams({
     engine: 'google_jobs',
-    q: query,
+    q: searchQuery,
     location: location || 'United States',
     api_key: searchApiKey
   });
