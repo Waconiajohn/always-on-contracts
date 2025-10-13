@@ -16,6 +16,10 @@ const TIERS = [
     icon: Rocket,
     description: "Essential tools for your executive job search",
     features: [
+      "Everything in Free",
+      "Download unlimited resumes",
+      "Apply to jobs",
+      "Full Career Vault (optional)",
       "AI-powered resume optimization",
       "Job matching algorithm",
       "Application tracking",

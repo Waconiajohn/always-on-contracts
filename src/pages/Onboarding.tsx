@@ -1,18 +1,5 @@
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { OnboardingWizard } from "@/components/OnboardingWizard";
-
-const OnboardingContent = () => {
-  return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <OnboardingWizard />
-    </div>
-  );
-};
+import { Navigate } from "react-router-dom";
 
 export default function Onboarding() {
-  return (
-    <ProtectedRoute>
-      <OnboardingContent />
-    </ProtectedRoute>
-  );
+  return <Navigate to="/quick-start" replace />;
 }

@@ -59,10 +59,14 @@ const CommandCenter = () => {
       const vaultComplete = vault?.interview_completion_percentage || 0;
       setVaultCompletion(vaultComplete);
 
-      // Build phases with locking logic
+      // Check subscription status
+      const { data: subscription } = await supabase.functions.invoke('check-subscription');
+      const isSubscribed = subscription?.subscribed || false;
+
+      // Build phases - now gated by subscription, not vault completion
       const phasesData: PhaseProgress[] = [
         {
-          phase: "Phase 1: Foundation",
+          phase: "Phase 1: Foundation (Optional)",
           completion: vaultComplete,
           isLocked: false,
           features: [
@@ -72,7 +76,7 @@ const CommandCenter = () => {
               completion: vaultComplete,
               lastActivity: null,
               route: '/career-vault',
-              description: 'Your career intelligence foundation',
+              description: 'Your career intelligence foundation - optional power-up',
               isLocked: false
             }
           ]
@@ -80,7 +84,7 @@ const CommandCenter = () => {
         {
           phase: "Phase 2: Positioning",
           completion: 0,
-          isLocked: vaultComplete < 100,
+          isLocked: !isSubscribed,
           features: [
             {
               name: 'LinkedIn Profile Builder',
@@ -89,8 +93,8 @@ const CommandCenter = () => {
               lastActivity: null,
               route: '/agents/linkedin-profile',
               description: 'Optimize profile for recruiter visibility',
-              isLocked: vaultComplete < 100,
-              requiredCompletion: 'Complete Career Vault first'
+              isLocked: !isSubscribed,
+              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
             },
             {
               name: 'Master Resume Builder',
@@ -99,15 +103,15 @@ const CommandCenter = () => {
               lastActivity: null,
               route: '/agents/resume-builder',
               description: 'Create ATS-optimized base resume',
-              isLocked: vaultComplete < 100,
-              requiredCompletion: 'Complete Career Vault first'
+              isLocked: !isSubscribed,
+              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
             }
           ]
         },
         {
           phase: "Phase 3: Active Job Search",
           completion: 0,
-          isLocked: vaultComplete < 100,
+          isLocked: !isSubscribed,
           features: [
             {
               name: 'Job Board',
@@ -116,8 +120,8 @@ const CommandCenter = () => {
               lastActivity: null,
               route: '/opportunities',
               description: 'AI-matched opportunities to discover',
-              isLocked: vaultComplete < 100,
-              requiredCompletion: 'Complete positioning phase'
+              isLocked: !isSubscribed,
+              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
             },
             {
               name: 'Application Queue',
@@ -126,8 +130,8 @@ const CommandCenter = () => {
               lastActivity: null,
               route: '/application-queue',
               description: 'Jobs to pursue with custom resumes',
-              isLocked: vaultComplete < 100,
-              requiredCompletion: 'Complete positioning phase'
+              isLocked: !isSubscribed,
+              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
             },
             {
               name: 'Networking Agent',
@@ -136,15 +140,15 @@ const CommandCenter = () => {
               lastActivity: null,
               route: '/agents/networking',
               description: 'Network jobs into companies',
-              isLocked: vaultComplete < 100,
-              requiredCompletion: 'Complete positioning phase'
+              isLocked: !isSubscribed,
+              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
             }
           ]
         },
         {
           phase: "Phase 4: Content Marketing (M/T/W/Th)",
           completion: 0,
-          isLocked: vaultComplete < 100,
+          isLocked: !isSubscribed,
           features: [
             {
               name: 'LinkedIn Blogging',
@@ -153,8 +157,8 @@ const CommandCenter = () => {
               lastActivity: null,
               route: '/agents/linkedin-blogging',
               description: 'Generate posts from Career Vault insights',
-              isLocked: vaultComplete < 100,
-              requiredCompletion: 'Complete Career Vault'
+              isLocked: !isSubscribed,
+              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
             }
           ]
         },

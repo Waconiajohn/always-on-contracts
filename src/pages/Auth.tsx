@@ -23,15 +23,28 @@ const Auth = () => {
   const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        navigate("/dashboard");
+        // Check if user has a career vault already
+        const { data: vault } = await supabase
+          .from('career_vault')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        navigate(vault ? "/command-center" : "/quick-start");
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
-        navigate("/dashboard");
+        const { data: vault } = await supabase
+          .from('career_vault')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        navigate(vault ? "/command-center" : "/quick-start");
       }
     });
 

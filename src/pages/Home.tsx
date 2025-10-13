@@ -36,7 +36,6 @@ import { SchedulingCTA } from "@/components/SchedulingCTA";
 
 const HomeContent = () => {
   const navigate = useNavigate();
-  const [vaultCompletion, setVaultCompletion] = useState(0);
   const [activeJobs, setActiveJobs] = useState(0);
   const [stats, setStats] = useState({ powerPhrases: 0, skills: 0, competencies: 0 });
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
@@ -59,7 +58,6 @@ const HomeContent = () => {
         .single();
 
       if (vaultData) {
-        setVaultCompletion(vaultData.interview_completion_percentage || 0);
         setStats({
           powerPhrases: vaultData.total_power_phrases || 0,
           skills: vaultData.total_transferable_skills || 0,
@@ -79,17 +77,30 @@ const HomeContent = () => {
     }
   };
 
-  const vaultComplete = vaultCompletion >= 100;
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    checkSubscription();
+  }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const { data } = await supabase.functions.invoke('check-subscription');
+      setIsSubscribed(data?.subscribed || false);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
 
   const allTools = [
-    { icon: FileText, title: "Resume Optimizer", path: "/resume-optimizer", locked: !vaultComplete, minCompletion: 100 },
-    { icon: Briefcase, title: "Job Search", path: "/agents/job-search", locked: !vaultComplete, minCompletion: 100 },
-    { icon: Bot, title: "Interview Prep", path: "/agents/interview-prep", locked: !vaultComplete, minCompletion: 100 },
-    { icon: Sparkles, title: "LinkedIn Builder", path: "/agents/linkedin-profile", locked: !vaultComplete, minCompletion: 100 },
-    { icon: Network, title: "Networking", path: "/agents/networking", locked: !vaultComplete, minCompletion: 100 },
-    { icon: Zap, title: "Auto-Apply", path: "/agents/auto-apply", locked: !vaultComplete, minCompletion: 100 },
+    { icon: FileText, title: "Resume Optimizer", path: "/resume-optimizer", locked: !isSubscribed, minCompletion: 0 },
+    { icon: Briefcase, title: "Job Search", path: "/agents/job-search", locked: !isSubscribed, minCompletion: 0 },
+    { icon: Bot, title: "Interview Prep", path: "/agents/interview-prep", locked: !isSubscribed, minCompletion: 0 },
+    { icon: Sparkles, title: "LinkedIn Builder", path: "/agents/linkedin-profile", locked: !isSubscribed, minCompletion: 0 },
+    { icon: Network, title: "Networking", path: "/agents/networking", locked: !isSubscribed, minCompletion: 0 },
+    { icon: Zap, title: "Auto-Apply", path: "/agents/auto-apply", locked: !isSubscribed, minCompletion: 0 },
     { icon: TrendingUp, title: "Career Trends", path: "/agents/career-trends", locked: false, minCompletion: 0 },
-    { icon: Building2, title: "Agencies", path: "/agencies", locked: !vaultComplete, minCompletion: 100 },
+    { icon: Building2, title: "Agencies", path: "/agencies", locked: !isSubscribed, minCompletion: 0 },
     { icon: DollarSign, title: "Financial Planning", path: "/agents/financial-planning", locked: false, minCompletion: 0 },
     { icon: Bot, title: "AI Coach", path: "/coaching", locked: false, minCompletion: 0 },
     { icon: Briefcase, title: "Opportunities", path: "/opportunities", locked: false, minCompletion: 0 },
@@ -256,7 +267,7 @@ const HomeContent = () => {
                     {tool.locked && (
                       <Badge variant="outline" className="text-[10px] mt-1">
                         <Lock className="h-2 w-2 mr-1" />
-                        Complete Vault
+                        Upgrade
                       </Badge>
                     )}
                   </CardContent>
