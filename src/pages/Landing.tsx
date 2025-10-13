@@ -171,13 +171,13 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        <div className="container relative mx-auto px-4 py-20 lg:py-32">
+        <div className="container relative mx-auto px-4 py-12 lg:py-20">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <Badge variant="secondary" className="mb-4">
               Built for Experienced Professionals
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-              Get Reemployed 3-5X Faster—
+              Get Re-employed 3-5X Faster—
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 {" "}Without Age Holding You Back
               </span>
@@ -211,14 +211,16 @@ export default function Landing() {
       </section>
 
       {/* Problem Section */}
-      <section className="py-20 border-b">
+      <section className="py-12 border-b bg-muted/20">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center space-y-12">
+          <div className="max-w-3xl mx-auto text-center space-y-8">
             <div className="space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                You're Experienced. Qualified. 
+              <h2 className="text-3xl md:text-5xl font-bold leading-tight">
+                You Have the Experience.
                 <br />
-                But the Job Market Isn't Built For You.
+                You're More Than Qualified.
+                <br />
+                <span className="text-destructive">Yet You're Being Ignored.</span>
               </h2>
               <p className="text-lg text-muted-foreground">
                 We get it. You've seen this pattern before:
@@ -261,7 +263,7 @@ export default function Landing() {
       </section>
 
       {/* Solution Section */}
-      <section className="py-20 bg-muted/30 border-b">
+      <section className="py-12 bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <div className="space-y-4">
@@ -289,7 +291,7 @@ export default function Landing() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 border-b">
+      <section className="py-12 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
@@ -325,7 +327,7 @@ export default function Landing() {
       </section>
 
       {/* Why This Matters Section */}
-      <section className="py-20 bg-gradient-to-br from-destructive/5 via-background to-destructive/5 border-b">
+      <section className="py-12 bg-gradient-to-br from-destructive/5 via-background to-destructive/5 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
@@ -436,7 +438,7 @@ export default function Landing() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-muted/30 border-b">
+      <section className="py-12 bg-muted/30 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
@@ -483,7 +485,7 @@ export default function Landing() {
       </section>
 
       {/* Process Section */}
-      <section className="py-20 border-b">
+      <section className="py-12 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
@@ -517,7 +519,7 @@ export default function Landing() {
       </section>
 
       {/* Humble Brag Section */}
-      <section className="py-20 bg-muted/30 border-b">
+      <section className="py-12 bg-muted/30 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
@@ -538,7 +540,7 @@ export default function Landing() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 border-b">
+      <section className="py-12 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto space-y-12">
             <div className="text-center space-y-4">
@@ -563,14 +565,14 @@ export default function Landing() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-20 relative overflow-hidden">
+      <section className="py-16 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10" />
         <div className="container relative mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <Trophy className="h-16 w-16 text-primary mx-auto" />
             <div className="space-y-4">
               <h2 className="text-4xl md:text-5xl font-bold">
-                Ready to Get Reemployed 3-5X Faster?
+                Ready to Get Re-employed 3-5X Faster?
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Your experience isn't a liability. It's power. Let us show you how.
