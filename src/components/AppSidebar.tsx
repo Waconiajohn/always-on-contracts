@@ -44,6 +44,7 @@ import logo from "@/assets/logo.png";
 
 const mainNavItems = [
   { path: "/home", label: "Home", icon: Home },
+  { path: "/ai-agents", label: "AI Agents", icon: Brain },
   { path: "/command-center", label: "Command Center", icon: Package },
   { path: "/research-hub", label: "Research Hub", icon: LineChart },
 ];
