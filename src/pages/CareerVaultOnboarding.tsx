@@ -385,6 +385,31 @@ const CareerVaultOnboarding = () => {
     }
   };
 
+  const handleSkipInterview = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('career_vault')
+        .update({ interview_completion_percentage: 40 })
+        .eq('user_id', user.id);
+
+      setCurrentStep('complete');
+
+      toast({
+        title: 'Vault Ready!',
+        description: 'Starting at 40% power - you can boost this anytime.'
+      });
+
+      setTimeout(() => {
+        navigate('/home');
+      }, 2000);
+    } catch (error) {
+      console.error('Error skipping interview:', error);
+    }
+  };
+
   const handleStartOver = async () => {
     setShowStartOverDialog(false);
     try {
@@ -597,9 +622,7 @@ const CareerVaultOnboarding = () => {
             <div className="grid md:grid-cols-2 gap-4">
               {/* Option 1: Start Now */}
               <Card className="border-2 border-primary/50 hover:border-primary cursor-pointer transition-colors"
-                    onClick={() => {
-                      setCurrentStep('complete');
-                    }}>
+                    onClick={handleSkipInterview}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ArrowRight className="h-5 w-5" />
