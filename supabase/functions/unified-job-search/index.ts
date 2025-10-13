@@ -129,14 +129,27 @@ serve(async (req) => {
       );
       
       searchPromises.push(
-        searchSmartRecruitersBoards(query, searchFilters)
+        searchRecruiteeBoards(query, searchFilters)
           .then(jobs => {
-            sourceStats.smartrecruiters = { count: jobs.length, status: 'success' };
+            sourceStats.recruitee = { count: jobs.length, status: 'success' };
             return jobs;
           })
           .catch(error => {
-            console.error('SmartRecruiters boards error:', error);
-            sourceStats.smartrecruiters = { count: 0, status: 'error' };
+            console.error('Recruitee boards error:', error);
+            sourceStats.recruitee = { count: 0, status: 'error' };
+            return [];
+          })
+      );
+      
+      searchPromises.push(
+        searchWorkableBoards(query, searchFilters)
+          .then(jobs => {
+            sourceStats.workable = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('Workable boards error:', error);
+            sourceStats.workable = { count: 0, status: 'error' };
             return [];
           })
       );
@@ -156,6 +169,8 @@ serve(async (req) => {
     }
 
     // Wait for all sources
+    console.log(`[UNIFIED-SEARCH] ═══════════════════════════════════════`);
+    console.log(`[UNIFIED-SEARCH] Waiting for all ${searchPromises.length} sources to complete...`);
     const results = await Promise.allSettled(searchPromises);
     
     // Collect all jobs
@@ -165,10 +180,20 @@ serve(async (req) => {
       }
     });
 
+    console.log(`[UNIFIED-SEARCH] ═══════════════════════════════════════`);
+    console.log(`[UNIFIED-SEARCH] SEARCH RESULTS SUMMARY`);
+    console.log(`[UNIFIED-SEARCH] ───────────────────────────────────────`);
+    Object.entries(sourceStats).forEach(([source, stats]) => {
+      const statusIcon = stats.status === 'success' ? '✓' : '✗';
+      console.log(`[UNIFIED-SEARCH] ${statusIcon} ${source.padEnd(20)}: ${stats.count} jobs`);
+    });
+    console.log(`[UNIFIED-SEARCH] ───────────────────────────────────────`);
+    console.log(`[UNIFIED-SEARCH] Total raw jobs: ${allJobs.length}`);
+    console.log(`[UNIFIED-SEARCH] ═══════════════════════════════════════`);
+
     // Filter by date
-    console.log(`[Search Pipeline] Raw jobs from all sources: ${allJobs.length}`);
     let filteredJobs = filterByDate(allJobs, searchFilters.datePosted);
-    console.log(`[Date Filter] "${searchFilters.datePosted}" -> ${filteredJobs.length} jobs`);
+    console.log(`[Date Filter] Applied "${searchFilters.datePosted}" filter: ${allJobs.length} → ${filteredJobs.length} jobs`);
     
     // If date filter is too aggressive, retry with "any"
     if (filteredJobs.length === 0 && allJobs.length > 0 && searchFilters.datePosted !== 'any') {
@@ -183,12 +208,15 @@ serve(async (req) => {
 
     // Deduplicate by company + title + location
     const uniqueJobs = deduplicateJobs(contractFiltered);
-    console.log(`[Dedup] ${contractFiltered.length} -> ${uniqueJobs.length} jobs after deduplication`);
+    console.log(`[Deduplication] Removed ${contractFiltered.length - uniqueJobs.length} duplicates: ${contractFiltered.length} → ${uniqueJobs.length} jobs`);
 
     // Score against Career Vault if userId provided
     let scoredJobs = uniqueJobs;
     if (userId) {
+      console.log(`[Vault Scoring] Scoring ${uniqueJobs.length} jobs against user Career Vault...`);
       scoredJobs = await scoreWithVault(uniqueJobs, userId, supabaseClient);
+      const scoredCount = scoredJobs.filter(j => j.match_score && j.match_score > 0).length;
+      console.log(`[Vault Scoring] Successfully scored ${scoredCount} jobs`);
     }
 
     // Sort by match score (if available) and then by posted date
@@ -200,6 +228,10 @@ serve(async (req) => {
     });
 
     const executionTime = Date.now() - startTime;
+    console.log(`[UNIFIED-SEARCH] ═══════════════════════════════════════`);
+    console.log(`[UNIFIED-SEARCH] FINAL RESULTS: ${scoredJobs.length} jobs`);
+    console.log(`[UNIFIED-SEARCH] Execution time: ${executionTime}ms`);
+    console.log(`[UNIFIED-SEARCH] ═══════════════════════════════════════`);
 
     return new Response(
       JSON.stringify({
@@ -548,72 +580,151 @@ async function searchWorkdayBoards(query: string, filters: SearchFilters): Promi
   return jobs;
 }
 
-// SmartRecruiters ATS Search
-async function searchSmartRecruitersBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
-  console.log(`[SmartRecruiters] Starting search for query: "${query}"`);
+// Recruitee ATS Search
+async function searchRecruiteeBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[Recruitee] Starting search for query: "${query}"`);
   const jobs: JobResult[] = [];
   const searchTerms = query.toLowerCase().split(' ');
   
-  const smartRecruitersCompanies = [
-    'bosch', 'visa', 'ikea', 'skechers', 'mcdonalds', 'adidas'
+  // Tech companies and European startups using Recruitee
+  const recruiteeCompanies = [
+    'gitlab', 'miro', 'personio', 'contentful', 'adjust',
+    'blacklane', 'deliveryhero', 'soundcloud', 'n26', 'wolt',
+    'gorillas', 'tier', 'flixbus', 'celonis', 'commercetools',
+    'helpling', 'orderbird', 'wooga', 'channable', 'bynder'
   ];
   
-  console.log(`[SmartRecruiters] Searching ${smartRecruitersCompanies.length} companies`);
+  console.log(`[Recruitee] Searching ${recruiteeCompanies.length} companies`);
   
-  const smartRecruitersPromises = smartRecruitersCompanies.map(async (company) => {
+  const recruiteePromises = recruiteeCompanies.map(async (company) => {
     try {
-      const url = `https://api.smartrecruiters.com/v1/companies/${company}/postings`;
-      console.log(`[SmartRecruiters] Fetching: ${company}`);
+      const url = `https://${company}.recruitee.com/api/offers`;
+      console.log(`[Recruitee] Fetching: ${company}`);
       
       const response = await fetch(url, {
         signal: AbortSignal.timeout(3000)
       });
       
       if (!response.ok) {
-        console.log(`[SmartRecruiters] ${company} returned status ${response.status}`);
+        console.log(`[Recruitee] ${company} returned status ${response.status}`);
         return [];
       }
       
       const data = await response.json();
-      console.log(`[SmartRecruiters] ${company} has ${data.content?.length || 0} total jobs`);
+      console.log(`[Recruitee] ${company} has ${data.offers?.length || 0} total jobs`);
       
-      const filtered = (data.content || [])
+      const filtered = (data.offers || [])
         .filter((job: any) => {
-          const jobText = `${job.name} ${job.description || ''}`.toLowerCase();
+          const jobText = `${job.title} ${job.description || ''}`.toLowerCase();
           const matches = searchTerms.every(term => jobText.includes(term));
           
           if (matches) {
-            console.log(`[SmartRecruiters] ${company} - Match: "${job.name}"`);
+            console.log(`[Recruitee] ${company} - Match: "${job.title}"`);
           }
           return matches;
         })
         .map((job: any) => ({
-          id: `smartrecruiters_${company}_${job.id}`,
-          title: job.name,
-          company: company.charAt(0).toUpperCase() + company.slice(1),
-          location: job.location?.city || 'Remote',
+          id: `recruitee_${company}_${job.id}`,
+          title: job.title,
+          company: company.charAt(0).toUpperCase() + company.slice(1).replace(/-/g, ' '),
+          location: job.location || 'Remote',
           description: job.description,
-          posted_date: job.releasedDate || new Date().toISOString(),
-          apply_url: `https://jobs.smartrecruiters.com/${company}/${job.id}`,
-          source: 'SmartRecruiters',
-          employment_type: job.typeOfEmployment?.label || 'full-time'
+          posted_date: job.created_at || new Date().toISOString(),
+          apply_url: `https://${company}.recruitee.com/o/${job.slug || job.id}`,
+          source: 'Recruitee',
+          employment_type: job.employment_type || 'full-time'
         }));
       
       return filtered;
     } catch (error) {
-      console.error(`[SmartRecruiters] Error fetching ${company}:`, error instanceof Error ? error.message : String(error));
+      console.error(`[Recruitee] Error fetching ${company}:`, error instanceof Error ? error.message : String(error));
       return [];
     }
   });
 
-  const results = await Promise.allSettled(smartRecruitersPromises);
+  const results = await Promise.allSettled(recruiteePromises);
   results.forEach(result => {
     if (result.status === 'fulfilled') {
       jobs.push(...result.value);
     }
   });
 
-  console.log(`[SmartRecruiters] Search complete: ${jobs.length} matching jobs`);
+  console.log(`[Recruitee] Search complete: ${jobs.length} matching jobs`);
+  return jobs;
+}
+
+// Workable ATS Search
+async function searchWorkableBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[Workable] Starting search for query: "${query}"`);
+  const jobs: JobResult[] = [];
+  const searchTerms = query.toLowerCase().split(' ');
+  
+  // Diverse companies using Workable
+  const workableCompanies = [
+    'beat', 'blueground', 'epignosis', 'workable', 'taxibeat',
+    'centaur', 'pollfish', 'zerogrey', 'instacar', 'skroutz',
+    'plum', 'spotawheel', 'cardlink', 'citrix', 'instashop',
+    'viva', 'persado', 'cognitiv', 'upstream', 'althaus',
+    'hellas-direct', 'funky-buddha', 'efood', 'wolt', 'glovo',
+    'box', 'deliveryhero', 'revolut', 'transferwise', 'tide'
+  ];
+  
+  console.log(`[Workable] Searching ${workableCompanies.length} companies`);
+  
+  const workablePromises = workableCompanies.map(async (company) => {
+    try {
+      const url = `https://apply.workable.com/api/v1/widget/accounts/${company}`;
+      console.log(`[Workable] Fetching: ${company}`);
+      
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (!response.ok) {
+        console.log(`[Workable] ${company} returned status ${response.status}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log(`[Workable] ${company} has ${data.jobs?.length || 0} total jobs`);
+      
+      const filtered = (data.jobs || [])
+        .filter((job: any) => {
+          const jobText = `${job.title} ${job.description || ''}`.toLowerCase();
+          const matches = searchTerms.every(term => jobText.includes(term));
+          
+          if (matches) {
+            console.log(`[Workable] ${company} - Match: "${job.title}"`);
+          }
+          return matches;
+        })
+        .map((job: any) => ({
+          id: `workable_${company}_${job.shortcode}`,
+          title: job.title,
+          company: company.charAt(0).toUpperCase() + company.slice(1).replace(/-/g, ' '),
+          location: job.location?.city || job.location?.country || 'Remote',
+          description: job.description,
+          posted_date: job.published_on || new Date().toISOString(),
+          apply_url: `https://apply.workable.com/${company}/j/${job.shortcode}/`,
+          source: 'Workable',
+          employment_type: job.employment_type || 'full-time'
+        }));
+      
+      return filtered;
+    } catch (error) {
+      console.error(`[Workable] Error fetching ${company}:`, error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  });
+
+  const results = await Promise.allSettled(workablePromises);
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      jobs.push(...result.value);
+    }
+  });
+
+  console.log(`[Workable] Search complete: ${jobs.length} matching jobs`);
   return jobs;
 }
 
