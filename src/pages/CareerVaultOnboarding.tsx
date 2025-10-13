@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, CheckCircle, Sparkles, ArrowRight } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Sparkles, ArrowRight, RotateCcw, FileEdit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +9,8 @@ import { LinearCareerVaultInterview } from '@/components/LinearCareerVaultInterv
 import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { ResumeUploadChoiceModal } from '@/components/career-vault/ResumeUploadChoiceModal';
 import { ResumeUploadCard } from '@/components/career-vault/ResumeUploadCard';
+import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 
@@ -27,6 +29,9 @@ const CareerVaultOnboarding = () => {
   } | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [userId, setUserId] = useState<string>('');
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [showStartOverDialog, setShowStartOverDialog] = useState(false);
+  const [vaultId, setVaultId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -61,6 +66,9 @@ const CareerVaultOnboarding = () => {
         setCurrentStep('upload');
         return;
       }
+
+      // Store vault ID for later use
+      setVaultId(existingVault.id);
 
       // If 100% complete, redirect to dashboard
       if ((existingVault.interview_completion_percentage ?? 0) >= 100) {
@@ -377,6 +385,40 @@ const CareerVaultOnboarding = () => {
     }
   };
 
+  const handleStartOver = async () => {
+    setShowStartOverDialog(false);
+    try {
+      await clearVaultData();
+      setCurrentStep('upload');
+      setResumeFile(null);
+      setPendingFile(null);
+      setMilestones([]);
+      toast({
+        title: "Vault Reset",
+        description: "Starting fresh with a clean slate",
+      });
+    } catch (error) {
+      console.error('Error resetting vault:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset vault",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResumeUploaded = async () => {
+    await refreshMilestones();
+    setCurrentStep('interview-decision');
+  };
+
+  const handleStepClick = (stepId: string) => {
+    const targetStepIndex = steps.findIndex(s => s.id === stepId);
+    if (targetStepIndex <= currentStepIndex) {
+      setCurrentStep(stepId as OnboardingStep);
+    }
+  };
+
   return (
     <>
       {existingVaultStats && (
@@ -391,23 +433,56 @@ const CareerVaultOnboarding = () => {
       <div className="container max-w-4xl py-8 space-y-6">
       {/* Progress Header */}
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold">Build Your Career Vault</h1>
-        <p className="text-muted-foreground">
-          Extract your career intelligence in 4 simple steps
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">Build Your Career Vault</h1>
+            <p className="text-muted-foreground">
+              Extract your career intelligence in 4 simple steps
+            </p>
+          </div>
+          {currentStep !== 'upload' && vaultId && (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowResumeModal(true)}
+              >
+                <FileEdit className="h-4 w-4 mr-2" />
+                Manage Resume
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => setShowStartOverDialog(true)}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Start Over
+              </Button>
+            </div>
+          )}
+        </div>
         <Progress value={progress} className="h-2" />
         <div className="flex justify-between">
-          {steps.map((step, idx) => (
-            <div
-              key={step.id}
-              className={`flex items-center gap-2 ${
-                idx <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <step.icon className="h-4 w-4" />
-              <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
-            </div>
-          ))}
+          {steps.map((step, idx) => {
+            const isCompleted = idx < currentStepIndex;
+            const isCurrent = idx === currentStepIndex;
+            const isAccessible = isCompleted || isCurrent;
+            
+            return (
+              <div
+                key={step.id}
+                onClick={() => isAccessible && handleStepClick(step.id)}
+                className={`flex items-center gap-2 transition-all ${
+                  isAccessible ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-50'
+                } ${
+                  idx <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                <step.icon className="h-4 w-4" />
+                <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -597,6 +672,33 @@ const CareerVaultOnboarding = () => {
         </Card>
       )}
       </div>
+
+      {vaultId && (
+        <ResumeManagementModal
+          open={showResumeModal}
+          onOpenChange={setShowResumeModal}
+          vaultId={vaultId}
+          onResumeUploaded={handleResumeUploaded}
+        />
+      )}
+
+      <AlertDialog open={showStartOverDialog} onOpenChange={setShowStartOverDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start Over?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete all your vault data including milestones, interview responses, and achievements. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleStartOver} className="bg-destructive hover:bg-destructive/90">
+              Delete Everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

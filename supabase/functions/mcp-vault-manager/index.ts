@@ -212,7 +212,7 @@ async function handleGet(supabaseClient: any, args: any) {
     .from('career_vault')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 
