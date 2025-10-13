@@ -10,13 +10,16 @@ import { Loader2, Sparkles, TrendingUp, Copy, Check, Package } from "lucide-reac
 import { Badge } from "@/components/ui/badge";
 import { AppNav } from "@/components/AppNav";
 import { Separator } from "@/components/ui/separator";
+import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
+import { SkillsTagInput } from "@/components/linkedin/SkillsTagInput";
+import { ProfileProgressTracker } from "@/components/linkedin/ProfileProgressTracker";
 
 export default function LinkedInProfileBuilder() {
   const [currentHeadline, setCurrentHeadline] = useState("");
   const [currentAbout, setCurrentAbout] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [industry, setIndustry] = useState("");
-  const [skills, setSkills] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [vaultData, setVaultData] = useState<any>(null);
@@ -45,6 +48,17 @@ export default function LinkedInProfileBuilder() {
     setVaultData(vault);
   };
 
+  const getSuggestedSkills = (): string[] => {
+    if (!vaultData) return [];
+    const suggestions: string[] = [];
+    
+    if (vaultData.vault_transferable_skills) {
+      suggestions.push(...vaultData.vault_transferable_skills.map((s: any) => s.stated_skill));
+    }
+    
+    return [...new Set(suggestions)].slice(0, 15);
+  };
+
   const handleCopy = (text: string, section: string) => {
     navigator.clipboard.writeText(text);
     setCopiedSection(section);
@@ -70,7 +84,7 @@ export default function LinkedInProfileBuilder() {
           currentAbout,
           targetRole,
           industry,
-          skills: skills.split(',').map(s => s.trim()).filter(Boolean)
+          skills
         }
       });
 
@@ -169,74 +183,105 @@ export default function LinkedInProfileBuilder() {
           )}
 
           <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Profile</CardTitle>
-            <CardDescription>Enter your current LinkedIn information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="targetRole">Target Role *</Label>
-              <Input
-                id="targetRole"
-                placeholder="e.g., VP of Product, Senior Data Scientist"
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
-              />
-            </div>
+        <div className="space-y-6">
+          <ProfileProgressTracker
+            targetRole={targetRole}
+            industry={industry}
+            headline={currentHeadline}
+            about={currentAbout}
+            skills={skills}
+          />
 
-            <div>
-              <Label htmlFor="industry">Industry *</Label>
-              <Input
-                id="industry"
-                placeholder="e.g., SaaS, FinTech, Healthcare"
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-              />
-            </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Profile</CardTitle>
+              <CardDescription>Enter your current LinkedIn information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="targetRole">Target Role *</Label>
+                <Input
+                  id="targetRole"
+                  placeholder="e.g., VP of Product, Senior Data Scientist"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                />
+              </div>
 
-            <div>
-              <Label htmlFor="headline">Current Headline</Label>
-              <Input
-                id="headline"
-                placeholder="Your current LinkedIn headline"
-                value={currentHeadline}
-                onChange={(e) => setCurrentHeadline(e.target.value)}
-              />
-            </div>
+              <div>
+                <Label htmlFor="industry">Industry *</Label>
+                <Input
+                  id="industry"
+                  placeholder="e.g., SaaS, FinTech, Healthcare"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                />
+              </div>
 
-            <div>
-              <Label htmlFor="about">Current About Section</Label>
-              <Textarea
-                id="about"
-                placeholder="Your current 'About' section content"
-                value={currentAbout}
-                onChange={(e) => setCurrentAbout(e.target.value)}
-                rows={8}
-              />
-            </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="headline">Current Headline</Label>
+                  <CharacterCounter current={currentHeadline.length} max={220} />
+                </div>
+                <Input
+                  id="headline"
+                  placeholder="Your current LinkedIn headline"
+                  value={currentHeadline}
+                  onChange={(e) => setCurrentHeadline(e.target.value)}
+                  maxLength={220}
+                />
+                {currentHeadline.length > 0 && currentHeadline.length < 20 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add at least {20 - currentHeadline.length} more characters for better impact
+                  </p>
+                )}
+              </div>
 
-            <div>
-              <Label htmlFor="skills">Current Skills (comma-separated)</Label>
-              <Textarea
-                id="skills"
-                placeholder="e.g., Product Strategy, Data Analysis, Team Leadership"
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                rows={3}
-              />
-            </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="about">Current About Section</Label>
+                  <CharacterCounter current={currentAbout.length} max={2600} />
+                </div>
+                <Textarea
+                  id="about"
+                  placeholder="Your current 'About' section content"
+                  value={currentAbout}
+                  onChange={(e) => setCurrentAbout(e.target.value)}
+                  rows={8}
+                  maxLength={2600}
+                />
+                {currentAbout.length > 0 && currentAbout.length < 100 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add at least {100 - currentAbout.length} more characters for completeness
+                  </p>
+                )}
+              </div>
 
-            <Button onClick={handleOptimize} disabled={isOptimizing} className="w-full">
-              {isOptimizing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              Optimize Profile
-            </Button>
-          </CardContent>
-        </Card>
+              <div>
+                <Label htmlFor="skills">Current Skills</Label>
+                <SkillsTagInput
+                  skills={skills}
+                  onChange={setSkills}
+                  maxSkills={50}
+                  suggestions={getSuggestedSkills()}
+                />
+              </div>
+
+              <Button 
+                onClick={handleOptimize} 
+                disabled={isOptimizing || !targetRole.trim() || !industry.trim()} 
+                className="w-full"
+              >
+                {isOptimizing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                Optimize Profile
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         {optimizationResult && (
           <Card>
@@ -255,14 +300,21 @@ export default function LinkedInProfileBuilder() {
             <CardContent className="space-y-6">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-base font-semibold">📝 Headline (120 chars)</Label>
+                  <div>
+                    <Label className="text-base font-semibold">📝 Headline</Label>
+                    <CharacterCounter 
+                      current={optimizationResult.optimizedHeadline?.length || 0} 
+                      max={220} 
+                      className="ml-2"
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleCopy(optimizationResult.optimizedHeadline, 'headline')}
                   >
                     {copiedSection === 'headline' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                    {copiedSection === 'headline' ? 'Copied!' : 'Copy'}
+                    {copiedSection === 'headline' ? 'Copied!' : `Copy (${optimizationResult.optimizedHeadline?.length || 0} chars)`}
                   </Button>
                 </div>
                 <div className="p-3 bg-muted rounded-md border-2 border-dashed">
@@ -274,14 +326,21 @@ export default function LinkedInProfileBuilder() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-base font-semibold">📝 About Section (2,600 chars)</Label>
+                  <div>
+                    <Label className="text-base font-semibold">📝 About Section</Label>
+                    <CharacterCounter 
+                      current={optimizationResult.optimizedAbout?.length || 0} 
+                      max={2600} 
+                      className="ml-2"
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleCopy(optimizationResult.optimizedAbout, 'about')}
                   >
                     {copiedSection === 'about' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                    {copiedSection === 'about' ? 'Copied!' : 'Copy'}
+                    {copiedSection === 'about' ? 'Copied!' : `Copy (${optimizationResult.optimizedAbout?.length || 0} chars)`}
                   </Button>
                 </div>
                 <Textarea
@@ -290,6 +349,9 @@ export default function LinkedInProfileBuilder() {
                   rows={12}
                   className="font-mono text-sm border-2 border-dashed"
                 />
+                <p className="text-xs text-muted-foreground mt-2">
+                  💡 Formatting is preserved when pasting into LinkedIn
+                </p>
               </div>
 
               <Separator />
