@@ -49,8 +49,8 @@ export default function Landing() {
   const benefits = [
     {
       icon: Database,
-      title: "Build Your Intelligence System",
-      description: "Extract your hidden value. Document everything you've accomplished, mastered, and figured out. Most executives underestimate themselves by 40%."
+      title: "Build Your Intelligence Foundation",
+      description: "Extract your hidden value across decades of experience. Document everything you've accomplished and mastered. This intelligence powers all 5 dimensions—but it's step one, not the finish line."
     },
     {
       icon: Shield,
@@ -74,8 +74,8 @@ export default function Landing() {
     },
     {
       icon: Award,
-      title: "Dominate Every Interview",
-      description: "Master STAR methodology, psychological interviews, panel dynamics, Zoom setup, follow-up timing, and salary negotiation—with data."
+      title: "Become the Benchmark Candidate",
+      description: "Excel across all dimensions for each role: resume positioning, LinkedIn brand, interview preparation (behavioral, psychological, panel formats), and strategic networking. One strong area isn't enough—benchmark candidates dominate everywhere."
     }
   ];
 
@@ -296,10 +296,12 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold">
-                After 18 Years Coaching 1,000+ Executives, We Discovered The Formula
+                After Coaching 200,000+ Job Seekers, We Discovered The Formula
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                It's not ONE thing. It's fixing dozens of small mistakes that compound into invisible rejection.
+                It's not ONE thing. Benchmark candidates don't just score high on resumes—they excel across all dimensions: 
+                resume (90%+), LinkedIn positioning, interview mastery, market intelligence we provide, and strategic networking. 
+                One strong area gets you into the conversation. All five make you the standard.
               </p>
             </div>
             

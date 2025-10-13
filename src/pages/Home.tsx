@@ -195,8 +195,13 @@ const HomeContent = () => {
             <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-ai-primary via-ai-secondary to-ai-accent bg-clip-text text-transparent animate-shimmer bg-[length:200%_100%]">
               AI-Powered Career Intelligence Platform
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-2">
               Every decision cross-verified by multiple AI systems for maximum accuracy and reliability.
+            </p>
+            <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+              Based on 200,000+ job searches: Benchmark candidates excel across all 5 dimensions—
+              Resume (90%+), LinkedIn positioning, interview mastery, market intelligence we provide, 
+              and strategic networking. One strong dimension gets you reviewed. All five make you the standard.
             </p>
             
             {/* Live stats bar */}
@@ -295,15 +300,24 @@ const HomeContent = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:border-ai-secondary/50 transition-all cursor-pointer" onClick={() => navigate('/pricing')}>
+            <Card className="hover:border-ai-secondary/50 transition-all">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <Sparkles className="h-5 w-5 text-ai-secondary" />
-                  <h3 className="text-lg font-semibold">AI Stats</h3>
+                  <h3 className="text-lg font-semibold">The 5 Dimensions</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">12 Agents Working</p>
-                <Button variant="outline" size="sm" className="w-full">
-                  View Details
+                <div className="space-y-2 text-xs mb-3">
+                  <p><strong>Resume 90%+</strong> → Reviewed by recruiters</p>
+                  <p><strong>LinkedIn Top 10</strong> → Found by recruiters</p>
+                  <p><strong>Interview Mastery</strong> → Past screening</p>
+                  <p><strong>Market Intel (We Provide)</strong> → Informed positioning</p>
+                  <p><strong>Strategic Network</strong> → Referrals & intel</p>
+                </div>
+                <p className="text-xs text-muted-foreground italic mb-3">
+                  A 97% resume with weak LinkedIn won't beat 95% everywhere.
+                </p>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/career-vault')}>
+                  Build Multi-Dimensional Profile
                   <ArrowRight className="ml-2 h-3 w-3" />
                 </Button>
               </CardContent>

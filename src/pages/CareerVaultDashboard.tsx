@@ -312,10 +312,13 @@ const VaultDashboardContent = () => {
       <div className="container mx-auto p-6 max-w-6xl">
         <Card className="p-8 text-center max-w-2xl mx-auto">
           <Target className="w-16 h-16 mx-auto mb-4 text-primary" />
-          <h2 className="text-2xl font-semibold mb-2">Build Your Career Vault</h2>
+          <h2 className="text-2xl font-semibold mb-2">
+            Build Your Career Intelligence Foundation
+          </h2>
           <p className="text-muted-foreground mb-6">
-            Create your AI-powered career intelligence system in just 15 minutes. 
-            Upload your resume, complete a guided interview, and unlock:
+            Your vault is the foundation that powers all 5 dimensions: resume scoring, LinkedIn positioning, 
+            interview prep, market intelligence leverage, and strategic networking. It's critical—but it's step one. 
+            Becoming the benchmark candidate for a specific role requires deploying this intelligence across all dimensions.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-left">
             <div className="p-4 bg-muted/50 rounded-lg">
@@ -442,7 +445,7 @@ const VaultDashboardContent = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Power Phrases</span>
@@ -485,6 +488,36 @@ const VaultDashboardContent = () => {
               </div>
               <Progress value={(strengthScore.modernTerminologyScore / 15) * 100} className="h-2" />
             </div>
+          </div>
+
+          <div className="text-center mt-4 p-4 bg-muted/50 rounded-lg border-t">
+            <p className="text-sm font-medium mb-3">Your Vault Powers All 5 Dimensions:</p>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
+              <div className="p-2 bg-background rounded">
+                <p className="font-semibold text-ai-primary">Resume 90%+</p>
+                <p className="text-muted-foreground">Gets reviewed</p>
+              </div>
+              <div className="p-2 bg-background rounded">
+                <p className="font-semibold text-ai-secondary">LinkedIn Top 10</p>
+                <p className="text-muted-foreground">Gets found</p>
+              </div>
+              <div className="p-2 bg-background rounded">
+                <p className="font-semibold text-ai-accent">Interview Mastery</p>
+                <p className="text-muted-foreground">Gets past screening</p>
+              </div>
+              <div className="p-2 bg-background rounded">
+                <p className="font-semibold text-ai-active">Market Intel</p>
+                <p className="text-muted-foreground">Informed insider</p>
+              </div>
+              <div className="p-2 bg-background rounded">
+                <p className="font-semibold text-ai-complete">Network</p>
+                <p className="text-muted-foreground">Gets referrals</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3 italic">
+              Your vault score represents foundation strength. Deploy it across all 5 dimensions to become 
+              the benchmark candidate for each specific role you pursue.
+            </p>
           </div>
 
           <div className="mt-6 p-4 bg-background/50 rounded-lg">

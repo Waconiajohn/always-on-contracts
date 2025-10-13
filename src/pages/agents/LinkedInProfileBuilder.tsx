@@ -131,8 +131,14 @@ export default function LinkedInProfileBuilder() {
         <AppNav />
         <div className="container py-8">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">LinkedIn Profile Builder - Step 2</h1>
-            <p className="text-muted-foreground">Build with Career Vault intelligence for recruiter visibility</p>
+            <h1 className="text-4xl font-bold mb-2">
+              LinkedIn Brand Positioning
+            </h1>
+            <p className="text-muted-foreground">
+              80% of employers skip job boards and search LinkedIn directly with keyword filters. 
+              A 97% resume score won't help if your LinkedIn brand is weak. When recruiters search your role, 
+              you need top 10 visibility. This is dimension 2 of 5 for becoming the benchmark candidate.
+            </p>
           </div>
 
           {vaultData && (
@@ -378,7 +384,11 @@ export default function LinkedInProfileBuilder() {
               <Separator />
 
               <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-900">
-                <h4 className="font-semibold text-sm mb-3">✅ Implementation Checklist</h4>
+                <h4 className="font-semibold text-sm mb-2">✅ LinkedIn Brand Dimension Complete</h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Strong LinkedIn positioning is 1 of 5 dimensions. Next: Ensure resume (90%+), interview prep, 
+                  market intelligence leverage, and strategic networking are equally strong.
+                </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-start gap-2">
                     <span className="font-mono">☐</span>

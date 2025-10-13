@@ -117,11 +117,24 @@ export function ResumeOptimizer() {
     return (
       <div className="container mx-auto py-8 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">AI Resume Rewriter</h1>
+          <h1 className="text-3xl font-bold mb-2">Resume Scoring & Optimization</h1>
           <p className="text-muted-foreground">
-            Our most powerful feature - transform your resume with AI coaching, hiring manager insights, and precision targeting
+            A high resume score gets you into the conversation—it doesn't guarantee the job. 
+            When 200 people apply, recruiters only review top 10-20 resumes. You need 90%+ to be reviewed. 
+            But even at 97%, you could be competing against 23 others scoring higher. Plus, if your LinkedIn brand is weak 
+            or your interview prep is shallow, that high score alone won't make you the benchmark candidate.
           </p>
         </div>
+
+        <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription>
+            <strong>Multi-Dimensional Reality:</strong> A 90% resume score means you'll be reviewed—not that you're the benchmark candidate. 
+            Benchmark candidates excel across ALL dimensions: Resume (90%+), LinkedIn positioning (top 10 in searches), 
+            interview mastery (all formats), market intelligence, and strategic networking. 
+            Any single high score just gets you into the conversation.
+          </AlertDescription>
+        </Alert>
 
         {vaultData && !loadingVault && (
           <Card className="border-primary/20 bg-primary/5">
@@ -273,11 +286,39 @@ export function ResumeOptimizer() {
             </CardContent>
           </Card>
 
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-6">
+              <h3 className="font-semibold mb-4 text-center">Your Resume Scoring Position</h3>
+              <div className="flex items-center justify-between">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-1">Before</p>
+                  <p className="text-3xl font-bold text-red-600">34%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Rank ~#150/200</p>
+                  <p className="text-xs italic mt-2">Never gets reviewed</p>
+                </div>
+                <ArrowRight className="h-8 w-8 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-1">After</p>
+                  <p className="text-3xl font-bold text-green-600">{result.analysis.overallScore}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Likely Top 20/200</p>
+                  <p className="text-xs italic mt-2">You'll be reviewed</p>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Next Steps to Benchmark Status:</strong> This score gets you reviewed—now strengthen the other dimensions. 
+                  To become the benchmark candidate for THIS specific role, you must also excel in: 
+                  LinkedIn brand positioning, interview preparation, and leverage the market intelligence we provide.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Analysis Scores
+                Detailed Analysis Scores
               </CardTitle>
               <CardDescription>
                 Detailed breakdown of your resume's performance
