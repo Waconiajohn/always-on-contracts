@@ -36,10 +36,6 @@ const MCP_SERVERS: Record<string, MCPServerConfig> = {
     url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mcp-resume-intelligence`,
     type: 'custom'
   },
-  'application': {
-    url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mcp-application-automation`,
-    type: 'custom'
-  },
   'interview': {
     url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mcp-interview-prep`,
     type: 'custom'

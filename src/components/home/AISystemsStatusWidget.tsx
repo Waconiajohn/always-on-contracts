@@ -9,7 +9,6 @@ export const AISystemsStatusWidget = () => {
     { name: "Interview Prep", active: true },
     { name: "LinkedIn Builder", active: true },
     { name: "Networking Agent", active: true },
-    { name: "Auto-Apply Agent", active: true },
     { name: "Career Trends Scout", active: true },
     { name: "Market Intelligence", active: true },
     { name: "Agency Matcher", active: true },

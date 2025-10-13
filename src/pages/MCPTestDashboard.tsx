@@ -10,7 +10,6 @@ import {
   careerVault,
   research,
   resume,
-  application,
   interview,
   agency,
   networking,
@@ -23,12 +22,11 @@ import {
   Database, 
   Search, 
   FileText, 
-  Send, 
   MessageSquare, 
   Building, 
   Users, 
   TrendingUp, 
-  Briefcase,
+  Briefcase, 
   Brain,
   CheckCircle,
   XCircle,
@@ -111,28 +109,6 @@ export default function MCPTestDashboard() {
       addResult({
         mcp: 'Resume Intelligence',
         tool: 'analyze',
-        status: 'error',
-        message: error.message,
-        duration: Date.now() - start
-      });
-    }
-  };
-
-  const testApplicationMCP = async () => {
-    const start = Date.now();
-    try {
-      const result = await application.getDailyStats('test-user-id');
-      addResult({
-        mcp: 'Application Automation',
-        tool: 'getDailyStats',
-        status: result.error ? 'error' : 'success',
-        message: result.error || 'Stats retrieved',
-        duration: Date.now() - start
-      });
-    } catch (error: any) {
-      addResult({
-        mcp: 'Application Automation',
-        tool: 'getDailyStats',
         status: 'error',
         message: error.message,
         duration: Date.now() - start
@@ -231,7 +207,7 @@ export default function MCPTestDashboard() {
   const testJobScraperMCP = async () => {
     const start = Date.now();
     try {
-      const result = await jobScraper.scrapeJobs('Software Engineer', 'Remote', ['linkedin'], 5);
+      const result = await jobScraper.scrapeJobs('Software Engineer', 'Remote', ['google_jobs'], 5);
       addResult({
         mcp: 'Job Scraper',
         tool: 'scrapeJobs',
@@ -278,13 +254,12 @@ export default function MCPTestDashboard() {
     
     toast({
       title: "Running MCP Tests",
-      description: "Testing all 10 MCPs..."
+      description: "Testing all 9 MCPs..."
     });
 
     await testCareerVaultMCP();
     await testResearchMCP();
     await testResumeMCP();
-    await testApplicationMCP();
     await testInterviewMCP();
     await testAgencyMCP();
     await testNetworkingMCP();
@@ -307,7 +282,6 @@ export default function MCPTestDashboard() {
     { icon: Database, name: "Career Vault", test: testCareerVaultMCP, color: "text-blue-500" },
     { icon: Search, name: "Research", test: testResearchMCP, color: "text-purple-500" },
     { icon: FileText, name: "Resume", test: testResumeMCP, color: "text-green-500" },
-    { icon: Send, name: "Application", test: testApplicationMCP, color: "text-orange-500" },
     { icon: MessageSquare, name: "Interview", test: testInterviewMCP, color: "text-pink-500" },
     { icon: Building, name: "Agency", test: testAgencyMCP, color: "text-indigo-500" },
     { icon: Users, name: "Networking", test: testNetworkingMCP, color: "text-cyan-500" },

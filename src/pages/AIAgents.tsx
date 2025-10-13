@@ -11,7 +11,7 @@ const aiAgents = [
     name: "Job Search Agent",
     icon: Search,
     status: "active",
-    description: "Sophisticated job scraper across LinkedIn and premium job boards with intelligent filtering",
+    description: "Sophisticated job search across premium job boards with intelligent filtering",
     requiresPaid: false
   },
   {
@@ -32,14 +32,6 @@ const aiAgents = [
   },
   {
     id: 4,
-    name: "Auto-Apply Agent (MCP)",
-    icon: CheckCircle2,
-    status: "active",
-    description: "Automated job application submission with smart form-filling capabilities",
-    requiresPaid: true
-  },
-  {
-    id: 5,
     name: "LinkedIn Profile Builder",
     icon: Linkedin,
     status: "active",
@@ -47,7 +39,7 @@ const aiAgents = [
     requiresPaid: true
   },
   {
-    id: 6,
+    id: 5,
     name: "Networking Agent",
     icon: Network,
     status: "active",
@@ -55,7 +47,7 @@ const aiAgents = [
     requiresPaid: true
   },
   {
-    id: 7,
+    id: 6,
     name: "LinkedIn Blogging Agent",
     icon: MessageSquare,
     status: "active",
@@ -63,7 +55,7 @@ const aiAgents = [
     requiresPaid: true
   },
   {
-    id: 8,
+    id: 7,
     name: "Interview Prep Master",
     icon: GraduationCap,
     status: "active",
@@ -71,7 +63,7 @@ const aiAgents = [
     requiresPaid: false
   },
   {
-    id: 9,
+    id: 8,
     name: "Career Trends Scout",
     icon: TrendingUp,
     status: "active",
@@ -79,7 +71,7 @@ const aiAgents = [
     requiresPaid: true
   },
   {
-    id: 10,
+    id: 9,
     name: "Financial Planning Assistant",
     icon: DollarSign,
     status: "active",
@@ -87,7 +79,7 @@ const aiAgents = [
     requiresPaid: true
   },
   {
-    id: 11,
+    id: 10,
     name: "Executive Coaching",
     icon: Bot,
     status: "active",
@@ -95,7 +87,7 @@ const aiAgents = [
     requiresPaid: true
   },
   {
-    id: 12,
+    id: 11,
     name: "Contract Opportunities",
     icon: Briefcase,
     status: "active",
@@ -119,7 +111,6 @@ export default function AIAgents() {
     'Job Search Agent': '/agents/job-search',
     'Resume Rewriter': '/agents/resume-builder',
     'Job Description Analyzer': '/career-tools',
-    'Auto-Apply Agent (MCP)': '/agents/auto-apply',
     'LinkedIn Profile Builder': '/agents/linkedin-profile',
     'Networking Agent': '/agents/networking',
     'LinkedIn Blogging Agent': '/agents/linkedin-blogging',
@@ -136,7 +127,7 @@ export default function AIAgents() {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold tracking-tight">AI Agent Ecosystem</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your comprehensive AI-powered career assistant with 12 specialized agents
+            Your comprehensive AI-powered career assistant with 11 specialized agents
           </p>
         </div>
 

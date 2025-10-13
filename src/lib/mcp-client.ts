@@ -147,48 +147,6 @@ export const resume = {
 };
 
 /**
- * Application Automation MCP Tools
- */
-export const application = {
-  evaluateOpportunity: async (userId: string, opportunityId: string, matchScore: number) => {
-    return callMCPTool('application.evaluate_opportunity', {
-      userId,
-      opportunityId,
-      matchScore
-    });
-  },
-
-  autoApply: async (userId: string, opportunityId: string, customizedResumeUrl?: string) => {
-    return callMCPTool('application.auto_apply', {
-      userId,
-      opportunityId,
-      customizedResumeUrl
-    });
-  },
-
-  addToQueue: async (userId: string, opportunityId: string, matchScore: number, aiNotes?: string) => {
-    return callMCPTool('application.add_to_queue', {
-      userId,
-      opportunityId,
-      matchScore,
-      aiNotes
-    });
-  },
-
-  trackApplication: async (userId: string, opportunityId: string, status: string) => {
-    return callMCPTool('application.track_application', {
-      userId,
-      opportunityId,
-      status
-    });
-  },
-
-  getDailyStats: async (userId: string) => {
-    return callMCPTool('application.get_daily_stats', { userId });
-  }
-};
-
-/**
  * Interview Prep MCP Tools
  */
 export const interview = {

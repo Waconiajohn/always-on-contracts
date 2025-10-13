@@ -21,7 +21,6 @@ import {
   Building2,
   DollarSign,
   Sparkles,
-  Zap,
   CheckCircle2,
   Shield
 } from "lucide-react";
@@ -98,7 +97,6 @@ const HomeContent = () => {
     { icon: Bot, title: "Interview Prep", path: "/agents/interview-prep", locked: !isSubscribed, minCompletion: 0 },
     { icon: Sparkles, title: "LinkedIn Builder", path: "/agents/linkedin-profile", locked: !isSubscribed, minCompletion: 0 },
     { icon: Network, title: "Networking", path: "/agents/networking", locked: !isSubscribed, minCompletion: 0 },
-    { icon: Zap, title: "Auto-Apply", path: "/agents/auto-apply", locked: !isSubscribed, minCompletion: 0 },
     { icon: TrendingUp, title: "Career Trends", path: "/agents/career-trends", locked: false, minCompletion: 0 },
     { icon: Building2, title: "Agencies", path: "/agencies", locked: !isSubscribed, minCompletion: 0 },
     { icon: DollarSign, title: "Financial Planning", path: "/agents/financial-planning", locked: false, minCompletion: 0 },
@@ -118,7 +116,6 @@ const HomeContent = () => {
         "Interview Prep Agent - Simulates real interviews, provides feedback, and helps you craft winning answers",
         "LinkedIn Builder - Optimizes your profile for maximum visibility and positions you as an industry authority",
         "Networking Agent - Identifies key connections, crafts personalized outreach, and tracks relationship building",
-        "Auto-Apply Agent - Intelligently applies to pre-screened opportunities while you sleep",
         "Career Trends Scout - Monitors industry shifts and emerging opportunities before they hit job boards",
         "Agency Matcher - Connects you with specialized recruiters who have your dream roles",
         "Financial Planning Assistant - Analyzes compensation packages and negotiation strategies",
