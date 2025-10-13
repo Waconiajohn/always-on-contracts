@@ -460,7 +460,17 @@ const JobSearchContent = () => {
                   )}
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    Posted {formatDistanceToNow(new Date(job.posted_date), { addSuffix: true })}
+                    Posted {(() => {
+                      try {
+                        const date = new Date(job.posted_date);
+                        if (isNaN(date.getTime())) {
+                          return 'Recently';
+                        }
+                        return formatDistanceToNow(date, { addSuffix: true });
+                      } catch {
+                        return 'Recently';
+                      }
+                    })()}
                   </div>
                 </div>
 

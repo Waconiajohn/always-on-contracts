@@ -376,7 +376,7 @@ async function searchCompanyBoards(query: string, filters: SearchFilters): Promi
           company: board.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
           location: job.location?.name || 'Remote',
           description: job.content,
-          posted_date: job.updated_at,
+          posted_date: job.updated_at || new Date().toISOString(),
           apply_url: job.absolute_url,
           source: 'Greenhouse',
           employment_type: 'full-time'
@@ -467,7 +467,7 @@ async function searchLeverBoards(query: string, filters: SearchFilters): Promise
           company: company.charAt(0).toUpperCase() + company.slice(1),
           location: job.categories?.location || job.workplaceType || 'Remote',
           description: job.descriptionPlain || job.description,
-          posted_date: new Date(job.createdAt).toISOString(),
+          posted_date: job.createdAt ? new Date(job.createdAt).toISOString() : new Date().toISOString(),
           apply_url: job.hostedUrl || job.applyUrl,
           source: 'Lever',
           employment_type: job.categories?.commitment || 'full-time'
