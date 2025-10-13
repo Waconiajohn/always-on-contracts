@@ -226,30 +226,69 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
 }
 
 async function searchCompanyBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[Company Boards] Starting search for query: "${query}"`);
   const jobs: JobResult[] = [];
-  const searchTerm = query.toLowerCase();
+  const searchTerms = query.toLowerCase().split(' ');
   
-  // Greenhouse boards - top 20 for speed
-  const greenhouseBoards = ['openai', 'anthropic', 'stripe', 'figma', 'notion', 'linear', 'vercel', 'cloudflare', 'databricks', 'scale', 'rippling', 'meta', 'shopify', 'gitlab', 'twilio', 'salesforce', 'zoom', 'slack', 'dropbox', 'atlassian'];
+  // Expanded company list: Tech + Oil & Gas + Engineering + Energy companies
+  const greenhouseBoards = [
+    // Tech companies
+    'openai', 'anthropic', 'stripe', 'figma', 'notion', 'linear', 'vercel', 'cloudflare', 
+    'databricks', 'scale', 'rippling', 'meta', 'shopify', 'gitlab', 'twilio', 'salesforce', 
+    'zoom', 'slack', 'dropbox', 'atlassian',
+    // Oil & Gas companies
+    'shell', 'chevron', 'halliburton', 'slb', 'baker-hughes', 'weatherford', 'conocophillips',
+    'exxonmobil', 'totalenergies', 'bp', 'equinor', 'eni', 'occidental',
+    // Engineering firms
+    'aecom', 'bechtel', 'fluor', 'jacobs', 'kbr', 'worley', 'wood',
+    // Energy companies
+    'nextera', 'duke-energy', 'southern-company', 'dominion', 'exelon'
+  ];
+  
+  console.log(`[Company Boards] Searching ${greenhouseBoards.length} companies via Greenhouse API`);
   
   const greenhousePromises = greenhouseBoards.map(async (board) => {
     try {
-      const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs`, {
+      const url = `https://boards-api.greenhouse.io/v1/boards/${board}/jobs`;
+      console.log(`[Company Boards] Fetching: ${board}`);
+      
+      const response = await fetch(url, {
         signal: AbortSignal.timeout(3000)
       });
-      if (!response.ok) return [];
+      
+      if (!response.ok) {
+        console.log(`[Company Boards] ${board} returned status ${response.status}`);
+        return [];
+      }
       
       const data = await response.json();
-      return (data.jobs || [])
+      const totalJobs = data.jobs?.length || 0;
+      console.log(`[Company Boards] ${board} has ${totalJobs} total jobs`);
+      
+      const filtered = (data.jobs || [])
         .filter((job: any) => {
-          if (!job.updated_at) return false;
-          const jobText = `${job.title} ${job.content}`.toLowerCase();
-          return jobText.includes(searchTerm);
+          if (!job.updated_at) {
+            console.log(`[Company Boards] ${board} - Skipping job without updated_at: ${job.title}`);
+            return false;
+          }
+          
+          const jobText = `${job.title} ${job.content || ''}`.toLowerCase();
+          
+          // More flexible matching: check if any search term appears in job text
+          const matches = searchTerms.some(term => jobText.includes(term));
+          
+          if (!matches) {
+            console.log(`[Company Boards] ${board} - Filtered out: "${job.title}" (no match)`);
+          } else {
+            console.log(`[Company Boards] ${board} - Match found: "${job.title}"`);
+          }
+          
+          return matches;
         })
         .map((job: any) => ({
           id: `greenhouse_${board}_${job.id}`,
           title: job.title,
-          company: board.charAt(0).toUpperCase() + board.slice(1),
+          company: board.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
           location: job.location?.name || 'Remote',
           description: job.content,
           posted_date: job.updated_at,
@@ -257,17 +296,42 @@ async function searchCompanyBoards(query: string, filters: SearchFilters): Promi
           source: 'Greenhouse',
           employment_type: 'full-time'
         }));
-    } catch {
+      
+      if (filtered.length > 0) {
+        console.log(`[Company Boards] ${board} contributed ${filtered.length} matching jobs`);
+      }
+      
+      return filtered;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[Company Boards] Error fetching ${board}:`, errorMessage);
       return [];
     }
   });
 
   const results = await Promise.allSettled(greenhousePromises);
-  results.forEach(result => {
+  let successCount = 0;
+  let errorCount = 0;
+  
+  results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
+      successCount++;
       jobs.push(...result.value);
+    } else {
+      errorCount++;
+      console.error(`[Company Boards] Promise rejected for ${greenhouseBoards[index]}:`, result.reason);
     }
   });
+
+  console.log(`[Company Boards] Search complete: ${successCount} successful, ${errorCount} failed, ${jobs.length} total matching jobs`);
+  
+  if (jobs.length === 0) {
+    console.log(`[Company Boards] No results found. Consider:
+    1. These companies may not use Greenhouse
+    2. Search terms "${query}" may be too specific
+    3. API timeouts or rate limiting
+    4. Company board names may be different than expected`);
+  }
 
   return jobs;
 }
