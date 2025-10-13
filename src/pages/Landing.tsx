@@ -4,16 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useNavigate } from "react-router-dom";
 import { 
-  Target, 
-  FileText, 
-  MessageSquare, 
-  Briefcase, 
-  Mail, 
-  LayoutDashboard,
   CheckCircle2,
   Star,
   Upload,
-  Trophy
+  Trophy,
+  Database,
+  Shield,
+  Eye,
+  Search,
+  Users,
+  Award
 } from "lucide-react";
 
 export default function Landing() {
@@ -48,34 +48,34 @@ export default function Landing() {
 
   const benefits = [
     {
-      icon: Target,
-      title: "AI-Powered Positioning",
-      description: "Stop being 'overqualified.' Start being 'strategically positioned.'"
+      icon: Database,
+      title: "Build Your Intelligence System",
+      description: "Extract your hidden value. Document everything you've accomplished, mastered, and figured out. Most executives underestimate themselves by 40%."
     },
     {
-      icon: FileText,
-      title: "Executive-Level Resumes",
-      description: "Instant customization for every opportunity—no more one-size-fits-all."
+      icon: Shield,
+      title: "Stop Burning Bridges",
+      description: "Every bad résumé you submit gets permanently stored in their ATS with a low score. Fix this first before applying anywhere."
     },
     {
-      icon: MessageSquare,
-      title: "Interview Intelligence",
-      description: "Walk in knowing exactly what they want to hear, backed by your vault."
+      icon: Eye,
+      title: "Access the Hidden 80%",
+      description: "Build visibility to employers who never post jobs externally. This is where 80% of opportunities live—and you're currently invisible."
     },
     {
-      icon: Briefcase,
-      title: "Contract Pathways",
-      description: "Bypass age bias with high-value contract opportunities at premium rates."
+      icon: Search,
+      title: "Find & Verify Real Jobs",
+      description: "Learn which job boards matter, how to search them correctly, and how to verify positions are legitimate before you waste time applying."
     },
     {
-      icon: Mail,
-      title: "Strategic Outreach",
-      description: "AI-crafted messages that get responses from decision-makers."
+      icon: Users,
+      title: "Network Without Burning Resources",
+      description: "You only get 1-2 touches per key contact. Learn the formula to network correctly without damaging relationships."
     },
     {
-      icon: LayoutDashboard,
-      title: "Command Center",
-      description: "Manage everything from one dashboard—opportunities, applications, insights."
+      icon: Award,
+      title: "Dominate Every Interview",
+      description: "Master STAR methodology, psychological interviews, panel dynamics, Zoom setup, follow-up timing, and salary negotiation—with data."
     }
   ];
 
@@ -296,12 +296,28 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Here's What Changes When You Build Your Career Vault
+                After 18 Years Coaching 1,000+ Executives, We Discovered The Formula
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Transform from overlooked to in-demand
+                It's not ONE thing. It's fixing dozens of small mistakes that compound into invisible rejection.
               </p>
             </div>
+            
+            <div className="max-w-4xl mx-auto bg-card border border-primary/20 rounded-lg p-8 space-y-4 mb-12">
+              <p className="text-lg text-muted-foreground">
+                You apply and apply—never hear back. So you start applying to lower-level jobs you're overqualified for. Still nothing.
+              </p>
+              <p className="text-lg text-muted-foreground">
+                Meanwhile, your <span className="text-foreground font-semibold">perfect job is sitting right in front of you</span>, but you can't see it. You're using the wrong job boards. Searching incorrectly. Submitting résumés that damage your ATS score permanently. Networking in ways that burn your best contacts.
+              </p>
+              <p className="text-lg text-foreground font-semibold">
+                Getting hired is a sales job. You're the product. But you're using a brochure from 1995 and wondering why no one's buying.
+              </p>
+              <p className="text-lg text-muted-foreground">
+                The Career Vault isn't just a résumé tool—it's a complete intelligence system that fixes every broken piece of your search.
+              </p>
+            </div>
+
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {benefits.map((benefit, index) => {
                 const Icon = benefit.icon;
