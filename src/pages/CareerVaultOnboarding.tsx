@@ -32,6 +32,7 @@ const CareerVaultOnboarding = () => {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [showStartOverDialog, setShowStartOverDialog] = useState(false);
   const [vaultId, setVaultId] = useState<string | null>(null);
+  const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -67,8 +68,19 @@ const CareerVaultOnboarding = () => {
         return;
       }
 
-      // Store vault ID for later use
+      // Store vault ID and analysis for later use
       setVaultId(existingVault.id);
+      
+      // Fetch the full vault data to get initial_analysis
+      const { data: fullVault } = await supabase
+        .from('career_vault')
+        .select('initial_analysis')
+        .eq('id', existingVault.id)
+        .maybeSingle();
+      
+      if (fullVault?.initial_analysis) {
+        setResumeAnalysis(fullVault.initial_analysis);
+      }
 
       // If 100% complete, redirect to dashboard
       if ((existingVault.interview_completion_percentage ?? 0) >= 100) {
@@ -253,9 +265,11 @@ const CareerVaultOnboarding = () => {
         .select()
         .single();
 
-      // Store vault ID for later milestone parsing
+      // Store vault ID and analysis for later use
       if (vaultData) {
         sessionStorage.setItem('careerVaultId', vaultData.id);
+        setVaultId(vaultData.id);
+        setResumeAnalysis(vaultData.initial_analysis);
       }
 
       toast({
@@ -523,7 +537,7 @@ const CareerVaultOnboarding = () => {
 
       {currentStep === 'goals' && (
         <CareerGoalsStep
-          resumeAnalysis={null}
+          resumeAnalysis={resumeAnalysis}
           onComplete={async (goalsData) => {
             // Parse resume into milestones immediately after goals
             try {
