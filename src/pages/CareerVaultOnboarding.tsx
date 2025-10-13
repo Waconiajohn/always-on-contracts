@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, CheckCircle, Sparkles } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,8 +10,9 @@ import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { ResumeUploadChoiceModal } from '@/components/career-vault/ResumeUploadChoiceModal';
 import { ResumeUploadCard } from '@/components/career-vault/ResumeUploadCard';
 import { logger } from '@/lib/logger';
+import { Button } from '@/components/ui/button';
 
-type OnboardingStep = 'upload' | 'goals' | 'interview' | 'complete';
+type OnboardingStep = 'upload' | 'goals' | 'interview-decision' | 'interview' | 'complete';
 
 const CareerVaultOnboarding = () => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
@@ -33,6 +34,7 @@ const CareerVaultOnboarding = () => {
   const steps = [
     { id: 'upload', label: 'Upload Resume', icon: Upload },
     { id: 'goals', label: 'Career Goals', icon: FileText },
+    { id: 'interview-decision', label: 'Choose Power Level', icon: Sparkles },
     { id: 'interview', label: 'Intelligence Extraction', icon: Sparkles },
     { id: 'complete', label: 'Complete', icon: CheckCircle }
   ];
@@ -469,9 +471,88 @@ const CareerVaultOnboarding = () => {
               console.error('Error parsing milestones:', error);
             }
             
-            setCurrentStep('interview');
+            setCurrentStep('interview-decision');
           }}
         />
+      )}
+
+      {currentStep === 'interview-decision' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Career Vault is Ready!</CardTitle>
+            <CardDescription>
+              You can start using all tools now, or boost your power first.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Current Status */}
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <Sparkles className="h-8 w-8 text-amber-500" />
+                <div>
+                  <p className="font-semibold text-lg">Operating at 40% Power</p>
+                  <p className="text-sm text-muted-foreground">
+                    Based on resume extraction only
+                  </p>
+                </div>
+              </div>
+              <Progress value={40} className="h-2" />
+            </div>
+
+            {/* Two Options */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Option 1: Start Now */}
+              <Card className="border-2 border-primary/50 hover:border-primary cursor-pointer transition-colors"
+                    onClick={() => {
+                      setCurrentStep('complete');
+                    }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ArrowRight className="h-5 w-5" />
+                    Start Using Tools Now
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    <li>✓ Resume Builder unlocked</li>
+                    <li>✓ Job Search ready</li>
+                    <li>✓ Networking tools active</li>
+                    <li>⚡ Operating at 40% power</li>
+                  </ul>
+                  <Button className="w-full mt-4">
+                    Go to Dashboard
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Option 2: Boost Power */}
+              <Card className="border-2 border-amber-500/50 hover:border-amber-500 cursor-pointer transition-colors"
+                    onClick={() => setCurrentStep('interview')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    Boost to 100% Power
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    <li>✓ 3X more power phrases</li>
+                    <li>✓ Hidden competencies revealed</li>
+                    <li>✓ Transferable skills identified</li>
+                    <li>⚡ Unlock full AI intelligence</li>
+                  </ul>
+                  <Button variant="outline" className="w-full mt-4">
+                    Complete Interview (20 min)
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground">
+              You can always come back and complete the interview later
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {currentStep === 'interview' && milestones.length > 0 && (

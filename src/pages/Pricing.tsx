@@ -10,23 +10,39 @@ import { toast } from "sonner";
 
 const TIERS = [
   {
+    id: "free",
+    name: "Free Forever",
+    price: "$0",
+    icon: Rocket,
+    description: "Build your foundation",
+    features: [
+      "Upload resume",
+      "AI career intelligence extraction",
+      "Career Vault (40% power)",
+      "Browse job opportunities",
+      "❌ Can't download resumes",
+      "❌ Can't apply to jobs",
+      "❌ Limited AI features"
+    ],
+    highlighted: false
+  },
+  {
     id: "career_starter",
     name: "Career Starter",
     price: "$29",
     icon: Rocket,
-    description: "Essential tools for your executive job search",
+    description: "Full career intelligence",
     features: [
       "Everything in Free",
       "Download unlimited resumes",
       "Apply to jobs",
-      "Full Career Vault (optional)",
-      "AI-powered resume optimization",
-      "Job matching algorithm",
-      "Application tracking",
-      "Basic market insights",
-      "Email support"
+      "Full Career Vault (100% power - optional)",
+      "Resume Builder AI",
+      "LinkedIn Optimizer",
+      "Interview Prep Agent",
+      "Networking Tools"
     ],
-    highlighted: false
+    highlighted: true
   },
   {
     id: "always_ready",
@@ -42,7 +58,7 @@ const TIERS = [
       "Interview prep assistant",
       "Priority support"
     ],
-    highlighted: true
+    highlighted: false
   },
   {
     id: "concierge_elite",
@@ -180,11 +196,11 @@ export default function Pricing() {
                   <CardFooter>
                     <Button
                       className="w-full"
-                      onClick={() => handleSubscribe(tier.id)}
+                      onClick={() => tier.id === 'free' ? navigate('/auth') : handleSubscribe(tier.id)}
                       disabled={loading === tier.id}
                       variant={tier.highlighted ? "default" : "outline"}
                     >
-                      {loading === tier.id ? "Loading..." : "Subscribe Now"}
+                      {tier.id === 'free' ? "Get Started Free" : loading === tier.id ? "Loading..." : "Subscribe Now"}
                     </Button>
                   </CardFooter>
                 </Card>

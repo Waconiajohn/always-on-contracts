@@ -147,11 +147,18 @@ export const LinearCareerVaultInterview = ({
 
       if (!vaultData) throw new Error('Vault not found');
 
+      // Extract question text safely
+      const questionText = typeof currentQuestion.question === 'string'
+        ? currentQuestion.question
+        : currentQuestion.question?.questionsToExpand?.[0]?.prompt || 
+          currentQuestion.question?.prompt || 
+          'Career vault question';
+
       // Save response
       await supabase
         .from('vault_interview_responses')
         .insert({
-          question: currentQuestion.question,
+          question: questionText,
           response: userInput.trim(),
           phase: 'foundation',
           milestone_id: queueItem.milestoneId,
@@ -163,7 +170,7 @@ export const LinearCareerVaultInterview = ({
       const { data: extracted } = await supabase.functions.invoke('extract-vault-intelligence', {
         body: {
           userId,
-          questionText: currentQuestion.question,
+          questionText,
           responseText: userInput.trim()
         }
       });
@@ -324,16 +331,32 @@ export const LinearCareerVaultInterview = ({
       ) : currentQuestion ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{currentQuestion.question}</CardTitle>
-            {currentQuestion.context && (
-              <p className="text-sm text-muted-foreground mt-2">{currentQuestion.context}</p>
+            <CardTitle className="text-lg">
+              {typeof currentQuestion.question === 'string' 
+                ? currentQuestion.question
+                : currentQuestion.question?.questionsToExpand?.[0]?.prompt || 
+                  currentQuestion.question?.prompt || 
+                  'Please describe this experience'}
+            </CardTitle>
+            {currentQuestion.question?.context && (
+              <p className="text-sm text-muted-foreground mt-2">
+                {currentQuestion.question.context}
+              </p>
+            )}
+            {currentQuestion.question?.questionsToExpand?.[0]?.hint && (
+              <p className="text-xs text-muted-foreground italic mt-1">
+                💡 {currentQuestion.question.questionsToExpand[0].hint}
+              </p>
             )}
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Share your experience with specific examples and metrics..."
+              placeholder={
+                currentQuestion.question?.questionsToExpand?.[0]?.placeholder ||
+                "Share your experience with specific examples and metrics..."
+              }
               rows={8}
               className="resize-none"
             />
@@ -371,7 +394,21 @@ export const LinearCareerVaultInterview = ({
             </div>
           </CardContent>
         </Card>
-      ) : null}
+      ) : (
+        <Card className="border-destructive">
+          <CardContent className="p-8 text-center space-y-4">
+            <p className="text-muted-foreground">Question unavailable</p>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={handleSkip}>
+                Skip This Question
+              </Button>
+              <Button onClick={fetchQuestion}>
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

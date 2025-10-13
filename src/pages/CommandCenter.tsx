@@ -63,10 +63,11 @@ const CommandCenter = () => {
       const { data: subscription } = await supabase.functions.invoke('check-subscription');
       const isSubscribed = subscription?.subscribed || false;
 
-      // Build phases - now gated by subscription, not vault completion
+      // Build phases - new workflow order
+      const hasVault = vaultComplete > 0;
       const phasesData: PhaseProgress[] = [
         {
-          phase: "Phase 1: Foundation (Optional)",
+          phase: "Phase 1: Career Foundation",
           completion: vaultComplete,
           isLocked: false,
           features: [
@@ -75,43 +76,16 @@ const CommandCenter = () => {
               icon: Package,
               completion: vaultComplete,
               lastActivity: null,
-              route: '/career-vault',
-              description: 'Your career intelligence foundation - optional power-up',
+              route: '/career-vault/onboarding',
+              description: 'Upload resume & build intelligence (Required)',
               isLocked: false
             }
           ]
         },
         {
-          phase: "Phase 2: Positioning",
+          phase: "Phase 2: Job Discovery",
           completion: 0,
-          isLocked: !isSubscribed,
-          features: [
-            {
-              name: 'LinkedIn Profile Builder',
-              icon: Linkedin,
-              completion: 0,
-              lastActivity: null,
-              route: '/agents/linkedin-profile',
-              description: 'Optimize profile for recruiter visibility',
-              isLocked: !isSubscribed,
-              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
-            },
-            {
-              name: 'Master Resume Builder',
-              icon: FileText,
-              completion: 0,
-              lastActivity: null,
-              route: '/agents/resume-builder',
-              description: 'Create ATS-optimized base resume',
-              isLocked: !isSubscribed,
-              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
-            }
-          ]
-        },
-        {
-          phase: "Phase 3: Active Job Search",
-          completion: 0,
-          isLocked: !isSubscribed,
+          isLocked: !hasVault,
           features: [
             {
               name: 'Job Board',
@@ -119,19 +93,46 @@ const CommandCenter = () => {
               completion: 0,
               lastActivity: null,
               route: '/opportunities',
-              description: 'AI-matched opportunities to discover',
-              isLocked: !isSubscribed,
-              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
+              description: 'Browse contract & full-time opportunities',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             },
+            {
+              name: 'Search Profiles',
+              icon: FolderKanban,
+              completion: 0,
+              lastActivity: null,
+              route: '/search-profiles',
+              description: 'Save & automate job searches',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
+            }
+          ]
+        },
+        {
+          phase: "Phase 3: Application & Networking",
+          completion: 0,
+          isLocked: !hasVault,
+          features: [
             {
               name: 'Application Queue',
               icon: FolderKanban,
               completion: 0,
               lastActivity: null,
               route: '/application-queue',
-              description: 'Jobs to pursue with custom resumes',
-              isLocked: !isSubscribed,
-              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
+              description: 'Jobs you\'re targeting',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
+            },
+            {
+              name: 'Resume Builder',
+              icon: FileText,
+              completion: 0,
+              lastActivity: null,
+              route: '/agents/resume-builder',
+              description: 'Customize resume for each job',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             },
             {
               name: 'Networking Agent',
@@ -139,33 +140,26 @@ const CommandCenter = () => {
               completion: 0,
               lastActivity: null,
               route: '/agents/networking',
-              description: 'Network jobs into companies',
-              isLocked: !isSubscribed,
-              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
-            }
-          ]
-        },
-        {
-          phase: "Phase 4: Content Marketing (M/T/W/Th)",
-          completion: 0,
-          isLocked: !isSubscribed,
-          features: [
+              description: 'Network into companies you applied to',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
+            },
             {
-              name: 'LinkedIn Blogging',
-              icon: MessageSquare,
+              name: 'LinkedIn Profile',
+              icon: Linkedin,
               completion: 0,
               lastActivity: null,
-              route: '/agents/linkedin-blogging',
-              description: 'Generate posts from Career Vault insights',
-              isLocked: !isSubscribed,
-              requiredCompletion: !isSubscribed ? 'Upgrade to access' : undefined
+              route: '/agents/linkedin-profile',
+              description: 'Optimize your LinkedIn presence',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             }
           ]
         },
         {
-          phase: "Phase 5: Interview Preparation",
+          phase: "Phase 4: Interview Preparation",
           completion: 0,
-          isLocked: false,
+          isLocked: !hasVault,
           features: [
             {
               name: 'Interview Prep Agent',
@@ -173,15 +167,16 @@ const CommandCenter = () => {
               completion: 0,
               lastActivity: null,
               route: '/agents/interview-prep',
-              description: 'Practice with AI coaching',
-              isLocked: false
+              description: 'Practice with AI interviewer',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             }
           ]
         },
         {
-          phase: "Phase 6: Offer Negotiation",
+          phase: "Phase 5: Offer Negotiation",
           completion: 0,
-          isLocked: false,
+          isLocked: !hasVault,
           features: [
             {
               name: 'Salary Negotiation',
@@ -189,8 +184,9 @@ const CommandCenter = () => {
               completion: 0,
               lastActivity: null,
               route: '/salary-negotiation',
-              description: 'Market data and negotiation scripts',
-              isLocked: false
+              description: 'Get market data & negotiation scripts',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             }
           ]
         }
@@ -236,11 +232,22 @@ const CommandCenter = () => {
       <div className="flex-1">
         <AppNav />
         <div className="container py-8 space-y-6">
-          <div className="space-y-2">
+          <div className="space-y-4">
             <h1 className="text-4xl font-bold">Career Command Center</h1>
             <p className="text-muted-foreground text-lg">
               Your complete career transition workflow
             </p>
+            <div className="p-4 bg-muted rounded-lg">
+              <h3 className="font-semibold mb-2">How This Works:</h3>
+              <ol className="space-y-1 text-sm text-muted-foreground">
+                <li>1. <strong>Build Foundation</strong> - Upload resume to Career Vault</li>
+                <li>2. <strong>Find Jobs</strong> - Browse opportunities that match your skills</li>
+                <li>3. <strong>Customize & Apply</strong> - Tailor resume for each job</li>
+                <li>4. <strong>Network Immediately</strong> - Reach out to people at companies you applied to</li>
+                <li>5. <strong>Prepare for Interviews</strong> - Practice with AI coaching</li>
+                <li>6. <strong>Negotiate Offers</strong> - Use market data to get paid what you're worth</li>
+              </ol>
+            </div>
           </div>
 
           <Card>

@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
-const QuickStart = lazy(() => import("./pages/QuickStart"));
 const Home = lazy(() => import("./pages/Home"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ResumeUpload = lazy(() => import("./pages/ResumeUpload"));
@@ -82,7 +81,6 @@ const App = () => (
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/quick-start" element={<QuickStart />} />
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />

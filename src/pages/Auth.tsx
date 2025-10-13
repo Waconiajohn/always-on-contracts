@@ -25,14 +25,15 @@ const Auth = () => {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        // Check if user has a career vault already
+        // Check if user has completed vault onboarding
         const { data: vault } = await supabase
           .from('career_vault')
-          .select('id')
+          .select('resume_raw_text, interview_completion_percentage')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        navigate(vault ? "/command-center" : "/quick-start");
+        // If vault exists and has resume, go to command center, otherwise start onboarding
+        navigate(vault?.resume_raw_text ? "/command-center" : "/career-vault/onboarding");
       }
     });
 
@@ -40,11 +41,11 @@ const Auth = () => {
       if (session) {
         const { data: vault } = await supabase
           .from('career_vault')
-          .select('id')
+          .select('resume_raw_text, interview_completion_percentage')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        navigate(vault ? "/command-center" : "/quick-start");
+        navigate(vault?.resume_raw_text ? "/command-center" : "/career-vault/onboarding");
       }
     });
 

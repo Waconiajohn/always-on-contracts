@@ -393,11 +393,57 @@ Return ONLY valid JSON in the format above.`;
     let parsedResult;
     try {
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      parsedResult = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+      
+      // Validate and provide fallbacks
+      if (!parsed.question || typeof parsed.question !== 'object') {
+        console.error('[GENERATE-INTERVIEW-QUESTION] Invalid question structure:', parsed);
+        parsedResult = {
+          question: {
+            context: "Let's explore your career achievements",
+            questionsToExpand: [{
+              prompt: "Tell me about your biggest professional achievement in your most recent role.",
+              placeholder: "Describe the situation, your actions, and the results...",
+              hint: "Include specific metrics and outcomes"
+            }],
+            exampleAnswer: "Example: At [Company], I led [initiative] that resulted in [quantified outcome]."
+          },
+          phase: currentPhase.name,
+          completionPercentage,
+          isComplete: false
+        };
+      } else {
+        parsedResult = parsed;
+        
+        // Ensure questionsToExpand exists and has at least one question
+        if (!parsed.question.questionsToExpand || parsed.question.questionsToExpand.length === 0) {
+          parsedResult.question.questionsToExpand = [{
+            prompt: parsed.question.prompt || "Tell me about this experience",
+            placeholder: parsed.question.placeholder || "Share your experience...",
+            hint: parsed.question.hint || "Include specific examples and metrics"
+          }];
+        }
+      }
+      
+      console.log('[GENERATE-INTERVIEW-QUESTION] Successfully generated question:', {
+        hasContext: !!parsedResult.question.context,
+        questionCount: parsedResult.question.questionsToExpand?.length || 0,
+        phase: parsedResult.phase
+      });
+      
     } catch (e) {
-      console.error('Failed to parse AI response:', e);
+      console.error('[GENERATE-INTERVIEW-QUESTION] Failed to parse AI response:', e);
+      console.error('[GENERATE-INTERVIEW-QUESTION] Raw AI response:', aiResponse);
       parsedResult = {
-        question: aiResponse,
+        question: {
+          context: "Let's continue building your Career Vault",
+          questionsToExpand: [{
+            prompt: "Tell me about a significant achievement from your career.",
+            placeholder: "Describe the situation, your actions, and the measurable results...",
+            hint: "Focus on specific outcomes and your direct contributions"
+          }],
+          exampleAnswer: "Example: I increased revenue by 30% through implementing a new strategy..."
+        },
         phase: currentPhase.name,
         completionPercentage,
         isComplete: false

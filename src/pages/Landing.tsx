@@ -188,9 +188,9 @@ export default function Landing() {
               that actually value your expertise.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button size="lg" className="text-lg px-8" onClick={() => navigate('/quick-start')}>
+              <Button size="lg" className="text-lg px-8" onClick={() => navigate('/auth')}>
                 <Upload className="mr-2 h-5 w-5" />
-                Upload Resume & See AI Preview
+                Upload Resume & Start Free
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate('/pricing')}>
                 View Pricing
