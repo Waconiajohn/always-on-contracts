@@ -41,7 +41,7 @@ const JobSearchContent = () => {
   const [searchTime, setSearchTime] = useState<number | null>(null);
   
   // Filters
-  const [dateFilter, setDateFilter] = useState<string>('24h');
+  const [dateFilter, setDateFilter] = useState<string>('30d');
   const [contractOnly, setContractOnly] = useState(false);
   const [remoteType, setRemoteType] = useState<string>('any');
   const [employmentType, setEmploymentType] = useState<string>('any');

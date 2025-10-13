@@ -392,7 +392,7 @@ const CareerVaultOnboarding = () => {
       });
 
       setTimeout(() => {
-        navigate('/home');
+        navigate('/command-center');
       }, 2000);
     } catch (error) {
       console.error('Error completing onboarding:', error);
@@ -417,7 +417,7 @@ const CareerVaultOnboarding = () => {
       });
 
       setTimeout(() => {
-        navigate('/home');
+        navigate('/command-center');
       }, 2000);
     } catch (error) {
       console.error('Error skipping interview:', error);

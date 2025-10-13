@@ -113,7 +113,15 @@ serve(async (req) => {
     });
 
     // Filter by date
-    const filteredJobs = filterByDate(allJobs, searchFilters.datePosted);
+    console.log(`[Search Pipeline] Raw jobs from all sources: ${allJobs.length}`);
+    let filteredJobs = filterByDate(allJobs, searchFilters.datePosted);
+    console.log(`[Date Filter] "${searchFilters.datePosted}" -> ${filteredJobs.length} jobs`);
+    
+    // If date filter is too aggressive, retry with "any"
+    if (filteredJobs.length === 0 && allJobs.length > 0 && searchFilters.datePosted !== 'any') {
+      console.log(`[Auto-Retry] Date filter "${searchFilters.datePosted}" too restrictive. Using all jobs.`);
+      filteredJobs = allJobs;
+    }
 
     // Filter by contract type if enabled
     const contractFiltered = searchFilters.contractOnly
@@ -122,6 +130,7 @@ serve(async (req) => {
 
     // Deduplicate by company + title + location
     const uniqueJobs = deduplicateJobs(contractFiltered);
+    console.log(`[Dedup] ${contractFiltered.length} -> ${uniqueJobs.length} jobs after deduplication`);
 
     // Score against Career Vault if userId provided
     let scoredJobs = uniqueJobs;
@@ -176,10 +185,12 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
   });
 
   const response = await fetch(`https://www.searchapi.io/api/v1/search?${params}`);
-  if (!response.ok) throw new Error('Google Jobs API failed');
+      if (!response.ok) throw new Error('Google Jobs API failed');
 
   const data = await response.json();
   const jobs: JobResult[] = [];
+  
+  console.log(`[Google Jobs] Raw API response: ${data.jobs_results?.length || 0} jobs`);
 
   if (data.jobs_results) {
     for (const job of data.jobs_results) {
@@ -330,21 +341,38 @@ async function scoreWithVault(jobs: JobResult[], userId: string, supabaseClient:
 
 function parseGoogleDate(dateStr: string): string {
   const now = new Date();
+  const lowerDate = dateStr.toLowerCase();
   
-  if (dateStr.includes('hour')) {
-    const hours = parseInt(dateStr);
+  // Handle "just now", "today"
+  if (lowerDate.includes('just now') || lowerDate === 'today') {
+    return now.toISOString();
+  }
+  
+  // Handle hours (e.g., "2 hours ago", "1 hour ago")
+  if (lowerDate.includes('hour')) {
+    const hours = parseInt(dateStr) || 1;
     return new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
   }
   
-  if (dateStr.includes('day')) {
-    const days = parseInt(dateStr);
+  // Handle days (e.g., "3 days ago", "1 day ago")
+  if (lowerDate.includes('day')) {
+    const days = parseInt(dateStr) || 1;
     return new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
   }
   
-  if (dateStr.includes('week')) {
-    const weeks = parseInt(dateStr);
+  // Handle weeks (e.g., "2 weeks ago", "1 week ago")
+  if (lowerDate.includes('week')) {
+    const weeks = parseInt(dateStr) || 1;
     return new Date(now.getTime() - weeks * 7 * 24 * 60 * 60 * 1000).toISOString();
   }
   
+  // Handle months (e.g., "1 month ago", "2 months ago")
+  if (lowerDate.includes('month')) {
+    const months = parseInt(dateStr) || 1;
+    return new Date(now.getTime() - months * 30 * 24 * 60 * 60 * 1000).toISOString();
+  }
+  
+  // Default to current time if can't parse
+  console.warn(`[Date Parse] Unknown format: "${dateStr}" - defaulting to now`);
   return now.toISOString();
 }
