@@ -15,6 +15,11 @@ import { InterviewResponsesTab } from "@/components/InterviewResponsesTab";
 import { JobSelector } from "@/components/interview/JobSelector";
 import { AppNav } from "@/components/AppNav";
 import { Separator } from "@/components/ui/separator";
+import { CompanyResearchPanel } from "@/components/interview/CompanyResearchPanel";
+import { ElevatorPitchBuilder } from "@/components/interview/ElevatorPitchBuilder";
+import { ThirtyPlanBuilder } from "@/components/interview/ThirtyPlanBuilder";
+import { ThreeTwoOneFramework } from "@/components/interview/ThreeTwoOneFramework";
+import { PanelInterviewGuide } from "@/components/interview/PanelInterviewGuide";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("select-job");
@@ -24,6 +29,7 @@ const InterviewPrepAgentContent = () => {
   const [jobDescription, setJobDescription] = useState("");
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [companyResearch, setCompanyResearch] = useState<any>(null);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation } = usePersonaRecommendation('interview');
 
@@ -223,24 +229,72 @@ const InterviewPrepAgentContent = () => {
           {/* Right: Interview Practice */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="practice" className="gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Practice
-                </TabsTrigger>
-                <TabsTrigger value="responses" className="gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Responses
-                </TabsTrigger>
-                <TabsTrigger value="followup" className="gap-2">
-                  <Mail className="h-4 w-4" />
-                  Follow-up
-                </TabsTrigger>
-                <TabsTrigger value="tips" className="gap-2">
-                  <Lightbulb className="h-4 w-4" />
-                  Tips
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-8 text-xs">
+                <TabsTrigger value="research">Research</TabsTrigger>
+                <TabsTrigger value="pitch">Pitch</TabsTrigger>
+                <TabsTrigger value="practice">Practice</TabsTrigger>
+                <TabsTrigger value="responses">Responses</TabsTrigger>
+                <TabsTrigger value="321">3-2-1</TabsTrigger>
+                <TabsTrigger value="plan">30-60-90</TabsTrigger>
+                <TabsTrigger value="followup">Follow-up</TabsTrigger>
+                <TabsTrigger value="tips">Tips</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="research" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  <CompanyResearchPanel 
+                    companyName={selectedJob.company_name}
+                    jobDescription={selectedJob.job_description}
+                  />
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="pitch" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  {vaultData ? (
+                    <ElevatorPitchBuilder 
+                      jobDescription={selectedJob.job_description}
+                      vaultId={vaultData.id}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Career Vault required
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="321" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  {vaultData ? (
+                    <ThreeTwoOneFramework 
+                      jobDescription={selectedJob.job_description}
+                      companyResearch={companyResearch}
+                      vaultId={vaultData.id}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Career Vault required
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="plan" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  {vaultData ? (
+                    <ThirtyPlanBuilder 
+                      jobDescription={selectedJob.job_description}
+                      companyResearch={companyResearch}
+                      vaultId={vaultData.id}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Career Vault required
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
 
               <TabsContent value="practice" className="mt-4 space-y-4">
                 {!recommendation ? (
@@ -336,28 +390,28 @@ const InterviewPrepAgentContent = () => {
 
               <TabsContent value="tips" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-300px)]">
-                  <div className="space-y-4">
-                    <div className="p-4 bg-blue-500/10 border-l-4 border-blue-500 rounded">
-                      <h3 className="font-semibold mb-2">🎯 Leverage Hidden Competencies</h3>
-                      <p className="text-sm">
-                        Even without formal certification, you can discuss practical experience. 
-                        Example: "While I'm not Six Sigma certified, I spent 6 months in Japan learning 
-                        Kaizen directly from its creators..."
-                      </p>
-                    </div>
-                    <div className="p-4 bg-green-500/10 border-l-4 border-green-500 rounded">
-                      <h3 className="font-semibold mb-2">🔄 Translate Technical Skills</h3>
-                      <p className="text-sm">
-                        Connect past experience to new technologies. Example: "My Salesforce experience 
-                        translates directly to Zoho - both require workflow automation, custom objects, 
-                        and reporting dashboards..."
-                      </p>
-                    </div>
-                    <div className="p-4 bg-purple-500/10 border-l-4 border-purple-500 rounded">
-                      <h3 className="font-semibold mb-2">📊 Quantify Everything</h3>
-                      <p className="text-sm">
-                        Use metrics from your power phrases. Numbers make impact memorable and credible.
-                      </p>
+                  <div className="space-y-6">
+                    <PanelInterviewGuide />
+                    <div className="space-y-4">
+                      <h3 className="font-semibold">General Interview Tips</h3>
+                      <div className="p-4 bg-blue-500/10 border-l-4 border-blue-500 rounded">
+                        <h3 className="font-semibold mb-2">🎯 Leverage Hidden Competencies</h3>
+                        <p className="text-sm">
+                          Even without formal certification, you can discuss practical experience.
+                        </p>
+                      </div>
+                      <div className="p-4 bg-green-500/10 border-l-4 border-green-500 rounded">
+                        <h3 className="font-semibold mb-2">🔄 Translate Technical Skills</h3>
+                        <p className="text-sm">
+                          Connect past experience to new technologies.
+                        </p>
+                      </div>
+                      <div className="p-4 bg-purple-500/10 border-l-4 border-purple-500 rounded">
+                        <h3 className="font-semibold mb-2">📊 Quantify Everything</h3>
+                        <p className="text-sm">
+                          Use metrics from your power phrases.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </ScrollArea>

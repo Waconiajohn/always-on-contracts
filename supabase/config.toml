@@ -159,6 +159,18 @@ verify_jwt = true
 [functions.verify-with-perplexity]
 verify_jwt = true
 
+[functions.generate-company-research]
+verify_jwt = true
+
+[functions.generate-elevator-pitch]
+verify_jwt = true
+
+[functions.generate-30-60-90-plan]
+verify_jwt = true
+
+[functions.generate-3-2-1-framework]
+verify_jwt = true
+
 [functions.perplexity-research]
 verify_jwt = true
 
