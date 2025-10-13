@@ -20,8 +20,6 @@ const CareerVaultOnboarding = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [milestones, setMilestones] = useState<any[]>([]);
   const [showResumeChoiceModal, setShowResumeChoiceModal] = useState(false);
-  const [vaultChoice, setVaultChoice] = useState<'replace' | 'enhance' | null>(null);
-  const [careerGoals, setCareerGoals] = useState<{ target_roles: string[]; target_industries: string[] } | null>(null);
   const [existingVaultStats, setExistingVaultStats] = useState<{
     completionPercentage: number;
     totalIntelligence: number;
@@ -169,7 +167,6 @@ const CareerVaultOnboarding = () => {
   };
 
   const handleVaultChoice = async (choice: 'replace' | 'enhance') => {
-    setVaultChoice(choice);
     setShowResumeChoiceModal(false);
 
     if (choice === 'replace') {
@@ -472,7 +469,6 @@ const CareerVaultOnboarding = () => {
                   });
                 } else if (milestonesData?.success) {
                   setMilestones(milestonesData.milestones);
-                  setCareerGoals(goalsData);
                   
                   // Update vault with career focus
                   await supabase
