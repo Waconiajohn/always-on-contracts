@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock } from "lucide-react";
+import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -356,14 +356,29 @@ const JobSearchContent = () => {
                     className="font-mono text-sm"
                   />
                   {booleanString && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setBooleanString('')}
-                      className="mt-2"
-                    >
-                      Clear Boolean String
-                    </Button>
+                    <div className="flex gap-2 mt-3">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(booleanString);
+                          toast({
+                            title: "Copied for LinkedIn",
+                            description: "Paste this into LinkedIn's job search to use advanced operators"
+                          });
+                        }}
+                      >
+                        <Copy className="h-3 w-3 mr-2" />
+                        Copy for LinkedIn
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setBooleanString('')}
+                      >
+                        Clear
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CollapsibleContent>
