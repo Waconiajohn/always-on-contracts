@@ -197,12 +197,13 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
   }
 
   const data = await response.json();
-  console.log(`[Google Jobs] Raw API response:`, JSON.stringify(data, null, 2).substring(0, 500));
-  console.log(`[Google Jobs] Jobs found: ${data.jobs_results?.length || 0}`);
+  console.log(`[Google Jobs] Full response keys:`, Object.keys(data));
+  console.log(`[Google Jobs] Full API response:`, JSON.stringify(data, null, 2));
+  console.log(`[Google Jobs] jobs_results length: ${data.jobs_results?.length || 0}`);
   
   const jobs: JobResult[] = [];
 
-  if (data.jobs_results) {
+  if (data.jobs_results && data.jobs_results.length > 0) {
     for (const job of data.jobs_results) {
       if (!job.detected_extensions?.posted_at) continue; // Skip jobs without posting dates
 
