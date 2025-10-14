@@ -40,6 +40,80 @@ interface JobResult {
   required_skills?: string[] | null;
 }
 
+// Helper function to parse boolean strings
+function parseBooleanString(booleanString: string): {
+  titles: string[];
+  skills: string[];
+  exclusions: string[];
+} {
+  const titles: string[] = [];
+  const skills: string[] = [];
+  const exclusions: string[] = [];
+  
+  // Extract exclusions (words after - or NOT)
+  const exclusionRegex = /-["']?([^"'\s]+)["']?|NOT\s+["']?([^"'\s]+)["']?/gi;
+  let match;
+  while ((match = exclusionRegex.exec(booleanString)) !== null) {
+    exclusions.push((match[1] || match[2]).trim());
+  }
+  
+  // Remove exclusions from string for further parsing
+  let cleanString = booleanString.replace(exclusionRegex, '');
+  
+  // Extract titles (typically in parentheses with OR)
+  const titleRegex = /\(([^)]+)\)/g;
+  while ((match = titleRegex.exec(cleanString)) !== null) {
+    const orClause = match[1];
+    orClause.split(/\s+OR\s+/i).forEach(title => {
+      titles.push(title.replace(/['"]/g, '').trim());
+    });
+  }
+  
+  // If no parentheses found, check for OR clauses at top level
+  if (titles.length === 0) {
+    const parts = cleanString.split(/\s+OR\s+/i);
+    if (parts.length > 1) {
+      parts.forEach(part => {
+        const title = part.split(/\s+AND\s+/i)[0].replace(/['"]/g, '').trim();
+        if (title) titles.push(title);
+      });
+    }
+  }
+  
+  // If still no titles, use the first part before AND
+  if (titles.length === 0) {
+    const firstPart = cleanString.split(/\s+AND\s+/i)[0].replace(/['"]/g, '').trim();
+    if (firstPart) titles.push(firstPart);
+  }
+  
+  // Extract skills (typically AND clauses)
+  const skillRegex = /AND\s+["']?([^"'\s]+)["']?/gi;
+  while ((match = skillRegex.exec(cleanString)) !== null) {
+    const skill = match[1].trim();
+    if (!titles.includes(skill)) {
+      skills.push(skill);
+    }
+  }
+  
+  console.log(`[Boolean Parser] Extracted - Titles: ${titles.length}, Skills: ${skills.length}, Exclusions: ${exclusions.length}`);
+  
+  return { titles, skills, exclusions };
+}
+
+// Helper function to deduplicate jobs
+function deduplicateJobs(jobs: JobResult[]): JobResult[] {
+  const seen = new Map<string, JobResult>();
+  
+  for (const job of jobs) {
+    const key = `${job.company.toLowerCase()}_${job.title.toLowerCase()}_${job.location}`.replace(/\s+/g, '_');
+    if (!seen.has(key)) {
+      seen.set(key, job);
+    }
+  }
+  
+  return Array.from(seen.values());
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -53,11 +127,13 @@ serve(async (req) => {
     }
 
     const searchFilters: SearchFilters = filters || {
-      datePosted: '24h',
+      datePosted: '30d',
       contractOnly: false,
       remoteType: 'any',
       employmentType: 'any'
     };
+
+    console.log(`[UNIFIED-SEARCH] Received filters:`, searchFilters);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -252,44 +328,61 @@ serve(async (req) => {
   }
 });
 
-async function searchGoogleJobs(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
-  const searchApiKey = Deno.env.get('SEARCHAPI_KEY');
-  if (!searchApiKey) {
-    console.warn('[Google Jobs] SEARCHAPI_KEY not configured');
-    return [];
-  }
-
-  // Use boolean string if provided, otherwise use regular query
-  const searchQuery = filters.booleanString?.trim() || query;
-
+// Helper function for single title search
+async function searchSingleTitle(
+  query: string, 
+  location: string, 
+  filters: SearchFilters, 
+  apiKey: string
+): Promise<JobResult[]> {
   const params = new URLSearchParams({
     engine: 'google_jobs',
-    q: searchQuery,
+    q: query,
     location: location || 'United States',
-    api_key: searchApiKey
+    api_key: apiKey
   });
 
+  // Add date filter if specified
+  if (filters.datePosted && filters.datePosted !== 'any') {
+    const dateMap: Record<string, string> = {
+      '24h': 'today',
+      '3d': '3days',
+      '7d': 'week',
+      '14d': 'week',
+      '30d': 'month'
+    };
+    const mappedDate = dateMap[filters.datePosted] || 'month';
+    params.set('date_posted', mappedDate);
+    console.log(`[Google Jobs] Date filter: ${filters.datePosted} → ${mappedDate}`);
+  }
+
   const url = `https://www.searchapi.io/api/v1/search?${params}`;
-  console.log(`[Google Jobs] Calling API with query: "${searchQuery}", location: "${location || 'United States'}"`);
+  console.log(`[Google Jobs] Calling API: "${query}" with date filter: ${filters.datePosted || 'none'}`);
   
   const response = await fetch(url);
-  console.log(`[Google Jobs] API Status: ${response.status} ${response.statusText}`);
   
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`[Google Jobs] API Error: ${errorText}`);
-    throw new Error(`Google Jobs API failed: ${response.status} - ${errorText}`);
+    throw new Error(`Google Jobs API failed: ${response.status}`);
   }
 
   const data = await response.json();
-  console.log(`[Google Jobs] Full response keys:`, Object.keys(data));
-  console.log(`[Google Jobs] Jobs array length: ${data.jobs?.length || 0}`);
+  console.log(`[Google Jobs] Received ${data.jobs?.length || 0} jobs from API for "${query}"`);
   
   const jobs: JobResult[] = [];
 
   if (data.jobs && data.jobs.length > 0) {
+    let skippedCount = 0;
     for (const job of data.jobs) {
-      if (!job.detected_extensions?.posted_at) continue; // Skip jobs without posting dates
+      // Don't skip jobs without dates, assign default
+      const postedDate = job.detected_extensions?.posted_at 
+        ? parseGoogleDate(job.detected_extensions.posted_at)
+        : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      if (!job.detected_extensions?.posted_at) {
+        skippedCount++;
+      }
 
       jobs.push({
         id: `google_${job.position || Math.random()}`,
@@ -297,17 +390,84 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
         company: job.company_name,
         location: job.location,
         description: job.description,
-        posted_date: parseGoogleDate(job.detected_extensions.posted_at),
+        posted_date: postedDate,
         apply_url: job.apply_link,
         source: 'Google Jobs',
         remote_type: job.location?.toLowerCase().includes('remote') ? 'remote' : null,
         employment_type: job.detected_extensions?.schedule || null
       });
     }
+    console.log(`[Google Jobs] Assigned default dates to ${skippedCount} jobs without posted_at`);
   }
 
-  console.log(`[Google Jobs] Parsed ${jobs.length} jobs successfully`);
+  console.log(`[Google Jobs] Parsed ${jobs.length} jobs for "${query}"`);
   return jobs;
+}
+
+async function searchGoogleJobs(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
+  const searchApiKey = Deno.env.get('SEARCHAPI_KEY');
+  if (!searchApiKey) {
+    console.warn('[Google Jobs] SEARCHAPI_KEY not configured');
+    return [];
+  }
+
+  let searchQuery = query;
+  let parsedBoolean: { titles: string[]; skills: string[]; exclusions: string[] } | null = null;
+  
+  // If boolean string provided, parse it
+  if (filters.booleanString?.trim()) {
+    parsedBoolean = parseBooleanString(filters.booleanString);
+    console.log(`[Google Jobs] Parsed boolean:`, parsedBoolean);
+    
+    // If we have multiple titles, make parallel searches
+    if (parsedBoolean.titles.length > 1) {
+      console.log(`[Google Jobs] Making ${parsedBoolean.titles.length} parallel searches`);
+      const allJobs = await Promise.all(
+        parsedBoolean.titles.map(title => 
+          searchSingleTitle(title, location, filters, searchApiKey)
+        )
+      );
+      
+      // Combine and deduplicate
+      let combinedJobs = allJobs.flat();
+      console.log(`[Google Jobs] Combined ${combinedJobs.length} jobs from ${parsedBoolean.titles.length} title queries`);
+      
+      combinedJobs = deduplicateJobs(combinedJobs);
+      console.log(`[Google Jobs] After deduplication: ${combinedJobs.length} jobs`);
+      
+      // Apply skill filters
+      if (parsedBoolean && parsedBoolean.skills.length > 0) {
+        const beforeSkillFilter = combinedJobs.length;
+        combinedJobs = combinedJobs.filter(job => {
+          const jobText = `${job.title} ${job.description}`.toLowerCase();
+          return parsedBoolean!.skills.some(skill => 
+            jobText.includes(skill.toLowerCase())
+          );
+        });
+        console.log(`[Google Jobs] Skill filter (${parsedBoolean.skills.join(', ')}): ${beforeSkillFilter} → ${combinedJobs.length} jobs`);
+      }
+      
+      // Apply exclusions
+      if (parsedBoolean && parsedBoolean.exclusions.length > 0) {
+        const beforeExclusion = combinedJobs.length;
+        combinedJobs = combinedJobs.filter(job => {
+          const jobText = `${job.title} ${job.description}`.toLowerCase();
+          return !parsedBoolean!.exclusions.some(exclusion => 
+            jobText.includes(exclusion.toLowerCase())
+          );
+        });
+        console.log(`[Google Jobs] Exclusion filter (${parsedBoolean.exclusions.join(', ')}): ${beforeExclusion} → ${combinedJobs.length} jobs`);
+      }
+      
+      return combinedJobs;
+    } else if (parsedBoolean.titles.length === 1) {
+      searchQuery = parsedBoolean.titles[0];
+      console.log(`[Google Jobs] Using single title from boolean: "${searchQuery}"`);
+    }
+  }
+
+  // Single search (no boolean or single title)
+  return searchSingleTitle(searchQuery, location, filters, searchApiKey);
 }
 
 async function searchCompanyBoards(query: string, filters: SearchFilters): Promise<JobResult[]> {
@@ -819,19 +979,6 @@ function isContractJob(job: JobResult): boolean {
   const searchText = JSON.stringify(job).toLowerCase();
   const contractKeywords = ['contract', 'contractor', 'freelance', '1099', 'w2', 'corp-to-corp', 'c2c', 'consulting', 'consultant', 'interim', 'fractional'];
   return contractKeywords.some(keyword => searchText.includes(keyword));
-}
-
-function deduplicateJobs(jobs: JobResult[]): JobResult[] {
-  const seen = new Map<string, JobResult>();
-  
-  for (const job of jobs) {
-    const key = `${job.company.toLowerCase()}_${job.title.toLowerCase()}_${job.location}`.replace(/\s+/g, '_');
-    if (!seen.has(key)) {
-      seen.set(key, job);
-    }
-  }
-  
-  return Array.from(seen.values());
 }
 
 async function scoreWithVault(jobs: JobResult[], userId: string, supabaseClient: any): Promise<JobResult[]> {
