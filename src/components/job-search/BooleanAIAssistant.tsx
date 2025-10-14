@@ -91,20 +91,27 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
   };
 
   const extractBooleanString = (content: string): string | null => {
-    // Look for text in quotes that contains boolean operators
-    const quotedMatch = content.match(/"([^"]*(?:AND|OR|NOT)[^"]*)"/);
+    // Look for text in code blocks first (highest priority)
+    const codeMatch = content.match(/```(?:text|sql|search)?\n(.*?)\n```/s);
+    if (codeMatch) {
+      const trimmed = codeMatch[1].trim();
+      if (trimmed.includes('(') || trimmed.includes('"')) return trimmed;
+    }
+
+    // Look for text in quotes that has both operators AND parentheses/quotes (likely a boolean string)
+    const quotedMatch = content.match(/"([^"]*\([^)]*\).*?)"/);
     if (quotedMatch) return quotedMatch[1];
 
-    // Look for text in code blocks
-    const codeMatch = content.match(/```(?:text)?\n(.*?)\n```/s);
-    if (codeMatch) return codeMatch[1].trim();
-
-    // Look for lines containing boolean operators
+    // Look for lines that START with operators or parentheses (actual boolean strings)
     const lines = content.split('\n');
     for (const line of lines) {
-      if ((line.includes('AND') || line.includes('OR') || line.includes('NOT')) && 
-          line.length > 20 && line.length < 500) {
-        return line.trim();
+      const trimmed = line.trim();
+      // Only match if it starts with parentheses or quotes and contains operators
+      if (trimmed.length > 30 && trimmed.length < 500) {
+        if ((trimmed.startsWith('(') || trimmed.startsWith('"') || trimmed.startsWith("'")) &&
+            (trimmed.includes(' AND ') || trimmed.includes(' OR ') || trimmed.includes(' NOT '))) {
+          return trimmed;
+        }
       }
     }
 
