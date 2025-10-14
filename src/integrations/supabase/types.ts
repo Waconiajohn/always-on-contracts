@@ -2457,6 +2457,45 @@ export type Database = {
           },
         ]
       }
+      saved_boolean_searches: {
+        Row: {
+          boolean_string: string
+          created_at: string
+          filters: Json | null
+          id: string
+          last_used_at: string | null
+          location: string | null
+          name: string
+          search_query: string | null
+          use_count: number | null
+          user_id: string
+        }
+        Insert: {
+          boolean_string: string
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          last_used_at?: string | null
+          location?: string | null
+          name: string
+          search_query?: string | null
+          use_count?: number | null
+          user_id: string
+        }
+        Update: {
+          boolean_string?: string
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          last_used_at?: string | null
+          location?: string | null
+          name?: string
+          search_query?: string | null
+          use_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       staffing_agencies: {
         Row: {
           agency_name: string

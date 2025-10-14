@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BooleanAIAssistant } from "@/components/job-search/BooleanAIAssistant";
+import { SavedSearches } from "@/components/job-search/SavedSearches";
+import { BooleanActiveIndicator } from "@/components/job-search/BooleanActiveIndicator";
 
 interface JobResult {
   id: string;
@@ -49,10 +51,14 @@ const JobSearchContent = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [booleanString, setBooleanString] = useState('');
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [activeSavedSearchName, setActiveSavedSearchName] = useState<string | null>(null);
+  const [basicSearchCount, setBasicSearchCount] = useState<number | null>(null);
+  const [booleanSearchCount, setBooleanSearchCount] = useState<number | null>(null);
 
-  const handleApplyAISearch = (booleanString: string) => {
+  const handleApplyAISearch = async (booleanString: string) => {
     setBooleanString(booleanString);
     setShowAdvanced(true);
+    setActiveSavedSearchName('AI Generated');
     
     // Scroll to the advanced filters section with smooth animation
     setTimeout(() => {
@@ -70,6 +76,40 @@ const JobSearchContent = () => {
         }
       }
     }, 100);
+
+    // Auto-trigger search after a brief delay
+    setTimeout(async () => {
+      if (searchQuery.trim()) {
+        await handleSearch(true); // Pass flag to indicate this is a boolean search
+      } else {
+        toast({
+          title: "Search query needed",
+          description: "Please enter a job title or keyword to search with the boolean string",
+          variant: "destructive"
+        });
+      }
+    }, 300);
+  };
+  
+  const handleLoadSavedSearch = (search: any) => {
+    setBooleanString(search.boolean_string);
+    if (search.search_query) setSearchQuery(search.search_query);
+    if (search.location) setLocation(search.location);
+    if (search.filters) {
+      if (search.filters.datePosted) setDateFilter(search.filters.datePosted);
+      if (search.filters.remoteType) setRemoteType(search.filters.remoteType);
+      if (search.filters.employmentType) setEmploymentType(search.filters.employmentType);
+      if (search.filters.contractOnly !== undefined) setContractOnly(search.filters.contractOnly);
+    }
+    setActiveSavedSearchName(search.name);
+    setShowAdvanced(true);
+  };
+
+  const handleClearBoolean = () => {
+    setBooleanString('');
+    setActiveSavedSearchName(null);
+    setBasicSearchCount(null);
+    setBooleanSearchCount(null);
   };
   
   // Vault suggestions
@@ -106,7 +146,7 @@ const JobSearchContent = () => {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (isBooleanSearch = false) => {
     if (!searchQuery.trim()) {
       toast({
         title: "Search query required",
@@ -117,6 +157,13 @@ const JobSearchContent = () => {
     }
 
     setIsSearching(true);
+    const currentBooleanActive = booleanString.trim().length > 0;
+
+    // Store basic search count before running boolean search for comparison
+    if (isBooleanSearch && currentBooleanActive && basicSearchCount === null) {
+      setBasicSearchCount(jobs.length);
+    }
+
     setJobs([]);
     setSourceStats({});
 
@@ -143,10 +190,30 @@ const JobSearchContent = () => {
       setSourceStats(data.sources || {});
       setSearchTime(data.executionTime);
 
-      toast({
-        title: "Search complete",
-        description: `Found ${data.jobs?.length || 0} jobs in ${(data.executionTime / 1000).toFixed(1)}s`,
-      });
+      // Store counts for comparison
+      if (currentBooleanActive) {
+        setBooleanSearchCount(data.jobs?.length || 0);
+      } else {
+        setBasicSearchCount(data.jobs?.length || 0);
+        setBooleanSearchCount(null);
+      }
+
+      // Show enhanced feedback for boolean searches
+      if (isBooleanSearch && currentBooleanActive) {
+        const jobCount = data.jobs?.length || 0;
+        const comparison = basicSearchCount ? ` (+${jobCount - basicSearchCount} more than basic search)` : '';
+        
+        toast({
+          title: "🎯 AI Boolean Search Complete",
+          description: `Found ${jobCount} jobs${comparison} in ${(data.executionTime / 1000).toFixed(1)}s`,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Search complete",
+          description: `Found ${data.jobs?.length || 0} jobs in ${(data.executionTime / 1000).toFixed(1)}s`,
+        });
+      }
     } catch (error: any) {
       console.error('Search error:', error);
       toast({
@@ -278,7 +345,7 @@ const JobSearchContent = () => {
                 onChange={(e) => setLocation(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
-              <Button onClick={handleSearch} disabled={isSearching} className="min-w-[100px]">
+              <Button onClick={() => handleSearch(false)} disabled={isSearching} className="min-w-[100px]">
                 {isSearching ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -298,6 +365,14 @@ const JobSearchContent = () => {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6 space-y-4">
+            {booleanString && activeSavedSearchName && (
+              <BooleanActiveIndicator 
+                booleanString={booleanString}
+                searchName={activeSavedSearchName}
+                onClear={handleClearBoolean}
+              />
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Posted</Label>
@@ -364,6 +439,21 @@ const JobSearchContent = () => {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-4 space-y-4">
+                <div className="mb-4">
+                  <SavedSearches 
+                    onLoadSearch={handleLoadSavedSearch}
+                    currentBooleanString={booleanString}
+                    currentSearchQuery={searchQuery}
+                    currentLocation={location}
+                    currentFilters={{
+                      datePosted: dateFilter,
+                      contractOnly,
+                      remoteType,
+                      employmentType
+                    }}
+                  />
+                </div>
+                
                 <div id="advanced-filters-section" className="space-y-2 p-4 border rounded-lg bg-muted/30">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="font-semibold">🚀 Boolean Search String</Label>
@@ -461,10 +551,38 @@ const JobSearchContent = () => {
 
         {/* Results Header */}
         {jobs.length > 0 && (
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Found {jobs.length} jobs {searchTime && `in ${(searchTime / 1000).toFixed(1)}s`}
-            </p>
+          <div className="mb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Found {jobs.length} jobs {searchTime && `in ${(searchTime / 1000).toFixed(1)}s`}
+              </p>
+            </div>
+            
+            {/* Boolean Search Comparison Banner */}
+            {booleanString && activeSavedSearchName && booleanSearchCount !== null && basicSearchCount !== null && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Badge className="shrink-0">
+                      🎯 AI Boolean Search
+                    </Badge>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        Basic search: {basicSearchCount} jobs → Boolean search: {booleanSearchCount} jobs
+                        {booleanSearchCount > basicSearchCount && (
+                          <span className="text-primary ml-2">
+                            (+{booleanSearchCount - basicSearchCount} more jobs found)
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Using: <code className="text-xs bg-background/50 px-1 rounded">{booleanString.length > 80 ? booleanString.slice(0, 80) + '...' : booleanString}</code>
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
