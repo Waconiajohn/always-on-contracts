@@ -39,8 +39,12 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
   }, [messages, isLoading]);
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading) {
+      console.log('[Boolean AI] Cannot send - input empty or loading:', { input, isLoading });
+      return;
+    }
 
+    console.log('[Boolean AI] Sending message...');
     const userMessage: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
@@ -224,7 +228,12 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
             placeholder="Type your answer..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
             disabled={isLoading}
           />
           <Button onClick={sendMessage} disabled={isLoading || !input.trim()}>
