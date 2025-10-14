@@ -56,7 +56,9 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
       if (error) throw error;
 
       if (data?.reply) {
+        console.log('[BooleanAI] Raw AI response:', data.reply);
         const parsedMessage = parseAIResponse(data.reply);
+        console.log('[BooleanAI] Parsed message:', parsedMessage);
         setMessages(prev => [...prev, parsedMessage]);
       }
     } catch (error) {
@@ -71,9 +73,12 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
   const parseAIResponse = (content: string): Message => {
     const message: Message = { role: 'assistant', content };
 
+    console.log('[BooleanAI] Parsing content:', content);
+
     // Check for [TITLES: ...] pattern
     const titlesMatch = content.match(/\[TITLES:\s*([^\]]+)\]/);
     if (titlesMatch) {
+      console.log('[BooleanAI] Found TITLES:', titlesMatch[1]);
       const options = titlesMatch[1].split(',').map(s => s.trim());
       message.suggestions = { type: 'titles', options };
     }
@@ -81,6 +86,7 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
     // Check for [SKILLS: ...] pattern
     const skillsMatch = content.match(/\[SKILLS:\s*([^\]]+)\]/);
     if (skillsMatch) {
+      console.log('[BooleanAI] Found SKILLS:', skillsMatch[1]);
       const options = skillsMatch[1].split(',').map(s => s.trim());
       message.suggestions = { type: 'skills', options };
     }
@@ -88,6 +94,7 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
     // Check for [EXCLUDE: ...] pattern
     const excludeMatch = content.match(/\[EXCLUDE:\s*([^\]]+)\]/);
     if (excludeMatch) {
+      console.log('[BooleanAI] Found EXCLUDE:', excludeMatch[1]);
       const options = excludeMatch[1].split(',').map(s => s.trim());
       message.suggestions = { type: 'exclude', options };
     }
@@ -95,9 +102,12 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
     // Check for [LEVELS: ...] pattern
     const levelsMatch = content.match(/\[LEVELS:\s*([^\]]+)\]/);
     if (levelsMatch) {
+      console.log('[BooleanAI] Found LEVELS:', levelsMatch[1]);
       const options = levelsMatch[1].split(',').map(s => s.trim());
       message.suggestions = { type: 'levels', options };
     }
+
+    console.log('[BooleanAI] Final parsed suggestions:', message.suggestions);
 
     return message;
   };

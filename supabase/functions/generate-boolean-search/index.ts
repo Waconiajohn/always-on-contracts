@@ -127,7 +127,13 @@ After 3-5 exchanges, you should have enough info to generate a powerful boolean 
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response.';
 
-    console.log('[Boolean AI] Generated response');
+    console.log('[Boolean AI] Generated response:', reply);
+    console.log('[Boolean AI] Checking for structured markers...');
+    console.log('[Boolean AI] Has TITLES?', reply.includes('[TITLES:'));
+    console.log('[Boolean AI] Has SKILLS?', reply.includes('[SKILLS:'));
+    console.log('[Boolean AI] Has EXCLUDE?', reply.includes('[EXCLUDE:'));
+    console.log('[Boolean AI] Has LEVELS?', reply.includes('[LEVELS:'));
+    console.log('[Boolean AI] Has BOOLEAN?', reply.includes('[BOOLEAN:'));
     
     return new Response(
       JSON.stringify({ reply }),
