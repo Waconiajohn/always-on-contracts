@@ -151,8 +151,8 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col gap-0">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col gap-0">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             Boolean Search AI Assistant
@@ -162,8 +162,8 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 pr-4 -mr-4">
-          <div ref={scrollRef} className="space-y-4 py-4">
+        <ScrollArea className="flex-1 min-h-0 overflow-auto">
+          <div ref={scrollRef} className="space-y-4 py-4 pr-4">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
@@ -223,7 +223,7 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
           </div>
         </ScrollArea>
 
-        <div className="flex gap-2 pt-4 border-t">
+        <div className="flex gap-2 pt-4 border-t flex-shrink-0">
           <Input
             placeholder="Type your answer..."
             value={input}
