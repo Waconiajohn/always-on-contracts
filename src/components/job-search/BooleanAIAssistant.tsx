@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ interface BooleanAIAssistantProps {
 
 export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: BooleanAIAssistantProps) => {
   const { toast } = useToast();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -29,6 +30,13 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedSearch, setCopiedSearch] = useState<string | null>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -144,7 +152,7 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
         </DialogHeader>
 
         <ScrollArea className="flex-1 pr-4 -mr-4">
-          <div className="space-y-4 py-4">
+          <div ref={scrollRef} className="space-y-4 py-4">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
