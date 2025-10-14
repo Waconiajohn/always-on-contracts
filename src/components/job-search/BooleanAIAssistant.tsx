@@ -162,7 +162,7 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
           </DialogDescription>
         </DialogHeader>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto border rounded-md p-4 bg-muted/20">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto border rounded-md p-4 bg-muted/20">
           <div className="space-y-4">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
