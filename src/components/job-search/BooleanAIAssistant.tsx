@@ -39,29 +39,44 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
     setIsLoading(true);
 
     try {
+      console.log('[Boolean AI] Sending message:', userMessage);
+      
       const { data, error } = await supabase.functions.invoke('generate-boolean-search', {
         body: { messages: [...messages, userMessage] }
       });
 
-      if (error) throw error;
+      console.log('[Boolean AI] Response:', { data, error });
+
+      if (error) {
+        console.error('[Boolean AI] Supabase error:', error);
+        throw error;
+      }
 
       if (data?.error) {
+        console.error('[Boolean AI] Data error:', data.error);
         throw new Error(data.error);
       }
 
+      if (!data?.reply) {
+        console.error('[Boolean AI] No reply in data:', data);
+        throw new Error('No reply received from AI');
+      }
+
       const assistantMessage: Message = { role: 'assistant', content: data.reply };
+      console.log('[Boolean AI] Adding assistant message:', assistantMessage);
       setMessages(prev => [...prev, assistantMessage]);
 
     } catch (error: any) {
-      console.error('AI assistant error:', error);
+      console.error('[Boolean AI] Error in sendMessage:', error);
       toast({
         title: "Assistant error",
         description: error.message || "Failed to get response from AI assistant",
         variant: "destructive"
       });
       
-      // Remove user message on error
+      // Remove user message on error and restore input
       setMessages(prev => prev.slice(0, -1));
+      setInput(userMessage.content);
     } finally {
       setIsLoading(false);
     }
