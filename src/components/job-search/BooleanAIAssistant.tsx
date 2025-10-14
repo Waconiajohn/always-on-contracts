@@ -1,15 +1,20 @@
-import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useRef, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import { Loader2, Sparkles, Copy, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Send, Copy, Check, RotateCcw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { BooleanStringPreview } from "./BooleanStringPreview";
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  suggestions?: {
+    type: 'titles' | 'skills' | 'exclude' | 'levels';
+    options: string[];
+  };
 }
 
 interface BooleanAIAssistantProps {
@@ -19,106 +24,116 @@ interface BooleanAIAssistantProps {
 }
 
 export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: BooleanAIAssistantProps) => {
-  const { toast } = useToast();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hi! I'm your Boolean Search Assistant. I'll help you create a powerful search string to find your perfect job. Let's start simple - what job title are you looking for?"
+      content: "Hi! I'm your Boolean Search Assistant. I'll help you create a powerful search string. Let's start - what job title are you looking for?"
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedSearch, setCopiedSearch] = useState<string | null>(null);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) {
-      console.log('[Boolean AI] Cannot send - input empty or loading:', { input, isLoading });
-      return;
-    }
+  const sendMessage = async (messageText?: string) => {
+    const textToSend = messageText || input.trim();
+    if (!textToSend || isLoading) return;
 
-    console.log('[Boolean AI] Sending message...');
-    const userMessage: Message = { role: 'user', content: input };
+    const userMessage: Message = { role: 'user', content: textToSend };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      console.log('[Boolean AI] Sending message:', userMessage);
-      
       const { data, error } = await supabase.functions.invoke('generate-boolean-search', {
         body: { messages: [...messages, userMessage] }
       });
 
-      console.log('[Boolean AI] Response:', { data, error });
+      if (error) throw error;
 
-      if (error) {
-        console.error('[Boolean AI] Supabase error:', error);
-        throw error;
+      if (data?.reply) {
+        const parsedMessage = parseAIResponse(data.reply);
+        setMessages(prev => [...prev, parsedMessage]);
       }
-
-      if (data?.error) {
-        console.error('[Boolean AI] Data error:', data.error);
-        throw new Error(data.error);
-      }
-
-      if (!data?.reply) {
-        console.error('[Boolean AI] No reply in data:', data);
-        throw new Error('No reply received from AI');
-      }
-
-      const assistantMessage: Message = { role: 'assistant', content: data.reply };
-      console.log('[Boolean AI] Adding assistant message:', assistantMessage);
-      setMessages(prev => [...prev, assistantMessage]);
-
-    } catch (error: any) {
-      console.error('[Boolean AI] Error in sendMessage:', error);
-      toast({
-        title: "Assistant error",
-        description: error.message || "Failed to get response from AI assistant",
-        variant: "destructive"
-      });
-      
-      // Remove user message on error and restore input
-      setMessages(prev => prev.slice(0, -1));
-      setInput(userMessage.content);
+    } catch (error) {
+      console.error('Error generating boolean search:', error);
+      toast.error('Failed to generate response. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const extractBooleanString = (content: string): string | null => {
-    // Look for text in code blocks first (highest priority)
-    const codeMatch = content.match(/```(?:text|sql|search)?\n(.*?)\n```/s);
-    if (codeMatch) {
-      const trimmed = codeMatch[1].trim();
-      if (trimmed.includes('(') || trimmed.includes('"')) return trimmed;
+  // Parse AI response for structured suggestions
+  const parseAIResponse = (content: string): Message => {
+    const message: Message = { role: 'assistant', content };
+
+    // Check for [TITLES: ...] pattern
+    const titlesMatch = content.match(/\[TITLES:\s*([^\]]+)\]/);
+    if (titlesMatch) {
+      const options = titlesMatch[1].split(',').map(s => s.trim());
+      message.suggestions = { type: 'titles', options };
     }
 
-    // Look for text in quotes that has both operators AND parentheses/quotes (likely a boolean string)
-    const quotedMatch = content.match(/"([^"]*\([^)]*\).*?)"/);
-    if (quotedMatch) return quotedMatch[1];
+    // Check for [SKILLS: ...] pattern
+    const skillsMatch = content.match(/\[SKILLS:\s*([^\]]+)\]/);
+    if (skillsMatch) {
+      const options = skillsMatch[1].split(',').map(s => s.trim());
+      message.suggestions = { type: 'skills', options };
+    }
 
-    // Look for lines that START with operators or parentheses (actual boolean strings)
-    const lines = content.split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      // Only match if it starts with parentheses or quotes and contains operators
-      if (trimmed.length > 30 && trimmed.length < 500) {
-        if ((trimmed.startsWith('(') || trimmed.startsWith('"') || trimmed.startsWith("'")) &&
-            (trimmed.includes(' AND ') || trimmed.includes(' OR ') || trimmed.includes(' NOT '))) {
-          return trimmed;
+    // Check for [EXCLUDE: ...] pattern
+    const excludeMatch = content.match(/\[EXCLUDE:\s*([^\]]+)\]/);
+    if (excludeMatch) {
+      const options = excludeMatch[1].split(',').map(s => s.trim());
+      message.suggestions = { type: 'exclude', options };
+    }
+
+    // Check for [LEVELS: ...] pattern
+    const levelsMatch = content.match(/\[LEVELS:\s*([^\]]+)\]/);
+    if (levelsMatch) {
+      const options = levelsMatch[1].split(',').map(s => s.trim());
+      message.suggestions = { type: 'levels', options };
+    }
+
+    return message;
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    sendMessage(suggestion);
+  };
+
+  const extractBooleanString = (msgs: Message[]): string | null => {
+    // Look through messages in reverse for [BOOLEAN: ...] marker
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const msg = msgs[i];
+      if (msg.role === 'assistant') {
+        const booleanMatch = msg.content.match(/\[BOOLEAN:\s*([^\]]+)\]/);
+        if (booleanMatch) return booleanMatch[1].trim();
+
+        // Fallback: Look for text in code blocks
+        const codeMatch = msg.content.match(/```(?:text|sql|search)?\n(.*?)\n```/s);
+        if (codeMatch) {
+          const trimmed = codeMatch[1].trim();
+          if (trimmed.includes('(') || trimmed.includes('"')) return trimmed;
+        }
+
+        // Look for lines with boolean operators
+        const lines = msg.content.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.length > 30 && trimmed.length < 500) {
+            if ((trimmed.startsWith('(') || trimmed.startsWith('"') || trimmed.startsWith("'")) &&
+                (trimmed.includes(' AND ') || trimmed.includes(' OR ') || trimmed.includes(' NOT '))) {
+              return trimmed;
+            }
+          }
         }
       }
     }
-
     return null;
   };
 
@@ -126,122 +141,142 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
     navigator.clipboard.writeText(text);
     setCopiedSearch(text);
     setTimeout(() => setCopiedSearch(null), 2000);
-    toast({
-      title: "Copied!",
-      description: "Boolean search copied to clipboard"
-    });
+    toast.success('Boolean search copied to clipboard!');
   };
 
-  const handleApplySearch = (booleanString: string) => {
-    onApplySearch(booleanString);
-    onOpenChange(false);
-    toast({
-      title: "Search applied!",
-      description: "Your boolean search has been set"
-    });
+  const handleApplySearch = () => {
+    const booleanString = extractBooleanString(messages);
+    if (booleanString) {
+      onApplySearch(booleanString);
+      onOpenChange(false);
+      toast.success('Boolean search applied! Check the Advanced Filters section.', {
+        duration: 4000,
+      });
+    }
   };
 
   const handleReset = () => {
     setMessages([{
       role: 'assistant',
-      content: "Hi! I'm your Boolean Search Assistant. I'll help you create a powerful search string to find your perfect job. Let's start simple - what job title are you looking for?"
+      content: "Hi! I'm your Boolean Search Assistant. I'll help you create a powerful search string. Let's start - what job title are you looking for?"
     }]);
     setInput('');
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col gap-4 p-6">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             Boolean Search AI Assistant
           </DialogTitle>
           <DialogDescription>
-            Answer a few questions and I'll build a powerful boolean search string for you
+            Let's build a powerful boolean search string together - just answer a few questions!
           </DialogDescription>
         </DialogHeader>
 
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto border rounded-md p-4 bg-muted/20">
-          <div className="space-y-4">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted'
-                }`}>
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  
-                  {/* If assistant message contains a boolean string, show action buttons */}
-                  {msg.role === 'assistant' && extractBooleanString(msg.content) && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const booleanStr = extractBooleanString(msg.content);
-                          if (booleanStr) copyToClipboard(booleanStr);
-                        }}
-                        className="flex-1"
-                      >
-                        {copiedSearch === extractBooleanString(msg.content) ? (
-                          <>
-                            <Check className="h-3 w-3 mr-1" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
+        <div className="flex-1 flex flex-col min-h-0 gap-4">
+          <div className="flex-1 overflow-y-auto border rounded-lg p-4 space-y-4 bg-muted/20">
+            {messages.map((message, index) => (
+              <div key={index} className="space-y-2">
+                <div
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                      message.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-card border'
+                    }`}
+                  >
+                    {message.role === 'assistant' && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-medium">AI Assistant</span>
+                      </div>
+                    )}
+                    <p className="whitespace-pre-wrap text-sm">
+                      {message.content.replace(/\[TITLES:.*?\]|\[SKILLS:.*?\]|\[EXCLUDE:.*?\]|\[LEVELS:.*?\]|\[BOOLEAN:.*?\]/g, '').trim()}
+                    </p>
+                    
+                    {message.role === 'assistant' && extractBooleanString([message]) && (
+                      <div className="mt-3 space-y-2">
+                        <BooleanStringPreview booleanString={extractBooleanString([message])!} />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(extractBooleanString([message])!)}
+                            className="flex-1"
+                          >
                             <Copy className="h-3 w-3 mr-1" />
-                            Copy
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          const booleanStr = extractBooleanString(msg.content);
-                          if (booleanStr) handleApplySearch(booleanStr);
-                        }}
-                        className="flex-1"
-                      >
-                        Use This Search
-                      </Button>
-                    </div>
-                  )}
+                            {copiedSearch === extractBooleanString([message]) ? 'Copied!' : 'Copy'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleApplySearch}
+                            className="flex-1"
+                          >
+                            <Check className="h-3 w-3 mr-1" />
+                            Use This Search
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Render clickable suggestions */}
+                {message.suggestions && (
+                  <div className="flex flex-wrap gap-2 px-2">
+                    {message.suggestions.options.map((option, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                        onClick={() => handleSuggestionClick(option)}
+                      >
+                        {option}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-lg px-4 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="bg-card border rounded-lg px-4 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 </div>
               </div>
             )}
+            
+            <div ref={messagesEndRef} />
           </div>
-        </div>
 
-        <div className="flex gap-2 flex-shrink-0">
-          <Input
-            placeholder="Type your answer..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            disabled={isLoading}
-          />
-          <Button onClick={sendMessage} disabled={isLoading || !input.trim()}>
-            Send
-          </Button>
-          <Button variant="outline" onClick={handleReset} disabled={isLoading}>
-            Reset
-          </Button>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Type your answer or click a suggestion above..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button onClick={() => sendMessage()} disabled={isLoading || !input.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={handleReset} disabled={isLoading}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

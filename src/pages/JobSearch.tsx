@@ -50,9 +50,26 @@ const JobSearchContent = () => {
   const [booleanString, setBooleanString] = useState('');
   const [showAIAssistant, setShowAIAssistant] = useState(false);
 
-  const handleApplyAISearch = (searchString: string) => {
-    setBooleanString(searchString);
-    setShowAdvanced(true); // Auto-expand to show the applied search
+  const handleApplyAISearch = (booleanString: string) => {
+    setBooleanString(booleanString);
+    setShowAdvanced(true);
+    
+    // Scroll to the advanced filters section with smooth animation
+    setTimeout(() => {
+      const advancedSection = document.getElementById('advanced-filters-section');
+      if (advancedSection) {
+        advancedSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Add a pulsing highlight effect to the boolean input
+        const booleanInput = document.getElementById('boolean-input');
+        if (booleanInput) {
+          booleanInput.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+          setTimeout(() => {
+            booleanInput.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+          }, 2000);
+        }
+      }
+    }, 100);
   };
   
   // Vault suggestions
@@ -347,7 +364,7 @@ const JobSearchContent = () => {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-4 space-y-4">
-                <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
+                <div id="advanced-filters-section" className="space-y-2 p-4 border rounded-lg bg-muted/30">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="font-semibold">🚀 Boolean Search String</Label>
                     <Badge variant="secondary" className="text-xs">Google Jobs Only</Badge>
@@ -367,10 +384,11 @@ const JobSearchContent = () => {
                   </Button>
                   
                   <Input
+                    id="boolean-input"
                     placeholder='e.g., ("Product Manager" OR "Program Manager") AND (Agile OR Scrum) NOT "junior"'
                     value={booleanString}
                     onChange={(e) => setBooleanString(e.target.value)}
-                    className="font-mono text-sm"
+                    className="font-mono text-sm transition-all duration-300"
                   />
                   {booleanString && (
                     <div className="flex gap-2 mt-3">
