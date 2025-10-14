@@ -49,6 +49,11 @@ const JobSearchContent = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [booleanString, setBooleanString] = useState('');
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+
+  const handleApplyAISearch = (searchString: string) => {
+    setBooleanString(searchString);
+    setShowAdvanced(true); // Auto-expand to show the applied search
+  };
   
   // Vault suggestions
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
@@ -545,7 +550,7 @@ const JobSearchContent = () => {
         <BooleanAIAssistant
           open={showAIAssistant}
           onOpenChange={setShowAIAssistant}
-          onApplySearch={(search) => setBooleanString(search)}
+          onApplySearch={handleApplyAISearch}
         />
       </div>
     </div>
