@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy } from "lucide-react";
+import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { BooleanAIAssistant } from "@/components/job-search/BooleanAIAssistant";
 
 interface JobResult {
   id: string;
@@ -47,6 +48,7 @@ const JobSearchContent = () => {
   const [employmentType, setEmploymentType] = useState<string>('any');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [booleanString, setBooleanString] = useState('');
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   
   // Vault suggestions
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
@@ -349,6 +351,16 @@ const JobSearchContent = () => {
                     Use advanced boolean operators (AND, OR, NOT) for precise searches. 
                     Note: This works best with Google Jobs; may not apply to all sources.
                   </p>
+                  
+                  <Button 
+                    onClick={() => setShowAIAssistant(true)}
+                    className="w-full mb-3"
+                    variant="outline"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Let AI Build Your Boolean Search
+                  </Button>
+                  
                   <Input
                     placeholder='e.g., ("Product Manager" OR "Program Manager") AND (Agile OR Scrum) NOT "junior"'
                     value={booleanString}
@@ -528,6 +540,13 @@ const JobSearchContent = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* AI Assistant Modal */}
+        <BooleanAIAssistant
+          open={showAIAssistant}
+          onOpenChange={setShowAIAssistant}
+          onApplySearch={(search) => setBooleanString(search)}
+        />
       </div>
     </div>
   );

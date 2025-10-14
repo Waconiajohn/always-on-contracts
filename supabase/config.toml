@@ -215,3 +215,40 @@ verify_jwt = true
 
 [functions.analyze-competitive-position]
 verify_jwt = true
+
+[functions.generate-boolean-search]
+verify_jwt = true
+
+[functions.unified-job-search]
+verify_jwt = true
+
+[functions.mcp-adzuna-api]
+verify_jwt = true
+
+[functions.mcp-searchapi-google]
+verify_jwt = true
+
+[functions.mcp-usajobs-api]
+verify_jwt = true
+
+[functions.optimize-linkedin-with-audit]
+verify_jwt = true
+
+[functions.optimize-resume-with-audit]
+verify_jwt = true
+
+[functions.analyze-linkedin-post-with-audit]
+verify_jwt = true
+
+[functions.validate-interview-response-with-audit]
+verify_jwt = true
+
+[functions.quick-analyze-resume]
+verify_jwt = true
+
+[functions.infer-target-roles]
+verify_jwt = true
+
+[functions.dual-ai-audit]
+verify_jwt = true
+
