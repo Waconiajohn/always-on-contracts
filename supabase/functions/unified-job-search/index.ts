@@ -294,11 +294,42 @@ serve(async (req) => {
     const uniqueJobs = deduplicateJobs(contractFiltered);
     console.log(`[Deduplication] Removed ${contractFiltered.length - uniqueJobs.length} duplicates: ${contractFiltered.length} → ${uniqueJobs.length} jobs`);
 
+    // Apply location filter if specified
+    let locationFilteredJobs = uniqueJobs;
+    if (location && location.trim()) {
+      const beforeLocationFilter = uniqueJobs.length;
+      const locationLower = location.toLowerCase().trim();
+      
+      // Extract city and state from location string (e.g., "Minneapolis, MN")
+      const locationParts = locationLower.split(',').map((p: string) => p.trim());
+      
+      locationFilteredJobs = uniqueJobs.filter(job => {
+        if (!job.location) return false;
+        
+        const jobLocationLower = job.location.toLowerCase();
+        
+        // If user wants onsite/hybrid jobs specifically, don't allow remote jobs from other locations
+        const wantsLocalJobs = searchFilters.remoteType && 
+                               searchFilters.remoteType !== 'any' && 
+                               searchFilters.remoteType !== 'remote';
+        
+        // For remote jobs, only allow if user is specifically searching for remote OR searching 'any'
+        if (job.remote_type && job.remote_type.toLowerCase() === 'remote') {
+          return !wantsLocalJobs; // Only pass if not specifically looking for local jobs
+        }
+        
+        // Check if ALL location parts are in the job location
+        return locationParts.every((part: string) => jobLocationLower.includes(part));
+      });
+      
+      console.log(`[Location Filter] Applied "${location}" filter: ${beforeLocationFilter} → ${locationFilteredJobs.length} jobs`);
+    }
+
     // Apply remote type filter
-    let remoteFilteredJobs = uniqueJobs;
+    let remoteFilteredJobs = locationFilteredJobs;
     if (searchFilters.remoteType && searchFilters.remoteType !== 'any') {
-      const beforeRemoteFilter = uniqueJobs.length;
-      remoteFilteredJobs = uniqueJobs.filter(job => {
+      const beforeRemoteFilter = locationFilteredJobs.length;
+      remoteFilteredJobs = locationFilteredJobs.filter(job => {
         const jobRemoteType = (job.remote_type || 'onsite').toLowerCase();
         const filterRemoteType = searchFilters.remoteType!.toLowerCase();
         return jobRemoteType === filterRemoteType;
