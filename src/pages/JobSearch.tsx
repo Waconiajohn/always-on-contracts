@@ -286,7 +286,8 @@ const JobSearchContent = () => {
           external_url: job.apply_url,
           source: job.source,
           status: 'active',
-          posted_date: job.posted_date
+          posted_date: job.posted_date,
+          is_external: true
         }, { onConflict: 'external_url' })
         .select()
         .single();
