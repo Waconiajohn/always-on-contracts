@@ -161,7 +161,8 @@ serve(async (req) => {
           .then(result => {
             googleJobsNextPageToken = result.nextPageToken;
             sourceStats.google_jobs = { count: result.jobs.length, status: 'success' };
-            return result.jobs;
+            // Mark jobs as coming from location-aware source
+            return result.jobs.map(job => ({ ...job, _source: 'google_jobs', _locationAware: true }));
           })
           .catch(error => {
             console.error('[Google Jobs] ❌ CRITICAL ERROR:', error);
@@ -300,7 +301,7 @@ serve(async (req) => {
     const uniqueJobs = deduplicateJobs(contractFiltered);
     console.log(`[Deduplication] Removed ${contractFiltered.length - uniqueJobs.length} duplicates: ${contractFiltered.length} → ${uniqueJobs.length} jobs`);
 
-    // Apply location filter if specified
+    // Apply location filter if specified (only for non-location-aware sources)
     let locationFilteredJobs = uniqueJobs;
     if (location && location.trim()) {
       const beforeLocationFilter = uniqueJobs.length;
@@ -310,6 +311,13 @@ serve(async (req) => {
       const locationParts = locationLower.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
       
       locationFilteredJobs = uniqueJobs.filter(job => {
+        // Skip location filtering for jobs from location-aware sources (like Google Jobs)
+        // These sources already filtered by location correctly
+        if ((job as any)._locationAware) {
+          console.log(`[Location Filter] ✅ Keeping "${job.title}" - from location-aware source (Google Jobs)`);
+          return true;
+        }
+        
         // If no location specified, filter out unless explicitly remote and user wants remote
         if (!job.location || job.location.trim() === '') {
           const isRemoteJob = job.remote_type && job.remote_type.toLowerCase() === 'remote';
