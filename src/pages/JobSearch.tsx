@@ -102,7 +102,15 @@ const JobSearchContent = () => {
     if (search.location) setLocation(search.location);
     if (search.filters) {
       if (search.filters.datePosted) setDateFilter(search.filters.datePosted);
-      if (search.filters.remoteType) setRemoteType(search.filters.remoteType);
+      // Migrate old remote type values to new simplified system
+      if (search.filters.remoteType) {
+        const oldRemoteType = search.filters.remoteType;
+        if (oldRemoteType === 'hybrid' || oldRemoteType === 'onsite') {
+          setRemoteType('local');
+        } else {
+          setRemoteType(oldRemoteType);
+        }
+      }
       if (search.filters.employmentType) setEmploymentType(search.filters.employmentType);
       if (search.filters.contractOnly !== undefined) setContractOnly(search.filters.contractOnly);
     }
@@ -459,8 +467,7 @@ const JobSearchContent = () => {
                   <SelectContent>
                     <SelectItem value="any">Any</SelectItem>
                     <SelectItem value="remote">Remote</SelectItem>
-                    <SelectItem value="hybrid">Hybrid</SelectItem>
-                    <SelectItem value="onsite">Onsite</SelectItem>
+                    <SelectItem value="local">Hybrid/Onsite</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
