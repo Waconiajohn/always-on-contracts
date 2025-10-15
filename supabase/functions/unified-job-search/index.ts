@@ -494,7 +494,8 @@ serve(async (req) => {
         total: scoredJobs.length,
         searchParams: { query, location, filters: searchFilters },
         sources: sourceStats,
-        executionTime
+        executionTime,
+        nextPageToken: googleJobsNextPageToken
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -632,34 +633,43 @@ async function searchSingleTitle(
   console.log(`[Google Jobs] Request URL: ${url}`);
   console.log(`[Google Jobs] Parameters:`, Object.fromEntries(params));
   
-  // Add timeout protection (30 seconds)
+  // Add timeout protection (30 seconds) - wrap entire operation
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => {
+    console.error('[Google Jobs] ⏱️ TIMEOUT: Aborting after 30 seconds');
+    controller.abort();
+  }, 30000);
 
   let response;
+  let data;
+  
   try {
     console.log('[Google Jobs] 🚀 Starting fetch request...');
     response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
     console.log('[Google Jobs] ✅ Fetch completed, status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      clearTimeout(timeoutId);
+      console.error(`[Google Jobs] API Error Response:`, errorText);
+      console.error(`[Google Jobs] Status: ${response.status} ${response.statusText}`);
+      throw new Error(`Google Jobs API failed: ${response.status} - ${errorText}`);
+    }
+
+    console.log('[Google Jobs] 📥 Reading response body...');
+    data = await response.json();
+    console.log('[Google Jobs] ✅ Response parsed successfully');
+    clearTimeout(timeoutId);
+    
   } catch (error: unknown) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
       console.error(`[Google Jobs] ❌ Request timed out after 30 seconds`);
       throw new Error('SearchAPI.io request timed out after 30 seconds');
     }
-    console.error(`[Google Jobs] ❌ Fetch error:`, error);
+    console.error(`[Google Jobs] ❌ Fetch/Parse error:`, error);
     throw error;
   }
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[Google Jobs] API Error Response:`, errorText);
-    console.error(`[Google Jobs] Status: ${response.status} ${response.statusText}`);
-    throw new Error(`Google Jobs API failed: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
   
   // Log response size
   const responseSize = JSON.stringify(data).length;
