@@ -123,6 +123,14 @@ serve(async (req) => {
   try {
     const { query, location, radiusMiles, filters, userId, sources, nextPageToken } = await req.json();
     
+    console.log('[UNIFIED-SEARCH] ========================================');
+    console.log('[UNIFIED-SEARCH] REQUEST RECEIVED');
+    console.log('[UNIFIED-SEARCH] Query:', query);
+    console.log('[UNIFIED-SEARCH] Sources param type:', typeof sources);
+    console.log('[UNIFIED-SEARCH] Sources param value:', JSON.stringify(sources));
+    console.log('[UNIFIED-SEARCH] Sources is array:', Array.isArray(sources));
+    console.log('[UNIFIED-SEARCH] ========================================');
+    
     if (!query || !query.trim()) {
       throw new Error('Search query is required');
     }
@@ -146,6 +154,7 @@ serve(async (req) => {
     );
 
     const enabledSources = sources || ['google_jobs', 'company_boards'];
+    console.log('[UNIFIED-SEARCH] Enabled sources after default:', JSON.stringify(enabledSources));
     const allJobs: JobResult[] = [];
     const sourceStats: Record<string, { count: number; status: string }> = {};
     const startTime = Date.now();
@@ -155,11 +164,18 @@ serve(async (req) => {
 
     let googleJobsNextPageToken: string | undefined;
     
-    console.log(`[UNIFIED-SEARCH] Enabled sources: ${JSON.stringify(enabledSources)}`);
-    console.log(`[UNIFIED-SEARCH] Checking for google_jobs: ${enabledSources.includes('google_jobs')}`);
+    console.log('[UNIFIED-SEARCH] ════════════════════════════════════════');
+    console.log('[UNIFIED-SEARCH] SOURCE CHECK FOR GOOGLE_JOBS');
+    console.log('[UNIFIED-SEARCH] enabledSources:', JSON.stringify(enabledSources));
+    console.log('[UNIFIED-SEARCH] typeof enabledSources:', typeof enabledSources);
+    console.log('[UNIFIED-SEARCH] Array.isArray(enabledSources):', Array.isArray(enabledSources));
+    console.log('[UNIFIED-SEARCH] enabledSources.length:', enabledSources?.length);
+    console.log('[UNIFIED-SEARCH] enabledSources content:', enabledSources);
+    console.log('[UNIFIED-SEARCH] Checking includes("google_jobs"):', enabledSources.includes('google_jobs'));
+    console.log('[UNIFIED-SEARCH] ════════════════════════════════════════');
     
     if (enabledSources.includes('google_jobs')) {
-      console.log('[UNIFIED-SEARCH] 🚀 STARTING GOOGLE JOBS SEARCH');
+      console.log('[UNIFIED-SEARCH] ✅ google_jobs IS INCLUDED - Starting Google Jobs search');
       searchPromises.push(
         searchGoogleJobs(query, location, searchFilters)
           .then(result => {
@@ -180,6 +196,9 @@ serve(async (req) => {
             return [];
           })
       );
+    } else {
+      console.log('[UNIFIED-SEARCH] ❌ google_jobs NOT INCLUDED - Skipping Google Jobs search');
+      console.log('[UNIFIED-SEARCH] enabledSources was:', JSON.stringify(enabledSources));
     }
 
     if (enabledSources.includes('company_boards')) {
