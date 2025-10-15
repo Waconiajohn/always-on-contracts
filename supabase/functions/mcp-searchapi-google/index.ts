@@ -21,29 +21,56 @@ serve(async (req) => {
       throw new Error('SearchAPI key not configured');
     }
 
-    // Build SearchAPI Google Jobs request
-    const params = new URLSearchParams({
-      engine: 'google_jobs',
-      api_key: SEARCHAPI_KEY,
-      q: query,
-      num: Math.min(maxResults, 100).toString()
+    // Calculate number of pages needed (Google Jobs typically returns 10 results per page)
+    const resultsPerPage = 10;
+    const numPages = Math.ceil(Math.min(maxResults, 100) / resultsPerPage);
+    
+    console.log(`[SEARCHAPI-GOOGLE] Fetching ${numPages} pages to get ${maxResults} results`);
+
+    // Fetch multiple pages in parallel
+    const pagePromises = Array.from({ length: numPages }, async (_, pageIndex) => {
+      const startIndex = pageIndex * resultsPerPage;
+      
+      const params = new URLSearchParams({
+        engine: 'google_jobs',
+        api_key: SEARCHAPI_KEY,
+        q: query,
+        num: resultsPerPage.toString(),
+        start: startIndex.toString()
+      });
+
+      if (location) params.append('location', location);
+      if (filters.datePosted) params.append('chips', `date_posted:${filters.datePosted}`);
+      if (filters.jobType) params.append('chips', `employment_type:${filters.jobType}`);
+      if (filters.remote) params.append('lrad', '100');
+
+      console.log(`[SEARCHAPI-GOOGLE] Fetching page ${pageIndex + 1} (start=${startIndex})`);
+
+      const response = await fetch(`https://www.searchapi.io/api/v1/search?${params}`);
+      
+      if (!response.ok) {
+        console.error(`[SEARCHAPI-GOOGLE] Page ${pageIndex + 1} error: ${response.status}`);
+        return { jobs_results: [] };
+      }
+
+      return await response.json();
     });
 
-    if (location) params.append('location', location);
-    if (filters.datePosted) params.append('chips', `date_posted:${filters.datePosted}`);
-    if (filters.jobType) params.append('chips', `employment_type:${filters.jobType}`);
-    if (filters.remote) params.append('lrad', '100'); // 100 mile radius for remote
-
-    const response = await fetch(`https://www.searchapi.io/api/v1/search?${params}`);
+    const pageResults = await Promise.all(pagePromises);
     
-    if (!response.ok) {
-      throw new Error(`SearchAPI error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    // Combine all results and deduplicate by job_id
+    const allJobs = pageResults.flatMap(data => data.jobs_results || []);
+    const uniqueJobs = new Map();
     
-    // Map Google Jobs results to standardized format
-    const jobs = (data.jobs_results || []).map((job: any) => ({
+    allJobs.forEach(job => {
+      const jobId = job.job_id || Math.random().toString(36).substr(2, 9);
+      if (!uniqueJobs.has(jobId)) {
+        uniqueJobs.set(jobId, job);
+      }
+    });
+
+    // Map to standardized format
+    const jobs = Array.from(uniqueJobs.values()).map((job: any) => ({
       id: `google-${job.job_id || Math.random().toString(36).substr(2, 9)}`,
       source: 'google_jobs',
       externalId: job.job_id,
@@ -64,9 +91,9 @@ serve(async (req) => {
       extensions: job.extensions || [],
       via: job.via,
       highlights: job.job_highlights
-    }));
+    })).slice(0, maxResults); // Limit to maxResults
 
-    console.log(`[SEARCHAPI-GOOGLE] Found ${jobs.length} jobs`);
+    console.log(`[SEARCHAPI-GOOGLE] Found ${jobs.length} unique jobs across ${numPages} pages`);
 
     return new Response(
       JSON.stringify({ 
@@ -75,7 +102,8 @@ serve(async (req) => {
         total: jobs.length,
         searchParams: { query, location, filters },
         metadata: {
-          searchParameters: data.search_parameters,
+          searchParameters: pageResults[0]?.search_parameters,
+          pagesProcessed: numPages,
           legalShield: 'SearchAPI with Legal Shield protection'
         }
       }),
