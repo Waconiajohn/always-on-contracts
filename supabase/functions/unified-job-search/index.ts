@@ -155,7 +155,11 @@ serve(async (req) => {
 
     let googleJobsNextPageToken: string | undefined;
     
+    console.log(`[UNIFIED-SEARCH] Enabled sources: ${JSON.stringify(enabledSources)}`);
+    console.log(`[UNIFIED-SEARCH] Checking for google_jobs: ${enabledSources.includes('google_jobs')}`);
+    
     if (enabledSources.includes('google_jobs')) {
+      console.log('[UNIFIED-SEARCH] 🚀 STARTING GOOGLE JOBS SEARCH');
       searchPromises.push(
         searchGoogleJobs(query, location, searchFilters)
           .then(result => {
@@ -725,9 +729,17 @@ async function searchSingleTitle(
 }
 
 async function searchGoogleJobs(query: string, location: string, filters: SearchFilters): Promise<{ jobs: JobResult[]; nextPageToken?: string }> {
+  console.log('[Google Jobs] 🎯 FUNCTION ENTERED - Starting Google Jobs search');
+  console.log('[Google Jobs] Query:', query);
+  console.log('[Google Jobs] Location:', location);
+  console.log('[Google Jobs] Filters:', JSON.stringify(filters));
+  
   const searchApiKey = Deno.env.get('SEARCHAPI_KEY');
+  console.log('[Google Jobs] API Key check:', searchApiKey ? 'PRESENT' : 'MISSING');
+  
   if (!searchApiKey) {
     console.error('[Google Jobs] ❌ SEARCHAPI_KEY not configured in environment');
+    console.error('[Google Jobs] Available env vars:', Object.keys(Deno.env.toObject()).join(', '));
     return { jobs: [], nextPageToken: undefined };
   }
   console.log('[Google Jobs] ✅ API key found:', searchApiKey.substring(0, 8) + '...');
