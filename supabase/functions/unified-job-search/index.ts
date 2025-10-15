@@ -672,14 +672,14 @@ async function searchSingleTitle(
   
   console.log(`[Google Jobs] Full API Response Sample:`, JSON.stringify(data, null, 2).substring(0, 1000));
   console.log(`[Google Jobs] Response keys:`, Object.keys(data));
-  console.log(`[Google Jobs] Jobs results count:`, data.jobs_results?.length || 0);
+  console.log(`[Google Jobs] Jobs count:`, data.jobs?.length || 0);
   console.log(`[Google Jobs] Search location:`, data.search_information?.detected_location || 'not detected');
   console.log(`[Google Jobs] Has pagination:`, !!data.pagination?.next_page_token);
   
   const jobs: JobResult[] = [];
 
-  if (data.jobs_results && data.jobs_results.length > 0) {
-    for (const job of data.jobs_results) {
+  if (data.jobs && data.jobs.length > 0) {
+    for (const job of data.jobs) {
       const postedDate = job.detected_extensions?.posted_at 
         ? parseGoogleDate(job.detected_extensions.posted_at)
         : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
