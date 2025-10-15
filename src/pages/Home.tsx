@@ -154,26 +154,30 @@ const HomeContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Branding Header */}
+      {/* Premium Branding Header */}
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-3 max-w-7xl">
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-ai-primary to-ai-secondary flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">C</span>
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold bg-gradient-to-r from-ai-primary to-ai-secondary bg-clip-text text-transparent">
-                    CareerIQ
-                  </h1>
-                  <p className="text-xs text-muted-foreground">AI-Powered Career Intelligence</p>
-                </div>
+            {/* Prominent Left Branding */}
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-ai-primary via-ai-secondary to-ai-accent flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-2xl">C</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-ai-primary via-ai-secondary to-ai-accent bg-clip-text text-transparent">
+                  CareerIQ
+                </h1>
+                <p className="text-sm text-muted-foreground font-medium">AI-Powered Career Intelligence</p>
               </div>
             </div>
+            
+            {/* Right Side - Subscription Badge */}
             <div className="flex items-center gap-3">
               {subscription?.subscribed && (
-                <Badge variant={subscription.is_retirement_client ? "default" : "secondary"}>
+                <Badge 
+                  variant={subscription.is_retirement_client ? "default" : "secondary"}
+                  className="text-sm px-4 py-2"
+                >
                   {subscription.is_retirement_client ? "Lifetime Access" : 
                    subscription.tier === 'concierge_elite' ? "Concierge Elite" :
                    subscription.tier === 'always_ready' ? "Always Ready" : "Career Starter"}
