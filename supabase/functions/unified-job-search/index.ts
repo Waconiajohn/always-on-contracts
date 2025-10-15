@@ -582,168 +582,179 @@ function parseSalary(salaryText?: string): { min: number | null; max: number | n
   return null;
 }
 
-// Helper function for single title search
+// Helper function for single title search with pagination support
 async function searchSingleTitle(
   query: string, 
   location: string, 
   filters: SearchFilters, 
   apiKey: string
 ): Promise<{ jobs: JobResult[]; nextPageToken?: string }> {
-  const params = new URLSearchParams({
-    engine: 'google_jobs',
-    q: query,
-    api_key: apiKey,
-    num: '100'
-  });
-
-  // Add location with proper formatting (City, State format)
-  if (location && location.trim()) {
-    params.set('location', location);
-    console.log(`[Google Jobs] Using location: "${location}"`);
-  } else {
-    params.set('location', 'United States');
-  }
-
-  // Add pagination token if provided
-  if (filters.nextPageToken) {
-    params.set('next_page_token', filters.nextPageToken);
-    console.log(`[Google Jobs] Using pagination token: ${filters.nextPageToken.substring(0, 50)}...`);
-  }
-
-  // Fix date filter format - use chips parameter
-  if (filters.datePosted && filters.datePosted !== 'any') {
-    const dateMap: Record<string, string> = {
-      '24h': 'today',
-      '3d': '3days',
-      '7d': 'week',
-      '14d': 'month',
-      '30d': 'month'
-    };
-    const mappedDate = dateMap[filters.datePosted] || 'month';
-    params.set('chips', `date_posted:${mappedDate}`);
-    console.log(`[Google Jobs] Date filter: ${filters.datePosted} → date_posted:${mappedDate}`);
-  }
-
-  // Add employment type filter
-  if (filters.employmentType && filters.employmentType !== 'any') {
-    const typeMap: Record<string, string> = {
-      'full-time': 'FULLTIME',
-      'contract': 'CONTRACTOR',
-      'part-time': 'PARTTIME',
-      'internship': 'INTERN'
-    };
-    const employmentChip = typeMap[filters.employmentType];
-    if (employmentChip) {
-      const existingChips = params.get('chips') || '';
-      params.set('chips', existingChips ? `${existingChips},employment_type:${employmentChip}` : `employment_type:${employmentChip}`);
-    }
-  }
-
-  // Add remote type filter using chips parameter (Google Jobs API)
-  if (filters.remoteType && filters.remoteType !== 'any') {
-    if (filters.remoteType === 'remote') {
-      // Tell Google we want work-from-home jobs
-      const existingChips = params.get('chips') || '';
-      const remoteChip = 'work_from_home:1';
-      params.set('chips', existingChips ? `${existingChips},${remoteChip}` : remoteChip);
-      console.log('[Google Jobs API] Added remote chip filter: work_from_home:1');
-    }
-    // Note: For 'local' (hybrid/onsite), we can't add a chip since Google doesn't have one
-    // Post-filtering will handle hybrid/onsite filtering
-  }
-
-  const url = `https://www.searchapi.io/api/v1/search?${params}`;
-  console.log(`[Google Jobs] Request URL: ${url}`);
-  console.log(`[Google Jobs] Parameters:`, Object.fromEntries(params));
+  console.log('[Google Jobs] 🔄 Starting paginated search for:', query);
   
-  // Add timeout protection (30 seconds) - wrap entire operation
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    console.error('[Google Jobs] ⏱️ TIMEOUT: Aborting after 30 seconds');
-    controller.abort();
-  }, 30000);
-
-  let response;
-  let data;
+  const allJobs: JobResult[] = [];
+  let currentPageToken: string | undefined = filters.nextPageToken;
+  const maxPages = 5; // Fetch up to 5 pages (50 results)
+  let pageCount = 0;
   
+  // Overall timeout for entire pagination process (60 seconds total)
+  const overallController = new AbortController();
+  const overallTimeoutId = setTimeout(() => {
+    console.log('[Google Jobs] ⏱️ Overall pagination timeout (60s) - returning results collected so far');
+    overallController.abort();
+  }, 60000);
+
   try {
-    console.log('[Google Jobs] 🚀 Starting fetch request...');
-    response = await fetch(url, { signal: controller.signal });
-    console.log('[Google Jobs] ✅ Fetch completed, status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      clearTimeout(timeoutId);
-      console.error(`[Google Jobs] API Error Response:`, errorText);
-      console.error(`[Google Jobs] Status: ${response.status} ${response.statusText}`);
-      throw new Error(`Google Jobs API failed: ${response.status} - ${errorText}`);
-    }
+    // Loop through pages
+    while (pageCount < maxPages) {
+      pageCount++;
+      console.log(`[Google Jobs] 📄 Fetching page ${pageCount}/${maxPages}`);
+      
+      const params = new URLSearchParams({
+        engine: 'google_jobs',
+        q: query,
+        api_key: apiKey,
+        num: '100'
+      });
 
-    console.log('[Google Jobs] 📥 Reading response body...');
-    data = await response.json();
-    console.log('[Google Jobs] ✅ Response parsed successfully');
-    clearTimeout(timeoutId);
+      // Add location with proper formatting (City, State format)
+      if (location && location.trim()) {
+        params.set('location', location);
+      } else {
+        params.set('location', 'United States');
+      }
+
+      // Add pagination token if we have one
+      if (currentPageToken) {
+        params.set('next_page_token', currentPageToken);
+        console.log(`[Google Jobs] Using pagination token for page ${pageCount}`);
+      }
+
+      // Fix date filter format - use chips parameter
+      if (filters.datePosted && filters.datePosted !== 'any') {
+        const dateMap: Record<string, string> = {
+          '24h': 'today',
+          '3d': '3days',
+          '7d': 'week',
+          '14d': 'month',
+          '30d': 'month'
+        };
+        const mappedDate = dateMap[filters.datePosted] || 'month';
+        params.set('chips', `date_posted:${mappedDate}`);
+      }
+
+      // Add employment type filter
+      if (filters.employmentType && filters.employmentType !== 'any') {
+        const typeMap: Record<string, string> = {
+          'full-time': 'FULLTIME',
+          'contract': 'CONTRACTOR',
+          'part-time': 'PARTTIME',
+          'internship': 'INTERN'
+        };
+        const employmentChip = typeMap[filters.employmentType];
+        if (employmentChip) {
+          const existingChips = params.get('chips') || '';
+          params.set('chips', existingChips ? `${existingChips},employment_type:${employmentChip}` : `employment_type:${employmentChip}`);
+        }
+      }
+
+      // Add remote type filter using chips parameter (Google Jobs API)
+      if (filters.remoteType && filters.remoteType !== 'any') {
+        if (filters.remoteType === 'remote') {
+          const existingChips = params.get('chips') || '';
+          const remoteChip = 'work_from_home:1';
+          params.set('chips', existingChips ? `${existingChips},${remoteChip}` : remoteChip);
+        }
+      }
+
+      const url = `https://www.searchapi.io/api/v1/search?${params}`;
+      
+      // Per-request timeout (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log(`[Google Jobs] ⏱️ Page ${pageCount} timeout (30s) - moving to next page`);
+        controller.abort();
+      }, 30000);
+
+      let data;
+      
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          clearTimeout(timeoutId);
+          console.error(`[Google Jobs] Page ${pageCount} API Error: ${response.status} - ${errorText}`);
+          break; // Stop pagination on error
+        }
+
+        data = await response.json();
+        clearTimeout(timeoutId);
+        
+      } catch (error: unknown) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`[Google Jobs] Page ${pageCount} timed out - continuing with results so far`);
+          break; // Stop pagination on timeout
+        }
+        console.error(`[Google Jobs] Page ${pageCount} error:`, error);
+        break; // Stop pagination on error
+      }
+      
+      // Parse jobs from this page
+      if (data.jobs && data.jobs.length > 0) {
+        console.log(`[Google Jobs] Page ${pageCount} returned ${data.jobs.length} jobs`);
+        
+        for (const job of data.jobs) {
+          const postedDate = job.detected_extensions?.posted_at 
+            ? parseGoogleDate(job.detected_extensions.posted_at)
+            : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+          const salary = parseSalary(job.detected_extensions?.salary);
+
+          allJobs.push({
+            id: `google_${job.job_id || Math.random().toString(36).substr(2, 9)}`,
+            title: job.title,
+            company: job.company_name,
+            location: job.location,
+            description: job.description,
+            posted_date: postedDate,
+            apply_url: job.share_url || job.apply_options?.[0]?.link,
+            source: 'Google Jobs',
+            remote_type: determineRemoteType(job),
+            employment_type: job.detected_extensions?.schedule || null,
+            salary_min: salary?.min,
+            salary_max: salary?.max
+          });
+        }
+      } else {
+        console.log(`[Google Jobs] Page ${pageCount} returned no jobs - stopping pagination`);
+        break;
+      }
+
+      // Check if there's a next page
+      currentPageToken = data.pagination?.next_page_token;
+      if (!currentPageToken) {
+        console.log(`[Google Jobs] No more pages available after page ${pageCount}`);
+        break;
+      }
+      
+      console.log(`[Google Jobs] Total jobs collected so far: ${allJobs.length}`);
+    }
+    
+    clearTimeout(overallTimeoutId);
     
   } catch (error: unknown) {
-    clearTimeout(timeoutId);
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`[Google Jobs] ❌ Request timed out after 30 seconds`);
-      throw new Error('SearchAPI.io request timed out after 30 seconds');
-    }
-    console.error(`[Google Jobs] ❌ Fetch/Parse error:`, error);
-    throw error;
-  }
-  
-  // Log response size
-  const responseSize = JSON.stringify(data).length;
-  console.log(`[Google Jobs] Response size: ${responseSize} bytes`);
-  
-  if (!data || responseSize < 100) {
-    console.warn('[Google Jobs] ⚠️ Response seems unusually small or empty');
-    console.log('[Google Jobs] Full response:', JSON.stringify(data));
-  }
-  
-  console.log(`[Google Jobs] Full API Response Sample:`, JSON.stringify(data, null, 2).substring(0, 1000));
-  console.log(`[Google Jobs] Response keys:`, Object.keys(data));
-  console.log(`[Google Jobs] Jobs count:`, data.jobs?.length || 0);
-  console.log(`[Google Jobs] Search location:`, data.search_information?.detected_location || 'not detected');
-  console.log(`[Google Jobs] Has pagination:`, !!data.pagination?.next_page_token);
-  
-  const jobs: JobResult[] = [];
-
-  if (data.jobs && data.jobs.length > 0) {
-    for (const job of data.jobs) {
-      const postedDate = job.detected_extensions?.posted_at 
-        ? parseGoogleDate(job.detected_extensions.posted_at)
-        : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-      const salary = parseSalary(job.detected_extensions?.salary);
-
-      jobs.push({
-        id: `google_${job.job_id || Math.random().toString(36).substr(2, 9)}`,
-        title: job.title,
-        company: job.company_name,
-        location: job.location,
-        description: job.description,
-        posted_date: postedDate,
-        apply_url: job.share_url || job.apply_options?.[0]?.link,
-        source: 'Google Jobs',
-        remote_type: determineRemoteType(job),
-        employment_type: job.detected_extensions?.schedule || null,
-        salary_min: salary?.min,
-        salary_max: salary?.max
-      });
+    clearTimeout(overallTimeoutId);
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.error(`[Google Jobs] Pagination error:`, error);
     }
   }
 
-  console.log(`[Google Jobs] Parsed ${jobs.length} jobs for "${query}"`);
-  
-  // Extract pagination token from response
-  const nextPageToken = data.pagination?.next_page_token;
+  console.log(`[Google Jobs] ✅ Pagination complete: ${allJobs.length} total jobs from ${pageCount} pages`);
   
   return { 
-    jobs, 
-    nextPageToken: nextPageToken 
+    jobs: allJobs, 
+    nextPageToken: currentPageToken 
   };
 }
 
