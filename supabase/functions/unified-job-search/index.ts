@@ -322,6 +322,17 @@ serve(async (req) => {
         const jobLocationLower = job.location.toLowerCase().trim();
         const jobRemoteTypeLower = (job.remote_type || '').toLowerCase();
         
+        // Check if location field is just describing work arrangement (not an actual location)
+        const isWorkArrangementOnly = /^(hybrid|remote|distributed|flexible|work from home|wfh)$/i.test(jobLocationLower) ||
+                                      /^(hybrid|remote|distributed);?\s*(hybrid|remote|distributed|flexible)?$/i.test(jobLocationLower);
+        
+        // If location is just work arrangement description, don't filter by location
+        // These jobs will be filtered by remoteType in the next filter stage
+        if (isWorkArrangementOnly) {
+          console.log(`[Location Filter] ✅ Keeping "${job.title}" - location is work arrangement only: "${job.location}"`);
+          return true;
+        }
+        
         // Filter out fully remote jobs if user wants onsite/hybrid in specific location
         if (jobRemoteTypeLower === 'remote') {
           const userWantsRemote = !searchFilters.remoteType || 
@@ -330,7 +341,7 @@ serve(async (req) => {
           return userWantsRemote;
         }
         
-        // For onsite/hybrid jobs, verify location actually matches
+        // For onsite/hybrid jobs with actual location, verify location actually matches
         // Check if ALL location parts are present in the job location
         const locationMatches = locationParts.every((part: string) => 
           part.length > 0 && jobLocationLower.includes(part)
