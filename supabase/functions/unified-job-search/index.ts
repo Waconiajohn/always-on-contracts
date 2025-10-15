@@ -21,6 +21,7 @@ interface SearchFilters {
   salaryMax?: number;
   experienceLevel?: string;
   booleanString?: string;
+  nextPageToken?: string;
 }
 
 interface JobResult {
@@ -120,7 +121,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, location, filters, userId, sources } = await req.json();
+    const { query, location, filters, userId, sources, nextPageToken } = await req.json();
     
     if (!query || !query.trim()) {
       throw new Error('Search query is required');
@@ -130,10 +131,13 @@ serve(async (req) => {
       datePosted: '30d',
       contractOnly: false,
       remoteType: 'any',
-      employmentType: 'any'
+      employmentType: 'any',
+      nextPageToken: nextPageToken
     };
 
     console.log(`[UNIFIED-SEARCH] Received filters:`, searchFilters);
+    console.log(`[UNIFIED-SEARCH] Location: "${location || 'Any'}"`);
+    console.log(`[UNIFIED-SEARCH] Next Page Token: ${nextPageToken ? 'provided' : 'none'}`);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -148,12 +152,15 @@ serve(async (req) => {
     // Search all sources in parallel
     const searchPromises = [];
 
+    let googleJobsNextPageToken: string | undefined;
+    
     if (enabledSources.includes('google_jobs')) {
       searchPromises.push(
         searchGoogleJobs(query, location, searchFilters)
-          .then(jobs => {
-            sourceStats.google_jobs = { count: jobs.length, status: 'success' };
-            return jobs;
+          .then(result => {
+            googleJobsNextPageToken = result.nextPageToken;
+            sourceStats.google_jobs = { count: result.jobs.length, status: 'success' };
+            return result.jobs;
           })
           .catch(error => {
             console.error('Google Jobs error:', error);
@@ -462,14 +469,27 @@ async function searchSingleTitle(
   location: string, 
   filters: SearchFilters, 
   apiKey: string
-): Promise<JobResult[]> {
+): Promise<{ jobs: JobResult[]; nextPageToken?: string }> {
   const params = new URLSearchParams({
     engine: 'google_jobs',
     q: query,
-    location: location || 'United States',
     api_key: apiKey,
     num: '100'
   });
+
+  // Add location with proper formatting (City, State format)
+  if (location && location.trim()) {
+    params.set('location', location);
+    console.log(`[Google Jobs] Using location: "${location}"`);
+  } else {
+    params.set('location', 'United States');
+  }
+
+  // Add pagination token if provided
+  if (filters.nextPageToken) {
+    params.set('next_page_token', filters.nextPageToken);
+    console.log(`[Google Jobs] Using pagination token: ${filters.nextPageToken.substring(0, 50)}...`);
+  }
 
   // Fix date filter format - use chips parameter
   if (filters.datePosted && filters.datePosted !== 'any') {
@@ -517,6 +537,8 @@ async function searchSingleTitle(
   console.log(`[Google Jobs] Full API Response Sample:`, JSON.stringify(data, null, 2).substring(0, 1000));
   console.log(`[Google Jobs] Response keys:`, Object.keys(data));
   console.log(`[Google Jobs] Jobs results count:`, data.jobs_results?.length || 0);
+  console.log(`[Google Jobs] Search location:`, data.search_information?.detected_location || 'not detected');
+  console.log(`[Google Jobs] Has pagination:`, !!data.pagination?.next_page_token);
   
   const jobs: JobResult[] = [];
 
@@ -546,14 +568,21 @@ async function searchSingleTitle(
   }
 
   console.log(`[Google Jobs] Parsed ${jobs.length} jobs for "${query}"`);
-  return jobs;
+  
+  // Extract pagination token from response
+  const nextPageToken = data.pagination?.next_page_token;
+  
+  return { 
+    jobs, 
+    nextPageToken: nextPageToken 
+  };
 }
 
-async function searchGoogleJobs(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
+async function searchGoogleJobs(query: string, location: string, filters: SearchFilters): Promise<{ jobs: JobResult[]; nextPageToken?: string }> {
   const searchApiKey = Deno.env.get('SEARCHAPI_KEY');
   if (!searchApiKey) {
     console.warn('[Google Jobs] SEARCHAPI_KEY not configured');
-    return [];
+    return { jobs: [], nextPageToken: undefined };
   }
 
   let searchQuery = query;
@@ -567,14 +596,14 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
     // If we have multiple titles, make parallel searches
     if (parsedBoolean.titles.length > 1) {
       console.log(`[Google Jobs] Making ${parsedBoolean.titles.length} parallel searches`);
-      const allJobs = await Promise.all(
+      const allResults = await Promise.all(
         parsedBoolean.titles.map(title => 
           searchSingleTitle(title, location, filters, searchApiKey)
         )
       );
       
-      // Combine and deduplicate
-      let combinedJobs = allJobs.flat();
+      // Combine and deduplicate jobs (note: pagination tokens are lost in multi-title search)
+      let combinedJobs = allResults.flatMap(result => result.jobs);
       console.log(`[Google Jobs] Combined ${combinedJobs.length} jobs from ${parsedBoolean.titles.length} title queries`);
       
       combinedJobs = deduplicateJobs(combinedJobs);
@@ -604,7 +633,7 @@ async function searchGoogleJobs(query: string, location: string, filters: Search
         console.log(`[Google Jobs] Exclusion filter (${parsedBoolean.exclusions.join(', ')}): ${beforeExclusion} → ${combinedJobs.length} jobs`);
       }
       
-      return combinedJobs;
+      return { jobs: combinedJobs, nextPageToken: undefined };
     } else if (parsedBoolean.titles.length === 1) {
       searchQuery = parsedBoolean.titles[0];
       console.log(`[Google Jobs] Using single title from boolean: "${searchQuery}"`);

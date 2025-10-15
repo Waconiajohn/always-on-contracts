@@ -116,9 +116,10 @@ const JobSearchContent = () => {
     setBooleanSearchCount(null);
   };
   
-  // Vault suggestions
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [sourceStats, setSourceStats] = useState<Record<string, { count: number; status: string }>>({});
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     initializeUser();
@@ -150,7 +151,7 @@ const JobSearchContent = () => {
     }
   };
 
-  const handleSearch = async (isBooleanSearch = false) => {
+  const handleSearch = async (isBooleanSearch = false, loadMore = false) => {
     if (!searchQuery.trim()) {
       toast({
         title: "Search query required",
@@ -160,22 +161,28 @@ const JobSearchContent = () => {
       return;
     }
 
-    setIsSearching(true);
+    if (loadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setIsSearching(true);
+      setJobs([]);
+      setSourceStats({});
+      setNextPageToken(null);
+    }
+    
     const currentBooleanActive = booleanString.trim().length > 0;
 
     // Store basic search count before running boolean search for comparison
-    if (isBooleanSearch && currentBooleanActive && basicSearchCount === null) {
+    if (isBooleanSearch && currentBooleanActive && basicSearchCount === null && !loadMore) {
       setBasicSearchCount(jobs.length);
     }
-
-    setJobs([]);
-    setSourceStats({});
 
     try {
       const { data, error } = await supabase.functions.invoke('unified-job-search', {
         body: {
           query: searchQuery,
           location: location || undefined,
+          nextPageToken: loadMore ? nextPageToken : undefined,
           filters: {
             datePosted: dateFilter,
             contractOnly,
@@ -190,32 +197,53 @@ const JobSearchContent = () => {
 
       if (error) throw error;
 
-      setJobs(data.jobs || []);
+      const newJobs = data.jobs || [];
+      
+      if (loadMore) {
+        setJobs(prev => [...prev, ...newJobs]);
+      } else {
+        setJobs(newJobs);
+      }
+      
+      setSearchTime(data.executionTimeMs);
       setSourceStats(data.sources || {});
-      setSearchTime(data.executionTime);
+      
+      // Store pagination info
+      if (data.pagination?.nextPageToken) {
+        setNextPageToken(data.pagination.nextPageToken);
+      } else {
+        setNextPageToken(null);
+      }
 
       // Store counts for comparison
-      if (currentBooleanActive) {
-        setBooleanSearchCount(data.jobs?.length || 0);
+      if (loadMore) {
+        // Don't update counts when loading more
+      } else if (currentBooleanActive) {
+        setBooleanSearchCount(newJobs.length);
       } else {
-        setBasicSearchCount(data.jobs?.length || 0);
+        setBasicSearchCount(newJobs.length);
         setBooleanSearchCount(null);
       }
 
       // Show enhanced feedback for boolean searches
-      if (isBooleanSearch && currentBooleanActive) {
-        const jobCount = data.jobs?.length || 0;
+      if (loadMore) {
+        toast({
+          title: "Loaded more results",
+          description: `Added ${newJobs.length} more jobs`,
+        });
+      } else if (isBooleanSearch && currentBooleanActive) {
+        const jobCount = newJobs.length;
         const comparison = basicSearchCount ? ` (+${jobCount - basicSearchCount} more than basic search)` : '';
         
         toast({
           title: "🎯 AI Boolean Search Complete",
-          description: `Found ${jobCount} jobs${comparison} in ${(data.executionTime / 1000).toFixed(1)}s`,
+          description: `Found ${jobCount} jobs${comparison} in ${(data.executionTimeMs / 1000).toFixed(1)}s`,
           duration: 5000,
         });
       } else {
         toast({
           title: "Search complete",
-          description: `Found ${data.jobs?.length || 0} jobs in ${(data.executionTime / 1000).toFixed(1)}s`,
+          description: `Found ${newJobs.length} jobs in ${(data.executionTimeMs / 1000).toFixed(1)}s`,
         });
       }
     } catch (error: any) {
@@ -226,7 +254,11 @@ const JobSearchContent = () => {
         variant: "destructive"
       });
     } finally {
-      setIsSearching(false);
+      if (loadMore) {
+        setIsLoadingMore(false);
+      } else {
+        setIsSearching(false);
+      }
     }
   };
 
@@ -694,6 +726,33 @@ const JobSearchContent = () => {
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Load More Button */}
+              {!isSearching && nextPageToken && jobs.length > 0 && (
+                <div className="flex justify-center pt-6">
+                  <Button
+                    onClick={() => handleSearch(false, true)}
+                    disabled={isLoadingMore}
+                    variant="outline"
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading more jobs...
+                      </>
+                    ) : (
+                      <>
+                        Load More Results
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          (Page 2+)
+                        </span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
 
               {/* Empty State */}
               {!isSearching && jobs.length === 0 && searchQuery && (
