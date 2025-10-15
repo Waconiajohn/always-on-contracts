@@ -326,6 +326,7 @@ export type Database = {
           networking_initiated: boolean | null
           opportunity_id: string
           reviewed_at: string | null
+          source: string | null
           status: string
           user_id: string
         }
@@ -345,6 +346,7 @@ export type Database = {
           networking_initiated?: boolean | null
           opportunity_id: string
           reviewed_at?: string | null
+          source?: string | null
           status?: string
           user_id: string
         }
@@ -364,6 +366,7 @@ export type Database = {
           networking_initiated?: boolean | null
           opportunity_id?: string
           reviewed_at?: string | null
+          source?: string | null
           status?: string
           user_id?: string
         }
@@ -1535,6 +1538,7 @@ export type Database = {
           match_score: number | null
           matching_skills: string[] | null
           opportunity_id: string
+          source: string | null
           status: string | null
           user_id: string
         }
@@ -1546,6 +1550,7 @@ export type Database = {
           match_score?: number | null
           matching_skills?: string[] | null
           opportunity_id: string
+          source?: string | null
           status?: string | null
           user_id: string
         }
@@ -1557,6 +1562,7 @@ export type Database = {
           match_score?: number | null
           matching_skills?: string[] | null
           opportunity_id?: string
+          source?: string | null
           status?: string | null
           user_id?: string
         }

@@ -294,21 +294,22 @@ const JobSearchContent = () => {
 
       if (oppError) throw oppError;
 
-      // Then create match record
-      const { error: matchError } = await supabase
-        .from('opportunity_matches')
+      // Create application_queue record directly (manual source)
+      const { error: queueError } = await supabase
+        .from('application_queue')
         .insert({
           user_id: userId,
           opportunity_id: opportunity.id,
           match_score: job.match_score || 0,
-          status: 'new'
+          status: 'pending',
+          source: 'manual'
         });
 
-      if (matchError) throw matchError;
+      if (queueError) throw queueError;
 
       toast({
         title: "Added to queue",
-        description: `${job.title} at ${job.company} added to your opportunities`
+        description: `${job.title} at ${job.company} added to your application queue`
       });
     } catch (error: any) {
       console.error('Add to queue error:', error);

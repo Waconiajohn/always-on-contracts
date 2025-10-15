@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bookmark, ExternalLink, MapPin, DollarSign, Clock, Building } from "lucide-react";
+import { Bookmark, ExternalLink, MapPin, DollarSign, Clock, Building, Plus } from "lucide-react";
 
 interface JobListing {
   id: string;
@@ -24,6 +24,7 @@ interface JobListing {
 interface SearchResultsProps {
   jobs: JobListing[];
   onSaveJob: (jobId: string) => void;
+  onAddToQueue?: (job: JobListing) => void;
 }
 
 const formatSalary = (min?: number | null, max?: number | null, period?: string | null) => {
@@ -54,7 +55,7 @@ const formatPostedDate = (date?: string | null) => {
   return `${Math.floor(diffDays / 30)} months ago`;
 };
 
-export const SearchResults = ({ jobs, onSaveJob }: SearchResultsProps) => {
+export const SearchResults = ({ jobs, onSaveJob, onAddToQueue }: SearchResultsProps) => {
   if (jobs.length === 0) {
     return (
       <Card>
@@ -140,6 +141,15 @@ export const SearchResults = ({ jobs, onSaveJob }: SearchResultsProps) => {
                     Apply Now
                     <ExternalLink className="ml-2 h-4 w-4" />
                   </a>
+                </Button>
+              )}
+              {onAddToQueue && (
+                <Button 
+                  variant="secondary" 
+                  onClick={() => onAddToQueue(job)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add to Queue
                 </Button>
               )}
               <Button variant="outline" onClick={() => onSaveJob(job.id)}>

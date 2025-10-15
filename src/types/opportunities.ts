@@ -3,6 +3,7 @@ export interface OpportunityMatch {
   match_score: number | null;
   ai_recommendation: string | null;
   status: string | null;
+  source: string;
   created_at: string | null;
   matching_skills: string[] | null;
   opportunity_id: string;
