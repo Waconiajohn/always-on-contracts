@@ -106,12 +106,7 @@ export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBoolea
   const generateBooleanString = () => {
     const titles = Array.from(selectedTitles);
     if (titles.length === 0) {
-      toast({
-        title: "No titles selected",
-        description: "Please select at least one job title",
-        variant: "destructive"
-      });
-      return;
+      return null;
     }
 
     // Simple OR-only boolean string
@@ -121,14 +116,21 @@ export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBoolea
 
   const handleApply = () => {
     const booleanString = generateBooleanString();
-    if (booleanString) {
-      onApply(booleanString);
-      onOpenChange(false);
+    if (!booleanString) {
       toast({
-        title: "Boolean search applied",
-        description: `Searching for ${selectedTitles.size} job titles`
+        title: "No titles selected",
+        description: "Please select at least one job title",
+        variant: "destructive"
       });
+      return;
     }
+    
+    onApply(booleanString);
+    onOpenChange(false);
+    toast({
+      title: "Boolean search applied",
+      description: `Searching for ${selectedTitles.size} job titles`
+    });
   };
 
   const copyToClipboard = () => {

@@ -22,7 +22,7 @@ interface SavedJob {
     apply_url: string | null;
     posted_date: string | null;
     source: string;
-  };
+  } | null;
 }
 
 export const SavedJobsList = () => {
@@ -129,6 +129,11 @@ export const SavedJobsList = () => {
     <ScrollArea className="h-[calc(100vh-350px)]">
       <div className="space-y-4">
         {savedJobs.map((saved) => {
+          // Handle case where job_listings might be null or missing
+          if (!saved.job_listings) {
+            return null;
+          }
+          
           const job = saved.job_listings;
           const salary = formatSalary(job.salary_min, job.salary_max);
           
@@ -137,10 +142,10 @@ export const SavedJobsList = () => {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg">{job.job_title}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">{job.company_name}</p>
+                    <CardTitle className="text-lg">{job.job_title || 'Untitled Job'}</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">{job.company_name || 'Unknown Company'}</p>
                   </div>
-                  <Badge variant="secondary" className="ml-2">{job.source}</Badge>
+                  <Badge variant="secondary" className="ml-2">{job.source || 'Unknown'}</Badge>
                 </div>
               </CardHeader>
               <CardContent>
