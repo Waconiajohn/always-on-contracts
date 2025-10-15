@@ -301,7 +301,7 @@ const JobSearchContent = () => {
           user_id: userId,
           opportunity_id: opportunity.id,
           match_score: job.match_score || 0,
-          status: 'pending'
+          status: 'new'
         });
 
       if (matchError) throw matchError;
