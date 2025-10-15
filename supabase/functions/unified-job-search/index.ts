@@ -357,8 +357,9 @@ serve(async (req) => {
           if (!matches) {
             console.log(`[Remote Type Filter] ❌ Filtered out: "${job.title}" (${jobRemoteType} is not remote)`);
           }
-        } else if (filterRemoteType === 'local') {
+        } else if (filterRemoteType === 'local' || filterRemoteType === 'onsite' || filterRemoteType === 'hybrid') {
           // User wants hybrid OR onsite jobs (anything requiring physical presence)
+          // Support both new 'local' value and old 'onsite'/'hybrid' values for backward compatibility
           matches = jobRemoteType === 'hybrid' || jobRemoteType === 'onsite';
           if (!matches) {
             console.log(`[Remote Type Filter] ❌ Filtered out: "${job.title}" (${jobRemoteType} is not hybrid/onsite)`);
