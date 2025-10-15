@@ -108,73 +108,74 @@ export function useApplicationQueue() {
 
       if (queueError) throw queueError;
 
-      // Merge and format the data
-      const formattedItems: QueueItem[] = [];
+      // Merge and format the data - use Map to ensure uniqueness by opportunity_id
+      const itemsMap = new Map<string, QueueItem>();
       
-      // Add queue items
+      // Add queue items first (they have priority)
       if (queueData) {
-        formattedItems.push(...queueData.map(item => ({
-          ...item,
-          created_at: item.created_at || new Date().toISOString(),
-          match_score: item.match_score || 0,
-          status: item.status || "pending",
-          critical_qualifications: item.critical_qualifications || [],
-          networking_contacts: Array.isArray(item.networking_contacts) ? item.networking_contacts : [],
-          networking_initiated: item.networking_initiated || false,
-          opportunity: {
-            ...item.opportunity,
-            location: item.opportunity?.location || "Remote",
-            job_title: item.opportunity?.job_title || "Unknown Position",
-            job_description: item.opportunity?.job_description || "",
-            external_url: item.opportunity?.external_url || "",
-            required_skills: item.opportunity?.required_skills || [],
-            posted_date: item.opportunity?.posted_date || new Date().toISOString(),
-            hourly_rate_min: item.opportunity?.hourly_rate_min || null,
-            hourly_rate_max: item.opportunity?.hourly_rate_max || null,
-            company_name: "Company" // Simplified - we'll handle company info separately
-          }
-        })));
-      }
-
-      // Add match items that aren't in queue yet
-      if (matches) {
-        const queueOpportunityIds = new Set(queueData?.map(q => q.opportunity_id) || []);
-        const newMatches = matches
-          .filter(match => !queueOpportunityIds.has(match.opportunity_id))
-          .map(match => ({
-            id: match.id,
-            user_id: match.user_id,
-            opportunity_id: match.opportunity_id,
-            match_score: match.match_score || 0,
-            status: match.status || "new",
-            created_at: match.created_at || new Date().toISOString(),
-            reviewed_at: null,
-            applied_at: match.applied_date,
-            customized_resume_url: null,
-            ai_customization_notes: null,
-            keyword_analysis: {},
-            critical_qualifications: [],
-            conversation_data: {},
-            networking_contacts: [],
-            networking_initiated: false,
+        queueData.forEach(item => {
+          itemsMap.set(item.opportunity_id, {
+            ...item,
+            created_at: item.created_at || new Date().toISOString(),
+            match_score: item.match_score || 0,
+            status: item.status || "pending",
+            critical_qualifications: item.critical_qualifications || [],
+            networking_contacts: Array.isArray(item.networking_contacts) ? item.networking_contacts : [],
+            networking_initiated: item.networking_initiated || false,
             opportunity: {
-              id: match.opportunity?.id || "",
-              job_title: match.opportunity?.job_title || "Unknown Position",
-              company_name: "Company", // Simplified - we'll handle company info separately
-              location: match.opportunity?.location || "Remote",
-              hourly_rate_min: match.opportunity?.hourly_rate_min || null,
-              hourly_rate_max: match.opportunity?.hourly_rate_max || null,
-              job_description: match.opportunity?.job_description || "",
-              external_url: match.opportunity?.external_url || "",
-              required_skills: match.opportunity?.required_skills || [],
-              posted_date: match.opportunity?.posted_date || new Date().toISOString()
+              ...item.opportunity,
+              location: item.opportunity?.location || "Remote",
+              job_title: item.opportunity?.job_title || "Unknown Position",
+              job_description: item.opportunity?.job_description || "",
+              external_url: item.opportunity?.external_url || "",
+              required_skills: item.opportunity?.required_skills || [],
+              posted_date: item.opportunity?.posted_date || new Date().toISOString(),
+              hourly_rate_min: item.opportunity?.hourly_rate_min || null,
+              hourly_rate_max: item.opportunity?.hourly_rate_max || null,
+              company_name: "Company"
             }
-          }));
-        
-        formattedItems.push(...newMatches);
+          });
+        });
       }
 
-      setQueueItems(formattedItems);
+      // Add match items that aren't already in the map
+      if (matches) {
+        matches.forEach(match => {
+          if (!itemsMap.has(match.opportunity_id)) {
+            itemsMap.set(match.opportunity_id, {
+              id: match.id,
+              user_id: match.user_id,
+              opportunity_id: match.opportunity_id,
+              match_score: match.match_score || 0,
+              status: match.status || "new",
+              created_at: match.created_at || new Date().toISOString(),
+              reviewed_at: null,
+              applied_at: match.applied_date,
+              customized_resume_url: null,
+              ai_customization_notes: null,
+              keyword_analysis: {},
+              critical_qualifications: [],
+              conversation_data: {},
+              networking_contacts: [],
+              networking_initiated: false,
+              opportunity: {
+                id: match.opportunity?.id || "",
+                job_title: match.opportunity?.job_title || "Unknown Position",
+                company_name: "Company",
+                location: match.opportunity?.location || "Remote",
+                hourly_rate_min: match.opportunity?.hourly_rate_min || null,
+                hourly_rate_max: match.opportunity?.hourly_rate_max || null,
+                job_description: match.opportunity?.job_description || "",
+                external_url: match.opportunity?.external_url || "",
+                required_skills: match.opportunity?.required_skills || [],
+                posted_date: match.opportunity?.posted_date || new Date().toISOString()
+              }
+            });
+          }
+        });
+      }
+
+      setQueueItems(Array.from(itemsMap.values()));
     } catch (error: any) {
       console.error("Error fetching queue items:", error);
       toast({
