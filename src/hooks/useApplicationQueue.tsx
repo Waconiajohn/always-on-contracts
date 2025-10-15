@@ -63,8 +63,7 @@ export function useApplicationQueue() {
             external_url,
             required_skills,
             posted_date,
-            agency_id,
-            agencies:agency_id(company_name)
+            agency_id
           )
         `)
         .eq("user_id", user.id)
@@ -101,8 +100,7 @@ export function useApplicationQueue() {
             external_url,
             required_skills,
             posted_date,
-            agency_id,
-            agencies:agency_id(company_name)
+            agency_id
           )
         `)
         .eq("user_id", user.id)
@@ -133,7 +131,7 @@ export function useApplicationQueue() {
             posted_date: item.opportunity?.posted_date || new Date().toISOString(),
             hourly_rate_min: item.opportunity?.hourly_rate_min || null,
             hourly_rate_max: item.opportunity?.hourly_rate_max || null,
-            company_name: (item.opportunity as any)?.agencies?.company_name || "Unknown Company"
+            company_name: "Company" // Simplified - we'll handle company info separately
           }
         })));
       }
@@ -162,7 +160,7 @@ export function useApplicationQueue() {
             opportunity: {
               id: match.opportunity?.id || "",
               job_title: match.opportunity?.job_title || "Unknown Position",
-              company_name: (match.opportunity as any)?.agencies?.company_name || "Unknown Company",
+              company_name: "Company", // Simplified - we'll handle company info separately
               location: match.opportunity?.location || "Remote",
               hourly_rate_min: match.opportunity?.hourly_rate_min || null,
               hourly_rate_max: match.opportunity?.hourly_rate_max || null,
