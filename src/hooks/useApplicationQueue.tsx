@@ -82,7 +82,14 @@ export const useApplicationQueue = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setQueueItems(data || []);
+      
+      // Map job_opportunities to opportunity for component compatibility
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        opportunity: item.job_opportunities
+      }));
+      
+      setQueueItems(mappedData as any);
     } catch (error: any) {
       console.error('Error fetching manual queue:', error);
       toast({
@@ -109,7 +116,14 @@ export const useApplicationQueue = () => {
         .order('match_score', { ascending: false });
 
       if (error) throw error;
-      setAISuggestions(data || []);
+      
+      // Map job_opportunities to opportunity for component compatibility
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        opportunity: item.job_opportunities
+      }));
+      
+      setAISuggestions(mappedData as any);
     } catch (error: any) {
       console.error('Error fetching AI suggestions:', error);
       toast({
