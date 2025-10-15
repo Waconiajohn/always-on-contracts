@@ -88,10 +88,10 @@ const aiAgents = [
   },
   {
     id: 11,
-    name: "Contract Opportunities",
+    name: "Job Search",
     icon: Briefcase,
     status: "active",
-    description: "Specialized agent for contract and interim executive positions",
+    description: "Live search across 50+ job boards with Boolean search and AI filtering",
     requiresPaid: true
   }
 ];
@@ -118,7 +118,7 @@ export default function AIAgents() {
     'Career Trends Scout': '/agents/career-trends',
     'Financial Planning Assistant': '/agents/financial-planning',
     'Executive Coaching': '/coaching',
-    'Contract Opportunities': '/opportunities',
+    'Job Search': '/job-search',
   };
 
   return (

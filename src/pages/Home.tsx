@@ -33,10 +33,11 @@ import { CelebrationBanner } from "@/components/home/CelebrationBanner";
 import { JourneyStateCard } from "@/components/home/JourneyStateCard";
 import { ActivityFeed } from "@/components/home/ActivityFeed";
 import { SchedulingCTA } from "@/components/SchedulingCTA";
+import { MarketRealityWidget } from "@/components/home/MarketRealityWidget";
+import { VaultPowerWidget } from "@/components/home/VaultPowerWidget";
 
 const HomeContent = () => {
   const navigate = useNavigate();
-  const [activeJobs, setActiveJobs] = useState(0);
   const [stats, setStats] = useState({ powerPhrases: 0, skills: 0, competencies: 0 });
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const journeyState = useJourneyState();
@@ -64,14 +65,6 @@ const HomeContent = () => {
           competencies: vaultData.total_hidden_competencies || 0
         });
       }
-
-      // Load active jobs
-      const { count } = await supabase
-        .from('job_opportunities')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      setActiveJobs(count || 0);
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -103,7 +96,6 @@ const HomeContent = () => {
     { icon: Building2, title: "Agencies", path: "/agencies", locked: !isSubscribed, minCompletion: 0 },
     { icon: DollarSign, title: "Financial Planning", path: "/agents/financial-planning", locked: false, minCompletion: 0 },
     { icon: Bot, title: "AI Coach", path: "/coaching", locked: false, minCompletion: 0 },
-    { icon: Briefcase, title: "Opportunities", path: "/opportunities", locked: false, minCompletion: 0 },
     { icon: FileText, title: "Templates", path: "/templates", locked: false, minCompletion: 0 },
     { icon: Shield, title: "Research Hub", path: "/research-hub", locked: false, minCompletion: 0 },
   ];
@@ -319,20 +311,8 @@ const HomeContent = () => {
 
           {/* Stats Snapshot */}
           <div className="grid grid-cols-2 gap-4">
-            <Card className="hover:border-ai-primary/50 transition-all cursor-pointer" onClick={() => navigate('/opportunities')}>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <Briefcase className="h-5 w-5 text-ai-primary" />
-                  <h3 className="text-lg font-semibold">Active Jobs</h3>
-                </div>
-                <p className="text-3xl font-bold mb-3">{activeJobs}</p>
-                <Button variant="outline" size="sm" className="w-full">
-                  View All
-                  <ArrowRight className="ml-2 h-3 w-3" />
-                </Button>
-              </CardContent>
-            </Card>
-
+            <MarketRealityWidget />
+            <VaultPowerWidget completion={journeyState.vaultCompletion} />
             <Card className="hover:border-ai-secondary/50 transition-all">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-3">

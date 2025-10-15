@@ -17,7 +17,7 @@ export const QuickLaunchWidget = () => {
     { icon: FileText, label: "Resume", path: "/resume-optimizer", color: "text-ai-primary" },
     { icon: Search, label: "Search", path: "/agents/job-search", color: "text-ai-secondary" },
     { icon: Bot, label: "AI Coach", path: "/coaching", color: "text-ai-complete" },
-    { icon: Briefcase, label: "Jobs", path: "/opportunities", color: "text-ai-active" },
+    { icon: Briefcase, label: "Jobs", path: "/job-search", color: "text-ai-active" },
   ];
 
   // Mock weekly goal data

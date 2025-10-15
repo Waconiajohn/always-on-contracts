@@ -48,7 +48,6 @@ const mainNavItems = [
 
 const jobWorkflowItems = [
   { path: "/job-search", label: "Search Jobs", icon: Search },
-  { path: "/opportunities", label: "AI Recommendations", icon: Brain },
   { path: "/application-queue", label: "Application Queue", icon: ClipboardList },
   { path: "/projects", label: "Active Applications", icon: FolderKanban },
 ];

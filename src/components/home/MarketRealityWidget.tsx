@@ -154,11 +154,11 @@ export const MarketRealityWidget = () => {
           ) : (
             <>
               <Button 
-                onClick={() => navigate("/opportunities")} 
+                onClick={() => navigate("/job-search")} 
                 className="w-full"
                 size="lg"
               >
-                View Opportunities
+                Search Jobs
               </Button>
               <Button 
                 onClick={() => navigate("/research-hub")} 

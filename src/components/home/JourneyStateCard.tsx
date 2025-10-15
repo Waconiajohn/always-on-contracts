@@ -145,7 +145,7 @@ export const JourneyStateCard = ({
         </div>
 
         <div className="flex gap-2 mb-6">
-          <Button onClick={() => navigate('/opportunities')}>
+          <Button onClick={() => navigate('/job-search')}>
             Search for Jobs
           </Button>
           <Button variant="outline" onClick={() => navigate('/agents/resume-builder')}>
@@ -200,7 +200,7 @@ export const JourneyStateCard = ({
         </div>
 
         <div className="flex gap-2 mb-6">
-          <Button onClick={() => navigate('/opportunities')}>
+          <Button onClick={() => navigate('/job-search')}>
             Find More Jobs
           </Button>
           <Button variant="outline" onClick={() => navigate('/application-queue')}>

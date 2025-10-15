@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppNav } from "@/components/AppNav";
 import { 
   Package, FileText, Users, MessageSquare, 
-  Linkedin, Building2, TrendingUp, FolderKanban,
+  Linkedin, Building2, FolderKanban,
   BookOpen, DollarSign, Lock, CheckCircle, Clock
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -87,16 +87,6 @@ const CommandCenter = () => {
           completion: 0,
           isLocked: !hasVault,
           features: [
-            {
-              name: 'Job Board',
-              icon: TrendingUp,
-              completion: 0,
-              lastActivity: null,
-              route: '/opportunities',
-              description: 'Browse contract & full-time opportunities',
-              isLocked: !hasVault || !isSubscribed,
-              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
-            },
             {
               name: 'Job Search Builder',
               icon: FolderKanban,

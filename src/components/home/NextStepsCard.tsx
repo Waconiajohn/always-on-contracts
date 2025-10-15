@@ -33,7 +33,7 @@ const stateConfig: Record<JourneyState, {
     title: "Next Steps",
     description: "Your vault is ready. Choose your next action:",
     steps: [
-      { label: "Search for Jobs", icon: Search, path: "/opportunities", primary: true },
+      { label: "Search for Jobs", icon: Search, path: "/job-search", primary: true },
       { label: "Build Resume", icon: FileText, path: "/agents/resume-builder" },
       { label: "Explore AI Agents", icon: Users, path: "/ai-agents" },
     ],
@@ -42,7 +42,7 @@ const stateConfig: Record<JourneyState, {
     title: "Active Strategy",
     description: "Keep momentum going with these actions",
     steps: [
-      { label: "Find More Jobs", icon: Search, path: "/opportunities", primary: true },
+      { label: "Find More Jobs", icon: Search, path: "/job-search", primary: true },
       { label: "Optimize Resume", icon: FileText, path: "/resume-optimizer" },
       { label: "Network", icon: Users, path: "/agents/networking" },
     ],
