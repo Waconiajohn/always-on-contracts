@@ -667,6 +667,8 @@ async function searchSingleTitle(
       }
 
       const url = `https://www.searchapi.io/api/v1/search?${params}`;
+      console.log(`[Google Jobs] 🌐 About to fetch page ${pageCount}`);
+      console.log(`[Google Jobs] URL: ${url.substring(0, 100)}...`);
       
       // Per-request timeout (30 seconds)
       const controller = new AbortController();
@@ -678,16 +680,21 @@ async function searchSingleTitle(
       let data;
       
       try {
+        console.log(`[Google Jobs] 🚀 Calling fetch for page ${pageCount}...`);
         const response = await fetch(url, { signal: controller.signal });
+        console.log(`[Google Jobs] ✅ Fetch returned for page ${pageCount}, status: ${response.status}`);
         
         if (!response.ok) {
+          console.log(`[Google Jobs] ❌ Response not OK for page ${pageCount}`);
           const errorText = await response.text();
           clearTimeout(timeoutId);
           console.error(`[Google Jobs] Page ${pageCount} API Error: ${response.status} - ${errorText}`);
           break; // Stop pagination on error
         }
 
+        console.log(`[Google Jobs] 📥 Parsing JSON for page ${pageCount}...`);
         data = await response.json();
+        console.log(`[Google Jobs] ✅ JSON parsed for page ${pageCount}, has ${data.jobs?.length || 0} jobs`);
         clearTimeout(timeoutId);
         
       } catch (error: unknown) {
