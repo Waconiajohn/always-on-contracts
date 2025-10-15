@@ -27,15 +27,15 @@ export default function ApplicationQueue() {
     clearRejected
   } = useApplicationQueue();
 
-  const filteredQueueItems = queueItems.filter(item => {
+  const filteredQueueItems = queueItems?.filter(item => {
     if (queueTab === "all") return true;
     if (queueTab === "pending") return item.status === "pending" || item.status === "new";
     if (queueTab === "approved") return item.status === "approved";
     if (queueTab === "rejected") return item.status === "rejected";
     return true;
-  });
+  }) || [];
 
-  const activeSuggestions = aiSuggestions.filter(s => s.status === 'new');
+  const activeSuggestions = aiSuggestions?.filter(s => s.status === 'new') || [];
 
   const getMatchScoreBadge = (score: number) => {
     if (score >= 85) return { color: "bg-green-500", label: "Excellent Match" };
@@ -131,7 +131,7 @@ export default function ApplicationQueue() {
             variant="outline"
             size="sm"
             onClick={bulkApproveHighMatches}
-            disabled={queueItems.filter(item => (item.match_score || 0) >= 85 && item.status !== "approved").length === 0}
+            disabled={(queueItems || []).filter(item => (item.match_score || 0) >= 85 && item.status !== "approved").length === 0}
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
             Approve All High Matches (85%+)
