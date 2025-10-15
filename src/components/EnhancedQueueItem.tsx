@@ -257,7 +257,7 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
         )}
 
         {/* Keyword Analysis */}
-        {keywordAnalysis && (
+        {keywordAnalysis && keywordAnalysis.keywords_found && keywordAnalysis.keywords_missing && (
           <KeywordScoreCard
             analysis={keywordAnalysis}
             totalKeywords={keywordAnalysis.keywords_found.length + keywordAnalysis.keywords_missing.length}
