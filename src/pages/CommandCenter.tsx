@@ -88,12 +88,12 @@ const CommandCenter = () => {
           isLocked: !hasVault,
           features: [
             {
-              name: 'Job Search Builder',
+              name: 'Job Search Board',
               icon: FolderKanban,
               completion: 0,
               lastActivity: null,
-              route: '/search-profiles',
-              description: 'Save & automate job searches',
+              route: '/job-search',
+              description: 'Search & save job opportunities',
               isLocked: !hasVault || !isSubscribed,
               requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             }
