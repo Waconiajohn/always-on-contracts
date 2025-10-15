@@ -31,9 +31,9 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
   const handleNetworkJob = () => {
     // Navigate to networking agent with pre-filled job info
     const jobInfo = encodeURIComponent(JSON.stringify({
-      jobTitle: item.job_opportunities.job_title,
-      companyName: item.job_opportunities.staffing_agencies?.agency_name || "Unknown Company",
-      jobDescription: item.job_opportunities.job_description
+      jobTitle: item.opportunity.job_title,
+      companyName: item.opportunity.company_name || "Unknown Company",
+      jobDescription: item.opportunity.job_description
     }));
     navigate(`/agents/networking?job=${jobInfo}`);
     toast({
@@ -46,12 +46,12 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
     if (qualifications.length === 0) {
       setIsAnalyzing(true);
       try {
-        const { data, error } = await supabase.functions.invoke('analyze-job-qualifications', {
-          body: { 
-            opportunityId: item.opportunity_id,
-            jobDescription: item.job_opportunities?.job_description
-          }
-        });
+      const { data, error } = await supabase.functions.invoke('analyze-job-qualifications', {
+        body: { 
+          opportunityId: item.opportunity_id,
+          jobDescription: item.opportunity?.job_description
+        }
+      });
 
         if (error) {
           // Handle specific error codes
@@ -103,7 +103,7 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
       // Generate executive resume with conversation context
       const { data, error } = await supabase.functions.invoke('generate-executive-resume', {
         body: { 
-          jobDescription: item.job_opportunities?.job_description,
+          jobDescription: item.opportunity?.job_description,
           persona: 'executive',
           format: 'html',
           conversationResponses: responses,
@@ -182,7 +182,7 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2 flex-wrap">
-              {item.job_opportunities.job_title}
+              {item.opportunity.job_title}
               <Badge variant={isHighMatch ? "default" : "secondary"}>
                 {Math.round(item.match_score)}% Match
               </Badge>
@@ -193,7 +193,7 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
               )}
             </CardTitle>
             <CardDescription>
-              {item.job_opportunities.staffing_agencies?.agency_name} • {item.job_opportunities.location}
+              {item.opportunity.company_name} • {item.opportunity.location}
             </CardDescription>
           </div>
           {isPending && (
@@ -222,8 +222,8 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="font-semibold">Rate:</span> $
-            {item.job_opportunities.hourly_rate_min}-
-            {item.job_opportunities.hourly_rate_max}/hr
+            {item.opportunity.hourly_rate_min}-
+            {item.opportunity.hourly_rate_max}/hr
           </div>
           <div>
             <span className="font-semibold">Queued:</span>{" "}
@@ -299,14 +299,14 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
 
         {/* External Link and Networking */}
         <div className="flex gap-2">
-          {item.job_opportunities.external_url && (
+          {item.opportunity.external_url && (
             <Button
               variant="outline"
               size="sm"
               asChild
             >
               <a
-                href={item.job_opportunities.external_url}
+                href={item.opportunity.external_url}
                 target="_blank"
                 rel="noopener noreferrer"
               >
