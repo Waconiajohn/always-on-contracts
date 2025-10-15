@@ -614,104 +614,104 @@ const JobSearchContent = () => {
           <TabsContent value="results">
             <div className="space-y-4">
               {jobs.map((job) => (
-            <Card key={job.id} className="hover:border-primary/50 transition-colors">
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-xl font-semibold">{job.title}</h3>
-                      {job.match_score && job.match_score > 0 && (
-                        <Badge variant="outline" className={getScoreColor(job.match_score)}>
-                          {job.match_score}% Match
-                        </Badge>
+                <Card key={job.id} className="hover:border-primary/50 transition-colors">
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-xl font-semibold">{job.title}</h3>
+                          {job.match_score && job.match_score > 0 && (
+                            <Badge variant="outline" className={getScoreColor(job.match_score)}>
+                              {job.match_score}% Match
+                            </Badge>
+                          )}
+                          {contractOnly && (
+                            <Badge variant="secondary">Contract</Badge>
+                          )}
+                        </div>
+                        <p className="text-lg text-muted-foreground">{job.company}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
+                      {job.location && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {job.location}
+                        </div>
                       )}
-                      {contractOnly && (
-                        <Badge variant="secondary">Contract</Badge>
+                      {formatSalary(job.salary_min, job.salary_max) && (
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          {formatSalary(job.salary_min, job.salary_max)}
+                        </div>
+                      )}
+                      {job.employment_type && (
+                        <div className="flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          {job.employment_type}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        Posted {(() => {
+                          try {
+                            const date = new Date(job.posted_date);
+                            if (isNaN(date.getTime())) {
+                              return 'Recently';
+                            }
+                            return formatDistanceToNow(date, { addSuffix: true });
+                          } catch {
+                            return 'Recently';
+                          }
+                        })()}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge variant="outline">{job.source}</Badge>
+                      {job.remote_type && (
+                        <Badge variant="secondary">{job.remote_type}</Badge>
                       )}
                     </div>
-                    <p className="text-lg text-muted-foreground">{job.company}</p>
-                  </div>
-                </div>
 
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                  {job.location && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {job.location}
+                    {job.description && (
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        {job.description}
+                      </p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button onClick={() => addToQueue(job)}>Add to Queue</Button>
+                      {job.apply_url && (
+                        <Button variant="outline" asChild>
+                          <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
+                            View Details
+                          </a>
+                        </Button>
+                      )}
                     </div>
-                  )}
-                  {formatSalary(job.salary_min, job.salary_max) && (
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      {formatSalary(job.salary_min, job.salary_max)}
-                    </div>
-                  )}
-                  {job.employment_type && (
-                    <div className="flex items-center gap-1">
-                      <Briefcase className="h-4 w-4" />
-                      {job.employment_type}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    Posted {(() => {
-                      try {
-                        const date = new Date(job.posted_date);
-                        if (isNaN(date.getTime())) {
-                          return 'Recently';
-                        }
-                        return formatDistanceToNow(date, { addSuffix: true });
-                      } catch {
-                        return 'Recently';
-                      }
-                    })()}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
+              ))}
 
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge variant="outline">{job.source}</Badge>
-                  {job.remote_type && (
-                    <Badge variant="secondary">{job.remote_type}</Badge>
-                  )}
-                </div>
+              {/* Empty State */}
+              {!isSearching && jobs.length === 0 && searchQuery && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">
+                      No jobs found. Try adjusting your search or filters.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
 
-                {job.description && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {job.description}
-                  </p>
-                )}
-
-                <div className="flex gap-2">
-                  <Button onClick={() => addToQueue(job)}>Add to Queue</Button>
-                  {job.apply_url && (
-                    <Button variant="outline" asChild>
-                      <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
-                        View Details
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {!isSearching && jobs.length === 0 && searchQuery && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">
-                No jobs found. Try adjusting your search or filters.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        </TabsContent>
-
-        <TabsContent value="saved">
-          <SavedJobsList />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="saved">
+            <SavedJobsList />
+          </TabsContent>
+        </Tabs>
 
       {/* AI Assistants */}
       <BooleanAIAssistant
