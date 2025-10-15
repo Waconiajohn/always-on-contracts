@@ -301,39 +301,64 @@ serve(async (req) => {
       const locationLower = location.toLowerCase().trim();
       
       // Extract city and state from location string (e.g., "Minneapolis, MN")
-      const locationParts = locationLower.split(',').map((p: string) => p.trim());
+      const locationParts = locationLower.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
       
       locationFilteredJobs = uniqueJobs.filter(job => {
-        if (!job.location) return false;
-        
-        const jobLocationLower = job.location.toLowerCase();
-        
-        // If user wants onsite/hybrid jobs specifically, don't allow remote jobs from other locations
-        const wantsLocalJobs = searchFilters.remoteType && 
-                               searchFilters.remoteType !== 'any' && 
-                               searchFilters.remoteType !== 'remote';
-        
-        // For remote jobs, only allow if user is specifically searching for remote OR searching 'any'
-        if (job.remote_type && job.remote_type.toLowerCase() === 'remote') {
-          return !wantsLocalJobs; // Only pass if not specifically looking for local jobs
+        // If no location specified, filter out unless explicitly remote and user wants remote
+        if (!job.location || job.location.trim() === '') {
+          const isRemoteJob = job.remote_type && job.remote_type.toLowerCase() === 'remote';
+          const userWantsRemote = !searchFilters.remoteType || 
+                                  searchFilters.remoteType === 'any' || 
+                                  searchFilters.remoteType === 'remote';
+          return isRemoteJob && userWantsRemote;
         }
         
-        // Check if ALL location parts are in the job location
-        return locationParts.every((part: string) => jobLocationLower.includes(part));
+        const jobLocationLower = job.location.toLowerCase().trim();
+        const jobRemoteTypeLower = (job.remote_type || '').toLowerCase();
+        
+        // Filter out fully remote jobs if user wants onsite/hybrid in specific location
+        if (jobRemoteTypeLower === 'remote') {
+          const userWantsRemote = !searchFilters.remoteType || 
+                                  searchFilters.remoteType === 'any' || 
+                                  searchFilters.remoteType === 'remote';
+          return userWantsRemote;
+        }
+        
+        // For onsite/hybrid jobs, verify location actually matches
+        // Check if ALL location parts are present in the job location
+        const locationMatches = locationParts.every((part: string) => 
+          part.length > 0 && jobLocationLower.includes(part)
+        );
+        
+        if (!locationMatches) {
+          console.log(`[Location Filter] ❌ Filtered out: "${job.title}" at "${job.location}" (doesn't match "${location}")`);
+        }
+        
+        return locationMatches;
       });
       
       console.log(`[Location Filter] Applied "${location}" filter: ${beforeLocationFilter} → ${locationFilteredJobs.length} jobs`);
     }
 
-    // Apply remote type filter
+    // Apply remote type filter - STRICT matching
     let remoteFilteredJobs = locationFilteredJobs;
     if (searchFilters.remoteType && searchFilters.remoteType !== 'any') {
       const beforeRemoteFilter = locationFilteredJobs.length;
+      const filterRemoteType = searchFilters.remoteType.toLowerCase();
+      
       remoteFilteredJobs = locationFilteredJobs.filter(job => {
-        const jobRemoteType = (job.remote_type || 'onsite').toLowerCase();
-        const filterRemoteType = searchFilters.remoteType!.toLowerCase();
-        return jobRemoteType === filterRemoteType;
+        const jobRemoteType = (job.remote_type || 'onsite').toLowerCase().trim();
+        
+        // STRICT matching - must exactly match the selected type
+        const matches = jobRemoteType === filterRemoteType;
+        
+        if (!matches) {
+          console.log(`[Remote Type Filter] ❌ Filtered out: "${job.title}" (${jobRemoteType} !== ${filterRemoteType})`);
+        }
+        
+        return matches;
       });
+      
       console.log(`[Remote Type Filter] Applied "${searchFilters.remoteType}" filter: ${beforeRemoteFilter} → ${remoteFilteredJobs.length} jobs`);
     }
 
