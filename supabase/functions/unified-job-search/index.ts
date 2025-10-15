@@ -298,8 +298,34 @@ serve(async (req) => {
       console.log(`[Remote Type Filter] Applied "${searchFilters.remoteType}" filter: ${beforeRemoteFilter} → ${remoteFilteredJobs.length} jobs`);
     }
 
+    // Apply employment type filter (for all sources)
+    let employmentFilteredJobs = remoteFilteredJobs;
+    if (searchFilters.employmentType && searchFilters.employmentType !== 'any') {
+      const beforeEmploymentFilter = remoteFilteredJobs.length;
+      employmentFilteredJobs = remoteFilteredJobs.filter(job => {
+        if (!job.employment_type) return false;
+        
+        const jobType = job.employment_type.toLowerCase();
+        const filterType = searchFilters.employmentType!.toLowerCase();
+        
+        // Handle variations in employment type naming
+        if (filterType === 'full-time') {
+          return jobType.includes('full') || jobType.includes('fulltime') || jobType === 'full_time';
+        }
+        if (filterType === 'contract') {
+          return jobType.includes('contract') || jobType.includes('contractor') || jobType.includes('freelance');
+        }
+        if (filterType === 'freelance') {
+          return jobType.includes('freelance') || jobType.includes('contract');
+        }
+        
+        return jobType.includes(filterType);
+      });
+      console.log(`[Employment Type Filter] Applied "${searchFilters.employmentType}" filter: ${beforeEmploymentFilter} → ${employmentFilteredJobs.length} jobs`);
+    }
+
     // Score against Career Vault if userId provided
-    let scoredJobs = remoteFilteredJobs;
+    let scoredJobs = employmentFilteredJobs;
     if (userId) {
       console.log(`[Vault Scoring] Scoring ${uniqueJobs.length} jobs against user Career Vault...`);
       scoredJobs = await scoreWithVault(uniqueJobs, userId, supabaseClient);
