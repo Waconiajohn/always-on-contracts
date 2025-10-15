@@ -1,318 +1,327 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppNav } from "@/components/AppNav";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Plus, X, Search, Sparkles, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Separator } from "@/components/ui/separator";
+import { Loader2, Copy, Check, Sparkles, Plus, Search } from "lucide-react";
 
 const BooleanSearchContent = () => {
   const { toast } = useToast();
-  const [mustHave, setMustHave] = useState<string[]>([]);
-  const [shouldHave, setShouldHave] = useState<string[]>([]);
-  const [exclude, setExclude] = useState<string[]>([]);
-  const [newMust, setNewMust] = useState("");
-  const [newShould, setNewShould] = useState("");
-  const [newExclude, setNewExclude] = useState("");
-  
-  // AI Generator
-  const [jobDescription, setJobDescription] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [vaultTitles, setVaultTitles] = useState<string[]>([]);
+  const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
+  const [customTitle, setCustomTitle] = useState("");
+  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [copiedLinkedIn, setCopiedLinkedIn] = useState(false);
+  const [copiedIndeed, setCopiedIndeed] = useState(false);
 
-  const buildLinkedInSearch = () => {
-    const mustTerms = mustHave.join(" AND ");
-    const shouldTerms = shouldHave.length > 0 ? ` OR ${shouldHave.join(" OR ")}` : "";
-    const excludeTerms = exclude.length > 0 ? ` NOT ${exclude.join(" NOT ")}` : "";
-    return `${mustTerms}${shouldTerms}${excludeTerms}`;
-  };
+  useEffect(() => {
+    loadVaultTitles();
+  }, []);
 
-  const buildIndeedSearch = () => {
-    const mustTerms = mustHave.map(term => `"${term}"`).join(" ");
-    const shouldTerms = shouldHave.length > 0 ? ` ${shouldHave.join(" OR ")}` : "";
-    const excludeTerms = exclude.length > 0 ? ` -${exclude.join(" -")}` : "";
-    return `${mustTerms}${shouldTerms}${excludeTerms}`;
-  };
+  const loadVaultTitles = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-  const copyToClipboard = (text: string, platform: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: `${platform} search string copied to clipboard`,
-    });
-  };
+    const { data: vault } = await supabase
+      .from('career_vault')
+      .select('target_roles')
+      .eq('user_id', user.id)
+      .single();
 
-  const addMust = () => {
-    if (newMust.trim() && !mustHave.includes(newMust.trim())) {
-      setMustHave([...mustHave, newMust.trim()]);
-      setNewMust("");
+    if (vault?.target_roles && vault.target_roles.length > 0) {
+      setVaultTitles(vault.target_roles);
+      // Auto-select vault titles
+      setSelectedTitles(vault.target_roles);
     }
   };
 
-  const addShould = () => {
-    if (newShould.trim() && !shouldHave.includes(newShould.trim())) {
-      setShouldHave([...shouldHave, newShould.trim()]);
-      setNewShould("");
-    }
-  };
-
-  const addExclude = () => {
-    if (newExclude.trim() && !exclude.includes(newExclude.trim())) {
-      setExclude([...exclude, newExclude.trim()]);
-      setNewExclude("");
-    }
-  };
-
-  const generateFromAI = async () => {
-    if (!jobDescription.trim() || jobDescription.trim().length < 20) {
+  const getSuggestions = async () => {
+    if (!customTitle.trim()) {
       toast({
-        title: "Description too short",
-        description: "Please provide at least 20 characters of job description",
+        title: "Enter a job title",
+        description: "Please enter a job title to get suggestions.",
         variant: "destructive"
       });
       return;
     }
 
-    setIsGenerating(true);
+    setIsLoadingSuggestions(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-boolean-search', {
-        body: { jobDescription }
+        body: {
+          messages: [
+            { role: 'user', content: customTitle }
+          ]
+        }
       });
 
       if (error) throw error;
 
-      if (data.titles && data.titles.length > 0) {
-        // Use OR logic - all titles as "should have" terms
-        setShouldHave(data.titles);
-        setMustHave([]);
-        setExclude([]);
-        
+      // Parse the AI response for [TITLES: ...] format
+      const reply = data.reply;
+      const titlesMatch = reply.match(/\[TITLES:\s*([^\]]+)\]/);
+      
+      if (titlesMatch) {
+        const titles = titlesMatch[1].split(',').map((t: string) => t.trim());
+        setSuggestedTitles(titles);
+      } else {
         toast({
-          title: "Search generated!",
-          description: `Generated ${data.titles.length} job title variations`,
+          title: "No suggestions found",
+          description: "Try a different job title.",
+          variant: "destructive"
         });
       }
-    } catch (error: any) {
-      console.error('AI generation error:', error);
+    } catch (error) {
+      console.error('Error getting suggestions:', error);
       toast({
-        title: "Generation failed",
-        description: error.message || "Failed to generate search string",
+        title: "Error",
+        description: "Failed to get job title suggestions. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setIsGenerating(false);
+      setIsLoadingSuggestions(false);
     }
   };
+
+  const toggleTitle = (title: string) => {
+    setSelectedTitles(prev => 
+      prev.includes(title) 
+        ? prev.filter(t => t !== title)
+        : [...prev, title]
+    );
+  };
+
+  const addCustomTitle = () => {
+    if (!customTitle.trim()) return;
+    const title = customTitle.trim();
+    if (!selectedTitles.includes(title)) {
+      setSelectedTitles(prev => [...prev, title]);
+    }
+    setCustomTitle("");
+    setSuggestedTitles([]);
+  };
+
+  const removeTitle = (title: string) => {
+    setSelectedTitles(prev => prev.filter(t => t !== title));
+  };
+
+  const generateBooleanString = () => {
+    return selectedTitles.map(title => `"${title}"`).join(' OR ');
+  };
+
+  const copyToClipboard = async (text: string, platform: 'linkedin' | 'indeed') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      
+      if (platform === 'linkedin') {
+        setCopiedLinkedIn(true);
+        setTimeout(() => setCopiedLinkedIn(false), 2000);
+      } else {
+        setCopiedIndeed(true);
+        setTimeout(() => setCopiedIndeed(false), 2000);
+      }
+
+      toast({
+        title: "Copied!",
+        description: `Boolean search copied for ${platform === 'linkedin' ? 'LinkedIn' : 'Indeed'}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const booleanString = generateBooleanString();
 
   return (
     <div className="min-h-screen bg-background">
       <AppNav />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Boolean Search Builder</h1>
           <p className="text-muted-foreground">
-            Create optimized search strings for LinkedIn and Indeed job boards
+            Create simple OR-only searches optimized for LinkedIn and Indeed job boards
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* AI Generator */}
-          <Card className="border-primary/20">
+        {/* Career Vault Titles */}
+        {vaultTitles.length > 0 && (
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                AI Search Generator
+                <Sparkles className="h-5 w-5 text-primary" />
+                From Your Career Vault
               </CardTitle>
               <CardDescription>
-                Paste a job description and let AI extract job title variations
+                These are your target roles - we've pre-selected them for you
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Job Description</Label>
-                <Textarea
-                  placeholder="Paste job description here... e.g., 'Looking for a Senior Product Manager with AI/ML experience...'"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  rows={6}
-                  className="resize-none"
-                />
-              </div>
-              <Button 
-                onClick={generateFromAI} 
-                disabled={isGenerating || jobDescription.trim().length < 20}
-                className="w-full"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate Search String
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Manual Builder */}
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Manual Builder
-              </CardTitle>
-              <CardDescription>
-                Manually build your Boolean search string
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Must Have Terms */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Must Have (AND)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., Project Manager"
-                    value={newMust}
-                    onChange={(e) => setNewMust(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && addMust()}
-                  />
-                  <Button size="sm" onClick={addMust}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {mustHave.map((term) => (
-                    <Badge
-                      key={term}
-                      variant="default"
-                      className="cursor-pointer hover:bg-destructive"
-                      onClick={() => setMustHave(mustHave.filter((t) => t !== term))}
-                    >
-                      {term} <X className="ml-1 h-3 w-3" />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Should Have Terms */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Should Have (OR)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., Senior PM, VP Product"
-                    value={newShould}
-                    onChange={(e) => setNewShould(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && addShould()}
-                  />
-                  <Button size="sm" onClick={addShould}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {shouldHave.map((term) => (
-                    <Badge
-                      key={term}
-                      variant="secondary"
-                      className="cursor-pointer hover:bg-destructive"
-                      onClick={() => setShouldHave(shouldHave.filter((t) => t !== term))}
-                    >
-                      {term} <X className="ml-1 h-3 w-3" />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Exclude Terms */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Exclude (NOT)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., entry-level, intern"
-                    value={newExclude}
-                    onChange={(e) => setNewExclude(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && addExclude()}
-                  />
-                  <Button size="sm" onClick={addExclude}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {exclude.map((term) => (
-                    <Badge
-                      key={term}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-destructive"
-                      onClick={() => setExclude(exclude.filter((t) => t !== term))}
-                    >
-                      {term} <X className="ml-1 h-3 w-3" />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Generated Searches */}
-        {(mustHave.length > 0 || shouldHave.length > 0) && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Generated Search Strings</CardTitle>
-              <CardDescription>
-                Copy these strings and paste them into job boards
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="font-semibold">LinkedIn Search String</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 p-3 bg-muted rounded-md font-mono text-sm break-all">
-                    {buildLinkedInSearch()}
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                {vaultTitles.map((title) => (
+                  <div key={title} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`vault-${title}`}
+                      checked={selectedTitles.includes(title)}
+                      onCheckedChange={() => toggleTitle(title)}
+                    />
+                    <Label htmlFor={`vault-${title}`} className="cursor-pointer">
+                      {title}
+                    </Label>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => copyToClipboard(buildLinkedInSearch(), "LinkedIn")}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Add More Titles */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add More Job Titles
+            </CardTitle>
+            <CardDescription>
+              Enter a job title to get AI-powered variations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g., Product Manager"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    getSuggestions();
+                  }
+                }}
+              />
+              <Button onClick={getSuggestions} disabled={isLoadingSuggestions}>
+                {isLoadingSuggestions ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                <span className="ml-2">Get Suggestions</span>
+              </Button>
+            </div>
+
+            {suggestedTitles.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">
+                  AI Suggested for "{customTitle}":
+                </Label>
+                <div className="flex flex-wrap gap-3">
+                  {suggestedTitles.map((title) => (
+                    <div key={title} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`suggested-${title}`}
+                        checked={selectedTitles.includes(title)}
+                        onCheckedChange={() => toggleTitle(title)}
+                      />
+                      <Label htmlFor={`suggested-${title}`} className="cursor-pointer">
+                        {title}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {customTitle.trim() && (
+              <Button variant="outline" onClick={addCustomTitle} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add "{customTitle}" Manually
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Selected Titles */}
+        {selectedTitles.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Your Selected Job Titles ({selectedTitles.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {selectedTitles.map((title) => (
+                  <Badge
+                    key={title}
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    onClick={() => removeTitle(title)}
+                  >
+                    {title} ×
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Generated Boolean String */}
+        {booleanString && (
+          <Card className="bg-muted/50">
+            <CardHeader>
+              <CardTitle>Generated Boolean Search String</CardTitle>
+              <CardDescription>
+                Copy and paste this into LinkedIn or Indeed job search
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-background p-4 rounded-lg border font-mono text-sm">
+                {booleanString}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => copyToClipboard(booleanString, 'linkedin')}
+                  className="flex-1"
+                >
+                  {copiedLinkedIn ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-2" />
+                  )}
+                  Copy for LinkedIn
+                </Button>
+                <Button
+                  onClick={() => copyToClipboard(booleanString, 'indeed')}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  {copiedIndeed ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-2" />
+                  )}
+                  Copy for Indeed
+                </Button>
               </div>
 
               <Separator />
 
               <div className="space-y-2">
-                <Label className="font-semibold">Indeed Search String</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 p-3 bg-muted rounded-md font-mono text-sm break-all">
-                    {buildIndeedSearch()}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => copyToClipboard(buildIndeedSearch(), "Indeed")}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <h4 className="font-semibold mb-2">How to use:</h4>
-                <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                  <li>Click the copy button next to your preferred search string</li>
-                  <li>Go to LinkedIn or Indeed job search page</li>
-                  <li>Paste the search string into the search box</li>
-                  <li>Press Enter to see results with all matching job titles</li>
+                <h4 className="font-semibold text-sm">How to use:</h4>
+                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Click "Copy for LinkedIn" or "Copy for Indeed" above</li>
+                  <li>Go to the job board's search page</li>
+                  <li>Paste the string into the job title search box</li>
+                  <li>Press Enter to search</li>
                 </ol>
               </div>
             </CardContent>
