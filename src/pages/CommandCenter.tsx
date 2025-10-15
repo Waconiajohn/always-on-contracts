@@ -98,7 +98,7 @@ const CommandCenter = () => {
               requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             },
             {
-              name: 'Search Profiles',
+              name: 'Job Search Builder',
               icon: FolderKanban,
               completion: 0,
               lastActivity: null,
@@ -151,6 +151,16 @@ const CommandCenter = () => {
               lastActivity: null,
               route: '/agents/linkedin-profile',
               description: 'Optimize your LinkedIn presence',
+              isLocked: !hasVault || !isSubscribed,
+              requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
+            },
+            {
+              name: 'LinkedIn Blogging',
+              icon: Linkedin,
+              completion: 0,
+              lastActivity: null,
+              route: '/agents/linkedin-blogging',
+              description: 'Create engaging LinkedIn content',
               isLocked: !hasVault || !isSubscribed,
               requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             }
