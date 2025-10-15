@@ -168,14 +168,41 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Premium Header Navigation */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Prominent CareerIQ Branding */}
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-xl">C</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                  CareerIQ
+                </h1>
+                <p className="text-xs text-muted-foreground font-medium">AI-Powered Career Intelligence</p>
+              </div>
+            </div>
+            
+            {/* Right Side Navigation */}
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate('/auth')}>
+                Sign In
+              </Button>
+              <Button onClick={() => navigate('/pricing')}>
+                View Pricing
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
         <div className="container relative mx-auto px-4 py-12 lg:py-20">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-            <Badge variant="secondary" className="mb-4">
-              Built for Experienced Professionals
-            </Badge>
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
               Get Re-employed 3-5X Faster—
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
