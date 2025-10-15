@@ -286,8 +286,20 @@ serve(async (req) => {
     const uniqueJobs = deduplicateJobs(contractFiltered);
     console.log(`[Deduplication] Removed ${contractFiltered.length - uniqueJobs.length} duplicates: ${contractFiltered.length} → ${uniqueJobs.length} jobs`);
 
+    // Apply remote type filter
+    let remoteFilteredJobs = uniqueJobs;
+    if (searchFilters.remoteType && searchFilters.remoteType !== 'any') {
+      const beforeRemoteFilter = uniqueJobs.length;
+      remoteFilteredJobs = uniqueJobs.filter(job => {
+        const jobRemoteType = (job.remote_type || 'onsite').toLowerCase();
+        const filterRemoteType = searchFilters.remoteType!.toLowerCase();
+        return jobRemoteType === filterRemoteType;
+      });
+      console.log(`[Remote Type Filter] Applied "${searchFilters.remoteType}" filter: ${beforeRemoteFilter} → ${remoteFilteredJobs.length} jobs`);
+    }
+
     // Score against Career Vault if userId provided
-    let scoredJobs = uniqueJobs;
+    let scoredJobs = remoteFilteredJobs;
     if (userId) {
       console.log(`[Vault Scoring] Scoring ${uniqueJobs.length} jobs against user Career Vault...`);
       scoredJobs = await scoreWithVault(uniqueJobs, userId, supabaseClient);
