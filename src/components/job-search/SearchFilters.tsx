@@ -79,12 +79,11 @@ export const SearchFilters = ({
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">Any</SelectItem>
-              <SelectItem value="remote">Remote</SelectItem>
-              <SelectItem value="hybrid">Hybrid</SelectItem>
-              <SelectItem value="onsite">On-site</SelectItem>
-            </SelectContent>
+          <SelectContent>
+            <SelectItem value="any">Any</SelectItem>
+            <SelectItem value="remote">Remote</SelectItem>
+            <SelectItem value="local">Hybrid/Onsite</SelectItem>
+          </SelectContent>
           </Select>
         </div>
 

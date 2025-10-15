@@ -340,7 +340,7 @@ serve(async (req) => {
       console.log(`[Location Filter] Applied "${location}" filter: ${beforeLocationFilter} → ${locationFilteredJobs.length} jobs`);
     }
 
-    // Apply remote type filter - STRICT matching
+    // Apply remote type filter - Remote vs Local (Hybrid/Onsite)
     let remoteFilteredJobs = locationFilteredJobs;
     if (searchFilters.remoteType && searchFilters.remoteType !== 'any') {
       const beforeRemoteFilter = locationFilteredJobs.length;
@@ -349,11 +349,20 @@ serve(async (req) => {
       remoteFilteredJobs = locationFilteredJobs.filter(job => {
         const jobRemoteType = (job.remote_type || 'onsite').toLowerCase().trim();
         
-        // STRICT matching - must exactly match the selected type
-        const matches = jobRemoteType === filterRemoteType;
+        let matches = false;
         
-        if (!matches) {
-          console.log(`[Remote Type Filter] ❌ Filtered out: "${job.title}" (${jobRemoteType} !== ${filterRemoteType})`);
+        if (filterRemoteType === 'remote') {
+          // User wants only fully remote jobs
+          matches = jobRemoteType === 'remote';
+          if (!matches) {
+            console.log(`[Remote Type Filter] ❌ Filtered out: "${job.title}" (${jobRemoteType} is not remote)`);
+          }
+        } else if (filterRemoteType === 'local') {
+          // User wants hybrid OR onsite jobs (anything requiring physical presence)
+          matches = jobRemoteType === 'hybrid' || jobRemoteType === 'onsite';
+          if (!matches) {
+            console.log(`[Remote Type Filter] ❌ Filtered out: "${job.title}" (${jobRemoteType} is not hybrid/onsite)`);
+          }
         }
         
         return matches;
@@ -575,6 +584,19 @@ async function searchSingleTitle(
       const existingChips = params.get('chips') || '';
       params.set('chips', existingChips ? `${existingChips},employment_type:${employmentChip}` : `employment_type:${employmentChip}`);
     }
+  }
+
+  // Add remote type filter using chips parameter (Google Jobs API)
+  if (filters.remoteType && filters.remoteType !== 'any') {
+    if (filters.remoteType === 'remote') {
+      // Tell Google we want work-from-home jobs
+      const existingChips = params.get('chips') || '';
+      const remoteChip = 'work_from_home:1';
+      params.set('chips', existingChips ? `${existingChips},${remoteChip}` : remoteChip);
+      console.log('[Google Jobs API] Added remote chip filter: work_from_home:1');
+    }
+    // Note: For 'local' (hybrid/onsite), we can't add a chip since Google doesn't have one
+    // Post-filtering will handle hybrid/onsite filtering
   }
 
   const url = `https://www.searchapi.io/api/v1/search?${params}`;
