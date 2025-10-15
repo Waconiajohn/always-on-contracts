@@ -401,10 +401,12 @@ serve(async (req) => {
     // Score against Career Vault if userId provided
     let scoredJobs = employmentFilteredJobs;
     if (userId) {
-      console.log(`[Vault Scoring] Scoring ${uniqueJobs.length} jobs against user Career Vault...`);
-      scoredJobs = await scoreWithVault(uniqueJobs, userId, supabaseClient);
+      console.log(`[Vault Scoring] Scoring ${employmentFilteredJobs.length} FILTERED jobs against user Career Vault...`);
+      scoredJobs = await scoreWithVault(employmentFilteredJobs, userId, supabaseClient);
       const scoredCount = scoredJobs.filter(j => j.match_score && j.match_score > 0).length;
       console.log(`[Vault Scoring] Successfully scored ${scoredCount} jobs`);
+    } else {
+      console.log(`[Vault Scoring] No userId provided, skipping vault scoring`);
     }
 
     // Sort by match score (if available) and then by posted date
@@ -417,7 +419,8 @@ serve(async (req) => {
 
     // Store jobs in database
     if (scoredJobs.length > 0) {
-      console.log('[UNIFIED-SEARCH] Storing jobs in database...');
+      console.log(`[UNIFIED-SEARCH] Storing ${scoredJobs.length} FILTERED jobs in database...`);
+      console.log(`[UNIFIED-SEARCH] Sample jobs being stored:`, scoredJobs.slice(0, 3).map(j => ({ title: j.title, location: j.location, remote_type: j.remote_type })));
       
       const jobsToInsert = scoredJobs.map(job => ({
         external_id: job.id,
