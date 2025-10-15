@@ -121,7 +121,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, location, filters, userId, sources, nextPageToken } = await req.json();
+    const { query, location, radiusMiles, filters, userId, sources, nextPageToken } = await req.json();
     
     if (!query || !query.trim()) {
       throw new Error('Search query is required');
@@ -137,6 +137,7 @@ serve(async (req) => {
 
     console.log(`[UNIFIED-SEARCH] Received filters:`, searchFilters);
     console.log(`[UNIFIED-SEARCH] Location: "${location || 'Any'}"`);
+    console.log(`[UNIFIED-SEARCH] Radius: ${radiusMiles ? `${radiusMiles} miles` : 'not specified'}`);
     console.log(`[UNIFIED-SEARCH] Next Page Token: ${nextPageToken ? 'provided' : 'none'}`);
 
     const supabaseClient = createClient(

@@ -42,6 +42,7 @@ const JobSearchContent = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [radiusMiles, setRadiusMiles] = useState<string>('50');
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState<number | null>(null);
@@ -182,6 +183,7 @@ const JobSearchContent = () => {
         body: {
           query: searchQuery,
           location: location || undefined,
+          radiusMiles: location ? parseInt(radiusMiles) : undefined,
           nextPageToken: loadMore ? nextPageToken : undefined,
           filters: {
             datePosted: dateFilter,
@@ -367,33 +369,54 @@ const JobSearchContent = () => {
         {/* Search Bar */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid md:grid-cols-[1fr_300px_auto] gap-3">
-              <Input
-                placeholder="Search for jobs (e.g., 'Senior Product Manager' or 'AI Engineer')"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="flex-1"
-              />
-              <Input
-                placeholder="Location (optional)"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <Button onClick={() => handleSearch(false)} disabled={isSearching} className="min-w-[100px]">
-                {isSearching ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Searching
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </>
-                )}
-              </Button>
+            <div className="space-y-3">
+              <div className="grid md:grid-cols-[1fr_auto] gap-3">
+                <Input
+                  placeholder="Search for jobs (e.g., 'Senior Product Manager' or 'AI Engineer')"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="flex-1"
+                />
+                <Button onClick={() => handleSearch(false)} disabled={isSearching} className="min-w-[120px]">
+                  {isSearching ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Searching
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              <div className="grid md:grid-cols-[1fr_200px] gap-3">
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="City, State (e.g., Minneapolis, MN)"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={radiusMiles} onValueChange={setRadiusMiles} disabled={!location}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Radius" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 miles</SelectItem>
+                    <SelectItem value="25">25 miles</SelectItem>
+                    <SelectItem value="50">50 miles</SelectItem>
+                    <SelectItem value="75">75 miles</SelectItem>
+                    <SelectItem value="100">100 miles</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
