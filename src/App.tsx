@@ -27,10 +27,8 @@ const RateCalculator = lazy(() => import("./pages/RateCalculator"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Templates = lazy(() => import("./pages/Templates"));
 const APIKeys = lazy(() => import("./pages/APIKeys"));
-const SearchProfiles = lazy(() => import("./pages/SearchProfiles"));
 const AIAgents = lazy(() => import("./pages/AIAgents"));
 const CorporateAssistant = lazy(() => import("./pages/agents/CorporateAssistant"));
-const JobSearchAgent = lazy(() => import("./pages/agents/JobSearchAgent"));
 const ResumeBuilderAgent = lazy(() => import("./pages/agents/ResumeBuilderAgent"));
 const InterviewPrepAgent = lazy(() => import("./pages/agents/InterviewPrepAgent"));
 const LinkedInBloggingAgent = lazy(() => import("./pages/agents/LinkedInBloggingAgent"));
@@ -92,10 +90,8 @@ const App = () => (
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
           <Route path="/api-keys" element={<ProtectedRoute><APIKeys /></ProtectedRoute>} />
-          <Route path="/search-profiles" element={<ProtectedRoute><SearchProfiles /></ProtectedRoute>} />
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
         <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
-        <Route path="/agents/job-search" element={<ProtectedRoute><JobSearchAgent /></ProtectedRoute>} />
         <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-blogging" element={<ProtectedRoute><LinkedInBloggingAgent /></ProtectedRoute>} />

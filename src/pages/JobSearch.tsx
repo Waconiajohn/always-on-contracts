@@ -13,8 +13,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BooleanAIAssistant } from "@/components/job-search/BooleanAIAssistant";
 import { SavedSearches } from "@/components/job-search/SavedSearches";
+import { SavedJobsList } from "@/components/job-search/SavedJobsList";
+import { QuickBooleanBuilder } from "@/components/job-search/QuickBooleanBuilder";
 import { BooleanActiveIndicator } from "@/components/job-search/BooleanActiveIndicator";
 
 interface JobResult {
@@ -51,6 +54,7 @@ const JobSearchContent = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [booleanString, setBooleanString] = useState('');
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showBooleanBuilder, setShowBooleanBuilder] = useState(false);
   const [activeSavedSearchName, setActiveSavedSearchName] = useState<string | null>(null);
   const [basicSearchCount, setBasicSearchCount] = useState<number | null>(null);
   const [booleanSearchCount, setBooleanSearchCount] = useState<number | null>(null);
@@ -464,13 +468,23 @@ const JobSearchContent = () => {
                     Note: This works best with Google Jobs; may not apply to all sources.
                   </p>
                   
-                  <Button 
-                    onClick={() => setShowAIAssistant(true)}
+                   <Button 
+                    onClick={() => setShowBooleanBuilder(true)}
                     className="w-full mb-3"
                     variant="outline"
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Let AI Build Your Boolean Search
+                    Quick Boolean Builder
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => setShowAIAssistant(true)}
+                    className="w-full mb-3"
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Boolean Assistant (Advanced)
                   </Button>
                   
                   <Input
@@ -587,8 +601,19 @@ const JobSearchContent = () => {
         )}
 
         {/* Results */}
-        <div className="space-y-4">
-          {jobs.map((job) => (
+        <Tabs defaultValue="results" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="results">
+              Search Results ({jobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="saved">
+              Saved Jobs
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="results">
+            <div className="space-y-4">
+              {jobs.map((job) => (
             <Card key={job.id} className="hover:border-primary/50 transition-colors">
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start mb-4">
@@ -681,13 +706,29 @@ const JobSearchContent = () => {
             </CardContent>
           </Card>
         )}
+        </TabsContent>
 
-        {/* AI Assistant Modal */}
-        <BooleanAIAssistant
-          open={showAIAssistant}
-          onOpenChange={setShowAIAssistant}
-          onApplySearch={handleApplyAISearch}
-        />
+        <TabsContent value="saved">
+          <SavedJobsList />
+        </TabsContent>
+      </Tabs>
+
+      {/* AI Assistants */}
+      <BooleanAIAssistant
+        open={showAIAssistant}
+        onOpenChange={setShowAIAssistant}
+        onApplySearch={handleApplyAISearch}
+      />
+
+      <QuickBooleanBuilder
+        open={showBooleanBuilder}
+        onOpenChange={setShowBooleanBuilder}
+        onApply={(booleanStr) => {
+          setBooleanString(booleanStr);
+          setActiveSavedSearchName('Quick Builder');
+          setShowAdvanced(true);
+        }}
+      />
       </div>
     </div>
   );

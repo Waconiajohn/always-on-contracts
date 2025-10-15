@@ -303,6 +303,45 @@ serve(async (req) => {
       return new Date(b.posted_date).getTime() - new Date(a.posted_date).getTime();
     });
 
+    // Store jobs in database
+    if (scoredJobs.length > 0) {
+      console.log('[UNIFIED-SEARCH] Storing jobs in database...');
+      
+      const jobsToInsert = scoredJobs.map(job => ({
+        external_id: job.id,
+        source: job.source,
+        job_title: job.title,
+        company_name: job.company,
+        company_logo_url: null,
+        location: job.location,
+        remote_type: job.remote_type,
+        employment_type: job.employment_type,
+        salary_min: job.salary_min,
+        salary_max: job.salary_max,
+        salary_currency: 'USD',
+        salary_period: 'year',
+        job_description: job.description?.substring(0, 5000),
+        posted_date: job.posted_date,
+        apply_url: job.apply_url,
+        is_active: true,
+        match_score: job.match_score,
+        raw_data: {},
+      }));
+      
+      const { error: insertError } = await supabaseClient
+        .from('job_listings')
+        .upsert(jobsToInsert, { 
+          onConflict: 'external_id,source',
+          ignoreDuplicates: false 
+        });
+      
+      if (insertError) {
+        console.error('[UNIFIED-SEARCH] Error storing jobs:', insertError);
+      } else {
+        console.log(`[UNIFIED-SEARCH] Stored ${jobsToInsert.length} jobs in database`);
+      }
+    }
+
     const executionTime = Date.now() - startTime;
     console.log(`[UNIFIED-SEARCH] ═══════════════════════════════════════`);
     console.log(`[UNIFIED-SEARCH] FINAL RESULTS: ${scoredJobs.length} jobs`);
@@ -328,6 +367,57 @@ serve(async (req) => {
   }
 });
 
+// Determine remote type from job data
+function determineRemoteType(job: any): string | null {
+  const location = (job.location || '').toLowerCase();
+  const description = (job.description || '').toLowerCase();
+  
+  if (location.includes('remote') || description.includes('fully remote')) return 'remote';
+  if (location.includes('hybrid') || description.includes('hybrid')) return 'hybrid';
+  return 'onsite';
+}
+
+// Parse salary from detected_extensions
+function parseSalary(salaryText?: string): { min: number | null; max: number | null; period: string } | null {
+  if (!salaryText) return null;
+  
+  const hourlyMatch = salaryText.match(/\$(\d+(?:,\d+)?)\s*(?:–|-|to)\s*\$(\d+(?:,\d+)?)\s*(?:an?\s*hour|\/hr)/i);
+  const yearlyMatch = salaryText.match(/\$(\d+(?:,\d+)?[KkMm]?)\s*(?:–|-|to)\s*\$(\d+(?:,\d+)?[KkMm]?)\s*(?:a\s*year|\/year|annually)/i);
+  const singleMatch = salaryText.match(/\$(\d+(?:,\d+)?[KkMm]?)\s*(?:a\s*year|an?\s*hour)/i);
+  
+  const parseAmount = (str: string): number => {
+    str = str.replace(/,/g, '');
+    if (str.match(/k/i)) return parseFloat(str) * 1000;
+    if (str.match(/m/i)) return parseFloat(str) * 1000000;
+    return parseFloat(str);
+  };
+  
+  if (yearlyMatch) {
+    return {
+      min: parseAmount(yearlyMatch[1]),
+      max: parseAmount(yearlyMatch[2]),
+      period: 'year'
+    };
+  }
+  if (hourlyMatch) {
+    return {
+      min: parseAmount(hourlyMatch[1]) * 2080,
+      max: parseAmount(hourlyMatch[2]) * 2080,
+      period: 'year'
+    };
+  }
+  if (singleMatch) {
+    const amount = parseAmount(singleMatch[1]);
+    return {
+      min: amount,
+      max: amount,
+      period: salaryText.includes('hour') ? 'hour' : 'year'
+    };
+  }
+  
+  return null;
+}
+
 // Helper function for single title search
 async function searchSingleTitle(
   query: string, 
@@ -339,65 +429,82 @@ async function searchSingleTitle(
     engine: 'google_jobs',
     q: query,
     location: location || 'United States',
-    api_key: apiKey
+    api_key: apiKey,
+    num: '100'
   });
 
-  // Add date filter if specified
+  // Fix date filter format - use chips parameter
   if (filters.datePosted && filters.datePosted !== 'any') {
     const dateMap: Record<string, string> = {
       '24h': 'today',
       '3d': '3days',
       '7d': 'week',
-      '14d': 'week',
+      '14d': 'month',
       '30d': 'month'
     };
     const mappedDate = dateMap[filters.datePosted] || 'month';
-    params.set('date_posted', mappedDate);
-    console.log(`[Google Jobs] Date filter: ${filters.datePosted} → ${mappedDate}`);
+    params.set('chips', `date_posted:${mappedDate}`);
+    console.log(`[Google Jobs] Date filter: ${filters.datePosted} → date_posted:${mappedDate}`);
+  }
+
+  // Add employment type filter
+  if (filters.employmentType && filters.employmentType !== 'any') {
+    const typeMap: Record<string, string> = {
+      'full-time': 'FULLTIME',
+      'contract': 'CONTRACTOR',
+      'part-time': 'PARTTIME',
+      'internship': 'INTERN'
+    };
+    const employmentChip = typeMap[filters.employmentType];
+    if (employmentChip) {
+      const existingChips = params.get('chips') || '';
+      params.set('chips', existingChips ? `${existingChips},employment_type:${employmentChip}` : `employment_type:${employmentChip}`);
+    }
   }
 
   const url = `https://www.searchapi.io/api/v1/search?${params}`;
-  console.log(`[Google Jobs] Calling API: "${query}" with date filter: ${filters.datePosted || 'none'}`);
+  console.log(`[Google Jobs] Request URL: ${url}`);
+  console.log(`[Google Jobs] Parameters:`, Object.fromEntries(params));
   
   const response = await fetch(url);
   
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[Google Jobs] API Error: ${errorText}`);
+    console.error(`[Google Jobs] API Error Response:`, errorText);
+    console.error(`[Google Jobs] Status: ${response.status} ${response.statusText}`);
     throw new Error(`Google Jobs API failed: ${response.status}`);
   }
 
   const data = await response.json();
-  console.log(`[Google Jobs] Received ${data.jobs?.length || 0} jobs from API for "${query}"`);
+  console.log(`[Google Jobs] Full API Response Sample:`, JSON.stringify(data, null, 2).substring(0, 1000));
+  console.log(`[Google Jobs] Response keys:`, Object.keys(data));
+  console.log(`[Google Jobs] Jobs results count:`, data.jobs_results?.length || 0);
   
   const jobs: JobResult[] = [];
 
-  if (data.jobs && data.jobs.length > 0) {
-    let skippedCount = 0;
-    for (const job of data.jobs) {
-      // Don't skip jobs without dates, assign default
+  if (data.jobs_results && data.jobs_results.length > 0) {
+    for (const job of data.jobs_results) {
       const postedDate = job.detected_extensions?.posted_at 
         ? parseGoogleDate(job.detected_extensions.posted_at)
         : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      if (!job.detected_extensions?.posted_at) {
-        skippedCount++;
-      }
+      const salary = parseSalary(job.detected_extensions?.salary);
 
       jobs.push({
-        id: `google_${job.position || Math.random()}`,
+        id: `google_${job.job_id || Math.random().toString(36).substr(2, 9)}`,
         title: job.title,
         company: job.company_name,
         location: job.location,
         description: job.description,
         posted_date: postedDate,
-        apply_url: job.apply_link,
+        apply_url: job.share_url || job.apply_options?.[0]?.link,
         source: 'Google Jobs',
-        remote_type: job.location?.toLowerCase().includes('remote') ? 'remote' : null,
-        employment_type: job.detected_extensions?.schedule || null
+        remote_type: determineRemoteType(job),
+        employment_type: job.detected_extensions?.schedule || null,
+        salary_min: salary?.min,
+        salary_max: salary?.max
       });
     }
-    console.log(`[Google Jobs] Assigned default dates to ${skippedCount} jobs without posted_at`);
   }
 
   console.log(`[Google Jobs] Parsed ${jobs.length} jobs for "${query}"`);
