@@ -8,8 +8,6 @@ import {
   Building2,
   ClipboardList,
   MessageSquare,
-  Settings,
-  Calculator,
   Users,
   FileText,
   Key,
@@ -22,7 +20,6 @@ import {
   BookOpen,
   LineChart,
   Linkedin,
-  Calendar,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,53 +39,46 @@ import { Badge } from "@/components/ui/badge";
 import { useSubscription } from "@/hooks/useSubscription";
 import logo from "@/assets/logo.png";
 
+// Reorganized logical navigation structure
 const mainNavItems = [
   { path: "/home", label: "Home", icon: Home },
-  { path: "/job-search", label: "Job Search", icon: Search },
-  { path: "/ai-agents", label: "AI Agents", icon: Brain },
-  { path: "/command-center", label: "Command Center", icon: Package },
-  { path: "/research-hub", label: "Research Hub", icon: LineChart },
-];
-
-const careerWorkflowItems = [
+  { path: "/command-center", label: "Command Center", icon: Command },
   { path: "/career-vault", label: "Career Vault", icon: Package },
-  { path: "/agents/linkedin-profile", label: "LinkedIn Builder", icon: Linkedin },
-  { path: "/agents/resume-builder", label: "Resume Builder", icon: FileText },
 ];
 
-const jobSearchItems = [
-  { path: "/opportunities", label: "Job Board", icon: Search },
+const jobWorkflowItems = [
+  { path: "/job-search", label: "Search Jobs", icon: Search },
+  { path: "/opportunities", label: "AI Recommendations", icon: Brain },
   { path: "/application-queue", label: "Application Queue", icon: ClipboardList },
-  { path: "/projects", label: "Projects", icon: FolderKanban },
+  { path: "/projects", label: "Active Applications", icon: FolderKanban },
+];
+
+const careerAssetsItems = [
+  { path: "/agents/resume-builder", label: "Resume Builder", icon: FileText },
+  { path: "/agents/linkedin-profile", label: "LinkedIn Profile", icon: Linkedin },
+  { path: "/agents/interview-prep", label: "Interview Prep", icon: MessageSquare },
 ];
 
 const networkingItems = [
   { path: "/agents/networking", label: "Networking Agent", icon: Users },
-  { path: "/agents/linkedin-blogging", label: "LinkedIn Blogging", icon: MessageSquare },
+  { path: "/agents/linkedin-blogging", label: "LinkedIn Content", icon: MessageSquare },
   { path: "/templates", label: "Communication Templates", icon: FileText },
 ];
 
-const interviewItems = [
-  { path: "/agents/interview-prep", label: "Interview Prep", icon: MessageSquare },
-  { path: "/salary-negotiation", label: "Salary Negotiation", icon: DollarSign },
-];
-
 const toolsItems = [
+  { path: "/boolean-search", label: "Boolean Search Builder", icon: Search },
+  { path: "/agencies", label: "Agencies", icon: Building2 },
+  { path: "/salary-negotiation", label: "Salary Calculator", icon: DollarSign },
+  { path: "/agents/career-trends", label: "Career Trends", icon: TrendingUp },
+  { path: "/research-hub", label: "Research Hub", icon: LineChart },
   { path: "/coaching", label: "AI Coach", icon: Brain },
   { path: "/learning-center", label: "Learning Center", icon: BookOpen },
-  { path: "/daily-workflow", label: "Daily Workflow Guide", icon: Calendar },
-  { path: "/boolean-search", label: "Boolean Search", icon: Search },
-  { path: "/agencies", label: "Agencies", icon: Building2 },
-  { path: "/agents/financial-planning", label: "Financial Planning", icon: DollarSign },
-  { path: "/agents/career-trends", label: "Career Trends", icon: TrendingUp },
-  { path: "/rate-calculator", label: "Rate Calculator", icon: Calculator },
 ];
 
 const settingsItems = [
   { path: "/profile", label: "Profile", icon: Users },
-  { path: "/automation-settings", label: "Automation", icon: Settings },
   { path: "/api-keys", label: "API Keys", icon: Key },
-  { path: "/pricing", label: "Pricing", icon: DollarSign },
+  { path: "/pricing", label: "Subscription", icon: DollarSign },
 ];
 
 export function AppSidebar() {
@@ -189,11 +179,10 @@ export function AppSidebar() {
         <Separator />
 
         <NavGroup items={mainNavItems} label="Main Navigation" />
-        <NavGroup items={careerWorkflowItems} label="Career Workflow" />
-        <NavGroup items={jobSearchItems} label="Job Search" />
-        <NavGroup items={networkingItems} label="Networking & Content" />
-        <NavGroup items={interviewItems} label="Interview & Offers" />
-        <NavGroup items={toolsItems} label="Tools & Support" />
+        <NavGroup items={jobWorkflowItems} label="Job Search Workflow" />
+        <NavGroup items={careerAssetsItems} label="Career Assets" />
+        <NavGroup items={networkingItems} label="Networking & Outreach" />
+        <NavGroup items={toolsItems} label="Tools" />
         <NavGroup items={settingsItems} label="Settings" />
       </SidebarContent>
 

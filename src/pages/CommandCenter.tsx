@@ -233,21 +233,79 @@ const CommandCenter = () => {
         <AppNav />
         <div className="container py-8 space-y-6">
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold">Career Command Center</h1>
-            <p className="text-muted-foreground text-lg">
-              Your complete career transition workflow
-            </p>
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">How This Works:</h3>
-              <ol className="space-y-1 text-sm text-muted-foreground">
-                <li>1. <strong>Build Foundation</strong> - Upload resume to Career Vault</li>
-                <li>2. <strong>Find Jobs</strong> - Browse opportunities that match your skills</li>
-                <li>3. <strong>Customize & Apply</strong> - Tailor resume for each job</li>
-                <li>4. <strong>Network Immediately</strong> - Reach out to people at companies you applied to</li>
-                <li>5. <strong>Prepare for Interviews</strong> - Practice with AI coaching</li>
-                <li>6. <strong>Negotiate Offers</strong> - Use market data to get paid what you're worth</li>
-              </ol>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Package className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold">Career Command Center</h1>
+                <p className="text-muted-foreground text-lg">
+                  Your complete career transition workflow
+                </p>
+              </div>
             </div>
+            
+            {/* Visual Workflow Guide */}
+            <Card className="p-6 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                Your Career Journey - 6 Phases
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                <div className="text-center space-y-2">
+                  <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center font-bold ${vaultCompletion > 0 ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                    1
+                  </div>
+                  <p className="text-xs font-medium">Build Foundation</p>
+                  <Progress value={vaultCompletion} className="h-1" />
+                </div>
+                <div className="hidden md:flex items-center justify-center">
+                  <div className="w-full h-1 bg-border" />
+                </div>
+                <div className="text-center space-y-2">
+                  <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center font-bold ${vaultCompletion === 100 ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                    2
+                  </div>
+                  <p className="text-xs font-medium">Find Jobs</p>
+                </div>
+                <div className="hidden md:flex items-center justify-center">
+                  <div className="w-full h-1 bg-border" />
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-muted text-muted-foreground mx-auto flex items-center justify-center font-bold">
+                    3
+                  </div>
+                  <p className="text-xs font-medium">Customize & Apply</p>
+                </div>
+                <div className="hidden md:flex items-center justify-center">
+                  <div className="w-full h-1 bg-border" />
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-muted text-muted-foreground mx-auto flex items-center justify-center font-bold">
+                    4
+                  </div>
+                  <p className="text-xs font-medium">Network</p>
+                </div>
+                <div className="hidden md:flex items-center justify-center">
+                  <div className="w-full h-1 bg-border" />
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-muted text-muted-foreground mx-auto flex items-center justify-center font-bold">
+                    5
+                  </div>
+                  <p className="text-xs font-medium">Interview Prep</p>
+                </div>
+                <div className="hidden md:flex items-center justify-center">
+                  <div className="w-full h-1 bg-border" />
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-muted text-muted-foreground mx-auto flex items-center justify-center font-bold">
+                    6
+                  </div>
+                  <p className="text-xs font-medium">Negotiate</p>
+                </div>
+              </div>
+            </Card>
           </div>
 
           <Card>

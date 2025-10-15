@@ -237,14 +237,14 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
                   </div>
                 </div>
                 
-                {/* Render clickable suggestions */}
+                {/* Render clickable suggestions with proper keys to prevent shaking */}
                 {message.suggestions && (
                   <div className="flex flex-wrap gap-2 px-2">
-                    {message.suggestions.options.map((option, idx) => (
+                    {message.suggestions.options.map((option) => (
                       <Badge
-                        key={idx}
+                        key={`${message.suggestions?.type}-${option}`}
                         variant="outline"
-                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all hover:scale-105 active:scale-95"
                         onClick={() => handleSuggestionClick(option)}
                       >
                         {option}

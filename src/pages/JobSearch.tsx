@@ -303,7 +303,7 @@ const JobSearchContent = () => {
       <AppNav />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Job Search</h1>
+          <h1 className="text-3xl font-bold mb-2">Search Jobs</h1>
           <p className="text-muted-foreground">Live results from 50+ sources</p>
         </div>
 

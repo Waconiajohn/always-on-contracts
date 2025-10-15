@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 import { AIActivityBanner } from "@/components/home/AIActivityBanner";
 import { useJourneyState } from "@/hooks/useJourneyState";
 import { CelebrationBanner } from "@/components/home/CelebrationBanner";
@@ -77,6 +78,7 @@ const HomeContent = () => {
   };
 
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const { subscription } = useSubscription();
 
   useEffect(() => {
     checkSubscription();
@@ -152,6 +154,36 @@ const HomeContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Branding Header */}
+      <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3 max-w-7xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-ai-primary to-ai-secondary flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">C</span>
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-ai-primary to-ai-secondary bg-clip-text text-transparent">
+                    CareerIQ
+                  </h1>
+                  <p className="text-xs text-muted-foreground">AI-Powered Career Intelligence</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {subscription?.subscribed && (
+                <Badge variant={subscription.is_retirement_client ? "default" : "secondary"}>
+                  {subscription.is_retirement_client ? "Lifetime Access" : 
+                   subscription.tier === 'concierge_elite' ? "Concierge Elite" :
+                   subscription.tier === 'always_ready' ? "Always Ready" : "Career Starter"}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Hero Section with Animated Gradient */}
         <div className="relative overflow-hidden rounded-2xl p-12 mb-8">
