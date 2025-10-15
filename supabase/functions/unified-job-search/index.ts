@@ -164,8 +164,14 @@ serve(async (req) => {
             return result.jobs;
           })
           .catch(error => {
-            console.error('Google Jobs error:', error);
-            sourceStats.google_jobs = { count: 0, status: 'error' };
+            console.error('[Google Jobs] ❌ CRITICAL ERROR:', error);
+            console.error('[Google Jobs] Error name:', error?.name);
+            console.error('[Google Jobs] Error message:', error?.message);
+            console.error('[Google Jobs] Error stack:', error?.stack);
+            sourceStats.google_jobs = { 
+              count: 0, 
+              status: `error: ${error?.message || 'unknown'}` 
+            };
             return [];
           })
       );
@@ -607,16 +613,44 @@ async function searchSingleTitle(
   console.log(`[Google Jobs] Request URL: ${url}`);
   console.log(`[Google Jobs] Parameters:`, Object.fromEntries(params));
   
-  const response = await fetch(url);
+  // Add timeout protection (30 seconds)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let response;
+  try {
+    console.log('[Google Jobs] 🚀 Starting fetch request...');
+    response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    console.log('[Google Jobs] ✅ Fetch completed, status:', response.status);
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error(`[Google Jobs] ❌ Request timed out after 30 seconds`);
+      throw new Error('SearchAPI.io request timed out after 30 seconds');
+    }
+    console.error(`[Google Jobs] ❌ Fetch error:`, error);
+    throw error;
+  }
   
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`[Google Jobs] API Error Response:`, errorText);
     console.error(`[Google Jobs] Status: ${response.status} ${response.statusText}`);
-    throw new Error(`Google Jobs API failed: ${response.status}`);
+    throw new Error(`Google Jobs API failed: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
+  
+  // Log response size
+  const responseSize = JSON.stringify(data).length;
+  console.log(`[Google Jobs] Response size: ${responseSize} bytes`);
+  
+  if (!data || responseSize < 100) {
+    console.warn('[Google Jobs] ⚠️ Response seems unusually small or empty');
+    console.log('[Google Jobs] Full response:', JSON.stringify(data));
+  }
+  
   console.log(`[Google Jobs] Full API Response Sample:`, JSON.stringify(data, null, 2).substring(0, 1000));
   console.log(`[Google Jobs] Response keys:`, Object.keys(data));
   console.log(`[Google Jobs] Jobs results count:`, data.jobs_results?.length || 0);
@@ -664,9 +698,10 @@ async function searchSingleTitle(
 async function searchGoogleJobs(query: string, location: string, filters: SearchFilters): Promise<{ jobs: JobResult[]; nextPageToken?: string }> {
   const searchApiKey = Deno.env.get('SEARCHAPI_KEY');
   if (!searchApiKey) {
-    console.warn('[Google Jobs] SEARCHAPI_KEY not configured');
+    console.error('[Google Jobs] ❌ SEARCHAPI_KEY not configured in environment');
     return { jobs: [], nextPageToken: undefined };
   }
+  console.log('[Google Jobs] ✅ API key found:', searchApiKey.substring(0, 8) + '...');
 
   let searchQuery = query;
   let parsedBoolean: { titles: string[]; skills: string[]; exclusions: string[] } | null = null;
