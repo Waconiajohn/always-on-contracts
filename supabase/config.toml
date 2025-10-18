@@ -1,5 +1,8 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
+[functions.auto-populate-vault]
+verify_jwt = true
+
 [functions.generate-series-outline]
 verify_jwt = true
 

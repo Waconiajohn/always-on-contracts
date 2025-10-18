@@ -203,13 +203,12 @@ Return VALID JSON only with this structure:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'google/gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.4, // Balance creativity with accuracy
         max_tokens: 16000, // Allow comprehensive extraction
       }),
     });
@@ -235,7 +234,7 @@ Return VALID JSON only with this structure:
     console.log(`[AUTO-POPULATE-VAULT] Summary:`, intelligence.summary);
 
     // Insert all extracted intelligence into database
-    const insertPromises = [];
+    const insertPromises: PromiseLike<any>[] = [];
     let totalInserted = 0;
 
     // Helper to determine confidence score
@@ -248,7 +247,7 @@ Return VALID JSON only with this structure:
     // 1. Power Phrases
     if (intelligence.powerPhrases?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.powerPhrases.length} power phrases`);
-      intelligence.powerPhrases.forEach((pp: any) => {
+      for (const pp of intelligence.powerPhrases) {
         insertPromises.push(
           supabase.from('vault_power_phrases').insert({
             vault_id: vaultId,
@@ -259,16 +258,15 @@ Return VALID JSON only with this structure:
             confidence_score: getConfidenceScore(pp),
             keywords: pp.keywords || [],
             impact_metrics: pp.metrics || null
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 2. Transferable Skills
     if (intelligence.transferableSkills?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.transferableSkills.length} transferable skills`);
-      intelligence.transferableSkills.forEach((skill: any) => {
+      for (const skill of intelligence.transferableSkills) {
         insertPromises.push(
           supabase.from('vault_transferable_skills').insert({
             vault_id: vaultId,
@@ -277,16 +275,15 @@ Return VALID JSON only with this structure:
             equivalent_skills: skill.equivalentSkills || [],
             evidence: skill.evidence || '',
             confidence_score: skill.level === 'expert' ? 95 : skill.level === 'advanced' ? 85 : 75
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 3. Hidden Competencies
     if (intelligence.hiddenCompetencies?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.hiddenCompetencies.length} hidden competencies`);
-      intelligence.hiddenCompetencies.forEach((comp: any) => {
+      for (const comp of intelligence.hiddenCompetencies) {
         insertPromises.push(
           supabase.from('vault_hidden_competencies').insert({
             vault_id: vaultId,
@@ -296,16 +293,15 @@ Return VALID JSON only with this structure:
             supporting_evidence: comp.evidence || [],
             confidence_score: comp.marketValue === 'high' ? 90 : 80,
             certification_equivalent: comp.certificationEquivalent || null
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 14. Soft Skills
     if (intelligence.softSkills?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.softSkills.length} soft skills`);
-      intelligence.softSkills.forEach((soft: any) => {
+      for (const soft of intelligence.softSkills) {
         insertPromises.push(
           supabase.from('vault_soft_skills').insert({
             vault_id: vaultId,
@@ -314,16 +310,15 @@ Return VALID JSON only with this structure:
             examples: soft.evidence || soft.context || '',
             impact: soft.impact || null,
             proficiency_level: soft.proficiencyLevel || 'proficient'
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 15. Leadership Philosophy
     if (intelligence.leadershipPhilosophy?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.leadershipPhilosophy.length} leadership philosophies`);
-      intelligence.leadershipPhilosophy.forEach((phil: any) => {
+      for (const phil of intelligence.leadershipPhilosophy) {
         insertPromises.push(
           supabase.from('vault_leadership_philosophy').insert({
             vault_id: vaultId,
@@ -332,16 +327,15 @@ Return VALID JSON only with this structure:
             leadership_style: phil.leadershipStyle || null,
             real_world_application: phil.realWorldApplication || null,
             core_principles: phil.corePrinciples || []
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 16. Executive Presence
     if (intelligence.executivePresence?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.executivePresence.length} executive presence indicators`);
-      intelligence.executivePresence.forEach((pres: any) => {
+      for (const pres of intelligence.executivePresence) {
         insertPromises.push(
           supabase.from('vault_executive_presence').insert({
             vault_id: vaultId,
@@ -350,16 +344,15 @@ Return VALID JSON only with this structure:
             situational_example: pres.situationalExample || pres.evidence || '',
             brand_alignment: pres.brandAlignment || null,
             perceived_impact: pres.perceivedImpact || null
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 17. Personality Traits
     if (intelligence.personalityTraits?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.personalityTraits.length} personality traits`);
-      intelligence.personalityTraits.forEach((trait: any) => {
+      for (const trait of intelligence.personalityTraits) {
         insertPromises.push(
           supabase.from('vault_personality_traits').insert({
             vault_id: vaultId,
@@ -368,16 +361,15 @@ Return VALID JSON only with this structure:
             behavioral_evidence: trait.behavioralEvidence || '',
             work_context: trait.workContext || null,
             strength_or_growth: trait.strengthOrGrowth || 'strength'
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 18. Work Style
     if (intelligence.workStyle?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.workStyle.length} work style preferences`);
-      intelligence.workStyle.forEach((style: any) => {
+      for (const style of intelligence.workStyle) {
         insertPromises.push(
           supabase.from('vault_work_style').insert({
             vault_id: vaultId,
@@ -386,16 +378,15 @@ Return VALID JSON only with this structure:
             preference_description: style.preferenceDescription,
             examples: style.examples || null,
             ideal_environment: style.idealEnvironment || null
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 19. Values
     if (intelligence.values?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.values.length} core values`);
-      intelligence.values.forEach((value: any) => {
+      for (const value of intelligence.values) {
         insertPromises.push(
           supabase.from('vault_values_motivations').insert({
             vault_id: vaultId,
@@ -404,16 +395,15 @@ Return VALID JSON only with this structure:
             manifestation: value.manifestation || '',
             importance_level: value.importanceLevel || 'high',
             career_decisions_influenced: value.careerDecisionsInfluenced || null
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // 20. Behavioral Indicators
     if (intelligence.behavioralIndicators?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.behavioralIndicators.length} behavioral indicators`);
-      intelligence.behavioralIndicators.forEach((indicator: any) => {
+      for (const indicator of intelligence.behavioralIndicators) {
         insertPromises.push(
           supabase.from('vault_behavioral_indicators').insert({
             vault_id: vaultId,
@@ -422,10 +412,9 @@ Return VALID JSON only with this structure:
             specific_behavior: indicator.specificBehavior,
             context: indicator.context || null,
             outcome_pattern: indicator.outcomePattern || null
-          })
+          }).then(() => { totalInserted++; })
         );
-        totalInserted++;
-      });
+      }
     }
 
     // Execute all inserts in parallel
