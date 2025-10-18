@@ -118,9 +118,12 @@ interface BehavioralIndicator {
 
 import { EnhancementQueue } from '@/components/EnhancementQueue';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Upload, PlayCircle, RotateCcw } from 'lucide-react';
+import { Rocket, Upload, PlayCircle, RotateCcw, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
+import { VaultQuickStats } from '@/components/career-vault/VaultQuickStats';
+import { RecentActivityFeed } from '@/components/career-vault/RecentActivityFeed';
+import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
 
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
@@ -342,47 +345,87 @@ const VaultDashboardContent = () => {
     );
   }
 
+  const totalIntelligenceItems = 
+    stats.total_power_phrases + 
+    stats.total_transferable_skills + 
+    stats.total_hidden_competencies +
+    stats.total_soft_skills +
+    stats.total_leadership_philosophy +
+    stats.total_executive_presence +
+    stats.total_personality_traits +
+    stats.total_work_style +
+    stats.total_values +
+    stats.total_behavioral_indicators;
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Career Vault Control Panel</h1>
+        <p className="text-muted-foreground">
+          Your career intelligence command center - manage documents, track progress, and deploy your vault
+        </p>
+      </div>
+
       {/* Master Controls Section */}
-      <Card className="mb-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <Card className="mb-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+        <div className="flex flex-col space-y-4">
           <div>
-            <h2 className="text-lg font-semibold mb-1">Vault Status</h2>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>Interview: {stats.interview_completion_percentage}% complete</span>
-              <span>•</span>
-              <span>{stats.total_power_phrases + stats.total_transferable_skills + stats.total_hidden_competencies} intelligence items</span>
-            </div>
+            <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
+              <Rocket className="h-5 w-5" />
+              Mission Control
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {stats.interview_completion_percentage}% interview complete • {totalIntelligenceItems} intelligence items extracted
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <Button 
               variant="outline" 
-              size="sm"
+              className="justify-start"
               onClick={() => setResumeModalOpen(true)}
             >
               <Upload className="h-4 w-4 mr-2" />
               Manage Resume
             </Button>
-            {stats.interview_completion_percentage < 100 && (
+            
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => setResumeModalOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Document
+            </Button>
+            
+            {stats.interview_completion_percentage < 100 ? (
               <Button 
-                size="sm"
+                className="justify-start"
                 onClick={() => navigate('/career-vault/onboarding')}
               >
                 <PlayCircle className="h-4 w-4 mr-2" />
                 Continue Interview
               </Button>
-            )}
-            {stats.interview_completion_percentage === 100 && (
+            ) : (
               <Button 
                 variant="outline"
-                size="sm"
+                className="justify-start"
                 onClick={() => navigate('/career-vault/onboarding')}
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Restart Interview
               </Button>
             )}
+            
+            <Button 
+              variant="secondary"
+              className="justify-start"
+              onClick={() => navigate('/agents/resume-builder')}
+            >
+              <Rocket className="h-4 w-4 mr-2" />
+              Deploy Vault
+            </Button>
           </div>
         </div>
       </Card>
@@ -394,29 +437,24 @@ const VaultDashboardContent = () => {
         onResumeUploaded={handleResumeUploaded}
       />
 
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Your Career Vault</h1>
-          <p className="text-muted-foreground">
-            A comprehensive intelligence system of your skills, achievements, and capabilities across 20 intelligence categories
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/career-vault/onboarding')}
-          >
-            Update Resume
-          </Button>
-          <Button
-            size="lg"
-            onClick={() => navigate('/agents/resume-builder')}
-            className="gap-2"
-          >
-            <Rocket className="h-5 w-5" />
-            Use My Vault
-          </Button>
-        </div>
+      {/* Quick Stats Cards */}
+      <VaultQuickStats
+        totalItems={totalIntelligenceItems}
+        interviewProgress={stats.interview_completion_percentage}
+        strengthScore={strengthScore?.total || 0}
+        lastUpdated={null}
+      />
+
+      {/* Two Column Layout for Activity and Next Steps */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecentActivityFeed vaultId={vaultId} />
+        <SmartNextSteps
+          interviewProgress={stats.interview_completion_percentage}
+          strengthScore={strengthScore?.total || 0}
+          totalItems={totalIntelligenceItems}
+          hasLeadership={stats.total_leadership_philosophy > 0}
+          hasExecutivePresence={stats.total_executive_presence > 0}
+        />
       </div>
 
       {/* Career Vault Strength Score */}

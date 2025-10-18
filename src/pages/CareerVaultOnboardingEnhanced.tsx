@@ -315,24 +315,40 @@ const CareerVaultOnboardingEnhanced = () => {
       )}
 
       {currentStep === 'complete' && (
-        <Card className="animate-scale-in">
-          <CardContent className="py-12 text-center space-y-4">
-            <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-full w-fit mx-auto">
-              <CheckCircle className="h-12 w-12 text-green-600 animate-bounce" />
+        <Card className="p-12 text-center max-w-3xl mx-auto">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <CheckCircle className="w-12 h-12 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold mb-4">Career Vault Complete! 🎉</h2>
+          <p className="text-lg text-muted-foreground mb-6">
+            Your career intelligence system is live and ready to deploy across all 5 dimensions
+          </p>
+
+          {/* Vault Strength Preview */}
+          <div className="grid grid-cols-3 gap-4 mb-8 p-6 bg-muted/50 rounded-lg">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-primary">{extractedData?.totalItems || 0}</p>
+              <p className="text-sm text-muted-foreground mt-1">Total Intelligence</p>
             </div>
-            <h2 className="text-2xl font-bold">Career Vault Complete!</h2>
-            <p className="text-muted-foreground">
-              All AI agents are now powered by your comprehensive career intelligence.
-            </p>
-            <div className="flex gap-3 justify-center pt-4">
-              <Button variant="outline" onClick={() => navigate('/command-center')}>
-                Go to Command Center
-              </Button>
-              <Button onClick={() => navigate('/career-vault')}>
-                View My Vault
-              </Button>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-secondary">{extractedData?.categories || 20}</p>
+              <p className="text-sm text-muted-foreground mt-1">Categories</p>
             </div>
-          </CardContent>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-accent">100%</p>
+              <p className="text-sm text-muted-foreground mt-1">Complete</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={() => navigate('/career-vault')} className="gap-2">
+              <Sparkles className="h-5 w-5" />
+              Go to Vault Control Panel
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => navigate('/command-center')}>
+              Command Center
+            </Button>
+          </div>
         </Card>
       )}
     </div>

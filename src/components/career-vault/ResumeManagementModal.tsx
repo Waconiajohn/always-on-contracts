@@ -98,9 +98,9 @@ export const ResumeManagementModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Resume Management</DialogTitle>
+          <DialogTitle>Document Management</DialogTitle>
           <DialogDescription>
-            Add or replace your resume to update your Career Vault
+            Upload a new resume, add supplementary documents, or replace existing content to enhance your Career Vault intelligence
           </DialogDescription>
         </DialogHeader>
 
@@ -112,10 +112,11 @@ export const ResumeManagementModal = ({
                   <Upload className="h-6 w-6 text-destructive" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-1">Replace Resume</h3>
+                  <h3 className="font-semibold text-lg mb-1">Replace Primary Resume</h3>
                   <p className="text-sm text-muted-foreground">
-                    Clear existing data and start fresh with a new resume. This will reset your interview progress.
+                    Clear existing data and start fresh. Use this when your career has significantly changed.
                   </p>
+                  <p className="text-xs text-destructive mt-2">⚠️ This will reset your vault and interview progress</p>
                 </div>
               </div>
             </Card>
@@ -126,22 +127,23 @@ export const ResumeManagementModal = ({
                   <Plus className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-1">Add Resume</h3>
+                  <h3 className="font-semibold text-lg mb-1">Add Supplementary Document</h3>
                   <p className="text-sm text-muted-foreground">
-                    Enhance your vault with additional experience. Keeps existing intelligence and adds new milestones.
+                    Upload another version, project list, or related document. We'll extract additional intelligence and merge it with your existing vault.
                   </p>
+                  <p className="text-xs text-primary mt-2">✓ Keeps all existing intelligence</p>
                 </div>
               </div>
             </Card>
           </div>
         ) : (
           <div className="space-y-4">
-            <Alert>
+            <Alert variant={selectedAction === 'replace' ? 'destructive' : 'default'}>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 {selectedAction === 'replace' 
-                  ? 'Warning: This will delete all existing milestones and interview responses.'
-                  : 'This will add new job milestones to your existing vault.'}
+                  ? 'Warning: This will delete all existing milestones and interview responses. Only use this if you want to completely restart.'
+                  : 'This will run auto-populate analysis on your new document and add any new intelligence to your vault. Your existing intelligence will be preserved.'}
               </AlertDescription>
             </Alert>
 
