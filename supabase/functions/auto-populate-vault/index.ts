@@ -145,7 +145,7 @@ Extract across these 20 intelligence categories (MUST extract from ALL applicabl
     - Format: { preferenceArea: "Decision Making", preferenceDescription: "Data-driven but decisive", examples: "Uses analytics but doesn't get paralyzed", idealEnvironment: "fast-paced, high-autonomy", collaborationStyle: "strategic input, empowered execution" }
 
 19. **values**: Core principles, ethical standards
-    - Format: { valueName: "Integrity", manifestation: "Turned down $2M contract due to ethical concerns", importanceLevel: "non-negotiable|high|core", careerDecisionsInfluenced: "Left BigCo when asked to compromise on...", consistency: "evident throughout career" }
+    - Format: { valueName: "Integrity", manifestation: "Turned down $2M contract due to ethical concerns", importanceLevel: "core|important|nice_to_have", careerDecisionsInfluenced: "Left BigCo when asked to compromise on...", consistency: "evident throughout career" }
 
 20. **behavioralIndicators**: Decision-making patterns, responses
     - Format: { indicatorType: "crisis_response|learning_style|stress_management|innovation_approach", specificBehavior: "In crisis, assembles tiger team and empowers rapid decision-making", context: "3 turnarounds", outcomePattern: "95% success rate in crisis situations" }
@@ -332,7 +332,10 @@ Return VALID JSON only with this structure:
                     properties: {
                       valueName: { type: "string" },
                       manifestation: { type: "string" },
-                      importanceLevel: { type: "string" }
+                      importanceLevel: { 
+                        type: "string",
+                        enum: ["core", "important", "nice_to_have"]
+                      }
                     },
                     required: ["valueName"]
                   }
@@ -547,6 +550,21 @@ Return VALID JSON only with this structure:
     // 19. Values
     if (intelligence.values?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.values.length} core values`);
+      
+      // Map AI values to database constraints
+      const mapImportanceLevel = (level: string): string => {
+        const mapping: Record<string, string> = {
+          'non-negotiable': 'core',
+          'high': 'important',
+          'core': 'core',
+          'important': 'important',
+          'nice_to_have': 'nice_to_have',
+          'medium': 'important',
+          'low': 'nice_to_have'
+        };
+        return mapping[level?.toLowerCase()] || 'important';
+      };
+      
       for (const value of intelligence.values) {
         insertPromises.push(
           supabase.from('vault_values_motivations').insert({
@@ -554,7 +572,7 @@ Return VALID JSON only with this structure:
             user_id: user.id,
             value_name: value.valueName,
             manifestation: value.manifestation || '',
-            importance_level: value.importanceLevel || 'high',
+            importance_level: mapImportanceLevel(value.importanceLevel),
             career_decisions_influenced: value.careerDecisionsInfluenced || null
           }).then(() => { totalInserted++; })
         );
