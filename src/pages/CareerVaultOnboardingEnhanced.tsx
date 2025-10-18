@@ -212,10 +212,6 @@ const CareerVaultOnboardingEnhanced = () => {
       title: 'Career Vault Complete!',
       description: 'Your vault is ready to power all AI agents'
     });
-
-    setTimeout(() => {
-      navigate('/career-vault');
-    }, 2000);
   };
 
   return (
