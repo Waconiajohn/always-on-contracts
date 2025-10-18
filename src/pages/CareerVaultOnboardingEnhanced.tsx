@@ -194,14 +194,19 @@ const CareerVaultOnboardingEnhanced = () => {
   };
 
   const handleAutoPopulateComplete = (data: any) => {
+    console.log('[ONBOARDING] Auto-populate complete! Received data:', data);
+    console.log('[ONBOARDING] Extracted data:', data.extractedData);
+    
     if (data.useManualInterview) {
-      // Fallback to old interview method
-      navigate('/career-vault/onboarding'); // Use old onboarding
+      console.log('[ONBOARDING] Falling back to manual interview');
+      navigate('/career-vault/onboarding');
       return;
     }
 
     // Extract the actual intelligence data from the response
-    setExtractedData(data.extractedData || data);
+    const extractedDataToUse = data.extractedData || data;
+    console.log('[ONBOARDING] Setting extracted data for review:', extractedDataToUse);
+    setExtractedData(extractedDataToUse);
     setCurrentStep('review');
   };
 

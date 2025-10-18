@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, Award, Trophy } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Target, Award, Trophy, Info } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 interface VaultStats {
@@ -310,7 +311,8 @@ const VaultDashboardContent = () => {
     );
   }
 
-  if (!stats) {
+  // Only show empty state if vault doesn't exist at all
+  if (!vaultId || !stats) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
         <Card className="p-8 text-center max-w-2xl mx-auto">
@@ -436,6 +438,17 @@ const VaultDashboardContent = () => {
         vaultId={vaultId}
         onResumeUploaded={handleResumeUploaded}
       />
+
+      {/* Empty Vault Banner */}
+      {totalIntelligenceItems === 0 && (
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Your vault is empty</AlertTitle>
+          <AlertDescription>
+            Upload a resume or continue the interview to populate your vault with career intelligence.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Quick Stats Cards */}
       <VaultQuickStats

@@ -60,8 +60,8 @@ export const AutoPopulateStep = ({
 
       // Call the auto-populate function
       const { data, error } = await supabase.functions.invoke('auto-populate-vault', {
-        body: {
-          vaultId,
+        body: { 
+          vaultId, 
           resumeText,
           targetRoles,
           targetIndustries
@@ -70,6 +70,8 @@ export const AutoPopulateStep = ({
 
       clearInterval(progressInterval);
 
+      console.log('[AUTO-POPULATE] Full response:', { data, error });
+
       if (error) {
         throw error;
       }
@@ -77,6 +79,12 @@ export const AutoPopulateStep = ({
       if (!data.success) {
         throw new Error(data.error || 'Auto-population failed');
       }
+
+      console.log('[AUTO-POPULATE] Success! Extracted data:', {
+        totalExtracted: data.totalExtracted,
+        categories: data.categories,
+        extractedData: data.extractedData
+      });
 
       setProgress(100);
       setExtractedData(data);
