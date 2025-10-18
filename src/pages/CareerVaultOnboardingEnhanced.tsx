@@ -200,7 +200,8 @@ const CareerVaultOnboardingEnhanced = () => {
       return;
     }
 
-    setExtractedData(data);
+    // Extract the actual intelligence data from the response
+    setExtractedData(data.extractedData || data);
     setCurrentStep('review');
   };
 
