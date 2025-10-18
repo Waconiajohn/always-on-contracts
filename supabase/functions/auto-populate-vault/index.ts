@@ -194,7 +194,7 @@ Return VALID JSON only with this structure:
   }
 }`;
 
-    console.log('[AUTO-POPULATE-VAULT] Calling Claude Sonnet 4 for deep extraction...');
+    console.log('[AUTO-POPULATE-VAULT] Calling Lovable AI for deep extraction...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -203,13 +203,170 @@ Return VALID JSON only with this structure:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        response_format: { type: "json_object" },
-        max_tokens: 16000, // Allow comprehensive extraction
+        tools: [{
+          type: "function",
+          function: {
+            name: "extract_vault_intelligence",
+            description: "Extract comprehensive career intelligence across all 20 categories",
+            parameters: {
+              type: "object",
+              properties: {
+                powerPhrases: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      phrase: { type: "string" },
+                      context: { type: "string" },
+                      category: { type: "string" },
+                      metrics: { type: "object" },
+                      keywords: { type: "array", items: { type: "string" } }
+                    },
+                    required: ["phrase", "category"]
+                  }
+                },
+                transferableSkills: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      skill: { type: "string" },
+                      level: { type: "string" },
+                      evidence: { type: "string" },
+                      equivalentSkills: { type: "array", items: { type: "string" } },
+                      yearsUsed: { type: "number" }
+                    },
+                    required: ["skill", "level"]
+                  }
+                },
+                hiddenCompetencies: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      competency: { type: "string" },
+                      description: { type: "string" },
+                      evidence: { type: "array", items: { type: "string" } },
+                      marketValue: { type: "string" },
+                      certificationEquivalent: { type: "string" }
+                    },
+                    required: ["competency", "description"]
+                  }
+                },
+                softSkills: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      skillName: { type: "string" },
+                      evidence: { type: "string" },
+                      context: { type: "string" },
+                      proficiencyLevel: { type: "string" },
+                      impact: { type: "string" }
+                    },
+                    required: ["skillName"]
+                  }
+                },
+                leadershipPhilosophy: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      philosophyStatement: { type: "string" },
+                      leadershipStyle: { type: "string" },
+                      realWorldApplication: { type: "string" },
+                      corePrinciples: { type: "array", items: { type: "string" } }
+                    },
+                    required: ["philosophyStatement"]
+                  }
+                },
+                executivePresence: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      presenceIndicator: { type: "string" },
+                      evidence: { type: "string" },
+                      situationalExample: { type: "string" },
+                      brandAlignment: { type: "string" },
+                      perceivedImpact: { type: "string" }
+                    },
+                    required: ["presenceIndicator"]
+                  }
+                },
+                personalityTraits: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      traitName: { type: "string" },
+                      behavioralEvidence: { type: "string" },
+                      workContext: { type: "string" },
+                      strengthOrGrowth: { type: "string" }
+                    },
+                    required: ["traitName"]
+                  }
+                },
+                workStyle: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      preferenceArea: { type: "string" },
+                      preferenceDescription: { type: "string" },
+                      examples: { type: "string" },
+                      idealEnvironment: { type: "string" }
+                    },
+                    required: ["preferenceArea"]
+                  }
+                },
+                values: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      valueName: { type: "string" },
+                      manifestation: { type: "string" },
+                      importanceLevel: { type: "string" }
+                    },
+                    required: ["valueName"]
+                  }
+                },
+                behavioralIndicators: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      indicatorType: { type: "string" },
+                      specificBehavior: { type: "string" },
+                      context: { type: "string" }
+                    },
+                    required: ["indicatorType", "specificBehavior"]
+                  }
+                },
+                summary: {
+                  type: "object",
+                  properties: {
+                    totalItemsExtracted: { type: "number" },
+                    strengthAreas: { type: "array", items: { type: "string" } },
+                    uniqueDifferentiators: { type: "array", items: { type: "string" } },
+                    targetFit: { type: "string" },
+                    confidence: { type: "string" },
+                    completenessScore: { type: "number" }
+                  },
+                  required: ["totalItemsExtracted", "completenessScore"]
+                }
+              },
+              required: ["powerPhrases", "transferableSkills", "hiddenCompetencies", "softSkills", "summary"]
+            }
+          }
+        }],
+        tool_choice: { type: "function", function: { name: "extract_vault_intelligence" } },
       }),
     });
 
@@ -223,11 +380,15 @@ Return VALID JSON only with this structure:
     let intelligence;
 
     try {
-      const content = aiData.choices[0].message.content;
-      intelligence = typeof content === 'string' ? JSON.parse(content) : content;
+      const toolCall = aiData.choices[0].message.tool_calls?.[0];
+      if (!toolCall) {
+        throw new Error('No tool call in response');
+      }
+      const args = toolCall.function.arguments;
+      intelligence = typeof args === 'string' ? JSON.parse(args) : args;
     } catch (e) {
       console.error('[AUTO-POPULATE-VAULT] Failed to parse AI response:', e);
-      throw new Error('AI returned invalid JSON. Please try again.');
+      throw new Error('AI returned invalid response. Please try again.');
     }
 
     console.log('[AUTO-POPULATE-VAULT] Extraction complete!');
