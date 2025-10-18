@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Mic, Square, Play, Pause, Trash2, Send, Loader2 } from 'lucide-react';
+import { Mic, Square, Trash2, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 

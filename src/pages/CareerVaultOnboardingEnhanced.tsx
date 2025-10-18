@@ -32,12 +32,12 @@ const CareerVaultOnboardingEnhanced = () => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [userId, setUserId] = useState<string>('');
   const [vaultId, setVaultId] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState<string>('');
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
   const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
   const [extractedData, setExtractedData] = useState<any>(null);
+  const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
 
   const steps = [
     { id: 'upload', label: 'Upload Resume', icon: Upload },
@@ -58,12 +58,10 @@ const CareerVaultOnboardingEnhanced = () => {
         return;
       }
 
-      setUserId(user.id);
-
       // Check if vault is already complete
       const { data: existingVault } = await supabase
         .from('career_vault')
-        .select('id, interview_completion_percentage, auto_populated')
+        .select('id, interview_completion_percentage')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -144,6 +142,7 @@ const CareerVaultOnboardingEnhanced = () => {
       if (vaultData) {
         setVaultId(vaultData.id);
         setResumeText(processData.extractedText);
+        setResumeAnalysis(processData.analysis || {});
       }
 
       toast({
@@ -230,22 +229,17 @@ const CareerVaultOnboardingEnhanced = () => {
         </div>
         <Progress value={progress} className="h-2" />
         <div className="flex justify-between">
-          {steps.map((step, idx) => {
-            const isCompleted = idx < currentStepIndex;
-            const isCurrent = idx === currentStepIndex;
-
-            return (
-              <div
-                key={step.id}
-                className={`flex items-center gap-2 transition-all ${
-                  idx <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                <step.icon className="h-4 w-4" />
-                <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
-              </div>
-            );
-          })}
+          {steps.map((step, idx) => (
+            <div
+              key={step.id}
+              className={`flex items-center gap-2 transition-all ${
+                idx <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <step.icon className="h-4 w-4" />
+              <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -261,7 +255,7 @@ const CareerVaultOnboardingEnhanced = () => {
 
       {currentStep === 'goals' && (
         <CareerGoalsStep
-          resumeAnalysis={null}
+          resumeAnalysis={resumeAnalysis}
           onComplete={handleGoalsComplete}
         />
       )}
