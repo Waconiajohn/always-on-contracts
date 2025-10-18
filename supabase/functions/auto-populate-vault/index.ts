@@ -550,21 +550,6 @@ Return VALID JSON only with this structure:
     // 19. Values
     if (intelligence.values?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.values.length} core values`);
-      
-      // Map AI values to database constraints
-      const mapImportanceLevel = (level: string): string => {
-        const mapping: Record<string, string> = {
-          'non-negotiable': 'core',
-          'high': 'important',
-          'core': 'core',
-          'important': 'important',
-          'nice_to_have': 'nice_to_have',
-          'medium': 'important',
-          'low': 'nice_to_have'
-        };
-        return mapping[level?.toLowerCase()] || 'important';
-      };
-      
       for (const value of intelligence.values) {
         insertPromises.push(
           supabase.from('vault_values_motivations').insert({
@@ -572,7 +557,7 @@ Return VALID JSON only with this structure:
             user_id: user.id,
             value_name: value.valueName,
             manifestation: value.manifestation || '',
-            importance_level: mapImportanceLevel(value.importanceLevel),
+            importance_level: value.importanceLevel || 'important',
             career_decisions_influenced: value.careerDecisionsInfluenced || null
           }).then(() => { totalInserted++; })
         );
