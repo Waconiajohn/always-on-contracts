@@ -635,6 +635,7 @@ Return VALID JSON only with this structure:
         ),
         summary: intelligence.summary,
         vaultCompletion: 85,
+        extractedData: intelligence,
         nextSteps: failureCount === 0
           ? "Vault auto-populated successfully! Review and validate the extracted intelligence."
           : "Vault partially populated. Some items failed - you can fill gaps with the interview or voice notes."
