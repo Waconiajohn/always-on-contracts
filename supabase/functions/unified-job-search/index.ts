@@ -154,7 +154,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const enabledSources = sources || ['google_jobs', 'company_boards', 'usajobs', 'adzuna'];
+    const enabledSources = sources || ['google_jobs', 'company_boards', 'usajobs', 'adzuna', 'jsearch'];
     console.log('[UNIFIED-SEARCH] Enabled sources after default:', JSON.stringify(enabledSources));
     const allJobs: JobResult[] = [];
     const sourceStats: Record<string, { count: number; status: string }> = {};
@@ -231,6 +231,23 @@ serve(async (req) => {
           .catch(error => {
             console.error('[Adzuna] ❌ ERROR:', error);
             sourceStats.adzuna = { count: 0, status: `error: ${error?.message || 'unknown'}` };
+            return [];
+          })
+      );
+    }
+
+    // JSearch - RapidAPI job aggregator (LinkedIn, Indeed, Glassdoor, ZipRecruiter, Dice)
+    if (enabledSources.includes('jsearch')) {
+      console.log('[UNIFIED-SEARCH] ✅ jsearch IS INCLUDED - Starting JSearch (RapidAPI) search');
+      searchPromises.push(
+        searchJSearch(query, location, searchFilters)
+          .then(jobs => {
+            sourceStats.jsearch = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('[JSearch] ❌ ERROR:', error);
+            sourceStats.jsearch = { count: 0, status: `error: ${error?.message || 'unknown'}` };
             return [];
           })
       );
@@ -1497,6 +1514,178 @@ async function searchUSAJobs(query: string, location: string, filters: SearchFil
 
   } catch (error) {
     console.error('[USAJobs] Search error:', error instanceof Error ? error.message : String(error));
+    return jobs;
+  }
+}
+
+async function searchJSearch(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[JSearch] Starting search for query: "${query}", location: "${location}"`);
+  const jobs: JobResult[] = [];
+
+  try {
+    // JSearch API (RapidAPI) - Aggregates LinkedIn, Indeed, Glassdoor, ZipRecruiter, Dice
+    // Get API key from: https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
+    // SECURITY: Store in Supabase secrets, never hardcode
+    const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY') || '';
+    const RAPIDAPI_HOST = 'jsearch.p.rapidapi.com';
+
+    if (!RAPIDAPI_KEY) {
+      console.log('[JSearch] Missing RapidAPI key - skipping JSearch');
+      console.log('[JSearch] Set RAPIDAPI_KEY in Supabase secrets');
+      return jobs;
+    }
+
+    // JSearch API endpoint
+    const baseUrl = 'https://jsearch.p.rapidapi.com/search';
+
+    const params = new URLSearchParams();
+    params.set('query', `${query} ${location || ''}`.trim());
+    params.set('page', '1');
+    params.set('num_pages', '1'); // Start with 1 page to respect rate limits
+
+    // Date filtering - JSearch uses date_posted parameter
+    if (filters.datePosted !== 'any') {
+      // JSearch accepts: all, today, 3days, week, month
+      const dateMap: Record<string, string> = {
+        '24h': 'today',
+        '3d': '3days',
+        '7d': 'week',
+        '14d': 'week',
+        '30d': 'month'
+      };
+      const jsearchDate = dateMap[filters.datePosted];
+      if (jsearchDate) {
+        params.set('date_posted', jsearchDate);
+      }
+    }
+
+    // Remote jobs filter
+    if (filters.remoteType === 'remote') {
+      params.set('remote_jobs_only', 'true');
+    }
+
+    // Employment type filter
+    if (filters.employmentType && filters.employmentType !== 'any') {
+      // JSearch accepts: FULLTIME, CONTRACTOR, PARTTIME, INTERN
+      const typeMap: Record<string, string> = {
+        'full-time': 'FULLTIME',
+        'contract': 'CONTRACTOR',
+        'freelance': 'CONTRACTOR'
+      };
+      const jsearchType = typeMap[filters.employmentType];
+      if (jsearchType) {
+        params.set('employment_types', jsearchType);
+      }
+    }
+
+    const url = `${baseUrl}?${params.toString()}`;
+    console.log(`[JSearch] Fetching from RapidAPI`);
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15000), // 15s timeout for RapidAPI
+      headers: {
+        'X-RapidAPI-Key': RAPIDAPI_KEY,
+        'X-RapidAPI-Host': RAPIDAPI_HOST
+      }
+    });
+
+    if (!response.ok) {
+      console.log(`[JSearch] API returned status ${response.status}`);
+      const errorText = await response.text();
+      console.log(`[JSearch] Error response: ${errorText.substring(0, 200)}`);
+
+      // Check rate limit headers
+      const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+      if (rateLimitRemaining) {
+        console.log(`[JSearch] Rate limit remaining: ${rateLimitRemaining}`);
+      }
+
+      return jobs;
+    }
+
+    // Check rate limits even on success
+    const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+    if (rateLimitRemaining) {
+      console.log(`[JSearch] Rate limit remaining: ${rateLimitRemaining}`);
+      if (parseInt(rateLimitRemaining) < 10) {
+        console.warn(`[JSearch] ⚠️ Low rate limit: only ${rateLimitRemaining} requests remaining`);
+      }
+    }
+
+    const data = await response.json();
+    console.log(`[JSearch] Response received:`, {
+      status: data.status,
+      totalJobs: data.data?.length || 0
+    });
+
+    const results = data.data || [];
+
+    for (const job of results) {
+      // Parse employment type
+      const employmentTypes = job.job_employment_type ? [job.job_employment_type] : [];
+      const employmentType = employmentTypes.length > 0
+        ? employmentTypes[0].toLowerCase().replace('fulltime', 'full-time')
+        : null;
+
+      // Parse remote type
+      let remoteType: string | null = null;
+      if (job.job_is_remote) {
+        remoteType = 'remote';
+      } else {
+        const description = (job.job_description || '').toLowerCase();
+        if (description.includes('remote')) {
+          remoteType = 'remote';
+        } else if (description.includes('hybrid')) {
+          remoteType = 'hybrid';
+        } else {
+          remoteType = 'onsite';
+        }
+      }
+
+      // Parse salary
+      let salaryMin = null;
+      let salaryMax = null;
+      if (job.job_min_salary && job.job_max_salary) {
+        salaryMin = Math.round(job.job_min_salary);
+        salaryMax = Math.round(job.job_max_salary);
+      }
+
+      // Extract required skills from highlights
+      const requiredSkills: string[] = [];
+      if (job.job_highlights?.Qualifications) {
+        job.job_highlights.Qualifications.forEach((qual: string) => {
+          // Simple skill extraction - look for common patterns
+          const skillMatch = qual.match(/\b(?:experience with|knowledge of|proficiency in)\s+([^.,;]+)/i);
+          if (skillMatch) {
+            requiredSkills.push(skillMatch[1].trim());
+          }
+        });
+      }
+
+      jobs.push({
+        id: `jsearch_${job.job_id}`,
+        title: job.job_title || 'Untitled Position',
+        company: job.employer_name || 'Company Not Listed',
+        location: job.job_city && job.job_state
+          ? `${job.job_city}, ${job.job_state}`
+          : job.job_country || location || 'United States',
+        salary_min: salaryMin,
+        salary_max: salaryMax,
+        description: job.job_description || null,
+        posted_date: job.job_posted_at_datetime_utc || new Date().toISOString(),
+        apply_url: job.job_apply_link || job.job_google_link || null,
+        source: `JSearch (${job.job_publisher || 'Multiple Sources'})`,
+        remote_type: remoteType,
+        employment_type: employmentType,
+        required_skills: requiredSkills.length > 0 ? requiredSkills : null
+      });
+    }
+
+    console.log(`[JSearch] Search complete: ${jobs.length} jobs found`);
+    return jobs;
+
+  } catch (error) {
+    console.error('[JSearch] Search error:', error instanceof Error ? error.message : String(error));
     return jobs;
   }
 }
