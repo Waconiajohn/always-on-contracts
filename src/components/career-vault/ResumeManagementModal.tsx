@@ -31,21 +31,28 @@ export const ResumeManagementModal = ({
     setUploading(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       // Read file as text
       const text = await file.text();
 
       if (selectedAction === 'replace') {
-        // Delete existing milestones
-        await supabase
-          .from('vault_resume_milestones')
-          .delete()
-          .eq('vault_id', vaultId);
-
-        // Delete existing responses
-        await supabase
-          .from('vault_interview_responses')
-          .delete()
-          .eq('vault_id', vaultId);
+        // Delete all existing vault data
+        await Promise.all([
+          supabase.from('vault_power_phrases').delete().eq('vault_id', vaultId),
+          supabase.from('vault_transferable_skills').delete().eq('vault_id', vaultId),
+          supabase.from('vault_hidden_competencies').delete().eq('vault_id', vaultId),
+          supabase.from('vault_soft_skills').delete().eq('vault_id', vaultId),
+          supabase.from('vault_leadership_philosophy').delete().eq('vault_id', vaultId),
+          supabase.from('vault_executive_presence').delete().eq('vault_id', vaultId),
+          supabase.from('vault_personality_traits').delete().eq('vault_id', vaultId),
+          supabase.from('vault_work_style').delete().eq('vault_id', vaultId),
+          supabase.from('vault_values_motivations').delete().eq('vault_id', vaultId),
+          supabase.from('vault_behavioral_indicators').delete().eq('vault_id', vaultId),
+          supabase.from('vault_interview_responses').delete().eq('vault_id', vaultId),
+          supabase.from('vault_resume_milestones').delete().eq('vault_id', vaultId),
+        ]);
 
         // Reset vault progress
         await supabase
@@ -54,29 +61,74 @@ export const ResumeManagementModal = ({
             interview_completion_percentage: 0,
             total_power_phrases: 0,
             total_transferable_skills: 0,
-            total_hidden_competencies: 0
+            total_hidden_competencies: 0,
+            total_soft_skills: 0,
+            total_leadership_philosophy: 0,
+            total_executive_presence: 0,
+            total_personality_traits: 0,
+            total_work_style: 0,
+            total_values: 0,
+            total_behavioral_indicators: 0,
+            overall_strength_score: 0,
+            resume_raw_text: text,
+            auto_populated: false
           })
           .eq('id', vaultId);
 
         toast({
           title: 'Old data cleared',
-          description: 'Parsing new resume...',
+          description: 'Running AI analysis on new resume...',
+        });
+      } else {
+        // For 'add' action, append to existing resume text
+        const { data: existingVault } = await supabase
+          .from('career_vault')
+          .select('resume_raw_text')
+          .eq('id', vaultId)
+          .single();
+
+        const combinedText = existingVault?.resume_raw_text
+          ? `${existingVault.resume_raw_text}\n\n--- Additional Document ---\n\n${text}`
+          : text;
+
+        await supabase
+          .from('career_vault')
+          .update({ resume_raw_text: combinedText })
+          .eq('id', vaultId);
+
+        toast({
+          title: 'Document added',
+          description: 'Running AI analysis to extract intelligence...',
         });
       }
 
-      // Parse new resume
-      const { data, error } = await supabase.functions.invoke('parse-resume-milestones', {
+      // Get target roles and industries from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_roles, target_industries')
+        .eq('user_id', user.id)
+        .single();
+
+      // Run auto-populate AI analysis
+      const { data: autoPopData, error: autoPopError } = await supabase.functions.invoke('auto-populate-vault', {
         body: {
+          vaultId,
           resumeText: text,
-          vaultId: vaultId
+          targetRoles: profile?.target_roles || [],
+          targetIndustries: profile?.target_industries || []
         }
       });
 
-      if (error) throw error;
+      if (autoPopError) throw autoPopError;
 
+      if (!autoPopData.success) {
+        throw new Error(autoPopData.error || 'Auto-population failed');
+      }
+
+      const action = selectedAction === 'replace' ? 'replaced' : 'added';
       toast({
-        title: 'Resume uploaded successfully',
-        description: `${data.milestones.length} job milestones extracted. Ready to continue interview.`,
+        title: `Document ${action} successfully!`,
+        description: `AI extracted ${autoPopData.totalExtracted} intelligence items across ${autoPopData.categories?.length || 0} categories`,
       });
 
       onResumeUploaded();

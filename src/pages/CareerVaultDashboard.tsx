@@ -118,16 +118,30 @@ interface BehavioralIndicator {
 
 import { EnhancementQueue } from '@/components/EnhancementQueue';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Upload, PlayCircle, RotateCcw, Plus } from 'lucide-react';
+import { Rocket, Upload, PlayCircle, RotateCcw, Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
 import { VaultQuickStats } from '@/components/career-vault/VaultQuickStats';
 import { RecentActivityFeed } from '@/components/career-vault/RecentActivityFeed';
 import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
+  const [restartDialogOpen, setRestartDialogOpen] = useState(false);
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [vaultId, setVaultId] = useState<string>("");
   const [vault, setVault] = useState<any>(null);
   const [stats, setStats] = useState<VaultStats | null>(null);
@@ -341,6 +355,129 @@ const VaultDashboardContent = () => {
     window.location.reload();
   };
 
+  const handleReanalyze = async () => {
+    if (!vaultId || !vault?.resume_raw_text) {
+      toast({
+        title: 'No Resume Data',
+        description: 'Please upload a resume first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsReanalyzing(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get target roles and industries
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_roles, target_industries')
+        .eq('user_id', user.id)
+        .single();
+
+      toast({
+        title: 'Re-Analyzing Vault',
+        description: 'AI is discovering additional intelligence from your documents...'
+      });
+
+      // Run auto-populate again
+      const { data: autoPopData, error } = await supabase.functions.invoke('auto-populate-vault', {
+        body: {
+          vaultId,
+          resumeText: vault.resume_raw_text,
+          targetRoles: profile?.target_roles || [],
+          targetIndustries: profile?.target_industries || []
+        }
+      });
+
+      if (error) throw error;
+
+      if (!autoPopData.success) {
+        throw new Error(autoPopData.error || 'Re-analysis failed');
+      }
+
+      toast({
+        title: 'Re-Analysis Complete!',
+        description: `Added ${autoPopData.totalExtracted} intelligence items across ${autoPopData.categories?.length || 0} categories`,
+      });
+
+      // Reload the page to show new data
+      window.location.reload();
+    } catch (error) {
+      console.error('Re-analyze error:', error);
+      toast({
+        title: 'Re-Analysis Failed',
+        description: error instanceof Error ? error.message : 'Please try again',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
+
+  const handleRestartInterview = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !vaultId) return;
+
+      // Delete all vault intelligence data
+      await Promise.all([
+        supabase.from('vault_power_phrases').delete().eq('user_id', user.id),
+        supabase.from('vault_transferable_skills').delete().eq('user_id', user.id),
+        supabase.from('vault_hidden_competencies').delete().eq('user_id', user.id),
+        supabase.from('vault_soft_skills').delete().eq('user_id', user.id),
+        supabase.from('vault_leadership_philosophy').delete().eq('user_id', user.id),
+        supabase.from('vault_executive_presence').delete().eq('user_id', user.id),
+        supabase.from('vault_personality_traits').delete().eq('user_id', user.id),
+        supabase.from('vault_work_style').delete().eq('user_id', user.id),
+        supabase.from('vault_values_motivations').delete().eq('user_id', user.id),
+        supabase.from('vault_behavioral_indicators').delete().eq('user_id', user.id),
+        supabase.from('vault_interview_responses').delete().eq('user_id', user.id),
+        supabase.from('vault_resume_milestones').delete().eq('user_id', user.id),
+        supabase.from('vault_confirmed_skills').delete().eq('user_id', user.id),
+      ]);
+
+      // Reset career vault counters
+      await supabase
+        .from('career_vault')
+        .update({
+          interview_completion_percentage: 0,
+          total_power_phrases: 0,
+          total_transferable_skills: 0,
+          total_hidden_competencies: 0,
+          total_soft_skills: 0,
+          total_leadership_philosophy: 0,
+          total_executive_presence: 0,
+          total_personality_traits: 0,
+          total_work_style: 0,
+          total_values: 0,
+          total_behavioral_indicators: 0,
+          overall_strength_score: 0,
+          auto_populated: false,
+          resume_raw_text: null
+        })
+        .eq('user_id', user.id);
+
+      toast({
+        title: 'Vault Cleared',
+        description: 'All data deleted. Starting fresh...',
+      });
+
+      // Navigate to onboarding
+      navigate('/career-vault/onboarding');
+    } catch (error) {
+      console.error('Error clearing vault:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to clear vault data. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
@@ -425,23 +562,33 @@ const VaultDashboardContent = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <Button 
-              variant="outline" 
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <Button
+              variant="outline"
               className="justify-start"
               onClick={() => setResumeModalOpen(true)}
             >
               <Upload className="h-4 w-4 mr-2" />
               Manage Resume
             </Button>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className="justify-start"
               onClick={() => setResumeModalOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Document
+            </Button>
+
+            <Button
+              variant="outline"
+              className="justify-start"
+              onClick={handleReanalyze}
+              disabled={isReanalyzing || !vault?.resume_raw_text}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {isReanalyzing ? 'Re-Analyzing...' : 'Re-Analyze All'}
             </Button>
             
             {stats.interview_completion_percentage < 100 ? (
@@ -453,13 +600,13 @@ const VaultDashboardContent = () => {
                 Continue Interview
               </Button>
             ) : (
-              <Button 
-                variant="outline"
+              <Button
+                variant="destructive"
                 className="justify-start"
-                onClick={() => navigate('/career-vault/onboarding')}
+                onClick={() => setRestartDialogOpen(true)}
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Restart Interview
+                Delete All & Start Over
               </Button>
             )}
             
@@ -481,6 +628,34 @@ const VaultDashboardContent = () => {
         vaultId={vaultId}
         onResumeUploaded={handleResumeUploaded}
       />
+
+      {/* Restart Interview Confirmation Dialog */}
+      <AlertDialog open={restartDialogOpen} onOpenChange={setRestartDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Vault Data & Start Over?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-medium text-destructive">⚠️ This will permanently delete:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>All {totalIntelligenceItems} intelligence items</li>
+                <li>Your completed interview ({stats?.interview_completion_percentage}%)</li>
+                <li>All power phrases, skills, and competencies</li>
+                <li>All uploaded resume data</li>
+              </ul>
+              <p className="pt-2">This cannot be undone. You'll start completely fresh.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRestartInterview}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Delete Everything & Restart
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Empty Vault Banner */}
       {totalIntelligenceItems === 0 && (

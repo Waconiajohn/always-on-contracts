@@ -33,6 +33,8 @@ export const AutoPopulateStep = ({
   const [progress, setProgress] = useState(0);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [deepAnalysis, setDeepAnalysis] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState('');
 
   useEffect(() => {
     // Auto-start population after a brief delay
@@ -48,10 +50,38 @@ export const AutoPopulateStep = ({
     setProgress(10);
 
     try {
-      // Simulate progress updates
+      const messages = [
+        '🧠 AI is analyzing your achievements...',
+        '💡 Discovering hidden competencies...',
+        '✨ Extracting leadership insights...',
+        '🎯 Identifying transferable skills...',
+        '🔍 Finding power phrases with metrics...'
+      ];
+
+      let messageIndex = 0;
+
+      // Progress updates - stop at 85%
       const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 90));
-      }, 800);
+        setProgress(prev => {
+          const next = Math.min(prev + 5, 85);
+          if (next >= 85) {
+            clearInterval(progressInterval);
+            // Switch to deep analysis mode
+            setDeepAnalysis(true);
+            setAnalysisMessage(messages[0]);
+
+            // Rotate messages during deep analysis
+            const messageInterval = setInterval(() => {
+              messageIndex = (messageIndex + 1) % messages.length;
+              setAnalysisMessage(messages[messageIndex]);
+            }, 4000);
+
+            // Store interval ID to clear later
+            (progressInterval as any).messageInterval = messageInterval;
+          }
+          return next;
+        });
+      }, 600);
 
       toast({
         title: 'AI Analysis Started',
@@ -60,8 +90,8 @@ export const AutoPopulateStep = ({
 
       // Call the auto-populate function
       const { data, error } = await supabase.functions.invoke('auto-populate-vault', {
-        body: { 
-          vaultId, 
+        body: {
+          vaultId,
           resumeText,
           targetRoles,
           targetIndustries
@@ -69,6 +99,10 @@ export const AutoPopulateStep = ({
       });
 
       clearInterval(progressInterval);
+      if ((progressInterval as any).messageInterval) {
+        clearInterval((progressInterval as any).messageInterval);
+      }
+      setDeepAnalysis(false);
 
       console.log('[AUTO-POPULATE] Full response:', { data, error });
 
@@ -133,13 +167,28 @@ export const AutoPopulateStep = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Progress</span>
-              <span className="text-muted-foreground">{progress}%</span>
+          {!deepAnalysis ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Progress</span>
+                <span className="text-muted-foreground">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
             </div>
-            <Progress value={progress} className="h-2" />
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="font-medium">AI Deep Analysis in Progress...</span>
+              </div>
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
+                <p className="text-sm font-medium text-primary animate-pulse">{analysisMessage}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Typically takes 30-60 seconds - AI is being thorough!
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
             <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
