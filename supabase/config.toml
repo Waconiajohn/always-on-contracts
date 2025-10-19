@@ -168,6 +168,9 @@ verify_jwt = true
 [functions.verify-resume-claims]
 verify_jwt = true
 
+[functions.analyze-ats-score]
+verify_jwt = true
+
 [functions.generate-company-research]
 verify_jwt = true
 

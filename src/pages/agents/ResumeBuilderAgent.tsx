@@ -17,6 +17,7 @@ import { exportFormats } from "@/lib/resumeExportUtils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { SmartVaultPanel } from "@/components/resume/SmartVaultPanel";
 import { VerificationResults } from "@/components/resume/VerificationResults";
+import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -37,6 +38,8 @@ const ResumeBuilderAgentContent = () => {
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [verifying, setVerifying] = useState(false);
+  const [atsScore, setAtsScore] = useState<any>(null);
+  const [analyzingATS, setAnalyzingATS] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -199,6 +202,36 @@ const ResumeBuilderAgentContent = () => {
     } catch (verifyError) {
       console.error('Error verifying resume:', verifyError);
       setVerifying(false);
+    }
+
+    // Analyze ATS score
+    setAnalyzingATS(true);
+    try {
+      const { data: atsData, error: atsError } = await supabase.functions.invoke('analyze-ats-score', {
+        body: {
+          resumeContent,
+          jobDescription
+        }
+      });
+
+      if (atsError) {
+        console.error('ATS analysis error:', atsError);
+        toast({
+          title: "ATS Analysis Warning",
+          description: "Resume generated but ATS analysis unavailable",
+          variant: "destructive"
+        });
+      } else if (atsData) {
+        setAtsScore(atsData);
+        toast({
+          title: "ATS Analysis Complete",
+          description: `Overall ATS compatibility: ${atsData.overallScore}%`
+        });
+      }
+    } catch (atsError) {
+      console.error('Error analyzing ATS score:', atsError);
+    } finally {
+      setAnalyzingATS(false);
     }
   };
 
@@ -492,6 +525,23 @@ const ResumeBuilderAgentContent = () => {
                       </div>
 
                        <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+
+                      {/* ATS Score Analysis */}
+                      {(atsScore || analyzingATS) && (
+                        <ATSScoreCard 
+                          scoreData={atsScore || {
+                            overallScore: 0,
+                            keywordMatch: 0,
+                            formatScore: 0,
+                            experienceMatch: 0,
+                            skillsMatch: 0,
+                            recommendations: [],
+                            strengths: [],
+                            warnings: []
+                          }}
+                          isLoading={analyzingATS}
+                        />
+                      )}
 
                       {/* Verification Results */}
                       <VerificationResults 
