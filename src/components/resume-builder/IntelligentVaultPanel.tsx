@@ -76,11 +76,6 @@ export const IntelligentVaultPanel = ({
     return <Lightbulb className="h-4 w-4 text-blue-500" />;
   };
 
-  const getMatchLabel = (score: number, differentiatorScore: number) => {
-    if (score >= 90) return "Perfect Match";
-    if (score >= 70 || differentiatorScore >= 80) return "Strong Match";
-    return "Consider";
-  };
 
   const getMatchColor = (score: number, differentiatorScore: number) => {
     if (score >= 90) return "bg-red-50 border-red-200";

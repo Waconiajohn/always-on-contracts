@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Plus, GripVertical, Trash2, Sparkles, Download, Eye, Edit3 } from "lucide-react";
+import { Plus, GripVertical, Trash2, Download, Eye, Edit3 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 

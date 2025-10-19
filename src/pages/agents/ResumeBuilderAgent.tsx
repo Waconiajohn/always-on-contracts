@@ -1,5 +1,5 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,19 @@ const ResumeBuilderV2Content = () => {
 
   // Resume builder state
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
-  const [resumeSections, setResumeSections] = useState([
+  const [resumeSections, setResumeSections] = useState<Array<{
+    id: string;
+    type: 'summary' | 'experience' | 'achievements' | 'leadership' | 'skills' | 'projects' | 'education';
+    title: string;
+    content: Array<{
+      id: string;
+      content: string;
+      vaultItemId?: string;
+      atsKeywords?: string[];
+      satisfiesRequirements?: string[];
+    }>;
+    order: number;
+  }>>([
     { id: 'summary', type: 'summary' as const, title: 'Professional Summary', content: [], order: 1 },
     { id: 'experience', type: 'experience' as const, title: 'Professional Experience', content: [], order: 2 },
     { id: 'achievements', type: 'achievements' as const, title: 'Key Achievements', content: [], order: 3 },
@@ -216,7 +228,7 @@ const ResumeBuilderV2Content = () => {
     });
   };
 
-  const handleEnhanceLanguage = (match: any) => {
+  const handleEnhanceLanguage = (_match: any) => {
     toast({
       title: "Enhanced language available",
       description: "Use the enhanced version optimized for this job"
