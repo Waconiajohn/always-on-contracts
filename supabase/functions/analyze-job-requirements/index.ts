@@ -69,8 +69,8 @@ serve(async (req) => {
 
     console.log('Analyzing job requirements for:', jobTitle);
 
-    // PHASE 1: Extract requirements from job description using Gemini
-    const geminiKey = Deno.env.get('GEMINI_API_KEY');
+    // PHASE 1: Extract requirements from job description using Lovable AI
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
 
     const jdAnalysisPrompt = `Analyze this job description and extract detailed requirements:
 
@@ -124,29 +124,24 @@ Return ONLY valid JSON with this structure:
       atsKeywords: { critical: [], important: [], bonus: [] }
     };
 
-    if (geminiKey) {
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: jdAnalysisPrompt }]
-            }],
-            generationConfig: {
-              temperature: 0.3,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 2048,
-            }
-          })
-        }
-      );
+    if (lovableKey) {
+      const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [{ role: 'user', content: jdAnalysisPrompt }],
+          temperature: 0.3,
+          max_tokens: 2048
+        })
+      });
 
-      if (geminiResponse.ok) {
-        const geminiData = await geminiResponse.json();
-        const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      if (lovableResponse.ok) {
+        const lovableData = await lovableResponse.json();
+        const textContent = lovableData.choices?.[0]?.message?.content || '{}';
         const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         jdAnalysis = JSON.parse(cleanedText);
       }
@@ -184,7 +179,7 @@ Return ONLY valid JSON:
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'llama-3.1-sonar-large-128k-online',
+            model: 'sonar',
             messages: [{
               role: 'user',
               content: industryPrompt
@@ -234,29 +229,24 @@ Return ONLY valid JSON:
     let differentiators: string[] = [];
     let gapAnalysis: any = { commonlyMissing: [], riskAreas: [] };
 
-    if (geminiKey) {
-      const benchmarkResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: benchmarkPrompt }]
-            }],
-            generationConfig: {
-              temperature: 0.4,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 2048,
-            }
-          })
-        }
-      );
+    if (lovableKey) {
+      const benchmarkResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [{ role: 'user', content: benchmarkPrompt }],
+          temperature: 0.4,
+          max_tokens: 2048
+        })
+      });
 
       if (benchmarkResponse.ok) {
         const benchmarkData = await benchmarkResponse.json();
-        const textContent = benchmarkData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        const textContent = benchmarkData.choices?.[0]?.message?.content || '{}';
         const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const parsed = JSON.parse(cleanedText);
         professionBenchmarks = parsed.professionBenchmarks || [];
