@@ -15,13 +15,14 @@ const corsHeaders = {
 interface SearchFilters {
   datePosted: '24h' | '3d' | '7d' | '14d' | '30d' | 'any';
   contractOnly: boolean;
-  remoteType?: 'remote' | 'hybrid' | 'onsite' | 'any';
+  remoteType?: 'remote' | 'hybrid' | 'onsite' | 'any' | 'local';
   employmentType?: 'full-time' | 'contract' | 'freelance' | 'any';
   salaryMin?: number;
   salaryMax?: number;
   experienceLevel?: string;
   booleanString?: string;
   nextPageToken?: string;
+  radiusMiles?: number;
 }
 
 interface JobResult {
@@ -153,7 +154,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const enabledSources = sources || ['google_jobs', 'company_boards'];
+    const enabledSources = sources || ['google_jobs', 'company_boards', 'usajobs'];
     console.log('[UNIFIED-SEARCH] Enabled sources after default:', JSON.stringify(enabledSources));
     const allJobs: JobResult[] = [];
     const sourceStats: Record<string, { count: number; status: string }> = {};
@@ -199,6 +200,23 @@ serve(async (req) => {
     } else {
       console.log('[UNIFIED-SEARCH] ❌ google_jobs NOT INCLUDED - Skipping Google Jobs search');
       console.log('[UNIFIED-SEARCH] enabledSources was:', JSON.stringify(enabledSources));
+    }
+
+    // USAJobs.gov - Federal Government Jobs
+    if (enabledSources.includes('usajobs')) {
+      console.log('[UNIFIED-SEARCH] ✅ usajobs IS INCLUDED - Starting USAJobs.gov search');
+      searchPromises.push(
+        searchUSAJobs(query, location, searchFilters)
+          .then(jobs => {
+            sourceStats.usajobs = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('[USAJobs] ❌ ERROR:', error);
+            sourceStats.usajobs = { count: 0, status: `error: ${error?.message || 'unknown'}` };
+            return [];
+          })
+      );
     }
 
     if (enabledSources.includes('company_boards')) {
@@ -619,6 +637,13 @@ async function searchSingleTitle(
       // Add location with proper formatting (City, State format)
       if (location && location.trim()) {
         params.set('location', location);
+
+        // Add radius if provided (in miles)
+        // SearchAPI uses 'lrad' parameter for location radius
+        if (filters.radiusMiles && filters.radiusMiles > 0) {
+          params.set('lrad', filters.radiusMiles.toString());
+          console.log(`[Google Jobs] Setting location radius: ${filters.radiusMiles} miles`);
+        }
       } else {
         params.set('location', 'United States');
       }
@@ -629,17 +654,18 @@ async function searchSingleTitle(
         console.log(`[Google Jobs] Using pagination token for page ${pageCount}`);
       }
 
-      // Fix date filter format - use chips parameter
+      // Fix date filter format - use chips parameter with correct mappings
       if (filters.datePosted && filters.datePosted !== 'any') {
         const dateMap: Record<string, string> = {
           '24h': 'today',
-          '3d': '3days',
+          '3d': '3days',    // SearchAPI supports this
           '7d': 'week',
-          '14d': 'month',
+          '14d': 'week',    // Map to week (closest match)
           '30d': 'month'
         };
         const mappedDate = dateMap[filters.datePosted] || 'month';
         params.set('chips', `date_posted:${mappedDate}`);
+        console.log(`[Google Jobs] Date filter: ${filters.datePosted} → ${mappedDate}`);
       }
 
       // Add employment type filter
@@ -1325,6 +1351,137 @@ async function searchAshbyBoards(query: string, filters: SearchFilters): Promise
 
   console.log(`[Ashby] Search complete: ${jobs.length} matching jobs`);
   return jobs;
+}
+
+async function searchUSAJobs(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[USAJobs] Starting search for query: "${query}", location: "${location}"`);
+  const jobs: JobResult[] = [];
+
+  try {
+    // USAJobs.gov API - Free, requires email registration for API key
+    // For now, we'll use a basic implementation without auth (public listings)
+    // Production should use proper API key: https://developer.usajobs.gov/APIRequest/Index
+
+    const params = new URLSearchParams();
+    params.set('Keyword', query);
+
+    if (location && location.trim()) {
+      // USAJobs supports location code or name
+      params.set('LocationName', location);
+    }
+
+    // Date filtering
+    if (filters.datePosted !== 'any') {
+      const now = new Date();
+      const daysAgo = filters.datePosted === '24h' ? 1 :
+                      filters.datePosted === '3d' ? 3 :
+                      filters.datePosted === '7d' ? 7 :
+                      filters.datePosted === '14d' ? 14 :
+                      filters.datePosted === '30d' ? 30 : null;
+
+      if (daysAgo) {
+        const fromDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+        const toDate = now;
+        params.set('DatePosted', '1'); // Last day
+        // Note: USAJobs uses DatePosted codes: 1=24h, 2=3days, 3=7days, 4=14days, 5=30days
+        const dateCode = daysAgo === 1 ? '1' :
+                        daysAgo === 3 ? '2' :
+                        daysAgo === 7 ? '3' :
+                        daysAgo === 14 ? '4' :
+                        daysAgo === 30 ? '5' : '3';
+        params.set('DatePosted', dateCode);
+      }
+    }
+
+    // Remote work filter
+    if (filters.remoteType === 'remote') {
+      params.set('RemoteIndicator', 'true');
+    }
+
+    // Results per page
+    params.set('ResultsPerPage', '500'); // Max allowed by USAJobs
+
+    const url = `https://data.usajobs.gov/api/search?${params.toString()}`;
+    console.log(`[USAJobs] Fetching: ${url}`);
+
+    // Note: In production, add proper headers:
+    // headers: {
+    //   'Host': 'data.usajobs.gov',
+    //   'User-Agent': 'your-email@example.com',
+    //   'Authorization-Key': 'YOUR_API_KEY'
+    // }
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        'Host': 'data.usajobs.gov',
+        'User-Agent': 'always-on-contracts@example.com', // Replace with actual email
+      }
+    });
+
+    if (!response.ok) {
+      console.log(`[USAJobs] API returned status ${response.status}`);
+      return jobs;
+    }
+
+    const data = await response.json();
+    console.log(`[USAJobs] Response received:`, {
+      totalJobs: data.SearchResult?.SearchResultCount || 0,
+      items: data.SearchResult?.SearchResultItems?.length || 0
+    });
+
+    const items = data.SearchResult?.SearchResultItems || [];
+
+    for (const item of items) {
+      const matchedJob = item.MatchedObjectDescriptor;
+      if (!matchedJob) continue;
+
+      // Parse salary
+      let salaryMin = null;
+      let salaryMax = null;
+
+      if (matchedJob.PositionRemuneration && matchedJob.PositionRemuneration.length > 0) {
+        const salary = matchedJob.PositionRemuneration[0];
+        salaryMin = parseInt(salary.MinimumRange) || null;
+        salaryMax = parseInt(salary.MaximumRange) || null;
+      }
+
+      // Parse location
+      const locations = matchedJob.PositionLocation || [];
+      const locationStr = locations.length > 0
+        ? `${locations[0].CityName}, ${locations[0].CountrySubDivisionCode || locations[0].CountryCode}`
+        : 'United States';
+
+      // Determine if remote
+      const isRemote = matchedJob.PositionOfferingType?.some((type: any) =>
+        type.Name?.toLowerCase().includes('telework') ||
+        type.Name?.toLowerCase().includes('remote')
+      ) || false;
+
+      jobs.push({
+        id: `usajobs_${matchedJob.PositionID}`,
+        title: matchedJob.PositionTitle,
+        company: matchedJob.OrganizationName || 'U.S. Government',
+        location: isRemote ? 'Remote' : locationStr,
+        salary_min: salaryMin,
+        salary_max: salaryMax,
+        description: matchedJob.QualificationSummary || matchedJob.UserArea?.Details?.JobSummary || null,
+        posted_date: matchedJob.PublicationStartDate || new Date().toISOString(),
+        apply_url: matchedJob.PositionURI || matchedJob.ApplyURI?.[0] || null,
+        source: 'USAJobs.gov',
+        remote_type: isRemote ? 'remote' : 'onsite',
+        employment_type: 'full-time', // Federal jobs are typically full-time
+        required_skills: null
+      });
+    }
+
+    console.log(`[USAJobs] Search complete: ${jobs.length} jobs found`);
+    return jobs;
+
+  } catch (error) {
+    console.error('[USAJobs] Search error:', error instanceof Error ? error.message : String(error));
+    return jobs;
+  }
 }
 
 function filterByDate(jobs: JobResult[], dateFilter: string): JobResult[] {

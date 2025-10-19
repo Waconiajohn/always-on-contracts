@@ -217,7 +217,8 @@ const JobSearchContent = () => {
             contractOnly,
             remoteType,
             employmentType,
-            booleanString: booleanString.trim() || undefined
+            booleanString: booleanString.trim() || undefined,
+            radiusMiles: location ? parseInt(radiusMiles) : undefined
           },
           userId: userId || undefined,
           sources: ['google_jobs', 'company_boards']
