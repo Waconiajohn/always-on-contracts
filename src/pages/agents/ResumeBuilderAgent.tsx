@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles, Download, TrendingUp, RefreshCw } from "lucide-react";
+import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -14,10 +14,6 @@ import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 import { TemplateSelector } from "@/components/resume/TemplateSelector";
 import { useLocation } from "react-router-dom";
-import { useIntelligentVaultFiltering } from "@/hooks/useIntelligentVaultFiltering";
-import { SmartVaultPanel } from "@/components/resume/SmartVaultPanel";
-import { VerificationResults } from "@/components/resume/VerificationResults";
-import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
 import { exportFormats } from "@/lib/resumeExportUtils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
@@ -40,7 +36,6 @@ const ResumeBuilderAgentContent = () => {
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
-  const { filteredVault, loading: vaultFilteringLoading } = useIntelligentVaultFiltering(vaultData, jobDescription);
 
   useEffect(() => {
     fetchVaultData();
@@ -113,44 +108,8 @@ const ResumeBuilderAgentContent = () => {
       return;
     }
 
-    // Step 2: Run Perplexity Verification
-    toast({ 
-      title: "Verifying resume claims...", 
-      description: "Cross-referencing with Career Vault using Perplexity" 
-    });
-    
-    const { data: auditData } = await supabase.functions.invoke('dual-ai-audit', {
-      body: {
-        content: data.htmlContent,
-        contentType: 'resume',
-        context: {
-          jobDescription,
-          careerVaultData: vaultData
-        }
-      }
-    });
-
-    // Step 3: Run ATS Analysis
-    toast({ 
-      title: "Analyzing ATS compatibility...", 
-      description: "Scoring resume against job requirements" 
-    });
-    
-    const { data: atsData } = await supabase.functions.invoke('optimize-resume-detailed', {
-      body: {
-        resumeContent: data.htmlContent,
-        jobDescription,
-        persona: selectedPersona
-      }
-    });
-
     setGenerating(false);
-
-    setGeneratedResume({
-      ...data,
-      verification: auditData?.audit || null,
-      atsScore: atsData?.optimization || null
-    });
+    setGeneratedResume(data);
     setActiveTab('compare');
     
     // Save resume version to database
@@ -270,28 +229,6 @@ const ResumeBuilderAgentContent = () => {
                     Build Your Career Vault
                   </Button>
                 </div>
-              ) : !jobDescription ? (
-                <div className="text-center py-8">
-                  <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-muted-foreground">Enter a job description to see relevant vault items</p>
-                </div>
-              ) : vaultFilteringLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCw className="h-12 w-12 mx-auto mb-3 opacity-50 animate-spin" />
-                  <p className="text-sm text-muted-foreground">Analyzing relevance...</p>
-                </div>
-              ) : filteredVault ? (
-                <SmartVaultPanel 
-                  filteredVault={filteredVault}
-                  selectedPhrases={selectedPhrases}
-                  selectedSkills={selectedSkills}
-                  onTogglePhrase={(id) => setSelectedPhrases(prev => 
-                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-                  )}
-                  onToggleSkill={(id) => setSelectedSkills(prev => 
-                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-                  )}
-                />
               ) : (
                 <div className="space-y-4">
                   <div>
@@ -509,18 +446,46 @@ const ResumeBuilderAgentContent = () => {
                             {generatedResume.metadata.passes.final}
                           </p>
                         </div>
-                        <Button onClick={() => {
-                          const blob = new Blob([generatedResume.htmlContent], { type: 'text/html' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `resume-${Date.now()}.html`;
-                          a.click();
-                          toast({ title: "Resume downloaded!" });
-                        }}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
+                          <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button>
+                              <Download className="h-4 w-4 mr-2" />
+                              Download Resume
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            
+                            <DropdownMenuItem onClick={() => handleDownload('pdf')}>
+                              📄 Standard PDF
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuItem onClick={() => handleDownload('ats-pdf')}>
+                              🤖 ATS-Optimized PDF
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuItem onClick={() => handleDownload('docx')}>
+                              📝 Microsoft Word (DOCX)
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuSeparator />
+                            
+                            <DropdownMenuItem onClick={() => handleDownload('plain')}>
+                              📋 Plain Text (Copy)
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuItem onClick={() => handleDownload('linkedin')}>
+                              💼 LinkedIn Format (Copy)
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuSeparator />
+                            
+                            <DropdownMenuItem onClick={() => handleDownload('html')}>
+                              🌐 HTML File
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
 
                       <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 
 export const exportFormats = {
