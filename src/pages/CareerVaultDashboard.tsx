@@ -558,7 +558,10 @@ const VaultDashboardContent = () => {
               )}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {stats.interview_completion_percentage}% interview complete • {totalIntelligenceItems} intelligence items extracted
+              {vault?.auto_populated
+                ? `Onboarding: Complete • ${totalIntelligenceItems} items extracted • Vault Quality: ${strengthScore?.total || 0}/100`
+                : `Interview: ${stats.interview_completion_percentage}% complete • ${totalIntelligenceItems} items extracted`
+              }
             </p>
           </div>
           
@@ -725,6 +728,7 @@ const VaultDashboardContent = () => {
                 <span className="text-sm text-muted-foreground">{strengthScore.powerPhrasesScore}/10</span>
               </div>
               <Progress value={(strengthScore.powerPhrasesScore / 10) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">{stats.total_power_phrases} phrases</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -732,6 +736,7 @@ const VaultDashboardContent = () => {
                 <span className="text-sm text-muted-foreground">{strengthScore.transferableSkillsScore}/10</span>
               </div>
               <Progress value={(strengthScore.transferableSkillsScore / 10) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">{stats.total_transferable_skills} skills</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -739,6 +744,7 @@ const VaultDashboardContent = () => {
                 <span className="text-sm text-muted-foreground">{strengthScore.hiddenCompetenciesScore}/10</span>
               </div>
               <Progress value={(strengthScore.hiddenCompetenciesScore / 10) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">{stats.total_hidden_competencies} found</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -746,6 +752,7 @@ const VaultDashboardContent = () => {
                 <span className="text-sm text-muted-foreground">{strengthScore.intangiblesScore}/40</span>
               </div>
               <Progress value={(strengthScore.intangiblesScore / 40) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">Leadership traits</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -753,6 +760,7 @@ const VaultDashboardContent = () => {
                 <span className="text-sm text-muted-foreground">{strengthScore.quantificationScore}/15</span>
               </div>
               <Progress value={(strengthScore.quantificationScore / 15) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">Phrases with metrics</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -760,8 +768,38 @@ const VaultDashboardContent = () => {
                 <span className="text-sm text-muted-foreground">{strengthScore.modernTerminologyScore}/15</span>
               </div>
               <Progress value={(strengthScore.modernTerminologyScore / 15) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">AI/cloud/tech terms</p>
             </div>
           </div>
+
+          {/* Improvement Suggestions */}
+          {(strengthScore.quantificationScore < 10 || strengthScore.modernTerminologyScore < 10) && (
+            <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-amber-900 dark:text-amber-100">Quick Wins to Boost Your Score</AlertTitle>
+              <AlertDescription className="text-amber-800 dark:text-amber-200 space-y-2">
+                {strengthScore.quantificationScore < 10 && (
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold">•</span>
+                    <p className="text-sm">
+                      <strong>Add Metrics:</strong> Your power phrases need quantified results. Add dollar amounts, percentages, team sizes, or timeframes.
+                      Example: "Led digital transformation" → "Led $2.3M digital transformation affecting 45% of operations over 18 months"
+                    </p>
+                  </div>
+                )}
+                {strengthScore.modernTerminologyScore < 10 && (
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold">•</span>
+                    <p className="text-sm">
+                      <strong>Modernize Language:</strong> Update phrases with current tech/business terms like AI, ML, cloud, automation, data analytics, agile, DevOps.
+                      This shows you're current with industry trends.
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs italic mt-2">💡 Tip: Use "Re-Analyze All" after uploading updated documents to recalculate these scores.</p>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="text-center mt-4 p-4 bg-muted/50 rounded-lg border-t">
             <p className="text-sm font-medium mb-3">Your Vault Powers All 5 Dimensions:</p>

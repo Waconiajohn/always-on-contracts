@@ -328,9 +328,9 @@ const CareerVaultOnboardingEnhanced = () => {
           <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
             <CheckCircle className="w-12 h-12 text-white" />
           </div>
-          <h2 className="text-3xl font-bold mb-4">Career Vault Complete! 🎉</h2>
+          <h2 className="text-3xl font-bold mb-4">Onboarding Complete! 🎉</h2>
           <p className="text-lg text-muted-foreground mb-6">
-            Your career intelligence system is live and ready to deploy across all 5 dimensions
+            Your Career Vault is built and ready to power resume generation and job applications
           </p>
 
           {/* Vault Strength Preview */}
@@ -339,7 +339,7 @@ const CareerVaultOnboardingEnhanced = () => {
               <p className="text-3xl font-bold text-primary">
                 {extractedData?.totalExtracted || extractedData?.summary?.totalItemsExtracted || 0}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">Intelligence Items</p>
+              <p className="text-sm text-muted-foreground mt-1">Intelligence Items Extracted</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-secondary">
@@ -351,8 +351,14 @@ const CareerVaultOnboardingEnhanced = () => {
               <p className="text-3xl font-bold text-accent">
                 {extractedData?.vaultCompletion || 100}%
               </p>
-              <p className="text-sm text-muted-foreground mt-1">Vault Complete</p>
+              <p className="text-sm text-muted-foreground mt-1">Initial Setup</p>
             </div>
+          </div>
+
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-900 dark:text-blue-100">
+              <strong>Next Step:</strong> Visit the Vault Control Panel to review your strength scores and improve your vault quality.
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
