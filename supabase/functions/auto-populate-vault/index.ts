@@ -380,18 +380,31 @@ Return VALID JSON only with this structure:
     }
 
     const aiData = await response.json();
+    console.log('[AUTO-POPULATE-VAULT] Raw AI response:', JSON.stringify(aiData, null, 2));
+    
     let intelligence;
 
     try {
-      const toolCall = aiData.choices[0].message.tool_calls?.[0];
+      // Check if response has expected structure
+      if (!aiData.choices || !Array.isArray(aiData.choices) || aiData.choices.length === 0) {
+        console.error('[AUTO-POPULATE-VAULT] Invalid AI response structure:', aiData);
+        throw new Error('AI response missing choices array');
+      }
+
+      const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
       if (!toolCall) {
+        console.error('[AUTO-POPULATE-VAULT] No tool call found in:', aiData.choices[0]?.message);
         throw new Error('No tool call in response');
       }
+
       const args = toolCall.function.arguments;
       intelligence = typeof args === 'string' ? JSON.parse(args) : args;
+      
+      console.log('[AUTO-POPULATE-VAULT] Parsed intelligence successfully');
     } catch (e) {
       console.error('[AUTO-POPULATE-VAULT] Failed to parse AI response:', e);
-      throw new Error('AI returned invalid response. Please try again.');
+      console.error('[AUTO-POPULATE-VAULT] Response data:', aiData);
+      throw new Error(`AI returned invalid response: ${e.message}`);
     }
 
     console.log('[AUTO-POPULATE-VAULT] Extraction complete!');
