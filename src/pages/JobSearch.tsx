@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy, Sparkles } from "lucide-react";
+import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy, Sparkles, FileText, Star, StarOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +19,7 @@ import { SavedSearches } from "@/components/job-search/SavedSearches";
 import { SavedJobsList } from "@/components/job-search/SavedJobsList";
 import { QuickBooleanBuilder } from "@/components/job-search/QuickBooleanBuilder";
 import { BooleanActiveIndicator } from "@/components/job-search/BooleanActiveIndicator";
+import { useNavigate } from "react-router-dom";
 
 interface JobResult {
   id: string;
@@ -39,6 +40,7 @@ interface JobResult {
 
 const JobSearchContent = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -46,6 +48,7 @@ const JobSearchContent = () => {
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState<number | null>(null);
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   
   // Filters
   const [dateFilter, setDateFilter] = useState<string>('30d');
@@ -139,6 +142,22 @@ const JobSearchContent = () => {
     if (user) {
       setUserId(user.id);
       await loadVaultData(user.id);
+      await loadSavedJobs(user.id);
+    }
+  };
+
+  const loadSavedJobs = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_saved_jobs')
+        .select('job_listing_id, job_listings!inner(external_id)')
+        .eq('user_id', userId);
+
+      if (data) {
+        setSavedJobIds(new Set(data.map((j: any) => j.job_listings.external_id)));
+      }
+    } catch (error) {
+      console.error('Error loading saved jobs:', error);
     }
   };
 
@@ -319,6 +338,123 @@ const JobSearchContent = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const saveJob = async (job: JobResult) => {
+    if (!userId) return;
+
+    try {
+      // First ensure job is in job_listings table
+      const { data: listing, error: listingError } = await supabase
+        .from('job_listings')
+        .upsert({
+          external_id: job.id,
+          source: job.source,
+          job_title: job.title,
+          company_name: job.company,
+          location: job.location,
+          remote_type: job.remote_type,
+          employment_type: job.employment_type,
+          salary_min: job.salary_min,
+          salary_max: job.salary_max,
+          salary_currency: 'USD',
+          salary_period: 'year',
+          job_description: job.description,
+          posted_date: job.posted_date,
+          apply_url: job.apply_url,
+          is_active: true,
+          match_score: job.match_score,
+          raw_data: {}
+        }, {
+          onConflict: 'external_id,source',
+          ignoreDuplicates: false
+        })
+        .select()
+        .single();
+
+      if (listingError) throw listingError;
+
+      // Now save to user_saved_jobs
+      const { error: savedError } = await supabase
+        .from('user_saved_jobs')
+        .insert({
+          user_id: userId,
+          job_listing_id: listing.id,
+          status: 'saved'
+        });
+
+      if (savedError) throw savedError;
+
+      setSavedJobIds(prev => new Set(prev).add(job.id));
+
+      toast({
+        title: "Job saved ⭐",
+        description: `${job.title} saved for later review`
+      });
+    } catch (error: any) {
+      console.error('Save job error:', error);
+      toast({
+        title: "Failed to save",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const unsaveJob = async (job: JobResult) => {
+    if (!userId) return;
+
+    try {
+      // Find the job_listing_id first
+      const { data: listing } = await supabase
+        .from('job_listings')
+        .select('id')
+        .eq('external_id', job.id)
+        .eq('source', job.source)
+        .single();
+
+      if (!listing) {
+        throw new Error('Job not found');
+      }
+
+      const { error } = await supabase
+        .from('user_saved_jobs')
+        .delete()
+        .eq('user_id', userId)
+        .eq('job_listing_id', listing.id);
+
+      if (error) throw error;
+
+      setSavedJobIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(job.id);
+        return newSet;
+      });
+
+      toast({
+        title: "Job removed",
+        description: "Removed from saved jobs"
+      });
+    } catch (error: any) {
+      console.error('Unsave job error:', error);
+      toast({
+        title: "Failed to remove",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const generateResumeForJob = async (job: JobResult) => {
+    // Navigate to resume builder with job pre-loaded via state
+    navigate('/agents/resume-builder', {
+      state: {
+        jobTitle: job.title,
+        companyName: job.company,
+        jobDescription: job.description || `${job.title} at ${job.company}`,
+        fromJobSearch: true
+      }
+    });
   };
 
   const getScoreColor = (score: number) => {
@@ -745,8 +881,26 @@ const JobSearchContent = () => {
                       </p>
                     )}
 
-                    <div className="flex gap-2">
-                      <Button onClick={() => addToQueue(job)}>Add to Queue</Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => generateResumeForJob(job)} className="gap-2">
+                        <FileText className="h-4 w-4" />
+                        Generate Resume
+                      </Button>
+                      <Button onClick={() => addToQueue(job)} variant="secondary" className="gap-2">
+                        Add to Queue
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => savedJobIds.has(job.id) ? unsaveJob(job) : saveJob(job)}
+                        title={savedJobIds.has(job.id) ? "Remove from saved" : "Save for later"}
+                      >
+                        {savedJobIds.has(job.id) ? (
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ) : (
+                          <StarOff className="h-4 w-4" />
+                        )}
+                      </Button>
                       {job.apply_url && (
                         <Button variant="outline" asChild>
                           <a href={job.apply_url} target="_blank" rel="noopener noreferrer">

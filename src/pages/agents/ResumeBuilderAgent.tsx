@@ -13,8 +13,10 @@ import { JobImportDialog } from "@/components/JobImportDialog";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 import { TemplateSelector } from "@/components/resume/TemplateSelector";
+import { useLocation } from "react-router-dom";
 
 const ResumeBuilderAgentContent = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("current");
   const [jobDescription, setJobDescription] = useState("");
   const [jobTitle, setJobTitle] = useState("");
@@ -35,6 +37,20 @@ const ResumeBuilderAgentContent = () => {
 
   useEffect(() => {
     fetchVaultData();
+
+    // Check if we came from job search with pre-loaded job data
+    if (location.state?.fromJobSearch) {
+      const { jobTitle: title, companyName: company, jobDescription: description } = location.state;
+      setJobTitle(title || '');
+      setCompanyName(company || '');
+      setJobDescription(description || '');
+
+      toast({
+        title: "Job loaded from search",
+        description: `Ready to generate resume for ${title} at ${company}`,
+        duration: 5000
+      });
+    }
   }, []);
 
   const fetchVaultData = async () => {
