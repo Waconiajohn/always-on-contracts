@@ -540,6 +540,8 @@ export type Database = {
       }
       career_vault: {
         Row: {
+          auto_populated: boolean | null
+          auto_population_confidence: string | null
           created_at: string
           focus_set_at: string | null
           id: string
@@ -564,6 +566,8 @@ export type Database = {
           vault_name: string | null
         }
         Insert: {
+          auto_populated?: boolean | null
+          auto_population_confidence?: string | null
           created_at?: string
           focus_set_at?: string | null
           id?: string
@@ -588,6 +592,8 @@ export type Database = {
           vault_name?: string | null
         }
         Update: {
+          auto_populated?: boolean | null
+          auto_population_confidence?: string | null
           created_at?: string
           focus_set_at?: string | null
           id?: string

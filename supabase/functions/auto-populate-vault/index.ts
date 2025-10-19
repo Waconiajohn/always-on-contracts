@@ -779,10 +779,11 @@ Return VALID JSON only with this structure:
 
     // Update career vault with totals and metadata
     const updateData: any = {
-      interview_completion_percentage: 85, // Auto-populated vaults start at 85%
+      interview_completion_percentage: 100, // Auto-populated vaults are 100% complete
       auto_populated: true,
       auto_population_confidence: intelligence.summary?.confidence || 'medium',
-      overall_strength_score: intelligence.summary?.completenessScore || 85
+      overall_strength_score: intelligence.summary?.completenessScore || 85,
+      last_updated_at: new Date().toISOString()
     };
 
     // Count items per category for totals
@@ -797,10 +798,19 @@ Return VALID JSON only with this structure:
     if (intelligence.values) updateData.total_values = intelligence.values.length;
     if (intelligence.behavioralIndicators) updateData.total_behavioral_indicators = intelligence.behavioralIndicators.length;
 
-    await supabase
+    console.log('[AUTO-POPULATE-VAULT] Updating vault with data:', updateData);
+
+    const { error: updateError } = await supabase
       .from('career_vault')
       .update(updateData)
       .eq('id', vaultId);
+
+    if (updateError) {
+      console.error('[AUTO-POPULATE-VAULT] Failed to update vault:', updateError);
+      throw new Error(`Failed to update vault: ${updateError.message}`);
+    }
+
+    console.log('[AUTO-POPULATE-VAULT] Vault updated successfully');
 
     console.log('[AUTO-POPULATE-VAULT] Vault updated with totals and metadata');
     console.log('[AUTO-POPULATE-VAULT] SUCCESS! Vault auto-populated');

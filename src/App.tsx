@@ -43,7 +43,6 @@ const RedeemCode = lazy(() => import("./pages/RedeemCode"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboard"));
-const CareerVaultOnboardingOld = lazy(() => import("./pages/CareerVaultOnboarding"));
 const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboardingEnhanced"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
@@ -115,7 +114,6 @@ const App = () => (
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/career-vault" element={<ProtectedRoute><CareerVaultDashboard /></ProtectedRoute>} />
             <Route path="/career-vault/onboarding" element={<ProtectedRoute><CareerVaultOnboarding /></ProtectedRoute>} />
-            <Route path="/career-vault/onboarding-old" element={<ProtectedRoute><CareerVaultOnboardingOld /></ProtectedRoute>} />
             {/* Redirects from old War Chest routes */}
             <Route path="/war-chest" element={<Navigate to="/career-vault" replace />} />
             <Route path="/war-chest/onboarding" element={<Navigate to="/career-vault/onboarding" replace />} />
