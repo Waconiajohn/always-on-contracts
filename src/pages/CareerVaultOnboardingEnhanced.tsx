@@ -38,7 +38,6 @@ const CareerVaultOnboardingEnhanced = () => {
   const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
-  const [showCompletionScreen, setShowCompletionScreen] = useState(false);
 
   const steps = [
     { id: 'upload', label: 'Upload Resume', icon: Upload },
@@ -69,8 +68,8 @@ const CareerVaultOnboardingEnhanced = () => {
       if (existingVault) {
         setVaultId(existingVault.id);
 
-        // Only redirect if vault is complete AND we're not showing completion screen
-        if ((existingVault.interview_completion_percentage ?? 0) >= 85 && !showCompletionScreen) {
+        // Only redirect if vault is complete AND we're not in the middle of onboarding
+        if ((existingVault.interview_completion_percentage ?? 0) >= 85 && currentStep === 'upload') {
           toast({
             title: 'Vault Already Complete',
             description: 'Redirecting to your Career Vault dashboard...'
@@ -81,7 +80,7 @@ const CareerVaultOnboardingEnhanced = () => {
     };
 
     checkExistingVault();
-  }, [navigate, toast, showCompletionScreen]);
+  }, [navigate, toast, currentStep]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -212,7 +211,6 @@ const CareerVaultOnboardingEnhanced = () => {
   };
 
   const handleReviewComplete = () => {
-    setShowCompletionScreen(true); // Prevent redirect when showing completion
     setCurrentStep('complete');
 
     toast({
