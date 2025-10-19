@@ -336,16 +336,22 @@ const CareerVaultOnboardingEnhanced = () => {
           {/* Vault Strength Preview */}
           <div className="grid grid-cols-3 gap-4 mb-8 p-6 bg-muted/50 rounded-lg">
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{extractedData?.totalItems || 0}</p>
-              <p className="text-sm text-muted-foreground mt-1">Total Intelligence</p>
+              <p className="text-3xl font-bold text-primary">
+                {extractedData?.totalExtracted || extractedData?.summary?.totalItemsExtracted || 0}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Intelligence Items</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-secondary">{extractedData?.categories || 20}</p>
-              <p className="text-sm text-muted-foreground mt-1">Categories</p>
+              <p className="text-3xl font-bold text-secondary">
+                {extractedData?.categories?.length || 20}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Categories Populated</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-accent">100%</p>
-              <p className="text-sm text-muted-foreground mt-1">Complete</p>
+              <p className="text-3xl font-bold text-accent">
+                {extractedData?.vaultCompletion || 100}%
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Vault Complete</p>
             </div>
           </div>
 

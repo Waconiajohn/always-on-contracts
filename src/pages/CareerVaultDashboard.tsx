@@ -118,7 +118,7 @@ interface BehavioralIndicator {
 
 import { EnhancementQueue } from '@/components/EnhancementQueue';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Upload, PlayCircle, RotateCcw, Plus, Sparkles } from 'lucide-react';
+import { Rocket, Upload, PlayCircle, RotateCcw, Plus, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
 import { VaultQuickStats } from '@/components/career-vault/VaultQuickStats';
@@ -587,7 +587,11 @@ const VaultDashboardContent = () => {
               onClick={handleReanalyze}
               disabled={isReanalyzing || !vault?.resume_raw_text}
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              {isReanalyzing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
               {isReanalyzing ? 'Re-Analyzing...' : 'Re-Analyze All'}
             </Button>
             

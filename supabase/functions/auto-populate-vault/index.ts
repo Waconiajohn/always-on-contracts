@@ -251,10 +251,17 @@ Return VALID JSON only with this structure:
                           phrase: { type: "string" },
                           context: { type: "string" },
                           category: { type: "string" },
-                          metrics: { type: "object" },
-                          keywords: { type: "array", items: { type: "string" } }
+                          metrics: {
+                            type: "object",
+                            description: "Quantified metrics like {amount: '$2.3M', percentage: '45%', timeframe: '18 months'}"
+                          },
+                          keywords: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Key terms from the phrase including tech/business keywords"
+                          }
                         },
-                        required: ["phrase", "context"]
+                        required: ["phrase", "context", "metrics", "keywords"]
                       }
                     },
                     transferableSkills: {
