@@ -16,6 +16,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ["sonner"],
+    include: ["sonner", "jspdf", "html2canvas", "docx", "file-saver"],
   },
 }));

@@ -129,9 +129,27 @@ export const exportFormats = {
         ]
       }]
     });
-    
+
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, fileName);
+    saveAs(blob, `${fileName}.docx`);
+  },
+
+  // Alias for generateDOCX
+  async docxExport(structuredData: any, fileName: string) {
+    return this.generateDOCX(structuredData, fileName);
+  },
+
+  // HTML export
+  async htmlExport(htmlContent: string, fileName: string) {
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    saveAs(blob, `${fileName}.html`);
+  },
+
+  // Plain text export
+  async txtExport(structuredData: any, fileName: string) {
+    const textContent = this.plainText(structuredData);
+    const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `${fileName}.txt`);
   }
 };
 

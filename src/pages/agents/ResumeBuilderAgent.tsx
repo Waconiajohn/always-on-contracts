@@ -414,47 +414,28 @@ const ResumeBuilderAgentContent = () => {
         const version = versions.find(v => v.id === versionId);
         if (!version) continue;
 
-        const fileName = `resume_v${version.version_number}_${version.template_name}.${format}`;
-        
+        const fileName = `resume_v${version.version_number || 'unknown'}_${version.template_name || 'resume'}`;
+
         if (format === "pdf") {
-          const { jsPDF } = await import("jspdf");
-          const doc = new jsPDF();
-          
-          const htmlElement = document.createElement("div");
-          htmlElement.innerHTML = version.html_content || "";
-          doc.html(htmlElement, {
-            callback: (doc) => {
-              doc.save(fileName);
-            },
-            x: 10,
-            y: 10,
-          });
+          // Use the standardPDF export from resumeExportUtils
+          if (version.html_content) {
+            await exportFormats.standardPDF(version.html_content, fileName);
+          }
         } else if (format === "docx") {
-          const { Document, Packer, Paragraph } = await import("docx");
-          const doc = new Document({
-            sections: [{
-              children: [
-                new Paragraph({
-                  text: version.content?.personalInfo?.fullName || "Resume",
-                }),
-              ],
-            }],
-          });
-          
-          const blob = await Packer.toBlob(doc);
-          const { saveAs } = await import("file-saver");
-          saveAs(blob, fileName);
+          // Use the docxExport from resumeExportUtils
+          if (version.content) {
+            await exportFormats.docxExport(version.content, fileName);
+          }
         } else if (format === "html") {
-          const blob = new Blob([version.html_content || ""], { type: "text/html" });
-          const { saveAs } = await import("file-saver");
-          saveAs(blob, fileName);
+          // Use the htmlExport from resumeExportUtils
+          if (version.html_content) {
+            await exportFormats.htmlExport(version.html_content, fileName);
+          }
         } else if (format === "txt") {
-          const textContent = version.html_content
-            ? version.html_content.replace(/<[^>]*>/g, "\n").replace(/\n+/g, "\n")
-            : JSON.stringify(version.content, null, 2);
-          const blob = new Blob([textContent], { type: "text/plain" });
-          const { saveAs } = await import("file-saver");
-          saveAs(blob, fileName);
+          // Use the txtExport from resumeExportUtils
+          if (version.content) {
+            await exportFormats.txtExport(version.content, fileName);
+          }
         }
       }
     } catch (error) {

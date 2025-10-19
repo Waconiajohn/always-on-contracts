@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowRight, Download } from "lucide-react";
-import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer';
+import { diffLines } from 'diff';
 
 interface VersionComparisonProps {
   versionA: {
@@ -152,25 +152,62 @@ export function VersionComparison({
 
           <TabsContent value="diff" className="mt-4">
             <div className="border rounded-lg overflow-hidden">
-              <ReactDiffViewer
-                oldValue={textA}
-                newValue={textB}
-                splitView={true}
-                compareMethod={DiffMethod.WORDS}
-                leftTitle={versionA.version_name}
-                rightTitle={versionB.version_name}
-                styles={{
-                  variables: {
-                    light: {
-                      diffViewerBackground: '#fff',
-                      addedBackground: '#e6ffed',
-                      addedColor: '#24292e',
-                      removedBackground: '#ffeef0',
-                      removedColor: '#24292e',
-                    },
-                  },
-                }}
-              />
+              <div className="grid grid-cols-2 gap-0">
+                <div className="border-r p-4 bg-background">
+                  <div className="font-semibold mb-2 text-sm">{versionA.version_name}</div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-1 text-sm font-mono">
+                      {diffLines(textA, textB).map((part, index) => {
+                        if (part.removed) {
+                          return (
+                            <div key={index} className="bg-red-50 text-red-900 px-2 py-0.5">
+                              {part.value.split('\n').map((line, i) => (
+                                <div key={i}>{line || ' '}</div>
+                              ))}
+                            </div>
+                          );
+                        } else if (!part.added) {
+                          return (
+                            <div key={index} className="px-2 py-0.5">
+                              {part.value.split('\n').map((line, i) => (
+                                <div key={i}>{line || ' '}</div>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+                <div className="p-4 bg-background">
+                  <div className="font-semibold mb-2 text-sm">{versionB.version_name}</div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-1 text-sm font-mono">
+                      {diffLines(textA, textB).map((part, index) => {
+                        if (part.added) {
+                          return (
+                            <div key={index} className="bg-green-50 text-green-900 px-2 py-0.5">
+                              {part.value.split('\n').map((line, i) => (
+                                <div key={i}>{line || ' '}</div>
+                              ))}
+                            </div>
+                          );
+                        } else if (!part.removed) {
+                          return (
+                            <div key={index} className="px-2 py-0.5">
+                              {part.value.split('\n').map((line, i) => (
+                                <div key={i}>{line || ' '}</div>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
