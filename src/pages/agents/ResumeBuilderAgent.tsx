@@ -356,9 +356,11 @@ const ResumeBuilderAgentContent = () => {
           });
         });
         
-        // Add leadership and executive presence as competencies
-        [...(intel.leadership || []), ...(intel.executivePresence || [])].forEach((item: any) => {
-          const content = typeof item === 'string' ? item : (item.content || item.philosophy_statement || JSON.stringify(item));
+        // Add leadership philosophy as competencies
+        intel.leadership?.forEach((item: any) => {
+          const content = typeof item === 'string' 
+            ? item 
+            : item.philosophy_statement || item.leadership_style || item.content || JSON.stringify(item);
           suggestions.push({
             id: `lead-${suggestions.length}`,
             type: 'competency',
@@ -368,16 +370,54 @@ const ResumeBuilderAgentContent = () => {
           });
         });
         
-        // Add personality, work style, values, and behavioral as power phrases
+        // Add executive presence as power phrases
+        intel.executivePresence?.forEach((item: any) => {
+          if (typeof item === 'string') {
+            suggestions.push({
+              id: `exec-${suggestions.length}`,
+              type: 'power_phrase',
+              content: item,
+              relevanceScore: 0.85,
+              used: false
+            });
+          } else {
+            // Format executive presence object into readable content
+            const indicator = item.presence_indicator || '';
+            const example = item.situational_example || '';
+            
+            if (indicator) {
+              suggestions.push({
+                id: `exec-${suggestions.length}`,
+                type: 'power_phrase',
+                content: `${indicator}${example ? `: ${example}` : ''}`,
+                relevanceScore: 0.85,
+                used: false
+              });
+            }
+          }
+        });
+        
+        // Add personality, work style, values, and behavioral as power phrases with proper formatting
         [...(intel.personality || []), ...(intel.workStyle || []), ...(intel.values || []), ...(intel.behavioral || [])].forEach((item: any) => {
-          const content = typeof item === 'string' ? item : (item.content || item.trait_name || item.value_name || item.specific_behavior || JSON.stringify(item));
-          suggestions.push({
-            id: `trait-${suggestions.length}`,
-            type: 'power_phrase',
-            content,
-            relevanceScore: 0.7,
-            used: false
-          });
+          let content = '';
+          
+          if (typeof item === 'string') {
+            content = item;
+          } else {
+            // Extract readable fields from different vault item types
+            content = item.trait_name || item.value_name || item.specific_behavior || 
+                     item.work_style_name || item.manifestation || item.content || '';
+          }
+          
+          if (content) {
+            suggestions.push({
+              id: `trait-${suggestions.length}`,
+              type: 'power_phrase',
+              content,
+              relevanceScore: 0.7,
+              used: false
+            });
+          }
         });
         
         // Sort by relevance score and limit to top 20
