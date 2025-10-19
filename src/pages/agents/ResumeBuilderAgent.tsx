@@ -22,6 +22,7 @@ import { EditableResumePreview } from "@/components/resume/EditableResumePreview
 import { ResumePreviewToggle } from "@/components/resume/ResumePreviewToggle";
 import { VersionHistory } from "@/components/resume/VersionHistory";
 import { VersionComparison } from "@/components/resume/VersionComparison";
+import { BatchExport } from "@/components/resume/BatchExport";
 import { TemplateCustomizer, TemplateCustomization, defaultPresets } from "@/components/resume/TemplateCustomizer";
 import { applyCustomizationToHTML } from "@/lib/templateCustomizationUtils";
 
@@ -50,6 +51,7 @@ const ResumeBuilderAgentContent = () => {
   const [versions, setVersions] = useState<any[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [comparingVersions, setComparingVersions] = useState<{ versionA: any; versionB: any } | null>(null);
+  const [showBatchExport, setShowBatchExport] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [customization, setCustomization] = useState<TemplateCustomization>(defaultPresets.professional);
   const { toast } = useToast();
@@ -393,6 +395,68 @@ const ResumeBuilderAgentContent = () => {
     }
   };
 
+  const handleBatchExport = async (versionIds: string[], format: string) => {
+    try {
+      for (const versionId of versionIds) {
+        const version = versions.find(v => v.id === versionId);
+        if (!version) continue;
+
+        const fileName = `resume_v${version.version_number}_${version.template_name}.${format}`;
+        
+        if (format === "pdf") {
+          const { jsPDF } = await import("jspdf");
+          const doc = new jsPDF();
+          
+          const htmlElement = document.createElement("div");
+          htmlElement.innerHTML = version.html_content || "";
+          doc.html(htmlElement, {
+            callback: (doc) => {
+              doc.save(fileName);
+            },
+            x: 10,
+            y: 10,
+          });
+        } else if (format === "docx") {
+          const { Document, Packer, Paragraph } = await import("docx");
+          const doc = new Document({
+            sections: [{
+              children: [
+                new Paragraph({
+                  text: version.content?.personalInfo?.fullName || "Resume",
+                }),
+              ],
+            }],
+          });
+          
+          const blob = await Packer.toBlob(doc);
+          const { saveAs } = await import("file-saver");
+          saveAs(blob, fileName);
+        } else if (format === "html") {
+          const blob = new Blob([version.html_content || ""], { type: "text/html" });
+          const { saveAs } = await import("file-saver");
+          saveAs(blob, fileName);
+        } else if (format === "txt") {
+          const textContent = version.html_content
+            ? version.html_content.replace(/<[^>]*>/g, "\n").replace(/\n+/g, "\n")
+            : JSON.stringify(version.content, null, 2);
+          const blob = new Blob([textContent], { type: "text/plain" });
+          const { saveAs } = await import("file-saver");
+          saveAs(blob, fileName);
+        }
+      }
+    } catch (error) {
+      console.error("Error in batch export:", error);
+      throw error;
+    }
+  };
+
+  const handleBatchShare = async (_versionIds: string[]) => {
+    toast({
+      title: "Share feature coming soon",
+      description: "You can export and share manually for now"
+    });
+  };
+
   const handleDownload = async (format: string) => {
     if (!generatedResume) return;
     
@@ -632,27 +696,48 @@ const ResumeBuilderAgentContent = () => {
               </TabsContent>
 
               <TabsContent value="history" className="mt-4">
-                {comparingVersions ? (
-                  <VersionComparison
-                    versionA={comparingVersions.versionA}
-                    versionB={comparingVersions.versionB}
-                    onClose={() => setComparingVersions(null)}
-                    onDownload={(versionId: string, _format: string) => {
-                      const version = versions.find(v => v.id === versionId);
-                      if (version) handleDownloadVersion(version);
-                    }}
-                  />
-                ) : (
-                  <VersionHistory
-                    versions={versions}
-                    currentVersionId={generatedResume?.metadata?.versionId}
-                    onPreview={handlePreviewVersion}
-                    onCompare={handleCompareVersions}
-                    onDownload={handleDownloadVersion}
-                    onDelete={handleDeleteVersion}
-                    loading={loadingVersions}
-                  />
-                )}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Version Management</h3>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowBatchExport(!showBatchExport)}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      {showBatchExport ? "Hide" : "Show"} Batch Export
+                    </Button>
+                  </div>
+
+                  {showBatchExport && (
+                    <BatchExport
+                      versions={versions}
+                      onExport={handleBatchExport}
+                      onShare={handleBatchShare}
+                    />
+                  )}
+
+                  {comparingVersions ? (
+                    <VersionComparison
+                      versionA={comparingVersions.versionA}
+                      versionB={comparingVersions.versionB}
+                      onClose={() => setComparingVersions(null)}
+                      onDownload={(versionId: string, _format: string) => {
+                        const version = versions.find(v => v.id === versionId);
+                        if (version) handleDownloadVersion(version);
+                      }}
+                    />
+                  ) : (
+                    <VersionHistory
+                      versions={versions}
+                      currentVersionId={generatedResume?.metadata?.versionId}
+                      onPreview={handlePreviewVersion}
+                      onCompare={handleCompareVersions}
+                      onDownload={handleDownloadVersion}
+                      onDelete={handleDeleteVersion}
+                      loading={loadingVersions}
+                    />
+                  )}
+                </div>
               </TabsContent>
 
               <TabsContent value="compare" className="mt-4">
