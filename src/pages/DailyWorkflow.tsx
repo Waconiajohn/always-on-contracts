@@ -1,4 +1,3 @@
-import { AppNav } from "@/components/AppNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +8,6 @@ const DailyWorkflow = () => {
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
-        <AppNav />
         <div className="container py-8 space-y-6">
           <div className="space-y-2">
             <h1 className="text-4xl font-bold">Your Daily Job Search Workflow</h1>

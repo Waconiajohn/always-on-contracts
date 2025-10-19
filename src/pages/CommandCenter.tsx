@@ -5,8 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { AppNav } from "@/components/AppNav";
-import { 
+import {
   Package, FileText, Users, MessageSquare, 
   Linkedin, Building2, FolderKanban,
   BookOpen, DollarSign, Lock, CheckCircle, Clock
@@ -216,8 +215,7 @@ const CommandCenter = () => {
     return (
       <div className="min-h-screen flex w-full">
         <div className="flex-1">
-          <AppNav />
-          <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
+          <div className="flex items-center justify-center h-screen">
             <p>Loading your command center...</p>
           </div>
         </div>
@@ -230,7 +228,6 @@ const CommandCenter = () => {
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
-        <AppNav />
         <div className="container py-8 space-y-6">
           <div className="space-y-4">
             <div className="flex items-center gap-3">

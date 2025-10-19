@@ -14,7 +14,6 @@ import { Progress } from "@/components/ui/progress";
 import { useLinkedInDrafts } from "@/hooks/useLinkedInDrafts";
 import type { LinkedInPost, ContentAnalysis } from "@/types/linkedin";
 import { WeeklyPostingCalendar } from "@/components/linkedin/WeeklyPostingCalendar";
-import { AppNav } from "@/components/AppNav";
 import { SeriesPlanner } from "@/components/linkedin/SeriesPlanner";
 import { HumanWritingAnalyzer } from "@/components/linkedin/HumanWritingAnalyzer";
 import { QualityCheckModal } from "@/components/linkedin/QualityCheckModal";
@@ -216,7 +215,6 @@ export default function LinkedInBloggingAgent() {
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
-        <AppNav />
         <div className="container py-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">LinkedIn Blogging Agent</h1>

@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, TrendingUp, Copy, Check, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { AppNav } from "@/components/AppNav";
 import { Separator } from "@/components/ui/separator";
 import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
 import { SkillsTagInput } from "@/components/linkedin/SkillsTagInput";
@@ -142,7 +141,6 @@ export default function LinkedInProfileBuilder() {
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
-        <AppNav />
         <div className="container py-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">

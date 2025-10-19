@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AppNav } from "@/components/AppNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -485,7 +484,6 @@ const JobSearchContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppNav />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Search Jobs</h1>

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AppNav } from "@/components/AppNav";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,7 +145,6 @@ const BooleanSearchContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppNav />
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Boolean Search Builder</h1>

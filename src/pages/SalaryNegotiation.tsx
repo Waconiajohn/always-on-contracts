@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { AppNav } from "@/components/AppNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,7 +123,6 @@ I'm happy to discuss this further and find a mutually beneficial arrangement.`;
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
-        <AppNav />
         <div className="container py-8 space-y-6">
           <div className="space-y-2">
             <h1 className="text-4xl font-bold">Salary Negotiation Assistant</h1>

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AppNav } from "@/components/AppNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -292,7 +291,6 @@ export default function MCPTestDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <AppNav />
       
       <main className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="mb-8">

@@ -13,7 +13,6 @@ import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 import { InterviewFollowupPanel } from "@/components/InterviewFollowupPanel";
 import { InterviewResponsesTab } from "@/components/InterviewResponsesTab";
 import { JobSelector } from "@/components/interview/JobSelector";
-import { AppNav } from "@/components/AppNav";
 import { Separator } from "@/components/ui/separator";
 import { CompanyResearchPanel } from "@/components/interview/CompanyResearchPanel";
 import { ElevatorPitchBuilder } from "@/components/interview/ElevatorPitchBuilder";
@@ -137,7 +136,6 @@ const InterviewPrepAgentContent = () => {
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
-        <AppNav />
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold mb-2">Interview Prep Agent</h1>

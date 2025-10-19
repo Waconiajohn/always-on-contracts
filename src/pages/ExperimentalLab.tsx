@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { research } from "@/lib/mcp-client";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, TrendingUp, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
-import { AppNav } from "@/components/AppNav";
 
 export default function ExperimentalLab() {
   const [experiments, setExperiments] = useState<any[]>([]);
@@ -140,7 +139,6 @@ export default function ExperimentalLab() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <AppNav />
       
       <main className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="mb-8">
