@@ -26,6 +26,7 @@ import { BatchExport } from "@/components/resume/BatchExport";
 import { TemplateCustomizer, TemplateCustomization, defaultPresets } from "@/components/resume/TemplateCustomizer";
 import { applyCustomizationToHTML } from "@/lib/templateCustomizationUtils";
 import { AnalyticsDashboard } from "@/components/resume/AnalyticsDashboard";
+import { ResumeCritique } from "@/components/resume/ResumeCritique";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -57,6 +58,8 @@ const ResumeBuilderAgentContent = () => {
   const [customization, setCustomization] = useState<TemplateCustomization>(defaultPresets.professional);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [showCritique, setShowCritique] = useState(false);
+  const [critiqueLoading, setCritiqueLoading] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -529,6 +532,43 @@ const ResumeBuilderAgentContent = () => {
     }
   };
 
+  const handleCritiqueResume = async () => {
+    if (!generatedResume?.htmlContent) {
+      toast({
+        title: "No resume to critique",
+        description: "Please generate a resume first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCritiqueLoading(true);
+    setShowCritique(true);
+    
+    try {
+      await supabase.functions.invoke('critique-resume', {
+        body: {
+          resumeContent: generatedResume.htmlContent,
+          jobDescription: jobDescription
+        }
+      });
+
+      toast({
+        title: "Critique complete",
+        description: "Review the detailed feedback below"
+      });
+    } catch (error) {
+      console.error('Error critiquing resume:', error);
+      toast({
+        title: "Critique failed",
+        description: "Unable to analyze resume. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setCritiqueLoading(false);
+    }
+  };
+
   const handleDownload = async (format: string) => {
     if (!generatedResume) return;
     
@@ -613,7 +653,7 @@ const ResumeBuilderAgentContent = () => {
           {/* Right: Resume Builder Workspace */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="current" className="gap-2">
                   <FileText className="h-4 w-4" />
                   Build
@@ -625,6 +665,10 @@ const ResumeBuilderAgentContent = () => {
                 <TabsTrigger value="compare" className="gap-2">
                   <GitCompare className="h-4 w-4" />
                   Preview
+                </TabsTrigger>
+                <TabsTrigger value="critique" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Critique
                 </TabsTrigger>
                 <TabsTrigger value="analytics" className="gap-2">
                   <Brain className="h-4 w-4" />
@@ -944,6 +988,36 @@ const ResumeBuilderAgentContent = () => {
                     data={analyticsData} 
                     loading={loadingAnalytics}
                   />
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="critique" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  {!generatedResume ? (
+                    <div className="text-center text-muted-foreground py-12">
+                      <Sparkles className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <p className="mb-4">Generate a resume to get AI critique</p>
+                    </div>
+                  ) : !showCritique ? (
+                    <div className="text-center py-12">
+                      <Sparkles className="h-16 w-16 mx-auto mb-4 text-primary" />
+                      <h3 className="text-xl font-semibold mb-2">AI Resume Critique</h3>
+                      <p className="text-muted-foreground mb-6">
+                        Get detailed, actionable feedback from our AI expert
+                      </p>
+                      <Button onClick={handleCritiqueResume} size="lg">
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Analyze My Resume
+                      </Button>
+                    </div>
+                  ) : (
+                    <ResumeCritique
+                      resumeContent={generatedResume.htmlContent}
+                      jobDescription={jobDescription}
+                      onRefresh={handleCritiqueResume}
+                      loading={critiqueLoading}
+                    />
+                  )}
                 </ScrollArea>
               </TabsContent>
             </Tabs>
