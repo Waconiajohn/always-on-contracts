@@ -55,16 +55,29 @@ serve(async (req) => {
 
     // COMPREHENSIVE AI PROMPT
     // This extracts across ALL 20 intelligence categories in ONE pass
-    const systemPrompt = `You are an elite executive career intelligence analyst. Your job is to extract COMPREHENSIVE career intelligence from a resume across ALL 20 intelligence categories.
+    const systemPrompt = `You are an elite executive career intelligence analyst extracting structured data from executive resumes.
 
-Be GENEROUS in extraction - this is for an executive's career vault that will power:
-- Custom resume generation for every job
-- LinkedIn profile optimization
-- Interview preparation
-- Salary negotiation
-- Networking strategies
+CRITICAL INSTRUCTIONS:
+1. You MUST use the extract_vault_intelligence function tool - this is mandatory
+2. Extract ALL 20 intelligence categories with high-quality examples
+3. Use ONLY information explicitly stated or clearly implied in the resume
+4. Return 5-15 high-quality items per category (quality over quantity)
+5. Each item must include specific evidence, context, and metrics where applicable
 
-Extract EVERYTHING that could be valuable, even if not explicitly stated. Infer hidden competencies, leadership philosophy, personality traits from how they describe their experience.`;
+EXTRACTION PRINCIPLES:
+- Be GENEROUS in extraction - this powers resume generation, LinkedIn optimization, interviews, and negotiations
+- Infer hidden competencies and leadership philosophy from how they describe their experience
+- Extract quantified achievements with business impact (revenue, cost savings, efficiency, growth)
+- Identify transferable skills applicable across roles and industries
+- Find rare, valuable capabilities not obvious from job titles
+
+DO NOT:
+- Return plain text responses without using the function tool
+- Make assumptions not supported by the resume content
+- Include generic or vague statements without specific evidence
+- Skip any of the 20 required intelligence categories
+
+OUTPUT FORMAT: Use the extract_vault_intelligence tool with all 20 categories populated.`;
 
     const userPrompt = `Analyze this executive resume and extract COMPREHENSIVE career intelligence across ALL 20 categories.
 
@@ -195,216 +208,368 @@ Return VALID JSON only with this structure:
 }`;
 
     console.log('[AUTO-POPULATE-VAULT] Calling Lovable AI for deep extraction...');
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "extract_vault_intelligence",
-            description: "Extract comprehensive career intelligence across all 20 categories",
-            parameters: {
-              type: "object",
-              properties: {
-                powerPhrases: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      phrase: { type: "string" },
-                      context: { type: "string" },
-                      category: { type: "string" },
-                      metrics: { type: "object" },
-                      keywords: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["phrase", "category"]
-                  }
-                },
-                transferableSkills: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      skill: { type: "string" },
-                      level: { type: "string" },
-                      evidence: { type: "string" },
-                      equivalentSkills: { type: "array", items: { type: "string" } },
-                      yearsUsed: { type: "number" }
-                    },
-                    required: ["skill", "level"]
-                  }
-                },
-                hiddenCompetencies: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      competency: { type: "string" },
-                      description: { type: "string" },
-                      evidence: { type: "array", items: { type: "string" } },
-                      marketValue: { type: "string" },
-                      certificationEquivalent: { type: "string" }
-                    },
-                    required: ["competency", "description"]
-                  }
-                },
-                softSkills: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      skillName: { type: "string" },
-                      evidence: { type: "string" },
-                      context: { type: "string" },
-                      proficiencyLevel: { type: "string" },
-                      impact: { type: "string" }
-                    },
-                    required: ["skillName"]
-                  }
-                },
-                leadershipPhilosophy: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      philosophyStatement: { type: "string" },
-                      leadershipStyle: { type: "string" },
-                      realWorldApplication: { type: "string" },
-                      corePrinciples: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["philosophyStatement"]
-                  }
-                },
-                executivePresence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      presenceIndicator: { type: "string" },
-                      evidence: { type: "string" },
-                      situationalExample: { type: "string" },
-                      brandAlignment: { type: "string" },
-                      perceivedImpact: { type: "string" }
-                    },
-                    required: ["presenceIndicator"]
-                  }
-                },
-                personalityTraits: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      traitName: { type: "string" },
-                      behavioralEvidence: { type: "string" },
-                      workContext: { type: "string" },
-                      strengthOrGrowth: { type: "string" }
-                    },
-                    required: ["traitName"]
-                  }
-                },
-                workStyle: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      preferenceArea: { type: "string" },
-                      preferenceDescription: { type: "string" },
-                      examples: { type: "string" },
-                      idealEnvironment: { type: "string" }
-                    },
-                    required: ["preferenceArea"]
-                  }
-                },
-                values: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      valueName: { type: "string" },
-                      manifestation: { type: "string" },
-                      importanceLevel: { 
-                        type: "string",
-                        enum: ["core", "important", "nice_to_have"]
-                      }
-                    },
-                    required: ["valueName"]
-                  }
-                },
-                behavioralIndicators: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      indicatorType: { type: "string" },
-                      specificBehavior: { type: "string" },
-                      context: { type: "string" }
-                    },
-                    required: ["indicatorType", "specificBehavior"]
-                  }
-                },
-                summary: {
-                  type: "object",
-                  properties: {
-                    totalItemsExtracted: { type: "number" },
-                    strengthAreas: { type: "array", items: { type: "string" } },
-                    uniqueDifferentiators: { type: "array", items: { type: "string" } },
-                    targetFit: { type: "string" },
-                    confidence: { type: "string" },
-                    completenessScore: { type: "number" }
-                  },
-                  required: ["totalItemsExtracted", "completenessScore"]
-                }
-              },
-              required: ["powerPhrases", "transferableSkills", "hiddenCompetencies", "softSkills", "summary"]
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "extract_vault_intelligence" } },
-      }),
+    console.log('[AUTO-POPULATE-VAULT] Request details:', {
+      model: 'google/gemini-2.5-flash',
+      resumeLength: resumeText.length,
+      targetRoles: targetRoles.length,
+      targetIndustries: targetIndustries.length
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[AUTO-POPULATE-VAULT] AI error:', response.status, errorText);
-      throw new Error(`AI extraction failed: ${response.status}`);
+    // PRODUCTION-GRADE RETRY LOGIC
+    let intelligence;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[AUTO-POPULATE-VAULT] Attempt ${attempt}/3`);
+
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            tools: [{
+              type: "function",
+              function: {
+                name: "extract_vault_intelligence",
+                description: "Extract comprehensive career intelligence across all 20 categories",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    powerPhrases: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          phrase: { type: "string" },
+                          context: { type: "string" },
+                          category: { type: "string" },
+                          metrics: { type: "object" },
+                          keywords: { type: "array", items: { type: "string" } }
+                        },
+                        required: ["phrase", "context"]
+                      }
+                    },
+                    transferableSkills: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          skill: { type: "string" },
+                          level: { type: "string" },
+                          evidence: { type: "string" },
+                          equivalentSkills: { type: "array", items: { type: "string" } },
+                          yearsUsed: { type: "number" }
+                        },
+                        required: ["skill", "level", "evidence"]
+                      }
+                    },
+                    hiddenCompetencies: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          competency: { type: "string" },
+                          description: { type: "string" },
+                          evidence: { type: "array", items: { type: "string" } },
+                          marketValue: { type: "string" },
+                          certificationEquivalent: { type: "string" }
+                        },
+                        required: ["competency", "description"]
+                      }
+                    },
+                    businessImpacts: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          impact: { type: "string" },
+                          metrics: { type: "object" },
+                          businessArea: { type: "string" },
+                          executiveVisibility: { type: "string" }
+                        },
+                        required: ["impact"]
+                      }
+                    },
+                    leadershipEvidence: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          evidence: { type: "string" },
+                          teamSize: { type: "string" },
+                          scope: { type: "string" },
+                          outcome: { type: "string" }
+                        },
+                        required: ["evidence"]
+                      }
+                    },
+                    technicalDepth: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          technology: { type: "string" },
+                          proficiencyLevel: { type: "string" },
+                          yearsExperience: { type: "number" },
+                          applications: { type: "array", items: { type: "string" } }
+                        },
+                        required: ["technology"]
+                      }
+                    },
+                    projects: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          projectName: { type: "string" },
+                          description: { type: "string" },
+                          role: { type: "string" },
+                          outcome: { type: "string" },
+                          skills: { type: "array", items: { type: "string" } }
+                        },
+                        required: ["projectName", "description"]
+                      }
+                    },
+                    industryExpertise: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          industry: { type: "string" },
+                          yearsExperience: { type: "number" },
+                          specificKnowledge: { type: "array", items: { type: "string" } },
+                          regulatoryFamiliarity: { type: "array", items: { type: "string" } }
+                        },
+                        required: ["industry"]
+                      }
+                    },
+                    problemSolving: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          problemDescription: { type: "string" },
+                          approach: { type: "string" },
+                          result: { type: "string" },
+                          complexity: { type: "string" }
+                        },
+                        required: ["problemDescription"]
+                      }
+                    },
+                    stakeholderMgmt: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          stakeholderType: { type: "string" },
+                          relationship: { type: "string" },
+                          evidence: { type: "string" }
+                        },
+                        required: ["stakeholderType", "evidence"]
+                      }
+                    },
+                    careerNarrative: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          milestone: { type: "string" },
+                          significance: { type: "string" },
+                          growthDemonstrated: { type: "string" }
+                        },
+                        required: ["milestone"]
+                      }
+                    },
+                    competitiveAdvantages: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          advantage: { type: "string" },
+                          uniqueness: { type: "string" },
+                          marketRelevance: { type: "string" }
+                        },
+                        required: ["advantage"]
+                      }
+                    },
+                    communication: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          communicationType: { type: "string" },
+                          audience: { type: "string" },
+                          evidence: { type: "string" }
+                        },
+                        required: ["communicationType", "evidence"]
+                      }
+                    },
+                    softSkills: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          skill: { type: "string" },
+                          evidence: { type: "string" },
+                          context: { type: "string" }
+                        },
+                        required: ["skill", "evidence"]
+                      }
+                    },
+                    leadershipPhilosophy: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          principle: { type: "string" },
+                          howItManifests: { type: "string" },
+                          evidence: { type: "string" }
+                        },
+                        required: ["principle"]
+                      }
+                    },
+                    executivePresence: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          indicator: { type: "string" },
+                          manifestation: { type: "string" },
+                          context: { type: "string" }
+                        },
+                        required: ["indicator"]
+                      }
+                    },
+                    personalityTraits: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          trait: { type: "string" },
+                          evidence: { type: "string" },
+                          professionalValue: { type: "string" }
+                        },
+                        required: ["trait"]
+                      }
+                    },
+                    workStyle: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          styleElement: { type: "string" },
+                          description: { type: "string" },
+                          whenEffective: { type: "string" }
+                        },
+                        required: ["styleElement"]
+                      }
+                    },
+                    values: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          valueName: { type: "string" },
+                          howDemonstrated: { type: "string" }
+                        },
+                        required: ["valueName"]
+                      }
+                    },
+                    behavioralIndicators: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          indicatorType: { type: "string" },
+                          specificBehavior: { type: "string" },
+                          context: { type: "string" }
+                        },
+                        required: ["indicatorType", "specificBehavior"]
+                      }
+                    },
+                    summary: {
+                      type: "object",
+                      properties: {
+                        totalItemsExtracted: { type: "number" },
+                        strengthAreas: { type: "array", items: { type: "string" } },
+                        uniqueDifferentiators: { type: "array", items: { type: "string" } },
+                        targetFit: { type: "string" },
+                        confidence: { type: "string" },
+                        completenessScore: { type: "number" }
+                      },
+                      required: ["totalItemsExtracted", "completenessScore"]
+                    }
+                  },
+                  required: ["powerPhrases", "transferableSkills", "hiddenCompetencies", "softSkills", "summary"]
+                }
+              }
+            }],
+            tool_choice: { type: "function", function: { name: "extract_vault_intelligence" } },
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[AUTO-POPULATE-VAULT] Attempt ${attempt} - AI error:`, response.status, errorText);
+          throw new Error(`AI extraction failed: ${response.status} - ${errorText}`);
+        }
+
+        const aiData = await response.json();
+        
+        console.log('[AUTO-POPULATE-VAULT] Response structure:', {
+          hasChoices: !!aiData.choices,
+          choicesLength: aiData.choices?.length,
+          hasMessage: !!aiData.choices?.[0]?.message,
+          hasToolCalls: !!aiData.choices?.[0]?.message?.tool_calls,
+          toolCallsCount: aiData.choices?.[0]?.message?.tool_calls?.length
+        });
+
+        // Check if response has expected structure
+        if (!aiData.choices || !Array.isArray(aiData.choices) || aiData.choices.length === 0) {
+          console.error('[AUTO-POPULATE-VAULT] Invalid AI response - missing choices:', aiData);
+          throw new Error('AI response missing choices array');
+        }
+
+        const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
+        if (!toolCall) {
+          console.error('[AUTO-POPULATE-VAULT] No tool call in message:', aiData.choices[0]?.message);
+          throw new Error('No tool call in response - AI may have returned text instead');
+        }
+
+        // Parse the tool call arguments
+        const args = toolCall.function.arguments;
+        intelligence = typeof args === 'string' ? JSON.parse(args) : args;
+        
+        console.log('[AUTO-POPULATE-VAULT] Successfully parsed intelligence');
+        console.log('[AUTO-POPULATE-VAULT] Summary:', intelligence.summary);
+        
+        // Success - break out of retry loop
+        break;
+
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.error(`[AUTO-POPULATE-VAULT] Attempt ${attempt} failed:`, lastError.message);
+        
+        if (attempt < 3) {
+          const delayMs = 1000 * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s
+          console.log(`[AUTO-POPULATE-VAULT] Retrying in ${delayMs}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
     }
 
-    const aiData = await response.json();
-    console.log('[AUTO-POPULATE-VAULT] Raw AI response:', JSON.stringify(aiData, null, 2));
-    
-    let intelligence;
-
-    try {
-      // Check if response has expected structure
-      if (!aiData.choices || !Array.isArray(aiData.choices) || aiData.choices.length === 0) {
-        console.error('[AUTO-POPULATE-VAULT] Invalid AI response structure:', aiData);
-        throw new Error('AI response missing choices array');
-      }
-
-      const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
-      if (!toolCall) {
-        console.error('[AUTO-POPULATE-VAULT] No tool call found in:', aiData.choices[0]?.message);
-        throw new Error('No tool call in response');
-      }
-
-      const args = toolCall.function.arguments;
-      intelligence = typeof args === 'string' ? JSON.parse(args) : args;
-      
-      console.log('[AUTO-POPULATE-VAULT] Parsed intelligence successfully');
-    } catch (e) {
-      console.error('[AUTO-POPULATE-VAULT] Failed to parse AI response:', e);
-      console.error('[AUTO-POPULATE-VAULT] Response data:', aiData);
-      throw new Error(`AI returned invalid response: ${e.message}`);
+    // If all retries failed, throw the last error
+    if (!intelligence) {
+      console.error('[AUTO-POPULATE-VAULT] All retry attempts exhausted');
+      throw lastError || new Error('Failed to extract intelligence after 3 attempts');
     }
 
     console.log('[AUTO-POPULATE-VAULT] Extraction complete!');
