@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Target, Brain, CheckCircle, Sparkles } from 'lucide-react';
@@ -38,6 +38,7 @@ const CareerVaultOnboardingEnhanced = () => {
   const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
+  const hasCheckedVault = useRef(false);
 
   const steps = [
     { id: 'upload', label: 'Upload Resume', icon: Upload },
@@ -51,24 +52,28 @@ const CareerVaultOnboardingEnhanced = () => {
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   useEffect(() => {
-    const checkExistingVault = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
+    // Only check on initial mount
+    if (hasCheckedVault.current) return;
+    hasCheckedVault.current = true;
 
-      // Check if vault is already complete
-      const { data: existingVault } = await supabase
-        .from('career_vault')
-        .select('id, interview_completion_percentage')
-        .eq('user_id', user.id)
-        .maybeSingle();
+    const checkExistingVault = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigate('/auth');
+          return;
+        }
+
+        const { data: existingVault } = await supabase
+          .from('career_vault')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
 
       if (existingVault) {
         setVaultId(existingVault.id);
 
-        // Only redirect if vault is complete AND we're not in the middle of onboarding
+        // Only redirect if vault is complete AND we're starting fresh
         if ((existingVault.interview_completion_percentage ?? 0) >= 85 && currentStep === 'upload') {
           toast({
             title: 'Vault Already Complete',
@@ -77,10 +82,13 @@ const CareerVaultOnboardingEnhanced = () => {
           navigate('/career-vault');
         }
       }
+      } catch (error) {
+        console.error('Error checking vault:', error);
+      }
     };
 
     checkExistingVault();
-  }, [navigate, toast, currentStep]);
+  }, [navigate, toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
