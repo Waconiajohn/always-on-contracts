@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Brain, History, GitCompare, Plus, Upload, Sparkles, Download } from "lucide-react";
+import { FileText, Brain, History, GitCompare, Plus, Upload, Sparkles, Download, Palette } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,8 @@ import { EditableResumePreview } from "@/components/resume/EditableResumePreview
 import { ResumePreviewToggle } from "@/components/resume/ResumePreviewToggle";
 import { VersionHistory } from "@/components/resume/VersionHistory";
 import { VersionComparison } from "@/components/resume/VersionComparison";
+import { TemplateCustomizer, TemplateCustomization, defaultPresets } from "@/components/resume/TemplateCustomizer";
+import { applyCustomizationToHTML } from "@/lib/templateCustomizationUtils";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -48,6 +50,8 @@ const ResumeBuilderAgentContent = () => {
   const [versions, setVersions] = useState<any[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [comparingVersions, setComparingVersions] = useState<{ versionA: any; versionB: any } | null>(null);
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [customization, setCustomization] = useState<TemplateCustomization>(defaultPresets.professional);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -147,7 +151,13 @@ const ResumeBuilderAgentContent = () => {
     }
 
     setGenerating(false);
-    setGeneratedResume(data);
+    
+    // Apply customization to generated resume
+    const customizedHtml = applyCustomizationToHTML(data.htmlContent, customization);
+    setGeneratedResume({
+      ...data,
+      htmlContent: customizedHtml
+    });
     setActiveTab('compare');
     
     // Verify resume claims with Perplexity
@@ -303,6 +313,39 @@ const ResumeBuilderAgentContent = () => {
       title: "Vault content added",
       description: "This content has been marked for inclusion in your resume",
     });
+  };
+
+  const handleApplyCustomization = () => {
+    if (generatedResume) {
+      const customizedHtml = applyCustomizationToHTML(generatedResume.htmlContent, customization);
+      setGeneratedResume({
+        ...generatedResume,
+        htmlContent: customizedHtml
+      });
+      toast({
+        title: "Customization applied",
+        description: "Your resume styling has been updated"
+      });
+    }
+  };
+
+  const handleResetCustomization = () => {
+    setCustomization(defaultPresets.professional);
+    toast({
+      title: "Customization reset",
+      description: "Restored to professional preset"
+    });
+  };
+
+  const handleApplyPreset = (preset: string) => {
+    const presetConfig = defaultPresets[preset as keyof typeof defaultPresets];
+    if (presetConfig) {
+      setCustomization(presetConfig);
+      toast({
+        title: `${preset.charAt(0).toUpperCase() + preset.slice(1)} preset applied`,
+        description: "Customization updated"
+      });
+    }
   };
 
   const handlePreviewVersion = (version: any) => {
@@ -507,20 +550,37 @@ const ResumeBuilderAgentContent = () => {
                       />
                     )}
                     
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">Resume Template</label>
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => setShowTemplateSelector(true)}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          {selectedTemplate === 'modern' ? 'Modern Professional' : 
-                           selectedTemplate === 'executive' ? 'Executive Classic' : 
-                           'Technical Hybrid'} Template
-                        </Button>
-                      </div>
+                     <div className="space-y-3">
+                       <div>
+                         <label className="text-sm font-medium mb-2 block">Resume Template</label>
+                         <div className="flex gap-2">
+                           <Button 
+                             variant="outline" 
+                             className="flex-1"
+                             onClick={() => setShowTemplateSelector(true)}
+                           >
+                             <FileText className="h-4 w-4 mr-2" />
+                             {selectedTemplate === 'modern' ? 'Modern Professional' : 
+                              selectedTemplate === 'executive' ? 'Executive Classic' : 
+                              'Technical Hybrid'} Template
+                           </Button>
+                           <Button
+                             variant="outline"
+                             onClick={() => setShowCustomizer(!showCustomizer)}
+                           >
+                             <Palette className="h-4 w-4" />
+                           </Button>
+                         </div>
+                       </div>
+
+                       {showCustomizer && (
+                         <TemplateCustomizer
+                           customization={customization}
+                           onChange={setCustomization}
+                           onReset={handleResetCustomization}
+                           onApplyPreset={handleApplyPreset}
+                         />
+                       )}
 
                       <div>
                         <label className="text-sm font-medium mb-2 block">Output Format</label>
@@ -660,7 +720,19 @@ const ResumeBuilderAgentContent = () => {
                       </div>
 
                       {previewMode === 'preview' ? (
-                        <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+                        <div>
+                          <div className="flex justify-end mb-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleApplyCustomization}
+                              disabled={!generatedResume}
+                            >
+                              Apply Customization
+                            </Button>
+                          </div>
+                          <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+                        </div>
                       ) : (
                         <EditableResumePreview
                           structuredData={generatedResume.structuredData}
