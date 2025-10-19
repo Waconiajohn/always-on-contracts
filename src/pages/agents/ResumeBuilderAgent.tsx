@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles, Download } from "lucide-react";
+import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles, Download, TrendingUp, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,12 @@ import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 import { TemplateSelector } from "@/components/resume/TemplateSelector";
 import { useLocation } from "react-router-dom";
+import { useIntelligentVaultFiltering } from "@/hooks/useIntelligentVaultFiltering";
+import { SmartVaultPanel } from "@/components/resume/SmartVaultPanel";
+import { VerificationResults } from "@/components/resume/VerificationResults";
+import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
+import { exportFormats } from "@/lib/resumeExportUtils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -34,6 +40,7 @@ const ResumeBuilderAgentContent = () => {
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
+  const { filteredVault, loading: vaultFilteringLoading } = useIntelligentVaultFiltering(vaultData, jobDescription);
 
   useEffect(() => {
     fetchVaultData();
@@ -100,47 +107,133 @@ const ResumeBuilderAgentContent = () => {
       }
     });
 
+    if (error) {
+      setGenerating(false);
+      toast({ title: "Error generating resume", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    // Step 2: Run Perplexity Verification
+    toast({ 
+      title: "Verifying resume claims...", 
+      description: "Cross-referencing with Career Vault using Perplexity" 
+    });
+    
+    const { data: auditData } = await supabase.functions.invoke('dual-ai-audit', {
+      body: {
+        content: data.htmlContent,
+        contentType: 'resume',
+        context: {
+          jobDescription,
+          careerVaultData: vaultData
+        }
+      }
+    });
+
+    // Step 3: Run ATS Analysis
+    toast({ 
+      title: "Analyzing ATS compatibility...", 
+      description: "Scoring resume against job requirements" 
+    });
+    
+    const { data: atsData } = await supabase.functions.invoke('optimize-resume-detailed', {
+      body: {
+        resumeContent: data.htmlContent,
+        jobDescription,
+        persona: selectedPersona
+      }
+    });
+
     setGenerating(false);
 
-    if (error) {
-      toast({ title: "Error generating resume", description: error.message, variant: "destructive" });
-    } else {
-      setGeneratedResume(data);
-      setActiveTab('compare');
-      
-      // Save resume version to database
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: templates } = await supabase
-            .from('resume_templates')
-            .select('id')
-            .eq('template_type', selectedTemplate)
-            .single();
+    setGeneratedResume({
+      ...data,
+      verification: auditData?.audit || null,
+      atsScore: atsData?.optimization || null
+    });
+    setActiveTab('compare');
+    
+    // Save resume version to database
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: templates } = await supabase
+          .from('resume_templates')
+          .select('id')
+          .eq('template_type', selectedTemplate)
+          .single();
 
-          await supabase.from('resume_versions').insert({
-            user_id: user.id,
-            version_name: `${jobTitle || 'Resume'} - ${new Date().toLocaleDateString()}`,
-            template_id: templates?.id || null,
-            content: data,
-            html_content: data.optimizedResume,
-            customizations: {
-              persona: selectedPersona,
-              selected_phrases: selectedPhrases,
-              selected_skills: selectedSkills,
-              job_title: jobTitle,
-              company_name: companyName
-            },
-            match_score: data.metadata?.matchScore || null
-          });
-        }
-      } catch (saveError) {
-        console.error('Error saving resume version:', saveError);
+        await supabase.from('resume_versions').insert({
+          user_id: user.id,
+          version_name: `${jobTitle || 'Resume'} - ${new Date().toLocaleDateString()}`,
+          template_id: templates?.id || null,
+          content: data,
+          html_content: data.htmlContent,
+          customizations: {
+            persona: selectedPersona,
+            selected_phrases: selectedPhrases,
+            selected_skills: selectedSkills,
+            job_title: jobTitle,
+            company_name: companyName
+          },
+          match_score: data.metadata?.matchScore || null
+        });
       }
-      
+    } catch (saveError) {
+      console.error('Error saving resume version:', saveError);
+    }
+    
+    toast({ 
+      title: "Resume generated!", 
+      description: `${data.metadata.jobTitle} resume ready with verification complete` 
+    });
+  };
+
+  const handleDownload = async (format: string) => {
+    if (!generatedResume) return;
+    
+    const fileName = `resume-${jobTitle || 'document'}-${Date.now()}`;
+    
+    try {
+      switch(format) {
+        case 'pdf':
+          await exportFormats.standardPDF(generatedResume.htmlContent, fileName);
+          toast({ title: "PDF downloaded successfully!" });
+          break;
+        case 'ats-pdf':
+          await exportFormats.atsPDF(generatedResume.structuredData || {}, fileName);
+          toast({ title: "ATS-optimized PDF downloaded!" });
+          break;
+        case 'docx':
+          await exportFormats.generateDOCX(generatedResume.structuredData || {}, `${fileName}.docx`);
+          toast({ title: "DOCX downloaded successfully!" });
+          break;
+        case 'plain':
+          const text = exportFormats.plainText(generatedResume.structuredData || {});
+          navigator.clipboard.writeText(text);
+          toast({ title: "Plain text copied to clipboard!" });
+          break;
+        case 'linkedin':
+          const linkedInText = exportFormats.linkedInFormat(generatedResume.structuredData || {});
+          navigator.clipboard.writeText(linkedInText);
+          toast({ title: "LinkedIn format copied to clipboard!" });
+          break;
+        default:
+          // HTML download
+          const blob = new Blob([generatedResume.htmlContent], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${fileName}.html`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: "HTML downloaded successfully!" });
+      }
+    } catch (error: any) {
       toast({ 
-        title: "Resume generated!", 
-        description: `${data.metadata.jobTitle} resume ready with hiring manager review` 
+        title: "Download failed", 
+        description: error.message, 
+        variant: "destructive" 
       });
     }
   };
@@ -177,6 +270,28 @@ const ResumeBuilderAgentContent = () => {
                     Build Your Career Vault
                   </Button>
                 </div>
+              ) : !jobDescription ? (
+                <div className="text-center py-8">
+                  <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-muted-foreground">Enter a job description to see relevant vault items</p>
+                </div>
+              ) : vaultFilteringLoading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-12 w-12 mx-auto mb-3 opacity-50 animate-spin" />
+                  <p className="text-sm text-muted-foreground">Analyzing relevance...</p>
+                </div>
+              ) : filteredVault ? (
+                <SmartVaultPanel 
+                  filteredVault={filteredVault}
+                  selectedPhrases={selectedPhrases}
+                  selectedSkills={selectedSkills}
+                  onTogglePhrase={(id) => setSelectedPhrases(prev => 
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                  )}
+                  onToggleSkill={(id) => setSelectedSkills(prev => 
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                  )}
+                />
               ) : (
                 <div className="space-y-4">
                   <div>
