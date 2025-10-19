@@ -19,6 +19,10 @@ import { SavedJobsList } from "@/components/job-search/SavedJobsList";
 import { QuickBooleanBuilder } from "@/components/job-search/QuickBooleanBuilder";
 import { BooleanActiveIndicator } from "@/components/job-search/BooleanActiveIndicator";
 import { useNavigate } from "react-router-dom";
+import { ContentLayout } from "@/components/layout/ContentLayout";
+import { ContextSidebar } from "@/components/layout/ContextSidebar";
+import { JobSearchSidebar } from "@/components/job-search/JobSearchSidebar";
+import { useLayout } from "@/contexts/LayoutContext";
 
 interface JobResult {
   id: string;
@@ -40,6 +44,7 @@ interface JobResult {
 const JobSearchContent = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { leftSidebarCollapsed, toggleLeftSidebar } = useLayout();
   const [userId, setUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -483,8 +488,22 @@ const JobSearchContent = () => {
   }, [dateFilter, contractOnly, remoteType, employmentType, booleanString]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <ContentLayout
+      leftSidebar={
+        <ContextSidebar
+          side="left"
+          collapsed={leftSidebarCollapsed}
+          onToggle={toggleLeftSidebar}
+        >
+          <JobSearchSidebar
+            appliedFiltersCount={appliedFiltersCount}
+            onClearFilters={handleClearBoolean}
+          />
+        </ContextSidebar>
+      }
+      maxWidth="full"
+    >
+      <div className="px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Search Jobs</h1>
           <p className="text-muted-foreground">Live results from 50+ sources</p>
@@ -974,7 +993,7 @@ const JobSearchContent = () => {
         }}
       />
       </div>
-    </div>
+    </ContentLayout>
   );
 };
 

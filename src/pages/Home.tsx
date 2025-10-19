@@ -35,6 +35,7 @@ import { ActivityFeed } from "@/components/home/ActivityFeed";
 import { SchedulingCTA } from "@/components/SchedulingCTA";
 import { MarketRealityWidget } from "@/components/home/MarketRealityWidget";
 import { VaultPowerWidget } from "@/components/home/VaultPowerWidget";
+import { ContentLayout } from "@/components/layout/ContentLayout";
 
 const HomeContent = () => {
   const navigate = useNavigate();
@@ -145,7 +146,8 @@ const HomeContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <ContentLayout maxWidth="container">
+      <div className="min-h-screen bg-background">
       {/* Premium Branding Header */}
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -369,7 +371,8 @@ const HomeContent = () => {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  </ContentLayout>
+);
 };
 
 const Home = () => {

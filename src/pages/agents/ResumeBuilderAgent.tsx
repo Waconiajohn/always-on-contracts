@@ -10,9 +10,15 @@ import { Upload, Sparkles, Loader2 } from "lucide-react";
 import { JobAnalysisPanel } from "@/components/resume-builder/JobAnalysisPanel";
 import { IntelligentVaultPanel } from "@/components/resume-builder/IntelligentVaultPanel";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
+import { ContentLayout } from "@/components/layout/ContentLayout";
+import { ContextSidebar } from "@/components/layout/ContextSidebar";
+import { ResumeSidebar } from "@/components/resume-builder/ResumeSidebar";
+import { ResumeInsightsSidebar } from "@/components/resume-builder/ResumeInsightsSidebar";
+import { useLayout } from "@/contexts/LayoutContext";
 
 const ResumeBuilderV2Content = () => {
   const { toast } = useToast();
+  const { leftSidebarCollapsed, toggleLeftSidebar, rightSidebarCollapsed, toggleRightSidebar } = useLayout();
 
   // Job description state
   const [jobDescription, setJobDescription] = useState("");
@@ -276,8 +282,33 @@ const ResumeBuilderV2Content = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <ContentLayout
+      leftSidebar={
+        <ContextSidebar
+          side="left"
+          collapsed={leftSidebarCollapsed}
+          onToggle={toggleLeftSidebar}
+        >
+          <ResumeSidebar onNewResume={() => window.location.reload()} />
+        </ContextSidebar>
+      }
+      rightSidebar={
+        jobAnalysis ? (
+          <ContextSidebar
+            side="right"
+            collapsed={rightSidebarCollapsed}
+            onToggle={toggleRightSidebar}
+          >
+            <ResumeInsightsSidebar
+              atsScore={calculateATSScore()}
+              requirementCoverage={calculateCoverage()}
+            />
+          </ContextSidebar>
+        ) : undefined
+      }
+      maxWidth="full"
+    >
+      <div className="px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Benchmark Resume Builder</h1>
           <p className="text-muted-foreground">
@@ -433,7 +464,7 @@ const ResumeBuilderV2Content = () => {
           });
         }}
       />
-    </div>
+    </ContentLayout>
   );
 };
 

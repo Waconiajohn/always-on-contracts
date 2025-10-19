@@ -9,6 +9,10 @@ import { Target, Award, Trophy, Info } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AddMetricsModal } from "@/components/career-vault/AddMetricsModal";
 import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLanguageModal";
+import { ContentLayout } from "@/components/layout/ContentLayout";
+import { ContextSidebar } from "@/components/layout/ContextSidebar";
+import { VaultSidebar } from "@/components/career-vault/VaultSidebar";
+import { useLayout } from "@/contexts/LayoutContext";
 
 interface VaultStats {
   total_power_phrases: number;
@@ -141,6 +145,7 @@ import { useToast } from '@/hooks/use-toast';
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { rightSidebarCollapsed, toggleRightSidebar } = useLayout();
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
@@ -539,7 +544,28 @@ const VaultDashboardContent = () => {
     stats.total_behavioral_indicators;
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <ContentLayout
+      rightSidebar={
+        stats ? (
+          <ContextSidebar
+            side="right"
+            collapsed={rightSidebarCollapsed}
+            onToggle={toggleRightSidebar}
+          >
+            <VaultSidebar
+              completionPercentage={stats.interview_completion_percentage}
+              totalItems={totalIntelligenceItems}
+              strengthScore={stats.overall_strength_score}
+              onQuickAction={(action) => {
+                toast({ title: `Quick action: ${action}`, description: 'Feature coming soon!' });
+              }}
+            />
+          </ContextSidebar>
+        ) : undefined
+      }
+      maxWidth="full"
+    >
+      <div className="px-6 py-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Career Vault Control Panel</h1>
@@ -1181,7 +1207,8 @@ const VaultDashboardContent = () => {
         }}
       />
     </div>
-  );
+  </ContentLayout>
+);
 };
 
 const CareerVaultDashboard = () => {

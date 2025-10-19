@@ -9,6 +9,7 @@ import { TopNav } from "@/components/navigation/TopNav";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LayoutProvider } from "@/contexts/LayoutContext";
 
 // Lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
@@ -65,16 +66,17 @@ const queryClient = new QueryClient();
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider delayDuration={300} skipDelayDuration={0}>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <CommandMenu />
-          <div className="flex min-h-screen w-full flex-col">
-            <TopNav />
-            <main className="flex-1">
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
+      <LayoutProvider>
+        <TooltipProvider delayDuration={300} skipDelayDuration={0}>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <CommandMenu />
+            <div className="flex min-h-screen w-full flex-col">
+              <TopNav />
+              <main className="flex-1">
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
@@ -128,8 +130,9 @@ const App = () => (
           </div>
         </BrowserRouter>
       </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+    </LayoutProvider>
+  </QueryClientProvider>
+</ErrorBoundary>
 );
 
 export default App;
