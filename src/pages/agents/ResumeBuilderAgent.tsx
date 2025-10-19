@@ -317,12 +317,13 @@ const ResumeBuilderAgentContent = () => {
           });
         });
         
-        // Add skills
-        intel.skills?.forEach((item: any) => {
+        // Add skills (all skill categories)
+        [...(intel.skills || []), ...(intel.transferableSkills || []), ...(intel.softSkills || [])].forEach((item: any) => {
+          const content = typeof item === 'string' ? item : (item.skill_name || item.content || item.skill || JSON.stringify(item));
           suggestions.push({
             id: `skill-${suggestions.length}`,
             type: 'skill',
-            content: typeof item === 'string' ? item : item.skill_name || item.content,
+            content,
             relevanceScore: item.relevanceScore || 0.75,
             used: false
           });
@@ -333,8 +334,8 @@ const ResumeBuilderAgentContent = () => {
           suggestions.push({
             id: `comp-${suggestions.length}`,
             type: 'competency',
-            content: item.competency_area || item.content || item,
-            relevanceScore: item.relevanceScore || 0.7,
+            content: item.competency_area || item.inferred_capability || item.content || JSON.stringify(item),
+            relevanceScore: item.relevanceScore || item.confidence_score / 100 || 0.7,
             used: false
           });
         });
@@ -350,10 +351,33 @@ const ResumeBuilderAgentContent = () => {
           });
         });
         
-        // Sort by relevance score
-        suggestions.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        // Add leadership and executive presence as competencies
+        [...(intel.leadership || []), ...(intel.executivePresence || [])].forEach((item: any) => {
+          const content = typeof item === 'string' ? item : (item.content || item.philosophy_statement || JSON.stringify(item));
+          suggestions.push({
+            id: `lead-${suggestions.length}`,
+            type: 'competency',
+            content,
+            relevanceScore: 0.8,
+            used: false
+          });
+        });
         
-        setVaultSuggestions(suggestions);
+        // Add personality, work style, values, and behavioral as power phrases
+        [...(intel.personality || []), ...(intel.workStyle || []), ...(intel.values || []), ...(intel.behavioral || [])].forEach((item: any) => {
+          const content = typeof item === 'string' ? item : (item.content || item.trait_name || item.value_name || item.specific_behavior || JSON.stringify(item));
+          suggestions.push({
+            id: `trait-${suggestions.length}`,
+            type: 'power_phrase',
+            content,
+            relevanceScore: 0.7,
+            used: false
+          });
+        });
+        
+        // Sort by relevance score and limit to top 20
+        suggestions.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        setVaultSuggestions(suggestions.slice(0, 20));
       }
     } catch (error) {
       console.error('Error fetching vault suggestions:', error);
