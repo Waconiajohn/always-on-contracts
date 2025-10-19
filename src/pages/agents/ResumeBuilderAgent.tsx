@@ -29,8 +29,6 @@ const ResumeBuilderAgentContent = () => {
   const [companyName, setCompanyName] = useState("");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [vaultData, setVaultData] = useState<any>(null);
-  const [selectedPhrases, setSelectedPhrases] = useState<string[]>([]);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
@@ -43,6 +41,8 @@ const ResumeBuilderAgentContent = () => {
   const [atsScore, setAtsScore] = useState<any>(null);
   const [analyzingATS, setAnalyzingATS] = useState(false);
   const [previewMode, setPreviewMode] = useState<'preview' | 'edit'>('preview');
+  const [vaultSuggestions, setVaultSuggestions] = useState<any[]>([]);
+  const [loadingVault, setLoadingVault] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -142,8 +142,6 @@ const ResumeBuilderAgentContent = () => {
           html_content: data.htmlContent,
           customizations: {
             persona: selectedPersona,
-            selected_phrases: selectedPhrases,
-            selected_skills: selectedSkills,
             job_title: jobTitle,
             company_name: companyName
           },
@@ -238,6 +236,46 @@ const ResumeBuilderAgentContent = () => {
     }
   };
 
+  const fetchVaultSuggestions = async (jobDesc: string) => {
+    if (!jobDesc || jobDesc.length < 100) return;
+    
+    setLoadingVault(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-vault-intelligence', {
+        body: { jobDescription: jobDesc }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setVaultSuggestions(data.suggestions.map((s: any) => ({
+          ...s,
+          used: false
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching vault suggestions:', error);
+      toast({
+        title: "Couldn't load vault suggestions",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingVault(false);
+    }
+  };
+
+  const handleUseVaultItem = (item: any) => {
+    setVaultSuggestions(prev =>
+      prev.map(s => s.id === item.id ? { ...s, used: true } : s)
+    );
+
+    toast({
+      title: "Vault content added",
+      description: "This content has been marked for inclusion in your resume",
+    });
+  };
+
   const handleDownload = async (format: string) => {
     if (!generatedResume) return;
     
@@ -312,16 +350,9 @@ const ResumeBuilderAgentContent = () => {
               </div>
             ) : (
               <SmartVaultPanel
-                vaultData={vaultData}
-                jobDescription={jobDescription}
-                selectedPhrases={selectedPhrases}
-                selectedSkills={selectedSkills}
-                onTogglePhrase={(id) => setSelectedPhrases(prev => 
-                  prev.includes(id) ? prev.filter(phId => phId !== id) : [...prev, id]
-                )}
-                onToggleSkill={(id) => setSelectedSkills(prev => 
-                  prev.includes(id) ? prev.filter(skId => skId !== id) : [...prev, id]
-                )}
+                vaultSuggestions={vaultSuggestions}
+                onUseItem={handleUseVaultItem}
+                isLoading={loadingVault}
               />
             )}
           </Card>
@@ -371,9 +402,15 @@ const ResumeBuilderAgentContent = () => {
                   className="min-h-[200px]"
                   value={jobDescription}
                   onChange={(e) => {
-                    setJobDescription(e.target.value);
+                    const value = e.target.value;
+                    setJobDescription(value);
                     if (recommendation) resetRecommendation();
                     setSelectedPersona(null);
+                    
+                    // Fetch vault suggestions when job description is substantial
+                    if (value.length > 100) {
+                      fetchVaultSuggestions(value);
+                    }
                   }}
                 />
 
