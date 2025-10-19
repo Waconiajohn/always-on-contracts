@@ -129,6 +129,7 @@ const VaultDashboardContent = () => {
   const navigate = useNavigate();
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [vaultId, setVaultId] = useState<string>("");
+  const [vault, setVault] = useState<any>(null);
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [powerPhrases, setPowerPhrases] = useState<PowerPhrase[]>([]);
   const [transferableSkills, setTransferableSkills] = useState<TransferableSkill[]>([]);
@@ -236,6 +237,7 @@ const VaultDashboardContent = () => {
 
         if (vault) {
           setVaultId(vault.id);
+          setVault(vault);
           setStats({
             total_power_phrases: vault.total_power_phrases || 0,
             total_transferable_skills: vault.total_transferable_skills || 0,
@@ -412,6 +414,11 @@ const VaultDashboardContent = () => {
             <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
               <Rocket className="h-5 w-5" />
               Mission Control
+              {vault?.auto_populated && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  AI Auto-Populated
+                </Badge>
+              )}
             </h2>
             <p className="text-sm text-muted-foreground">
               {stats.interview_completion_percentage}% interview complete • {totalIntelligenceItems} intelligence items extracted
