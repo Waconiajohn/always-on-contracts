@@ -154,7 +154,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const enabledSources = sources || ['google_jobs', 'company_boards', 'usajobs'];
+    const enabledSources = sources || ['google_jobs', 'company_boards', 'usajobs', 'adzuna'];
     console.log('[UNIFIED-SEARCH] Enabled sources after default:', JSON.stringify(enabledSources));
     const allJobs: JobResult[] = [];
     const sourceStats: Record<string, { count: number; status: string }> = {};
@@ -214,6 +214,23 @@ serve(async (req) => {
           .catch(error => {
             console.error('[USAJobs] ❌ ERROR:', error);
             sourceStats.usajobs = { count: 0, status: `error: ${error?.message || 'unknown'}` };
+            return [];
+          })
+      );
+    }
+
+    // Adzuna - Job aggregator API
+    if (enabledSources.includes('adzuna')) {
+      console.log('[UNIFIED-SEARCH] ✅ adzuna IS INCLUDED - Starting Adzuna search');
+      searchPromises.push(
+        searchAdzuna(query, location, searchFilters)
+          .then(jobs => {
+            sourceStats.adzuna = { count: jobs.length, status: 'success' };
+            return jobs;
+          })
+          .catch(error => {
+            console.error('[Adzuna] ❌ ERROR:', error);
+            sourceStats.adzuna = { count: 0, status: `error: ${error?.message || 'unknown'}` };
             return [];
           })
       );
@@ -1480,6 +1497,148 @@ async function searchUSAJobs(query: string, location: string, filters: SearchFil
 
   } catch (error) {
     console.error('[USAJobs] Search error:', error instanceof Error ? error.message : String(error));
+    return jobs;
+  }
+}
+
+async function searchAdzuna(query: string, location: string, filters: SearchFilters): Promise<JobResult[]> {
+  console.log(`[Adzuna] Starting search for query: "${query}", location: "${location}"`);
+  const jobs: JobResult[] = [];
+
+  try {
+    // Adzuna API - Free with registration
+    // Get API credentials from: https://developer.adzuna.com/
+    // For production, store these in Supabase secrets
+    const ADZUNA_APP_ID = Deno.env.get('ADZUNA_APP_ID') || '';
+    const ADZUNA_APP_KEY = Deno.env.get('ADZUNA_APP_KEY') || '';
+
+    if (!ADZUNA_APP_ID || !ADZUNA_APP_KEY) {
+      console.log('[Adzuna] Missing API credentials - skipping Adzuna search');
+      console.log('[Adzuna] Set ADZUNA_APP_ID and ADZUNA_APP_KEY in Supabase secrets');
+      return jobs;
+    }
+
+    // Adzuna API endpoint for US jobs
+    // Format: https://api.adzuna.com/v1/api/jobs/us/search/1
+    const baseUrl = 'https://api.adzuna.com/v1/api/jobs/us/search/1';
+
+    const params = new URLSearchParams();
+    params.set('app_id', ADZUNA_APP_ID);
+    params.set('app_key', ADZUNA_APP_KEY);
+    params.set('results_per_page', '100'); // Max 50-100 typically
+    params.set('what', query);
+
+    if (location && location.trim()) {
+      params.set('where', location);
+    }
+
+    // Date filtering - Adzuna uses 'max_days_old' parameter
+    if (filters.datePosted !== 'any') {
+      const daysOld = filters.datePosted === '24h' ? 1 :
+                      filters.datePosted === '3d' ? 3 :
+                      filters.datePosted === '7d' ? 7 :
+                      filters.datePosted === '14d' ? 14 :
+                      filters.datePosted === '30d' ? 30 : null;
+
+      if (daysOld) {
+        params.set('max_days_old', daysOld.toString());
+      }
+    }
+
+    // Salary filtering
+    if (filters.salaryMin) {
+      params.set('salary_min', filters.salaryMin.toString());
+    }
+    if (filters.salaryMax) {
+      params.set('salary_max', filters.salaryMax.toString());
+    }
+
+    // Contract/full-time filtering
+    if (filters.employmentType && filters.employmentType !== 'any') {
+      // Adzuna uses 'contract' or 'permanent'
+      const typeMap: Record<string, string> = {
+        'contract': 'contract',
+        'full-time': 'permanent',
+        'freelance': 'contract'
+      };
+      const adzunaType = typeMap[filters.employmentType];
+      if (adzunaType) {
+        params.set('contract_type', adzunaType);
+      }
+    }
+
+    // Full-time only filter
+    if (!filters.contractOnly) {
+      params.set('full_time', '1');
+    }
+
+    const url = `${baseUrl}?${params.toString()}`;
+    console.log(`[Adzuna] Fetching: ${url.replace(ADZUNA_APP_ID, 'APP_ID').replace(ADZUNA_APP_KEY, 'APP_KEY')}`);
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.log(`[Adzuna] API returned status ${response.status}`);
+      const errorText = await response.text();
+      console.log(`[Adzuna] Error response: ${errorText}`);
+      return jobs;
+    }
+
+    const data = await response.json();
+    console.log(`[Adzuna] Response received:`, {
+      count: data.count || 0,
+      mean: data.mean || 0,
+      results: data.results?.length || 0
+    });
+
+    const results = data.results || [];
+
+    for (const job of results) {
+      // Parse date - Adzuna returns ISO format like "2025-01-18T12:00:00Z"
+      const postedDate = job.created || new Date().toISOString();
+
+      // Parse location
+      const locationDisplay = job.location?.display || location || 'United States';
+
+      // Determine remote type
+      let remoteType: string | null = null;
+      const description = (job.description || '').toLowerCase();
+      const title = (job.title || '').toLowerCase();
+      if (description.includes('remote') || title.includes('remote')) {
+        remoteType = 'remote';
+      } else if (description.includes('hybrid')) {
+        remoteType = 'hybrid';
+      } else {
+        remoteType = 'onsite';
+      }
+
+      jobs.push({
+        id: `adzuna_${job.id}`,
+        title: job.title || 'Untitled Position',
+        company: job.company?.display_name || 'Company Not Listed',
+        location: locationDisplay,
+        salary_min: job.salary_min ? Math.round(job.salary_min) : null,
+        salary_max: job.salary_max ? Math.round(job.salary_max) : null,
+        description: job.description || null,
+        posted_date: postedDate,
+        apply_url: job.redirect_url || null,
+        source: 'Adzuna',
+        remote_type: remoteType,
+        employment_type: job.contract_type || job.contract_time || null,
+        required_skills: null
+      });
+    }
+
+    console.log(`[Adzuna] Search complete: ${jobs.length} jobs found`);
+    return jobs;
+
+  } catch (error) {
+    console.error('[Adzuna] Search error:', error instanceof Error ? error.message : String(error));
     return jobs;
   }
 }
