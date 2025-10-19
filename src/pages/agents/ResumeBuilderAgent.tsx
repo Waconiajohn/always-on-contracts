@@ -27,6 +27,7 @@ import { TemplateCustomizer, TemplateCustomization, defaultPresets } from "@/com
 import { applyCustomizationToHTML } from "@/lib/templateCustomizationUtils";
 import { AnalyticsDashboard } from "@/components/resume/AnalyticsDashboard";
 import { ResumeCritique } from "@/components/resume/ResumeCritique";
+import { CoverLetterGenerator } from "@/components/resume/CoverLetterGenerator";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -60,6 +61,8 @@ const ResumeBuilderAgentContent = () => {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [showCritique, setShowCritique] = useState(false);
   const [critiqueLoading, setCritiqueLoading] = useState(false);
+  const [_coverLetter, setCoverLetter] = useState<string>("");
+  const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -569,6 +572,51 @@ const ResumeBuilderAgentContent = () => {
     }
   };
 
+  const handleGenerateCoverLetter = async (_letterContent: string, tone: string) => {
+    if (!generatedResume?.htmlContent) {
+      toast({
+        title: "No resume available",
+        description: "Please generate a resume first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setGeneratingCoverLetter(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-cover-letter', {
+        body: {
+          resumeContent: generatedResume.htmlContent,
+          jobTitle,
+          companyName,
+          jobDescription,
+          tone,
+          emphasis: 'achievements'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setCoverLetter(data.coverLetter);
+        toast({
+          title: "Cover letter generated!",
+          description: `${data.metadata.wordCount} words in ${tone} tone`
+        });
+      }
+    } catch (error) {
+      console.error('Error generating cover letter:', error);
+      toast({
+        title: "Generation failed",
+        description: "Unable to generate cover letter. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingCoverLetter(false);
+    }
+  };
+
   const handleDownload = async (format: string) => {
     if (!generatedResume) return;
     
@@ -653,7 +701,7 @@ const ResumeBuilderAgentContent = () => {
           {/* Right: Resume Builder Workspace */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="current" className="gap-2">
                   <FileText className="h-4 w-4" />
                   Build
@@ -665,6 +713,10 @@ const ResumeBuilderAgentContent = () => {
                 <TabsTrigger value="compare" className="gap-2">
                   <GitCompare className="h-4 w-4" />
                   Preview
+                </TabsTrigger>
+                <TabsTrigger value="cover-letter" className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  Cover Letter
                 </TabsTrigger>
                 <TabsTrigger value="critique" className="gap-2">
                   <Sparkles className="h-4 w-4" />
@@ -1018,6 +1070,19 @@ const ResumeBuilderAgentContent = () => {
                       loading={critiqueLoading}
                     />
                   )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="cover-letter" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  <CoverLetterGenerator
+                    resumeContent={generatedResume?.htmlContent}
+                    jobTitle={jobTitle}
+                    companyName={companyName}
+                    jobDescription={jobDescription}
+                    onGenerate={handleGenerateCoverLetter}
+                    loading={generatingCoverLetter}
+                  />
                 </ScrollArea>
               </TabsContent>
             </Tabs>
