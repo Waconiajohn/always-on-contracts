@@ -19,9 +19,9 @@ interface AddMetricsModalProps {
 
 interface PowerPhrase {
   id: string;
-  phrase: string;
+  power_phrase: string;
   context: string;
-  metrics: any;
+  impact_metrics: any;
 }
 
 interface MetricSuggestion {
@@ -64,7 +64,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
 
       // Filter phrases without complete metrics
       const phrasesNeedingMetrics = (data || []).filter(p => {
-        const m = p.metrics || {};
+        const m = p.impact_metrics || {};
         return !m.amount && !m.percentage && !m.teamSize && !m.timeframe && !m.roi;
       });
 
@@ -91,7 +91,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
     try {
       const { data, error } = await supabase.functions.invoke('suggest-metrics', {
         body: {
-          phrase: selectedPhrase.phrase,
+          phrase: selectedPhrase.power_phrase,
           context: selectedPhrase.context
         }
       });
@@ -127,7 +127,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
     try {
       // Merge new metrics with existing ones
       const updatedMetrics = {
-        ...(selectedPhrase.metrics || {}),
+        ...(selectedPhrase.impact_metrics || {}),
         ...Object.fromEntries(
           Object.entries(metrics).filter(([_, v]) => v !== '')
         )
@@ -135,7 +135,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
 
       const { error } = await supabase
         .from('vault_power_phrases')
-        .update({ metrics: updatedMetrics })
+        .update({ impact_metrics: updatedMetrics })
         .eq('id', selectedPhrase.id);
 
       if (error) throw error;
@@ -234,7 +234,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-muted-foreground">CURRENT PHRASE</Label>
-                  <p className="text-lg font-semibold">{selectedPhrase.phrase}</p>
+                  <p className="text-lg font-semibold">{selectedPhrase.power_phrase}</p>
                   {selectedPhrase.context && (
                     <p className="text-sm text-muted-foreground">{selectedPhrase.context}</p>
                   )}
@@ -351,7 +351,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
                 <CardContent className="pt-6">
                   <Label className="text-xs font-semibold text-green-900 dark:text-green-100">PREVIEW WITH METRICS</Label>
                   <p className="text-sm mt-2 font-medium">
-                    {selectedPhrase.phrase}
+                    {selectedPhrase.power_phrase}
                     {metrics.amount && ` (${metrics.amount})`}
                     {metrics.percentage && ` - ${metrics.percentage}`}
                     {metrics.teamSize && ` across ${metrics.teamSize}`}

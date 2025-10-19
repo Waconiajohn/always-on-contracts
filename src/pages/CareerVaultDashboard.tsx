@@ -234,8 +234,7 @@ const VaultDashboardContent = () => {
     };
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -350,8 +349,9 @@ const VaultDashboardContent = () => {
       }
 
       setLoading(false);
-    };
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
 

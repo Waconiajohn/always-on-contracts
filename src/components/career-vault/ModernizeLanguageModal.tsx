@@ -18,7 +18,7 @@ interface ModernizeLanguageModalProps {
 
 interface PowerPhrase {
   id: string;
-  phrase: string;
+  power_phrase: string;
   context: string;
   keywords: string[];
 }
@@ -80,7 +80,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
       setPhrases(phrasesNeedingModernization);
       if (phrasesNeedingModernization.length > 0) {
         setSelectedPhrase(phrasesNeedingModernization[0]);
-        setEditedPhrase(phrasesNeedingModernization[0].phrase);
+        setEditedPhrase(phrasesNeedingModernization[0].power_phrase);
       }
     } catch (error) {
       console.error('Error loading phrases:', error);
@@ -101,7 +101,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
     try {
       const { data, error } = await supabase.functions.invoke('modernize-language', {
         body: {
-          phrase: selectedPhrase.phrase,
+          phrase: selectedPhrase.power_phrase,
           context: selectedPhrase.context
         }
       });
@@ -147,7 +147,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
       const { error } = await supabase
         .from('vault_power_phrases')
         .update({
-          phrase: editedPhrase,
+          power_phrase: editedPhrase,
           keywords: updatedKeywords
         })
         .eq('id', selectedPhrase.id);
@@ -163,7 +163,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
       const currentIndex = phrases.findIndex(p => p.id === selectedPhrase.id);
       if (currentIndex < phrases.length - 1) {
         setSelectedPhrase(phrases[currentIndex + 1]);
-        setEditedPhrase(phrases[currentIndex + 1].phrase);
+        setEditedPhrase(phrases[currentIndex + 1].power_phrase);
         setSelectedKeywords([]);
         setSuggestion(null);
       } else {
@@ -186,7 +186,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
     const currentIndex = phrases.findIndex(p => p.id === selectedPhrase?.id);
     if (currentIndex < phrases.length - 1) {
       setSelectedPhrase(phrases[currentIndex + 1]);
-      setEditedPhrase(phrases[currentIndex + 1].phrase);
+      setEditedPhrase(phrases[currentIndex + 1].power_phrase);
       setSelectedKeywords([]);
       setSuggestion(null);
     } else {
@@ -250,7 +250,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-muted-foreground">ORIGINAL PHRASE</Label>
-                  <p className="text-base">{selectedPhrase.phrase}</p>
+                  <p className="text-base">{selectedPhrase.power_phrase}</p>
                   {selectedPhrase.context && (
                     <p className="text-sm text-muted-foreground">{selectedPhrase.context}</p>
                   )}
@@ -345,7 +345,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
             </div>
 
             {/* Preview */}
-            {(editedPhrase !== selectedPhrase.phrase || selectedKeywords.length > 0) && (
+            {(editedPhrase !== selectedPhrase.power_phrase || selectedKeywords.length > 0) && (
               <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
                 <CardContent className="pt-6">
                   <Label className="text-xs font-semibold text-green-900 dark:text-green-100">UPDATED PHRASE</Label>
@@ -375,7 +375,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={loading || (editedPhrase === selectedPhrase.phrase && selectedKeywords.length === 0)}
+                  disabled={loading || (editedPhrase === selectedPhrase.power_phrase && selectedKeywords.length === 0)}
                 >
                   {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Save & Next
