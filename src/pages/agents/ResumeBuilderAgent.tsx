@@ -291,7 +291,11 @@ const ResumeBuilderAgentContent = () => {
   };
 
   const fetchVaultSuggestions = async (jobDesc: string) => {
-    if (!jobDesc || jobDesc.length < 100) return;
+    console.log('fetchVaultSuggestions called with job description length:', jobDesc?.length);
+    if (!jobDesc || jobDesc.length < 100) {
+      console.log('Job description too short, skipping vault suggestions');
+      return;
+    }
     
     setLoadingVault(true);
     try {
@@ -303,6 +307,7 @@ const ResumeBuilderAgentContent = () => {
 
       if (data.success && data.intelligence) {
         // Transform intelligence object into VaultItem array
+        console.log('Raw intelligence data:', data.intelligence);
         const suggestions: any[] = [];
         const intel = data.intelligence;
         
@@ -377,6 +382,8 @@ const ResumeBuilderAgentContent = () => {
         
         // Sort by relevance score and limit to top 20
         suggestions.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        console.log('Total suggestions created:', suggestions.length);
+        console.log('Sample suggestions:', suggestions.slice(0, 3));
         setVaultSuggestions(suggestions.slice(0, 20));
       }
     } catch (error) {
