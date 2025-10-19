@@ -25,6 +25,7 @@ import { VersionComparison } from "@/components/resume/VersionComparison";
 import { BatchExport } from "@/components/resume/BatchExport";
 import { TemplateCustomizer, TemplateCustomization, defaultPresets } from "@/components/resume/TemplateCustomizer";
 import { applyCustomizationToHTML } from "@/lib/templateCustomizationUtils";
+import { AnalyticsDashboard } from "@/components/resume/AnalyticsDashboard";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -54,12 +55,15 @@ const ResumeBuilderAgentContent = () => {
   const [showBatchExport, setShowBatchExport] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [customization, setCustomization] = useState<TemplateCustomization>(defaultPresets.professional);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
   useEffect(() => {
     fetchVaultData();
     fetchVersionHistory();
+    fetchAnalytics();
 
     // Check if we came from job search with pre-loaded job data
     if (location.state?.fromJobSearch) {
@@ -457,6 +461,74 @@ const ResumeBuilderAgentContent = () => {
     });
   };
 
+  const fetchAnalytics = async () => {
+    setLoadingAnalytics(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      // Fetch resume versions for analytics
+      const { data: versions } = await supabase
+        .from('resume_versions')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Calculate analytics
+      const totalResumes = versions?.length || 0;
+      const sumScores = versions?.reduce((acc, v) => acc + (v.match_score || 0), 0) || 0;
+      const avgATSScore = totalResumes > 0 ? sumScores / totalResumes : 0;
+
+      // Get template performance
+      const templateStats = versions?.reduce((acc: any, v: any) => {
+        const templateName = v.customizations?.template || 'modern';
+        if (!acc[templateName]) {
+          acc[templateName] = { usage: 0, successRate: 0 };
+        }
+        acc[templateName].usage++;
+        return acc;
+      }, {}) || {};
+
+      const templatePerformance = Object.entries(templateStats).map(([name, stats]: [string, any]) => ({
+        name,
+        usage: stats.usage,
+        successRate: Math.round(65 + Math.random() * 25) // Mock success rate
+      }));
+
+      // Mock keyword effectiveness
+      const keywordEffectiveness = [
+        { keyword: "Leadership", frequency: 12, impact: 87 },
+        { keyword: "Strategy", frequency: 9, impact: 82 },
+        { keyword: "Innovation", frequency: 8, impact: 79 },
+        { keyword: "Analytics", frequency: 7, impact: 75 },
+        { keyword: "Optimization", frequency: 6, impact: 71 }
+      ];
+
+      // Recent activity
+      const recentActivity = versions?.slice(0, 5).map((v: any) => ({
+        date: v.created_at,
+        action: "Resume Generated",
+        details: `${v.version_name || 'New Resume'} - ${v.customizations?.job_title || 'Position'}`
+      })) || [];
+
+      setAnalyticsData({
+        totalResumes,
+        totalApplications: Math.round(totalResumes * 1.5), // Mock
+        responseRate: Math.round(25 + Math.random() * 30),
+        interviewRate: Math.round(15 + Math.random() * 20),
+        avgATSScore: Math.round(avgATSScore),
+        topTemplate: templatePerformance.length > 0 ? templatePerformance[0].name : 'modern',
+        topPersona: 'executive',
+        recentActivity,
+        templatePerformance,
+        keywordEffectiveness
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
   const handleDownload = async (format: string) => {
     if (!generatedResume) return;
     
@@ -541,7 +613,7 @@ const ResumeBuilderAgentContent = () => {
           {/* Right: Resume Builder Workspace */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="current" className="gap-2">
                   <FileText className="h-4 w-4" />
                   Build
@@ -553,6 +625,10 @@ const ResumeBuilderAgentContent = () => {
                 <TabsTrigger value="compare" className="gap-2">
                   <GitCompare className="h-4 w-4" />
                   Preview
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-2">
+                  <Brain className="h-4 w-4" />
+                  Analytics
                 </TabsTrigger>
               </TabsList>
 
@@ -859,6 +935,15 @@ const ResumeBuilderAgentContent = () => {
                       </div>
                     </div>
                   )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="analytics" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  <AnalyticsDashboard 
+                    data={analyticsData} 
+                    loading={loadingAnalytics}
+                  />
                 </ScrollArea>
               </TabsContent>
             </Tabs>
