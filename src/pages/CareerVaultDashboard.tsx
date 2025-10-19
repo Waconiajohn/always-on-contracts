@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { careerVault } from "@/lib/mcp-client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -222,11 +221,20 @@ const VaultDashboardContent = () => {
       if (!user) return;
 
       try {
-        // Get career vault data via MCP
-        const vaultResponse = await careerVault.get();
-        
-        if (vaultResponse.data) {
-          const vault = vaultResponse.data;
+        // Get career vault data directly from Supabase (more reliable than MCP)
+        const { data: vault, error: vaultError } = await supabase
+          .from('career_vault')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (vaultError) {
+          console.error('Error fetching vault:', vaultError);
+          setLoading(false);
+          return;
+        }
+
+        if (vault) {
           setVaultId(vault.id);
           setStats({
             total_power_phrases: vault.total_power_phrases || 0,
