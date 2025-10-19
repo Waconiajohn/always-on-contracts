@@ -18,6 +18,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { SmartVaultPanel } from "@/components/resume/SmartVaultPanel";
 import { VerificationResults } from "@/components/resume/VerificationResults";
 import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
+import { EditableResumePreview } from "@/components/resume/EditableResumePreview";
+import { ResumePreviewToggle } from "@/components/resume/ResumePreviewToggle";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -40,6 +42,7 @@ const ResumeBuilderAgentContent = () => {
   const [verifying, setVerifying] = useState(false);
   const [atsScore, setAtsScore] = useState<any>(null);
   const [analyzingATS, setAnalyzingATS] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'preview' | 'edit'>('preview');
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -474,14 +477,20 @@ const ResumeBuilderAgentContent = () => {
                       <p>Generate a resume to see preview</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 bg-muted rounded">
-                        <div>
+                     <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-muted rounded gap-3">
+                        <div className="flex-1">
                           <p className="font-semibold">{generatedResume.metadata.jobTitle}</p>
                           <p className="text-sm text-muted-foreground">
                             {generatedResume.metadata.passes.final}
                           </p>
                         </div>
+                        
+                        <ResumePreviewToggle 
+                          mode={previewMode}
+                          onModeChange={setPreviewMode}
+                        />
+
                           <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button>
@@ -524,7 +533,19 @@ const ResumeBuilderAgentContent = () => {
                         </DropdownMenu>
                       </div>
 
-                       <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+                      {previewMode === 'preview' ? (
+                        <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+                      ) : (
+                        <EditableResumePreview
+                          structuredData={generatedResume.structuredData}
+                          onUpdate={(updatedHtml) => {
+                            setGeneratedResume((prev: any) => ({
+                              ...prev,
+                              htmlContent: updatedHtml
+                            }));
+                          }}
+                        />
+                      )}
 
                       {/* ATS Score Analysis */}
                       {(atsScore || analyzingATS) && (
