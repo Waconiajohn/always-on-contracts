@@ -301,11 +301,59 @@ const ResumeBuilderAgentContent = () => {
 
       if (error) throw error;
 
-      if (data.success) {
-        setVaultSuggestions(data.suggestions.map((s: any) => ({
-          ...s,
-          used: false
-        })));
+      if (data.success && data.intelligence) {
+        // Transform intelligence object into VaultItem array
+        const suggestions: any[] = [];
+        const intel = data.intelligence;
+        
+        // Add power phrases
+        intel.powerPhrases?.forEach((item: any) => {
+          suggestions.push({
+            id: `pp-${suggestions.length}`,
+            type: 'power_phrase',
+            content: item.phrase || item.content || item,
+            relevanceScore: item.relevanceScore || 0.8,
+            used: false
+          });
+        });
+        
+        // Add skills
+        intel.skills?.forEach((item: any) => {
+          suggestions.push({
+            id: `skill-${suggestions.length}`,
+            type: 'skill',
+            content: typeof item === 'string' ? item : item.skill_name || item.content,
+            relevanceScore: item.relevanceScore || 0.75,
+            used: false
+          });
+        });
+        
+        // Add competencies
+        intel.competencies?.forEach((item: any) => {
+          suggestions.push({
+            id: `comp-${suggestions.length}`,
+            type: 'competency',
+            content: item.competency_area || item.content || item,
+            relevanceScore: item.relevanceScore || 0.7,
+            used: false
+          });
+        });
+        
+        // Add achievements
+        intel.achievements?.forEach((item: any) => {
+          suggestions.push({
+            id: `ach-${suggestions.length}`,
+            type: 'achievement',
+            content: item.achievement || item.content || item,
+            relevanceScore: item.relevanceScore || 0.85,
+            used: false
+          });
+        });
+        
+        // Sort by relevance score
+        suggestions.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        
+        setVaultSuggestions(suggestions);
       }
     } catch (error) {
       console.error('Error fetching vault suggestions:', error);
