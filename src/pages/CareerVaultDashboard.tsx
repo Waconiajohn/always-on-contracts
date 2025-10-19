@@ -291,10 +291,38 @@ const VaultDashboardContent = () => {
           );
           setStrengthScore(score);
 
-          // Update overall strength score in database
+          // Update stats with ACTUAL counts from fetched data (not stale vault totals)
+          setStats({
+            total_power_phrases: (phrasesData.data || []).length,
+            total_transferable_skills: (skillsData.data || []).length,
+            total_hidden_competencies: (competenciesData.data || []).length,
+            total_soft_skills: (softSkillsData.data || []).length,
+            total_leadership_philosophy: (leadershipData.data || []).length,
+            total_executive_presence: (presenceData.data || []).length,
+            total_personality_traits: (traitsData.data || []).length,
+            total_work_style: (styleData.data || []).length,
+            total_values: (valuesData.data || []).length,
+            total_behavioral_indicators: (behavioralData.data || []).length,
+            overall_strength_score: score.total,
+            interview_completion_percentage: vault.interview_completion_percentage || 0
+          });
+
+          // Update vault totals in database with actual counts
           await supabase
             .from('career_vault')
-            .update({ overall_strength_score: score.total })
+            .update({ 
+              overall_strength_score: score.total,
+              total_power_phrases: (phrasesData.data || []).length,
+              total_transferable_skills: (skillsData.data || []).length,
+              total_hidden_competencies: (competenciesData.data || []).length,
+              total_soft_skills: (softSkillsData.data || []).length,
+              total_leadership_philosophy: (leadershipData.data || []).length,
+              total_executive_presence: (presenceData.data || []).length,
+              total_personality_traits: (traitsData.data || []).length,
+              total_work_style: (styleData.data || []).length,
+              total_values: (valuesData.data || []).length,
+              total_behavioral_indicators: (behavioralData.data || []).length
+            })
             .eq('id', vault.id);
         }
       } catch (error) {
