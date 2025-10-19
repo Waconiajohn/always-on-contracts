@@ -28,6 +28,7 @@ import { applyCustomizationToHTML } from "@/lib/templateCustomizationUtils";
 import { AnalyticsDashboard } from "@/components/resume/AnalyticsDashboard";
 import { ResumeCritique } from "@/components/resume/ResumeCritique";
 import { CoverLetterGenerator } from "@/components/resume/CoverLetterGenerator";
+import { InterviewPrep } from "@/components/resume/InterviewPrep";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -63,6 +64,8 @@ const ResumeBuilderAgentContent = () => {
   const [critiqueLoading, setCritiqueLoading] = useState(false);
   const [_coverLetter, setCoverLetter] = useState<string>("");
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+  const [_interviewQuestions, setInterviewQuestions] = useState<any[]>([]);
+  const [generatingInterview, setGeneratingInterview] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -617,6 +620,48 @@ const ResumeBuilderAgentContent = () => {
     }
   };
 
+  const handleGenerateInterviewPrep = async (_questions: any[]) => {
+    if (!generatedResume?.htmlContent) {
+      toast({
+        title: "No resume available",
+        description: "Please generate a resume first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setGeneratingInterview(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-interview-prep', {
+        body: {
+          resumeContent: generatedResume.htmlContent,
+          jobTitle,
+          jobDescription
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setInterviewQuestions(data.questions);
+        toast({
+          title: "Interview prep ready!",
+          description: `Generated ${data.metadata.questionCount} tailored questions`
+        });
+      }
+    } catch (error) {
+      console.error('Error generating interview prep:', error);
+      toast({
+        title: "Generation failed",
+        description: "Unable to generate interview questions. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingInterview(false);
+    }
+  };
+
   const handleDownload = async (format: string) => {
     if (!generatedResume) return;
     
@@ -701,7 +746,7 @@ const ResumeBuilderAgentContent = () => {
           {/* Right: Resume Builder Workspace */}
           <Card className="lg:col-span-2 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="current" className="gap-2">
                   <FileText className="h-4 w-4" />
                   Build
@@ -714,16 +759,16 @@ const ResumeBuilderAgentContent = () => {
                   <GitCompare className="h-4 w-4" />
                   Preview
                 </TabsTrigger>
-                <TabsTrigger value="cover-letter" className="gap-2">
-                  <FileText className="h-4 w-4" />
-                  Cover Letter
+                <TabsTrigger value="cover-letter" className="gap-2 text-xs">
+                  Cover
                 </TabsTrigger>
-                <TabsTrigger value="critique" className="gap-2">
-                  <Sparkles className="h-4 w-4" />
+                <TabsTrigger value="interview" className="gap-2 text-xs">
+                  Interview
+                </TabsTrigger>
+                <TabsTrigger value="critique" className="gap-2 text-xs">
                   Critique
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-2">
-                  <Brain className="h-4 w-4" />
+                <TabsTrigger value="analytics" className="gap-2 text-xs">
                   Analytics
                 </TabsTrigger>
               </TabsList>
@@ -1082,6 +1127,18 @@ const ResumeBuilderAgentContent = () => {
                     jobDescription={jobDescription}
                     onGenerate={handleGenerateCoverLetter}
                     loading={generatingCoverLetter}
+                  />
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="interview" className="mt-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  <InterviewPrep
+                    resumeContent={generatedResume?.htmlContent}
+                    jobTitle={jobTitle}
+                    jobDescription={jobDescription}
+                    onGenerate={handleGenerateInterviewPrep}
+                    loading={generatingInterview}
                   />
                 </ScrollArea>
               </TabsContent>
