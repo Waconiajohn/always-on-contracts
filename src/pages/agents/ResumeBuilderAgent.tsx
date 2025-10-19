@@ -20,6 +20,8 @@ import { VerificationResults } from "@/components/resume/VerificationResults";
 import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
 import { EditableResumePreview } from "@/components/resume/EditableResumePreview";
 import { ResumePreviewToggle } from "@/components/resume/ResumePreviewToggle";
+import { VersionHistory } from "@/components/resume/VersionHistory";
+import { VersionComparison } from "@/components/resume/VersionComparison";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -43,11 +45,15 @@ const ResumeBuilderAgentContent = () => {
   const [previewMode, setPreviewMode] = useState<'preview' | 'edit'>('preview');
   const [vaultSuggestions, setVaultSuggestions] = useState<any[]>([]);
   const [loadingVault, setLoadingVault] = useState(false);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
+  const [comparingVersions, setComparingVersions] = useState<{ versionA: any; versionB: any } | null>(null);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
   useEffect(() => {
     fetchVaultData();
+    fetchVersionHistory();
 
     // Check if we came from job search with pre-loaded job data
     if (location.state?.fromJobSearch) {
@@ -76,6 +82,29 @@ const ResumeBuilderAgentContent = () => {
 
     setVaultData(vault);
     setLoading(false);
+  };
+
+  const fetchVersionHistory = async () => {
+    setLoadingVersions(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('resume_versions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching versions:', error);
+      toast({
+        title: "Couldn't load version history",
+        variant: "destructive"
+      });
+    } else {
+      setVersions(data || []);
+    }
+    setLoadingVersions(false);
   };
 
   const handleGetPersonaRecommendation = async () => {
@@ -274,6 +303,51 @@ const ResumeBuilderAgentContent = () => {
       title: "Vault content added",
       description: "This content has been marked for inclusion in your resume",
     });
+  };
+
+  const handlePreviewVersion = (version: any) => {
+    setGeneratedResume(version.content);
+    setActiveTab('compare');
+    toast({
+      title: "Version loaded",
+      description: version.version_name
+    });
+  };
+
+  const handleCompareVersions = (versionA: any, versionB: any) => {
+    setComparingVersions({ versionA, versionB });
+  };
+
+  const handleDownloadVersion = async (version: any) => {
+    const fileName = `${version.version_name}-${Date.now()}`;
+    try {
+      await exportFormats.standardPDF(version.html_content, fileName);
+      toast({ title: "Resume downloaded!" });
+    } catch (error: any) {
+      toast({
+        title: "Download failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteVersion = async (versionId: string) => {
+    const { error } = await supabase
+      .from('resume_versions')
+      .delete()
+      .eq('id', versionId);
+
+    if (error) {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({ title: "Version deleted" });
+      fetchVersionHistory();
+    }
   };
 
   const handleDownload = async (format: string) => {
@@ -498,12 +572,27 @@ const ResumeBuilderAgentContent = () => {
               </TabsContent>
 
               <TabsContent value="history" className="mt-4">
-                <ScrollArea className="h-[calc(100vh-300px)]">
-                  <div className="text-center text-muted-foreground py-12">
-                    <History className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p>Resume versions will appear here</p>
-                  </div>
-                </ScrollArea>
+                {comparingVersions ? (
+                  <VersionComparison
+                    versionA={comparingVersions.versionA}
+                    versionB={comparingVersions.versionB}
+                    onClose={() => setComparingVersions(null)}
+                    onDownload={(versionId: string, _format: string) => {
+                      const version = versions.find(v => v.id === versionId);
+                      if (version) handleDownloadVersion(version);
+                    }}
+                  />
+                ) : (
+                  <VersionHistory
+                    versions={versions}
+                    currentVersionId={generatedResume?.metadata?.versionId}
+                    onPreview={handlePreviewVersion}
+                    onCompare={handleCompareVersions}
+                    onDownload={handleDownloadVersion}
+                    onDelete={handleDeleteVersion}
+                    loading={loadingVersions}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="compare" className="mt-4">
