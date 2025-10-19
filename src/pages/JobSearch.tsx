@@ -221,7 +221,7 @@ const JobSearchContent = () => {
             radiusMiles: location ? parseInt(radiusMiles) : undefined
           },
           userId: userId || undefined,
-          sources: ['google_jobs', 'company_boards']
+          sources: ['google_jobs', 'company_boards', 'usajobs', 'adzuna', 'jsearch']
         }
       });
 
