@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Target, Award, Trophy, Info } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AddMetricsModal } from "@/components/career-vault/AddMetricsModal";
+import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLanguageModal";
 
 interface VaultStats {
   total_power_phrases: number;
@@ -142,6 +144,8 @@ const VaultDashboardContent = () => {
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const [addMetricsModalOpen, setAddMetricsModalOpen] = useState(false);
+  const [modernizeModalOpen, setModernizeModalOpen] = useState(false);
   const [vaultId, setVaultId] = useState<string>("");
   const [vault, setVault] = useState<any>(null);
   const [stats, setStats] = useState<VaultStats | null>(null);
@@ -754,21 +758,35 @@ const VaultDashboardContent = () => {
               <Progress value={(strengthScore.intangiblesScore / 40) * 100} className="h-2" />
               <p className="text-xs text-muted-foreground mt-1">Leadership traits</p>
             </div>
-            <div>
+            <div
+              className="cursor-pointer hover:bg-accent/50 p-3 -m-3 rounded-lg transition-colors"
+              onClick={() => setAddMetricsModalOpen(true)}
+              title="Click to add metrics to your phrases"
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Quantification</span>
                 <span className="text-sm text-muted-foreground">{strengthScore.quantificationScore}/15</span>
               </div>
               <Progress value={(strengthScore.quantificationScore / 15) * 100} className="h-2" />
               <p className="text-xs text-muted-foreground mt-1">Phrases with metrics</p>
+              {strengthScore.quantificationScore < 10 && (
+                <p className="text-xs text-primary mt-1 font-medium">Click to improve →</p>
+              )}
             </div>
-            <div>
+            <div
+              className="cursor-pointer hover:bg-accent/50 p-3 -m-3 rounded-lg transition-colors"
+              onClick={() => setModernizeModalOpen(true)}
+              title="Click to modernize your language"
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Modern Terms</span>
                 <span className="text-sm text-muted-foreground">{strengthScore.modernTerminologyScore}/15</span>
               </div>
               <Progress value={(strengthScore.modernTerminologyScore / 15) * 100} className="h-2" />
               <p className="text-xs text-muted-foreground mt-1">AI/cloud/tech terms</p>
+              {strengthScore.modernTerminologyScore < 10 && (
+                <p className="text-xs text-primary mt-1 font-medium">Click to improve →</p>
+              )}
             </div>
           </div>
 
@@ -1141,6 +1159,27 @@ const VaultDashboardContent = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Improvement Modals */}
+      <AddMetricsModal
+        open={addMetricsModalOpen}
+        onOpenChange={setAddMetricsModalOpen}
+        vaultId={vaultId}
+        onSuccess={() => {
+          // Refresh data after improvements
+          fetchData();
+        }}
+      />
+
+      <ModernizeLanguageModal
+        open={modernizeModalOpen}
+        onOpenChange={setModernizeModalOpen}
+        vaultId={vaultId}
+        onSuccess={() => {
+          // Refresh data after improvements
+          fetchData();
+        }}
+      />
     </div>
   );
 };
