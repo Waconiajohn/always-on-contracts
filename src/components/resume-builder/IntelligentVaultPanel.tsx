@@ -89,6 +89,31 @@ export const IntelligentVaultPanel = ({
     ).join(' ');
   };
 
+  // Helper to get displayable content from vault item
+  const getDisplayContent = (content: any): string => {
+    if (typeof content === 'string') return content;
+    
+    // Try common fields in order of preference
+    const fields = [
+      'phrase', 'skill_name', 'competency_name', 'trait_name',
+      'job_title', 'company', 'title', 'question', 
+      'description', 'evidence', 'context', 'name'
+    ];
+    
+    for (const field of fields) {
+      if (content[field] && typeof content[field] === 'string') {
+        return content[field];
+      }
+    }
+    
+    // Fallback: try to find first string value
+    const firstString = Object.values(content).find(v => typeof v === 'string' && v.length > 10);
+    if (firstString) return firstString as string;
+    
+    // Last resort: stringify but make it readable
+    return "Vault item - click to expand";
+  };
+
   const VaultMatchCard = ({ match }: { match: VaultMatch }) => {
     const [showEnhanced, setShowEnhanced] = useState(false);
 
@@ -119,15 +144,19 @@ export const IntelligentVaultPanel = ({
 
         <div className="space-y-2 mb-3">
           <p className="text-sm font-medium">
-            {match.content.phrase || match.content.skill_name || match.content.job_title || match.content.trait_name || JSON.stringify(match.content).slice(0, 100)}
+            {getDisplayContent(match.content)}
           </p>
 
-          {match.content.context && (
+          {match.content.context && typeof match.content.context === 'string' && (
             <p className="text-xs text-muted-foreground">{match.content.context}</p>
           )}
 
-          {match.content.description && (
+          {match.content.description && typeof match.content.description === 'string' && (
             <p className="text-xs text-muted-foreground">{match.content.description}</p>
+          )}
+          
+          {match.content.evidence && typeof match.content.evidence === 'string' && (
+            <p className="text-xs text-muted-foreground italic">{match.content.evidence}</p>
           )}
         </div>
 
@@ -162,7 +191,7 @@ export const IntelligentVaultPanel = ({
           <div className="mb-3">
             <p className="text-xs font-semibold mb-1">ATS Keywords:</p>
             <div className="flex flex-wrap gap-1">
-              {match.atsKeywords.map((kw, i) => (
+              {match.atsKeywords.filter((kw: string) => kw && kw.length > 1).map((kw: string, i: number) => (
                 <Badge key={i} className="text-xs bg-green-100 text-green-800 border-green-200">
                   {kw}
                 </Badge>

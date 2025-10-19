@@ -104,7 +104,7 @@ serve(async (req) => {
       }))
     ];
 
-    const geminiKey = Deno.env.get('GEMINI_API_KEY');
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
     const matches: VaultMatch[] = [];
 
     // Process each vault category
@@ -123,8 +123,8 @@ serve(async (req) => {
       { name: 'interview_responses', data: vaultData.vault_interview_responses, type: 'expanded' }
     ];
 
-    // Use Gemini to intelligently match vault items to requirements
-    if (geminiKey) {
+    // Use Lovable AI to intelligently match vault items to requirements
+    if (lovableKey) {
       const matchingPrompt = `You are an expert resume strategist. Match career vault items to job requirements to create a BENCHMARK CANDIDATE.
 
 REQUIREMENTS TO SATISFY:
@@ -180,28 +180,23 @@ Return ONLY valid JSON:
 }`;
 
       try {
-        const geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: matchingPrompt }]
-              }],
-              generationConfig: {
-                temperature: 0.4,
-                topK: 40,
-                topP: 0.95,
-                maxOutputTokens: 8192,
-              }
-            })
-          }
-        );
+        const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [{ role: 'user', content: matchingPrompt }],
+            temperature: 0.4,
+            max_tokens: 8192
+          })
+        });
 
-        if (geminiResponse.ok) {
-          const geminiData = await geminiResponse.json();
-          const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        if (lovableResponse.ok) {
+          const lovableData = await lovableResponse.json();
+          const textContent = lovableData.choices?.[0]?.message?.content || '{}';
           const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
           const parsed = JSON.parse(cleanedText);
 
@@ -210,7 +205,7 @@ Return ONLY valid JSON:
           }
         }
       } catch (error) {
-        console.error('Error in Gemini matching:', error);
+        console.error('Error in AI matching:', error);
       }
     }
 
