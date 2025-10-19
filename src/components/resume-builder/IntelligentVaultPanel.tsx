@@ -22,6 +22,31 @@ interface VaultMatch {
   added?: boolean;
 }
 
+// Helper to get displayable content from vault item
+const getDisplayContent = (content: any): string => {
+  if (typeof content === 'string') return content;
+  
+  // Try common fields in order of preference
+  const fields = [
+    'phrase', 'skill_name', 'competency_name', 'trait_name',
+    'job_title', 'company', 'title', 'question', 
+    'description', 'evidence', 'context', 'name'
+  ];
+  
+  for (const field of fields) {
+    if (content[field] && typeof content[field] === 'string') {
+      return content[field];
+    }
+  }
+  
+  // Fallback: try to find first string value
+  const firstString = Object.values(content).find(v => typeof v === 'string' && v.length > 10);
+  if (firstString) return firstString as string;
+  
+  // Last resort: stringify but make it readable
+  return "Vault item - click to expand";
+};
+
 interface IntelligentVaultPanelProps {
   matches: VaultMatch[];
   recommendations?: {
@@ -87,31 +112,6 @@ export const IntelligentVaultPanel = ({
     return cat.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
-  };
-
-  // Helper to get displayable content from vault item
-  const getDisplayContent = (content: any): string => {
-    if (typeof content === 'string') return content;
-    
-    // Try common fields in order of preference
-    const fields = [
-      'phrase', 'skill_name', 'competency_name', 'trait_name',
-      'job_title', 'company', 'title', 'question', 
-      'description', 'evidence', 'context', 'name'
-    ];
-    
-    for (const field of fields) {
-      if (content[field] && typeof content[field] === 'string') {
-        return content[field];
-      }
-    }
-    
-    // Fallback: try to find first string value
-    const firstString = Object.values(content).find(v => typeof v === 'string' && v.length > 10);
-    if (firstString) return firstString as string;
-    
-    // Last resort: stringify but make it readable
-    return "Vault item - click to expand";
   };
 
   const VaultMatchCard = ({ match }: { match: VaultMatch }) => {
