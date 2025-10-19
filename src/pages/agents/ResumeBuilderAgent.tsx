@@ -2,10 +2,9 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Brain, History, GitCompare, Zap, Target, Plus, Upload, Sparkles, Download } from "lucide-react";
+import { FileText, Brain, History, GitCompare, Plus, Upload, Sparkles, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +15,7 @@ import { TemplateSelector } from "@/components/resume/TemplateSelector";
 import { useLocation } from "react-router-dom";
 import { exportFormats } from "@/lib/resumeExportUtils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { SmartVaultPanel } from "@/components/resume/SmartVaultPanel";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -208,83 +208,32 @@ const ResumeBuilderAgentContent = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Career Vault Explorer */}
           <Card className="lg:col-span-1 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Target className="h-8 w-8 text-primary" />
+            {loading ? (
+              <div className="flex items-center justify-center h-[calc(100vh-250px)]">
+                <p className="text-sm text-muted-foreground">Loading vault...</p>
               </div>
-              <div>
-                <h2 className="font-semibold">Your Career Vault</h2>
-                <p className="text-sm text-muted-foreground">Select ammunition</p>
+            ) : !vaultData ? (
+              <div className="text-center py-8">
+                <Brain className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm text-muted-foreground mb-4">No Career Vault yet</p>
+                <Button onClick={() => window.location.href = '/agents/corporate-assistant'}>
+                  Build Your Career Vault
+                </Button>
               </div>
-            </div>
-
-            <ScrollArea className="h-[calc(100vh-250px)]">
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : !vaultData ? (
-                <div className="text-center py-8">
-                  <Brain className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-muted-foreground mb-4">No Career Vault yet</p>
-                  <Button onClick={() => window.location.href = '/agents/corporate-assistant'}>
-                    Build Your Career Vault
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <Zap className="h-4 w-4" />
-                      Power Phrases ({vaultData.vault_power_phrases?.length || 0})
-                    </h3>
-                    <div className="space-y-2">
-                      {vaultData.vault_power_phrases?.slice(0, 5).map((phrase: any) => (
-                        <div key={phrase.id} className="p-2 bg-muted rounded text-xs cursor-pointer hover:bg-primary/10"
-                          onClick={() => setSelectedPhrases(prev => 
-                            prev.includes(phrase.id) ? prev.filter(id => id !== phrase.id) : [...prev, phrase.id]
-                          )}>
-                          <Badge variant={selectedPhrases.includes(phrase.id) ? "default" : "outline"} className="mb-1">
-                            {phrase.category}
-                          </Badge>
-                          <p className="line-clamp-2">{phrase.power_phrase}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">
-                      Transferable Skills ({vaultData.vault_transferable_skills?.length || 0})
-                    </h3>
-                    <div className="flex flex-wrap gap-1">
-                      {vaultData.vault_transferable_skills?.slice(0, 10).map((skill: any) => (
-                        <Badge 
-                          key={skill.id} 
-                          variant={selectedSkills.includes(skill.id) ? "default" : "outline"}
-                          className="cursor-pointer text-xs"
-                          onClick={() => setSelectedSkills(prev => 
-                            prev.includes(skill.id) ? prev.filter(id => id !== skill.id) : [...prev, skill.id]
-                          )}>
-                          {skill.stated_skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">
-                      Hidden Competencies ({vaultData.vault_hidden_competencies?.length || 0})
-                    </h3>
-                    <div className="space-y-1">
-                      {vaultData.vault_hidden_competencies?.slice(0, 3).map((comp: any) => (
-                        <Badge key={comp.id} variant="secondary" className="text-xs">
-                          {comp.competency_area}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </ScrollArea>
+            ) : (
+              <SmartVaultPanel
+                vaultData={vaultData}
+                jobDescription={jobDescription}
+                selectedPhrases={selectedPhrases}
+                selectedSkills={selectedSkills}
+                onTogglePhrase={(id) => setSelectedPhrases(prev => 
+                  prev.includes(id) ? prev.filter(phId => phId !== id) : [...prev, id]
+                )}
+                onToggleSkill={(id) => setSelectedSkills(prev => 
+                  prev.includes(id) ? prev.filter(skId => skId !== id) : [...prev, id]
+                )}
+              />
+            )}
           </Card>
 
           {/* Right: Resume Builder Workspace */}
