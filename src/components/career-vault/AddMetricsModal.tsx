@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, TrendingUp } from 'lucide-react';
@@ -64,13 +63,13 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
 
       // Filter phrases without complete metrics
       const phrasesNeedingMetrics = (data || []).filter(p => {
-        const m = p.impact_metrics || {};
-        return !m.amount && !m.percentage && !m.teamSize && !m.timeframe && !m.roi;
+        const m = p.impact_metrics as { amount?: number; percentage?: number; teamSize?: number; timeframe?: string; roi?: number } | null;
+        return !m?.amount && !m?.percentage && !m?.teamSize && !m?.timeframe && !m?.roi;
       });
 
-      setPhrases(phrasesNeedingMetrics);
+      setPhrases(phrasesNeedingMetrics.map(p => ({ ...p, context: '' })));
       if (phrasesNeedingMetrics.length > 0) {
-        setSelectedPhrase(phrasesNeedingMetrics[0]);
+        setSelectedPhrase({ ...phrasesNeedingMetrics[0], context: '' });
       }
     } catch (error) {
       console.error('Error loading phrases:', error);

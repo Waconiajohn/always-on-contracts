@@ -77,9 +77,9 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
         );
       });
 
-      setPhrases(phrasesNeedingModernization);
+      setPhrases(phrasesNeedingModernization.map(p => ({ ...p, context: '', keywords: p.keywords || [] })));
       if (phrasesNeedingModernization.length > 0) {
-        setSelectedPhrase(phrasesNeedingModernization[0]);
+        setSelectedPhrase({ ...phrasesNeedingModernization[0], context: '', keywords: phrasesNeedingModernization[0].keywords || [] });
         setEditedPhrase(phrasesNeedingModernization[0].power_phrase);
       }
     } catch (error) {
