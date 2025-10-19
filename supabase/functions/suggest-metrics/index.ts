@@ -102,7 +102,7 @@ Be specific and realistic. If the phrase doesn't naturally support certain metri
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message, suggestions: [] }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error', suggestions: [] }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

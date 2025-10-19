@@ -16,6 +16,7 @@ import { useLocation } from "react-router-dom";
 import { exportFormats } from "@/lib/resumeExportUtils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { SmartVaultPanel } from "@/components/resume/SmartVaultPanel";
+import { VerificationResults } from "@/components/resume/VerificationResults";
 
 const ResumeBuilderAgentContent = () => {
   const location = useLocation();
@@ -34,6 +35,8 @@ const ResumeBuilderAgentContent = () => {
   const [selectedFormat, setSelectedFormat] = useState<'html' | 'docx' | 'pdf'>('html');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
   const { recommendation, loading: personaLoading, getRecommendation, resetRecommendation } = usePersonaRecommendation('resume');
 
@@ -112,6 +115,9 @@ const ResumeBuilderAgentContent = () => {
     setGeneratedResume(data);
     setActiveTab('compare');
     
+    // Verify resume claims with Perplexity
+    handleVerifyResume(data.htmlContent, jobDescription);
+    
     // Save resume version to database
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -144,8 +150,56 @@ const ResumeBuilderAgentContent = () => {
     
     toast({ 
       title: "Resume generated!", 
-      description: `${data.metadata.jobTitle} resume ready with verification complete` 
+      description: `${data.metadata.jobTitle} resume ready. Verification in progress...` 
     });
+  };
+
+  const handleVerifyResume = async (resumeContent: string, jobDescription: string) => {
+    setVerifying(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-resume-claims', {
+        body: { 
+          resumeContent,
+          jobDescription
+        }
+      });
+
+      if (error) {
+        console.error('Verification error:', error);
+        toast({ 
+          title: "Verification incomplete", 
+          description: "Resume generated but verification unavailable",
+          variant: "destructive"
+        });
+        setVerifying(false);
+        return;
+      }
+
+      setVerificationResult(data);
+      setVerifying(false);
+      
+      if (data.confidence >= 80) {
+        toast({ 
+          title: "High confidence verification ✓", 
+          description: `${data.confidence}% confidence in resume claims`
+        });
+      } else if (data.confidence >= 60) {
+        toast({ 
+          title: "Verification complete", 
+          description: `${data.confidence}% confidence. Review flagged items.`
+        });
+      } else {
+        toast({ 
+          title: "Low confidence", 
+          description: "Please review flagged claims carefully",
+          variant: "destructive"
+        });
+      }
+    } catch (verifyError) {
+      console.error('Error verifying resume:', verifyError);
+      setVerifying(false);
+    }
   };
 
   const handleDownload = async (format: string) => {
@@ -437,7 +491,13 @@ const ResumeBuilderAgentContent = () => {
                         </DropdownMenu>
                       </div>
 
-                      <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+                       <div className="border rounded p-6 bg-white" dangerouslySetInnerHTML={{ __html: generatedResume.htmlContent }} />
+
+                      {/* Verification Results */}
+                      <VerificationResults 
+                        result={verificationResult} 
+                        loading={verifying}
+                      />
 
                       <div className="p-4 bg-muted rounded space-y-2 text-sm">
                         <p className="font-semibold">Hiring Manager Review:</p>

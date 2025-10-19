@@ -165,6 +165,9 @@ verify_jwt = true
 [functions.verify-with-perplexity]
 verify_jwt = true
 
+[functions.verify-resume-claims]
+verify_jwt = true
+
 [functions.generate-company-research]
 verify_jwt = true
 

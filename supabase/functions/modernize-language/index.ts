@@ -106,7 +106,7 @@ Be authentic - only add terms that genuinely fit the achievement. Don't force mo
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message, suggestion: null }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error', suggestion: null }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
