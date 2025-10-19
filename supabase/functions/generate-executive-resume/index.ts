@@ -52,6 +52,7 @@ serve(async (req) => {
 
     // Step 2: Get ALL vault intelligence
     const { data: vaultData, error: vaultError } = await supabase.functions.invoke('get-vault-intelligence', {
+      body: { jobDescription },
       headers: { Authorization: authHeader }
     });
 
