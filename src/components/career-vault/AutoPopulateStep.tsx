@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -35,6 +35,7 @@ export const AutoPopulateStep = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [deepAnalysis, setDeepAnalysis] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState('');
+  const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Auto-start population after a brief delay
@@ -42,7 +43,13 @@ export const AutoPopulateStep = ({
       handleAutoPopulate();
     }, 1500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      // Cleanup message interval on unmount
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+      }
+    };
   }, []);
 
   const handleAutoPopulate = async () => {
@@ -71,13 +78,10 @@ export const AutoPopulateStep = ({
             setAnalysisMessage(messages[0]);
 
             // Rotate messages during deep analysis
-            const messageInterval = setInterval(() => {
+            messageIntervalRef.current = setInterval(() => {
               messageIndex = (messageIndex + 1) % messages.length;
               setAnalysisMessage(messages[messageIndex]);
             }, 4000);
-
-            // Store interval ID to clear later
-            (progressInterval as any).messageInterval = messageInterval;
           }
           return next;
         });
@@ -99,8 +103,9 @@ export const AutoPopulateStep = ({
       });
 
       clearInterval(progressInterval);
-      if ((progressInterval as any).messageInterval) {
-        clearInterval((progressInterval as any).messageInterval);
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+        messageIntervalRef.current = null;
       }
       setDeepAnalysis(false);
 
@@ -130,6 +135,14 @@ export const AutoPopulateStep = ({
       });
     } catch (error: any) {
       console.error('[AUTO-POPULATE] Error:', error);
+
+      // Cleanup intervals on error
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+        messageIntervalRef.current = null;
+      }
+      setDeepAnalysis(false);
+
       setStatus('error');
       setErrorMessage(error.message || 'Failed to auto-populate vault');
 
