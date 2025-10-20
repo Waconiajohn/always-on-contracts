@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Lightbulb, Plus, ChevronUp } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,7 +32,6 @@ export const GapSolutionsCard = ({
   onAddToVault
 }: GapSolutionsCardProps) => {
   const { toast } = useToast();
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [solutions, setSolutions] = useState<GapSolution[]>([]);
 
@@ -53,12 +52,6 @@ export const GapSolutionsCard = ({
       if (error) throw error;
 
       setSolutions(data.solutions || []);
-      setIsExpanded(true);
-
-      toast({
-        title: "Solutions generated",
-        description: "Review 3 approaches to address this gap"
-      });
 
     } catch (error) {
       console.error('Error generating gap solutions:', error);
@@ -71,6 +64,11 @@ export const GapSolutionsCard = ({
       setIsGenerating(false);
     }
   };
+
+  // Auto-generate solutions on mount
+  useEffect(() => {
+    handleGenerateSolutions();
+  }, [requirement]);
 
   const handleAddToVault = (solution: GapSolution) => {
     if (onAddToVault) {
@@ -86,45 +84,33 @@ export const GapSolutionsCard = ({
     <Card className="p-4 border-warning/30">
       <div className="space-y-3">
         {/* Requirement Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p className="font-medium text-sm mb-1">{requirement}</p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => isExpanded ? setIsExpanded(false) : handleGenerateSolutions()}
-            disabled={isGenerating}
-            className="flex-shrink-0"
-          >
-            {isGenerating ? (
-              "Generating..."
-            ) : isExpanded ? (
-              <>
-                <ChevronUp className="h-3 w-3 mr-1" />
-                Hide
-              </>
-            ) : (
-              <>
-                <Lightbulb className="h-3 w-3 mr-1" />
-                Show Solutions
-              </>
-            )}
-          </Button>
+        <div className="flex-1">
+          <p className="font-medium text-sm mb-3">{requirement}</p>
         </div>
 
-        {/* Expanded Solutions */}
-        {isExpanded && solutions.length > 0 && (
+        {/* Solutions Tabs - Always visible */}
+        {isGenerating ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-3">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Generating solutions...</p>
+          </div>
+        ) : solutions.length > 0 ? (
           <Tabs defaultValue="pure_ai" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="pure_ai" className="text-xs">
-                💎 Pure AI
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger value="pure_ai" className="text-xs flex flex-col items-center py-2 px-1">
+                <span className="text-base mb-1">💎</span>
+                <span className="font-medium">Industry Standard</span>
+                <span className="text-[10px] text-muted-foreground">AI from best practices</span>
               </TabsTrigger>
-              <TabsTrigger value="vault_based" className="text-xs">
-                ⭐ From Vault
+              <TabsTrigger value="vault_based" className="text-xs flex flex-col items-center py-2 px-1">
+                <span className="text-base mb-1">⭐</span>
+                <span className="font-medium">Your Experience</span>
+                <span className="text-[10px] text-muted-foreground">AI adapts your vault</span>
               </TabsTrigger>
-              <TabsTrigger value="alternative" className="text-xs">
-                🎯 Alternative
+              <TabsTrigger value="alternative" className="text-xs flex flex-col items-center py-2 px-1">
+                <span className="text-base mb-1">🎯</span>
+                <span className="font-medium">Alternative Angle</span>
+                <span className="text-[10px] text-muted-foreground">Working knowledge</span>
               </TabsTrigger>
             </TabsList>
 
@@ -166,22 +152,7 @@ export const GapSolutionsCard = ({
               </TabsContent>
             ))}
           </Tabs>
-        )}
-
-        {/* Default Quick Actions (when not expanded) */}
-        {!isExpanded && (
-          <div className="flex gap-2 text-xs">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateSolutions}
-              disabled={isGenerating}
-              className="flex-1"
-            >
-              {isGenerating ? "Generating..." : "See AI Solutions"}
-            </Button>
-          </div>
-        )}
+        ) : null}
       </div>
     </Card>
   );
