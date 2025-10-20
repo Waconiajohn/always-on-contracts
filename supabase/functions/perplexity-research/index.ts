@@ -88,7 +88,7 @@ Use job posting data from the last 2 months.`;
         
       case 'interview_prep':
         researchQuery = `Interview preparation for ${query_params.role} at ${query_params.company || 'similar companies'}:
-        
+
 1. Common interview questions
 2. Technical assessment format
 3. Company-specific interview process
@@ -96,7 +96,57 @@ Use job posting data from the last 2 months.`;
 5. Key topics to prepare
 6. Red flags to watch for`;
         break;
-        
+
+      case 'resume_job_analysis':
+        researchQuery = `Analyze this job posting for world-class resume optimization:
+
+JOB TITLE: ${query_params.job_title}
+COMPANY: ${query_params.company || 'Not specified'}
+INDUSTRY: ${query_params.industry || 'Not specified'}
+LOCATION: ${query_params.location || 'Not specified'}
+
+JOB DESCRIPTION:
+${query_params.job_description}
+
+Provide comprehensive analysis:
+
+1. CORE PROBLEM STATEMENT
+   - What specific business problem does this role solve?
+   - What pain points will this hire address?
+   - What outcomes define success in this role?
+   - What would make this hire "exceptional" vs "acceptable"?
+
+2. CRITICAL ATS KEYWORDS (Top 15)
+   - Extract exact phrases from job description (not synonyms)
+   - Rank by importance: must-have vs nice-to-have
+   - Include job title variations
+   - Note technical terms and industry buzzwords
+   - Identify skills with highest mention frequency
+
+3. INDUSTRY BENCHMARKING
+   - Research 20+ similar "${query_params.job_title}" postings in ${query_params.industry || 'this industry'}
+   - What do top-performer resumes typically emphasize?
+   - What quantified achievements are most common? (%, $, #)
+   - What is typical salary range for this role in ${query_params.location || 'major markets'}?
+   - What years of experience are expected?
+
+4. COMPETITIVE INTELLIGENCE
+   - Recent news about ${query_params.company || 'companies in this industry'} (last 3 months)
+   - Company priorities and strategic initiatives
+   - Culture signals from job description
+   - Technology stack and tools mentioned
+   - Growth stage indicators (startup/scaleup/enterprise)
+
+5. RESUME OPTIMIZATION RECOMMENDATIONS
+   - What resume format works best? (chronological/functional/hybrid)
+   - What sections should be prioritized?
+   - What tone is appropriate? (formal/conversational/technical)
+   - What common mistakes should be avoided?
+   - What achievements would make candidate stand out?
+
+Use only recent data (last 3 months). Cite all salary data and market statistics with sources.`;
+        break;
+
       default:
         researchQuery = query_params.custom_query || 'Provide relevant market research';
     }
