@@ -2,34 +2,25 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileText, Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface JobInputSectionProps {
   onAnalyze: (jobText: string) => void;
   isAnalyzing: boolean;
+  initialJobText?: string;
+  autoLoaded?: boolean;
 }
 
-export const JobInputSection = ({ onAnalyze, isAnalyzing }: JobInputSectionProps) => {
-  const [jobText, setJobText] = useState("");
+export const JobInputSection = ({ 
+  onAnalyze, 
+  isAnalyzing, 
+  initialJobText = "",
+  autoLoaded = false 
+}: JobInputSectionProps) => {
+  const [jobText, setJobText] = useState(initialJobText);
   const { toast } = useToast();
-
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setJobText(text);
-      toast({
-        title: "Job description pasted",
-        description: "Review and click 'Analyze Job' to continue"
-      });
-    } catch (err) {
-      toast({
-        title: "Clipboard access denied",
-        description: "Please paste the job description manually",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleAnalyze = () => {
     if (!jobText.trim()) {
@@ -46,6 +37,15 @@ export const JobInputSection = ({ onAnalyze, isAnalyzing }: JobInputSectionProps
   return (
     <div className="flex items-center justify-center min-h-[600px] p-6">
       <Card className="w-full max-w-3xl p-8 space-y-6">
+        {autoLoaded && (
+          <Alert className="border-primary/20 bg-primary/5">
+            <CheckCircle className="h-4 w-4 text-primary" />
+            <AlertDescription>
+              Job description loaded from your search results
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="text-center space-y-2">
           <FileText className="h-12 w-12 mx-auto text-primary" />
           <h2 className="text-3xl font-bold text-foreground">Upload Job Description to Begin</h2>
@@ -62,16 +62,7 @@ export const JobInputSection = ({ onAnalyze, isAnalyzing }: JobInputSectionProps
             className="min-h-[300px] font-mono text-sm"
           />
 
-          <div className="flex gap-3 justify-center">
-            <Button
-              variant="outline"
-              onClick={handlePaste}
-              disabled={isAnalyzing}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Paste from Clipboard
-            </Button>
-
+          <div className="flex justify-center">
             <Button
               onClick={handleAnalyze}
               disabled={isAnalyzing || !jobText.trim()}

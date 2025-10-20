@@ -1,5 +1,6 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { GapAnalysisView } from "@/components/resume-builder/GapAnalysisView";
@@ -18,6 +19,7 @@ type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'wizard-mo
 
 const ResumeBuilderWizardContent = () => {
   const { toast } = useToast();
+  const location = useLocation();
 
   // Wizard flow state
   const [currentStep, setCurrentStep] = useState<WizardStep>('job-input');
@@ -26,6 +28,7 @@ const ResumeBuilderWizardContent = () => {
   // Job analysis state
   const [analyzing, setAnalyzing] = useState(false);
   const [jobAnalysis, setJobAnalysis] = useState<any>(null);
+  const [autoLoadedJob, setAutoLoadedJob] = useState(false);
 
   // Vault matching state
   const [matching, setMatching] = useState(false);
@@ -40,6 +43,17 @@ const ResumeBuilderWizardContent = () => {
 
   // Preview modal state
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // Auto-load job from job search navigation
+  useEffect(() => {
+    const jobData = location.state as any;
+    if (jobData?.fromJobSearch && jobData?.jobDescription && !autoLoadedJob) {
+      setAutoLoadedJob(true);
+      handleAnalyzeJob(jobData.jobDescription);
+      // Clear location state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleAnalyzeJob = async (jobText: string) => {
     setAnalyzing(true);
@@ -204,6 +218,8 @@ const ResumeBuilderWizardContent = () => {
             <JobInputSection
               onAnalyze={handleAnalyzeJob}
               isAnalyzing={analyzing || matching}
+              initialJobText={(location.state as any)?.jobDescription || ""}
+              autoLoaded={autoLoadedJob}
             />
 
             {analyzing && (
