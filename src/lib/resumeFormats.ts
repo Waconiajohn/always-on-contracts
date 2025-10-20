@@ -42,7 +42,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Reference technical or domain expertise mentioned in job description
 • Use powerful, confident language that demonstrates executive presence
 • Keep it to 3-4 sentences maximum`,
-        vaultCategories: ['power_phrases', 'career_stories', 'core_competencies', 'achievements']
+        vaultCategories: ['power_phrases', 'resume_milestones', 'hidden_competencies', 'leadership_philosophy', 'executive_presence']
       },
       {
         id: 'core_competencies',
@@ -57,7 +57,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Focus on strategic/leadership capabilities, not tactical tasks
 • Use industry-standard terminology
 • Prioritize skills mentioned in "required qualifications"`,
-        vaultCategories: ['skills', 'core_competencies', 'technical_skills']
+        vaultCategories: ['transferable_skills', 'soft_skills', 'hidden_competencies']
       },
       {
         id: 'selected_accomplishments',
@@ -73,7 +73,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Uses strong action verbs (Led, Drove, Transformed, Pioneered)
 • Shows progression and increasing responsibility
 • Answers "So what?" - why does this matter to the hiring company?`,
-        vaultCategories: ['achievements', 'quantified_results', 'leadership_examples', 'career_stories', 'power_phrases']
+        vaultCategories: ['resume_milestones', 'power_phrases', 'leadership_philosophy', 'executive_presence', 'behavioral_indicators']
       },
       {
         id: 'professional_timeline',
@@ -89,7 +89,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Focus on leadership, strategy, and impact - not day-to-day tasks
 • Use metrics wherever possible
 • Tailor older positions to be more concise`,
-        vaultCategories: ['work_history', 'achievements', 'power_phrases', 'leadership_examples']
+        vaultCategories: ['resume_milestones', 'power_phrases', 'leadership_philosophy', 'behavioral_indicators']
       },
       {
         id: 'additional_skills',
@@ -104,7 +104,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Certifications or specialized knowledge
 • Industry buzzwords and terminology
 • Keep it concise - just a list of terms`,
-        vaultCategories: ['skills', 'technical_skills', 'certifications']
+        vaultCategories: ['transferable_skills', 'soft_skills', 'hidden_competencies']
       },
       {
         id: 'education',
@@ -119,7 +119,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Relevant certifications (PMP, CPA, etc.)
 • Professional development if highly relevant
 • For executives with 15+ years experience, keep this brief`,
-        vaultCategories: ['education', 'certifications']
+        vaultCategories: ['resume_milestones']
       }
     ]
   },
@@ -143,7 +143,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Include 1-2 major achievements with metrics
 • Reference technologies from the job description
 • Keep it to 2-3 sentences`,
-        vaultCategories: ['power_phrases', 'technical_skills', 'achievements']
+        vaultCategories: ['power_phrases', 'transferable_skills', 'resume_milestones']
       },
       {
         id: 'technical_skills',
@@ -159,7 +159,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Databases: (e.g., PostgreSQL, MongoDB, Redis)
 • Tools: (e.g., Git, Jenkins, Terraform)
 • Prioritize skills mentioned in job description`,
-        vaultCategories: ['technical_skills', 'skills']
+        vaultCategories: ['transferable_skills', 'soft_skills']
       },
       {
         id: 'experience',
@@ -174,7 +174,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • 4-6 bullets focusing on technical contributions
 • Include technologies used, scale/performance metrics
 • Emphasize impact and outcomes, not just tasks`,
-        vaultCategories: ['work_history', 'achievements', 'technical_skills', 'power_phrases']
+        vaultCategories: ['resume_milestones', 'power_phrases', 'transferable_skills', 'behavioral_indicators']
       },
       {
         id: 'projects',
@@ -189,7 +189,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Your specific role and contributions
 • Quantifiable outcomes (performance, scale, adoption)
 • Link to GitHub/portfolio if applicable`,
-        vaultCategories: ['projects', 'achievements', 'technical_skills']
+        vaultCategories: ['resume_milestones', 'power_phrases', 'transferable_skills']
       },
       {
         id: 'education',
@@ -203,7 +203,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Relevant coursework or specializations
 • Academic achievements if early career
 • Technical certifications (AWS, Azure, etc.)`,
-        vaultCategories: ['education', 'certifications']
+        vaultCategories: ['resume_milestones']
       }
     ]
   },
@@ -227,7 +227,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Highlight passion/commitment to this field
 • Include one strong achievement
 • Focus on what you bring, not what you lack`,
-        vaultCategories: ['power_phrases', 'career_stories', 'achievements']
+        vaultCategories: ['power_phrases', 'resume_milestones', 'leadership_philosophy']
       },
       {
         id: 'core_capabilities',
@@ -241,7 +241,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • 2-3 bullet points demonstrating that skill
 • Include specific examples and results
 • Match to job requirements`,
-        vaultCategories: ['skills', 'achievements', 'power_phrases']
+        vaultCategories: ['transferable_skills', 'resume_milestones', 'power_phrases']
       },
       {
         id: 'achievements',
@@ -255,7 +255,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Come from various parts of your background
 • Include quantifiable results
 • Show progression and growth`,
-        vaultCategories: ['achievements', 'quantified_results', 'career_stories']
+        vaultCategories: ['resume_milestones', 'power_phrases', 'behavioral_indicators']
       },
       {
         id: 'employment_history',
@@ -269,7 +269,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • One-line description if needed
 • No detailed bullets (covered in skills sections above)
 • Shows stability and progression`,
-        vaultCategories: ['work_history']
+        vaultCategories: ['resume_milestones']
       },
       {
         id: 'education',
@@ -283,7 +283,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Relevant training programs
 • Professional development
 • Shows commitment to continuous learning`,
-        vaultCategories: ['education', 'certifications']
+        vaultCategories: ['resume_milestones']
       }
     ]
   },
@@ -306,7 +306,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Highlights 1-2 major achievements
 • Mentions relevant skills for this specific job
 • Uses confident, professional tone`,
-        vaultCategories: ['power_phrases', 'achievements', 'core_competencies']
+        vaultCategories: ['power_phrases', 'resume_milestones', 'hidden_competencies']
       },
       {
         id: 'key_skills',
@@ -320,7 +320,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Match job requirements and ATS keywords
 • Are demonstrably true from your experience
 • Use industry-standard terminology`,
-        vaultCategories: ['skills', 'core_competencies', 'technical_skills']
+        vaultCategories: ['transferable_skills', 'soft_skills', 'hidden_competencies']
       },
       {
         id: 'experience',
@@ -335,7 +335,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Use action verbs and quantify results
 • Tailor to emphasize relevant experience
 • Most recent roles get more detail`,
-        vaultCategories: ['work_history', 'achievements', 'power_phrases', 'quantified_results']
+        vaultCategories: ['resume_milestones', 'power_phrases', 'behavioral_indicators']
       },
       {
         id: 'education',
@@ -349,7 +349,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
 • Relevant honors or achievements
 • Certifications if applicable
 • Keep concise unless recent graduate`,
-        vaultCategories: ['education', 'certifications']
+        vaultCategories: ['resume_milestones']
       }
     ]
   }
