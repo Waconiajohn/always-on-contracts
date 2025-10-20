@@ -223,12 +223,6 @@ const ResumeBuilderWizardContent = () => {
             (jobAnalysis?.jobRequirements?.preferred?.length || 0)
           }
           onContinue={() => setCurrentStep('format-selection')}
-          onAddMissingItems={() => {
-            toast({
-              title: "Feature coming soon",
-              description: "Quick vault item addition will be available soon"
-            });
-          }}
         />
       );
 

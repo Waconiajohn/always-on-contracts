@@ -16,15 +16,13 @@ interface GapAnalysisViewProps {
   coverageScore: number;
   totalRequirements: number;
   onContinue: () => void;
-  onAddMissingItems: () => void;
 }
 
 export const GapAnalysisView = ({
   unmatchedRequirements,
   coverageScore,
   totalRequirements,
-  onContinue,
-  onAddMissingItems
+  onContinue
 }: GapAnalysisViewProps) => {
   const [gapActions, setGapActions] = useState<Record<string, string>>({});
 
@@ -186,14 +184,7 @@ export const GapAnalysisView = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-6">
-          <Button
-            variant="outline"
-            onClick={onAddMissingItems}
-          >
-            Add Missing Items to Vault
-          </Button>
-
+        <div className="flex items-center justify-end pt-6">
           <Button
             onClick={onContinue}
             size="lg"

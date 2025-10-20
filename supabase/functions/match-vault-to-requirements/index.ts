@@ -295,8 +295,8 @@ Return ONLY valid JSON:
           !matches.some(m => m.satisfiesRequirements.includes(req))
         ),
       coverageScore: Math.round(
-        (1 - (allRequirements.length > 0 ?
-          matches.filter(m => m.matchScore >= 70).length / allRequirements.length : 0)
+        (allRequirements.length > 0 ?
+          matches.filter(m => m.matchScore >= 70).length / allRequirements.length : 0
         ) * 100
       ),
       differentiatorStrength: Math.round(
