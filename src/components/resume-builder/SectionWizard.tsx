@@ -368,7 +368,7 @@ export const SectionWizard = ({
           </Card>
 
           {/* AI Guidance */}
-          <Card className="p-6 bg-accent/10 border-accent">
+          <Card className="p-6 bg-primary/5 border-primary/30">
             <div className="flex items-start gap-3">
               <Lightbulb className="h-5 w-5 text-accent-foreground mt-0.5" />
               <div className="flex-1">

@@ -122,7 +122,7 @@ export const FormatSelector = ({
       </div>
 
       {selectedFormat && (
-        <Card className="p-6 bg-accent/10 border-accent">
+        <Card className="p-6 bg-primary/5 border-primary/30">
           <h4 className="font-semibold mb-2">What to expect:</h4>
           <p className="text-sm text-muted-foreground">
             We'll guide you through each section step-by-step. For each section, you'll:
