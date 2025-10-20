@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trophy, User, Edit, Check, Brain, TrendingUp, Target, Zap, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { TooltipHelp } from './HelpTooltip';
 
 interface DualGenerationComparisonProps {
@@ -34,7 +33,6 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
   research,
   idealContent,
   personalizedContent,
-  sectionType,
   vaultStrength = { score: 50, hasRealNumbers: false, hasDiverseCategories: false },
   onSelectIdeal,
   onSelectPersonalized,

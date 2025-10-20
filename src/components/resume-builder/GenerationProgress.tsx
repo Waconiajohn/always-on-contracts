@@ -13,13 +13,12 @@ interface GenerationStep {
 
 interface GenerationProgressProps {
   currentStep: number;
-  steps: string[];
+  steps?: string[];
   isComplete?: boolean;
 }
 
 export const GenerationProgress: React.FC<GenerationProgressProps> = ({
   currentStep,
-  steps,
   isComplete = false
 }) => {
   const [animatedSteps, setAnimatedSteps] = useState<GenerationStep[]>([]);

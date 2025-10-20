@@ -224,7 +224,8 @@ export const SectionWizard = ({
       console.error('Error generating section:', error);
 
       // Determine operation context for better error messages
-      const operation = currentGenerationStep === 0 ? 'research'
+      const operation: 'research' | 'ideal_generation' | 'personalized_generation' | 'general' = 
+        currentGenerationStep === 0 ? 'research'
         : currentGenerationStep === 1 ? 'ideal_generation'
         : currentGenerationStep === 2 ? 'personalized_generation'
         : 'general';

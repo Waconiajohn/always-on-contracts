@@ -62,9 +62,8 @@ export const trackGenerationEvent = async (
     await supabase.from('resume_generation_analytics').insert({
       user_id: user.id,
       event_type: event,
-      metadata,
-      created_at: new Date().toISOString()
-    });
+      metadata
+    } as any);
   } catch (error) {
     // Don't throw - analytics should never break the app
     console.error('Failed to track event:', error);
