@@ -102,10 +102,10 @@ export const IntelligentVaultPanel = ({
   };
 
 
-  const getMatchColor = (score: number, differentiatorScore: number) => {
-    if (score >= 90) return "bg-red-50 border-red-200";
-    if (score >= 70 || differentiatorScore >= 80) return "bg-yellow-50 border-yellow-200";
-    return "bg-blue-50 border-blue-200";
+    const getMatchColor = (score: number, differentiatorScore: number) => {
+    if (score >= 90) return "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800";
+    if (score >= 70 || differentiatorScore >= 80) return "bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800";
+    return "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800";
   };
 
   const formatCategoryName = (cat: string) => {
@@ -148,26 +148,26 @@ export const IntelligentVaultPanel = ({
           </p>
 
           {match.content.context && typeof match.content.context === 'string' && (
-            <p className="text-xs text-muted-foreground">{match.content.context}</p>
+            <p className="text-xs text-foreground/80">{match.content.context}</p>
           )}
 
           {match.content.description && typeof match.content.description === 'string' && (
-            <p className="text-xs text-muted-foreground">{match.content.description}</p>
+            <p className="text-xs text-foreground/80">{match.content.description}</p>
           )}
           
           {match.content.evidence && typeof match.content.evidence === 'string' && (
-            <p className="text-xs text-muted-foreground italic">{match.content.evidence}</p>
+            <p className="text-xs text-foreground/80 italic">{match.content.evidence}</p>
           )}
         </div>
 
         {match.matchReasons && match.matchReasons.length > 0 && (
           <div className="mb-3">
-            <p className="text-xs font-semibold mb-1">Why this matches:</p>
+            <p className="text-xs font-bold text-foreground mb-1">Why this matches:</p>
             <ul className="text-xs space-y-1">
               {match.matchReasons.slice(0, 3).map((reason, i) => (
                 <li key={i} className="flex items-start gap-1">
-                  <ChevronRight className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span className="text-muted-foreground">{reason}</span>
+                  <ChevronRight className="h-3 w-3 mt-0.5 flex-shrink-0 text-foreground" />
+                  <span className="text-foreground/80">{reason}</span>
                 </li>
               ))}
             </ul>
@@ -176,10 +176,10 @@ export const IntelligentVaultPanel = ({
 
         {match.satisfiesRequirements && match.satisfiesRequirements.length > 0 && (
           <div className="mb-3">
-            <p className="text-xs font-semibold mb-1">Satisfies:</p>
+            <p className="text-xs font-bold text-foreground mb-1">Satisfies:</p>
             <div className="flex flex-wrap gap-1">
               {match.satisfiesRequirements.slice(0, 3).map((req, i) => (
-                <Badge key={i} variant="outline" className="text-xs">
+                <Badge key={i} variant="outline" className="text-xs border-foreground/20 text-foreground">
                   {req.length > 30 ? req.slice(0, 30) + '...' : req}
                 </Badge>
               ))}
@@ -189,7 +189,7 @@ export const IntelligentVaultPanel = ({
 
         {match.atsKeywords && match.atsKeywords.length > 0 && (
           <div className="mb-3">
-            <p className="text-xs font-semibold mb-1">ATS Keywords:</p>
+            <p className="text-xs font-bold text-foreground mb-1">ATS Keywords:</p>
             <div className="flex flex-wrap gap-1">
               {match.atsKeywords.filter((kw: string) => kw && kw.length > 1).map((kw: string, i: number) => (
                 <Badge key={i} className="text-xs bg-green-100 text-green-800 border-green-200">
@@ -313,7 +313,7 @@ export const IntelligentVaultPanel = ({
               <div className="space-y-3 pr-4 pb-4">
                 {filteredMatches.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-sm text-muted-foreground">No matching vault items found</p>
+                    <p className="text-sm text-foreground font-medium">No matching vault items found</p>
                   </div>
                 ) : (
                   filteredMatches.map((match, i) => (
