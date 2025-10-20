@@ -108,18 +108,18 @@ export const JobAnalysisPanel = ({
 
   const RequirementItem = ({ req }: { req: JobRequirement }) => {
     const icon = req.matched ? (
-      <CheckCircle2 className="h-4 w-4 text-green-600" />
+      <CheckCircle2 className="h-4 w-4 text-primary" />
     ) : req.partiallyMatched ? (
-      <AlertCircle className="h-4 w-4 text-yellow-600" />
+      <AlertCircle className="h-4 w-4 text-accent" />
     ) : (
-      <XCircle className="h-4 w-4 text-red-600" />
+      <XCircle className="h-4 w-4 text-destructive" />
     );
 
     const bgColor = req.matched
-      ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+      ? 'bg-card border-primary/30 ring-1 ring-primary/20'
       : req.partiallyMatched
-      ? 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800'
-      : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800';
+      ? 'bg-card border-accent/30 ring-1 ring-accent/20'
+      : 'bg-muted/50 border-border';
 
     return (
       <div className={`p-3 rounded-md border ${bgColor} space-y-2`}>
@@ -147,16 +147,16 @@ export const JobAnalysisPanel = ({
   };
 
   const StandardItem = ({ standard }: { standard: IndustryStandard }) => (
-    <div className={`p-3 rounded-md border ${standard.matched ? 'bg-green-50 border-green-200' : 'bg-muted'}`}>
+    <div className={`p-3 rounded-md border ${standard.matched ? 'bg-card border-primary/30 ring-1 ring-primary/20' : 'bg-muted'}`}>
       <div className="flex items-start gap-2">
-        {standard.matched && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+        {standard.matched && <CheckCircle2 className="h-4 w-4 text-primary" />}
         <div className="flex-1">
           <p className="text-sm font-medium text-foreground">{standard.standard}</p>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="outline" className="text-xs">{standard.category}</Badge>
             <Badge variant="outline" className="text-xs">{standard.expectedLevel}</Badge>
             {standard.commonInTopPerformers && (
-              <Badge className="text-xs bg-purple-100 text-purple-800">Top 10%</Badge>
+              <Badge className="text-xs bg-primary/10 text-primary border-primary/30">Top 10%</Badge>
             )}
           </div>
         </div>
@@ -187,15 +187,15 @@ export const JobAnalysisPanel = ({
 
         <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
           <div className="flex items-center gap-1">
-            <CheckCircle2 className="h-3 w-3 text-green-600" />
+            <CheckCircle2 className="h-3 w-3 text-primary" />
             <span className="text-foreground font-medium">{matchedCount} Matched</span>
           </div>
           <div className="flex items-center gap-1">
-            <AlertCircle className="h-3 w-3 text-yellow-600" />
+            <AlertCircle className="h-3 w-3 text-accent" />
             <span className="text-foreground font-medium">{partialCount} Partial</span>
           </div>
           <div className="flex items-center gap-1">
-            <XCircle className="h-3 w-3 text-red-600" />
+            <XCircle className="h-3 w-3 text-destructive" />
             <span className="text-foreground font-medium">{unmatchedCount} Missing</span>
           </div>
         </div>
@@ -228,7 +228,7 @@ export const JobAnalysisPanel = ({
               <div className="space-y-3 pr-4">
                 {jobRequirements?.required && jobRequirements.required.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-bold text-red-600 dark:text-red-400 mb-2 uppercase tracking-wider">Required ({jobRequirements.required.length})</h4>
+                    <h4 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider">Required ({jobRequirements.required.length})</h4>
                     <div className="space-y-2">
                       {jobRequirements.required.map((req, i) => (
                         <RequirementItem key={i} req={req} />
@@ -239,7 +239,7 @@ export const JobAnalysisPanel = ({
 
                 {jobRequirements?.preferred && jobRequirements.preferred.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="text-xs font-bold text-orange-600 dark:text-orange-400 mb-2 uppercase tracking-wider">Preferred ({jobRequirements.preferred.length})</h4>
+                    <h4 className="text-xs font-bold text-accent mb-2 uppercase tracking-wider">Preferred ({jobRequirements.preferred.length})</h4>
                     <div className="space-y-2">
                       {jobRequirements.preferred.map((req, i) => (
                         <RequirementItem key={i} req={req} />
@@ -250,7 +250,7 @@ export const JobAnalysisPanel = ({
 
                 {jobRequirements?.niceToHave && jobRequirements.niceToHave.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wider">Nice to Have ({jobRequirements.niceToHave.length})</h4>
+                    <h4 className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">Nice to Have ({jobRequirements.niceToHave.length})</h4>
                     <div className="space-y-2">
                       {jobRequirements.niceToHave.map((req, i) => (
                         <RequirementItem key={i} req={req} />
@@ -301,10 +301,10 @@ export const JobAnalysisPanel = ({
 
                 {gapAnalysis?.differentiators && gapAnalysis.differentiators.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="text-xs font-semibold text-purple-600 mb-2 uppercase">Key Differentiators</h4>
+                    <h4 className="text-xs font-semibold text-primary mb-2 uppercase">Key Differentiators</h4>
                     {gapAnalysis.differentiators.map((diff, i) => (
-                      <div key={i} className="p-2 bg-purple-50 rounded text-xs mb-2 border border-purple-200">
-                        <Award className="h-3 w-3 inline mr-1 text-purple-600" />
+                      <div key={i} className="p-2 bg-card rounded text-xs mb-2 border border-primary/30">
+                        <Award className="h-3 w-3 inline mr-1 text-primary" />
                         {diff}
                       </div>
                     ))}
@@ -332,7 +332,7 @@ export const JobAnalysisPanel = ({
 
                 {atsKeywords?.critical && atsKeywords.critical.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-bold text-red-600 dark:text-red-400 mb-2 uppercase flex items-center tracking-wider">
+                    <h4 className="text-xs font-bold text-primary mb-2 uppercase flex items-center tracking-wider">
                       <Zap className="h-3 w-3 mr-1" />
                       Critical Keywords ({atsKeywords.critical.length})
                     </h4>
@@ -341,7 +341,7 @@ export const JobAnalysisPanel = ({
                         const coverage = currentKeywordCoverage[kw] || { current: 0, needed: 2 };
                         const percent = Math.min((coverage.current / coverage.needed) * 100, 100);
                         return (
-                          <div key={i} className="p-3 bg-red-50 dark:bg-red-950 rounded border border-red-200 dark:border-red-800">
+                          <div key={i} className="p-3 bg-card rounded border border-primary/30">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-medium text-foreground">{kw}</span>
                               <span className="text-xs text-foreground font-medium">
@@ -358,7 +358,7 @@ export const JobAnalysisPanel = ({
 
                 {atsKeywords?.important && atsKeywords.important.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="text-xs font-bold text-orange-600 dark:text-orange-400 mb-2 uppercase tracking-wider">Important Keywords ({atsKeywords.important.length})</h4>
+                    <h4 className="text-xs font-bold text-accent mb-2 uppercase tracking-wider">Important Keywords ({atsKeywords.important.length})</h4>
                     <div className="flex flex-wrap gap-2">
                       {atsKeywords.important.map((kw, i) => {
                         const coverage = currentKeywordCoverage[kw] || { current: 0, needed: 1 };
@@ -367,7 +367,6 @@ export const JobAnalysisPanel = ({
                           <Badge
                             key={i}
                             variant={hasCoverage ? "default" : "outline"}
-                            className={hasCoverage ? "bg-green-600" : ""}
                           >
                             {kw} {hasCoverage ? '✓' : `(${coverage.current}/${coverage.needed})`}
                           </Badge>
@@ -379,7 +378,7 @@ export const JobAnalysisPanel = ({
 
                 {atsKeywords?.bonus && atsKeywords.bonus.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wider">Bonus Keywords ({atsKeywords.bonus.length})</h4>
+                    <h4 className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">Bonus Keywords ({atsKeywords.bonus.length})</h4>
                     <div className="flex flex-wrap gap-2">
                       {atsKeywords.bonus.map((kw, i) => (
                         <Badge key={i} variant="secondary" className="text-xs">
