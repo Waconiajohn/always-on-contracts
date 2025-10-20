@@ -18,6 +18,8 @@ import {
 import { cn } from "@/lib/utils";
 import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { DualGenerationComparison } from "./DualGenerationComparison";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -63,6 +65,10 @@ export const SectionWizard = ({
   const [editedContent, setEditedContent] = useState<string>("");
   const [showEnhanced, setShowEnhanced] = useState<{ [key: string]: boolean }>({});
   const [researchProgress, setResearchProgress] = useState<string[]>([]);
+  const [jobResearch, setJobResearch] = useState<any>(null);
+  const [idealContent, setIdealContent] = useState<any>(null);
+  const [personalizedContent, setPersonalizedContent] = useState<any>(null);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
@@ -102,90 +108,100 @@ export const SectionWizard = ({
   const handleGenerate = async () => {
     setIsGenerating(true);
     setResearchProgress([]);
-
-    let progressInterval: NodeJS.Timeout | null = null;
+    setShowComparison(false);
 
     try {
       const selectedItems = relevantMatches.filter(m =>
         selectedVaultItems.includes(m.vaultItemId)
       );
 
-      // Show research progress
-      const progressSteps = [
-        `Analyzing job requirements for ${jobAnalysis.roleProfile?.title || 'this role'}...`,
-        `Researching ${jobAnalysis.roleProfile?.industry || 'industry'} standards...`,
-        `Matching your Career Vault items to job requirements...`,
-        `Incorporating ATS keywords and optimizing language...`,
-        `Generating ${section.title}...`
-      ];
+      // Step 1: Get or fetch job analysis research (cache this globally)
+      setResearchProgress(['📊 Analyzing job description with AI research...']);
 
-      let stepIndex = 0;
-      progressInterval = setInterval(() => {
-        if (stepIndex < progressSteps.length) {
-          setResearchProgress(prev => [...prev, progressSteps[stepIndex]]);
-          stepIndex++;
+      let research = jobResearch;
+      if (!research) {
+        const { data: researchData, error: researchError } = await supabase.functions.invoke(
+          'perplexity-research',
+          {
+            body: {
+              research_type: 'resume_job_analysis',
+              query_params: {
+                job_description: jobAnalysis.originalJobDescription || '',
+                job_title: jobAnalysis.roleProfile?.title || '',
+                company: jobAnalysis.roleProfile?.company || '',
+                industry: jobAnalysis.roleProfile?.industry || '',
+                location: jobAnalysis.roleProfile?.location || ''
+              }
+            }
+          }
+        );
+
+        if (researchError) {
+          throw new Error('Job analysis failed');
         }
-      }, 800);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-resume-section`,
+        research = researchData;
+        setJobResearch(research); // Cache for next sections
+      }
+
+      // Step 2: Generate ideal version
+      setResearchProgress(prev => [...prev, '💎 Generating industry-standard example...']);
+
+      const { data: idealData, error: idealError } = await supabase.functions.invoke(
+        'generate-resume-with-perplexity',
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-          },
-          body: JSON.stringify({
-            sectionType: section.type,
-            sectionGuidance: section.guidancePrompt,
-            jobAnalysis,
-            vaultItems: selectedItems,
-            userSelections: selectedVaultItems
-          })
+          body: {
+            generation_type: 'ideal',
+            section_type: section.type,
+            section_guidance: section.guidancePrompt,
+            job_analysis_research: research.research_result,
+            job_title: jobAnalysis.roleProfile?.title || '',
+            industry: jobAnalysis.roleProfile?.industry || '',
+            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level'
+          }
         }
       );
 
-      if (progressInterval) clearInterval(progressInterval);
-      setResearchProgress(prev => [...prev, '✓ Generation complete!']);
+      if (idealError) {
+        throw new Error('Ideal generation failed');
+      }
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      setIdealContent(idealData.content);
 
-        if (response.status === 429) {
-          toast({
-            title: "Rate limit exceeded",
-            description: "Too many requests. Please wait a moment and try again.",
-            variant: "destructive"
-          });
-        } else if (response.status === 402) {
-          toast({
-            title: "Credits required",
-            description: "Please add credits to your Lovable AI workspace to continue.",
-            variant: "destructive"
-          });
-        } else {
-          throw new Error(errorData.error || "Failed to generate section");
+      // Step 3: Generate personalized version
+      setResearchProgress(prev => [...prev, '⭐ Personalizing with your Career Vault...']);
+
+      const { data: personalizedData, error: personalizedError } = await supabase.functions.invoke(
+        'generate-resume-with-perplexity',
+        {
+          body: {
+            generation_type: 'personalized',
+            section_type: section.type,
+            section_guidance: section.guidancePrompt,
+            job_analysis_research: research.research_result,
+            vault_items: selectedItems,
+            job_title: jobAnalysis.roleProfile?.title || '',
+            industry: jobAnalysis.roleProfile?.industry || '',
+            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level'
+          }
         }
-        setResearchProgress([]);
-        return;
+      );
+
+      if (personalizedError) {
+        throw new Error('Personalized generation failed');
       }
 
-      const data = await response.json();
+      setPersonalizedContent(personalizedData.content);
 
-      if (data.success) {
-        setGeneratedContent(data.content);
-        setEditedContent(
-          typeof data.content === 'string'
-            ? data.content
-            : JSON.stringify(data.content, null, 2)
-        );
-        toast({
-          title: "Section generated",
-          description: "Review the content and approve when ready"
-        });
-      }
+      setResearchProgress(prev => [...prev, '✅ Generation complete!']);
+      setShowComparison(true);
+
+      toast({
+        title: "Dual generation complete!",
+        description: "Compare industry standard vs your personalized version"
+      });
+
     } catch (error) {
-      if (progressInterval) clearInterval(progressInterval);
       setResearchProgress([]);
       console.error('Error generating section:', error);
       toast({
@@ -201,7 +217,51 @@ export const SectionWizard = ({
   const handleRegenerate = () => {
     setGeneratedContent(null);
     setEditedContent("");
+    setShowComparison(false);
     handleGenerate();
+  };
+
+  const handleSelectIdeal = () => {
+    setGeneratedContent(idealContent);
+    setEditedContent(
+      typeof idealContent === 'string'
+        ? idealContent
+        : JSON.stringify(idealContent, null, 2)
+    );
+    setShowComparison(false);
+    toast({
+      title: "Industry standard selected",
+      description: "You can edit before approving"
+    });
+  };
+
+  const handleSelectPersonalized = () => {
+    setGeneratedContent(personalizedContent);
+    setEditedContent(
+      typeof personalizedContent === 'string'
+        ? personalizedContent
+        : JSON.stringify(personalizedContent, null, 2)
+    );
+    setShowComparison(false);
+    toast({
+      title: "Personalized version selected",
+      description: "You can edit before approving"
+    });
+  };
+
+  const handleOpenEditor = (initialContent: any) => {
+    setGeneratedContent(initialContent);
+    setEditedContent(
+      typeof initialContent === 'string'
+        ? initialContent
+        : JSON.stringify(initialContent, null, 2)
+    );
+    setIsEditing(true);
+    setShowComparison(false);
+    toast({
+      title: "Editor opened",
+      description: "Blend and customize as needed"
+    });
   };
 
   const handleApprove = () => {
@@ -443,8 +503,31 @@ export const SectionWizard = ({
             </Card>
           )}
 
-          {/* Generated Content Review */}
-          {generatedContent && (
+          {/* Dual Generation Comparison */}
+          {showComparison && idealContent && personalizedContent && jobResearch && (
+            <DualGenerationComparison
+              research={{
+                insights: jobResearch.research_result,
+                citations: jobResearch.citations,
+                keywords: jobResearch.related_questions
+              }}
+              idealContent={idealContent}
+              personalizedContent={personalizedContent}
+              sectionType={section.type}
+              vaultStrength={{
+                score: Math.min(100, (selectedVaultItems.length / 10) * 100),
+                hasRealNumbers: true,
+                hasDiverseCategories: true
+              }}
+              onSelectIdeal={handleSelectIdeal}
+              onSelectPersonalized={handleSelectPersonalized}
+              onOpenEditor={handleOpenEditor}
+              jobTitle={jobAnalysis.roleProfile?.title}
+            />
+          )}
+
+          {/* Single Content Review (after selection) */}
+          {generatedContent && !showComparison && (
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="font-semibold">Generated {section.title}</h4>
