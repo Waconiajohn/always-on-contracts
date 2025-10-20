@@ -6,6 +6,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trophy, User, Edit, Check, Brain, TrendingUp, Target, Zap, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TooltipHelp } from './HelpTooltip';
 
 interface DualGenerationComparisonProps {
   research: {
@@ -39,8 +40,10 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
   onSelectPersonalized,
   onOpenEditor,
   jobTitle,
-  atsMatchIdeal = 82,
-  atsMatchPersonalized = 76,
+  // TODO: Calculate actual ATS scores based on keyword matching algorithm
+  // These are placeholder values for demonstration purposes
+  atsMatchIdeal,
+  atsMatchPersonalized,
 }) => {
 
   const renderContent = (content: any) => {
@@ -113,7 +116,10 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
           <Brain className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
           <div className="flex-1 space-y-4">
             <div>
-              <h3 className="font-semibold text-lg mb-2">AI Research Completed</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="font-semibold text-lg">AI Research Completed</h3>
+                <TooltipHelp.ResearchProcess />
+              </div>
               <p className="text-sm text-muted-foreground">
                 Analyzed job description for {jobTitle || 'this role'} using real-time industry data
               </p>
@@ -189,10 +195,14 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
                   <div className="flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">💎 Industry Standard</h3>
+                    <TooltipHelp.IdealVersion />
                   </div>
-                  <Badge variant="outline" className="bg-primary/10">
-                    {atsMatchIdeal}% ATS Match
-                  </Badge>
+                  {atsMatchIdeal && (
+                    <Badge variant="outline" className="bg-primary/10">
+                      {atsMatchIdeal}% ATS Match
+                      <TooltipHelp.ATSMatch />
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="p-4 bg-card rounded-lg border min-h-[200px]">
@@ -231,10 +241,14 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
                   <div className="flex items-center gap-2">
                     <User className="h-5 w-5 text-success" />
                     <h3 className="font-semibold">⭐ Your Personalized Version</h3>
+                    <TooltipHelp.PersonalizedVersion />
                   </div>
-                  <Badge variant="outline" className="bg-success/10">
-                    {atsMatchPersonalized}% ATS Match
-                  </Badge>
+                  {atsMatchPersonalized && (
+                    <Badge variant="outline" className="bg-success/10">
+                      {atsMatchPersonalized}% ATS Match
+                      <TooltipHelp.ATSMatch />
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="p-4 bg-card rounded-lg border min-h-[200px]">
@@ -272,6 +286,7 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
                       <AlertTriangle className="h-3 w-3 text-warning mt-0.5 flex-shrink-0" />
                     )}
                     <span>Vault strength: {vaultStrength.score}%</span>
+                    <TooltipHelp.VaultStrength />
                   </div>
                 </div>
 
@@ -323,9 +338,11 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
                     Based on research of top-performing {jobTitle || 'professionals'}
                   </p>
                 </div>
-                <Badge className="bg-primary">
-                  {atsMatchIdeal}% ATS Match
-                </Badge>
+                {atsMatchIdeal && (
+                  <Badge className="bg-primary">
+                    {atsMatchIdeal}% ATS Match
+                  </Badge>
+                )}
               </div>
 
               <div className="p-6 bg-card rounded-lg border">
@@ -360,9 +377,11 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
                     Customized using your Career Vault achievements
                   </p>
                 </div>
-                <Badge className="bg-success">
-                  {atsMatchPersonalized}% ATS Match
-                </Badge>
+                {atsMatchPersonalized && (
+                  <Badge className="bg-success">
+                    {atsMatchPersonalized}% ATS Match
+                  </Badge>
+                )}
               </div>
 
               {vaultStrength.score < 50 && (

@@ -186,6 +186,9 @@ verify_jwt = true
 [functions.perplexity-research]
 verify_jwt = true
 
+[functions.generate-resume-with-perplexity]
+verify_jwt = true
+
 [functions.process-resume]
 verify_jwt = true
 

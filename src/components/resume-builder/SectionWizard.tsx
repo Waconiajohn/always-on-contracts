@@ -350,37 +350,77 @@ export const SectionWizard = ({
     const isSelected = selectedVaultItems.includes(match.vaultItemId);
     const showEnhancedVersion = showEnhanced[match.vaultItemId];
 
-    // Get displayable content from vault item
+    // Get displayable content from vault item - comprehensive schema mapper
     const getDisplayContent = (content: any): string => {
+      if (!content) return 'No content';
       if (typeof content === 'string') return content;
-      
-      // Try fields matching actual database schema
-      if (content.competency_area) return content.competency_area;
-      if (content.inferred_capability) return content.inferred_capability;
-      if (content.phrase) return content.phrase;
-      if (content.skill_name) return content.skill_name;
-      if (content.job_title) return content.job_title;
-      if (content.question) return content.question;
-      if (content.strong_answer) return content.strong_answer;
-      if (content.accomplishment) return content.accomplishment;
-      if (content.philosophy_statement) return content.philosophy_statement;
-      if (content.value_name) return content.value_name;
-      if (content.description) return content.description;
-      
-      // Handle arrays
-      if (content.supporting_evidence && Array.isArray(content.supporting_evidence) && content.supporting_evidence.length > 0) {
-        return content.supporting_evidence[0];
+
+      // Priority order of field names (most descriptive first)
+      const fieldPriority = [
+        // Achievements & Accomplishments
+        'accomplishment', 'achievement', 'accomplishment_text',
+        // Questions & Answers
+        'strong_answer', 'question', 'answer',
+        // Skills & Competencies
+        'competency_area', 'inferred_capability', 'skill_name', 'skill', 'competency',
+        // Phrases & Statements
+        'phrase', 'power_phrase', 'philosophy_statement', 'statement',
+        // Titles & Names
+        'job_title', 'title', 'role', 'value_name', 'name',
+        // Descriptions
+        'description', 'summary', 'details', 'content', 'text',
+        // Problem-Solution
+        'problem', 'solution', 'situation', 'task', 'action', 'result',
+        // Career context
+        'company', 'industry', 'certification', 'degree',
+        // Soft skills & values
+        'value', 'strength', 'weakness'
+      ];
+
+      // Try priority fields first
+      for (const field of fieldPriority) {
+        if (content[field] && typeof content[field] === 'string' && content[field].trim().length > 0) {
+          return content[field];
+        }
       }
-      
-      // Fallback: find first meaningful string (skip IDs, UUIDs, dates)
-      const skipFields = ['id', 'user_id', 'vault_id', 'created_at', 'updated_at'];
+
+      // Handle arrays (supporting evidence, examples, etc.)
+      const arrayFields = ['supporting_evidence', 'examples', 'achievements', 'skills'];
+      for (const field of arrayFields) {
+        if (content[field] && Array.isArray(content[field]) && content[field].length > 0) {
+          const firstItem = content[field][0];
+          if (typeof firstItem === 'string') return firstItem;
+          if (typeof firstItem === 'object') return getDisplayContent(firstItem);
+        }
+      }
+
+      // Fallback: find first meaningful string (skip metadata fields)
+      const skipFields = [
+        'id', 'user_id', 'vault_id', 'created_at', 'updated_at', 'deleted_at',
+        'embedding', 'metadata', 'tags', 'uuid', 'timestamp'
+      ];
+
       const firstString = Object.entries(content)
-        .filter(([key, val]) => !skipFields.includes(key) && typeof val === 'string' && val.length > 10 && !val.match(/^[0-9a-f-]{36}$/))
+        .filter(([key, val]) => {
+          if (skipFields.includes(key)) return false;
+          if (typeof val !== 'string') return false;
+          if (val.length < 3) return false;
+          // Skip UUIDs, timestamps, and very short values
+          if (val.match(/^[0-9a-f-]{36}$/i)) return false;
+          if (val.match(/^\d{4}-\d{2}-\d{2}/)) return false;
+          return true;
+        })
         .map(([_, val]) => val as string)[0];
-      
+
       if (firstString) return firstString;
-      
-      return JSON.stringify(content).substring(0, 200);
+
+      // Last resort: pretty-print JSON with truncation
+      try {
+        const json = JSON.stringify(content, null, 2);
+        return json.length > 200 ? json.substring(0, 197) + '...' : json;
+      } catch {
+        return 'Unable to display content';
+      }
     };
 
     const displayContent = getDisplayContent(match.content);

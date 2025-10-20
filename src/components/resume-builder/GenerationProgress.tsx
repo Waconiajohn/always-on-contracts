@@ -178,13 +178,3 @@ export const GenerationProgress: React.FC<GenerationProgressProps> = ({
     </Card>
   );
 };
-
-// Add custom animation to globals.css
-// @keyframes progress-indeterminate {
-//   0% { transform: translateX(-100%); }
-//   100% { transform: translateX(400%); }
-// }
-// .animate-progress-indeterminate {
-//   animation: progress-indeterminate 1.5s ease-in-out infinite;
-//   width: 25%;
-// }

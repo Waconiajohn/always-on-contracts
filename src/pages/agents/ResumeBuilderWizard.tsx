@@ -5,6 +5,7 @@ import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { FormatSelector } from "@/components/resume-builder/FormatSelector";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
+import { ResumeBuilderOnboarding } from "@/components/resume-builder/ResumeBuilderOnboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
@@ -182,6 +183,7 @@ const ResumeBuilderWizardContent = () => {
     case 'job-input':
       return (
         <div className="min-h-screen bg-background">
+          <ResumeBuilderOnboarding />
           <div className="max-w-4xl mx-auto p-6">
             <div className="mb-8 text-center">
               <h1 className="text-4xl font-bold mb-3">Benchmark Resume Builder</h1>
