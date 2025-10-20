@@ -6,7 +6,7 @@ import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { GapAnalysisView } from "@/components/resume-builder/GapAnalysisView";
 import { FormatSelector } from "@/components/resume-builder/FormatSelector";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
-import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
+import { ResumeEditorWithVaultPanel } from "@/components/resume-builder/ResumeEditorWithVaultPanel";
 import { ResumeBuilderOnboarding } from "@/components/resume-builder/ResumeBuilderOnboarding";
 import { ResumePreviewModal } from "@/components/resume-builder/ResumePreviewModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -142,9 +142,8 @@ const ResumeBuilderWizardContent = () => {
       setResumeSections(sections);
     }
 
-    // Move to wizard mode
-    setCurrentStep('wizard-mode');
-    setCurrentSectionIndex(0);
+    // Move to resume editor with vault panel
+    setCurrentStep('final-review');
   };
 
   const handleSectionComplete = (sectionContent: any) => {
@@ -340,59 +339,57 @@ const ResumeBuilderWizardContent = () => {
 
     case 'final-review':
       return (
-        <div className="min-h-screen bg-background">
-          <div className="p-6">
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">Your Resume</h1>
-                  <p className="text-muted-foreground">
-                    Review and export your benchmark resume
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={handleStartOver}
-                  className="gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Start New Resume
-                </Button>
-              </div>
-
-              <InteractiveResumeBuilder
-                sections={resumeSections}
-                onUpdateSection={(sectionId, content) => {
-                  setResumeSections(prev =>
-                    prev.map(s => s.id === sectionId ? { ...s, content } : s)
-                  );
-                }}
-                onAddItem={(sectionType, item) => {
-                  setResumeSections(prev =>
-                    prev.map(s =>
-                      s.type === sectionType
-                        ? { ...s, content: [...s.content, item] }
-                        : s
-                    )
-                  );
-                }}
-                onRemoveItem={(sectionId, itemId) => {
-                  setResumeSections(prev =>
-                    prev.map(s =>
-                      s.id === sectionId
-                        ? { ...s, content: s.content.filter((c: any) => c.id !== itemId) }
-                        : s
-                    )
-                  );
-                }}
-                onReorderSections={(sections) => setResumeSections(sections)}
-                onExport={handleExport}
-                requirementCoverage={85} // TODO: Calculate based on content
-                atsScore={78} // TODO: Calculate based on keywords
-                mode={resumeMode}
-                onModeChange={setResumeMode}
-              />
+        <div className="h-screen flex flex-col bg-background">
+          <div className="p-4 border-b flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold">Resume Builder</h1>
+              <p className="text-xs text-muted-foreground">
+                Build your resume using vault intelligence and gap solutions
+              </p>
             </div>
+            <Button
+              variant="outline"
+              onClick={handleStartOver}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Start New Resume
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            <ResumeEditorWithVaultPanel
+              sections={resumeSections}
+              vaultMatches={vaultMatches}
+              jobAnalysis={jobAnalysis}
+              onUpdateSection={(sectionId, content) => {
+                setResumeSections(prev =>
+                  prev.map(s => s.id === sectionId ? { ...s, content } : s)
+                );
+              }}
+              onAddItem={(sectionType, item) => {
+                setResumeSections(prev =>
+                  prev.map(s =>
+                    s.type === sectionType
+                      ? { ...s, content: [...s.content, item] }
+                      : s
+                  )
+                );
+              }}
+              onRemoveItem={(sectionId, itemId) => {
+                setResumeSections(prev =>
+                  prev.map(s =>
+                    s.id === sectionId
+                      ? { ...s, content: s.content.filter((c: any) => c.id !== itemId) }
+                      : s
+                  )
+                );
+              }}
+              onReorderSections={(sections) => setResumeSections(sections)}
+              onExport={handleExport}
+              mode={resumeMode}
+              onModeChange={setResumeMode}
+            />
           </div>
         </div>
       );

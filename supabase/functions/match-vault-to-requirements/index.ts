@@ -175,6 +175,14 @@ For each vault item, determine:
 5. ATS keywords present in this content
 6. Differentiator score (0-100) - how much this sets candidate apart from others
 
+CRITICAL INSTRUCTION: You MUST use the EXACT vaultCategory name from the CAREER VAULT DATA above. 
+Valid categories are: power_phrases, transferable_skills, hidden_competencies, soft_skills, 
+leadership_philosophy, executive_presence, personality_traits, work_style, values_motivations, 
+behavioral_indicators, resume_milestones, interview_responses
+
+DO NOT make up category names. DO NOT use generic names like "achievement" or "skill". 
+USE THE EXACT CATEGORY NAME from the vault data (e.g., "power_phrases", NOT "phrases").
+
 Prioritize:
 - Items that address multiple requirements
 - Content with ATS-critical keywords
