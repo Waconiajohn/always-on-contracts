@@ -102,10 +102,10 @@ export const IntelligentVaultPanel = ({
   };
 
 
-    const getMatchColor = (score: number, differentiatorScore: number) => {
-    if (score >= 90) return "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800";
-    if (score >= 70 || differentiatorScore >= 80) return "bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800";
-    return "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800";
+  const getMatchColor = (score: number, differentiatorScore: number) => {
+    if (score >= 90) return "bg-card border-primary/30 ring-1 ring-primary/20";
+    if (score >= 70 || differentiatorScore >= 80) return "bg-card border-accent/30 ring-1 ring-accent/20";
+    return "bg-muted/50 border-border";
   };
 
   const formatCategoryName = (cat: string) => {
