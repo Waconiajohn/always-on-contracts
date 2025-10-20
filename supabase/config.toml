@@ -291,4 +291,7 @@ verify_jwt = true
 [functions.generate-interview-prep]
 verify_jwt = true
 
+[functions.generate-gap-solutions]
+verify_jwt = true
+
 

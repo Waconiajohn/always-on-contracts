@@ -230,6 +230,8 @@ const ResumeBuilderWizardContent = () => {
             (jobAnalysis?.jobRequirements?.required?.length || 0) +
             (jobAnalysis?.jobRequirements?.preferred?.length || 0)
           }
+          vaultMatches={vaultMatches.matchedItems || []}
+          jobAnalysis={jobAnalysis}
           onContinue={() => setCurrentStep('format-selection')}
         />
       );

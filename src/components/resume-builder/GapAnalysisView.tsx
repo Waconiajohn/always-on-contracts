@@ -9,30 +9,28 @@ import {
   ArrowRight,
   TrendingUp
 } from "lucide-react";
-import { useState } from "react";
+import { GapSolutionsCard } from "./GapSolutionsCard";
 
 interface GapAnalysisViewProps {
   unmatchedRequirements: string[];
   coverageScore: number;
   totalRequirements: number;
   onContinue: () => void;
+  vaultMatches?: any[];
+  jobAnalysis?: any;
 }
 
 export const GapAnalysisView = ({
   unmatchedRequirements,
   coverageScore,
   totalRequirements,
-  onContinue
+  onContinue,
+  vaultMatches = [],
+  jobAnalysis
 }: GapAnalysisViewProps) => {
-  const [gapActions, setGapActions] = useState<Record<string, string>>({});
-
   // Calculate matched count directly from unmatched requirements
   const matchedCount = totalRequirements - unmatchedRequirements.length;
   const gapCount = unmatchedRequirements.length;
-
-  const handleGapAction = (requirement: string, action: string) => {
-    setGapActions(prev => ({ ...prev, [requirement]: action }));
-  };
 
   const getCoverageColor = () => {
     if (coverageScore >= 80) return "text-success";
@@ -108,63 +106,26 @@ export const GapAnalysisView = ({
 
             <Alert>
               <Lightbulb className="h-4 w-4" />
-              <AlertTitle>How to handle gaps</AlertTitle>
+              <AlertTitle>AI Gap Solutions Available</AlertTitle>
               <AlertDescription>
-                The AI will work around these gaps by emphasizing transferable skills and relevant experience.
-                You can also add missing items to your Career Vault now, or continue and address them during editing.
+                Click "Show Solutions" on any gap to see 3 AI-generated approaches: industry standard, vault-based reframing, and alternative positioning. Add the best solution to your vault or let AI handle it automatically.
               </AlertDescription>
             </Alert>
 
             {unmatchedRequirements.map((requirement, index) => (
-              <Card key={index} className="p-4 border-warning/30">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{requirement}</p>
-                    </div>
-                  </div>
-
-                  {/* AI Suggestions */}
-                  <div className="ml-8 space-y-2">
-                    <p className="text-xs text-muted-foreground">AI will handle this by:</p>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      <li className="flex items-start gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Emphasizing transferable skills that partially match</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Highlighting relevant experience from your vault</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-primary">•</span>
-                        <span>Positioning you as a quick learner in this area</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="ml-8 flex gap-2">
-                    <Button
-                      variant={gapActions[requirement] === 'continue' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleGapAction(requirement, 'continue')}
-                      className="text-xs"
-                    >
-                      Let AI handle it
-                    </Button>
-                    <Button
-                      variant={gapActions[requirement] === 'add' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleGapAction(requirement, 'add')}
-                      className="text-xs"
-                    >
-                      I have this (add to vault)
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+              <GapSolutionsCard
+                key={index}
+                requirement={requirement}
+                vaultMatches={vaultMatches}
+                jobContext={{
+                  title: jobAnalysis?.roleProfile?.title || 'this role',
+                  industry: jobAnalysis?.roleProfile?.industry || 'your industry',
+                  seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level'
+                }}
+                onAddToVault={(solution) => {
+                  console.log('Added solution to vault:', solution);
+                }}
+              />
             ))}
           </div>
         )}
