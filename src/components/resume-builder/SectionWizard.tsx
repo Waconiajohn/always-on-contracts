@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
 import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
+import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength } from "@/lib/analytics";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -112,10 +113,19 @@ export const SectionWizard = ({
     setShowComparison(false);
     setCurrentGenerationStep(0);
 
+    // Start tracking generation time
+    const timer = new GenerationTimer(section.type, {
+      job_title: jobAnalysis.roleProfile?.title,
+      industry: jobAnalysis.roleProfile?.industry,
+      section_id: section.id
+    });
+
     try {
       const selectedItems = relevantMatches.filter(m =>
         selectedVaultItems.includes(m.vaultItemId)
       );
+
+      const vaultStrength = calculateVaultStrength(selectedItems);
 
       // Step 1: Get or fetch job analysis research (cache this globally)
       setCurrentGenerationStep(0);
@@ -198,6 +208,12 @@ export const SectionWizard = ({
       setCurrentGenerationStep(3); // Complete
       setShowComparison(true);
 
+      // Track successful generation
+      await timer.complete({
+        vault_items_used: selectedItems.length,
+        vault_strength: vaultStrength
+      });
+
       toast({
         title: "Dual generation complete!",
         description: "Compare industry standard vs your personalized version"
@@ -221,6 +237,9 @@ export const SectionWizard = ({
       const errorInfo = getErrorMessage(errorContext);
       const suggestions = getRecoverySuggestion(errorContext);
 
+      // Track failed generation
+      await timer.fail(errorContext.error, operation);
+
       toast({
         title: errorInfo.title,
         description: `${errorInfo.description}${suggestions.length > 0 ? '\n\nTips:\n• ' + suggestions.join('\n• ') : ''}`,
@@ -238,7 +257,7 @@ export const SectionWizard = ({
     handleGenerate();
   };
 
-  const handleSelectIdeal = () => {
+  const handleSelectIdeal = async () => {
     setGeneratedContent(idealContent);
     setEditedContent(
       typeof idealContent === 'string'
@@ -246,13 +265,24 @@ export const SectionWizard = ({
         : JSON.stringify(idealContent, null, 2)
     );
     setShowComparison(false);
+
+    // Track version selection
+    const selectedItems = relevantMatches.filter(m =>
+      selectedVaultItems.includes(m.vaultItemId)
+    );
+    await trackVersionSelection('ideal', {
+      section_type: section.type,
+      vault_items_used: selectedItems.length,
+      vault_strength: calculateVaultStrength(selectedItems)
+    });
+
     toast({
       title: "Industry standard selected",
       description: "You can edit before approving"
     });
   };
 
-  const handleSelectPersonalized = () => {
+  const handleSelectPersonalized = async () => {
     setGeneratedContent(personalizedContent);
     setEditedContent(
       typeof personalizedContent === 'string'
@@ -260,6 +290,17 @@ export const SectionWizard = ({
         : JSON.stringify(personalizedContent, null, 2)
     );
     setShowComparison(false);
+
+    // Track version selection
+    const selectedItems = relevantMatches.filter(m =>
+      selectedVaultItems.includes(m.vaultItemId)
+    );
+    await trackVersionSelection('personalized', {
+      section_type: section.type,
+      vault_items_used: selectedItems.length,
+      vault_strength: calculateVaultStrength(selectedItems)
+    });
+
     toast({
       title: "Personalized version selected",
       description: "You can edit before approving"
@@ -281,10 +322,21 @@ export const SectionWizard = ({
     });
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     const finalContent = isEditing
       ? editedContent
       : generatedContent;
+
+    // Track section completion
+    const contentString = typeof finalContent === 'string'
+      ? finalContent
+      : JSON.stringify(finalContent);
+
+    await trackSectionComplete(section.type, {
+      edited: isEditing,
+      content_length: contentString.length,
+      vault_items_used: selectedVaultItems.length
+    });
 
     onSectionComplete({
       type: section.type,
