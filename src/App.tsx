@@ -30,7 +30,6 @@ const Templates = lazy(() => import("./pages/Templates"));
 const APIKeys = lazy(() => import("./pages/APIKeys"));
 const AIAgents = lazy(() => import("./pages/AIAgents"));
 const CorporateAssistant = lazy(() => import("./pages/agents/CorporateAssistant"));
-const ResumeBuilderAgent = lazy(() => import("./pages/agents/ResumeBuilderAgent"));
 const ResumeBuilderWizard = lazy(() => import("./pages/agents/ResumeBuilderWizard"));
 const InterviewPrepAgent = lazy(() => import("./pages/agents/InterviewPrepAgent"));
 const LinkedInBloggingAgent = lazy(() => import("./pages/agents/LinkedInBloggingAgent"));
@@ -96,7 +95,6 @@ const App = () => (
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
         <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
         <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderWizard /></ProtectedRoute>} />
-        <Route path="/agents/resume-builder-old" element={<ProtectedRoute><ResumeBuilderAgent /></ProtectedRoute>} />
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-blogging" element={<ProtectedRoute><LinkedInBloggingAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-profile" element={<ProtectedRoute><LinkedInProfileBuilder /></ProtectedRoute>} />
