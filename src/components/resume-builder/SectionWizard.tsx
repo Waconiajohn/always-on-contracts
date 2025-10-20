@@ -20,6 +20,7 @@ import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DualGenerationComparison } from "./DualGenerationComparison";
+import { GenerationProgress } from "./GenerationProgress";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -64,11 +65,11 @@ export const SectionWizard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [showEnhanced, setShowEnhanced] = useState<{ [key: string]: boolean }>({});
-  const [researchProgress, setResearchProgress] = useState<string[]>([]);
   const [jobResearch, setJobResearch] = useState<any>(null);
   const [idealContent, setIdealContent] = useState<any>(null);
   const [personalizedContent, setPersonalizedContent] = useState<any>(null);
   const [showComparison, setShowComparison] = useState(false);
+  const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
 
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
@@ -107,8 +108,8 @@ export const SectionWizard = ({
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    setResearchProgress([]);
     setShowComparison(false);
+    setCurrentGenerationStep(0);
 
     try {
       const selectedItems = relevantMatches.filter(m =>
@@ -116,7 +117,7 @@ export const SectionWizard = ({
       );
 
       // Step 1: Get or fetch job analysis research (cache this globally)
-      setResearchProgress(['📊 Analyzing job description with AI research...']);
+      setCurrentGenerationStep(0);
 
       let research = jobResearch;
       if (!research) {
@@ -145,7 +146,7 @@ export const SectionWizard = ({
       }
 
       // Step 2: Generate ideal version
-      setResearchProgress(prev => [...prev, '💎 Generating industry-standard example...']);
+      setCurrentGenerationStep(1);
 
       const { data: idealData, error: idealError } = await supabase.functions.invoke(
         'generate-resume-with-perplexity',
@@ -169,7 +170,7 @@ export const SectionWizard = ({
       setIdealContent(idealData.content);
 
       // Step 3: Generate personalized version
-      setResearchProgress(prev => [...prev, '⭐ Personalizing with your Career Vault...']);
+      setCurrentGenerationStep(2);
 
       const { data: personalizedData, error: personalizedError } = await supabase.functions.invoke(
         'generate-resume-with-perplexity',
@@ -193,7 +194,7 @@ export const SectionWizard = ({
 
       setPersonalizedContent(personalizedData.content);
 
-      setResearchProgress(prev => [...prev, '✅ Generation complete!']);
+      setCurrentGenerationStep(3); // Complete
       setShowComparison(true);
 
       toast({
@@ -202,7 +203,6 @@ export const SectionWizard = ({
       });
 
     } catch (error) {
-      setResearchProgress([]);
       console.error('Error generating section:', error);
       toast({
         title: "Generation failed",
@@ -479,25 +479,12 @@ export const SectionWizard = ({
                   )}
                 </Button>
 
-                {/* Research Progress Indicator */}
-                {researchProgress.length > 0 && (
-                  <div className="w-full max-w-md bg-primary/5 border border-primary/20 rounded-lg p-4">
-                    <div className="space-y-2">
-                      {researchProgress.map((step, index) => (
-                        <div key={index} className="flex items-start gap-2 text-sm">
-                          <span className="text-primary mt-0.5">
-                            {step.startsWith('✓') ? '✓' : '•'}
-                          </span>
-                          <span className={cn(
-                            "text-foreground",
-                            step.startsWith('✓') && "font-semibold text-success"
-                          )}>
-                            {step.replace('✓ ', '')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {/* Generation Progress with Animations */}
+                {isGenerating && (
+                  <GenerationProgress
+                    currentStep={currentGenerationStep}
+                    isComplete={showComparison}
+                  />
                 )}
               </div>
             </Card>
