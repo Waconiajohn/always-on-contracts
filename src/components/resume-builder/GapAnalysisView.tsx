@@ -11,25 +11,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-interface VaultMatch {
-  vaultItemId: string;
-  vaultCategory: string;
-  content: any;
-  matchScore: number;
-}
-
-interface Gap {
-  requirement: string;
-  importance: 'critical' | 'important' | 'nice-to-have';
-  nearMatches?: VaultMatch[];
-  suggestions: string[];
-}
-
 interface GapAnalysisViewProps {
   unmatchedRequirements: string[];
   coverageScore: number;
   totalRequirements: number;
-  vaultMatches: any[];
   onContinue: () => void;
   onAddMissingItems: () => void;
 }
@@ -38,7 +23,6 @@ export const GapAnalysisView = ({
   unmatchedRequirements,
   coverageScore,
   totalRequirements,
-  vaultMatches,
   onContinue,
   onAddMissingItems
 }: GapAnalysisViewProps) => {

@@ -222,7 +222,6 @@ const ResumeBuilderWizardContent = () => {
             (jobAnalysis?.jobRequirements?.required?.length || 0) +
             (jobAnalysis?.jobRequirements?.preferred?.length || 0)
           }
-          vaultMatches={vaultMatches.matchedItems || []}
           onContinue={() => setCurrentStep('format-selection')}
           onAddMissingItems={() => {
             toast({

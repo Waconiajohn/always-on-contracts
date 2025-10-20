@@ -15,13 +15,13 @@ import {
   ArrowLeft,
   Loader2
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
-import { HelpTooltip as TooltipHelp } from "./HelpTooltip";
+import { TooltipHelp } from "./HelpTooltip";
 import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength } from "@/lib/analytics";
 
