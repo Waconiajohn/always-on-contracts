@@ -4,9 +4,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Plus, GripVertical, Trash2, Download, Eye, Edit3 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, GripVertical, Trash2, Download, Eye, Edit3, Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { DualGenerationComparison } from "./DualGenerationComparison";
 
 interface ResumeSection {
   id: string;
@@ -35,6 +39,8 @@ interface InteractiveResumeBuilderProps {
   atsScore: number;
   mode: 'edit' | 'preview';
   onModeChange: (mode: 'edit' | 'preview') => void;
+  jobAnalysis?: any;
+  vaultMatches?: any[];
 }
 
 export const InteractiveResumeBuilder = ({
@@ -46,7 +52,9 @@ export const InteractiveResumeBuilder = ({
   requirementCoverage = 0,
   atsScore = 0,
   mode,
-  onModeChange
+  onModeChange,
+  jobAnalysis,
+  vaultMatches = []
 }: InteractiveResumeBuilderProps) => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [contactInfo, setContactInfo] = useState({
@@ -56,6 +64,10 @@ export const InteractiveResumeBuilder = ({
     location: "",
     linkedin: ""
   });
+  const [generatingSection, setGeneratingSection] = useState<string | null>(null);
+  const [showDualComparison, setShowDualComparison] = useState(false);
+  const [dualGenerationData, setDualGenerationData] = useState<any>(null);
+  const [currentGeneratingSection, setCurrentGeneratingSection] = useState<string>('');
 
   const sectionIcons: { [key: string]: string } = {
     summary: "📋",
@@ -65,6 +77,118 @@ export const InteractiveResumeBuilder = ({
     leadership: "👥",
     projects: "🚀",
     education: "🎓"
+  };
+
+  const getSectionGuidance = (sectionType: string) => {
+    const guidance: Record<string, string> = {
+      'summary': '3-4 sentences. Problem-solution-value format. Include seniority, top skills, biggest achievement.',
+      'experience': 'Bullet points. Start with action verb, include metrics, show progression. Focus on impact.',
+      'skills': 'Categorized groups (Technical, Leadership, Domain). Balance hard and soft skills.',
+      'education': 'Degree, institution, year, relevant coursework/honors if recent grad.',
+      'certifications': 'Certification name, issuing body, date. Prioritize relevant and current.',
+      'projects': 'Project name, technologies, impact. Quantify results when possible.',
+      'achievements': 'Quantified accomplishments. Use STAR format. Show impact.',
+      'leadership': 'Team size, scope, outcome. Demonstrate people management and influence.'
+    };
+    return guidance[sectionType] || 'Clear, concise, achievement-focused content.';
+  };
+
+  const handleGenerateWithAI = async (sectionId: string, sectionType: string) => {
+    if (!jobAnalysis) {
+      toast.error('Job analysis required for AI generation');
+      return;
+    }
+
+    setGeneratingSection(sectionId);
+    setCurrentGeneratingSection(sectionType);
+
+    try {
+      toast.info('Researching industry standards...');
+
+      // Get relevant vault items for this section
+      const relevantVaultItems = (vaultMatches || []).filter((match: any) => 
+        match.suggestedPlacement?.toLowerCase().includes(sectionType.toLowerCase())
+      );
+
+      const { data, error } = await supabase.functions.invoke('generate-dual-resume-section', {
+        body: {
+          section_type: sectionType,
+          section_guidance: getSectionGuidance(sectionType),
+          job_analysis_research: jobAnalysis.research || '',
+          vault_items: relevantVaultItems,
+          job_title: jobAnalysis.jobTitle || 'Professional',
+          industry: jobAnalysis.industry || 'Technology',
+          seniority: jobAnalysis.seniority || 'mid-level',
+          ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+          requirements: [
+            ...(jobAnalysis.jobRequirements?.required || []),
+            ...(jobAnalysis.jobRequirements?.preferred || [])
+          ]
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setDualGenerationData({
+          ...data,
+          sectionId,
+          sectionType
+        });
+        setShowDualComparison(true);
+      } else {
+        throw new Error(data.error || 'Generation failed');
+      }
+    } catch (error: any) {
+      console.error('AI generation error:', error);
+      toast.error(error.message || 'Failed to generate section');
+    } finally {
+      setGeneratingSection(null);
+    }
+  };
+
+  const handleSelectIdeal = () => {
+    if (!dualGenerationData) return;
+    
+    const content = dualGenerationData.idealVersion.content;
+    const sectionId = dualGenerationData.sectionId;
+    
+    onUpdateSection(sectionId, [{ 
+      id: Date.now().toString(), 
+      content 
+    }]);
+    
+    setShowDualComparison(false);
+    toast.success('Industry standard version applied');
+  };
+
+  const handleSelectPersonalized = () => {
+    if (!dualGenerationData) return;
+    
+    const content = dualGenerationData.personalizedVersion.content;
+    const sectionId = dualGenerationData.sectionId;
+    
+    onUpdateSection(sectionId, [{ 
+      id: Date.now().toString(), 
+      content 
+    }]);
+    
+    setShowDualComparison(false);
+    toast.success('Personalized version applied');
+  };
+
+  const handleOpenEditor = (initialContent: any) => {
+    if (!dualGenerationData) return;
+    
+    const sectionId = dualGenerationData.sectionId;
+    
+    onUpdateSection(sectionId, [{ 
+      id: Date.now().toString(), 
+      content: initialContent 
+    }]);
+    
+    setShowDualComparison(false);
+    toast.info('Content added - you can now edit it');
   };
 
   const ResumeItemComponent = ({ item, sectionId }: { item: ResumeItem; sectionId: string }) => {
@@ -138,6 +262,8 @@ export const InteractiveResumeBuilder = ({
   const SectionComponent = ({ section }: { section: ResumeSection }) => {
     const [isAddingItem, setIsAddingItem] = useState(false);
     const [newItemContent, setNewItemContent] = useState("");
+    const isEmpty = section.content.length === 0;
+    const isGenerating = generatingSection === section.id;
 
     const handleAddItem = () => {
       if (newItemContent.trim()) {
@@ -159,15 +285,37 @@ export const InteractiveResumeBuilder = ({
             <Badge variant="outline" className="text-xs">{section.content.length}</Badge>
           </h3>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsAddingItem(!isAddingItem)}
-            className="h-7 text-xs"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add
-          </Button>
+          <div className="flex gap-2">
+            {isEmpty && jobAnalysis && (
+              <Button
+                size="sm"
+                onClick={() => handleGenerateWithAI(section.id, section.type)}
+                disabled={isGenerating}
+                className="bg-gradient-to-r from-primary to-primary/80 h-7 text-xs"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsAddingItem(!isAddingItem)}
+              className="h-7 text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -203,9 +351,36 @@ export const InteractiveResumeBuilder = ({
             </div>
           )}
 
-          {section.content.length === 0 && !isAddingItem && (
-            <div className="text-center py-6 text-sm text-muted-foreground">
-              No items yet. Click "Add" or drag from Career Vault →
+          {isEmpty && !isAddingItem && !isGenerating && (
+            <div className="text-center py-8 border-2 border-dashed rounded-lg bg-muted/20">
+              <Sparkles className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-3">
+                This section is empty
+              </p>
+              {jobAnalysis ? (
+                <Button
+                  onClick={() => handleGenerateWithAI(section.id, section.type)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate with AI
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Add items manually or drag from Career Vault →
+                </p>
+              )}
+            </div>
+          )}
+
+          {isGenerating && (
+            <div className="p-8 text-center border-2 border-dashed rounded-lg bg-primary/5">
+              <Loader2 className="h-8 w-8 mx-auto mb-3 text-primary animate-spin" />
+              <p className="text-sm font-medium mb-1">Analyzing job requirements...</p>
+              <p className="text-xs text-muted-foreground">
+                Researching industry standards and your Career Vault
+              </p>
             </div>
           )}
         </div>
@@ -214,175 +389,211 @@ export const InteractiveResumeBuilder = ({
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b bg-card">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="font-semibold text-lg text-foreground">Resume Builder</h3>
-            <p className="text-xs text-muted-foreground">
-              Drag items from Career Vault or add manually
-            </p>
+    <>
+      <Card className="h-full flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b bg-card">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-semibold text-lg text-foreground">Resume Builder</h3>
+              <p className="text-xs text-muted-foreground">
+                Generate with AI or add content manually
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={mode === 'edit' ? 'default' : 'outline'}
+                onClick={() => onModeChange('edit')}
+                className="h-8 text-xs"
+              >
+                <Edit3 className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant={mode === 'preview' ? 'default' : 'outline'}
+                onClick={() => onModeChange('preview')}
+                className="h-8 text-xs"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                Preview
+              </Button>
+            </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={mode === 'edit' ? 'default' : 'outline'}
-              onClick={() => onModeChange('edit')}
-              className="h-8 text-xs"
-            >
-              <Edit3 className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant={mode === 'preview' ? 'default' : 'outline'}
-              onClick={() => onModeChange('preview')}
-              className="h-8 text-xs"
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              Preview
-            </Button>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-muted-foreground">Requirement Coverage</span>
+                <span className="font-semibold">{requirementCoverage}%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full transition-all",
+                    requirementCoverage >= 80 ? "bg-success" :
+                    requirementCoverage >= 60 ? "bg-warning" : "bg-destructive"
+                  )}
+                  style={{ width: `${requirementCoverage}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-muted-foreground">ATS Score</span>
+                <span className="font-semibold">{atsScore}%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full transition-all",
+                    atsScore >= 80 ? "bg-success" :
+                    atsScore >= 60 ? "bg-warning" : "bg-destructive"
+                  )}
+                  style={{ width: `${atsScore}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-muted-foreground">Requirement Coverage</span>
-              <span className="font-semibold">{requirementCoverage}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full transition-all",
-                  requirementCoverage >= 80 ? "bg-success" :
-                  requirementCoverage >= 60 ? "bg-warning" : "bg-destructive"
-                )}
-                style={{ width: `${requirementCoverage}%` }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-muted-foreground">ATS Score</span>
-              <span className="font-semibold">{atsScore}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full transition-all",
-                  atsScore >= 80 ? "bg-success" :
-                  atsScore >= 60 ? "bg-warning" : "bg-destructive"
-                )}
-                style={{ width: `${atsScore}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-6">
-          {mode === 'edit' ? (
-            <>
-              {/* Contact Info */}
-              <div className="mb-6 p-4 bg-muted rounded-lg border">
-                <h3 className="font-semibold mb-3 flex items-center gap-2 text-foreground">
-                  <span>👤</span>
-                  Contact Information
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Full Name"
-                    value={contactInfo.name}
-                    onChange={(e) => setContactInfo({ ...contactInfo, name: e.target.value })}
-                    className="text-sm h-9"
-                  />
-                  <Input
-                    placeholder="Email"
-                    type="email"
-                    value={contactInfo.email}
-                    onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
-                    className="text-sm h-9"
-                  />
-                  <Input
-                    placeholder="Phone"
-                    value={contactInfo.phone}
-                    onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
-                    className="text-sm h-9"
-                  />
-                  <Input
-                    placeholder="Location"
-                    value={contactInfo.location}
-                    onChange={(e) => setContactInfo({ ...contactInfo, location: e.target.value })}
-                    className="text-sm h-9"
-                  />
-                  <Input
-                    placeholder="LinkedIn URL"
-                    value={contactInfo.linkedin}
-                    onChange={(e) => setContactInfo({ ...contactInfo, linkedin: e.target.value })}
-                    className="text-sm h-9 col-span-2"
-                  />
-                </div>
-              </div>
-
-              {/* Sections */}
-              {sections
-                .sort((a, b) => a.order - b.order)
-                .map(section => (
-                  <SectionComponent key={section.id} section={section} />
-                ))}
-
-              {/* Export */}
-              <div className="flex gap-2 mt-6">
-                <Button onClick={() => onExport('pdf')} className="flex-1">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export PDF
-                </Button>
-                <Button onClick={() => onExport('docx')} variant="outline" className="flex-1">
-                  Export DOCX
-                </Button>
-                <Button onClick={() => onExport('html')} variant="outline" className="flex-1">
-                  Export HTML
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="bg-card p-8 rounded shadow-lg min-h-[800px]">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold mb-2 text-foreground">{contactInfo.name || "Your Name"}</h1>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  {contactInfo.email && <div>{contactInfo.email}</div>}
-                  {contactInfo.phone && <div>{contactInfo.phone}</div>}
-                  {contactInfo.location && <div>{contactInfo.location}</div>}
-                  {contactInfo.linkedin && <div>{contactInfo.linkedin}</div>}
-                </div>
-              </div>
-
-              {sections
-                .sort((a, b) => a.order - b.order)
-                .map(section => (
-                  <div key={section.id} className="mb-6">
-                    <h2 className="text-xl font-bold mb-3 pb-2 border-b-2 border-primary text-foreground">
-                      {section.title}
-                    </h2>
-                    <div className="space-y-3">
-                      {section.content.map(item => (
-                        <div key={item.id} className="text-sm text-foreground">
-                          {item.content}
-                        </div>
-                      ))}
-                    </div>
+        {/* Content */}
+        <ScrollArea className="flex-1">
+          <div className="p-6">
+            {mode === 'edit' ? (
+              <>
+                {/* Contact Info */}
+                <div className="mb-6 p-4 bg-muted rounded-lg border">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2 text-foreground">
+                    <span>👤</span>
+                    Contact Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      placeholder="Full Name"
+                      value={contactInfo.name}
+                      onChange={(e) => setContactInfo({ ...contactInfo, name: e.target.value })}
+                      className="text-sm h-9"
+                    />
+                    <Input
+                      placeholder="Email"
+                      type="email"
+                      value={contactInfo.email}
+                      onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                      className="text-sm h-9"
+                    />
+                    <Input
+                      placeholder="Phone"
+                      value={contactInfo.phone}
+                      onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
+                      className="text-sm h-9"
+                    />
+                    <Input
+                      placeholder="Location"
+                      value={contactInfo.location}
+                      onChange={(e) => setContactInfo({ ...contactInfo, location: e.target.value })}
+                      className="text-sm h-9"
+                    />
+                    <Input
+                      placeholder="LinkedIn URL"
+                      value={contactInfo.linkedin}
+                      onChange={(e) => setContactInfo({ ...contactInfo, linkedin: e.target.value })}
+                      className="text-sm h-9 col-span-2"
+                    />
                   </div>
-                ))}
-            </div>
+                </div>
+
+                {/* Sections */}
+                {sections
+                  .sort((a, b) => a.order - b.order)
+                  .map(section => (
+                    <SectionComponent key={section.id} section={section} />
+                  ))}
+
+                {/* Export */}
+                <div className="flex gap-2 mt-6">
+                  <Button onClick={() => onExport('pdf')} className="flex-1">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export PDF
+                  </Button>
+                  <Button onClick={() => onExport('docx')} variant="outline" className="flex-1">
+                    Export DOCX
+                  </Button>
+                  <Button onClick={() => onExport('html')} variant="outline" className="flex-1">
+                    Export HTML
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="bg-card p-8 rounded shadow-lg min-h-[800px]">
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold mb-2 text-foreground">{contactInfo.name || "Your Name"}</h1>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    {contactInfo.email && <div>{contactInfo.email}</div>}
+                    {contactInfo.phone && <div>{contactInfo.phone}</div>}
+                    {contactInfo.location && <div>{contactInfo.location}</div>}
+                    {contactInfo.linkedin && <div>{contactInfo.linkedin}</div>}
+                  </div>
+                </div>
+
+                {sections
+                  .sort((a, b) => a.order - b.order)
+                  .map(section => (
+                    <div key={section.id} className="mb-6">
+                      <h2 className="text-xl font-bold mb-3 pb-2 border-b-2 border-primary text-foreground">
+                        {section.title}
+                      </h2>
+                      <div className="space-y-3">
+                        {section.content.map(item => (
+                          <div key={item.id} className="text-sm text-foreground">
+                            {item.content}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </Card>
+
+      {/* Dual Generation Comparison Dialog */}
+      <Dialog open={showDualComparison} onOpenChange={setShowDualComparison}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">
+              AI Generated: {currentGeneratingSection.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </DialogTitle>
+          </DialogHeader>
+          {dualGenerationData && (
+            <DualGenerationComparison
+              research={{
+                insights: jobAnalysis?.research || '',
+                keywords: jobAnalysis?.atsKeywords?.critical || [],
+                citations: []
+              }}
+              idealContent={dualGenerationData.idealVersion.content}
+              personalizedContent={dualGenerationData.personalizedVersion.content}
+              sectionType={currentGeneratingSection}
+              vaultStrength={{
+                score: dualGenerationData.comparison.vaultStrength || 0,
+                hasRealNumbers: true,
+                hasDiverseCategories: true
+              }}
+              onSelectIdeal={handleSelectIdeal}
+              onSelectPersonalized={handleSelectPersonalized}
+              onOpenEditor={handleOpenEditor}
+              jobTitle={jobAnalysis?.jobTitle}
+              atsMatchIdeal={dualGenerationData.idealVersion.quality.atsMatchPercentage}
+              atsMatchPersonalized={dualGenerationData.personalizedVersion.quality.atsMatchPercentage}
+            />
           )}
-        </div>
-      </ScrollArea>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
