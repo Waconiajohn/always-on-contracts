@@ -4,21 +4,23 @@ import { useToast } from "@/hooks/use-toast";
 import { JobAnalysisPanel } from "@/components/resume-builder/JobAnalysisPanel";
 import { IntelligentVaultPanel } from "@/components/resume-builder/IntelligentVaultPanel";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
+import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { ContextSidebar } from "@/components/layout/ContextSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const ResumeBuilderV2Content = () => {
   const { toast } = useToast();
   const { leftSidebarCollapsed, toggleLeftSidebar, rightSidebarCollapsed, toggleRightSidebar } = useLayout();
 
   // Analysis state
-  const [analyzing] = useState(false);
-  const [jobAnalysis] = useState<any>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [jobAnalysis, setJobAnalysis] = useState<any>(null);
 
   // Vault matching state
-  const [matching] = useState(false);
-  const [vaultMatches] = useState<any>(null);
+  const [matching, setMatching] = useState(false);
+  const [vaultMatches, setVaultMatches] = useState<any>(null);
 
   // Resume builder state
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
@@ -43,6 +45,63 @@ const ResumeBuilderV2Content = () => {
     { id: 'projects', type: 'projects' as const, title: 'Notable Projects', content: [], order: 6 },
     { id: 'education', type: 'education' as const, title: 'Education & Certifications', content: [], order: 7 }
   ]);
+
+  const handleAnalyzeJob = async (jobText: string) => {
+    setAnalyzing(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-job-requirements', {
+        body: { jobDescription: jobText }
+      });
+
+      if (error) throw error;
+
+      setJobAnalysis(data);
+      
+      // Automatically trigger vault matching after analysis
+      handleMatchVault(data);
+
+      toast({
+        title: "Job analyzed successfully",
+        description: "Building your resume with vault intelligence"
+      });
+    } catch (error) {
+      console.error("Error analyzing job:", error);
+      toast({
+        title: "Analysis failed",
+        description: "Failed to analyze job description. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleMatchVault = async (analysis: any) => {
+    setMatching(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('match-vault-to-requirements', {
+        body: { 
+          jobRequirements: analysis.jobRequirements,
+          atsKeywords: analysis.atsKeywords
+        }
+      });
+
+      if (error) throw error;
+
+      setVaultMatches(data);
+    } catch (error) {
+      console.error("Error matching vault:", error);
+      toast({
+        title: "Vault matching failed",
+        description: "Could not match your vault intelligence. Continue building manually.",
+        variant: "destructive"
+      });
+    } finally {
+      setMatching(false);
+    }
+  };
 
   const handleAddToResume = (_match: any, _placement: string) => {
     // TODO: Implement when vault matching is available
@@ -141,15 +200,17 @@ const ResumeBuilderV2Content = () => {
       maxWidth="full"
     >
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Benchmark Resume Builder</h1>
-          <p className="text-muted-foreground">
-            Build resumes that exceed job requirements + industry standards + top performer benchmarks
-          </p>
-        </div>
-
-        {/* Resume Builder - Full Width Center */}
-        {jobAnalysis && (
+        {!jobAnalysis ? (
+          <>
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold mb-2">Benchmark Resume Builder</h1>
+              <p className="text-muted-foreground">
+                Build resumes that exceed job requirements + industry standards + top performer benchmarks
+              </p>
+            </div>
+            <JobInputSection onAnalyze={handleAnalyzeJob} isAnalyzing={analyzing} />
+          </>
+        ) : (
           <InteractiveResumeBuilder
             sections={resumeSections}
             onUpdateSection={(sectionId, content) => {
