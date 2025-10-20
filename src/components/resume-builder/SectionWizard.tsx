@@ -62,6 +62,7 @@ export const SectionWizard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [showEnhanced, setShowEnhanced] = useState<{ [key: string]: boolean }>({});
+  const [researchProgress, setResearchProgress] = useState<string[]>([]);
 
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
@@ -100,10 +101,31 @@ export const SectionWizard = ({
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setResearchProgress([]);
+
+    let progressInterval: NodeJS.Timeout | null = null;
+
     try {
       const selectedItems = relevantMatches.filter(m =>
         selectedVaultItems.includes(m.vaultItemId)
       );
+
+      // Show research progress
+      const progressSteps = [
+        `Analyzing job requirements for ${jobAnalysis.roleProfile?.title || 'this role'}...`,
+        `Researching ${jobAnalysis.roleProfile?.industry || 'industry'} standards...`,
+        `Matching your Career Vault items to job requirements...`,
+        `Incorporating ATS keywords and optimizing language...`,
+        `Generating ${section.title}...`
+      ];
+
+      let stepIndex = 0;
+      progressInterval = setInterval(() => {
+        if (stepIndex < progressSteps.length) {
+          setResearchProgress(prev => [...prev, progressSteps[stepIndex]]);
+          stepIndex++;
+        }
+      }, 800);
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-resume-section`,
@@ -123,9 +145,12 @@ export const SectionWizard = ({
         }
       );
 
+      if (progressInterval) clearInterval(progressInterval);
+      setResearchProgress(prev => [...prev, '✓ Generation complete!']);
+
       if (!response.ok) {
         const errorData = await response.json();
-        
+
         if (response.status === 429) {
           toast({
             title: "Rate limit exceeded",
@@ -141,6 +166,7 @@ export const SectionWizard = ({
         } else {
           throw new Error(errorData.error || "Failed to generate section");
         }
+        setResearchProgress([]);
         return;
       }
 
@@ -159,6 +185,8 @@ export const SectionWizard = ({
         });
       }
     } catch (error) {
+      if (progressInterval) clearInterval(progressInterval);
+      setResearchProgress([]);
       console.error('Error generating section:', error);
       toast({
         title: "Generation failed",
@@ -370,7 +398,7 @@ export const SectionWizard = ({
                 </div>
               )}
 
-              <div className="mt-6 flex justify-center">
+              <div className="mt-6 flex flex-col items-center gap-4">
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating || selectedVaultItems.length === 0}
@@ -390,6 +418,27 @@ export const SectionWizard = ({
                     </>
                   )}
                 </Button>
+
+                {/* Research Progress Indicator */}
+                {researchProgress.length > 0 && (
+                  <div className="w-full max-w-md bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <div className="space-y-2">
+                      {researchProgress.map((step, index) => (
+                        <div key={index} className="flex items-start gap-2 text-sm">
+                          <span className="text-primary mt-0.5">
+                            {step.startsWith('✓') ? '✓' : '•'}
+                          </span>
+                          <span className={cn(
+                            "text-foreground",
+                            step.startsWith('✓') && "font-semibold text-success"
+                          )}>
+                            {step.replace('✓ ', '')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           )}
@@ -421,7 +470,7 @@ export const SectionWizard = ({
                 </div>
               </div>
 
-              <div className="bg-muted/50 p-4 rounded-lg">
+              <div className="bg-card border border-border p-4 rounded-lg">
                 {isEditing ? (
                   <Textarea
                     value={editedContent}

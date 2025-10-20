@@ -167,7 +167,7 @@ export const JobAnalysisPanel = ({
   return (
     <Card className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b bg-muted/50">
+      <div className="p-4 border-b bg-card">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="font-semibold text-lg text-foreground">{roleProfile?.title || 'Job Analysis'}</h3>

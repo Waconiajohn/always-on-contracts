@@ -84,7 +84,8 @@ Return ONLY the paragraph text, no explanations or formatting.`
       case 'skills_list':
       case 'core_competencies':
       case 'technical_skills':
-        prompt = `You are an expert resume writer. Generate a skills list for this candidate's resume.
+      case 'key_skills':
+        prompt = `You are an expert resume writer. You MUST generate a JSON array of skills.
 
 ${jobContext}
 
@@ -93,19 +94,31 @@ ${vaultContext}
 GUIDANCE FOR THIS SECTION:
 ${sectionGuidance}
 
-INSTRUCTIONS:
-1. Generate 10-12 skills that match the job requirements
-2. Prioritize ATS critical keywords from job description
-3. Include skills from selected vault items
-4. Mix hard skills and soft skills appropriately for seniority level
-5. Use industry-standard terminology
-6. Order by relevance to job (most important first)
-7. Ensure each skill is backed by vault evidence
+CRITICAL REQUIREMENTS:
+1. Research the industry standards for ${jobAnalysis.roleProfile?.title || 'this role'}
+2. Analyze the job description's required and preferred skills
+3. Match skills from the candidate's Career Vault to job requirements
+4. Identify skill gaps and include relevant adjacent skills
 
-Return as JSON array of strings:
-["Skill 1", "Skill 2", "Skill 3", ...]
+SKILL SELECTION CRITERIA:
+• Include 12-15 specific skills (NOT general descriptions)
+• Prioritize ATS critical keywords from job description
+• Match seniority level (${jobAnalysis.roleProfile?.seniority || 'mid-level'})
+• Mix technical and leadership skills appropriately
+• Use exact terminology from job posting when possible
+• Include skills backed by vault evidence
 
-Return ONLY valid JSON, no markdown formatting.`
+IMPORTANT - OUTPUT FORMAT:
+You MUST return ONLY a valid JSON array of strings. Do NOT write a paragraph or summary.
+Do NOT include explanations, markdown formatting, or any text outside the JSON array.
+
+CORRECT FORMAT:
+["Strategic Planning", "Change Management", "P&L Management", "Team Leadership", "Agile Methodologies", "Data Analytics", "Stakeholder Engagement", "Budget Management", "Process Optimization", "Cross-functional Collaboration", "Risk Management", "Performance Metrics"]
+
+INCORRECT FORMAT (DO NOT DO THIS):
+"This candidate demonstrates strong leadership skills including strategic planning..."
+
+Return ONLY the JSON array, nothing else.`
         break
 
       case 'accomplishments':
@@ -272,9 +285,51 @@ Return as plain text or JSON array depending on section type.`
     let parsed: any
     try {
       parsed = JSON.parse(generatedContent)
-    } catch {
+
+      // Special validation for skills sections
+      if (['skills_list', 'core_competencies', 'technical_skills', 'key_skills'].includes(sectionType)) {
+        if (!Array.isArray(parsed)) {
+          console.error('Skills section did not return array, attempting to extract skills from text')
+          // Fallback: try to extract skills from text
+          const skillMatches = generatedContent.match(/"([^"]+)"/g)
+          if (skillMatches && skillMatches.length > 0) {
+            parsed = skillMatches.map(s => s.replace(/"/g, ''))
+            console.log('Extracted skills from text:', parsed.length)
+          } else {
+            throw new Error('AI returned non-array for skills section and extraction failed')
+          }
+        }
+      }
+
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError)
+
       // If not JSON, treat as plain text (for summary/opening paragraph)
-      parsed = generatedContent
+      if (['opening_paragraph', 'summary'].includes(sectionType)) {
+        parsed = generatedContent
+      } else if (['skills_list', 'core_competencies', 'technical_skills', 'key_skills'].includes(sectionType)) {
+        // For skills, try aggressive extraction
+        const lines = generatedContent.split('\n').filter(l => l.trim())
+        const skills: string[] = []
+
+        for (const line of lines) {
+          // Try to extract from bullet points or numbered lists
+          const cleaned = line.replace(/^[•\-*\d.]+\s*/, '').trim()
+          if (cleaned && cleaned.length < 100) { // Skills shouldn't be long
+            skills.push(cleaned)
+          }
+        }
+
+        if (skills.length > 0) {
+          console.log('Extracted skills from lines:', skills.length)
+          parsed = skills
+        } else {
+          throw new Error('Could not parse skills from AI response')
+        }
+      } else {
+        // For other structured sections, keep trying JSON
+        parsed = generatedContent
+      }
     }
 
     return new Response(
