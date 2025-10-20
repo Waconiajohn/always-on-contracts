@@ -34,7 +34,7 @@ ${JSON.stringify(item.content, null, 2)}
 Match: ${item.matchScore}%`).join('\n')
       : 'No similar vault data available';
 
-    const prompt = `You are a career strategist helping a candidate address a job requirement they don't fully meet.
+    const prompt = `You are a career strategist helping a candidate position their relevant experience for a job requirement.
 
 REQUIREMENT: "${requirement}"
 
@@ -46,26 +46,30 @@ JOB CONTEXT:
 CANDIDATE'S RELATED EXPERIENCE:
 ${vaultContext}
 
-Generate 3 different approaches to address this gap:
+Generate 3 different approaches to showcase relevant qualifications:
 
 1. PURE AI APPROACH (💎 Industry Standard):
    - Create a professional statement based on industry best practices
    - What someone who DOES have this qualification would typically say
    - Use industry-standard language and benchmarks
-   - Make it sound credible but aspirational
+   - Make it sound credible and confident
 
 2. VAULT-BASED APPROACH (⭐ From Your Experience):
-   - Reframe the candidate's existing vault experience to partially satisfy this requirement
-   - Find the closest match in their background
-   - Emphasize transferable skills and parallel experiences
-   - Be honest but strategic about the connection
+   - LEAD WITH what they DO have that's relevant
+   - Connect their actual experience to this requirement naturally
+   - Use confident, positive language throughout
+   - Frame as "bringing relevant experience from X domain"
+   - Example: "I bring 8+ years of project leadership experience across manufacturing environments..."
+   - NEVER use phrases like "While I don't have..." or "Although I lack..."
    ${vault_items.length === 0 ? '(Note: No vault data - suggest what experience to add)' : ''}
 
 3. ALTERNATIVE FRAMING (🎯 Transferable):
-   - Position as "working knowledge" or "exposure to" rather than "expertise in"
-   - Emphasize willingness to learn and related competencies
-   - Show how other skills compensate for this specific gap
-   - Frame as an opportunity for growth
+   - LEAD WITH adjacent strengths that apply here
+   - Position transferable skills as valuable assets
+   - Use language like "I bring..." not "I lack X but..."
+   - Frame competencies confidently
+   - Example: "I bring strong working knowledge of drilling operations through hands-on collaboration with foundation specialists..."
+   - Show how related competencies directly support this requirement
 
 For each approach, provide:
 - A brief title (5-7 words)
