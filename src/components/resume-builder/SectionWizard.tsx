@@ -62,7 +62,6 @@ export const SectionWizard = ({
   currentIndex
 }: SectionWizardProps) => {
   const { toast } = useToast();
-  const [selectedVaultItems, setSelectedVaultItems] = useState<string[]>([]);
   const [generatedContent, setGeneratedContent] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -100,6 +99,13 @@ export const SectionWizard = ({
   const relevantMatches = vaultMatches.filter(match =>
     section.vaultCategories.includes(match.vaultCategory)
   ).slice(0, 15); // Limit to top 15 for UI performance
+
+  // Auto-select high-quality matches (≥50% match score) on mount
+  const [selectedVaultItems, setSelectedVaultItems] = useState<string[]>(() => {
+    return relevantMatches
+      .filter(match => match.matchScore >= 50)
+      .map(match => match.vaultItemId);
+  });
 
   const handleVaultItemToggle = (itemId: string) => {
     setSelectedVaultItems(prev =>
@@ -557,12 +563,38 @@ export const SectionWizard = ({
           {/* Vault Items Selection */}
           {!generatedContent && (
             <Card className="p-6 vault-matches-section">
-              <div className="flex items-center gap-2 mb-4">
-                <h4 className="font-semibold">
-                  Select from Your Career Vault ({relevantMatches.length} matches)
-                </h4>
-                <TooltipHelp.VaultSelection />
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold">
+                    Review Career Vault Items ({selectedVaultItems.length} of {relevantMatches.length} selected)
+                  </h4>
+                  <TooltipHelp.VaultSelection />
+                </div>
+                {relevantMatches.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedVaultItems(relevantMatches.map(m => m.vaultItemId))}
+                      className="text-xs"
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedVaultItems([])}
+                      className="text-xs"
+                    >
+                      Deselect All
+                    </Button>
+                  </div>
+                )}
               </div>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                High-quality matches (≥50%) are pre-selected. Uncheck any items not relevant to this specific job.
+              </p>
 
               {relevantMatches.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">

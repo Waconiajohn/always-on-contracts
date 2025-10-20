@@ -55,7 +55,7 @@ export const HelpTooltip = ({
 export const TooltipHelp = {
   VaultSelection: () => (
     <HelpTooltip
-      content="Select experiences and skills from your Career Vault. The AI will use these to create personalized resume content tailored to this job."
+      content="We've pre-selected your best Career Vault items for this job (≥50% match). Review and uncheck any that don't apply to this specific position. The AI will use checked items to personalize your resume."
       icon="help"
     />
   ),
