@@ -234,6 +234,26 @@ Return as plain text or JSON array depending on section type.`
     if (!response.ok) {
       const errorText = await response.text()
       console.error('Lovable AI error:', response.status, errorText)
+      
+      // Pass through rate limit and payment errors to client
+      if (response.status === 429 || response.status === 402) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: response.status === 429 
+              ? 'Rate limit exceeded. Please try again in a moment.'
+              : 'Payment required. Please add credits to your workspace.'
+          }),
+          {
+            status: response.status,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+      }
+      
       throw new Error(`AI generation failed: ${response.status}`)
     }
 

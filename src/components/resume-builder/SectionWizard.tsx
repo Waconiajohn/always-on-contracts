@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumeSection } from "@/lib/resumeFormats";
+import { useToast } from "@/hooks/use-toast";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -54,12 +55,35 @@ export const SectionWizard = ({
   totalSections,
   currentIndex
 }: SectionWizardProps) => {
+  const { toast } = useToast();
   const [selectedVaultItems, setSelectedVaultItems] = useState<string[]>([]);
   const [generatedContent, setGeneratedContent] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [showEnhanced, setShowEnhanced] = useState<{ [key: string]: boolean }>({});
+
+  // Helper to get section icon
+  const getSectionIcon = (sectionId: string): string => {
+    const iconMap: { [key: string]: string } = {
+      opening_paragraph: '📝',
+      summary: '📝',
+      core_competencies: '⚡',
+      key_skills: '⚡',
+      technical_skills: '💻',
+      selected_accomplishments: '🏆',
+      accomplishments: '🏆',
+      achievements: '🏆',
+      professional_timeline: '💼',
+      experience: '💼',
+      employment_history: '💼',
+      additional_skills: '🔑',
+      education: '🎓',
+      projects: '🚀',
+      core_capabilities: '🎯'
+    };
+    return iconMap[sectionId] || '📄';
+  };
 
   // Filter vault matches relevant to this section
   const relevantMatches = vaultMatches.filter(match =>
@@ -87,7 +111,7 @@ export const SectionWizard = ({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
           },
           body: JSON.stringify({
             sectionType: section.type,
@@ -99,6 +123,27 @@ export const SectionWizard = ({
         }
       );
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 429) {
+          toast({
+            title: "Rate limit exceeded",
+            description: "Too many requests. Please wait a moment and try again.",
+            variant: "destructive"
+          });
+        } else if (response.status === 402) {
+          toast({
+            title: "Credits required",
+            description: "Please add credits to your Lovable AI workspace to continue.",
+            variant: "destructive"
+          });
+        } else {
+          throw new Error(errorData.error || "Failed to generate section");
+        }
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -108,9 +153,18 @@ export const SectionWizard = ({
             ? data.content
             : JSON.stringify(data.content, null, 2)
         );
+        toast({
+          title: "Section generated",
+          description: "Review the content and approve when ready"
+        });
       }
     } catch (error) {
       console.error('Error generating section:', error);
+      toast({
+        title: "Generation failed",
+        description: error instanceof Error ? error.message : "Failed to generate section content",
+        variant: "destructive"
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -196,7 +250,7 @@ export const SectionWizard = ({
             {match.atsKeywords && match.atsKeywords.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {match.atsKeywords.slice(0, 5).map((kw, i) => (
-                  <Badge key={i} className="text-xs bg-green-100 text-green-800">
+                  <Badge key={i} variant="secondary" className="text-xs">
                     {kw}
                   </Badge>
                 ))}
@@ -235,7 +289,7 @@ export const SectionWizard = ({
             Section {currentIndex + 1} of {totalSections}
           </span>
         </div>
-        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-primary transition-all duration-300"
             style={{ width: `${((currentIndex + 1) / totalSections) * 100}%` }}
@@ -248,7 +302,7 @@ export const SectionWizard = ({
           {/* Section Header */}
           <Card className="p-6">
             <div className="flex items-start gap-3">
-              <div className="text-3xl">{section.id === 'opening_paragraph' ? '📝' : section.id === 'core_competencies' ? '⚡' : section.id === 'selected_accomplishments' ? '🏆' : section.id === 'professional_timeline' ? '💼' : section.id === 'additional_skills' ? '🔑' : '🎓'}</div>
+              <div className="text-3xl">{getSectionIcon(section.id)}</div>
               <div className="flex-1">
                 <h3 className="text-xl font-semibold mb-2">{section.title}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -264,12 +318,12 @@ export const SectionWizard = ({
           </Card>
 
           {/* AI Guidance */}
-          <Card className="p-6 bg-blue-50 border-blue-200">
+          <Card className="p-6 bg-accent/10 border-accent">
             <div className="flex items-start gap-3">
-              <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5" />
+              <Lightbulb className="h-5 w-5 text-accent-foreground mt-0.5" />
               <div className="flex-1">
-                <h4 className="font-semibold text-blue-900 mb-2">AI Guidance</h4>
-                <div className="text-sm text-blue-800 whitespace-pre-line">
+                <h4 className="font-semibold mb-2">AI Guidance</h4>
+                <div className="text-sm text-muted-foreground whitespace-pre-line">
                   {section.guidancePrompt}
                 </div>
               </div>

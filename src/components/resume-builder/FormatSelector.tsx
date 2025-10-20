@@ -122,12 +122,12 @@ export const FormatSelector = ({
       </div>
 
       {selectedFormat && (
-        <Card className="p-6 bg-blue-50 border-blue-200">
-          <h4 className="font-semibold text-blue-900 mb-2">What to expect:</h4>
-          <p className="text-sm text-blue-800">
+        <Card className="p-6 bg-accent/10 border-accent">
+          <h4 className="font-semibold mb-2">What to expect:</h4>
+          <p className="text-sm text-muted-foreground">
             We'll guide you through each section step-by-step. For each section, you'll:
           </p>
-          <ol className="text-sm text-blue-800 space-y-1 mt-2 ml-4">
+          <ol className="text-sm text-muted-foreground space-y-1 mt-2 ml-4">
             <li>1. See AI guidance on what should be included</li>
             <li>2. Select relevant items from your Career Vault</li>
             <li>3. Review AI-generated content tailored to this job</li>

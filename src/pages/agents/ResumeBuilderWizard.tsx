@@ -8,7 +8,7 @@ import { InteractiveResumeBuilder } from "@/components/resume-builder/Interactiv
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 type WizardStep = 'job-input' | 'format-selection' | 'wizard-mode' | 'final-review';

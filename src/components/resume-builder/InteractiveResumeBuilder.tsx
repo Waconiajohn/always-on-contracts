@@ -97,7 +97,7 @@ export const InteractiveResumeBuilder = ({
             {item.atsKeywords && item.atsKeywords.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {item.atsKeywords.map((kw, i) => (
-                  <Badge key={i} className="text-xs bg-green-100 text-green-800">
+                  <Badge key={i} variant="secondary" className="text-xs">
                     {kw}
                   </Badge>
                 ))}
@@ -253,12 +253,12 @@ export const InteractiveResumeBuilder = ({
               <span className="text-muted-foreground">Requirement Coverage</span>
               <span className="font-semibold">{requirementCoverage}%</span>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className={cn(
                   "h-full transition-all",
-                  requirementCoverage >= 80 ? "bg-green-500" :
-                  requirementCoverage >= 60 ? "bg-yellow-500" : "bg-red-500"
+                  requirementCoverage >= 80 ? "bg-success" :
+                  requirementCoverage >= 60 ? "bg-warning" : "bg-destructive"
                 )}
                 style={{ width: `${requirementCoverage}%` }}
               />
@@ -270,12 +270,12 @@ export const InteractiveResumeBuilder = ({
               <span className="text-muted-foreground">ATS Score</span>
               <span className="font-semibold">{atsScore}%</span>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className={cn(
                   "h-full transition-all",
-                  atsScore >= 80 ? "bg-green-500" :
-                  atsScore >= 60 ? "bg-yellow-500" : "bg-red-500"
+                  atsScore >= 80 ? "bg-success" :
+                  atsScore >= 60 ? "bg-warning" : "bg-destructive"
                 )}
                 style={{ width: `${atsScore}%` }}
               />
