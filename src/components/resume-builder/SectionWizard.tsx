@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
+import { HelpTooltip as TooltipHelp } from "./HelpTooltip";
 import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength } from "@/lib/analytics";
 
@@ -113,9 +114,7 @@ export const SectionWizard = ({
 
     try {
       // Use ALL relevant vault matches automatically - no manual selection
-      const selectedItems = relevantMatches;
-
-      const vaultStrength = calculateVaultStrength(selectedItems);
+      const vaultStrength = calculateVaultStrength(relevantMatches);
 
       // Step 1: Get or fetch job analysis research (cache this globally)
       setCurrentGenerationStep(0);
@@ -181,7 +180,7 @@ export const SectionWizard = ({
             section_type: section.type,
             section_guidance: section.guidancePrompt,
             job_analysis_research: research.research_result,
-            vault_items: selectedItems,
+            vault_items: relevantMatches,
             job_title: jobAnalysis.roleProfile?.title || '',
             industry: jobAnalysis.roleProfile?.industry || '',
             seniority: jobAnalysis.roleProfile?.seniority || 'mid-level'
@@ -200,7 +199,7 @@ export const SectionWizard = ({
 
       // Track successful generation
       await timer.complete({
-        vault_items_used: selectedItems.length,
+        vault_items_used: relevantMatches.length,
         vault_strength: vaultStrength
       });
 
@@ -463,9 +462,14 @@ export const SectionWizard = ({
               personalizedContent={personalizedContent}
               sectionType={section.type}
               vaultStrength={{
-                score: Math.min(100, (selectedVaultItems.length / 10) * 100),
-                hasRealNumbers: true,
-                hasDiverseCategories: true
+                score: calculateVaultStrength(relevantMatches),
+                hasRealNumbers: relevantMatches.some(match => {
+                  const content = typeof match.content === 'string'
+                    ? match.content
+                    : JSON.stringify(match.content);
+                  return /\d+[%$M]/.test(content);
+                }),
+                hasDiverseCategories: new Set(relevantMatches.map(m => m.vaultCategory)).size > 2
               }}
               onSelectIdeal={handleSelectIdeal}
               onSelectPersonalized={handleSelectPersonalized}
