@@ -58,7 +58,7 @@ export default function ApplicationQueue() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="py-8 px-6 space-y-6 max-w-[1800px] mx-auto">
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -80,9 +80,9 @@ export default function ApplicationQueue() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-6">
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-4">
               <CardDescription>My Queue</CardDescription>
-              <CardTitle className="text-3xl">{stats.total}</CardTitle>
+              <CardTitle className="text-4xl">{stats.total}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
@@ -192,7 +192,7 @@ export default function ApplicationQueue() {
                   onAction={() => navigate("/job-search")}
                 />
               ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {filteredQueueItems.map((item) => {
                     const matchBadge = getMatchScoreBadge(item.match_score || 0);
                     return (

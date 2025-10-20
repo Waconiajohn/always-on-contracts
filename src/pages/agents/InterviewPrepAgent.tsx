@@ -145,9 +145,9 @@ const InterviewPrepAgentContent = () => {
           {!selectedJob ? (
             <JobSelector onJobSelected={handleJobSelected} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="flex gap-6">
           {/* Left: Career Vault Reference */}
-          <Card className="lg:col-span-1 p-6">
+          <Card className="w-80 flex-shrink-0 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 rounded-full bg-primary/10">
                 <Brain className="h-8 w-8 text-primary" />
@@ -225,7 +225,7 @@ const InterviewPrepAgentContent = () => {
           </Card>
 
           {/* Right: Interview Practice */}
-          <Card className="lg:col-span-2 p-6">
+          <Card className="flex-1 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
               <TabsList className="grid w-full grid-cols-8 text-xs">
                 <TabsTrigger value="research">Research</TabsTrigger>

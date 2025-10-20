@@ -8,6 +8,7 @@ interface ContextSidebarProps {
   children: React.ReactNode;
   collapsed?: boolean;
   onToggle?: () => void;
+  width?: 'sm' | 'md' | 'lg'; // sm=256px, md=320px, lg=384px
   className?: string;
 }
 
@@ -16,14 +17,20 @@ export const ContextSidebar: React.FC<ContextSidebarProps> = ({
   children,
   collapsed = false,
   onToggle,
+  width = 'md',
   className,
 }) => {
+  const widthClasses = {
+    sm: collapsed ? 'w-14' : 'w-64',
+    md: collapsed ? 'w-14' : 'w-80',
+    lg: collapsed ? 'w-14' : 'w-96'
+  };
   return (
     <aside
       className={cn(
         'sticky top-[64px] h-[calc(100vh-64px)] bg-background overflow-y-auto transition-all duration-300',
         side === 'left' ? 'border-r' : 'border-l',
-        collapsed ? 'w-14' : 'w-64',
+        widthClasses[width],
         className
       )}
       aria-label={`${side} sidebar`}

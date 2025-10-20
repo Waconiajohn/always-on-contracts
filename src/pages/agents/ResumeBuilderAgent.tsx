@@ -1,39 +1,24 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { JobImportDialog } from "@/components/JobImportDialog";
-import { Upload, Sparkles, Loader2 } from "lucide-react";
 import { JobAnalysisPanel } from "@/components/resume-builder/JobAnalysisPanel";
 import { IntelligentVaultPanel } from "@/components/resume-builder/IntelligentVaultPanel";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { ContextSidebar } from "@/components/layout/ContextSidebar";
-import { ResumeSidebar } from "@/components/resume-builder/ResumeSidebar";
-import { ResumeInsightsSidebar } from "@/components/resume-builder/ResumeInsightsSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
 
 const ResumeBuilderV2Content = () => {
   const { toast } = useToast();
   const { leftSidebarCollapsed, toggleLeftSidebar, rightSidebarCollapsed, toggleRightSidebar } = useLayout();
 
-  // Job description state
-  const [jobDescription, setJobDescription] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-
   // Analysis state
-  const [analyzing, setAnalyzing] = useState(false);
-  const [jobAnalysis, setJobAnalysis] = useState<any>(null);
+  const [analyzing] = useState(false);
+  const [jobAnalysis] = useState<any>(null);
 
   // Vault matching state
-  const [matching, setMatching] = useState(false);
-  const [vaultMatches, setVaultMatches] = useState<any>(null);
+  const [matching] = useState(false);
+  const [vaultMatches] = useState<any>(null);
 
   // Resume builder state
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
@@ -59,178 +44,11 @@ const ResumeBuilderV2Content = () => {
     { id: 'education', type: 'education' as const, title: 'Education & Certifications', content: [], order: 7 }
   ]);
 
-  const handleAnalyzeJob = async () => {
-    if (!jobDescription.trim()) {
-      toast({ title: "Please enter a job description", variant: "destructive" });
-      return;
-    }
-
-    setAnalyzing(true);
-
-    try {
-      // Call the multi-source intelligence edge function
-      const { data, error } = await supabase.functions.invoke('analyze-job-requirements', {
-        body: {
-          jobDescription,
-          jobTitle,
-          companyName,
-          industry
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setJobAnalysis(data);
-
-        toast({
-          title: "Job Analysis Complete!",
-          description: `Found ${data.jobRequirements.required.length} required + ${data.industryStandards.length} industry standards + ${data.professionBenchmarks.length} top performer benchmarks`
-        });
-
-        // Automatically start vault matching
-        handleMatchVault(data);
-      }
-    } catch (error: any) {
-      console.error('Error analyzing job:', error);
-      toast({
-        title: "Analysis Failed",
-        description: error.message || "Please try again",
-        variant: "destructive"
-      });
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleMatchVault = async (analysis: any) => {
-    setMatching(true);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase.functions.invoke('match-vault-to-requirements', {
-        body: {
-          userId: user.id,
-          jobRequirements: analysis.jobRequirements,
-          industryStandards: analysis.industryStandards,
-          professionBenchmarks: analysis.professionBenchmarks,
-          atsKeywords: analysis.atsKeywords
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setVaultMatches(data);
-
-        toast({
-          title: "Vault Matching Complete!",
-          description: `Found ${data.recommendations.mustInclude.length} perfect matches, ${data.recommendations.stronglyRecommended.length} strong recommendations`
-        });
-
-        // Update job requirements with match status
-        updateRequirementMatchStatus(data);
-      }
-    } catch (error: any) {
-      console.error('Error matching vault:', error);
-      toast({
-        title: "Matching Failed",
-        description: error.message || "Please try again",
-        variant: "destructive"
-      });
-    } finally {
-      setMatching(false);
-    }
-  };
-
-  const updateRequirementMatchStatus = (matchData: any) => {
-    if (!jobAnalysis) return;
-
-    const satisfiedRequirements = new Set(
-      matchData.matchedItems
-        .filter((m: any) => m.matchScore >= 70)
-        .flatMap((m: any) => m.satisfiesRequirements)
-    );
-
-    const partiallySatisfied = new Set(
-      matchData.matchedItems
-        .filter((m: any) => m.matchScore >= 50 && m.matchScore < 70)
-        .flatMap((m: any) => m.satisfiesRequirements)
-    );
-
-    const updateRequirements = (reqs: any[]) =>
-      reqs.map(req => ({
-        ...req,
-        matched: satisfiedRequirements.has(req.requirement),
-        partiallyMatched: !satisfiedRequirements.has(req.requirement) && partiallySatisfied.has(req.requirement)
-      }));
-
-    setJobAnalysis({
-      ...jobAnalysis,
-      jobRequirements: {
-        required: updateRequirements(jobAnalysis.jobRequirements.required),
-        preferred: updateRequirements(jobAnalysis.jobRequirements.preferred),
-        niceToHave: updateRequirements(jobAnalysis.jobRequirements.niceToHave)
-      },
-      industryStandards: jobAnalysis.industryStandards.map((std: any) => ({
-        ...std,
-        matched: satisfiedRequirements.has(std.standard)
-      })),
-      professionBenchmarks: jobAnalysis.professionBenchmarks.map((bench: any) => ({
-        ...bench,
-        matched: satisfiedRequirements.has(bench.standard)
-      }))
-    });
-  };
-
-  const handleAddToResume = (match: any, placement: string) => {
-    const sectionId = placement;
-    const section = resumeSections.find(s => s.type === sectionId);
-
-    if (!section) return;
-
-    const newItem = {
-      id: `item-${Date.now()}`,
-      content: match.enhancedLanguage || match.content.phrase || match.content.skill_name || JSON.stringify(match.content),
-      vaultItemId: match.vaultItemId,
-      atsKeywords: match.atsKeywords,
-      satisfiesRequirements: match.satisfiesRequirements
-    };
-
-    setResumeSections(prev =>
-      prev.map(s =>
-        s.id === section.id
-          ? { ...s, content: [...s.content, newItem] }
-          : s
-      )
-    );
-
-    // Mark as added in vault matches
-    if (vaultMatches) {
-      setVaultMatches({
-        ...vaultMatches,
-        matchedItems: vaultMatches.matchedItems.map((m: any) =>
-          m.vaultItemId === match.vaultItemId ? { ...m, added: true } : m
-        ),
-        recommendations: {
-          mustInclude: vaultMatches.recommendations.mustInclude.map((m: any) =>
-            m.vaultItemId === match.vaultItemId ? { ...m, added: true } : m
-          ),
-          stronglyRecommended: vaultMatches.recommendations.stronglyRecommended.map((m: any) =>
-            m.vaultItemId === match.vaultItemId ? { ...m, added: true } : m
-          ),
-          consider: vaultMatches.recommendations.consider.map((m: any) =>
-            m.vaultItemId === match.vaultItemId ? { ...m, added: true } : m
-          )
-        }
-      });
-    }
-
+  const handleAddToResume = (_match: any, _placement: string) => {
+    // TODO: Implement when vault matching is available
     toast({
-      title: "Added to resume!",
-      description: `Added to ${section.title}`
+      title: "Coming soon",
+      description: "Adding vault items to resume will be available soon"
     });
   };
 
@@ -272,43 +90,57 @@ const ResumeBuilderV2Content = () => {
       : 0;
   };
 
-  const handleExport = async (format: string) => {
+  const handleExport = async (_format: string) => {
+    // TODO: Implement export functionality
     toast({
-      title: "Exporting resume...",
-      description: `Generating ${format.toUpperCase()} file`
+      title: "Coming soon",
+      description: "Export functionality will be available soon"
     });
-
-    // TODO: Implement actual export logic
   };
 
   return (
     <ContentLayout
       leftSidebar={
-        <ContextSidebar
-          side="left"
-          collapsed={leftSidebarCollapsed}
-          onToggle={toggleLeftSidebar}
-        >
-          <ResumeSidebar onNewResume={() => window.location.reload()} />
-        </ContextSidebar>
-      }
-      rightSidebar={
         jobAnalysis ? (
           <ContextSidebar
+            side="left"
+            width="lg"
+            collapsed={leftSidebarCollapsed}
+            onToggle={toggleLeftSidebar}
+          >
+            <JobAnalysisPanel
+              jobRequirements={jobAnalysis.jobRequirements}
+              industryStandards={jobAnalysis.industryStandards}
+              professionBenchmarks={jobAnalysis.professionBenchmarks}
+              atsKeywords={jobAnalysis.atsKeywords}
+              roleProfile={jobAnalysis.roleProfile}
+              gapAnalysis={jobAnalysis.gapAnalysis}
+              loading={analyzing}
+            />
+          </ContextSidebar>
+        ) : undefined
+      }
+      rightSidebar={
+        vaultMatches ? (
+          <ContextSidebar
             side="right"
+            width="lg"
             collapsed={rightSidebarCollapsed}
             onToggle={toggleRightSidebar}
           >
-            <ResumeInsightsSidebar
-              atsScore={calculateATSScore()}
-              requirementCoverage={calculateCoverage()}
+            <IntelligentVaultPanel
+              matches={vaultMatches?.matchedItems || []}
+              recommendations={vaultMatches?.recommendations}
+              onAddToResume={handleAddToResume}
+              onEnhanceLanguage={handleEnhanceLanguage}
+              loading={matching}
             />
           </ContextSidebar>
         ) : undefined
       }
       maxWidth="full"
     >
-      <div className="px-4 py-8">
+      <div className="p-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Benchmark Resume Builder</h1>
           <p className="text-muted-foreground">
@@ -316,154 +148,42 @@ const ResumeBuilderV2Content = () => {
           </p>
         </div>
 
-        {/* Job Input Section */}
-        {!jobAnalysis && (
-          <Card className="p-6 mb-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Job Description</label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setImportDialogOpen(true)}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import Job
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <input
-                  type="text"
-                  placeholder="Job Title"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  className="px-3 py-2 border rounded-md text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="Company Name"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="px-3 py-2 border rounded-md text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="Industry"
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                  className="px-3 py-2 border rounded-md text-sm"
-                />
-              </div>
-
-              <Textarea
-                placeholder="Paste the full job description here..."
-                className="min-h-[200px]"
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-              />
-
-              <Button
-                onClick={handleAnalyzeJob}
-                disabled={analyzing || !jobDescription.trim()}
-                className="w-full"
-                size="lg"
-              >
-                {analyzing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing with AI (Job + Industry + Benchmarks)...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Analyze Job & Match Career Vault
-                  </>
-                )}
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* 3-Panel Resume Builder */}
+        {/* Resume Builder - Full Width Center */}
         {jobAnalysis && (
-          <div className="grid grid-cols-12 gap-6">
-            {/* Left Panel: Job Analysis */}
-            <div className="col-span-3">
-              <JobAnalysisPanel
-                jobRequirements={jobAnalysis.jobRequirements}
-                industryStandards={jobAnalysis.industryStandards}
-                professionBenchmarks={jobAnalysis.professionBenchmarks}
-                atsKeywords={jobAnalysis.atsKeywords}
-                roleProfile={jobAnalysis.roleProfile}
-                gapAnalysis={jobAnalysis.gapAnalysis}
-                loading={analyzing}
-              />
-            </div>
-
-            {/* Center Panel: Resume Builder */}
-            <div className="col-span-6">
-              <InteractiveResumeBuilder
-                sections={resumeSections}
-                onUpdateSection={(sectionId, content) => {
-                  setResumeSections(prev =>
-                    prev.map(s => s.id === sectionId ? { ...s, content } : s)
-                  );
-                }}
-                onAddItem={(sectionType, item) => {
-                  setResumeSections(prev =>
-                    prev.map(s =>
-                      s.type === sectionType
-                        ? { ...s, content: [...s.content, item] }
-                        : s
-                    )
-                  );
-                }}
-                onRemoveItem={(sectionId, itemId) => {
-                  setResumeSections(prev =>
-                    prev.map(s =>
-                      s.id === sectionId
-                        ? { ...s, content: s.content.filter(c => c.id !== itemId) }
-                        : s
-                    )
-                  );
-                }}
-                onReorderSections={(sections) => setResumeSections(sections)}
-                onExport={handleExport}
-                requirementCoverage={calculateCoverage()}
-                atsScore={calculateATSScore()}
-                mode={resumeMode}
-                onModeChange={setResumeMode}
-              />
-            </div>
-
-            {/* Right Panel: Career Vault */}
-            <div className="col-span-3">
-              <IntelligentVaultPanel
-                matches={vaultMatches?.matchedItems || []}
-                recommendations={vaultMatches?.recommendations}
-                onAddToResume={handleAddToResume}
-                onEnhanceLanguage={handleEnhanceLanguage}
-                loading={matching}
-              />
-            </div>
-          </div>
+          <InteractiveResumeBuilder
+            sections={resumeSections}
+            onUpdateSection={(sectionId, content) => {
+              setResumeSections(prev =>
+                prev.map(s => s.id === sectionId ? { ...s, content } : s)
+              );
+            }}
+            onAddItem={(sectionType, item) => {
+              setResumeSections(prev =>
+                prev.map(s =>
+                  s.type === sectionType
+                    ? { ...s, content: [...s.content, item] }
+                    : s
+                )
+              );
+            }}
+            onRemoveItem={(sectionId, itemId) => {
+              setResumeSections(prev =>
+                prev.map(s =>
+                  s.id === sectionId
+                    ? { ...s, content: s.content.filter(c => c.id !== itemId) }
+                    : s
+                )
+              );
+            }}
+            onReorderSections={(sections) => setResumeSections(sections)}
+            onExport={handleExport}
+            requirementCoverage={calculateCoverage()}
+            atsScore={calculateATSScore()}
+            mode={resumeMode}
+            onModeChange={setResumeMode}
+          />
         )}
       </div>
-
-      <JobImportDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        onJobImported={(jobData) => {
-          setJobDescription(jobData.jobDescription);
-          setJobTitle(jobData.jobTitle);
-          setCompanyName(jobData.companyName || "");
-          toast({
-            title: "Job Imported",
-            description: `Successfully imported: ${jobData.jobTitle}`,
-          });
-        }}
-      />
     </ContentLayout>
   );
 };

@@ -180,8 +180,8 @@ export default function LinkedInProfileBuilder() {
             </Card>
           )}
 
-          <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-6">
+          <div className="grid md:grid-cols-5 gap-6">
+        <div className="space-y-6 md:col-span-2">
           <ProfileProgressTracker
             targetRole={targetRole}
             industry={industry}
@@ -282,7 +282,7 @@ export default function LinkedInProfileBuilder() {
         </div>
 
         {optimizationResult && (
-          <Card>
+          <Card className="md:col-span-3">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>

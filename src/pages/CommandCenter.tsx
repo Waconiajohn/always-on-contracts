@@ -228,7 +228,7 @@ const CommandCenter = () => {
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
-        <div className="container py-8 space-y-6">
+        <div className="container max-w-7xl py-8 space-y-6">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
@@ -333,7 +333,7 @@ const CommandCenter = () => {
                 <Separator className="flex-1" />
               </div>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {phase.features.map((feature) => {
                   const Icon = feature.icon;
                   return (
@@ -346,17 +346,17 @@ const CommandCenter = () => {
                       }`}
                       onClick={() => handleFeatureClick(feature)}
                     >
-                      <CardHeader>
+                      <CardHeader className="pb-4">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${
+                            <div className={`p-3 rounded-lg ${
                               feature.isLocked ? 'bg-muted' : 'bg-primary/10'
                             }`}>
-                              <Icon className={`h-5 w-5 ${
+                              <Icon className={`h-6 w-6 ${
                                 feature.isLocked ? 'text-muted-foreground' : 'text-primary'
                               }`} />
                             </div>
-                            <CardTitle className="text-lg">{feature.name}</CardTitle>
+                            <CardTitle className="text-xl">{feature.name}</CardTitle>
                           </div>
                           {getStatusIcon(feature)}
                         </div>

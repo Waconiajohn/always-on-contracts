@@ -39,7 +39,7 @@ const CoachingContent = () => {
   ];
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="container max-w-6xl mx-auto py-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Executive Coaching</h1>
         <p className="text-muted-foreground">
@@ -64,19 +64,19 @@ const CoachingContent = () => {
                     Select an AI coaching persona to help you with your career strategy
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-3">
+                <CardContent className="grid gap-6 md:grid-cols-3">
                   {coaches.map((coach) => {
                     const Icon = coach.icon;
                     return (
                       <Card 
                         key={coach.id}
-                        className="cursor-pointer hover:border-primary transition-colors"
+                        className="cursor-pointer hover:border-primary transition-colors hover:shadow-lg"
                         onClick={() => setSelectedCoach(coach.id)}
                       >
-                        <CardHeader>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Icon className={`h-6 w-6 ${coach.color}`} />
-                            <CardTitle className="text-lg">{coach.name}</CardTitle>
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Icon className={`h-8 w-8 ${coach.color}`} />
+                            <CardTitle className="text-xl">{coach.name}</CardTitle>
                           </div>
                           <CardDescription className="text-sm">
                             {coach.description}
