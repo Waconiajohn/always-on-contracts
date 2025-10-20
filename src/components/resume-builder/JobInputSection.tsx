@@ -48,7 +48,7 @@ export const JobInputSection = ({ onAnalyze, isAnalyzing }: JobInputSectionProps
       <Card className="w-full max-w-3xl p-8 space-y-6">
         <div className="text-center space-y-2">
           <FileText className="h-12 w-12 mx-auto text-primary" />
-          <h2 className="text-3xl font-bold">Upload Job Description to Begin</h2>
+          <h2 className="text-3xl font-bold text-foreground">Upload Job Description to Begin</h2>
           <p className="text-muted-foreground">
             Paste or type the job description to analyze requirements and build a tailored resume
           </p>

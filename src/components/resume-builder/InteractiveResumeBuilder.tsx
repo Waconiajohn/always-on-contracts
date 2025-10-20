@@ -71,7 +71,7 @@ export const InteractiveResumeBuilder = ({
     const isEditing = editingItem === item.id;
 
     return (
-      <div className="group relative p-3 bg-white rounded border hover:border-primary transition-all">
+      <div className="group relative p-3 bg-card rounded border hover:border-primary transition-all">
         <div className="flex items-start gap-2">
           <GripVertical className="h-4 w-4 text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 cursor-move" />
 
@@ -91,7 +91,7 @@ export const InteractiveResumeBuilder = ({
                 autoFocus
               />
             ) : (
-              <p className="text-sm whitespace-pre-wrap">{item.content}</p>
+              <p className="text-sm whitespace-pre-wrap text-foreground">{item.content}</p>
             )}
 
             {item.atsKeywords && item.atsKeywords.length > 0 && (
@@ -151,9 +151,9 @@ export const InteractiveResumeBuilder = ({
     };
 
     return (
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+      <div className="mb-6 p-4 bg-muted rounded-lg border">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold flex items-center gap-2">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
             <span>{sectionIcons[section.type]}</span>
             <span>{section.title}</span>
             <Badge variant="outline" className="text-xs">{section.content.length}</Badge>
@@ -176,7 +176,7 @@ export const InteractiveResumeBuilder = ({
           ))}
 
           {isAddingItem && (
-            <div className="p-3 bg-white rounded border border-primary">
+            <div className="p-3 bg-card rounded border border-primary">
               <Textarea
                 placeholder="Enter content..."
                 value={newItemContent}
@@ -216,10 +216,10 @@ export const InteractiveResumeBuilder = ({
   return (
     <Card className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b bg-gradient-to-r from-green-50 to-blue-50">
+      <div className="p-4 border-b bg-muted/50">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-lg">Resume Builder</h3>
+            <h3 className="font-semibold text-lg text-foreground">Resume Builder</h3>
             <p className="text-xs text-muted-foreground">
               Drag items from Career Vault or add manually
             </p>
@@ -290,8 +290,8 @@ export const InteractiveResumeBuilder = ({
           {mode === 'edit' ? (
             <>
               {/* Contact Info */}
-              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <div className="mb-6 p-4 bg-muted rounded-lg border">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-foreground">
                   <span>👤</span>
                   Contact Information
                 </h3>
@@ -352,9 +352,9 @@ export const InteractiveResumeBuilder = ({
               </div>
             </>
           ) : (
-            <div className="bg-white p-8 rounded shadow-lg min-h-[800px]">
+            <div className="bg-card p-8 rounded shadow-lg min-h-[800px]">
               <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold mb-2">{contactInfo.name || "Your Name"}</h1>
+                <h1 className="text-3xl font-bold mb-2 text-foreground">{contactInfo.name || "Your Name"}</h1>
                 <div className="text-sm text-muted-foreground space-y-1">
                   {contactInfo.email && <div>{contactInfo.email}</div>}
                   {contactInfo.phone && <div>{contactInfo.phone}</div>}
@@ -367,12 +367,12 @@ export const InteractiveResumeBuilder = ({
                 .sort((a, b) => a.order - b.order)
                 .map(section => (
                   <div key={section.id} className="mb-6">
-                    <h2 className="text-xl font-bold mb-3 pb-2 border-b-2 border-primary">
+                    <h2 className="text-xl font-bold mb-3 pb-2 border-b-2 border-primary text-foreground">
                       {section.title}
                     </h2>
                     <div className="space-y-3">
                       {section.content.map(item => (
-                        <div key={item.id} className="text-sm">
+                        <div key={item.id} className="text-sm text-foreground">
                           {item.content}
                         </div>
                       ))}

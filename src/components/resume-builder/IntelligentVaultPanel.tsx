@@ -143,7 +143,7 @@ export const IntelligentVaultPanel = ({
         </div>
 
         <div className="space-y-2 mb-3">
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium text-foreground">
             {getDisplayContent(match.content)}
           </p>
 
@@ -213,8 +213,8 @@ export const IntelligentVaultPanel = ({
             </Button>
 
             {showEnhanced && (
-              <div className="mt-2 p-2 bg-white rounded border text-xs">
-                <p className="font-medium mb-1">AI-Enhanced for this job:</p>
+              <div className="mt-2 p-2 bg-card rounded border text-xs">
+                <p className="font-medium mb-1 text-foreground">AI-Enhanced for this job:</p>
                 <p className="text-muted-foreground italic">{match.enhancedLanguage}</p>
               </div>
             )}
@@ -252,7 +252,7 @@ export const IntelligentVaultPanel = ({
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-lg">Career Vault Intelligence</h3>
+          <h3 className="font-semibold text-lg text-foreground">Career Vault Intelligence</h3>
           <Badge className="text-xs">
             {matches.length} Matches
           </Badge>
@@ -327,8 +327,8 @@ export const IntelligentVaultPanel = ({
           <TabsContent value="must" className="h-full mt-4 px-4">
             <ScrollArea className="h-[calc(100vh-400px)]">
               <div className="space-y-3 pr-4 pb-4">
-                <div className="p-3 bg-red-50 rounded-md border border-red-200 mb-4">
-                  <p className="text-xs text-red-900">
+                <div className="p-3 bg-muted rounded-md border mb-4">
+                  <p className="text-xs text-foreground">
                     <strong>Must Include</strong> - Perfect matches (90%+) that directly address critical requirements.
                     Add these to your resume.
                   </p>
@@ -350,8 +350,8 @@ export const IntelligentVaultPanel = ({
           <TabsContent value="strong" className="h-full mt-4 px-4">
             <ScrollArea className="h-[calc(100vh-400px)]">
               <div className="space-y-3 pr-4 pb-4">
-                <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200 mb-4">
-                  <p className="text-xs text-yellow-900">
+                <div className="p-3 bg-muted rounded-md border mb-4">
+                  <p className="text-xs text-foreground">
                     <strong>Strongly Recommended</strong> - High-value matches (70-89%) that strengthen your candidacy.
                     Consider adding most of these.
                   </p>

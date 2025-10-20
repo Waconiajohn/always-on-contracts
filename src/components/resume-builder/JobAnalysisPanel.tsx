@@ -126,7 +126,7 @@ export const JobAnalysisPanel = ({
         <div className="flex items-start gap-2">
           {icon}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">{req.requirement}</p>
+            <p className="text-sm font-medium text-foreground">{req.requirement}</p>
             {req.keywords && req.keywords.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {req.keywords.map((kw, i) => (
@@ -147,11 +147,11 @@ export const JobAnalysisPanel = ({
   };
 
   const StandardItem = ({ standard }: { standard: IndustryStandard }) => (
-    <div className={`p-3 rounded-md border ${standard.matched ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+    <div className={`p-3 rounded-md border ${standard.matched ? 'bg-green-50 border-green-200' : 'bg-muted'}`}>
       <div className="flex items-start gap-2">
         {standard.matched && <CheckCircle2 className="h-4 w-4 text-green-600" />}
         <div className="flex-1">
-          <p className="text-sm font-medium">{standard.standard}</p>
+          <p className="text-sm font-medium text-foreground">{standard.standard}</p>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="outline" className="text-xs">{standard.category}</Badge>
             <Badge variant="outline" className="text-xs">{standard.expectedLevel}</Badge>
@@ -167,10 +167,10 @@ export const JobAnalysisPanel = ({
   return (
     <Card className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
+      <div className="p-4 border-b bg-muted/50">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-lg">{roleProfile?.title || 'Job Analysis'}</h3>
+            <h3 className="font-semibold text-lg text-foreground">{roleProfile?.title || 'Job Analysis'}</h3>
             <p className="text-sm text-muted-foreground">
               {roleProfile?.level && <span className="capitalize">{roleProfile.level}</span>}
               {roleProfile?.level && roleProfile?.industry && ' • '}
@@ -265,8 +265,8 @@ export const JobAnalysisPanel = ({
           <TabsContent value="industry" className="h-full mt-4 px-4">
             <ScrollArea className="h-[calc(100vh-400px)]">
               <div className="space-y-3 pr-4">
-                <div className="p-3 bg-blue-50 rounded-md border border-blue-200 mb-4">
-                  <p className="text-xs text-blue-900">
+                <div className="p-3 bg-muted rounded-md border mb-4">
+                  <p className="text-xs text-foreground">
                     <strong>Industry Standards</strong> for {roleProfile?.industry || 'this field'} -
                     What employers in this industry typically expect from candidates.
                   </p>
@@ -288,8 +288,8 @@ export const JobAnalysisPanel = ({
           <TabsContent value="benchmark" className="h-full mt-4 px-4">
             <ScrollArea className="h-[calc(100vh-400px)]">
               <div className="space-y-3 pr-4">
-                <div className="p-3 bg-purple-50 rounded-md border border-purple-200 mb-4">
-                  <p className="text-xs text-purple-900">
+                <div className="p-3 bg-muted rounded-md border mb-4">
+                  <p className="text-xs text-foreground">
                     <strong>Top 10% Benchmarks</strong> - Differentiators that separate elite candidates from the rest.
                     These give you competitive advantage.
                   </p>
@@ -323,8 +323,8 @@ export const JobAnalysisPanel = ({
           <TabsContent value="ats" className="h-full mt-4 px-4">
             <ScrollArea className="h-[calc(100vh-400px)]">
               <div className="space-y-3 pr-4">
-                <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200 mb-4">
-                  <p className="text-xs text-yellow-900">
+                <div className="p-3 bg-muted rounded-md border mb-4">
+                  <p className="text-xs text-foreground">
                     <strong>ATS Keywords</strong> - Critical keywords that Applicant Tracking Systems scan for.
                     ★ = High priority for ATS scoring.
                   </p>
