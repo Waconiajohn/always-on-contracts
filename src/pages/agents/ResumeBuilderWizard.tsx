@@ -6,7 +6,7 @@ import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { GapAnalysisView } from "@/components/resume-builder/GapAnalysisView";
 import { FormatSelector } from "@/components/resume-builder/FormatSelector";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
-import { ResumeEditorWithVaultPanel } from "@/components/resume-builder/ResumeEditorWithVaultPanel";
+import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
 import { ResumeBuilderOnboarding } from "@/components/resume-builder/ResumeBuilderOnboarding";
 import { ResumePreviewModal } from "@/components/resume-builder/ResumePreviewModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -358,10 +358,10 @@ const ResumeBuilderWizardContent = () => {
           </div>
 
           <div className="flex-1 overflow-hidden">
-            <ResumeEditorWithVaultPanel
+            <InteractiveResumeBuilder
               sections={resumeSections}
-              vaultMatches={vaultMatches}
               jobAnalysis={jobAnalysis}
+              vaultMatches={vaultMatches?.matchedItems || []}
               onUpdateSection={(sectionId, content) => {
                 setResumeSections(prev =>
                   prev.map(s => s.id === sectionId ? { ...s, content } : s)
@@ -387,6 +387,8 @@ const ResumeBuilderWizardContent = () => {
               }}
               onReorderSections={(sections) => setResumeSections(sections)}
               onExport={handleExport}
+              requirementCoverage={vaultMatches?.coverageScore || 0}
+              atsScore={vaultMatches?.coverageScore || 0}
               mode={resumeMode}
               onModeChange={setResumeMode}
             />

@@ -163,9 +163,12 @@ Return ONLY the content, no explanations.`;
       );
 
       // Requirements coverage
-      const reqsCovered = requirements.filter((req: string) =>
-        contentLower.includes(req.toLowerCase())
-      );
+      const reqsCovered = requirements.filter((req: any) => {
+        if (typeof req === 'string') {
+          return contentLower.includes(req.toLowerCase());
+        }
+        return false;
+      });
       const reqScore = requirements.length > 0
         ? Math.round((reqsCovered.length / requirements.length) * 100)
         : 80;
