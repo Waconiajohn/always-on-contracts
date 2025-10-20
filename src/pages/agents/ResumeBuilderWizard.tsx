@@ -47,7 +47,11 @@ const ResumeBuilderWizardContent = () => {
 
       if (error) throw error;
 
-      setJobAnalysis(data);
+      // Store original job description with the analysis
+      setJobAnalysis({
+        ...data,
+        originalJobDescription: jobText
+      });
 
       // Automatically trigger vault matching
       await handleMatchVault(data);
