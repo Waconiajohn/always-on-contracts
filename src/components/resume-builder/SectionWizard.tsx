@@ -23,6 +23,7 @@ import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
 import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength } from "@/lib/analytics";
+import { TooltipHelp } from "./HelpTooltip";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -501,7 +502,10 @@ export const SectionWizard = ({
             <div className="flex items-start gap-3">
               <Lightbulb className="h-5 w-5 text-accent-foreground mt-0.5" />
               <div className="flex-1">
-                <h4 className="font-semibold mb-2">AI Guidance</h4>
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="font-semibold">AI Guidance</h4>
+                  <TooltipHelp.SectionGuidance />
+                </div>
                 <div className="text-sm text-muted-foreground whitespace-pre-line">
                   {section.guidancePrompt}
                 </div>
@@ -511,10 +515,13 @@ export const SectionWizard = ({
 
           {/* Vault Items Selection */}
           {!generatedContent && (
-            <Card className="p-6">
-              <h4 className="font-semibold mb-4">
-                Select from Your Career Vault ({relevantMatches.length} matches)
-              </h4>
+            <Card className="p-6 vault-matches-section">
+              <div className="flex items-center gap-2 mb-4">
+                <h4 className="font-semibold">
+                  Select from Your Career Vault ({relevantMatches.length} matches)
+                </h4>
+                <TooltipHelp.VaultSelection />
+              </div>
 
               {relevantMatches.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
