@@ -7,10 +7,11 @@ import { FormatSelector } from "@/components/resume-builder/FormatSelector";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
 import { ResumeBuilderOnboarding } from "@/components/resume-builder/ResumeBuilderOnboarding";
+import { ResumePreviewModal } from "@/components/resume-builder/ResumePreviewModal";
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'wizard-mode' | 'final-review';
@@ -36,6 +37,9 @@ const ResumeBuilderWizardContent = () => {
   // Resume content
   const [resumeSections, setResumeSections] = useState<any[]>([]);
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
+
+  // Preview modal state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const handleAnalyzeJob = async (jobText: string) => {
     setAnalyzing(true);
@@ -262,35 +266,58 @@ const ResumeBuilderWizardContent = () => {
       }
 
       return (
-        <div className="h-screen flex flex-col bg-background">
-          <div className="p-4 border-b flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={handleStartOver}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Start Over
-            </Button>
+        <>
+          <div className="h-screen flex flex-col bg-background">
+            <div className="p-4 border-b flex items-center justify-between">
+              <Button
+                variant="ghost"
+                onClick={handleStartOver}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Start Over
+              </Button>
 
-            <h3 className="font-semibold">{format?.name}</h3>
+              <h3 className="font-semibold">{format?.name}</h3>
 
-            <div className="w-24" /> {/* Spacer for centering */}
+              <Button
+                variant="outline"
+                onClick={() => setShowPreviewModal(true)}
+                className="gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                Preview Resume
+              </Button>
+            </div>
+
+            <SectionWizard
+              section={currentSection}
+              vaultMatches={vaultMatches?.matchedItems || []}
+              jobAnalysis={jobAnalysis}
+              onSectionComplete={handleSectionComplete}
+              onBack={handleSectionBack}
+              onSkip={handleSectionSkip}
+              isFirst={currentSectionIndex === 0}
+              isLast={currentSectionIndex === resumeSections.length - 1}
+              totalSections={resumeSections.length}
+              currentIndex={currentSectionIndex}
+            />
           </div>
 
-          <SectionWizard
-            section={currentSection}
-            vaultMatches={vaultMatches?.matchedItems || []}
-            jobAnalysis={jobAnalysis}
-            onSectionComplete={handleSectionComplete}
-            onBack={handleSectionBack}
-            onSkip={handleSectionSkip}
-            isFirst={currentSectionIndex === 0}
-            isLast={currentSectionIndex === resumeSections.length - 1}
-            totalSections={resumeSections.length}
-            currentIndex={currentSectionIndex}
+          <ResumePreviewModal
+            isOpen={showPreviewModal}
+            onClose={() => setShowPreviewModal(false)}
+            sections={resumeSections}
+            currentSectionId={currentSection.id}
+            overallQuality={{
+              atsScore: vaultMatches?.coverageScore || 0,
+              requirementCoverage: vaultMatches?.coverageScore || 0,
+              completedSections: resumeSections.filter(s => s.content).length,
+              totalSections: resumeSections.length
+            }}
+            onExport={handleExport}
           />
-        </div>
+        </>
       );
 
     case 'final-review':

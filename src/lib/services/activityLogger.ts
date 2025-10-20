@@ -85,4 +85,29 @@ export const activityLogger = {
     skillsConfirmed: (count: number) => 
       logActivity('vault', `Confirmed ${count} skill${count !== 1 ? 's' : ''} in vault`),
   },
+
+  resumeBuilder: {
+    sectionGenerated: (sectionType: string, versionSelected: 'ideal' | 'personalized' | 'blend') =>
+      logActivity('resume', `Generated ${sectionType} (${versionSelected} version)`, {
+        section_type: sectionType,
+        version_selected: versionSelected
+      }),
+    sectionCompleted: (sectionType: string, edited: boolean, contentLength: number) =>
+      logActivity('resume', `Completed ${sectionType}`, {
+        section_type: sectionType,
+        was_edited: edited,
+        content_length: contentLength
+      }),
+    versionSelected: (versionType: 'ideal' | 'personalized', sectionType: string, vaultStrength: number) =>
+      logActivity('resume', `Selected ${versionType} version for ${sectionType}`, {
+        version_type: versionType,
+        section_type: sectionType,
+        vault_strength: vaultStrength
+      }),
+    resumeCompleted: (totalSections: number, vaultItemsUsed: number) =>
+      logActivity('resume', `Resume completed with ${totalSections} sections`, {
+        total_sections: totalSections,
+        vault_items_used: vaultItemsUsed
+      }),
+  },
 };

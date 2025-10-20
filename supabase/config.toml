@@ -264,3 +264,31 @@ verify_jwt = true
 [functions.dual-ai-audit]
 verify_jwt = true
 
+[functions.generate-dual-resume-section]
+verify_jwt = true
+
+[functions.analyze-job-requirements]
+verify_jwt = true
+
+[functions.match-vault-to-requirements]
+verify_jwt = true
+
+[functions.generate-cover-letter]
+verify_jwt = true
+
+[functions.generate-resume-section]
+verify_jwt = true
+
+[functions.critique-resume]
+verify_jwt = true
+
+[functions.modernize-language]
+verify_jwt = true
+
+[functions.suggest-metrics]
+verify_jwt = true
+
+[functions.generate-interview-prep]
+verify_jwt = true
+
+

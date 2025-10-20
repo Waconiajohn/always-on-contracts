@@ -145,54 +145,35 @@ export const SectionWizard = ({
         setJobResearch(research); // Cache for next sections
       }
 
-      // Step 2: Generate ideal version
+      // Step 2 & 3: Generate BOTH versions simultaneously using new dual generation function
       setCurrentGenerationStep(1);
 
-      const { data: idealData, error: idealError } = await supabase.functions.invoke(
-        'generate-resume-with-perplexity',
+      const { data: dualData, error: dualError } = await supabase.functions.invoke(
+        'generate-dual-resume-section',
         {
           body: {
-            generation_type: 'ideal',
-            section_type: section.type,
-            section_guidance: section.guidancePrompt,
-            job_analysis_research: research.research_result,
-            job_title: jobAnalysis.roleProfile?.title || '',
-            industry: jobAnalysis.roleProfile?.industry || '',
-            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level'
-          }
-        }
-      );
-
-      if (idealError) {
-        throw new Error(`Ideal generation failed: ${idealError.message || 'Unable to create industry standard'}`);
-      }
-
-      setIdealContent(idealData.content);
-
-      // Step 3: Generate personalized version
-      setCurrentGenerationStep(2);
-
-      const { data: personalizedData, error: personalizedError } = await supabase.functions.invoke(
-        'generate-resume-with-perplexity',
-        {
-          body: {
-            generation_type: 'personalized',
             section_type: section.type,
             section_guidance: section.guidancePrompt,
             job_analysis_research: research.research_result,
             vault_items: relevantMatches,
             job_title: jobAnalysis.roleProfile?.title || '',
             industry: jobAnalysis.roleProfile?.industry || '',
-            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level'
+            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
+            ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+            requirements: [
+              ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => r.requirement || r),
+              ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
+            ]
           }
         }
       );
 
-      if (personalizedError) {
-        throw new Error(`Personalized generation failed: ${personalizedError.message || 'Unable to personalize with Career Vault'}`);
+      if (dualError) {
+        throw new Error(`Dual generation failed: ${dualError.message || 'Unable to generate versions'}`);
       }
 
-      setPersonalizedContent(personalizedData.content);
+      setIdealContent(dualData.idealVersion.content);
+      setPersonalizedContent(dualData.personalizedVersion.content);
 
       setCurrentGenerationStep(3); // Complete
       setShowComparison(true);
@@ -205,7 +186,9 @@ export const SectionWizard = ({
 
       toast({
         title: "Dual generation complete!",
-        description: "Compare industry standard vs your personalized version"
+        description: `${dualData.comparison.recommendation === 'ideal' ? 'Industry standard recommended' : 
+                      dualData.comparison.recommendation === 'personalized' ? 'Your personalized version recommended' :
+                      'Consider blending both versions'}`
       });
 
     } catch (error) {

@@ -26,7 +26,8 @@ export const GapAnalysisView = ({
 }: GapAnalysisViewProps) => {
   const [gapActions, setGapActions] = useState<Record<string, string>>({});
 
-  const matchedCount = Math.round((coverageScore / 100) * totalRequirements);
+  // Calculate matched count directly from unmatched requirements
+  const matchedCount = totalRequirements - unmatchedRequirements.length;
   const gapCount = unmatchedRequirements.length;
 
   const handleGapAction = (requirement: string, action: string) => {

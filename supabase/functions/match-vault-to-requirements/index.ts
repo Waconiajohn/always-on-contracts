@@ -283,6 +283,14 @@ Return ONLY valid JSON:
     // Sort matches by score and categorize
     matches.sort((a, b) => b.matchScore - a.matchScore);
 
+    // Calculate coverage score based on UNIQUE requirements satisfied
+    const uniqueRequirementsCovered = new Set<string>();
+    matches.forEach(m => {
+      if (m.matchScore >= 70) {
+        m.satisfiesRequirements.forEach(req => uniqueRequirementsCovered.add(req));
+      }
+    });
+
     const result: MatchingResult = {
       success: true,
       totalVaultItems: vaultCategories.reduce((sum, cat) =>
@@ -296,7 +304,7 @@ Return ONLY valid JSON:
         ),
       coverageScore: Math.round(
         (allRequirements.length > 0 ?
-          matches.filter(m => m.matchScore >= 70).length / allRequirements.length : 0
+          uniqueRequirementsCovered.size / allRequirements.length : 0
         ) * 100
       ),
       differentiatorStrength: Math.round(
