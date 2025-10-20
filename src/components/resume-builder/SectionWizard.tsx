@@ -3,8 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Lightbulb,
   Sparkles,
@@ -23,7 +23,6 @@ import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
 import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength } from "@/lib/analytics";
-import { TooltipHelp } from "./HelpTooltip";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -66,7 +65,6 @@ export const SectionWizard = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
-  const [showEnhanced, setShowEnhanced] = useState<{ [key: string]: boolean }>({});
   const [jobResearch, setJobResearch] = useState<any>(null);
   const [idealContent, setIdealContent] = useState<any>(null);
   const [personalizedContent, setPersonalizedContent] = useState<any>(null);
@@ -96,24 +94,10 @@ export const SectionWizard = ({
   };
 
   // Filter vault matches relevant to this section
+  // AI automatically uses ALL relevant matches - no manual selection needed
   const relevantMatches = vaultMatches.filter(match =>
     section.vaultCategories.includes(match.vaultCategory)
-  ).slice(0, 15); // Limit to top 15 for UI performance
-
-  // Auto-select high-quality matches (≥50% match score) on mount
-  const [selectedVaultItems, setSelectedVaultItems] = useState<string[]>(() => {
-    return relevantMatches
-      .filter(match => match.matchScore >= 50)
-      .map(match => match.vaultItemId);
-  });
-
-  const handleVaultItemToggle = (itemId: string) => {
-    setSelectedVaultItems(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
-  };
+  );
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -128,9 +112,8 @@ export const SectionWizard = ({
     });
 
     try {
-      const selectedItems = relevantMatches.filter(m =>
-        selectedVaultItems.includes(m.vaultItemId)
-      );
+      // Use ALL relevant vault matches automatically - no manual selection
+      const selectedItems = relevantMatches;
 
       const vaultStrength = calculateVaultStrength(selectedItems);
 
@@ -274,14 +257,11 @@ export const SectionWizard = ({
     );
     setShowComparison(false);
 
-    // Track version selection
-    const selectedItems = relevantMatches.filter(m =>
-      selectedVaultItems.includes(m.vaultItemId)
-    );
+    // Track version selection (using all relevant matches)
     await trackVersionSelection('ideal', {
       section_type: section.type,
-      vault_items_used: selectedItems.length,
-      vault_strength: calculateVaultStrength(selectedItems)
+      vault_items_used: relevantMatches.length,
+      vault_strength: calculateVaultStrength(relevantMatches)
     });
 
     toast({
@@ -299,14 +279,11 @@ export const SectionWizard = ({
     );
     setShowComparison(false);
 
-    // Track version selection
-    const selectedItems = relevantMatches.filter(m =>
-      selectedVaultItems.includes(m.vaultItemId)
-    );
+    // Track version selection (using all relevant matches)
     await trackVersionSelection('personalized', {
       section_type: section.type,
-      vault_items_used: selectedItems.length,
-      vault_strength: calculateVaultStrength(selectedItems)
+      vault_items_used: relevantMatches.length,
+      vault_strength: calculateVaultStrength(relevantMatches)
     });
 
     toast({
@@ -343,167 +320,14 @@ export const SectionWizard = ({
     await trackSectionComplete(section.type, {
       edited: isEditing,
       content_length: contentString.length,
-      vault_items_used: selectedVaultItems.length
+      vault_items_used: relevantMatches.length
     });
 
     onSectionComplete({
       type: section.type,
       content: finalContent,
-      vaultItemsUsed: selectedVaultItems
+      vaultItemsUsed: relevantMatches.map(m => m.vaultItemId)
     });
-  };
-
-  const renderVaultItem = (match: VaultMatch) => {
-    const isSelected = selectedVaultItems.includes(match.vaultItemId);
-    const showEnhancedVersion = showEnhanced[match.vaultItemId];
-
-    // Get displayable content from vault item - comprehensive schema mapper
-    const getDisplayContent = (content: any): string => {
-      if (!content) return 'No content';
-      if (typeof content === 'string') return content;
-
-      // Priority order of field names (most descriptive first)
-      const fieldPriority = [
-        // Achievements & Accomplishments
-        'accomplishment', 'achievement', 'accomplishment_text',
-        // Questions & Answers
-        'strong_answer', 'question', 'answer',
-        // Skills & Competencies
-        'competency_area', 'inferred_capability', 'skill_name', 'skill', 'competency',
-        // Phrases & Statements
-        'phrase', 'power_phrase', 'philosophy_statement', 'statement',
-        // Titles & Names
-        'job_title', 'title', 'role', 'value_name', 'name',
-        // Descriptions
-        'description', 'summary', 'details', 'content', 'text',
-        // Problem-Solution
-        'problem', 'solution', 'situation', 'task', 'action', 'result',
-        // Career context
-        'company', 'industry', 'certification', 'degree',
-        // Soft skills & values
-        'value', 'strength', 'weakness'
-      ];
-
-      // Try priority fields first
-      for (const field of fieldPriority) {
-        if (content[field] && typeof content[field] === 'string' && content[field].trim().length > 0) {
-          return content[field];
-        }
-      }
-
-      // Handle arrays (supporting evidence, examples, etc.)
-      const arrayFields = ['supporting_evidence', 'examples', 'achievements', 'skills'];
-      for (const field of arrayFields) {
-        if (content[field] && Array.isArray(content[field]) && content[field].length > 0) {
-          const firstItem = content[field][0];
-          if (typeof firstItem === 'string') return firstItem;
-          if (typeof firstItem === 'object') return getDisplayContent(firstItem);
-        }
-      }
-
-      // Fallback: find first meaningful string (skip metadata fields)
-      const skipFields = [
-        'id', 'user_id', 'vault_id', 'created_at', 'updated_at', 'deleted_at',
-        'embedding', 'metadata', 'tags', 'uuid', 'timestamp'
-      ];
-
-      const firstString = Object.entries(content)
-        .filter(([key, val]) => {
-          if (skipFields.includes(key)) return false;
-          if (typeof val !== 'string') return false;
-          if (val.length < 3) return false;
-          // Skip UUIDs, timestamps, and very short values
-          if (val.match(/^[0-9a-f-]{36}$/i)) return false;
-          if (val.match(/^\d{4}-\d{2}-\d{2}/)) return false;
-          return true;
-        })
-        .map(([_, val]) => val as string)[0];
-
-      if (firstString) return firstString;
-
-      // Last resort: pretty-print JSON with truncation
-      try {
-        const json = JSON.stringify(content, null, 2);
-        return json.length > 200 ? json.substring(0, 197) + '...' : json;
-      } catch {
-        return 'Unable to display content';
-      }
-    };
-
-    const displayContent = getDisplayContent(match.content);
-    const hasEnhanced = match.enhancedLanguage && match.enhancedLanguage.length > 0;
-
-    return (
-      <div
-        key={match.vaultItemId}
-        className={cn(
-          "p-4 rounded-lg border-2 transition-all",
-          isSelected
-            ? "border-primary bg-primary/5"
-            : "border-border bg-card hover:border-primary/50"
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => handleVaultItemToggle(match.vaultItemId)}
-            className="mt-1"
-          />
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="text-xs">
-                {match.vaultCategory.replace(/_/g, ' ')}
-              </Badge>
-              <Badge className="text-xs">
-                {match.matchScore}% match
-              </Badge>
-            </div>
-
-            <p className="text-sm font-medium mb-2">
-              {showEnhancedVersion && hasEnhanced
-                ? match.enhancedLanguage
-                : displayContent}
-            </p>
-
-            {match.satisfiesRequirements && match.satisfiesRequirements.length > 0 && (
-              <div className="text-xs text-muted-foreground mb-2">
-                <Check className="h-3 w-3 inline mr-1" />
-                Addresses: {match.satisfiesRequirements.slice(0, 2).join(', ')}
-                {match.satisfiesRequirements.length > 2 && ` +${match.satisfiesRequirements.length - 2} more`}
-              </div>
-            )}
-
-            {match.atsKeywords && match.atsKeywords.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {match.atsKeywords.slice(0, 5).map((kw, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs">
-                    {kw}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {hasEnhanced && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  setShowEnhanced(prev => ({
-                    ...prev,
-                    [match.vaultItemId]: !prev[match.vaultItemId]
-                  }))
-                }
-                className="mt-2 h-7 text-xs"
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                {showEnhancedVersion ? "Show Original" : "Show Enhanced"}
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -560,81 +384,69 @@ export const SectionWizard = ({
             </div>
           </Card>
 
-          {/* Vault Items Selection */}
+          {/* Ready to Generate */}
           {!generatedContent && (
-            <Card className="p-6 vault-matches-section">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-semibold">
-                    Review Career Vault Items ({selectedVaultItems.length} of {relevantMatches.length} selected)
-                  </h4>
-                  <TooltipHelp.VaultSelection />
+            <Card className="p-6">
+              <div className="text-center space-y-4">
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">Ready to Generate</h4>
+                  <p className="text-sm text-muted-foreground">
+                    AI will use <strong>{relevantMatches.length} relevant Career Vault item{relevantMatches.length !== 1 ? 's' : ''}</strong> to create this section
+                  </p>
                 </div>
-                {relevantMatches.length > 0 && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedVaultItems(relevantMatches.map(m => m.vaultItemId))}
-                      className="text-xs"
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedVaultItems([])}
-                      className="text-xs"
-                    >
-                      Deselect All
-                    </Button>
+
+                {relevantMatches.length === 0 ? (
+                  <Alert>
+                    <Lightbulb className="h-4 w-4" />
+                    <AlertTitle>No vault matches found</AlertTitle>
+                    <AlertDescription>
+                      The AI will create content based on job requirements and industry standards.
+                      You can add relevant experience to your Career Vault later to improve personalization.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {relevantMatches.slice(0, 10).map(match => (
+                      <Badge key={match.vaultItemId} variant="outline" className="text-xs">
+                        {match.vaultCategory.replace(/_/g, ' ')} ({match.matchScore}%)
+                      </Badge>
+                    ))}
+                    {relevantMatches.length > 10 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{relevantMatches.length - 10} more
+                      </Badge>
+                    )}
                   </div>
                 )}
-              </div>
 
-              <p className="text-sm text-muted-foreground mb-4">
-                High-quality matches (≥50%) are pre-selected. Uncheck any items not relevant to this specific job.
-              </p>
+                <div className="flex flex-col items-center gap-4 mt-6">
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
+                    size="lg"
+                    className="gap-2"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Generate {section.title}
+                      </>
+                    )}
+                  </Button>
 
-              {relevantMatches.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="mb-2">No vault items found for this section</p>
-                  <p className="text-sm">You can still generate content or add manually</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {relevantMatches.map(renderVaultItem)}
-                </div>
-              )}
-
-              <div className="mt-6 flex flex-col items-center gap-4">
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || selectedVaultItems.length === 0}
-                  size="lg"
-                  className="gap-2"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      Generate {section.title}
-                      {selectedVaultItems.length > 0 && ` (${selectedVaultItems.length} items)`}
-                    </>
+                  {/* Generation Progress with Animations */}
+                  {isGenerating && (
+                    <GenerationProgress
+                      currentStep={currentGenerationStep}
+                      isComplete={showComparison}
+                    />
                   )}
-                </Button>
-
-                {/* Generation Progress with Animations */}
-                {isGenerating && (
-                  <GenerationProgress
-                    currentStep={currentGenerationStep}
-                    isComplete={showComparison}
-                  />
-                )}
+                </div>
               </div>
             </Card>
           )}

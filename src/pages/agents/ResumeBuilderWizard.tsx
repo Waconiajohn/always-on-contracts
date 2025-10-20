@@ -2,6 +2,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { JobInputSection } from "@/components/resume-builder/JobInputSection";
+import { GapAnalysisView } from "@/components/resume-builder/GapAnalysisView";
 import { FormatSelector } from "@/components/resume-builder/FormatSelector";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
-type WizardStep = 'job-input' | 'format-selection' | 'wizard-mode' | 'final-review';
+type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'wizard-mode' | 'final-review';
 
 const ResumeBuilderWizardContent = () => {
   const { toast } = useToast();
@@ -51,12 +52,12 @@ const ResumeBuilderWizardContent = () => {
       // Automatically trigger vault matching
       await handleMatchVault(data);
 
-      // Move to format selection
-      setCurrentStep('format-selection');
+      // Move to gap analysis
+      setCurrentStep('gap-analysis');
 
       toast({
-        title: "Job analyzed successfully",
-        description: "Now let's choose the best resume format"
+        title: "Analysis complete",
+        description: "Review how your Career Vault matches this job"
       });
     } catch (error) {
       console.error("Error analyzing job:", error);
@@ -206,6 +207,30 @@ const ResumeBuilderWizardContent = () => {
             )}
           </div>
         </div>
+      );
+
+    case 'gap-analysis':
+      if (!vaultMatches) {
+        return <div>Loading...</div>;
+      }
+
+      return (
+        <GapAnalysisView
+          unmatchedRequirements={vaultMatches.unmatchedRequirements || []}
+          coverageScore={vaultMatches.coverageScore || 0}
+          totalRequirements={
+            (jobAnalysis?.jobRequirements?.required?.length || 0) +
+            (jobAnalysis?.jobRequirements?.preferred?.length || 0)
+          }
+          vaultMatches={vaultMatches.matchedItems || []}
+          onContinue={() => setCurrentStep('format-selection')}
+          onAddMissingItems={() => {
+            toast({
+              title: "Feature coming soon",
+              description: "Quick vault item addition will be available soon"
+            });
+          }}
+        />
       );
 
     case 'format-selection':
