@@ -26,24 +26,44 @@ interface VaultMatch {
 const getDisplayContent = (content: any): string => {
   if (typeof content === 'string') return content;
   
-  // Try common fields in order of preference
+  // Try fields in order of preference, matching actual database schema
   const fields = [
-    'phrase', 'skill_name', 'competency_name', 'trait_name',
-    'job_title', 'company', 'title', 'question', 
-    'description', 'evidence', 'context', 'name'
+    // Hidden competencies
+    'competency_area', 'inferred_capability',
+    // Power phrases
+    'phrase', 'quantifiable_result',
+    // Skills
+    'skill_name', 'trait_name',
+    // Resume milestones
+    'job_title', 'company', 'accomplishment',
+    // Interview responses
+    'question', 'strong_answer',
+    // Leadership/values
+    'philosophy_statement', 'value_name', 'manifestation',
+    // General
+    'title', 'description', 'evidence', 'context', 'name'
   ];
   
   for (const field of fields) {
-    if (content[field] && typeof content[field] === 'string') {
+    if (content[field] && typeof content[field] === 'string' && content[field].length > 3) {
       return content[field];
     }
   }
   
-  // Fallback: try to find first string value
-  const firstString = Object.values(content).find(v => typeof v === 'string' && v.length > 10);
-  if (firstString) return firstString as string;
+  // Handle arrays (like supporting_evidence)
+  if (content.supporting_evidence && Array.isArray(content.supporting_evidence) && content.supporting_evidence.length > 0) {
+    return content.supporting_evidence[0];
+  }
   
-  // Last resort: stringify but make it readable
+  // Fallback: try to find first meaningful string value (skip IDs, UUIDs, dates)
+  const skipFields = ['id', 'user_id', 'vault_id', 'created_at', 'updated_at'];
+  const firstString = Object.entries(content)
+    .filter(([key, val]) => !skipFields.includes(key) && typeof val === 'string' && val.length > 10 && !val.match(/^[0-9a-f-]{36}$/))
+    .map(([_, val]) => val as string)[0];
+  
+  if (firstString) return firstString;
+  
+  // Last resort
   return "Vault item - click to expand";
 };
 

@@ -192,14 +192,36 @@ export const SectionWizard = ({
     const isSelected = selectedVaultItems.includes(match.vaultItemId);
     const showEnhancedVersion = showEnhanced[match.vaultItemId];
 
-    // Get displayable content
+    // Get displayable content from vault item
     const getDisplayContent = (content: any): string => {
       if (typeof content === 'string') return content;
+      
+      // Try fields matching actual database schema
+      if (content.competency_area) return content.competency_area;
+      if (content.inferred_capability) return content.inferred_capability;
       if (content.phrase) return content.phrase;
       if (content.skill_name) return content.skill_name;
-      if (content.competency_name) return content.competency_name;
-      if (content.achievement) return content.achievement;
+      if (content.job_title) return content.job_title;
+      if (content.question) return content.question;
+      if (content.strong_answer) return content.strong_answer;
+      if (content.accomplishment) return content.accomplishment;
+      if (content.philosophy_statement) return content.philosophy_statement;
+      if (content.value_name) return content.value_name;
       if (content.description) return content.description;
+      
+      // Handle arrays
+      if (content.supporting_evidence && Array.isArray(content.supporting_evidence) && content.supporting_evidence.length > 0) {
+        return content.supporting_evidence[0];
+      }
+      
+      // Fallback: find first meaningful string (skip IDs, UUIDs, dates)
+      const skipFields = ['id', 'user_id', 'vault_id', 'created_at', 'updated_at'];
+      const firstString = Object.entries(content)
+        .filter(([key, val]) => !skipFields.includes(key) && typeof val === 'string' && val.length > 10 && !val.match(/^[0-9a-f-]{36}$/))
+        .map(([_, val]) => val as string)[0];
+      
+      if (firstString) return firstString;
+      
       return JSON.stringify(content).substring(0, 200);
     };
 
