@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Loader2, Edit2, Save, X } from "lucide-react";
+import { Plus, Loader2, Edit2, Save, X, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +37,7 @@ export const GapSolutionsCard = ({
   const [solutions, setSolutions] = useState<GapSolution[]>([]);
   const [editingContent, setEditingContent] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
+  const [addedSolutions, setAddedSolutions] = useState<Record<string, boolean>>({});
 
   const handleGenerateSolutions = async () => {
     setIsGenerating(true);
@@ -78,9 +79,21 @@ export const GapSolutionsCard = ({
     if (onAddToVault) {
       onAddToVault(contentToAdd);
     }
+    
+    // Mark this solution as added
+    setAddedSolutions({ ...addedSolutions, [solution.approach]: true });
+    
     toast({
       title: "Added to vault",
       description: "This solution has been saved to your Career Vault"
+    });
+  };
+
+  const handleResetSolution = (approach: string) => {
+    setAddedSolutions({ ...addedSolutions, [approach]: false });
+    toast({
+      title: "Ready to modify",
+      description: "You can now edit and re-add this solution"
     });
   };
 
@@ -209,15 +222,38 @@ export const GapSolutionsCard = ({
                         {solution.reasoning}
                       </div>
 
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={() => handleAddToVault(solution)}
-                        className="w-full gap-2"
-                      >
-                        <Plus className="h-3 w-3" />
-                        Add This to Career Vault
-                      </Button>
+                      {addedSolutions[solution.approach] ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            className="flex-1 gap-2"
+                          >
+                            <CheckCircle2 className="h-3 w-3 text-success" />
+                            Already Added to Vault
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleResetSolution(solution.approach)}
+                            className="gap-1"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                            Choose Different
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleAddToVault(solution)}
+                          className="w-full gap-2"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Add This to Career Vault
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>

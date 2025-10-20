@@ -108,7 +108,13 @@ export const GapAnalysisView = ({
               <Lightbulb className="h-4 w-4" />
               <AlertTitle>AI Gap Solutions Available</AlertTitle>
               <AlertDescription>
-                Click "Show Solutions" on any gap to see 3 AI-generated approaches: industry standard, vault-based reframing, and alternative positioning. Add the best solution to your vault or let AI handle it automatically.
+                After extensive analysis of your Career Vault against this job's requirements, 
+                we've identified {gapCount} {gapCount === 1 ? 'area' : 'areas'} where you may not have 
+                direct experience documented—but that doesn't mean you can't address {gapCount === 1 ? 'it' : 'them'}. 
+                For each gap, we've generated three strategic approaches: an industry-standard response, 
+                a reframing based on your existing experience, and an alternative positioning using transferable skills. 
+                Choose the best solution for each requirement, and it will be saved to your Career Vault 
+                for use on future applications as well.
               </AlertDescription>
             </Alert>
 
