@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Target, Award, Trophy, Info } from "lucide-react";
+import { Target, Info } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AddMetricsModal } from "@/components/career-vault/AddMetricsModal";
 import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLanguageModal";
@@ -130,6 +130,9 @@ import { ResumeManagementModal } from '@/components/career-vault/ResumeManagemen
 import { VaultQuickStats } from '@/components/career-vault/VaultQuickStats';
 import { RecentActivityFeed } from '@/components/career-vault/RecentActivityFeed';
 import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
+import { VaultStatusHero } from '@/components/career-vault/VaultStatusHero';
+import { VaultContents } from '@/components/career-vault/VaultContents';
+import { QualityBoosters } from '@/components/career-vault/QualityBoosters';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -725,177 +728,159 @@ const VaultDashboardContent = () => {
         />
       </div>
 
-      {/* Career Vault Strength Score */}
+      {/* Career Vault Status Hero */}
       {strengthScore && (
-        <Card className="p-8 mb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-primary/10 rounded-full">
-                <Trophy className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold mb-1">Career Vault Strength Score</h2>
-                <p className="text-muted-foreground">Comprehensive assessment across 20 intelligence categories</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-5xl font-bold text-primary mb-1">{strengthScore.total}</div>
-              <Badge variant={
-                strengthScore.level === 'Exceptional' ? 'default' :
-                strengthScore.level === 'Elite' ? 'default' :
-                strengthScore.level === 'Strong' ? 'secondary' :
-                'outline'
-              } className="text-lg px-4 py-1">
-                {strengthScore.level}
-              </Badge>
-            </div>
-          </div>
+        <div className="mb-6">
+          <VaultStatusHero
+            strengthScore={strengthScore.total}
+            level={strengthScore.level}
+            totalItems={totalIntelligenceItems}
+            quickWinsAvailable={
+              (strengthScore.quantificationScore < 10 ? 1 : 0) +
+              (strengthScore.modernTerminologyScore < 10 ? 1 : 0)
+            }
+            onTakeQuickWins={() => {
+              // Open the first quick win modal
+              if (strengthScore.quantificationScore < 10) {
+                setAddMetricsModalOpen(true);
+              } else if (strengthScore.modernTerminologyScore < 10) {
+                setModernizeModalOpen(true);
+              }
+            }}
+            coreScores={{
+              powerPhrases: strengthScore.powerPhrasesScore,
+              skills: strengthScore.transferableSkillsScore,
+              competencies: strengthScore.hiddenCompetenciesScore,
+              intangibles: strengthScore.intangiblesScore,
+              quantification: strengthScore.quantificationScore,
+              modernTerms: strengthScore.modernTerminologyScore
+            }}
+          />
+        </div>
+      )}
 
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Power Phrases</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.powerPhrasesScore}/10</span>
-              </div>
-              <Progress value={(strengthScore.powerPhrasesScore / 10) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">{stats.total_power_phrases} phrases</p>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Skills</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.transferableSkillsScore}/10</span>
-              </div>
-              <Progress value={(strengthScore.transferableSkillsScore / 10) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">{stats.total_transferable_skills} skills</p>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Competencies</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.hiddenCompetenciesScore}/10</span>
-              </div>
-              <Progress value={(strengthScore.hiddenCompetenciesScore / 10) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">{stats.total_hidden_competencies} found</p>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Intangibles</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.intangiblesScore}/40</span>
-              </div>
-              <Progress value={(strengthScore.intangiblesScore / 40) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">Leadership traits</p>
-            </div>
-            <div
-              className="cursor-pointer hover:bg-accent/50 p-3 -m-3 rounded-lg transition-colors"
-              onClick={() => setAddMetricsModalOpen(true)}
-              title="Click to add metrics to your phrases"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Quantification</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.quantificationScore}/15</span>
-              </div>
-              <Progress value={(strengthScore.quantificationScore / 15) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">Phrases with metrics</p>
-              {strengthScore.quantificationScore < 10 && (
-                <p className="text-xs text-primary mt-1 font-medium">Click to improve →</p>
-              )}
-            </div>
-            <div
-              className="cursor-pointer hover:bg-accent/50 p-3 -m-3 rounded-lg transition-colors"
-              onClick={() => setModernizeModalOpen(true)}
-              title="Click to modernize your language"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Modern Terms</span>
-                <span className="text-sm text-muted-foreground">{strengthScore.modernTerminologyScore}/15</span>
-              </div>
-              <Progress value={(strengthScore.modernTerminologyScore / 15) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">AI/cloud/tech terms</p>
-              {strengthScore.modernTerminologyScore < 10 && (
-                <p className="text-xs text-primary mt-1 font-medium">Click to improve →</p>
-              )}
-            </div>
-          </div>
+      {/* Vault Contents */}
+      {stats && (
+        <div className="mb-6">
+          <VaultContents
+            categories={{
+              core: [
+                {
+                  name: 'Power Phrases',
+                  description: 'Achievement statements like "Increased revenue by 40%"',
+                  icon: '💪',
+                  count: stats.total_power_phrases,
+                  isEmpty: stats.total_power_phrases === 0
+                },
+                {
+                  name: 'Skills',
+                  description: 'Technical and soft skills extracted from your experience',
+                  icon: '🛠️',
+                  count: stats.total_transferable_skills,
+                  isEmpty: stats.total_transferable_skills === 0
+                },
+                {
+                  name: 'Competencies',
+                  description: 'High-level capabilities like "Strategic Planning"',
+                  icon: '💡',
+                  count: stats.total_hidden_competencies,
+                  isEmpty: stats.total_hidden_competencies === 0
+                }
+              ],
+              leadership: [
+                {
+                  name: 'Leadership Philosophy',
+                  description: 'Your approach to leading teams',
+                  icon: '🎯',
+                  count: stats.total_leadership_philosophy,
+                  isEmpty: stats.total_leadership_philosophy === 0
+                },
+                {
+                  name: 'Executive Presence',
+                  description: 'How you show up in professional settings',
+                  icon: '👔',
+                  count: stats.total_executive_presence,
+                  isEmpty: stats.total_executive_presence === 0
+                }
+              ],
+              culture: [
+                {
+                  name: 'Soft Skills',
+                  description: 'Communication, teamwork, problem-solving abilities',
+                  icon: '🧠',
+                  count: stats.total_soft_skills,
+                  isEmpty: stats.total_soft_skills === 0
+                },
+                {
+                  name: 'Personality Traits',
+                  description: 'Your natural work tendencies and characteristics',
+                  icon: '🎭',
+                  count: stats.total_personality_traits,
+                  isEmpty: stats.total_personality_traits === 0
+                },
+                {
+                  name: 'Work Style',
+                  description: 'Your preferences for how you work best',
+                  icon: '⚙️',
+                  count: stats.total_work_style,
+                  isEmpty: stats.total_work_style === 0
+                },
+                {
+                  name: 'Values',
+                  description: 'What matters most to you in your career',
+                  icon: '💎',
+                  count: stats.total_values,
+                  isEmpty: stats.total_values === 0
+                },
+                {
+                  name: 'Behavioral Indicators',
+                  description: 'Observable patterns in how you work',
+                  icon: '🔍',
+                  count: stats.total_behavioral_indicators,
+                  isEmpty: stats.total_behavioral_indicators === 0
+                }
+              ]
+            }}
+            onAddItem={() => {
+              // Navigate to onboarding to add items
+              navigate('/career-vault/onboarding');
+            }}
+            onViewCategory={(categoryName) => {
+              // Switch to the appropriate tab in the dashboard
+              const tabMap: Record<string, string> = {
+                'Power Phrases': 'power-phrases',
+                'Skills': 'transferable-skills',
+                'Competencies': 'hidden-competencies',
+                'Soft Skills': 'soft-skills',
+                'Leadership Philosophy': 'leadership',
+                'Executive Presence': 'presence',
+                'Personality Traits': 'traits',
+                'Work Style': 'work-style',
+                'Values': 'values',
+                'Behavioral Indicators': 'behavioral'
+              };
+              // This would require adding state to control the active tab
+              // For now, it scrolls to the tabs section
+              const tabValue = tabMap[categoryName];
+              if (tabValue) {
+                document.querySelector(`[value="${tabValue}"]`)?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          />
+        </div>
+      )}
 
-          {/* Improvement Suggestions */}
-          {(strengthScore.quantificationScore < 10 || strengthScore.modernTerminologyScore < 10) && (
-            <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
-              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <AlertTitle className="text-amber-900 dark:text-amber-100">Quick Wins to Boost Your Score</AlertTitle>
-              <AlertDescription className="text-amber-800 dark:text-amber-200 space-y-2">
-                {strengthScore.quantificationScore < 10 && (
-                  <div className="flex items-start gap-2">
-                    <span className="font-semibold">•</span>
-                    <p className="text-sm">
-                      <strong>Add Metrics:</strong> Your power phrases need quantified results. Add dollar amounts, percentages, team sizes, or timeframes.
-                      Example: "Led digital transformation" → "Led $2.3M digital transformation affecting 45% of operations over 18 months"
-                    </p>
-                  </div>
-                )}
-                {strengthScore.modernTerminologyScore < 10 && (
-                  <div className="flex items-start gap-2">
-                    <span className="font-semibold">•</span>
-                    <p className="text-sm">
-                      <strong>Modernize Language:</strong> Update phrases with current tech/business terms like AI, ML, cloud, automation, data analytics, agile, DevOps.
-                      This shows you're current with industry trends.
-                    </p>
-                  </div>
-                )}
-                <p className="text-xs italic mt-2">💡 Tip: Use "Re-Analyze All" after uploading updated documents to recalculate these scores.</p>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="text-center mt-4 p-4 bg-muted/50 rounded-lg border-t">
-            <p className="text-sm font-medium mb-3">Your Vault Powers All 5 Dimensions:</p>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
-              <div className="p-2 bg-background rounded">
-                <p className="font-semibold text-ai-primary">Resume 90%+</p>
-                <p className="text-muted-foreground">Gets reviewed</p>
-              </div>
-              <div className="p-2 bg-background rounded">
-                <p className="font-semibold text-ai-secondary">LinkedIn Top 10</p>
-                <p className="text-muted-foreground">Gets found</p>
-              </div>
-              <div className="p-2 bg-background rounded">
-                <p className="font-semibold text-ai-accent">Interview Mastery</p>
-                <p className="text-muted-foreground">Gets past screening</p>
-              </div>
-              <div className="p-2 bg-background rounded">
-                <p className="font-semibold text-ai-active">Market Intel</p>
-                <p className="text-muted-foreground">Informed insider</p>
-              </div>
-              <div className="p-2 bg-background rounded">
-                <p className="font-semibold text-ai-complete">Network</p>
-                <p className="text-muted-foreground">Gets referrals</p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-3 italic">
-              Your vault score represents foundation strength. Deploy it across all 5 dimensions to become 
-              the benchmark candidate for each specific role you pursue.
-            </p>
-          </div>
-
-          <div className="mt-6 p-4 bg-background/50 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Award className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <p className="font-medium mb-2">Career Intelligence Summary:</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                  <div>✓ {stats.total_power_phrases} power phrases</div>
-                  <div>✓ {stats.total_transferable_skills} transferable skills</div>
-                  <div>✓ {stats.total_hidden_competencies} hidden competencies</div>
-                  <div>✓ {stats.total_soft_skills} soft skills</div>
-                  <div>✓ {stats.total_leadership_philosophy} leadership insights</div>
-                  <div>✓ {stats.total_executive_presence} presence indicators</div>
-                  <div>✓ {stats.total_personality_traits} personality traits</div>
-                  <div>✓ {stats.total_work_style} work style aspects</div>
-                </div>
-                {strengthScore.level === 'Exceptional' && <p className="text-primary font-medium mt-2">🏆 Exceptional Career Vault - Top 5% of professionals!</p>}
-                {strengthScore.level === 'Elite' && <p className="text-primary font-medium mt-2">⭐ Elite Career Vault - Outstanding career intelligence!</p>}
-              </div>
-            </div>
-          </div>
-        </Card>
+      {/* Quality Boosters */}
+      {strengthScore && stats && (
+        <div className="mb-6">
+          <QualityBoosters
+            quantificationScore={strengthScore.quantificationScore}
+            modernTermsScore={strengthScore.modernTerminologyScore}
+            totalPhrases={stats.total_power_phrases}
+            onAddMetrics={() => setAddMetricsModalOpen(true)}
+            onModernizeLanguage={() => setModernizeModalOpen(true)}
+          />
+        </div>
       )}
 
       {/* Interview Progress */}
