@@ -123,22 +123,49 @@ serve(async (req) => {
       { name: 'interview_responses', data: vaultData.vault_interview_responses, type: 'expanded' }
     ];
 
+    // Helper: Safe JSON parse with fallback
+    const safeJSONParse = (text: string) => {
+      try {
+        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        return JSON.parse(cleaned);
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        return null;
+      }
+    };
+
     // Use Lovable AI to intelligently match vault items to requirements
     if (lovableKey) {
+      // Compact vault data to prevent token overflow
+      const compactVault = vaultCategories.map(cat => ({
+        category: cat.name,
+        type: cat.type,
+        items: (Array.isArray(cat.data) ? cat.data : [cat.data])
+          .filter(Boolean)
+          .slice(0, 10) // Limit to top 10 items per category
+          .map((item: any) => ({
+            id: item.id,
+            // Only include essential fields to reduce payload
+            ...(item.phrase && { phrase: item.phrase }),
+            ...(item.skill && { skill: item.skill }),
+            ...(item.competency && { competency: item.competency }),
+            ...(item.trait && { trait: item.trait }),
+            ...(item.question && { question: item.question }),
+            ...(item.answer && { answer: item.answer.substring(0, 200) }), // Truncate long answers
+          }))
+      }));
+
       const matchingPrompt = `You are an expert resume strategist. Match career vault items to job requirements to create a BENCHMARK CANDIDATE.
 
 REQUIREMENTS TO SATISFY:
-${JSON.stringify(allRequirements, null, 2)}
+${JSON.stringify(allRequirements.slice(0, 20), null, 2)}
 
 ATS KEYWORDS NEEDED:
-Critical: ${(atsKeywords?.critical || []).join(', ')}
-Important: ${(atsKeywords?.important || []).join(', ')}
+Critical: ${(atsKeywords?.critical || []).slice(0, 15).join(', ')}
+Important: ${(atsKeywords?.important || []).slice(0, 15).join(', ')}
 
 CAREER VAULT DATA:
-${JSON.stringify(vaultCategories.map(cat => ({
-  category: cat.name,
-  items: Array.isArray(cat.data) ? cat.data.slice(0, 20) : [cat.data] // Limit for token size
-})), null, 2)}
+${JSON.stringify(compactVault, null, 2)}
 
 For each vault item, determine:
 1. Match score (0-100) - how well it addresses requirements
@@ -170,13 +197,7 @@ Return ONLY valid JSON:
       "differentiatorScore": 85
     }
   ],
-  "unmatchedRequirements": ["Requirements with no vault coverage"],
-  "coverageAnalysis": {
-    "requiredCoverage": 95,
-    "preferredCoverage": 80,
-    "industryCoverage": 70,
-    "benchmarkCoverage": 60
-  }
+  "unmatchedRequirements": ["Requirements with no vault coverage"]
 }`;
 
       try {
@@ -190,19 +211,23 @@ Return ONLY valid JSON:
             model: 'google/gemini-2.5-flash',
             messages: [{ role: 'user', content: matchingPrompt }],
             temperature: 0.4,
-            max_tokens: 8192
+            max_tokens: 4096 // Reduced to prevent truncation
           })
         });
 
         if (lovableResponse.ok) {
           const lovableData = await lovableResponse.json();
           const textContent = lovableData.choices?.[0]?.message?.content || '{}';
-          const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          const parsed = JSON.parse(cleanedText);
+          const parsed = safeJSONParse(textContent);
 
-          if (parsed.matches && Array.isArray(parsed.matches)) {
-            matches.push(...parsed.matches);
+          if (parsed?.matches && Array.isArray(parsed.matches)) {
+            matches.push(...parsed.matches.slice(0, 50)); // Limit results
+            console.log(`AI matched ${parsed.matches.length} vault items`);
+          } else {
+            console.warn('AI response missing matches array, using fallback');
           }
+        } else {
+          console.error('AI API error:', lovableResponse.status, await lovableResponse.text());
         }
       } catch (error) {
         console.error('Error in AI matching:', error);
