@@ -81,9 +81,15 @@ const ResumeBuilderV2Content = () => {
     setMatching(true);
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const { data, error } = await supabase.functions.invoke('match-vault-to-requirements', {
         body: { 
+          userId: user.id,
           jobRequirements: analysis.jobRequirements,
+          industryStandards: analysis.industryStandards,
+          professionBenchmarks: analysis.professionBenchmarks,
           atsKeywords: analysis.atsKeywords
         }
       });

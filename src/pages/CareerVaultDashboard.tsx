@@ -639,11 +639,11 @@ const VaultDashboardContent = () => {
             ) : (
               <Button
                 variant="destructive"
-                className="justify-start"
+                className="justify-start whitespace-nowrap"
                 onClick={() => setRestartDialogOpen(true)}
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Delete & Restart
+                <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Reset Vault</span>
               </Button>
             )}
             
