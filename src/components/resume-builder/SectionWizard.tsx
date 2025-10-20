@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
+import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -138,7 +139,7 @@ export const SectionWizard = ({
         );
 
         if (researchError) {
-          throw new Error('Job analysis failed');
+          throw new Error(`Job analysis failed: ${researchError.message || 'Unable to analyze job description'}`);
         }
 
         research = researchData;
@@ -164,7 +165,7 @@ export const SectionWizard = ({
       );
 
       if (idealError) {
-        throw new Error('Ideal generation failed');
+        throw new Error(`Ideal generation failed: ${idealError.message || 'Unable to create industry standard'}`);
       }
 
       setIdealContent(idealData.content);
@@ -189,7 +190,7 @@ export const SectionWizard = ({
       );
 
       if (personalizedError) {
-        throw new Error('Personalized generation failed');
+        throw new Error(`Personalized generation failed: ${personalizedError.message || 'Unable to personalize with Career Vault'}`);
       }
 
       setPersonalizedContent(personalizedData.content);
@@ -204,9 +205,25 @@ export const SectionWizard = ({
 
     } catch (error) {
       console.error('Error generating section:', error);
+
+      // Determine operation context for better error messages
+      const operation = currentGenerationStep === 0 ? 'research'
+        : currentGenerationStep === 1 ? 'ideal_generation'
+        : currentGenerationStep === 2 ? 'personalized_generation'
+        : 'general';
+
+      const errorContext = {
+        error: error instanceof Error ? error : new Error('Unknown error'),
+        operation,
+        retryable: error instanceof Error ? isRetryableError(error) : true
+      };
+
+      const errorInfo = getErrorMessage(errorContext);
+      const suggestions = getRecoverySuggestion(errorContext);
+
       toast({
-        title: "Generation failed",
-        description: error instanceof Error ? error.message : "Failed to generate section content",
+        title: errorInfo.title,
+        description: `${errorInfo.description}${suggestions.length > 0 ? '\n\nTips:\n• ' + suggestions.join('\n• ') : ''}`,
         variant: "destructive"
       });
     } finally {
