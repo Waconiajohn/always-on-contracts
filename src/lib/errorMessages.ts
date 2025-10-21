@@ -17,6 +17,47 @@ export const getErrorMessage = (context: ErrorContext): {
 } => {
   const { error, operation } = context;
   const errorMessage = error.message.toLowerCase();
+  
+  // Check for structured error responses from edge functions
+  try {
+    const errorData = JSON.parse(error.message);
+    if (errorData.error && errorData.message) {
+      switch (errorData.error) {
+        case 'API_KEY_MISSING':
+          return {
+            title: "Configuration Error",
+            description: errorData.message,
+            actionText: "Contact Support",
+          };
+        case 'AI_GENERATION_FAILED':
+          return {
+            title: errorData.statusCode === 429 ? "Rate Limit Exceeded" : "AI Service Error",
+            description: errorData.message,
+            actionText: "Retry",
+          };
+        case 'MISSING_JOB_ANALYSIS':
+          return {
+            title: "Missing Job Analysis",
+            description: errorData.message,
+            actionText: "Edit Job Description",
+          };
+        case 'NETWORK_ERROR':
+          return {
+            title: "Connection Error",
+            description: errorData.message,
+            actionText: "Retry",
+          };
+        case 'TIMEOUT_ERROR':
+          return {
+            title: "Request Timeout",
+            description: errorData.message,
+            actionText: "Retry",
+          };
+      }
+    }
+  } catch (e) {
+    // Not a JSON error, continue with pattern matching
+  }
 
   // Rate limit errors
   if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {

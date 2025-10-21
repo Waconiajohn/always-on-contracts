@@ -68,7 +68,18 @@ serve(async (req) => {
 
     const lovableKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+      console.error('❌ LOVABLE_API_KEY not configured');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'API_KEY_MISSING',
+          message: 'AI service is not configured. Please contact support.'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -144,7 +155,26 @@ Return ONLY the content, no explanations.`;
     });
 
     if (!idealResponse.ok) {
-      throw new Error(`Ideal generation failed: ${idealResponse.status}`);
+      console.error(`❌ Ideal generation API failed: ${idealResponse.status}`);
+      const errorText = await idealResponse.text();
+      console.error('API error details:', errorText);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'AI_GENERATION_FAILED',
+          message: idealResponse.status === 429 
+            ? 'AI service is busy. Please wait a moment and try again.'
+            : idealResponse.status === 402
+            ? 'AI credits depleted. Please add credits to continue.'
+            : 'AI generation service encountered an error. Please try again.',
+          statusCode: idealResponse.status
+        }),
+        {
+          status: idealResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const idealData = await idealResponse.json();
@@ -321,7 +351,26 @@ Return ONLY the content, no explanations.`;
     });
 
     if (!personalizedResponse.ok) {
-      throw new Error(`Personalized generation failed: ${personalizedResponse.status}`);
+      console.error(`❌ Personalized generation API failed: ${personalizedResponse.status}`);
+      const errorText = await personalizedResponse.text();
+      console.error('API error details:', errorText);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'AI_GENERATION_FAILED',
+          message: personalizedResponse.status === 429 
+            ? 'AI service is busy. Please wait a moment and try again.'
+            : personalizedResponse.status === 402
+            ? 'AI credits depleted. Please add credits to continue.'
+            : 'AI generation service encountered an error. Please try again.',
+          statusCode: personalizedResponse.status
+        }),
+        {
+          status: personalizedResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const personalizedData = await personalizedResponse.json();
@@ -510,11 +559,30 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
     );
 
   } catch (error: any) {
-    console.error('Error in generate-dual-resume-section:', error);
+    console.error('❌ Unexpected error in generate-dual-resume-section:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Check for specific error types
+    let errorCode = 'UNKNOWN_ERROR';
+    let userMessage = 'An unexpected error occurred. Please try again.';
+    
+    if (error.message?.includes('job_analysis_research')) {
+      errorCode = 'MISSING_JOB_ANALYSIS';
+      userMessage = 'Job analysis data is missing. Please ensure you have a detailed job description.';
+    } else if (error.message?.includes('fetch') || error.message?.includes('network')) {
+      errorCode = 'NETWORK_ERROR';
+      userMessage = 'Network connection error. Please check your internet and try again.';
+    } else if (error.message?.includes('timeout')) {
+      errorCode = 'TIMEOUT_ERROR';
+      userMessage = 'Request timed out. Please try again.';
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Failed to generate dual versions'
+        error: errorCode,
+        message: userMessage,
+        details: error.message
       }),
       {
         status: 500,
