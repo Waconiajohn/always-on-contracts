@@ -304,3 +304,12 @@ verify_jwt = true
 
 [functions.update-competency-benchmarks]
 verify_jwt = false  # Called by Supabase cron, not users
+
+[functions.generate-micro-questions]
+verify_jwt = true
+
+[functions.submit-micro-answers]
+verify_jwt = true
+
+[functions.generate-vault-recommendations]
+verify_jwt = true

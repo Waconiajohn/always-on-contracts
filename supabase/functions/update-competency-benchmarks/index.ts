@@ -27,141 +27,47 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('[BENCHMARK-UPDATE] Starting nightly benchmark calculation...');
+    console.log('[BENCHMARK-UPDATE] Starting segmented benchmark calculation...');
 
-    // Get all competency profiles with proficiency levels
-    const { data: profiles, error: profileError } = await supabase
-      .from('user_competency_profile')
-      .select(`
-        competency_name,
-        category,
-        proficiency_level,
-        has_experience,
-        quality_tier
-      `)
-      .eq('has_experience', true)
-      .not('proficiency_level', 'is', null);
+    // Use new database function to calculate segmented benchmarks
+    // This calculates at 4 levels: Universal, Role-specific, Industry-specific, Full segment
+    const { data: result, error: calcError } = await supabase.rpc(
+      'calculate_segmented_benchmarks',
+      { p_min_sample_size: 10 }
+    );
 
-    if (profileError) {
-      throw new Error(`Failed to fetch profiles: ${profileError.message}`);
+    if (calcError) {
+      throw new Error(`Failed to calculate benchmarks: ${calcError.message}`);
     }
 
-    console.log(`[BENCHMARK-UPDATE] Processing ${profiles?.length || 0} competency records`);
+    console.log('[BENCHMARK-UPDATE] ✅ Segmented calculation complete');
 
-    // Group by competency name
-    const competencyGroups = new Map<string, any[]>();
-    (profiles || []).forEach(profile => {
-      const key = profile.competency_name;
-      if (!competencyGroups.has(key)) {
-        competencyGroups.set(key, []);
-      }
-      competencyGroups.get(key)!.push(profile);
-    });
+    // Fetch stats from the database
+    const { data: stats } = await supabase
+      .from('competency_benchmark_stats')
+      .select('*')
+      .order('calculated_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    console.log(`[BENCHMARK-UPDATE] Found ${competencyGroups.size} unique competencies`);
-
-    // Calculate benchmarks for each competency
-    const benchmarks = [];
-    for (const [competencyName, records] of competencyGroups.entries()) {
-      // Skip if too few data points
-      if (records.length < 5) {
-        console.log(`[BENCHMARK-UPDATE] Skipping ${competencyName} (only ${records.length} records)`);
-        continue;
-      }
-
-      // Extract proficiency levels and sort
-      const proficiencies = records
-        .map(r => r.proficiency_level)
-        .filter(p => p !== null && p !== undefined)
-        .sort((a, b) => a - b);
-
-      if (proficiencies.length < 5) {
-        continue;
-      }
-
-      // Calculate percentiles
-      const percentile25 = proficiencies[Math.floor(proficiencies.length * 0.25)];
-      const percentile50 = proficiencies[Math.floor(proficiencies.length * 0.50)];
-      const percentile75 = proficiencies[Math.floor(proficiencies.length * 0.75)];
-      const percentile90 = proficiencies[Math.floor(proficiencies.length * 0.90)];
-
-      // Get category from first record
-      const category = records[0].category;
-
-      // Count how many users have this competency
-      const totalUsers = new Set(records.map(r => r.user_id)).size;
-
-      benchmarks.push({
-        competency_name: competencyName,
-        category: category,
-        role: 'all', // Universal benchmark across all roles
-        industry: 'all', // Universal benchmark across all industries
-        percentile_25: percentile25,
-        percentile_50: percentile50,
-        percentile_75: percentile75,
-        percentile_90: percentile90,
-        sample_size: proficiencies.length,
-        total_users: totalUsers,
-        last_updated: new Date().toISOString()
-      });
-
-      console.log(`[BENCHMARK-UPDATE] ✓ ${competencyName}: p25=${percentile25}, p50=${percentile50}, p75=${percentile75}, p90=${percentile90} (n=${proficiencies.length})`);
-    }
-
-    if (benchmarks.length === 0) {
-      console.log('[BENCHMARK-UPDATE] No benchmarks to update (insufficient data)');
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'No benchmarks updated (insufficient data)',
-          benchmarksUpdated: 0
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Upsert benchmarks into database
-    const { error: upsertError } = await supabase
+    // Fetch top competencies
+    const { data: topCompetencies } = await supabase
       .from('competency_benchmarks')
-      .upsert(benchmarks, {
-        onConflict: 'competency_name,role,industry'
-      });
-
-    if (upsertError) {
-      throw new Error(`Failed to upsert benchmarks: ${upsertError.message}`);
-    }
-
-    console.log(`[BENCHMARK-UPDATE] ✅ Successfully updated ${benchmarks.length} benchmarks`);
-
-    // Calculate some aggregate stats
-    const avgSampleSize = benchmarks.reduce((sum, b) => sum + b.sample_size, 0) / benchmarks.length;
-    const minSampleSize = Math.min(...benchmarks.map(b => b.sample_size));
-    const maxSampleSize = Math.max(...benchmarks.map(b => b.sample_size));
-
-    const stats = {
-      totalBenchmarks: benchmarks.length,
-      avgSampleSize: Math.round(avgSampleSize),
-      minSampleSize,
-      maxSampleSize,
-      totalDataPoints: benchmarks.reduce((sum, b) => sum + b.sample_size, 0)
-    };
+      .select('competency_name, sample_size, percentile_50, percentile_90, role, industry')
+      .order('sample_size', { ascending: false })
+      .limit(10);
 
     console.log('[BENCHMARK-UPDATE] Stats:', stats);
 
     return new Response(
       JSON.stringify({
         success: true,
-        benchmarksUpdated: benchmarks.length,
-        stats,
-        topCompetencies: benchmarks
-          .sort((a, b) => b.sample_size - a.sample_size)
-          .slice(0, 10)
-          .map(b => ({
-            competency: b.competency_name,
-            sampleSize: b.sample_size,
-            p50: b.percentile_50,
-            p90: b.percentile_90
-          }))
+        totalBenchmarks: result.totalBenchmarks,
+        breakdown: result.breakdown,
+        totalUsers: result.totalUsers,
+        durationMs: result.durationMs,
+        stats: stats || {},
+        topCompetencies: topCompetencies || []
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
