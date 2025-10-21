@@ -87,27 +87,51 @@ export const CompetencyQuizEngine = ({
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
+      // 1. Load universal questions (applicable_roles contains '*')
+      const { data: universalData, error: universalError } = await supabase
         .from('competency_questions')
         .select('*')
-        .contains('applicable_roles', [role])
+        .contains('applicable_roles', ['*'])
         .lte('experience_level_min', experienceLevel)
         .gte('experience_level_max', experienceLevel)
-        .order('display_order', { ascending: true });
+        .order('display_order', { ascending: true});
 
-      if (error) throw error;
+      if (universalError) throw universalError;
 
-      // Filter by industry if applicable
-      const filteredQuestions = data.filter((q: QuizQuestion) => {
-        if (!q.applicable_industries || q.applicable_industries.length === 0) {
-          return true; // Universal questions
+      const universalQuestions = universalData || [];
+
+      // 2. Generate dynamic skill verification questions from resume
+      const { data: { user } } = await supabase.auth.getUser();
+      let dynamicQuestions: QuizQuestion[] = [];
+
+      if (user) {
+        const { data: skillData, error: skillError } = await supabase.functions.invoke(
+          'generate-skill-verification-questions',
+          {
+            body: {
+              vault_id: vaultId,
+              user_id: user.id
+            }
+          }
+        );
+
+        if (!skillError && skillData?.success) {
+          dynamicQuestions = skillData.skill_questions || [];
+          console.log(`Loaded ${dynamicQuestions.length} dynamic skill questions`);
         }
-        return q.applicable_industries.includes(industry);
-      });
+      }
 
-      setQuestions(filteredQuestions || []);
+      // 3. Combine universal + dynamic questions
+      const allQuestions = [
+        ...universalQuestions,
+        ...dynamicQuestions
+      ];
 
-      toast.success(`Loaded ${filteredQuestions?.length || 0} questions for ${role}`);
+      setQuestions(allQuestions);
+
+      toast.success(
+        `Loaded ${universalQuestions.length} universal + ${dynamicQuestions.length} skill verification questions`
+      );
     } catch (error: any) {
       console.error('Error loading questions:', error);
       toast.error('Failed to load quiz questions');
