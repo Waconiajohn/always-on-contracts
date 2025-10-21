@@ -4,13 +4,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, GripVertical, Trash2, Download, Eye, Edit3, Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DualGenerationComparison } from "./DualGenerationComparison";
+import { SectionGenerationCard } from "./SectionGenerationCard";
 
 interface ResumeSection {
   id: string;
@@ -65,9 +64,8 @@ export const InteractiveResumeBuilder = ({
     linkedin: ""
   });
   const [generatingSection, setGeneratingSection] = useState<string | null>(null);
-  const [showDualComparison, setShowDualComparison] = useState(false);
-  const [dualGenerationData, setDualGenerationData] = useState<any>(null);
-  const [currentGeneratingSection, setCurrentGeneratingSection] = useState<string>('');
+  const [showGenerationCard, setShowGenerationCard] = useState(false);
+  const [generationData, setGenerationData] = useState<any>(null);
 
   const sectionIcons: { [key: string]: string } = {
     summary: "📋",
@@ -83,7 +81,7 @@ export const InteractiveResumeBuilder = ({
     const guidance: Record<string, string> = {
       'summary': '3-4 sentences. Problem-solution-value format. Include seniority, top skills, biggest achievement.',
       'experience': 'Bullet points. Start with action verb, include metrics, show progression. Focus on impact.',
-      'skills': 'Categorized groups (Technical, Leadership, Domain). Balance hard and soft skills.',
+      'skills': 'Simple comma-separated list of skills. NO descriptions. Example: "Python, JavaScript, AWS, Team Leadership, Project Management"',
       'education': 'Degree, institution, year, relevant coursework/honors if recent grad.',
       'certifications': 'Certification name, issuing body, date. Prioritize relevant and current.',
       'projects': 'Project name, technologies, impact. Quantify results when possible.',
@@ -100,7 +98,6 @@ export const InteractiveResumeBuilder = ({
     }
 
     setGeneratingSection(sectionId);
-    setCurrentGeneratingSection(sectionType);
 
     try {
       toast.info('Researching industry standards...');
@@ -130,12 +127,22 @@ export const InteractiveResumeBuilder = ({
       if (error) throw error;
 
       if (data.success) {
-        setDualGenerationData({
+        // Calculate actual vault strength
+        const relevantVaultCount = relevantVaultItems.length;
+        const vaultStrength = relevantVaultCount > 0 
+          ? Math.min(100, relevantVaultCount * 15) // Each relevant vault item adds 15%
+          : 0;
+
+        setGenerationData({
           ...data,
           sectionId,
-          sectionType
+          sectionType,
+          comparison: {
+            ...data.comparison,
+            vaultStrength // Override with calculated strength
+          }
         });
-        setShowDualComparison(true);
+        setShowGenerationCard(true);
       } else {
         throw new Error(data.error || 'Generation failed');
       }
@@ -147,48 +154,23 @@ export const InteractiveResumeBuilder = ({
     }
   };
 
-  const handleSelectIdeal = () => {
-    if (!dualGenerationData) return;
+  const handleSelectVersion = (content: string) => {
+    if (!generationData) return;
     
-    const content = dualGenerationData.idealVersion.content;
-    const sectionId = dualGenerationData.sectionId;
+    const sectionId = generationData.sectionId;
     
-    onUpdateSection(sectionId, [{ 
+    // Parse content into items (split by newlines for simple sections, handle complex ones)
+    const items = content.split('\n').filter(line => line.trim()).map(line => ({
+      id: Date.now().toString() + Math.random(),
+      content: line.trim()
+    }));
+    
+    onUpdateSection(sectionId, items.length > 0 ? items : [{ 
       id: Date.now().toString(), 
       content 
     }]);
     
-    setShowDualComparison(false);
-    toast.success('Industry standard version applied');
-  };
-
-  const handleSelectPersonalized = () => {
-    if (!dualGenerationData) return;
-    
-    const content = dualGenerationData.personalizedVersion.content;
-    const sectionId = dualGenerationData.sectionId;
-    
-    onUpdateSection(sectionId, [{ 
-      id: Date.now().toString(), 
-      content 
-    }]);
-    
-    setShowDualComparison(false);
-    toast.success('Personalized version applied');
-  };
-
-  const handleOpenEditor = (initialContent: any) => {
-    if (!dualGenerationData) return;
-    
-    const sectionId = dualGenerationData.sectionId;
-    
-    onUpdateSection(sectionId, [{ 
-      id: Date.now().toString(), 
-      content: initialContent 
-    }]);
-    
-    setShowDualComparison(false);
-    toast.info('Content added - you can now edit it');
+    setShowGenerationCard(false);
   };
 
   const ResumeItemComponent = ({ item, sectionId }: { item: ResumeItem; sectionId: string }) => {
@@ -286,26 +268,6 @@ export const InteractiveResumeBuilder = ({
           </h3>
 
           <div className="flex gap-2">
-            {isEmpty && jobAnalysis && (
-              <Button
-                size="sm"
-                onClick={() => handleGenerateWithAI(section.id, section.type)}
-                disabled={isGenerating}
-                className="bg-gradient-to-r from-primary to-primary/80 h-7 text-xs"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Generate with AI
-                  </>
-                )}
-              </Button>
-            )}
             <Button
               size="sm"
               variant="outline"
@@ -313,12 +275,27 @@ export const InteractiveResumeBuilder = ({
               className="h-7 text-xs"
             >
               <Plus className="h-3 w-3 mr-1" />
-              Add
+              Add Manually
             </Button>
           </div>
         </div>
 
         <div className="space-y-2">
+          {/* Show generation card if generating for this section */}
+          {showGenerationCard && generationData?.sectionId === section.id && (
+            <SectionGenerationCard
+              sectionType={generationData.sectionType}
+              idealVersion={generationData.idealVersion}
+              personalizedVersion={generationData.personalizedVersion}
+              comparison={generationData.comparison}
+              onSelectVersion={handleSelectVersion}
+              onCancel={() => {
+                setShowGenerationCard(false);
+                setGenerationData(null);
+              }}
+            />
+          )}
+
           {section.content.map(item => (
             <ResumeItemComponent key={item.id} item={item} sectionId={section.id} />
           ))}
@@ -351,7 +328,7 @@ export const InteractiveResumeBuilder = ({
             </div>
           )}
 
-          {isEmpty && !isAddingItem && !isGenerating && (
+          {isEmpty && !isAddingItem && !isGenerating && !showGenerationCard && (
             <div className="text-center py-8 border-2 border-dashed rounded-lg bg-muted/20">
               <Sparkles className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
               <p className="text-sm text-muted-foreground mb-3">
@@ -360,15 +337,16 @@ export const InteractiveResumeBuilder = ({
               {jobAnalysis ? (
                 <Button
                   onClick={() => handleGenerateWithAI(section.id, section.type)}
-                  variant="outline"
+                  variant="default"
                   size="sm"
+                  className="bg-gradient-to-r from-primary to-primary/80"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate with AI
                 </Button>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Add items manually or drag from Career Vault →
+                  Add items manually
                 </p>
               )}
             </div>
@@ -560,40 +538,6 @@ export const InteractiveResumeBuilder = ({
           </div>
         </ScrollArea>
       </Card>
-
-      {/* Dual Generation Comparison Dialog */}
-      <Dialog open={showDualComparison} onOpenChange={setShowDualComparison}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">
-              AI Generated: {currentGeneratingSection.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-            </DialogTitle>
-          </DialogHeader>
-          {dualGenerationData && (
-            <DualGenerationComparison
-              research={{
-                insights: jobAnalysis?.research || '',
-                keywords: jobAnalysis?.atsKeywords?.critical || [],
-                citations: []
-              }}
-              idealContent={dualGenerationData.idealVersion.content}
-              personalizedContent={dualGenerationData.personalizedVersion.content}
-              sectionType={currentGeneratingSection}
-              vaultStrength={{
-                score: dualGenerationData.comparison.vaultStrength || 0,
-                hasRealNumbers: true,
-                hasDiverseCategories: true
-              }}
-              onSelectIdeal={handleSelectIdeal}
-              onSelectPersonalized={handleSelectPersonalized}
-              onOpenEditor={handleOpenEditor}
-              jobTitle={jobAnalysis?.jobTitle}
-              atsMatchIdeal={dualGenerationData.idealVersion.quality.atsMatchPercentage}
-              atsMatchPersonalized={dualGenerationData.personalizedVersion.quality.atsMatchPercentage}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

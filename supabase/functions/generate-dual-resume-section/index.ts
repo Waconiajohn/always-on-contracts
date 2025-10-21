@@ -49,6 +49,11 @@ Important keywords: ${ats_keywords.important.join(', ')}
 REQUIREMENTS TO ADDRESS:
 ${requirements.slice(0, 10).join('\n- ')}
 
+${section_type === 'skills' ? `
+CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
+Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
+` : ''}
+
 Create an INDUSTRY STANDARD version that:
 1. Addresses the core problem from research
 2. Includes ALL critical ATS keywords naturally
@@ -111,6 +116,11 @@ Important keywords: ${ats_keywords.important.join(', ')}
 
 REQUIREMENTS TO ADDRESS:
 ${requirements.slice(0, 10).join('\n- ')}
+
+${section_type === 'skills' ? `
+CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
+Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
+` : ''}
 
 Create a PERSONALIZED version that:
 1. Uses ACTUAL achievements from the candidate's vault
@@ -199,24 +209,24 @@ Return ONLY the content, no explanations.`;
     // Determine recommendation
     const scoreDiff = personalizedQuality.overallScore - idealQuality.overallScore;
     const vaultStrength = vault_items.length > 0
-      ? Math.min(100, vault_items.reduce((sum: number, item: any) => sum + item.matchScore, 0) / vault_items.length)
+      ? Math.min(100, (vault_items.reduce((sum: number, item: any) => sum + (item.matchScore || 50), 0) / vault_items.length))
       : 0;
 
     let recommendation: 'ideal' | 'personalized' | 'blend';
     let recommendationReason: string;
 
-    if (vaultStrength < 40) {
+    if (vault_items.length === 0 || vaultStrength < 40) {
       recommendation = 'ideal';
-      recommendationReason = 'Career Vault needs more data for strong personalization';
+      recommendationReason = 'Limited vault data - Industry Standard recommended';
     } else if (scoreDiff > 10) {
       recommendation = 'personalized';
-      recommendationReason = 'Your vault data creates a stronger, more competitive section';
+      recommendationReason = 'Your vault creates a stronger, more competitive section';
     } else if (scoreDiff < -10) {
       recommendation = 'ideal';
-      recommendationReason = 'Industry standard version has better ATS optimization';
+      recommendationReason = 'Industry standard has better ATS optimization';
     } else {
       recommendation = 'blend';
-      recommendationReason = 'Both versions have strengths - consider combining the best elements';
+      recommendationReason = 'Both versions are strong - AI can blend the best elements';
     }
 
     console.log(`Generation complete. Recommendation: ${recommendation}`);
