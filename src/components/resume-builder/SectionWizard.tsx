@@ -40,6 +40,7 @@ interface SectionWizardProps {
   section: ResumeSection;
   vaultMatches: VaultMatch[];
   jobAnalysis: any;
+  resumeMilestones?: any[];
   onSectionComplete: (content: any) => void;
   onBack: () => void;
   onSkip: () => void;
@@ -53,6 +54,7 @@ export const SectionWizard = ({
   section,
   vaultMatches,
   jobAnalysis,
+  resumeMilestones = [],
   onSectionComplete,
   onBack,
   onSkip,
@@ -156,6 +158,7 @@ export const SectionWizard = ({
             section_guidance: section.guidancePrompt,
             job_analysis_research: research.research_result,
             vault_items: relevantMatches,
+            resume_milestones: resumeMilestones,
             job_title: jobAnalysis.roleProfile?.title || '',
             industry: jobAnalysis.roleProfile?.industry || '',
             seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',

@@ -325,6 +325,7 @@ const ResumeBuilderWizardContent = () => {
               section={currentSection}
               vaultMatches={vaultMatches?.matchedItems || []}
               jobAnalysis={jobAnalysis}
+              resumeMilestones={resumeMilestones}
               onSectionComplete={handleSectionComplete}
               onBack={handleSectionBack}
               onSkip={handleSectionSkip}
