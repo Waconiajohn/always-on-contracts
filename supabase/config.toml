@@ -301,3 +301,6 @@ verify_jwt = true
 
 [functions.track-vault-usage]
 verify_jwt = true
+
+[functions.update-competency-benchmarks]
+verify_jwt = false  # Called by Supabase cron, not users
