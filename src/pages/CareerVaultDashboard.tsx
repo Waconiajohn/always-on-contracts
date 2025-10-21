@@ -133,6 +133,9 @@ import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
 import { VaultStatusHero } from '@/components/career-vault/VaultStatusHero';
 import { VaultContents } from '@/components/career-vault/VaultContents';
 import { QualityBoosters } from '@/components/career-vault/QualityBoosters';
+import { MilestoneManager } from '@/components/career-vault/MilestoneManager';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Shield } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -727,6 +730,37 @@ const VaultDashboardContent = () => {
           hasExecutivePresence={stats.total_executive_presence > 0}
         />
       </div>
+
+      {/* Career History Manager */}
+      {vault && (
+        <Card className="mb-6 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Career History & Privacy
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Control which jobs and education appear in your resumes
+              </p>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Manage Milestones
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Career History Manager</DialogTitle>
+                </DialogHeader>
+                <MilestoneManager vaultId={vault.id} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </Card>
+      )}
 
       {/* Career Vault Status Hero */}
       {strengthScore && (

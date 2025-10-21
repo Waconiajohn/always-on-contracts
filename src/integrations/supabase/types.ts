@@ -3499,14 +3499,18 @@ export type Database = {
           company_name: string | null
           completion_percentage: number | null
           created_at: string | null
+          date_display_preference: string | null
           description: string | null
           end_date: string | null
           extracted_from_resume: boolean | null
+          hidden_from_resume: boolean | null
+          hide_dates: boolean | null
           id: string
           intelligence_extracted: number | null
           job_title: string | null
           key_achievements: string[] | null
           milestone_type: string
+          privacy_notes: string | null
           questions_answered: number | null
           questions_asked: number | null
           start_date: string | null
@@ -3518,14 +3522,18 @@ export type Database = {
           company_name?: string | null
           completion_percentage?: number | null
           created_at?: string | null
+          date_display_preference?: string | null
           description?: string | null
           end_date?: string | null
           extracted_from_resume?: boolean | null
+          hidden_from_resume?: boolean | null
+          hide_dates?: boolean | null
           id?: string
           intelligence_extracted?: number | null
           job_title?: string | null
           key_achievements?: string[] | null
           milestone_type: string
+          privacy_notes?: string | null
           questions_answered?: number | null
           questions_asked?: number | null
           start_date?: string | null
@@ -3537,14 +3545,18 @@ export type Database = {
           company_name?: string | null
           completion_percentage?: number | null
           created_at?: string | null
+          date_display_preference?: string | null
           description?: string | null
           end_date?: string | null
           extracted_from_resume?: boolean | null
+          hidden_from_resume?: boolean | null
+          hide_dates?: boolean | null
           id?: string
           intelligence_extracted?: number | null
           job_title?: string | null
           key_achievements?: string[] | null
           milestone_type?: string
+          privacy_notes?: string | null
           questions_answered?: number | null
           questions_asked?: number | null
           start_date?: string | null

@@ -16,8 +16,9 @@ serve(async (req) => {
       sectionGuidance,
       jobAnalysis,
       vaultItems,
-      userSelections, // Which vault items user checked
-      enhanceMode = false // true if regenerating/enhancing
+      userSelections,
+      vaultId,
+      enhanceMode = false
     } = await req.json()
 
     const lovableKey = Deno.env.get('LOVABLE_API_KEY')
