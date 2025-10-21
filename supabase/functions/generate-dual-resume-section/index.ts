@@ -78,6 +78,8 @@ serve(async (req) => {
     // Fetch user's vault skills if generating skills section
     let vaultSkills: any[] = [];
     if ((section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills') && user_id) {
+      console.log(`🔍 Fetching vault skills for user: ${user_id}`);
+      
       const [confirmedSkills, transferableSkills, softSkills] = await Promise.all([
         supabase.from('vault_confirmed_skills').select('*').eq('user_id', user_id),
         supabase.from('vault_transferable_skills').select('*').eq('user_id', user_id),
@@ -90,7 +92,9 @@ serve(async (req) => {
         ...(softSkills.data || []).map((s: any) => ({ skill: s.skill_name, source: 'soft' }))
       ];
       
-      console.log(`Loaded ${vaultSkills.length} skills from vault`);
+      console.log(`✅ Loaded ${vaultSkills.length} skills from vault (${confirmedSkills.data?.length || 0} confirmed, ${transferableSkills.data?.length || 0} transferable, ${softSkills.data?.length || 0} soft)`);
+    } else if ((section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills')) {
+      console.log(`⚠️ Skills section requested but user_id is missing! Skills generation will use generic approach.`);
     }
 
     // Step 1: Generate IDEAL version (Pure AI, no vault)

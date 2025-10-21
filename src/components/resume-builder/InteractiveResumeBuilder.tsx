@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Plus, GripVertical, Trash2, Download, Eye, Edit3, Sparkles, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -68,6 +68,19 @@ export const InteractiveResumeBuilder = ({
   const [generatingSection, setGeneratingSection] = useState<string | null>(null);
   const [showGenerationCard, setShowGenerationCard] = useState(false);
   const [generationData, setGenerationData] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch user ID on mount
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        console.log('User ID loaded for resume generation:', user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   const sectionIcons: { [key: string]: string } = {
     summary: "📋",
@@ -123,6 +136,7 @@ export const InteractiveResumeBuilder = ({
           job_analysis_research: jobAnalysis.research || '',
           vault_items: relevantVaultItems,
           resume_milestones: relevantMilestones,
+          user_id: userId, // Pass user_id so edge function can fetch vault skills
           job_title: jobAnalysis.jobTitle || 'Professional',
           industry: jobAnalysis.industry || 'Technology',
           seniority: jobAnalysis.seniority || 'mid-level',
