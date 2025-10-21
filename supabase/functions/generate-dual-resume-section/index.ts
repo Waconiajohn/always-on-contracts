@@ -6,6 +6,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to clean skills format
+function cleanSkillsFormat(content: string): string {
+  // Remove any bullet points, numbers, or descriptions
+  let cleaned = content.replace(/^[-•*\d.)\s]+/gm, '').trim();
+  
+  // If content has line breaks with descriptions, extract just the skill names
+  if (cleaned.includes('\n') && cleaned.includes(':')) {
+    const skills = cleaned.split('\n')
+      .map(line => line.split(':')[0].trim())
+      .filter(skill => skill && skill.length > 0);
+    cleaned = skills.join(', ');
+  }
+  
+  // If content has descriptions after dashes or colons, remove them
+  if (cleaned.includes(' - ') || cleaned.includes(': ')) {
+    const skills = cleaned.split(',')
+      .map(skill => {
+        // Take only the part before dash or colon
+        const cleanSkill = skill.split(/[-:]/)[0].trim();
+        return cleanSkill;
+      })
+      .filter(skill => skill && skill.length > 0);
+    cleaned = skills.join(', ');
+  }
+  
+  // Ensure it's comma-separated
+  if (!cleaned.includes(',')) {
+    const skills = cleaned.split('\n')
+      .map(s => s.trim())
+      .filter(s => s && s.length > 0);
+    cleaned = skills.join(', ');
+  }
+  
+  return cleaned;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -82,7 +118,12 @@ Return ONLY the content, no explanations.`;
     }
 
     const idealData = await idealResponse.json();
-    const idealContent = idealData.choices?.[0]?.message?.content || '';
+    let idealContent = idealData.choices?.[0]?.message?.content || '';
+
+    // Clean up skills section to ensure comma-separated format
+    if (section_type === 'skills' || section_type === 'skills_list') {
+      idealContent = cleanSkillsFormat(idealContent);
+    }
 
     // Step 2: Generate PERSONALIZED version (AI + Vault)
     console.log('Generating personalized version...');
@@ -152,7 +193,12 @@ Return ONLY the content, no explanations.`;
     }
 
     const personalizedData = await personalizedResponse.json();
-    const personalizedContent = personalizedData.choices?.[0]?.message?.content || '';
+    let personalizedContent = personalizedData.choices?.[0]?.message?.content || '';
+
+    // Clean up skills section to ensure comma-separated format
+    if (section_type === 'skills' || section_type === 'skills_list') {
+      personalizedContent = cleanSkillsFormat(personalizedContent);
+    }
 
     // Step 3: Calculate quality scores for both versions
     const calculateQualityScore = (content: string) => {
@@ -252,6 +298,12 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
       if (blendResponse.ok) {
         const blendData = await blendResponse.json();
         blendContent = blendData.choices?.[0]?.message?.content || '';
+        
+        // Clean up skills section to ensure comma-separated format
+        if (section_type === 'skills' || section_type === 'skills_list') {
+          blendContent = cleanSkillsFormat(blendContent);
+        }
+        
         blendQuality = calculateQualityScore(blendContent);
         console.log('Blend version generated successfully');
       } else {

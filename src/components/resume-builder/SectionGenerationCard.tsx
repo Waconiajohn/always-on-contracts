@@ -224,9 +224,23 @@ export const SectionGenerationCard = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm mb-3 whitespace-pre-line font-mono text-foreground">
-                    {editingContent[version.type] || version.content}
-                  </div>
+                  <>
+                    {sectionType === 'skills' || sectionType === 'skills_list' ? (
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        {(editingContent[version.type] || version.content)
+                          .split(',')
+                          .map((skill: string, idx: number) => (
+                            <div key={idx} className="text-xs px-2 py-1 bg-primary/10 rounded text-foreground">
+                              {skill.trim()}
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm mb-3 whitespace-pre-line font-mono text-foreground">
+                        {editingContent[version.type] || version.content}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {!isEditing[version.type] && (
