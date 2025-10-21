@@ -44,6 +44,9 @@ const ResumeBuilderWizardContent = () => {
   const [resumeSections, setResumeSections] = useState<any[]>([]);
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
 
+  // Job text for display in JobInputSection
+  const [displayJobText, setDisplayJobText] = useState<string>("");
+
   // Preview modal state
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
@@ -85,17 +88,20 @@ const ResumeBuilderWizardContent = () => {
           improvement: data.jobDescription.length - jobData.jobDescription.length
         });
         
-        toast({
-          title: "Full description loaded",
-          description: "Analyzing complete job posting...",
-        });
-        
         // Use fetched description with enhanced metadata
         const enhancedDescription = buildEnhancedDescription({
           ...jobData,
           jobDescription: data.jobDescription,
           jobTitle: data.jobTitle || jobData.jobTitle,
           companyName: data.companyName || jobData.companyName
+        });
+        
+        // Store for display in JobInputSection
+        setDisplayJobText(enhancedDescription);
+        
+        toast({
+          title: "Full description loaded",
+          description: `Fetched ${data.jobDescription.length} characters from job posting`,
         });
         
         handleAnalyzeJob(enhancedDescription);
@@ -311,7 +317,7 @@ const ResumeBuilderWizardContent = () => {
             <JobInputSection
               onAnalyze={handleAnalyzeJob}
               isAnalyzing={analyzing || matching}
-              initialJobText={(location.state as any)?.jobDescription || ""}
+              initialJobText={displayJobText || (location.state as any)?.jobDescription || ""}
               autoLoaded={autoLoadedJob}
             />
 

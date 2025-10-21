@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,13 @@ export const JobInputSection = ({
 }: JobInputSectionProps) => {
   const [jobText, setJobText] = useState(initialJobText);
   const { toast } = useToast();
+
+  // Update when initialJobText changes (when full description is fetched)
+  useEffect(() => {
+    if (initialJobText) {
+      setJobText(initialJobText);
+    }
+  }, [initialJobText]);
 
   const handleAnalyze = () => {
     if (!jobText.trim()) {
