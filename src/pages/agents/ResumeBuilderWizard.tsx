@@ -125,14 +125,11 @@ const ResumeBuilderWizardContent = () => {
     if (jobData?.fromJobSearch && jobData?.jobDescription && !autoLoadedJob) {
       setAutoLoadedJob(true);
       
-      const isTruncated = jobData.jobDescription.endsWith('…') || 
-                          jobData.jobDescription.endsWith('...');
-      
-      // If truncated, URL MUST exist (enforced by JobSearch validation)
-      if (isTruncated && jobData.applyUrl) {
+      // If URL exists, always try to fetch full description (API descriptions are often truncated)
+      if (jobData.applyUrl) {
         fetchFullJobDescription(jobData);
       } else {
-        // Complete description - proceed immediately
+        // No URL - use provided description
         const enhancedDescription = buildEnhancedDescription(jobData);
         handleAnalyzeJob(enhancedDescription);
       }
