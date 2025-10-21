@@ -199,13 +199,35 @@ Keywords: ${item.atsKeywords.join(', ')}
 `).join('\n')
       : '';
     
-    // Determine primary data source
-    const hasResumeData = resume_milestones.length > 0 && 
-                          (section_type === 'experience' || section_type === 'education');
-    const hasSkillsData = vaultSkills.length > 0 && 
-                          (section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills');
+    // Determine primary data source based on section type
+    const experienceSections = ['experience', 'employment_history', 'professional_timeline'];
+    const educationSections = ['education'];
+    const accomplishmentsSections = ['accomplishments', 'achievements', 'selected_accomplishments'];
+    const summarySections = ['summary', 'opening_paragraph'];
+    const projectSections = ['projects'];
+    const skillsSections = ['skills', 'skills_list', 'technical_skills', 'additional_skills', 'core_competencies', 'key_skills'];
+    const skillsGroupSections = ['skills_groups', 'core_capabilities'];
+    
+    // Check if we have resume data for this section type
+    const hasResumeData = resume_milestones.length > 0 && (
+      experienceSections.includes(section_type) ||
+      educationSections.includes(section_type) ||
+      accomplishmentsSections.includes(section_type) ||
+      summarySections.includes(section_type) ||
+      projectSections.includes(section_type)
+    );
+    
+    // Check if we have skills data for this section type  
+    const hasSkillsData = vaultSkills.length > 0 && (
+      skillsSections.includes(section_type)
+    );
+    
+    // Skills groups need both skills and experience context
+    const needsBothContexts = skillsGroupSections.includes(section_type);
+    
     const primaryContext = hasResumeData ? milestonesContext 
                          : hasSkillsData ? skillsContext
+                         : needsBothContexts ? `${skillsContext}\n\n${milestonesContext}`
                          : vaultContext;
 
     const personalizedPrompt = `You are an expert resume writer. Create a PERSONALIZED ${section_type} section for THIS SPECIFIC CANDIDATE.
@@ -235,9 +257,15 @@ Important keywords: ${ats_keywords.important.join(', ')}
 REQUIREMENTS TO ADDRESS:
 ${requirements.slice(0, 10).join('\n- ')}
 
-${section_type === 'skills' || section_type === 'skills_list' ? `
+${skillsSections.includes(section_type) ? `
 CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
 Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
+` : needsBothContexts ? `
+CRITICAL: For capability groups, create 3-4 themed categories with supporting bullet points.
+Format each as: 
+**Category Name**
+• Specific example or achievement
+• Another example with quantification
 ` : ''}
 
 Create a PERSONALIZED version that:
@@ -255,6 +283,13 @@ CRITICAL: Do NOT add fake jobs, fake degrees, or fake experience. Only enhance w
 4. Ensures comma-separated format with no descriptions
 5. Includes both technical and soft skills as appropriate
 CRITICAL: Do NOT fabricate skills. Base the list on their actual vault data and required ATS keywords.`
+: needsBothContexts ? `
+1. Creates capability groups using the candidate's ACTUAL skills and experience
+2. Supports each capability with specific examples from their resume milestones
+3. Includes ALL critical ATS keywords naturally
+4. Uses quantified achievements where possible
+5. Groups related skills logically
+CRITICAL: Only use real data from the candidate's vault and milestones.`
 : `
 1. Uses ACTUAL achievements from the candidate's vault
 2. Includes ALL critical ATS keywords naturally
