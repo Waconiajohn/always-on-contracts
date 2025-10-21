@@ -1,7 +1,6 @@
 {
-  "nodeModulesDir": "auto",
   "compilerOptions": {
-    "lib": ["deno.window", "dom"],
+    "lib": ["deno.ns", "deno.window"],
     "types": []
   }
 }
