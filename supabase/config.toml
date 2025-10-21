@@ -298,3 +298,6 @@ verify_jwt = true
 
 [functions.generate-skill-verification-questions]
 verify_jwt = true
+
+[functions.track-vault-usage]
+verify_jwt = true
