@@ -151,6 +151,34 @@ const CareerVaultOnboardingEnhanced = () => {
         setVaultId(vaultData.id);
         setResumeText(processData.extractedText);
         setResumeAnalysis(processData.analysis || {});
+        
+        // Parse resume into structured milestones (once)
+        try {
+          console.log('[MILESTONE_PARSE] Starting milestone extraction...');
+          
+          const { data: milestonesData, error: milestonesError } = await supabase.functions.invoke(
+            'parse-resume-milestones',
+            {
+              body: {
+                resumeText: processData.extractedText,
+                vaultId: vaultData.id,
+                targetRoles: [],  // Empty initially - that's OK, the function handles this
+                targetIndustries: []
+              }
+            }
+          );
+          
+          if (milestonesError) {
+            console.error('[MILESTONE_PARSE] Error:', milestonesError);
+            // Don't block the flow - user can still proceed
+          } else {
+            const count = milestonesData?.milestones?.length || 0;
+            console.log(`[MILESTONE_PARSE] Success: Extracted ${count} career milestones`);
+          }
+        } catch (milestoneErr) {
+          console.error('[MILESTONE_PARSE] Exception:', milestoneErr);
+          // Continue anyway - milestones enhance the experience but aren't critical for onboarding
+        }
       }
 
       toast({
