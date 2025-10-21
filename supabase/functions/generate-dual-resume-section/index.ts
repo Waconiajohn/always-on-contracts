@@ -357,9 +357,6 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
     const vaultStrength = vault_items.length > 0
       ? Math.min(100, (vault_items.reduce((sum: number, item: any) => sum + (item.matchScore || 50), 0) / vault_items.length))
       : 0;
-    
-    const hasResumeData = resume_milestones.length > 0 && 
-                          (section_type === 'experience' || section_type === 'education');
 
     let recommendation: 'ideal' | 'personalized' | 'blend';
     let recommendationReason: string;
