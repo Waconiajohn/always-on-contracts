@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Target, Brain, CheckCircle, Sparkles } from 'lucide-react';
+import { Upload, Target, Brain, CheckCircle, Sparkles, ClipboardCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,9 +10,11 @@ import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { AutoPopulateStep } from '@/components/career-vault/AutoPopulateStep';
 import { VaultReviewInterface } from '@/components/career-vault/VaultReviewInterface';
 import { VoiceNoteRecorder } from '@/components/career-vault/VoiceNoteRecorder';
+import { CompetencyQuizEngine } from '@/components/career-vault/CompetencyQuizEngine';
+import { CompetencyQuizResults } from '@/components/career-vault/CompetencyQuizResults';
 import { Button } from '@/components/ui/button';
 
-type OnboardingStep = 'upload' | 'goals' | 'auto-populate' | 'review' | 'enhance' | 'complete';
+type OnboardingStep = 'upload' | 'goals' | 'auto-populate' | 'review' | 'quiz' | 'quiz-results' | 'enhance' | 'complete';
 
 /**
  * CAREER VAULT ONBOARDING - ENHANCED
@@ -22,8 +24,10 @@ type OnboardingStep = 'upload' | 'goals' | 'auto-populate' | 'review' | 'enhance
  * 2. Set career goals (2 min)
  * 3. AI auto-populates vault (1 min)
  * 4. User reviews/validates (5-10 min)
- * 5. Optional: Voice notes for gaps (5 min)
- * TOTAL: 10-20 minutes vs 45-60 minutes with old interview
+ * 5. Competency quiz (5-10 min)
+ * 6. Review quiz results with percentile scores
+ * 7. Optional: Voice notes for gaps (5 min)
+ * TOTAL: 15-30 minutes vs 45-60 minutes with old interview
  */
 const CareerVaultOnboardingEnhanced = () => {
   const navigate = useNavigate();
@@ -38,6 +42,7 @@ const CareerVaultOnboardingEnhanced = () => {
   const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
+  const [quizResults, setQuizResults] = useState<any>(null);
   const hasCheckedVault = useRef(false);
 
   const steps = [
@@ -45,6 +50,7 @@ const CareerVaultOnboardingEnhanced = () => {
     { id: 'goals', label: 'Career Goals', icon: Target },
     { id: 'auto-populate', label: 'AI Analysis', icon: Brain },
     { id: 'review', label: 'Review', icon: Sparkles },
+    { id: 'quiz', label: 'Assessment', icon: ClipboardCheck },
     { id: 'complete', label: 'Complete', icon: CheckCircle }
   ];
 
@@ -247,12 +253,28 @@ const CareerVaultOnboardingEnhanced = () => {
   };
 
   const handleReviewComplete = () => {
-    setCurrentStep('complete');
+    setCurrentStep('quiz');
 
     toast({
-      title: 'Career Vault Complete!',
-      description: 'Your vault is ready to power all AI agents'
+      title: 'Vault Reviewed!',
+      description: 'Now let\'s assess your competencies'
     });
+  };
+
+  const handleQuizComplete = (results: any) => {
+    console.log('[QUIZ] Quiz completed! Results:', results);
+
+    setQuizResults(results);
+    setCurrentStep('quiz-results');
+
+    toast({
+      title: 'Competency Assessment Complete!',
+      description: `Identified ${results.competenciesIdentified} competencies with ${results.completionPercentage.toFixed(0)}% completion`
+    });
+  };
+
+  const handleQuizResultsContinue = () => {
+    setCurrentStep('complete');
   };
 
   return (
@@ -313,6 +335,40 @@ const CareerVaultOnboardingEnhanced = () => {
           vaultId={vaultId}
           extractedData={extractedData}
           onComplete={handleReviewComplete}
+        />
+      )}
+
+      {currentStep === 'quiz' && vaultId && (
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="py-6">
+              <div className="text-center mb-6">
+                <ClipboardCheck className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <h2 className="text-2xl font-bold mb-2">Competency Assessment</h2>
+                <p className="text-muted-foreground">
+                  Answer questions about your experience to build a verified competency profile.
+                  This helps us match you to roles with precision.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <CompetencyQuizEngine
+            vaultId={vaultId}
+            role={targetRoles[0] || 'Professional'}
+            industry={targetIndustries[0] || 'General'}
+            experienceLevel={resumeAnalysis?.yearsOfExperience || 5}
+            onComplete={handleQuizComplete}
+          />
+        </div>
+      )}
+
+      {currentStep === 'quiz-results' && vaultId && quizResults && (
+        <CompetencyQuizResults
+          vaultId={vaultId}
+          role={targetRoles[0] || 'Professional'}
+          industry={targetIndustries[0] || 'General'}
+          onContinue={handleQuizResultsContinue}
         />
       )}
 
