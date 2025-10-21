@@ -111,7 +111,7 @@ QUESTION ALLOCATION GUIDANCE (for jobs):
 OUTPUT REQUIREMENTS:
 - Extract ALL jobs and ALL education entries (complete career record)
 - Sort by date (most recent first)
-- SKIP any entry missing required fields
+- SKIP any entry missing required fields`;
 
     console.log('[PARSE-RESUME-MILESTONES] Calling Gemini 2.5 Flash...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
