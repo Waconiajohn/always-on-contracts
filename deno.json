@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["deno.ns", "deno.window"],
-    "types": []
+    "types": [],
+    "skipLibCheck": true
   }
 }

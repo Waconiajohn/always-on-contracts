@@ -52,7 +52,27 @@ const ResumeBuilderWizardContent = () => {
     const jobData = location.state as any;
     if (jobData?.fromJobSearch && jobData?.jobDescription && !autoLoadedJob) {
       setAutoLoadedJob(true);
-      handleAnalyzeJob(jobData.jobDescription);
+      
+      // Build enhanced job description with metadata
+      let enhancedDescription = jobData.jobDescription;
+      
+      // Add note if description appears truncated
+      if (jobData.jobDescription.endsWith('…') || jobData.jobDescription.endsWith('...')) {
+        enhancedDescription += `\n\nNote: This description may be truncated. ${
+          jobData.applyUrl ? `Full job posting: ${jobData.applyUrl}` : ''
+        }`;
+      }
+      
+      // Add additional context if available
+      if (jobData.location) {
+        enhancedDescription = `Location: ${jobData.location}\n\n${enhancedDescription}`;
+      }
+      
+      if (jobData.salary) {
+        enhancedDescription = `Salary Range: $${jobData.salary}\n\n${enhancedDescription}`;
+      }
+      
+      handleAnalyzeJob(enhancedDescription);
       // Clear location state to prevent re-triggering
       window.history.replaceState({}, document.title);
     }

@@ -453,6 +453,8 @@ const JobSearchContent = () => {
 
   const generateResumeForJob = async (job: JobResult) => {
     // Navigate to resume builder with full job description
+    // Note: Job descriptions from aggregator APIs are often truncated. 
+    // User can view full posting via apply URL if needed.
     navigate('/agents/resume-builder', {
       state: {
         jobTitle: job.title,
@@ -460,6 +462,7 @@ const JobSearchContent = () => {
         jobDescription: job.description || `${job.title} at ${job.company}`,
         location: job.location,
         salary: job.salary_min && job.salary_max ? `${job.salary_min}-${job.salary_max}` : undefined,
+        applyUrl: job.apply_url,
         fromJobSearch: true
       }
     });
@@ -920,24 +923,36 @@ const JobSearchContent = () => {
                             {!expandedJobIds.has(job.id) && (
                               <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleJobExpansion(job.id)}
-                              className="mt-1 h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              {expandedJobIds.has(job.id) ? (
-                                <>
-                                  <ChevronUp className="h-3 w-3 mr-1" />
-                                  Show Less
-                                </>
-                              ) : (
-                                <>
-                                  <ChevronDown className="h-3 w-3 mr-1" />
-                                  Show More
-                                </>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleJobExpansion(job.id)}
+                                className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                {expandedJobIds.has(job.id) ? (
+                                  <>
+                                    <ChevronUp className="h-3 w-3 mr-1" />
+                                    Show Less
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-3 w-3 mr-1" />
+                                    Show More
+                                  </>
+                                )}
+                              </Button>
+                              {job.apply_url && job.description.endsWith('…') && (
+                                <a
+                                  href={job.apply_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-primary hover:underline"
+                                >
+                                  View Full Job Post
+                                </a>
                               )}
-                            </Button>
+                            </div>
                           </>
                         )}
                       </div>
