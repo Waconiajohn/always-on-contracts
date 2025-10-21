@@ -17,6 +17,8 @@ interface VaultMatch {
   satisfiesRequirements: string[]; // Which requirements this addresses
   atsKeywords: string[]; // Keywords this content contains
   differentiatorScore: number; // How much this sets candidate apart (0-100)
+  qualityTier?: 'gold' | 'silver' | 'bronze' | 'assumed'; // Quality verification level
+  freshnessScore?: number; // Recency score (100 = recent, 20 = outdated)
 }
 
 interface MatchingResult {
@@ -142,9 +144,20 @@ serve(async (req) => {
         type: cat.type,
         items: (Array.isArray(cat.data) ? cat.data : [cat.data])
           .filter(Boolean)
-          .slice(0, 10) // Limit to top 10 items per category
+          // Prioritize by quality tier: Gold > Silver > Bronze > Assumed
+          .sort((a: any, b: any) => {
+            const tierPriority = { gold: 4, silver: 3, bronze: 2, assumed: 1 };
+            const aTier = tierPriority[a.quality_tier as keyof typeof tierPriority] || 0;
+            const bTier = tierPriority[b.quality_tier as keyof typeof tierPriority] || 0;
+            if (aTier !== bTier) return bTier - aTier; // Higher tier first
+            // If same tier, prioritize by freshness
+            return (b.freshness_score || 0) - (a.freshness_score || 0);
+          })
+          .slice(0, 15) // Increased limit to get more high-quality items
           .map((item: any) => ({
             id: item.id,
+            quality_tier: item.quality_tier || 'assumed',
+            freshness_score: item.freshness_score || 50,
             // Only include essential fields to reduce payload
             ...(item.phrase && { phrase: item.phrase }),
             ...(item.skill && { skill: item.skill }),
@@ -164,30 +177,39 @@ ATS KEYWORDS NEEDED:
 Critical: ${(atsKeywords?.critical || []).slice(0, 15).join(', ')}
 Important: ${(atsKeywords?.important || []).slice(0, 15).join(', ')}
 
-CAREER VAULT DATA:
+CAREER VAULT DATA (sorted by quality tier - gold is most trusted):
 ${JSON.stringify(compactVault, null, 2)}
+
+QUALITY TIERS EXPLAINED:
+- GOLD: Quiz-verified competencies (highest trust - use preferentially)
+- SILVER: Evidence-based from resume/interviews (high trust)
+- BRONZE: AI-inferred from behavior/patterns (medium trust)
+- ASSUMED: AI assumptions (lowest trust - use only if needed)
 
 For each vault item, determine:
 1. Match score (0-100) - how well it addresses requirements
+   IMPORTANT: Boost match score by +10 for gold tier, +5 for silver tier
 2. Which specific requirements it satisfies
 3. Suggested resume placement (summary/experience/skills/achievements/leadership/projects)
 4. Enhanced language - rewrite the vault item to perfectly match THIS job's language and keywords
 5. ATS keywords present in this content
 6. Differentiator score (0-100) - how much this sets candidate apart from others
 
-CRITICAL INSTRUCTION: You MUST use the EXACT vaultCategory name from the CAREER VAULT DATA above. 
-Valid categories are: power_phrases, transferable_skills, hidden_competencies, soft_skills, 
-leadership_philosophy, executive_presence, personality_traits, work_style, values_motivations, 
+CRITICAL INSTRUCTION: You MUST use the EXACT vaultCategory name from the CAREER VAULT DATA above.
+Valid categories are: power_phrases, transferable_skills, hidden_competencies, soft_skills,
+leadership_philosophy, executive_presence, personality_traits, work_style, values_motivations,
 behavioral_indicators, resume_milestones, interview_responses
 
-DO NOT make up category names. DO NOT use generic names like "achievement" or "skill". 
+DO NOT make up category names. DO NOT use generic names like "achievement" or "skill".
 USE THE EXACT CATEGORY NAME from the vault data (e.g., "power_phrases", NOT "phrases").
 
 Prioritize:
-- Items that address multiple requirements
-- Content with ATS-critical keywords
-- Differentiators that make candidate stand out
-- Quantified achievements and specific examples
+1. GOLD tier items (quiz-verified) - use these first
+2. Items that address multiple requirements
+3. Content with ATS-critical keywords
+4. Differentiators that make candidate stand out
+5. Quantified achievements and specific examples
+6. SILVER tier items (evidence-based) over bronze/assumed
 
 Return ONLY valid JSON:
 {
@@ -197,12 +219,14 @@ Return ONLY valid JSON:
       "vaultCategory": "power_phrases",
       "content": {...original vault item...},
       "matchScore": 95,
-      "matchReasons": ["Addresses leadership requirement", "Contains ATS keyword 'agile'"],
+      "matchReasons": ["Addresses leadership requirement", "Contains ATS keyword 'agile'", "Gold tier - quiz verified"],
       "suggestedPlacement": "experience",
       "enhancedLanguage": "Led cross-functional agile teams of 15+ engineers...",
       "satisfiesRequirements": ["5+ years leadership", "Agile methodology"],
       "atsKeywords": ["leadership", "agile", "cross-functional"],
-      "differentiatorScore": 85
+      "differentiatorScore": 85,
+      "qualityTier": "gold",
+      "freshnessScore": 100
     }
   ],
   "unmatchedRequirements": ["Requirements with no vault coverage"]
@@ -270,26 +294,53 @@ Return ONLY valid JSON:
           });
 
           if (matchScore > 0) {
+            // Boost score based on quality tier
+            const qualityTier = item.quality_tier || 'assumed';
+            const tierBonus = qualityTier === 'gold' ? 10 : qualityTier === 'silver' ? 5 : 0;
+            const adjustedScore = Math.min(matchScore + tierBonus, 100);
+
             matches.push({
               vaultItemId: item.id || `${category.name}-${index}`,
               vaultCategory: category.name,
               content: item,
-              matchScore: Math.min(matchScore, 100),
-              matchReasons: [`Matches ${foundKeywords.length} keywords`],
+              matchScore: adjustedScore,
+              matchReasons: [
+                `Matches ${foundKeywords.length} keywords`,
+                ...(qualityTier === 'gold' ? ['Gold tier - quiz verified'] :
+                    qualityTier === 'silver' ? ['Silver tier - evidence based'] : [])
+              ],
               suggestedPlacement: category.type === 'achievement' ? 'achievements' :
                                   category.type === 'skill' ? 'skills' :
                                   category.type === 'experience' ? 'experience' : 'summary',
               satisfiesRequirements: [...new Set(satisfiesReqs)],
               atsKeywords: foundKeywords,
-              differentiatorScore: category.type === 'differentiator' ? 80 : 50
+              differentiatorScore: category.type === 'differentiator' ? 80 : 50,
+              qualityTier: qualityTier,
+              freshnessScore: item.freshness_score || 50
             });
           }
         });
       });
     }
 
-    // Sort matches by score and categorize
-    matches.sort((a, b) => b.matchScore - a.matchScore);
+    // Sort matches by quality tier first, then score
+    matches.sort((a, b) => {
+      const tierPriority = { gold: 4, silver: 3, bronze: 2, assumed: 1 };
+      const aTier = tierPriority[a.qualityTier as keyof typeof tierPriority] || 0;
+      const bTier = tierPriority[b.qualityTier as keyof typeof tierPriority] || 0;
+
+      // If same quality tier, sort by match score
+      if (aTier === bTier) {
+        if (a.matchScore !== b.matchScore) {
+          return b.matchScore - a.matchScore;
+        }
+        // If same score, sort by freshness
+        return (b.freshnessScore || 0) - (a.freshnessScore || 0);
+      }
+
+      // Higher quality tier first
+      return bTier - aTier;
+    });
 
     // Calculate coverage score based on UNIQUE requirements satisfied
     const uniqueRequirementsCovered = new Set<string>();
