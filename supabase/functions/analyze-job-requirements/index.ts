@@ -147,8 +147,9 @@ Return ONLY valid JSON with this structure:
           console.log('Successfully parsed JD analysis');
         } catch (parseError) {
           console.error('Failed to parse JD analysis JSON:', parseError);
-          console.log('Raw response:', lovableData.choices?.[0]?.message?.content?.substring(0, 500));
         }
+      } else {
+        console.error('Lovable API error:', lovableResponse.status, await lovableResponse.text());
       }
     }
 
