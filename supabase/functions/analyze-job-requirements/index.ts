@@ -134,16 +134,21 @@ Return ONLY valid JSON with this structure:
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: [{ role: 'user', content: jdAnalysisPrompt }],
-          temperature: 0.3,
-          max_tokens: 2048
+          max_tokens: 4096
         })
       });
 
       if (lovableResponse.ok) {
-        const lovableData = await lovableResponse.json();
-        const textContent = lovableData.choices?.[0]?.message?.content || '{}';
-        const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        jdAnalysis = JSON.parse(cleanedText);
+        try {
+          const lovableData = await lovableResponse.json();
+          const textContent = lovableData.choices?.[0]?.message?.content || '{}';
+          const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          jdAnalysis = JSON.parse(cleanedText);
+          console.log('Successfully parsed JD analysis');
+        } catch (parseError) {
+          console.error('Failed to parse JD analysis JSON:', parseError);
+          console.log('Raw response:', lovableData.choices?.[0]?.message?.content?.substring(0, 500));
+        }
       }
     }
 
@@ -190,11 +195,15 @@ Return ONLY valid JSON:
         });
 
         if (perplexityResponse.ok) {
-          const perplexityData = await perplexityResponse.json();
-          const content = perplexityData.choices?.[0]?.message?.content || '{}';
-          const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          const parsed = JSON.parse(cleanedContent);
-          industryStandards = parsed.industryStandards || [];
+          try {
+            const perplexityData = await perplexityResponse.json();
+            const content = perplexityData.choices?.[0]?.message?.content || '{}';
+            const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(cleanedContent);
+            industryStandards = parsed.industryStandards || [];
+          } catch (parseError) {
+            console.error('Failed to parse industry standards JSON:', parseError);
+          }
         }
       } catch (error) {
         console.error('Perplexity error:', error);
@@ -239,19 +248,22 @@ Return ONLY valid JSON:
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: [{ role: 'user', content: benchmarkPrompt }],
-          temperature: 0.4,
-          max_tokens: 2048
+          max_tokens: 4096
         })
       });
 
       if (benchmarkResponse.ok) {
-        const benchmarkData = await benchmarkResponse.json();
-        const textContent = benchmarkData.choices?.[0]?.message?.content || '{}';
-        const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const parsed = JSON.parse(cleanedText);
-        professionBenchmarks = parsed.professionBenchmarks || [];
-        differentiators = parsed.differentiators || [];
-        gapAnalysis = parsed.gapAnalysis || { commonlyMissing: [], riskAreas: [] };
+        try {
+          const benchmarkData = await benchmarkResponse.json();
+          const textContent = benchmarkData.choices?.[0]?.message?.content || '{}';
+          const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          const parsed = JSON.parse(cleanedText);
+          professionBenchmarks = parsed.professionBenchmarks || [];
+          differentiators = parsed.differentiators || [];
+          gapAnalysis = parsed.gapAnalysis || { commonlyMissing: [], riskAreas: [] };
+        } catch (parseError) {
+          console.error('Failed to parse benchmarks JSON:', parseError);
+        }
       }
     }
 
