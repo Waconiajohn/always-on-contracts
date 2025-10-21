@@ -47,33 +47,96 @@ const ResumeBuilderWizardContent = () => {
   // Preview modal state
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  // Helper function to build enhanced job description with metadata
+  const buildEnhancedDescription = (jobData: any): string => {
+    let enhancedDescription = jobData.jobDescription;
+    
+    // Add location context if available
+    if (jobData.location) {
+      enhancedDescription = `Location: ${jobData.location}\n\n${enhancedDescription}`;
+    }
+    
+    // Add salary context if available
+    if (jobData.salary) {
+      enhancedDescription = `Salary Range: $${jobData.salary}\n\n${enhancedDescription}`;
+    }
+    
+    return enhancedDescription;
+  };
+
+  // Helper function to fetch full job description from URL
+  const fetchFullJobDescription = async (jobData: any) => {
+    toast({
+      title: "Fetching full job description",
+      description: "Getting complete details from the job posting...",
+    });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-job-document', {
+        body: { url: jobData.applyUrl }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success && data.jobDescription) {
+        console.log('✅ Fetched full job description:', {
+          originalLength: jobData.jobDescription.length,
+          fetchedLength: data.jobDescription.length,
+          improvement: data.jobDescription.length - jobData.jobDescription.length
+        });
+        
+        toast({
+          title: "Full description loaded",
+          description: "Analyzing complete job posting...",
+        });
+        
+        // Use fetched description with enhanced metadata
+        const enhancedDescription = buildEnhancedDescription({
+          ...jobData,
+          jobDescription: data.jobDescription,
+          jobTitle: data.jobTitle || jobData.jobTitle,
+          companyName: data.companyName || jobData.companyName
+        });
+        
+        handleAnalyzeJob(enhancedDescription);
+      } else {
+        throw new Error(data?.error || 'Failed to fetch full description');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching job description:', error);
+      
+      // If fetch fails, show error with clear instructions
+      toast({
+        title: "Could not fetch full job description",
+        description: "Please copy the full job description manually and paste it below.",
+        variant: "destructive"
+      });
+      
+      // Navigate back to the initial state where user can manually paste
+      // Don't auto-load the truncated description - let them paste manually
+      window.history.replaceState({}, document.title);
+      setAutoLoadedJob(false);
+    }
+  };
+
   // Auto-load job from job search navigation
   useEffect(() => {
     const jobData = location.state as any;
     if (jobData?.fromJobSearch && jobData?.jobDescription && !autoLoadedJob) {
       setAutoLoadedJob(true);
       
-      // Build enhanced job description with metadata
-      let enhancedDescription = jobData.jobDescription;
+      const isTruncated = jobData.jobDescription.endsWith('…') || 
+                          jobData.jobDescription.endsWith('...');
       
-      // Add note if description appears truncated
-      if (jobData.jobDescription.endsWith('…') || jobData.jobDescription.endsWith('...')) {
-        enhancedDescription += `\n\nNote: This description may be truncated. ${
-          jobData.applyUrl ? `Full job posting: ${jobData.applyUrl}` : ''
-        }`;
+      // If truncated, URL MUST exist (enforced by JobSearch validation)
+      if (isTruncated && jobData.applyUrl) {
+        fetchFullJobDescription(jobData);
+      } else {
+        // Complete description - proceed immediately
+        const enhancedDescription = buildEnhancedDescription(jobData);
+        handleAnalyzeJob(enhancedDescription);
       }
       
-      // Add additional context if available
-      if (jobData.location) {
-        enhancedDescription = `Location: ${jobData.location}\n\n${enhancedDescription}`;
-      }
-      
-      if (jobData.salary) {
-        enhancedDescription = `Salary Range: $${jobData.salary}\n\n${enhancedDescription}`;
-      }
-      
-      handleAnalyzeJob(enhancedDescription);
-      // Clear location state to prevent re-triggering
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);

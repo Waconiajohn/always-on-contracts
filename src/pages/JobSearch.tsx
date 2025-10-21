@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy, Sparkles, FileText, Star, StarOff } from "lucide-react";
+import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy, Sparkles, FileText, Star, StarOff, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -451,10 +451,44 @@ const JobSearchContent = () => {
     }
   };
 
+  const canGenerateResume = (job: JobResult): boolean => {
+    // Must have a description
+    if (!job.description) return false;
+    
+    // Check if truncated
+    const isTruncated = job.description.endsWith('…') || job.description.endsWith('...');
+    
+    // If truncated, MUST have URL to fetch from
+    if (isTruncated) {
+      return !!job.apply_url;
+    }
+    
+    // Complete description - always allowed
+    return true;
+  };
+
   const generateResumeForJob = async (job: JobResult) => {
-    // Navigate to resume builder with full job description
-    // Note: Job descriptions from aggregator APIs are often truncated. 
-    // User can view full posting via apply URL if needed.
+    // Strict validation - don't proceed if conditions not met
+    if (!canGenerateResume(job)) {
+      toast({
+        title: "Cannot Generate Resume",
+        description: "This job has an incomplete description and no source URL. Please copy the full job posting and paste it manually into the Resume Builder.",
+        variant: "destructive"
+      });
+      return; // BLOCK navigation
+    }
+    
+    const isTruncated = job.description?.endsWith('…') || job.description?.endsWith('...');
+    
+    // User feedback for automatic fetching
+    if (isTruncated && job.apply_url) {
+      toast({
+        title: "Preparing resume generation",
+        description: "We'll fetch the full job description for best results",
+      });
+    }
+    
+    // Proceed with navigation
     navigate('/agents/resume-builder', {
       state: {
         jobTitle: job.title,
@@ -959,10 +993,23 @@ const JobSearchContent = () => {
                     )}
 
                     <div className="flex flex-wrap gap-2">
-                      <Button onClick={() => generateResumeForJob(job)} className="gap-2">
-                        <FileText className="h-4 w-4" />
-                        Generate Resume
-                      </Button>
+                      <div className="flex flex-col gap-1">
+                        <Button 
+                          onClick={() => generateResumeForJob(job)} 
+                          className="gap-2"
+                          disabled={!canGenerateResume(job)}
+                          variant={!canGenerateResume(job) ? "outline" : "default"}
+                        >
+                          <FileText className="h-4 w-4" />
+                          Generate Resume
+                        </Button>
+                        {!canGenerateResume(job) && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>Incomplete description - copy full posting manually</span>
+                          </div>
+                        )}
+                      </div>
                       <Button onClick={() => addToQueue(job)} variant="secondary" className="gap-2">
                         Add to Queue
                       </Button>
