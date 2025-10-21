@@ -53,6 +53,7 @@ serve(async (req) => {
       section_guidance,
       job_analysis_research,
       vault_items = [],
+      resume_milestones = [],
       job_title,
       industry,
       seniority = 'mid-level',
@@ -125,8 +126,31 @@ Return ONLY the content, no explanations.`;
       idealContent = cleanSkillsFormat(idealContent);
     }
 
-    // Step 2: Generate PERSONALIZED version (AI + Vault)
+    // Step 2: Generate PERSONALIZED version (AI + Vault + Resume Milestones)
     console.log('Generating personalized version...');
+    
+    // Prepare resume milestones context (prioritize for experience/education)
+    const milestonesContext = resume_milestones.length > 0
+      ? resume_milestones.map((milestone: any, idx: number) => {
+          if (milestone.milestone_type === 'job') {
+            return `
+[Job ${idx + 1}]
+Company: ${milestone.company_name || 'N/A'}
+Title: ${milestone.title || 'N/A'}
+Dates: ${milestone.milestone_date || 'N/A'}
+Accomplishments: ${milestone.accomplishments?.join('\n') || 'N/A'}
+Key Achievements: ${milestone.key_achievements || 'N/A'}`;
+          } else if (milestone.milestone_type === 'education') {
+            return `
+[Education ${idx + 1}]
+Institution: ${milestone.institution_name || 'N/A'}
+Degree: ${milestone.degree || 'N/A'}
+Year: ${milestone.milestone_date || 'N/A'}
+Details: ${milestone.details || 'N/A'}`;
+          }
+          return '';
+        }).filter(Boolean).join('\n')
+      : '';
     
     // Prepare vault context
     const vaultContext = vault_items.length > 0
@@ -137,7 +161,12 @@ Match Score: ${item.matchScore}%
 Addresses: ${item.satisfiesRequirements.join(', ')}
 Keywords: ${item.atsKeywords.join(', ')}
 `).join('\n')
-      : 'No vault data available - use industry standards';
+      : '';
+    
+    // Determine primary data source
+    const hasResumeData = resume_milestones.length > 0 && 
+                          (section_type === 'experience' || section_type === 'education');
+    const primaryContext = hasResumeData ? milestonesContext : vaultContext;
 
     const personalizedPrompt = `You are an expert resume writer. Create a PERSONALIZED ${section_type} section for THIS SPECIFIC CANDIDATE.
 
@@ -147,8 +176,11 @@ ${job_analysis_research}
 SECTION GUIDANCE:
 ${section_guidance}
 
-CANDIDATE'S CAREER VAULT DATA:
-${vaultContext}
+${hasResumeData ? `CANDIDATE'S ACTUAL ${section_type.toUpperCase()} FROM UPLOADED RESUME:
+${milestonesContext}
+
+CRITICAL: Use the ACTUAL experiences above. Enhance the language and formatting, but do NOT fabricate new jobs or education.` : `CANDIDATE'S CAREER VAULT DATA:
+${primaryContext}`}
 
 CRITICAL ATS KEYWORDS (MUST include naturally):
 ${ats_keywords.critical.join(', ')}
@@ -164,13 +196,19 @@ Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, D
 ` : ''}
 
 Create a PERSONALIZED version that:
+${hasResumeData ? `
+1. Uses the EXACT companies, titles, dates, and schools from the resume milestones above
+2. Enhances the language and bullet points for ATS optimization
+3. Includes ALL critical ATS keywords naturally in the descriptions
+4. Adds quantification and impact where possible (but stay truthful to the original)
+5. Improves formatting and action verbs
+CRITICAL: Do NOT add fake jobs, fake degrees, or fake experience. Only enhance what's already there.` : `
 1. Uses ACTUAL achievements from the candidate's vault
 2. Includes ALL critical ATS keywords naturally
 3. Leverages candidate's unique strengths and metrics
 4. Addresses the core problem from research
 5. Demonstrates competitive advantage through real accomplishments
-
-${vault_items.length === 0 ? 'NOTE: No vault data available. Create based on industry standards but in first person.' : 'Use ONLY information from the vault data. Do not fabricate achievements.'}
+${vault_items.length === 0 && !hasResumeData ? 'NOTE: No candidate data available. Create based on industry standards.' : 'Use ONLY information from the data provided. Do not fabricate.'}`}
 
 Return ONLY the content, no explanations.`;
 
@@ -319,11 +357,17 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
     const vaultStrength = vault_items.length > 0
       ? Math.min(100, (vault_items.reduce((sum: number, item: any) => sum + (item.matchScore || 50), 0) / vault_items.length))
       : 0;
+    
+    const hasResumeData = resume_milestones.length > 0 && 
+                          (section_type === 'experience' || section_type === 'education');
 
     let recommendation: 'ideal' | 'personalized' | 'blend';
     let recommendationReason: string;
 
-    if (vault_items.length === 0 || vaultStrength < 40) {
+    if (hasResumeData) {
+      recommendation = 'personalized';
+      recommendationReason = 'Your uploaded resume provides authentic experience - enhanced for ATS';
+    } else if (vault_items.length === 0 || vaultStrength < 40) {
       recommendation = 'ideal';
       recommendationReason = 'Limited vault data - Industry Standard recommended';
     } else if (blendQuality.overallScore >= idealQuality.overallScore && 
@@ -359,7 +403,8 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
         comparison: {
           recommendation,
           recommendationReason,
-          vaultStrength
+          vaultStrength,
+          hasResumeData
         }
       }),
       {

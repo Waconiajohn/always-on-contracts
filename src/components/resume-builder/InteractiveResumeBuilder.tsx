@@ -40,6 +40,7 @@ interface InteractiveResumeBuilderProps {
   onModeChange: (mode: 'edit' | 'preview') => void;
   jobAnalysis?: any;
   vaultMatches?: any[];
+  resumeMilestones?: any[];
 }
 
 export const InteractiveResumeBuilder = ({
@@ -53,7 +54,8 @@ export const InteractiveResumeBuilder = ({
   mode,
   onModeChange,
   jobAnalysis,
-  vaultMatches = []
+  vaultMatches = [],
+  resumeMilestones = []
 }: InteractiveResumeBuilderProps) => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [contactInfo, setContactInfo] = useState({
@@ -107,12 +109,20 @@ export const InteractiveResumeBuilder = ({
         match.suggestedPlacement?.toLowerCase().includes(sectionType.toLowerCase())
       );
 
+      // Get resume milestones relevant to this section
+      const relevantMilestones = (resumeMilestones || []).filter((milestone: any) => {
+        if (sectionType === 'experience' && milestone.milestone_type === 'job') return true;
+        if (sectionType === 'education' && milestone.milestone_type === 'education') return true;
+        return false;
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-dual-resume-section', {
         body: {
           section_type: sectionType,
           section_guidance: getSectionGuidance(sectionType),
           job_analysis_research: jobAnalysis.research || '',
           vault_items: relevantVaultItems,
+          resume_milestones: relevantMilestones,
           job_title: jobAnalysis.jobTitle || 'Professional',
           industry: jobAnalysis.industry || 'Technology',
           seniority: jobAnalysis.seniority || 'mid-level',
@@ -127,11 +137,35 @@ export const InteractiveResumeBuilder = ({
       if (error) throw error;
 
       if (data.success) {
-        // Calculate actual vault strength
-        const relevantVaultCount = relevantVaultItems.length;
-        const vaultStrength = relevantVaultCount > 0 
-          ? Math.min(100, relevantVaultCount * 15) // Each relevant vault item adds 15%
-          : 0;
+        // Calculate vault strength based on section type
+        let vaultStrength = 0;
+        let hasResumeData = false;
+        
+        if (sectionType === 'experience' || sectionType === 'education') {
+          // For experience/education, strength is based on resume milestones
+          const relevantMilestoneCount = (resumeMilestones || []).filter((m: any) => 
+            (sectionType === 'experience' && m.milestone_type === 'job') ||
+            (sectionType === 'education' && m.milestone_type === 'education')
+          ).length;
+          vaultStrength = relevantMilestoneCount > 0 ? Math.min(100, relevantMilestoneCount * 25) : 0;
+          hasResumeData = relevantMilestoneCount > 0;
+        } else {
+          // For other sections, use vault matches
+          vaultStrength = relevantVaultItems.length > 0 
+            ? Math.min(100, relevantVaultItems.length * 15)
+            : 0;
+        }
+
+        setGenerationData({
+          ...data,
+          sectionId,
+          sectionType,
+          comparison: {
+            ...data.comparison,
+            vaultStrength,
+            hasResumeData
+          }
+        });
 
         setGenerationData({
           ...data,
@@ -154,23 +188,27 @@ export const InteractiveResumeBuilder = ({
     }
   };
 
-  const handleSelectVersion = (content: string) => {
+  const handleSelectVersion = (content: string, action: 'replace' | 'append' = 'replace') => {
     if (!generationData) return;
     
     const sectionId = generationData.sectionId;
+    const currentSection = sections.find(s => s.id === sectionId);
     
-    // Parse content into items (split by newlines for simple sections, handle complex ones)
-    const items = content.split('\n').filter(line => line.trim()).map(line => ({
+    // Parse content into items
+    const newItems = content.split('\n').filter(line => line.trim()).map(line => ({
       id: Date.now().toString() + Math.random(),
       content: line.trim()
     }));
     
-    onUpdateSection(sectionId, items.length > 0 ? items : [{ 
-      id: Date.now().toString(), 
-      content 
-    }]);
+    // Append to existing content or replace
+    const updatedContent = action === 'append' 
+      ? [...(currentSection?.content || []), ...newItems]
+      : newItems.length > 0 ? newItems : [{ id: Date.now().toString(), content }];
     
+    onUpdateSection(sectionId, updatedContent);
     setShowGenerationCard(false);
+    
+    toast.success(action === 'append' ? 'Content added to section' : 'Section updated');
   };
 
   const ResumeItemComponent = ({ item, sectionId }: { item: ResumeItem; sectionId: string }) => {

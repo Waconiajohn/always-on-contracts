@@ -33,6 +33,9 @@ const ResumeBuilderWizardContent = () => {
   // Vault matching state
   const [matching, setMatching] = useState(false);
   const [vaultMatches, setVaultMatches] = useState<any>(null);
+  
+  // Resume milestones from uploaded resume
+  const [resumeMilestones, setResumeMilestones] = useState<any[]>([]);
 
   // Format selection
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
@@ -100,19 +103,30 @@ const ResumeBuilderWizardContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const { data, error } = await supabase.functions.invoke('match-vault-to-requirements', {
-        body: {
-          userId: user.id,
-          jobRequirements: analysis.jobRequirements,
-          industryStandards: analysis.industryStandards,
-          professionBenchmarks: analysis.professionBenchmarks,
-          atsKeywords: analysis.atsKeywords
-        }
-      });
+      // Fetch resume milestones in parallel with vault matching
+      const [matchResult, milestonesResult] = await Promise.all([
+        supabase.functions.invoke('match-vault-to-requirements', {
+          body: {
+            userId: user.id,
+            jobRequirements: analysis.jobRequirements,
+            industryStandards: analysis.industryStandards,
+            professionBenchmarks: analysis.professionBenchmarks,
+            atsKeywords: analysis.atsKeywords
+          }
+        }),
+        supabase
+          .from('vault_resume_milestones')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('milestone_date', { ascending: false })
+      ]);
 
-      if (error) throw error;
-
-      setVaultMatches(data);
+      if (matchResult.error) throw matchResult.error;
+      
+      setVaultMatches(matchResult.data);
+      setResumeMilestones(milestonesResult.data || []);
+      
+      console.log('Resume milestones loaded:', milestonesResult.data?.length || 0);
     } catch (error) {
       console.error("Error matching vault:", error);
       toast({
@@ -362,6 +376,7 @@ const ResumeBuilderWizardContent = () => {
               sections={resumeSections}
               jobAnalysis={jobAnalysis}
               vaultMatches={vaultMatches?.matchedItems || []}
+              resumeMilestones={resumeMilestones}
               onUpdateSection={(sectionId, content) => {
                 setResumeSections(prev =>
                   prev.map(s => s.id === sectionId ? { ...s, content } : s)

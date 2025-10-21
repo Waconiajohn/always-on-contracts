@@ -34,6 +34,7 @@ interface SectionGenerationCardProps {
     recommendation: 'ideal' | 'personalized' | 'blend';
     recommendationReason: string;
     vaultStrength: number;
+    hasResumeData?: boolean;
   };
   onSelectVersion: (content: string) => void;
   onCancel: () => void;
@@ -62,10 +63,12 @@ export const SectionGenerationCard = ({
     },
     {
       type: 'personalized',
-      title: '⭐ Your Experience',
+      title: comparison.hasResumeData ? '📄 From Your Resume' : '⭐ Your Experience',
       content: personalizedVersion.content,
       atsScore: personalizedVersion.quality?.atsMatchPercentage || 0,
-      reasoning: `Uses ${personalizedVersion.vaultItemsUsed} items from your Career Vault. Your actual achievements and metrics make this authentic and compelling.`
+      reasoning: comparison.hasResumeData 
+        ? `Based on your uploaded resume. Enhanced for ATS with ${personalizedVersion.vaultItemsUsed} Career Vault items for optimization.`
+        : `Uses ${personalizedVersion.vaultItemsUsed} items from your Career Vault. Your actual achievements and metrics make this authentic and compelling.`
     },
     {
       type: 'blend',
@@ -145,9 +148,11 @@ export const SectionGenerationCard = ({
               className="text-xs flex flex-col items-center py-2 px-1"
               disabled={comparison.vaultStrength < 30}
             >
-              <span className="text-base mb-1">⭐</span>
-              <span className="font-medium">Your Experience</span>
-              <span className="text-[10px] text-muted-foreground">From your vault</span>
+              <span className="text-base mb-1">{comparison.hasResumeData ? '📄' : '⭐'}</span>
+              <span className="font-medium">{comparison.hasResumeData ? 'From Resume' : 'Your Experience'}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {comparison.hasResumeData ? 'Your uploaded data' : 'From your vault'}
+              </span>
               {recommendedType === 'personalized' && (
                 <Badge variant="default" className="text-[9px] px-1 py-0 mt-1">Recommended</Badge>
               )}
