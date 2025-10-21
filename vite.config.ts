@@ -7,7 +7,12 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => {
   const plugins: any[] = [react()];
   if (mode === "development") {
-    plugins.push(...(componentTagger() as any));
+    const tagger = componentTagger();
+    if (Array.isArray(tagger)) {
+      plugins.push(...tagger);
+    } else {
+      plugins.push(tagger);
+    }
   }
   
   return {
