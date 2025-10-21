@@ -52,20 +52,21 @@ serve(async (req) => {
 PRIORITIZE jobs that are most relevant to this career focus. Score each job's relevance (0-100%).`
       : '';
 
-    const systemPrompt = `You are an expert resume parser specialized in career trajectory analysis. Extract job positions and assess their relevance to the user's career goals.`;
+    const systemPrompt = `You are an expert resume parser specialized in career trajectory analysis. Extract ALL employment positions and education entries to build a complete career record.`;
 
-    const prompt = `Parse this resume and extract job positions (employment history), prioritizing relevance to the user's career focus.
+    const prompt = `Parse this resume and extract ALL employment positions and ALL education entries. Capture the complete career history.
 
 ${careerFocusContext}
 
 EXTRACTION RULES:
-1. Extract ONLY jobs/positions (employment roles with company, title, dates)
-2. Do NOT create separate entries for achievements - include them within the job context
-3. Do NOT create project-only entries unless they were paid contract/freelance work
-4. Every entry MUST have: company_name, job_title, start_date, end_date
-5. Assign a relevance_score (0-100%) based on alignment with target roles/industries
-6. PRIORITIZE: Recent + Senior + Relevant jobs
-7. LIMIT: Extract 8-12 MOST RELEVANT jobs maximum
+1. Extract ALL employment positions (complete work history - no limit)
+2. Extract ALL education entries (degrees, certifications, relevant training)
+3. Do NOT create separate entries for achievements - include them within the job context
+4. Do NOT create project-only entries unless they were paid contract/freelance work
+5. Every job entry MUST have: company_name, job_title, start_date, end_date
+6. Every education entry MUST have: institution_name, degree_title, field_of_study, graduation_date
+7. Assign a relevance_score (0-100%) to help prioritize entries, but extract EVERYTHING
+8. Sort by date (most recent first)
 
 RESUME TEXT:
 ${resumeText}
@@ -81,30 +82,36 @@ Return as JSON:
       "end_date": "YYYY-MM or 'Present' (REQUIRED)",
       "description": "Brief role summary",
       "key_achievements": ["Achievement 1", "Achievement 2", "Achievement 3"],
-      "relevance_score": 85,
-      "relevance_reason": "Aligns with target VP Operations in Oil & Gas",
-      "estimated_question_count": 6
+      "relevance_score": 85
+    },
+    {
+      "type": "education",
+      "institution_name": "University of XYZ (REQUIRED)",
+      "degree_title": "Bachelor of Science (REQUIRED)",
+      "field_of_study": "Computer Science",
+      "graduation_date": "YYYY-MM or YYYY (REQUIRED)",
+      "honors": "Magna Cum Laude",
+      "relevance_score": 70
     }
-  ],
-  "total_estimated_questions": 35
+  ]
 }
 
 SCORING GUIDELINES:
 - 90-100%: Perfect match to target role + industry
 - 70-89%: Strong match (either role OR industry aligned)
 - 50-69%: Moderate match (transferable skills/experience)
-- Below 50%: Low relevance (skip unless critical to career narrative)
+- Below 50%: Still valuable for career narrative
 
-QUESTION ALLOCATION:
+QUESTION ALLOCATION GUIDANCE (for jobs):
 - Most recent role (last 2 years): 6-8 questions
 - Previous 2-3 key roles: 4-5 questions each
 - Earlier career-defining roles: 2-3 questions
-- Target: 30-40 total questions maximum
+- Education entries: 1-2 questions each
 
 OUTPUT REQUIREMENTS:
-- Return 8-12 jobs maximum
-- Sort by: relevance_score DESC, then recency
-- SKIP any entry missing required fields`;
+- Extract ALL jobs and ALL education entries (complete career record)
+- Sort by date (most recent first)
+- SKIP any entry missing required fields
 
     console.log('[PARSE-RESUME-MILESTONES] Calling Gemini 2.5 Flash...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -142,60 +149,77 @@ OUTPUT REQUIREMENTS:
 
     console.log('[PARSE-RESUME-MILESTONES] Parsed milestones:', parsed.milestones.length);
 
-    // CRITICAL: Only accept jobs with complete data AND filter by relevance
+    // Extract ALL jobs and education entries with complete data
     const milestoneInserts = parsed.milestones
       .filter((m: any) => {
-        // MUST have ALL required fields
-        const hasAllRequiredFields = 
-          m.company_name && 
-          m.job_title && 
-          m.start_date && 
-          m.end_date &&
-          m.type === 'job';
-        
-        // Filter by relevance if career focus is set
-        const isRelevant = targetRoles.length === 0 && targetIndustries.length === 0
-          ? true // No career focus = accept all
-          : (m.relevance_score || 0) >= 50; // With focus = require 50%+ relevance
-        
-        if (!hasAllRequiredFields) {
-          console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete job:', {
-            company: m.company_name || 'MISSING',
-            title: m.job_title || 'MISSING',
-            start: m.start_date || 'MISSING',
-            end: m.end_date || 'MISSING'
-          });
-        } else if (!isRelevant) {
-          console.log('[PARSE-RESUME-MILESTONES] Skipping low-relevance job:', {
-            company: m.company_name,
-            title: m.job_title,
-            relevance: m.relevance_score,
-            reason: 'Below 50% relevance threshold'
-          });
+        // Jobs must have complete data
+        if (m.type === 'job') {
+          const hasAllRequiredFields = 
+            m.company_name && 
+            m.job_title && 
+            m.start_date && 
+            m.end_date;
+          
+          if (!hasAllRequiredFields) {
+            console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete job:', {
+              company: m.company_name || 'MISSING',
+              title: m.job_title || 'MISSING',
+              start: m.start_date || 'MISSING',
+              end: m.end_date || 'MISSING'
+            });
+          }
+          return hasAllRequiredFields;
         }
         
-        return hasAllRequiredFields && isRelevant;
+        // Education must have complete data
+        if (m.type === 'education') {
+          const hasAllRequiredFields =
+            m.institution_name &&
+            m.degree_title &&
+            m.graduation_date;
+          
+          if (!hasAllRequiredFields) {
+            console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete education:', {
+              institution: m.institution_name || 'MISSING',
+              degree: m.degree_title || 'MISSING',
+              graduation: m.graduation_date || 'MISSING'
+            });
+          }
+          return hasAllRequiredFields;
+        }
+        
+        // Unknown type - skip
+        console.log('[PARSE-RESUME-MILESTONES] Skipping unknown type:', m.type);
+        return false;
       })
-      .slice(0, 12) // Hard cap at 12 milestones
       .map((m: any, index: number) => {
         // Dynamic question allocation based on priority
-        let questionsForJob = 3; // Default
-        if (index === 0) questionsForJob = 8; // Most recent: 8 questions
-        else if (index <= 2) questionsForJob = 5; // Next 2: 5 questions each
-        else if (index <= 5) questionsForJob = 3; // Next 3: 3 questions each
-        else questionsForJob = 2; // Older roles: 2 questions
+        let questionsForEntry = 2; // Default for education
+        
+        if (m.type === 'job') {
+          if (index === 0) questionsForEntry = 8; // Most recent job: 8 questions
+          else if (index <= 2) questionsForEntry = 5; // Next 2 jobs: 5 questions each
+          else if (index <= 5) questionsForEntry = 3; // Next 3 jobs: 3 questions each
+          else questionsForEntry = 2; // Older jobs: 2 questions
+        }
 
+        // Map to database schema (handle both job and education types)
         return {
           vault_id: vaultId,
           user_id: user.id,
-          milestone_type: 'job',
-          company_name: m.company_name,
-          job_title: m.job_title,
-          start_date: m.start_date,
-          end_date: m.end_date,
-          description: m.description || '',
+          milestone_type: m.type,
+          
+          // Job fields (or mapped education fields)
+          company_name: m.company_name || m.institution_name || null,
+          job_title: m.job_title || m.degree_title || null,
+          start_date: m.start_date || null,
+          end_date: m.end_date || m.graduation_date || null,
+          description: m.type === 'education' 
+            ? `${m.field_of_study || ''}${m.honors ? ' • ' + m.honors : ''}`.trim() || ''
+            : (m.description || ''),
           key_achievements: m.key_achievements || [],
-          questions_asked: questionsForJob,
+          
+          questions_asked: questionsForEntry,
           questions_answered: 0,
           completion_percentage: 0,
           intelligence_extracted: 0
@@ -219,11 +243,24 @@ OUTPUT REQUIREMENTS:
 
     console.log('[PARSE-RESUME-MILESTONES] Saved milestones:', insertedMilestones.length);
 
+    const jobCount = insertedMilestones.filter((m: any) => m.milestone_type === 'job').length;
+    const eduCount = insertedMilestones.filter((m: any) => m.milestone_type === 'education').length;
+    
+    console.log('[PARSE-RESUME-MILESTONES] Summary:', { 
+      totalMilestones: insertedMilestones.length,
+      jobs: jobCount,
+      education: eduCount
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         milestones: insertedMilestones,
-        total_estimated_questions: parsed.total_estimated_questions
+        summary: {
+          total: insertedMilestones.length,
+          jobs: jobCount,
+          education: eduCount
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
