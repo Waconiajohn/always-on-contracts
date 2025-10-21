@@ -166,17 +166,19 @@ export const InteractiveResumeBuilder = ({
             hasResumeData
           }
         });
-
-        setGenerationData({
-          ...data,
-          sectionId,
-          sectionType,
-          comparison: {
-            ...data.comparison,
-            vaultStrength // Override with calculated strength
-          }
-        });
         setShowGenerationCard(true);
+        
+        // Auto-apply recommended version for better UX
+        const recommendedVersion = data.comparison.recommendation === 'personalized' && vaultStrength >= 30
+          ? data.personalizedVersion.content
+          : data.comparison.recommendation === 'blend' && vaultStrength >= 40
+          ? data.blendVersion.content
+          : data.idealVersion.content;
+        
+        // Auto-apply after a short delay to allow user to see the options
+        setTimeout(() => {
+          handleSelectVersion(recommendedVersion, 'replace');
+        }, 800);
       } else {
         throw new Error(data.error || 'Generation failed');
       }
