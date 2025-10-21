@@ -48,6 +48,7 @@ const JobSearchContent = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [expandedJobIds, setExpandedJobIds] = useState<Set<string>>(new Set());
   const [radiusMiles, setRadiusMiles] = useState<string>('50');
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -451,14 +452,28 @@ const JobSearchContent = () => {
   };
 
   const generateResumeForJob = async (job: JobResult) => {
-    // Navigate to resume builder with job pre-loaded via state
+    // Navigate to resume builder with full job description
     navigate('/agents/resume-builder', {
       state: {
         jobTitle: job.title,
         companyName: job.company,
         jobDescription: job.description || `${job.title} at ${job.company}`,
+        location: job.location,
+        salary: job.salary_min && job.salary_max ? `${job.salary_min}-${job.salary_max}` : undefined,
         fromJobSearch: true
       }
+    });
+  };
+
+  const toggleJobExpansion = (jobId: string) => {
+    setExpandedJobIds(prev => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
     });
   };
 
@@ -894,9 +909,38 @@ const JobSearchContent = () => {
                     </div>
 
                     {job.description && (
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {job.description}
-                      </p>
+                      <div className="mb-4 relative">
+                        <p className={`text-sm text-muted-foreground transition-all ${
+                          expandedJobIds.has(job.id) ? '' : 'line-clamp-3'
+                        }`}>
+                          {job.description}
+                        </p>
+                        {job.description.length > 200 && (
+                          <>
+                            {!expandedJobIds.has(job.id) && (
+                              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleJobExpansion(job.id)}
+                              className="mt-1 h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              {expandedJobIds.has(job.id) ? (
+                                <>
+                                  <ChevronUp className="h-3 w-3 mr-1" />
+                                  Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3 w-3 mr-1" />
+                                  Show More
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     )}
 
                     <div className="flex flex-wrap gap-2">
