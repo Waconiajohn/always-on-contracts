@@ -113,6 +113,11 @@ export const InteractiveResumeBuilder = ({
     }
 
     setGeneratingSection(sectionId);
+    console.log('Generating AI content for section:', {
+      sectionId,
+      sectionType,
+      sectionTitle: sections.find(s => s.id === sectionId)?.title
+    });
 
     try {
       toast.info('Researching industry standards...');
@@ -182,17 +187,26 @@ export const InteractiveResumeBuilder = ({
         });
         setShowGenerationCard(true);
         
-        // Auto-apply recommended version for better UX
-        const recommendedVersion = data.comparison.recommendation === 'personalized' && vaultStrength >= 30
-          ? data.personalizedVersion.content
-          : data.comparison.recommendation === 'blend' && vaultStrength >= 40
-          ? data.blendVersion.content
-          : data.idealVersion.content;
-        
-        // Auto-apply after a short delay to allow user to see the options
-        setTimeout(() => {
-          handleSelectVersion(recommendedVersion, 'replace');
-        }, 800);
+        // Only auto-apply for non-skills sections (skills need user review due to comma-separated format)
+        const isSkillsSection = sectionType.toLowerCase().includes('skill') || 
+                                sectionType === 'core_competencies' ||
+                                sectionType === 'key_skills';
+
+        if (!isSkillsSection) {
+          // Auto-apply recommended version for better UX
+          const recommendedVersion = data.comparison.recommendation === 'personalized' && vaultStrength >= 30
+            ? data.personalizedVersion.content
+            : data.comparison.recommendation === 'blend' && vaultStrength >= 40
+            ? data.blendVersion.content
+            : data.idealVersion.content;
+          
+          // Auto-apply after a short delay to allow user to see the options
+          setTimeout(() => {
+            handleSelectVersion(recommendedVersion, 'replace');
+          }, 800);
+        } else {
+          toast.info('Review the generated skills and select your preferred version');
+        }
       } else {
         throw new Error(data.error || 'Generation failed');
       }
@@ -208,21 +222,60 @@ export const InteractiveResumeBuilder = ({
     if (!generationData) return;
     
     const sectionId = generationData.sectionId;
+    const sectionType = generationData.sectionType;
     const currentSection = sections.find(s => s.id === sectionId);
     
-    // Parse content into items
-    const newItems = content.split('\n').filter(line => line.trim()).map(line => ({
-      id: Date.now().toString() + Math.random(),
-      content: line.trim()
-    }));
+    console.log('Applying generated content to section:', {
+      sectionId,
+      sectionType,
+      currentSectionId: currentSection?.id,
+      currentSectionType: currentSection?.type,
+      contentPreview: content.substring(0, 100)
+    });
     
-    // Append to existing content or replace
-    const updatedContent = action === 'append' 
-      ? [...(currentSection?.content || []), ...newItems]
-      : newItems.length > 0 ? newItems : [{ id: Date.now().toString(), content }];
+    // For skills sections, treat the entire content as a single comma-separated list
+    const isSkillsSection = sectionType.toLowerCase().includes('skill') || 
+                            sectionType === 'core_competencies' ||
+                            sectionType === 'key_skills';
+    
+    let updatedContent;
+    
+    if (isSkillsSection) {
+      // Skills section: store as single item with comma-separated skills
+      const skillsItem = {
+        id: Date.now().toString() + Math.random(),
+        content: content.trim() // Keep as comma-separated string
+      };
+      updatedContent = action === 'append' 
+        ? [...(currentSection?.content || []), skillsItem]
+        : [skillsItem];
+    } else {
+      // Other sections: split by newlines into separate items
+      const newItems = content.split('\n')
+        .filter(line => line.trim())
+        .map(line => ({
+          id: Date.now().toString() + Math.random(),
+          content: line.trim()
+        }));
+      
+      updatedContent = action === 'append' 
+        ? [...(currentSection?.content || []), ...newItems]
+        : newItems.length > 0 ? newItems : [{ id: Date.now().toString(), content }];
+    }
+    
+    // CRITICAL: Verify we're updating the correct section
+    if (currentSection?.id !== sectionId) {
+      console.error('Section ID mismatch!', {
+        expectedId: sectionId,
+        foundSection: currentSection
+      });
+      toast.error('Error: Wrong section targeted. Please try again.');
+      return;
+    }
     
     onUpdateSection(sectionId, updatedContent);
     setShowGenerationCard(false);
+    setGenerationData(null); // Clear generation data
     
     toast.success(action === 'append' ? 'Content added to section' : 'Section updated');
   };

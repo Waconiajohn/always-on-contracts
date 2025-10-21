@@ -96,6 +96,13 @@ export const SectionGenerationCard = ({
 
   const handleSelectVersion = (version: SectionVersion) => {
     const contentToUse = editingContent[version.type] || version.content;
+    
+    console.log('User selected version:', {
+      versionType: version.type,
+      sectionType,
+      contentLength: contentToUse.length
+    });
+    
     onSelectVersion(contentToUse);
     setSelectedVersion(version.type);
     toast.success(`${version.title} applied to ${sectionType} section`);
