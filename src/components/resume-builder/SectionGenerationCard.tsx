@@ -26,10 +26,13 @@ interface SectionGenerationCardProps {
     quality: any;
     vaultItemsUsed: number;
   };
+  blendVersion: {
+    content: string;
+    quality: any;
+  };
   comparison: {
     recommendation: 'ideal' | 'personalized' | 'blend';
     recommendationReason: string;
-    scoreDifference: number;
     vaultStrength: number;
   };
   onSelectVersion: (content: string) => void;
@@ -40,6 +43,7 @@ export const SectionGenerationCard = ({
   sectionType,
   idealVersion,
   personalizedVersion,
+  blendVersion,
   comparison,
   onSelectVersion,
   onCancel
@@ -66,9 +70,9 @@ export const SectionGenerationCard = ({
     {
       type: 'blend',
       title: '🎯 AI Combined',
-      content: `${idealVersion.content}\n\n${personalizedVersion.content}`,
-      atsScore: Math.round((idealVersion.quality?.atsMatchPercentage + personalizedVersion.quality?.atsMatchPercentage) / 2),
-      reasoning: 'Let AI intelligently blend both versions, maintaining structure from industry standard while incorporating your specific achievements.'
+      content: blendVersion.content,
+      atsScore: blendVersion.quality?.atsMatchPercentage || 0,
+      reasoning: 'AI has intelligently combined both versions, using industry-standard structure with your actual achievements and metrics.'
     }
   ];
 

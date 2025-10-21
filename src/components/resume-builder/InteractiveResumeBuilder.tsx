@@ -287,6 +287,7 @@ export const InteractiveResumeBuilder = ({
               sectionType={generationData.sectionType}
               idealVersion={generationData.idealVersion}
               personalizedVersion={generationData.personalizedVersion}
+              blendVersion={generationData.blendVersion}
               comparison={generationData.comparison}
               onSelectVersion={handleSelectVersion}
               onCancel={() => {

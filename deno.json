@@ -1,7 +1,3 @@
 {
-  "nodeModulesDir": "auto",
-  "compilerOptions": {
-    "lib": ["deno.window", "deno.unstable"],
-    "types": []
-  }
+  "nodeModulesDir": "auto"
 }

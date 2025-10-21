@@ -206,8 +206,64 @@ Return ONLY the content, no explanations.`;
     const idealQuality = calculateQualityScore(idealContent);
     const personalizedQuality = calculateQualityScore(personalizedContent);
 
+    // Step 4: Generate AI-BLENDED version
+    console.log('Generating AI-blended version...');
+    let blendContent = '';
+    let blendQuality = idealQuality;
+
+    if (vault_items.length > 0 && personalizedContent) {
+      const blendPrompt = `You are an expert resume writer. Create an OPTIMAL BLENDED version by intelligently combining these two versions:
+
+INDUSTRY STANDARD VERSION:
+${idealContent}
+
+PERSONALIZED VERSION (candidate's actual experience):
+${personalizedContent}
+
+CRITICAL REQUIREMENTS:
+${section_type === 'skills' ? `
+You MUST return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
+Example: "Python, JavaScript, AWS, Team Leadership, Project Management"
+` : `
+Create a cohesive section that:
+1. Uses the professional structure and tone from the Industry Standard
+2. Incorporates the candidate's ACTUAL achievements and metrics from the Personalized version
+3. Ensures every claim is backed by real experience
+4. Keeps length similar to Industry Standard (concise and impactful)
+5. Includes all critical ATS keywords naturally
+`}
+
+Generate a single, cohesive result. Do NOT simply concatenate - intelligently weave together the strongest elements.`;
+
+      const blendResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [{ role: 'user', content: blendPrompt }],
+          temperature: 0.6,
+          max_tokens: 1500
+        })
+      });
+
+      if (blendResponse.ok) {
+        const blendData = await blendResponse.json();
+        blendContent = blendData.choices?.[0]?.message?.content || '';
+        blendQuality = calculateQualityScore(blendContent);
+        console.log('Blend version generated successfully');
+      } else {
+        console.error('Blend generation failed, falling back to ideal version');
+        blendContent = idealContent;
+      }
+    } else {
+      console.log('Skipping blend generation - insufficient vault data');
+      blendContent = idealContent;
+    }
+
     // Determine recommendation
-    const scoreDiff = personalizedQuality.overallScore - idealQuality.overallScore;
     const vaultStrength = vault_items.length > 0
       ? Math.min(100, (vault_items.reduce((sum: number, item: any) => sum + (item.matchScore || 50), 0) / vault_items.length))
       : 0;
@@ -218,15 +274,16 @@ Return ONLY the content, no explanations.`;
     if (vault_items.length === 0 || vaultStrength < 40) {
       recommendation = 'ideal';
       recommendationReason = 'Limited vault data - Industry Standard recommended';
-    } else if (scoreDiff > 10) {
+    } else if (blendQuality.overallScore >= idealQuality.overallScore && 
+               blendQuality.overallScore >= personalizedQuality.overallScore) {
+      recommendation = 'blend';
+      recommendationReason = 'AI Combined version optimally blends your achievements with industry best practices';
+    } else if (personalizedQuality.overallScore > idealQuality.overallScore + 5) {
       recommendation = 'personalized';
       recommendationReason = 'Your vault creates a stronger, more competitive section';
-    } else if (scoreDiff < -10) {
+    } else {
       recommendation = 'ideal';
       recommendationReason = 'Industry standard has better ATS optimization';
-    } else {
-      recommendation = 'blend';
-      recommendationReason = 'Both versions are strong - AI can blend the best elements';
     }
 
     console.log(`Generation complete. Recommendation: ${recommendation}`);
@@ -243,10 +300,13 @@ Return ONLY the content, no explanations.`;
           quality: personalizedQuality,
           vaultItemsUsed: vault_items.length
         },
+        blendVersion: {
+          content: blendContent,
+          quality: blendQuality
+        },
         comparison: {
           recommendation,
           recommendationReason,
-          scoreDifference: scoreDiff,
           vaultStrength
         }
       }),
