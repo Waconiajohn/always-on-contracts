@@ -54,6 +54,7 @@ serve(async (req) => {
       job_analysis_research,
       vault_items = [],
       resume_milestones = [],
+      user_id,
       job_title,
       industry,
       seniority = 'mid-level',
@@ -66,6 +67,28 @@ serve(async (req) => {
     const lovableKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableKey) {
       throw new Error('LOVABLE_API_KEY not configured');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch user's vault skills if generating skills section
+    let vaultSkills: any[] = [];
+    if ((section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills') && user_id) {
+      const [confirmedSkills, transferableSkills, softSkills] = await Promise.all([
+        supabase.from('vault_confirmed_skills').select('*').eq('user_id', user_id),
+        supabase.from('vault_transferable_skills').select('*').eq('user_id', user_id),
+        supabase.from('vault_soft_skills').select('*').eq('user_id', user_id)
+      ]);
+
+      vaultSkills = [
+        ...(confirmedSkills.data || []).map((s: any) => ({ skill: s.skill_name, proficiency: s.proficiency_level, source: 'confirmed' })),
+        ...(transferableSkills.data || []).map((s: any) => ({ skill: s.stated_skill, evidence: s.evidence, source: 'transferable' })),
+        ...(softSkills.data || []).map((s: any) => ({ skill: s.skill_name, source: 'soft' }))
+      ];
+      
+      console.log(`Loaded ${vaultSkills.length} skills from vault`);
     }
 
     // Step 1: Generate IDEAL version (Pure AI, no vault)
@@ -152,6 +175,19 @@ Details: ${milestone.details || 'N/A'}`;
         }).filter(Boolean).join('\n')
       : '';
     
+    // Prepare skills context from vault
+    const skillsContext = vaultSkills.length > 0
+      ? vaultSkills.map((skill: any, idx: number) => {
+          if (skill.source === 'confirmed') {
+            return `${skill.skill} (${skill.proficiency || 'experienced'})`;
+          } else if (skill.source === 'transferable') {
+            return `${skill.skill} - ${skill.evidence || ''}`;
+          } else {
+            return skill.skill;
+          }
+        }).join(', ')
+      : '';
+    
     // Prepare vault context
     const vaultContext = vault_items.length > 0
       ? vault_items.map((item: any, idx: number) => `
@@ -166,7 +202,11 @@ Keywords: ${item.atsKeywords.join(', ')}
     // Determine primary data source
     const hasResumeData = resume_milestones.length > 0 && 
                           (section_type === 'experience' || section_type === 'education');
-    const primaryContext = hasResumeData ? milestonesContext : vaultContext;
+    const hasSkillsData = vaultSkills.length > 0 && 
+                          (section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills');
+    const primaryContext = hasResumeData ? milestonesContext 
+                         : hasSkillsData ? skillsContext
+                         : vaultContext;
 
     const personalizedPrompt = `You are an expert resume writer. Create a PERSONALIZED ${section_type} section for THIS SPECIFIC CANDIDATE.
 
@@ -179,7 +219,12 @@ ${section_guidance}
 ${hasResumeData ? `CANDIDATE'S ACTUAL ${section_type.toUpperCase()} FROM UPLOADED RESUME:
 ${milestonesContext}
 
-CRITICAL: Use the ACTUAL experiences above. Enhance the language and formatting, but do NOT fabricate new jobs or education.` : `CANDIDATE'S CAREER VAULT DATA:
+CRITICAL: Use the ACTUAL experiences above. Enhance the language and formatting, but do NOT fabricate new jobs or education.` 
+: hasSkillsData ? `CANDIDATE'S ACTUAL SKILLS FROM CAREER VAULT:
+${skillsContext}
+
+CRITICAL: Use these REAL skills from the candidate's vault. You may add related ATS keywords, but base the list primarily on their actual skills.`
+: `CANDIDATE'S CAREER VAULT DATA:
 ${primaryContext}`}
 
 CRITICAL ATS KEYWORDS (MUST include naturally):
@@ -190,7 +235,7 @@ Important keywords: ${ats_keywords.important.join(', ')}
 REQUIREMENTS TO ADDRESS:
 ${requirements.slice(0, 10).join('\n- ')}
 
-${section_type === 'skills' ? `
+${section_type === 'skills' || section_type === 'skills_list' ? `
 CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
 Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
 ` : ''}
@@ -202,13 +247,21 @@ ${hasResumeData ? `
 3. Includes ALL critical ATS keywords naturally in the descriptions
 4. Adds quantification and impact where possible (but stay truthful to the original)
 5. Improves formatting and action verbs
-CRITICAL: Do NOT add fake jobs, fake degrees, or fake experience. Only enhance what's already there.` : `
+CRITICAL: Do NOT add fake jobs, fake degrees, or fake experience. Only enhance what's already there.` 
+: hasSkillsData ? `
+1. Starts with the candidate's ACTUAL vault skills listed above
+2. Adds critical ATS keywords from the job requirements
+3. Orders skills strategically (most relevant first)
+4. Ensures comma-separated format with no descriptions
+5. Includes both technical and soft skills as appropriate
+CRITICAL: Do NOT fabricate skills. Base the list on their actual vault data and required ATS keywords.`
+: `
 1. Uses ACTUAL achievements from the candidate's vault
 2. Includes ALL critical ATS keywords naturally
 3. Leverages candidate's unique strengths and metrics
 4. Addresses the core problem from research
 5. Demonstrates competitive advantage through real accomplishments
-${vault_items.length === 0 && !hasResumeData ? 'NOTE: No candidate data available. Create based on industry standards.' : 'Use ONLY information from the data provided. Do not fabricate.'}`}
+${vault_items.length === 0 && !hasResumeData && !hasSkillsData ? 'NOTE: No candidate data available. Create based on industry standards.' : 'Use ONLY information from the data provided. Do not fabricate.'}`}
 
 Return ONLY the content, no explanations.`;
 
@@ -357,6 +410,7 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
     const vaultStrength = vault_items.length > 0
       ? Math.min(100, (vault_items.reduce((sum: number, item: any) => sum + (item.matchScore || 50), 0) / vault_items.length))
       : 0;
+    const skillsStrength = vaultSkills.length > 0 ? Math.min(100, vaultSkills.length * 10) : 0;
 
     let recommendation: 'ideal' | 'personalized' | 'blend';
     let recommendationReason: string;
@@ -364,6 +418,9 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
     if (hasResumeData) {
       recommendation = 'personalized';
       recommendationReason = 'Your uploaded resume provides authentic experience - enhanced for ATS';
+    } else if (hasSkillsData) {
+      recommendation = 'personalized';
+      recommendationReason = `Your Career Vault contains ${vaultSkills.length} verified skills - optimized with ATS keywords`;
     } else if (vault_items.length === 0 || vaultStrength < 40) {
       recommendation = 'ideal';
       recommendationReason = 'Limited vault data - Industry Standard recommended';
@@ -400,8 +457,10 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
         comparison: {
           recommendation,
           recommendationReason,
-          vaultStrength,
-          hasResumeData
+          vaultStrength: hasSkillsData ? skillsStrength : vaultStrength,
+          hasResumeData,
+          hasSkillsData,
+          skillsCount: vaultSkills.length
         }
       }),
       {

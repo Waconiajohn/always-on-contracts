@@ -115,6 +115,10 @@ export const SectionWizard = ({
     });
 
     try {
+      // Get authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       // Use ALL relevant vault matches automatically - no manual selection
       const vaultStrength = calculateVaultStrength(relevantMatches);
 
@@ -159,6 +163,7 @@ export const SectionWizard = ({
             job_analysis_research: research.research_result,
             vault_items: relevantMatches,
             resume_milestones: resumeMilestones,
+            user_id: user.id,
             job_title: jobAnalysis.roleProfile?.title || '',
             industry: jobAnalysis.roleProfile?.industry || '',
             seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
