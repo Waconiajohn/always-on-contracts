@@ -48,6 +48,9 @@ interface PowerPhrase {
   confidence_score: number | null;
   keywords: string[] | null;
   impact_metrics?: any;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
 }
 
 interface TransferableSkill {
@@ -56,6 +59,9 @@ interface TransferableSkill {
   equivalent_skills: string[];
   evidence: string;
   confidence_score: number | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
 }
 
 interface HiddenCompetency {
@@ -65,6 +71,9 @@ interface HiddenCompetency {
   supporting_evidence: string[];
   confidence_score: number | null;
   certification_equivalent: string | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
 }
 
 interface SoftSkill {
@@ -855,6 +864,29 @@ const VaultDashboardContent = () => {
               } else if (strengthScore.modernTerminologyScore < 10) {
                 setModernizeModalOpen(true);
               }
+            }}
+            onRefresh={handleRefreshVault}
+            qualityDistribution={{
+              gold: [
+                ...powerPhrases.filter(p => p.quality_tier === 'gold'),
+                ...transferableSkills.filter(s => s.quality_tier === 'gold'),
+                ...hiddenCompetencies.filter(c => c.quality_tier === 'gold'),
+              ].length,
+              silver: [
+                ...powerPhrases.filter(p => p.quality_tier === 'silver'),
+                ...transferableSkills.filter(s => s.quality_tier === 'silver'),
+                ...hiddenCompetencies.filter(c => c.quality_tier === 'silver'),
+              ].length,
+              bronze: [
+                ...powerPhrases.filter(p => p.quality_tier === 'bronze'),
+                ...transferableSkills.filter(s => s.quality_tier === 'bronze'),
+                ...hiddenCompetencies.filter(c => c.quality_tier === 'bronze'),
+              ].length,
+              assumed: [
+                ...powerPhrases.filter(p => !p.quality_tier || p.quality_tier === 'assumed'),
+                ...transferableSkills.filter(s => !s.quality_tier || s.quality_tier === 'assumed'),
+                ...hiddenCompetencies.filter(c => !c.quality_tier || c.quality_tier === 'assumed'),
+              ].length,
             }}
             coreScores={{
               powerPhrases: strengthScore.powerPhrasesScore,
