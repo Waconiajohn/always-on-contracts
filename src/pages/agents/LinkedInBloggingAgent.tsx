@@ -34,6 +34,8 @@ export default function LinkedInBloggingAgent() {
   const [_editingDraft, _setEditingDraft] = useState<string | null>(null);
   const [showQualityCheck, setShowQualityCheck] = useState(false);
   const [editingContent, setEditingContent] = useState("");
+  const [vaultTopics, setVaultTopics] = useState<any[]>([]);
+  const [loadingTopics, setLoadingTopics] = useState(false);
   const { toast } = useToast();
   const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
 
@@ -212,6 +214,47 @@ export default function LinkedInBloggingAgent() {
     await updateDraft(id, { status: 'published' });
   };
 
+  const handleLoadVaultTopics = async () => {
+    setLoadingTopics(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('suggest-linkedin-topics-from-vault');
+
+      if (error) throw error;
+
+      if (data.topics && data.topics.length > 0) {
+        setVaultTopics(data.topics);
+        toast({
+          title: "Topics loaded!",
+          description: `Found ${data.topics.length} post ideas from your vault`
+        });
+      } else {
+        toast({
+          title: "No topics yet",
+          description: data.message || "Complete your Career Vault to get topic suggestions",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('Error loading vault topics:', error);
+      toast({
+        title: "Failed to load topics",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingTopics(false);
+    }
+  };
+
+  const handleUseVaultTopic = (topicSuggestion: any) => {
+    setTopic(topicSuggestion.topic);
+    setPostType(topicSuggestion.angle === 'how-to' || topicSuggestion.angle === 'lessons-learned' ? 'thought-leadership' : 'personal-story');
+    toast({
+      title: "Topic selected",
+      description: "Click 'Generate Post' to create content"
+    });
+  };
+
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
@@ -236,6 +279,72 @@ export default function LinkedInBloggingAgent() {
         </TabsList>
 
         <TabsContent value="generator" className="space-y-6">
+          {/* Vault Topic Suggestions */}
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                💡 Topic Ideas from Your Career Vault
+              </CardTitle>
+              <CardDescription>
+                AI analyzes your achievements and suggests engaging LinkedIn post topics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {vaultTopics.length === 0 ? (
+                <Button
+                  onClick={handleLoadVaultTopics}
+                  disabled={loadingTopics}
+                  className="w-full"
+                >
+                  {loadingTopics ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading Topics...</>
+                  ) : (
+                    <><Sparkles className="mr-2 h-4 w-4" /> Get Topic Suggestions from Vault</>
+                  )}
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  {vaultTopics.map((topic, idx) => (
+                    <div key={idx} className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-sm mb-1">{topic.topic}</h4>
+                          <p className="text-sm text-muted-foreground italic mb-2">"{topic.hook}"</p>
+                          <div className="flex gap-2 flex-wrap">
+                            <Badge variant="outline">{topic.angle}</Badge>
+                            <Badge
+                              className={topic.estimatedEngagement === 'high' ? 'bg-green-500' : topic.estimatedEngagement === 'medium' ? 'bg-yellow-500' : 'bg-gray-500'}
+                            >
+                              {topic.estimatedEngagement} engagement
+                            </Badge>
+                          </div>
+                          {topic.reasoning && (
+                            <p className="text-xs text-muted-foreground mt-2">💡 {topic.reasoning}</p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleUseVaultTopic(topic)}
+                        >
+                          Use Topic
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setVaultTopics([])}
+                    className="w-full"
+                  >
+                    Load New Topics
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
