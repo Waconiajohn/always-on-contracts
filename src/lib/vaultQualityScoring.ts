@@ -25,25 +25,33 @@ export interface VaultMatchWithQuality {
 }
 
 /**
- * Assign quality tier based on vault item verification status
+ * Assign quality tier based on vault item verification status and AI confidence
  */
 export const assignQualityTier = (item: any): QualityTier => {
-  // Gold: Quiz-verified skills
+  // Use existing quality_tier if already set
+  if (item.quality_tier && ['gold', 'silver', 'bronze', 'assumed'].includes(item.quality_tier)) {
+    return item.quality_tier as QualityTier;
+  }
+
+  // Gold: Quiz-verified skills or high confidence (>0.85) with evidence
   if (item.quiz_verified || item.verification_status === 'verified') {
     return 'gold';
   }
 
-  // Silver: Evidence-based (3+ pieces of evidence)
-  if (item.evidence_count && item.evidence_count >= 3) {
+  // Silver: High AI confidence (0.70-0.85) OR evidence-based (3+ pieces)
+  if ((item.ai_confidence && item.ai_confidence >= 0.70) || 
+      (item.evidence_count && item.evidence_count >= 3)) {
     return 'silver';
   }
 
-  // Bronze: AI-inferred with some evidence (1-2 pieces)
-  if (item.ai_inferred || (item.evidence_count && item.evidence_count > 0)) {
+  // Bronze: Moderate AI confidence (0.55-0.70) OR some evidence (1-2 pieces)
+  if ((item.ai_confidence && item.ai_confidence >= 0.55) ||
+      (item.evidence_count && item.evidence_count > 0) ||
+      item.ai_inferred) {
     return 'bronze';
   }
 
-  // Assumed: No verification or evidence
+  // Assumed: Low confidence, no verification, no evidence
   return 'assumed';
 };
 

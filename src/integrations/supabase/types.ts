@@ -3197,34 +3197,49 @@ export type Database = {
       }
       vault_hidden_competencies: {
         Row: {
+          ai_confidence: number | null
           certification_equivalent: string | null
           competency_area: string
           confidence_score: number | null
           created_at: string
           id: string
           inferred_capability: string
+          inferred_from: string | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
+          quality_tier: string | null
           supporting_evidence: string[]
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           certification_equivalent?: string | null
           competency_area: string
           confidence_score?: number | null
           created_at?: string
           id?: string
           inferred_capability: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           supporting_evidence?: string[]
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           certification_equivalent?: string | null
           competency_area?: string
           confidence_score?: number | null
           created_at?: string
           id?: string
           inferred_capability?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           supporting_evidence?: string[]
           user_id?: string
           vault_id?: string
@@ -3328,31 +3343,46 @@ export type Database = {
       }
       vault_leadership_philosophy: {
         Row: {
+          ai_confidence: number | null
           core_principles: string[] | null
           created_at: string | null
           id: string
+          inferred_from: string | null
+          last_updated_at: string | null
           leadership_style: string | null
+          needs_user_review: boolean | null
           philosophy_statement: string
+          quality_tier: string | null
           real_world_application: string | null
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           core_principles?: string[] | null
           created_at?: string | null
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
           leadership_style?: string | null
+          needs_user_review?: boolean | null
           philosophy_statement: string
+          quality_tier?: string | null
           real_world_application?: string | null
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           core_principles?: string[] | null
           created_at?: string | null
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
           leadership_style?: string | null
+          needs_user_review?: boolean | null
           philosophy_statement?: string
+          quality_tier?: string | null
           real_world_application?: string | null
           user_id?: string
           vault_id?: string
@@ -3410,40 +3440,55 @@ export type Database = {
       }
       vault_power_phrases: {
         Row: {
+          ai_confidence: number | null
           category: string
           confidence_score: number | null
           created_at: string
           id: string
           impact_metrics: Json | null
+          inferred_from: string | null
           keywords: string[] | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
           original_text: string | null
           power_phrase: string
+          quality_tier: string | null
           source: string | null
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           category: string
           confidence_score?: number | null
           created_at?: string
           id?: string
           impact_metrics?: Json | null
+          inferred_from?: string | null
           keywords?: string[] | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           original_text?: string | null
           power_phrase: string
+          quality_tier?: string | null
           source?: string | null
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           category?: string
           confidence_score?: number | null
           created_at?: string
           id?: string
           impact_metrics?: Json | null
+          inferred_from?: string | null
           keywords?: string[] | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           original_text?: string | null
           power_phrase?: string
+          quality_tier?: string | null
           source?: string | null
           user_id?: string
           vault_id?: string
@@ -3612,31 +3657,46 @@ export type Database = {
       }
       vault_soft_skills: {
         Row: {
+          ai_confidence: number | null
           created_at: string | null
           examples: string
           id: string
           impact: string | null
+          inferred_from: string | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
           proficiency_level: string | null
+          quality_tier: string | null
           skill_name: string
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           created_at?: string | null
           examples: string
           id?: string
           impact?: string | null
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           proficiency_level?: string | null
+          quality_tier?: string | null
           skill_name: string
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           created_at?: string | null
           examples?: string
           id?: string
           impact?: string | null
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           proficiency_level?: string | null
+          quality_tier?: string | null
           skill_name?: string
           user_id?: string
           vault_id?: string
@@ -3653,31 +3713,46 @@ export type Database = {
       }
       vault_transferable_skills: {
         Row: {
+          ai_confidence: number | null
           confidence_score: number | null
           created_at: string
           equivalent_skills: string[]
           evidence: string
           id: string
+          inferred_from: string | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
+          quality_tier: string | null
           stated_skill: string
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           confidence_score?: number | null
           created_at?: string
           equivalent_skills?: string[]
           evidence: string
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           stated_skill: string
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           confidence_score?: number | null
           created_at?: string
           equivalent_skills?: string[]
           evidence?: string
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           stated_skill?: string
           user_id?: string
           vault_id?: string
@@ -3812,18 +3887,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_password_strength: {
-        Args: { password: string }
-        Returns: boolean
-      }
-      cleanup_expired_cache: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_api_key: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      check_password_strength: { Args: { password: string }; Returns: boolean }
+      cleanup_expired_cache: { Args: never; Returns: undefined }
+      generate_api_key: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
