@@ -5,11 +5,10 @@ import { Badge } from "@/components/ui/badge";
 interface FinalEditProps {
   content: string;
   onChange: (content: string) => void;
-  originalOption: any;
   requirement: any;
 }
 
-export const FinalEdit = ({ content, onChange, originalOption, requirement }: FinalEditProps) => (
+export const FinalEdit = ({ content, onChange, requirement }: FinalEditProps) => (
   <div className="space-y-4">
     <div>
       <Label className="text-base font-semibold mb-2 block">Final Edit</Label>

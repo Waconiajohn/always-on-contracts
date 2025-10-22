@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Check, Loader2, Database, AlertCircle } from "lucide-react";
+import { Check, Loader2, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RequirementNeed } from "./RequirementNeed";
@@ -279,7 +279,6 @@ export const RequirementCard = ({
             <FinalEdit
               content={editedContent}
               onChange={setEditedContent}
-              originalOption={options[selectedOption]}
               requirement={requirement}
             />
             <Alert>

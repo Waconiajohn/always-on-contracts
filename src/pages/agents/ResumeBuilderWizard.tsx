@@ -5,25 +5,34 @@ import { useToast } from "@/hooks/use-toast";
 import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { GapAnalysisView } from "@/components/resume-builder/GapAnalysisView";
 import { FormatSelector } from "@/components/resume-builder/FormatSelector";
-import { SectionWizard } from "@/components/resume-builder/SectionWizard";
+import { RequirementFilterView } from "@/components/resume-builder/RequirementFilterView";
+import { RequirementCard } from "@/components/resume-builder/RequirementCard";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
 import { ResumeBuilderOnboarding } from "@/components/resume-builder/ResumeBuilderOnboarding";
-import { ResumePreviewModal } from "@/components/resume-builder/ResumePreviewModal";
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 
-type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'wizard-mode' | 'final-review';
+type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation' | 'final-review';
 
 const ResumeBuilderWizardContent = () => {
   const { toast } = useToast();
   const location = useLocation();
 
-  // Wizard flow state
+  // Use store for state management
+  const store = useResumeBuilderStore();
+  
+  // Local wizard flow state
   const [currentStep, setCurrentStep] = useState<WizardStep>('job-input');
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [currentRequirementIndex, setCurrentRequirementIndex] = useState(0);
+  const [categorizedRequirements, setCategorizedRequirements] = useState<any>({
+    autoHandled: [],
+    needsInput: [],
+    optionalEnhancement: []
+  });
 
   // Job analysis state
   const [analyzing, setAnalyzing] = useState(false);
@@ -34,8 +43,6 @@ const ResumeBuilderWizardContent = () => {
   const [matching, setMatching] = useState(false);
   const [vaultMatches, setVaultMatches] = useState<any>(null);
   
-  // Resume milestones from uploaded resume
-  const [resumeMilestones, setResumeMilestones] = useState<any[]>([]);
 
   // Format selection
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
@@ -47,8 +54,6 @@ const ResumeBuilderWizardContent = () => {
   // Job text for display in JobInputSection
   const [displayJobText, setDisplayJobText] = useState<string>("");
 
-  // Preview modal state
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Helper function to build enhanced job description with metadata
   const buildEnhancedDescription = (jobData: any): string => {
@@ -189,30 +194,19 @@ const ResumeBuilderWizardContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // Fetch resume milestones in parallel with vault matching
-      const [matchResult, milestonesResult] = await Promise.all([
-        supabase.functions.invoke('match-vault-to-requirements', {
-          body: {
-            userId: user.id,
-            jobRequirements: analysis.jobRequirements,
-            industryStandards: analysis.industryStandards,
-            professionBenchmarks: analysis.professionBenchmarks,
-            atsKeywords: analysis.atsKeywords
-          }
-        }),
-        supabase
-          .from('vault_resume_milestones')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('milestone_date', { ascending: false })
-      ]);
+      const { data, error } = await supabase.functions.invoke('match-vault-to-requirements', {
+        body: {
+          userId: user.id,
+          jobRequirements: analysis.jobRequirements,
+          industryStandards: analysis.industryStandards,
+          professionBenchmarks: analysis.professionBenchmarks,
+          atsKeywords: analysis.atsKeywords
+        }
+      });
 
-      if (matchResult.error) throw matchResult.error;
+      if (error) throw error;
       
-      setVaultMatches(matchResult.data);
-      setResumeMilestones(milestonesResult.data || []);
-      
-      console.log('Resume milestones loaded:', milestonesResult.data?.length || 0);
+      setVaultMatches(data);
     } catch (error) {
       console.error("Error matching vault:", error);
       toast({
@@ -228,8 +222,84 @@ const ResumeBuilderWizardContent = () => {
   const handleFormatSelected = () => {
     if (!selectedFormat) return;
 
+    // Categorize requirements for intelligent filtering
+    categorizeRequirements();
+
+    // Move to requirement filter
+    setCurrentStep('requirement-filter');
+  };
+
+  const categorizeRequirements = () => {
+    const allRequirements = [
+      ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => ({ ...r, priority: 'required', source: 'job_description' })),
+      ...(jobAnalysis?.jobRequirements?.preferred || []).map((r: any) => ({ ...r, priority: 'preferred', source: 'job_description' })),
+      ...(jobAnalysis?.industryStandards || []).map((r: any) => ({ text: r, priority: 'nice_to_have', source: 'industry_standard' }))
+    ];
+
+    const categorized = {
+      autoHandled: [] as any[],
+      needsInput: [] as any[],
+      optionalEnhancement: [] as any[]
+    };
+
+    allRequirements.forEach((req: any) => {
+      // Calculate vault coverage for this requirement
+      const matches = vaultMatches?.matchedItems?.filter((item: any) => 
+        item.matchedRequirement?.toLowerCase().includes(req.text?.toLowerCase() || req)
+      ) || [];
+
+      const coverage = matches.length > 0 ? 90 : 0; // Simplified for now
+
+      if (coverage >= 90) {
+        categorized.autoHandled.push({ ...req, coverage, matches, id: Math.random().toString() });
+      } else if (req.source === 'industry_standard') {
+        categorized.optionalEnhancement.push({ ...req, coverage, matches, id: Math.random().toString() });
+      } else {
+        categorized.needsInput.push({ ...req, coverage, matches, id: Math.random().toString() });
+      }
+    });
+
+    setCategorizedRequirements(categorized);
+  };
+
+  const handleContinueFromFilter = (mode: string) => {
+    if (mode === 'skip_to_generate') {
+      // Skip directly to generation
+      generateCompleteResume();
+    } else {
+      // Start requirement-by-requirement flow
+      setCurrentStep('requirement-builder');
+      setCurrentRequirementIndex(0);
+    }
+  };
+
+  const handleRequirementComplete = (response: any) => {
+    // Save response
+    store.addRequirementResponse(response);
+
+    // Move to next requirement or generation
+    if (currentRequirementIndex < categorizedRequirements.needsInput.length - 1) {
+      setCurrentRequirementIndex(currentRequirementIndex + 1);
+    } else {
+      // All requirements addressed, generate resume
+      generateCompleteResume();
+    }
+  };
+
+  const handleRequirementSkip = () => {
+    // Move to next or generate
+    if (currentRequirementIndex < categorizedRequirements.needsInput.length - 1) {
+      setCurrentRequirementIndex(currentRequirementIndex + 1);
+    } else {
+      generateCompleteResume();
+    }
+  };
+
+  const generateCompleteResume = async () => {
+    setCurrentStep('generation');
+
     // Initialize resume sections based on selected format
-    const format = getFormat(selectedFormat);
+    const format = getFormat(selectedFormat || 'executive');
     if (format) {
       const sections = format.sections.map(section => ({
         id: section.id,
@@ -242,51 +312,21 @@ const ResumeBuilderWizardContent = () => {
       setResumeSections(sections);
     }
 
-    // Move to resume editor with vault panel
+    // Simulate generation (in real implementation, this would call an edge function)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     setCurrentStep('final-review');
+
+    toast({
+      title: "Resume Generated!",
+      description: "Review and edit your sections below"
+    });
   };
 
-  const handleSectionComplete = (sectionContent: any) => {
-    // Save section content
-    const updatedSections = [...resumeSections];
-    updatedSections[currentSectionIndex] = {
-      ...updatedSections[currentSectionIndex],
-      content: sectionContent.content,
-      vaultItemsUsed: sectionContent.vaultItemsUsed
-    };
-    setResumeSections(updatedSections);
-
-    // Move to next section or finish
-    if (currentSectionIndex < resumeSections.length - 1) {
-      setCurrentSectionIndex(currentSectionIndex + 1);
-    } else {
-      setCurrentStep('final-review');
-      toast({
-        title: "Resume complete!",
-        description: "Review and export your resume"
-      });
-    }
-  };
-
-  const handleSectionBack = () => {
-    if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(currentSectionIndex - 1);
-    } else {
-      setCurrentStep('format-selection');
-    }
-  };
-
-  const handleSectionSkip = () => {
-    if (currentSectionIndex < resumeSections.length - 1) {
-      setCurrentSectionIndex(currentSectionIndex + 1);
-    } else {
-      setCurrentStep('final-review');
-    }
-  };
 
   const handleStartOver = () => {
     setCurrentStep('job-input');
-    setCurrentSectionIndex(0);
+    setCurrentRequirementIndex(0);
     setJobAnalysis(null);
     setVaultMatches(null);
     setSelectedFormat(null);
@@ -374,68 +414,63 @@ const ResumeBuilderWizardContent = () => {
         </div>
       );
 
-    case 'wizard-mode':
-      const format = getFormat(selectedFormat || 'executive');
-      const currentSection = format?.sections[currentSectionIndex];
+    case 'requirement-filter':
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="p-4">
+            <Button
+              variant="ghost"
+              onClick={handleStartOver}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Start Over
+            </Button>
+          </div>
+          <div className="max-w-4xl mx-auto p-6">
+            <RequirementFilterView
+              categorizedRequirements={categorizedRequirements}
+              onContinue={handleContinueFromFilter}
+            />
+          </div>
+        </div>
+      );
 
-      if (!currentSection) {
-        return <div>Error: Section not found</div>;
+    case 'requirement-builder':
+      const currentRequirement = categorizedRequirements.needsInput[currentRequirementIndex];
+      if (!currentRequirement) {
+        generateCompleteResume();
+        return null;
       }
 
       return (
-        <>
-          <div className="h-screen flex flex-col bg-background">
-            <div className="p-4 border-b flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={handleStartOver}
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Start Over
-              </Button>
-
-              <h3 className="font-semibold">{format?.name}</h3>
-
-              <Button
-                variant="outline"
-                onClick={() => setShowPreviewModal(true)}
-                className="gap-2"
-              >
-                <Eye className="h-4 w-4" />
-                Preview Resume
-              </Button>
-            </div>
-
-            <SectionWizard
-              section={currentSection}
-              vaultMatches={vaultMatches?.matchedItems || []}
-              jobAnalysis={jobAnalysis}
-              resumeMilestones={resumeMilestones}
-              onSectionComplete={handleSectionComplete}
-              onBack={handleSectionBack}
-              onSkip={handleSectionSkip}
-              isFirst={currentSectionIndex === 0}
-              isLast={currentSectionIndex === resumeSections.length - 1}
-              totalSections={resumeSections.length}
-              currentIndex={currentSectionIndex}
+        <div className="min-h-screen bg-background py-8">
+          <div className="max-w-4xl mx-auto px-6">
+            <RequirementCard
+              requirement={currentRequirement}
+              vaultMatches={currentRequirement.matches || []}
+              matchStatus={currentRequirement.coverage >= 90 ? 'perfect_match' : currentRequirement.coverage > 0 ? 'partial_match' : 'complete_gap'}
+              currentIndex={currentRequirementIndex + 1}
+              totalCount={categorizedRequirements.needsInput.length}
+              onComplete={handleRequirementComplete}
+              onSkip={handleRequirementSkip}
+              jobContext={jobAnalysis}
             />
           </div>
+        </div>
+      );
 
-          <ResumePreviewModal
-            isOpen={showPreviewModal}
-            onClose={() => setShowPreviewModal(false)}
-            sections={resumeSections}
-            currentSectionId={currentSection.id}
-            overallQuality={{
-              atsScore: vaultMatches?.coverageScore || 0,
-              requirementCoverage: vaultMatches?.coverageScore || 0,
-              completedSections: resumeSections.filter(s => s.content).length,
-              totalSections: resumeSections.length
-            }}
-            onExport={handleExport}
-          />
-        </>
+    case 'generation':
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Card className="p-12 text-center max-w-md">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+            <h2 className="text-2xl font-bold mb-2">Generating Your Resume</h2>
+            <p className="text-muted-foreground">
+              Assembling all sections using your approved content...
+            </p>
+          </Card>
+        </div>
       );
 
     case 'final-review':
@@ -463,7 +498,6 @@ const ResumeBuilderWizardContent = () => {
               sections={resumeSections}
               jobAnalysis={jobAnalysis}
               vaultMatches={vaultMatches?.matchedItems || []}
-              resumeMilestones={resumeMilestones}
               onUpdateSection={(sectionId, content) => {
                 setResumeSections(prev =>
                   prev.map(s => s.id === sectionId ? { ...s, content } : s)

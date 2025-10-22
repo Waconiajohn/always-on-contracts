@@ -11,7 +11,7 @@ interface RequirementFilterViewProps {
     needsInput: any[];
     optionalEnhancement: any[];
   };
-  onContinue: (mode: 'required' | 'all' | 'skip_to_generate') => void;
+  onContinue: (mode: string) => void;
 }
 
 export const RequirementFilterView = ({ 
