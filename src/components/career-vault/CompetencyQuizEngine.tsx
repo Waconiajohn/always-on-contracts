@@ -89,7 +89,7 @@ export const CompetencyQuizEngine = ({
 
       // 1. Load universal questions (applicable_roles contains '*')
       const { data: universalData, error: universalError } = await supabase
-        .from('competency_questions')
+        .from('competency_questions' as any)
         .select('*')
         .contains('applicable_roles', ['*'])
         .lte('experience_level_min', experienceLevel)
@@ -125,7 +125,7 @@ export const CompetencyQuizEngine = ({
       const allQuestions = [
         ...universalQuestions,
         ...dynamicQuestions
-      ];
+      ] as QuizQuestion[];
 
       setQuestions(allQuestions);
 
@@ -181,7 +181,7 @@ export const CompetencyQuizEngine = ({
       if (!user) return;
 
       const { error } = await supabase
-        .from('user_quiz_responses')
+        .from('user_quiz_responses' as any)
         .upsert({
           user_id: user.id,
           vault_id: vaultId,
@@ -207,7 +207,7 @@ export const CompetencyQuizEngine = ({
 
       // Mark quiz as complete
       const { error: completionError } = await supabase
-        .from('user_quiz_completions')
+        .from('user_quiz_completions' as any)
         .upsert({
           user_id: user.id,
           vault_id: vaultId,
@@ -270,9 +270,9 @@ export const CompetencyQuizEngine = ({
     }
 
     // Save to user_competency_profile
-    for (const [competencyName, competencyData] of competencyMap.entries()) {
+    for (const [_competencyName, competencyData] of competencyMap.entries()) {
       const { error } = await supabase
-        .from('user_competency_profile')
+        .from('user_competency_profile' as any)
         .upsert({
           user_id: userId,
           vault_id: vaultId,
@@ -434,7 +434,6 @@ export const CompetencyQuizEngine = ({
 const QuestionInput = ({
   question,
   currentAnswer,
-  resumeMilestones,
   onAnswer
 }: {
   question: QuizQuestion;

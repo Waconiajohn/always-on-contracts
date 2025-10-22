@@ -53,7 +53,7 @@ export const CompetencyQuizResults = ({
 
       // Load user's competency profile
       const { data: profile, error } = await supabase
-        .from('user_competency_profile')
+        .from('user_competency_profile' as any)
         .select('*')
         .eq('user_id', user.id)
         .eq('vault_id', vaultId);
@@ -62,21 +62,22 @@ export const CompetencyQuizResults = ({
 
       // Load benchmarks for comparison
       const { data: benchmarks } = await supabase
-        .from('competency_benchmarks')
+        .from('competency_benchmarks' as any)
         .select('*')
         .eq('role', role)
         .eq('industry', industry);
 
       // Calculate percentiles
       const enrichedCompetencies = (profile || []).map((comp: any) => {
-        const benchmark = benchmarks?.find(b => b.competency_name === comp.competency_name);
+        const benchmark = benchmarks?.find((b: any) => b.competency_name === comp.competency_name);
 
         let percentile = 50; // Default to median
-        if (benchmark && comp.proficiency_level) {
+        if (benchmark && comp.proficiency_level && typeof benchmark === 'object') {
           // Simple percentile calculation (would be more sophisticated in production)
-          if (comp.proficiency_level >= (benchmark.percentile_90 || 4)) percentile = 90;
-          else if (comp.proficiency_level >= (benchmark.percentile_75 || 3.5)) percentile = 75;
-          else if (comp.proficiency_level >= (benchmark.percentile_50 || 3)) percentile = 50;
+          const b = benchmark as any;
+          if (comp.proficiency_level >= (b.percentile_90 || 4)) percentile = 90;
+          else if (comp.proficiency_level >= (b.percentile_75 || 3.5)) percentile = 75;
+          else if (comp.proficiency_level >= (b.percentile_50 || 3)) percentile = 50;
           else percentile = 25;
         }
 

@@ -9,8 +9,7 @@ import {
   AlertTriangle,
   Check,
   X,
-  RefreshCw,
-  Sparkles
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +54,7 @@ export const VaultRecommendationsPanel = ({
   const loadRecommendations = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-vault-recommendations', {
+      const { data, error } = await supabase.functions.invoke('generate-vault-recommendations' as any, {
         body: { vaultId, limit: 5 }
       });
 
@@ -89,7 +88,7 @@ export const VaultRecommendationsPanel = ({
 
       // Update vault item with improved version
       const { error } = await supabase
-        .from(`vault_${rec.vaultCategory}`)
+        .from(`vault_${rec.vaultCategory}` as any)
         .update({
           [fieldName]: rec.improvedVersion,
           quality_tier: 'silver',  // Upgrade to silver after AI improvement

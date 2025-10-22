@@ -38,7 +38,6 @@ interface MicroQuestionsModalProps {
 export const MicroQuestionsModal = ({
   open,
   onClose,
-  vaultId,
   triggerId,
   questions,
   onComplete

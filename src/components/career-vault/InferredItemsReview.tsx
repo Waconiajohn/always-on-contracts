@@ -40,9 +40,9 @@ export const InferredItemsReview = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.rpc('get_items_needing_review', {
-        p_user_id: user.id
-      });
+    const { data, error } = await supabase.rpc('get_items_needing_review' as any, {
+      p_user_id: user.id
+    });
 
       if (error) throw error;
 
@@ -76,7 +76,7 @@ export const InferredItemsReview = () => {
     if (!currentItem) return;
 
     try {
-      const { error } = await supabase.rpc('process_inference_review', {
+      const { error } = await supabase.rpc('process_inference_review' as any, {
         p_user_id: (await supabase.auth.getUser()).data.user?.id,
         p_vault_category: currentItem.category,
         p_item_id: currentItem.id,
