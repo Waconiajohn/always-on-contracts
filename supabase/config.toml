@@ -297,7 +297,11 @@ verify_jwt = true
 [functions.generate-gap-solutions]
 verify_jwt = true
 
+[functions.generate-requirement-options]
+verify_jwt = true
 
+[functions.generate-requirement-questions]
+verify_jwt = true
 
 [functions.generate-skill-verification-questions]
 verify_jwt = true
