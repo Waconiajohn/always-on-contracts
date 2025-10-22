@@ -11,6 +11,7 @@ interface VaultStatusHeroProps {
   totalItems: number;
   quickWinsAvailable: number;
   onTakeQuickWins: () => void;
+  onRefresh?: () => void;
   coreScores: {
     powerPhrases: number;
     skills: number;
@@ -18,6 +19,12 @@ interface VaultStatusHeroProps {
     intangibles: number;
     quantification: number;
     modernTerms: number;
+  };
+  qualityDistribution?: {
+    gold: number;
+    silver: number;
+    bronze: number;
+    assumed: number;
   };
 }
 
@@ -27,7 +34,9 @@ export const VaultStatusHero = ({
   totalItems,
   quickWinsAvailable,
   onTakeQuickWins,
-  coreScores
+  onRefresh,
+  coreScores,
+  qualityDistribution
 }: VaultStatusHeroProps) => {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -106,6 +115,16 @@ export const VaultStatusHero = ({
             </div>
           )}
           <div className="flex gap-2">
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onRefresh}
+                className="flex-1"
+              >
+                Refresh Vault
+              </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm"
@@ -131,6 +150,29 @@ export const VaultStatusHero = ({
       {/* Collapsible Details */}
       {showDetails && (
         <div className="mt-6 pt-6 border-t space-y-4">
+          {qualityDistribution && (
+            <div className="mb-4">
+              <h3 className="font-semibold text-sm text-muted-foreground mb-3">Quality Distribution</h3>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950 rounded">
+                  <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{qualityDistribution.gold}</div>
+                  <div className="text-xs text-muted-foreground">Gold</div>
+                </div>
+                <div className="text-center p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                  <div className="text-2xl font-bold">{qualityDistribution.silver}</div>
+                  <div className="text-xs text-muted-foreground">Silver</div>
+                </div>
+                <div className="text-center p-2 bg-orange-50 dark:bg-orange-950 rounded">
+                  <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">{qualityDistribution.bronze}</div>
+                  <div className="text-xs text-muted-foreground">Bronze</div>
+                </div>
+                <div className="text-center p-2 bg-red-50 dark:bg-red-950 rounded">
+                  <div className="text-2xl font-bold text-red-700 dark:text-red-300">{qualityDistribution.assumed}</div>
+                  <div className="text-xs text-muted-foreground">Assumed</div>
+                </div>
+              </div>
+            </div>
+          )}
           <h3 className="font-semibold text-sm text-muted-foreground mb-3">Score Breakdown</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>

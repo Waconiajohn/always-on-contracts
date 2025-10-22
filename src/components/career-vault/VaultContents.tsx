@@ -29,7 +29,17 @@ export const VaultContents = ({
 }: VaultContentsProps) => {
   const [showAll, setShowAll] = useState(false);
 
-  const renderCategory = (cat: CategoryData) => (
+  const getQualityBadge = (tier: string) => {
+    const colors = {
+      gold: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      silver: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+      bronze: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+      assumed: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
+    };
+    return colors[tier as keyof typeof colors] || colors.assumed;
+  };
+
+  const renderCategory = (cat: CategoryData & { qualityStats?: any }) => (
     <div key={cat.name} className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div className="flex gap-3 flex-1">
@@ -43,6 +53,20 @@ export const VaultContents = ({
                 <>
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <Badge variant="secondary" className="text-xs">{cat.count} item{cat.count !== 1 ? 's' : ''}</Badge>
+                  {cat.qualityStats && (
+                    <>
+                      {cat.qualityStats.gold > 0 && (
+                        <Badge className={`text-xs ${getQualityBadge('gold')}`}>
+                          {cat.qualityStats.gold} Gold
+                        </Badge>
+                      )}
+                      {cat.qualityStats.needsReview > 0 && (
+                        <Badge variant="outline" className="text-xs border-amber-500 text-amber-700">
+                          {cat.qualityStats.needsReview} Need Review
+                        </Badge>
+                      )}
+                    </>
+                  )}
                 </>
               )}
             </div>

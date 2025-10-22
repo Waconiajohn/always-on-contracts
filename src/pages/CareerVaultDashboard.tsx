@@ -186,23 +186,56 @@ const VaultDashboardContent = () => {
     vals: Value[],
     behavioral: BehavioralIndicator[]
   ): StrengthScore => {
-    // Core Intelligence (30 points total)
+    // Use quality-tier-based scoring with freshness weighting
+    const allItems = [
+      ...phrases.map((p: any) => ({ ...p, category: 'power_phrases' })),
+      ...skills.map((s: any) => ({ ...s, category: 'transferable_skills' })),
+      ...competencies.map((c: any) => ({ ...c, category: 'hidden_competencies' })),
+      ...softSkills.map((s: any) => ({ ...s, category: 'soft_skills' })),
+      ...leadership.map((l: any) => ({ ...l, category: 'leadership' })),
+      ...presence.map((p: any) => ({ ...p, category: 'executive_presence' })),
+      ...traits.map((t: any) => ({ ...t, category: 'personality_traits' })),
+      ...style.map((s: any) => ({ ...s, category: 'work_style' })),
+      ...vals.map((v: any) => ({ ...v, category: 'values' })),
+      ...behavioral.map((b: any) => ({ ...b, category: 'behavioral_indicators' }))
+    ];
+    
+    // Use quality-tier-based scoring
+    const tierWeights = { gold: 1.0, silver: 0.8, bronze: 0.6, assumed: 0.4 };
+    
+    const itemScores = allItems.map(item => {
+      const qualityTier = item.quality_tier || 'assumed';
+      const tierWeight = tierWeights[qualityTier as keyof typeof tierWeights];
+      
+      // Calculate freshness multiplier
+      const lastUpdated = item.last_updated_at || item.updated_at || item.created_at;
+      let freshnessMultiplier = 0.7; // Default
+      if (lastUpdated) {
+        const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+        if (daysSince <= 30) freshnessMultiplier = 1.0;
+        else if (daysSince <= 90) freshnessMultiplier = 0.9;
+        else if (daysSince <= 180) freshnessMultiplier = 0.8;
+      }
+      
+      return tierWeight * freshnessMultiplier;
+    });
+    
+    const avgScore = itemScores.length > 0 
+      ? itemScores.reduce((sum, score) => sum + score, 0) / itemScores.length 
+      : 0;
+    
+    const total = Math.round(avgScore * 100);
+    
+    // Category scores (simplified)
     const powerPhrasesScore = Math.min((phrases.length / 20) * 10, 10);
     const transferableSkillsScore = Math.min((skills.length / 15) * 10, 10);
     const hiddenCompetenciesScore = Math.min((competencies.length / 10) * 10, 10);
+    const intangiblesScore = Math.min(
+      (softSkills.length + leadership.length + presence.length + traits.length + 
+       style.length + vals.length + behavioral.length) / 30 * 40, 40
+    );
     
-    // Intangibles Intelligence (40 points total)
-    const softSkillsScore = Math.min((softSkills.length / 8) * 8, 8);
-    const leadershipScore = Math.min((leadership.length / 3) * 8, 8);
-    const presenceScore = Math.min((presence.length / 3) * 8, 8);
-    const traitsScore = Math.min((traits.length / 5) * 4, 4);
-    const styleScore = Math.min((style.length / 3) * 4, 4);
-    const valuesScore = Math.min((vals.length / 3) * 4, 4);
-    const behavioralScore = Math.min((behavioral.length / 3) * 4, 4);
-    
-    const intangiblesScore = softSkillsScore + leadershipScore + presenceScore + traitsScore + styleScore + valuesScore + behavioralScore;
-    
-    // Quality Metrics (30 points total)
+    // Quality metrics
     const phrasesWithMetrics = phrases.filter(p => 
       p.impact_metrics && Object.keys(p.impact_metrics).length > 0
     ).length;
@@ -218,15 +251,6 @@ const VaultDashboardContent = () => {
     const modernTerminologyScore = phrases.length > 0 
       ? (modernPhrases / phrases.length) * 15 
       : 0;
-    
-    const total = Math.round(
-      powerPhrasesScore + 
-      transferableSkillsScore + 
-      hiddenCompetenciesScore + 
-      intangiblesScore +
-      quantificationScore + 
-      modernTerminologyScore
-    );
     
     let level: StrengthScore['level'] = 'Developing';
     if (total >= 90) level = 'Exceptional';
@@ -371,6 +395,56 @@ const VaultDashboardContent = () => {
     window.location.reload();
   };
 
+  const handleRefreshVault = async () => {
+    if (!vaultId) {
+      toast({
+        title: 'No Vault Found',
+        description: 'Please build your vault first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsReanalyzing(true);
+
+    try {
+      toast({
+        title: 'Refreshing Vault',
+        description: 'Updating quality tiers and freshness scores for stale items...'
+      });
+
+      const { data, error } = await supabase.functions.invoke('refresh-vault-intelligence', {
+        body: {
+          vaultId,
+          ageThresholdDays: 180 // Refresh items older than 6 months
+        }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Refresh failed');
+      }
+
+      toast({
+        title: 'Vault Refreshed!',
+        description: `Updated ${data.totalRefreshed} stale items`,
+      });
+
+      // Reload to show updated data
+      window.location.reload();
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: 'Refresh Failed',
+        description: error instanceof Error ? error.message : 'Please try again',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
+
   const handleReanalyze = async () => {
     if (!vaultId || !vault?.resume_raw_text) {
       toast({
@@ -387,7 +461,6 @@ const VaultDashboardContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get target roles and industries
       const { data: profile } = await supabase
         .from('profiles')
         .select('target_roles, target_industries')
@@ -399,7 +472,6 @@ const VaultDashboardContent = () => {
         description: 'AI is discovering additional intelligence from your documents...'
       });
 
-      // Run auto-populate again
       const { data: autoPopData, error } = await supabase.functions.invoke('auto-populate-vault', {
         body: {
           vaultId,
@@ -420,7 +492,6 @@ const VaultDashboardContent = () => {
         description: `Added ${autoPopData.totalExtracted} intelligence items across ${autoPopData.categories?.length || 0} categories`,
       });
 
-      // Reload the page to show new data
       window.location.reload();
     } catch (error) {
       console.error('Re-analyze error:', error);
