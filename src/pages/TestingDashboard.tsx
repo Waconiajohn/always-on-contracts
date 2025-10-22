@@ -17,7 +17,17 @@ import {
 } from 'lucide-react';
 import { TestExecutor } from '@/lib/testing/testExecutor';
 import { TestRunSummary } from '@/lib/testing/types';
-import { authenticationSuite, careerVaultSuite } from '@/lib/testing/suites';
+import { 
+  authenticationSuite, 
+  careerVaultSuite,
+  jobSearchSuite,
+  resumeBuilderSuite,
+  linkedInSuite,
+  interviewPrepSuite,
+  performanceSuite,
+  dataPersistenceSuite,
+  edgeCasesSuite,
+} from '@/lib/testing/suites';
 import { toast } from 'sonner';
 
 export default function TestingDashboard() {
@@ -29,6 +39,13 @@ export default function TestingDashboard() {
   const allSuites = [
     authenticationSuite,
     careerVaultSuite,
+    jobSearchSuite,
+    resumeBuilderSuite,
+    linkedInSuite,
+    interviewPrepSuite,
+    performanceSuite,
+    dataPersistenceSuite,
+    edgeCasesSuite,
   ];
 
   useEffect(() => {

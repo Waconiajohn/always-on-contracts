@@ -1,2 +1,9 @@
 export { authenticationSuite } from './authenticationSuite';
 export { careerVaultSuite } from './careerVaultSuite';
+export { jobSearchSuite } from './jobSearchSuite';
+export { resumeBuilderSuite } from './resumeBuilderSuite';
+export { linkedInSuite } from './linkedInSuite';
+export { interviewPrepSuite } from './interviewPrepSuite';
+export { performanceSuite } from './performanceSuite';
+export { dataPersistenceSuite } from './dataPersistenceSuite';
+export { edgeCasesSuite } from './edgeCasesSuite';
