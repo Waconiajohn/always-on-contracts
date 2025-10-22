@@ -23,7 +23,8 @@ import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
 import { TooltipHelp } from "./HelpTooltip";
 import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
-import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength } from "@/lib/analytics";
+import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength, analytics } from "@/lib/resumeAnalytics";
+import { executeWithRetry, StateManager } from "@/lib/errorHandling";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -76,6 +77,9 @@ export const SectionWizard = ({
   const [showComparison, setShowComparison] = useState(false);
   const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
 
+  // State manager for recovery
+  const stateManager = new StateManager(`section-${section.id}`);
+
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
     const iconMap: { [key: string]: string } = {
@@ -109,6 +113,12 @@ export const SectionWizard = ({
     setShowComparison(false);
     setCurrentGenerationStep(0);
 
+    // Track generation start
+    await analytics.trackGenerationStart('section-by-section', {
+      section_type: section.type,
+      vault_items: relevantMatches.length
+    });
+
     // Start tracking generation time
     const timer = new GenerationTimer(section.type, {
       job_title: jobAnalysis.roleProfile?.title,
@@ -117,76 +127,96 @@ export const SectionWizard = ({
     });
 
     try {
-      // Get authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      // Use retry logic for generation
+      const result = await executeWithRetry(
+        async () => {
+          // Get authenticated user
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("User not authenticated");
 
-      // Use ALL relevant vault matches automatically - no manual selection
-      const vaultStrength = calculateVaultStrength(relevantMatches);
+          // Use ALL relevant vault matches automatically - no manual selection
+          const vaultStrength = calculateVaultStrength(relevantMatches);
 
-      // Step 1: Get or fetch job analysis research (cache this globally)
-      setCurrentGenerationStep(0);
+          // Step 1: Get or fetch job analysis research (cache this globally)
+          setCurrentGenerationStep(0);
 
-      let research = jobResearch;
-      if (!research) {
-        const { data: researchData, error: researchError } = await supabase.functions.invoke(
-          'perplexity-research',
-          {
-            body: {
-              research_type: 'resume_job_analysis',
-              query_params: {
-                job_description: jobAnalysis.originalJobDescription || '',
+          let research = jobResearch;
+          if (!research) {
+            const { data: researchData, error: researchError } = await supabase.functions.invoke(
+              'perplexity-research',
+              {
+                body: {
+                  research_type: 'resume_job_analysis',
+                  query_params: {
+                    job_description: jobAnalysis.originalJobDescription || '',
+                    job_title: jobAnalysis.roleProfile?.title || '',
+                    company: jobAnalysis.roleProfile?.company || '',
+                    industry: jobAnalysis.roleProfile?.industry || '',
+                    location: jobAnalysis.roleProfile?.location || ''
+                  }
+                }
+              }
+            );
+
+            if (researchError) {
+              throw new Error(`Job analysis failed: ${researchError.message || 'Unable to analyze job description'}`);
+            }
+
+            research = researchData;
+            setJobResearch(research); // Cache for next sections
+          }
+
+          // Step 2 & 3: Generate BOTH versions simultaneously using new dual generation function
+          setCurrentGenerationStep(1);
+
+          const { data: dualData, error: dualError } = await supabase.functions.invoke(
+            'generate-dual-resume-section',
+            {
+              body: {
+                section_type: section.type,
+                section_guidance: section.guidancePrompt,
+                job_analysis_research: research.research_result,
+                vault_items: relevantMatches,
+                resume_milestones: resumeMilestones,
+                user_id: user.id,
                 job_title: jobAnalysis.roleProfile?.title || '',
-                company: jobAnalysis.roleProfile?.company || '',
                 industry: jobAnalysis.roleProfile?.industry || '',
-                location: jobAnalysis.roleProfile?.location || ''
+                seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
+                ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+                requirements: [
+                  ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => r.requirement || r),
+                  ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
+                ]
               }
             }
+          );
+
+          if (dualError) {
+            throw new Error(`Dual generation failed: ${dualError.message || 'Unable to generate versions'}`);
           }
-        );
 
-        if (researchError) {
-          throw new Error(`Job analysis failed: ${researchError.message || 'Unable to analyze job description'}`);
-        }
-
-        research = researchData;
-        setJobResearch(research); // Cache for next sections
-      }
-
-      // Step 2 & 3: Generate BOTH versions simultaneously using new dual generation function
-      setCurrentGenerationStep(1);
-
-      const { data: dualData, error: dualError } = await supabase.functions.invoke(
-        'generate-dual-resume-section',
+          return { dualData, vaultStrength };
+        },
         {
-          body: {
-            section_type: section.type,
-            section_guidance: section.guidancePrompt,
-            job_analysis_research: research.research_result,
-            vault_items: relevantMatches,
-            resume_milestones: resumeMilestones,
-            user_id: user.id,
-            job_title: jobAnalysis.roleProfile?.title || '',
-            industry: jobAnalysis.roleProfile?.industry || '',
-            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
-            ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
-            requirements: [
-              ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => r.requirement || r),
-              ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
-            ]
-          }
+          operationName: 'Section Generation',
+          config: { maxRetries: 2 },
+          showToasts: true
         }
       );
 
-      if (dualError) {
-        throw new Error(`Dual generation failed: ${dualError.message || 'Unable to generate versions'}`);
-      }
+      const { dualData, vaultStrength } = result;
 
       setIdealContent(dualData.idealVersion.content);
       setPersonalizedContent(dualData.personalizedVersion.content);
 
       setCurrentGenerationStep(3); // Complete
       setShowComparison(true);
+
+      // Save state for recovery
+      stateManager.saveState('comparison', {
+        idealContent: dualData.idealVersion.content,
+        personalizedContent: dualData.personalizedVersion.content
+      });
 
       // Track successful generation
       await timer.complete({
