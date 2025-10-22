@@ -41,12 +41,15 @@ export class TestExecutor {
     logger.info(`Starting test suite: ${suite.name}`);
 
     const { data: session } = await supabase.auth.getSession();
-    if (!session.session) throw new Error('User must be authenticated');
+    // Allow authentication tests to run without existing session
+    if (!session.session && suite.category !== 'authentication') {
+      throw new Error('User must be authenticated');
+    }
 
     const { data: testRun, error: runError } = await supabase
       .from('test_runs')
       .insert({
-        user_id: session.session.user.id,
+        user_id: session.session?.user.id || 'anonymous',
         test_suite_name: suite.name,
         total_tests: suite.tests.length,
       })

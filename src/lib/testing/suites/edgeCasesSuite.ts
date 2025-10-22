@@ -20,7 +20,7 @@ export const edgeCasesSuite: TestSuite = {
         }
 
         const { data, error } = await supabase
-          .from('resume_versions')
+          .from('resumes')
           .select('*')
           .eq('user_id', 'non-existent-user-id');
 
@@ -135,7 +135,7 @@ export const edgeCasesSuite: TestSuite = {
         }
 
         const { data } = await supabase
-          .from('resume_versions')
+          .from('resumes')
           .select('*')
           .eq('user_id', session.session.user.id);
 
