@@ -48,6 +48,9 @@ verify_jwt = true
 [functions.generate-achievements]
 verify_jwt = true
 
+[functions.suggest-linkedin-topics-from-vault]
+verify_jwt = true
+
 [functions.generate-interview-question]
 verify_jwt = true
 
