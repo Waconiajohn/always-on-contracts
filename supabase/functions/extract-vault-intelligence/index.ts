@@ -163,7 +163,11 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
             context: pp.context,
             category: 'achievement',
             confidence_score: 85,
-            keywords: []
+            keywords: [],
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Interview response - Question: "${questionText.substring(0, 80)}..."`,
+            ai_confidence: 0.70
           })
         )
       );
@@ -180,7 +184,11 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
             stated_skill: skill.skill,
             equivalent_skills: [],
             evidence: skill.evidence,
-            confidence_score: 80
+            confidence_score: 80,
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Interview response - Inferred from: "${skill.evidence?.substring(0, 80)}..."`,
+            ai_confidence: 0.65
           })
         )
       );
@@ -198,7 +206,11 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
             supporting_evidence: [],
             inferred_capability: comp.description,
             confidence_score: 75,
-            certification_equivalent: comp.potential
+            certification_equivalent: comp.potential,
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Interview response - Inferred competency: "${comp.description?.substring(0, 80)}..."`,
+            ai_confidence: 0.65
           })
         )
       );
@@ -215,7 +227,11 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
             skill_name: soft.skill_name,
             examples: soft.evidence || soft.context || '',
             impact: soft.impact || null,
-            proficiency_level: soft.proficiency_level || determineQualityTier(soft)
+            proficiency_level: soft.proficiency_level || determineQualityTier(soft),
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Interview response - Inferred from behavior: "${(soft.evidence || soft.context || '').substring(0, 80)}..."`,
+            ai_confidence: 0.60
           })
         )
       );
@@ -231,7 +247,11 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
             philosophy_statement: phil.philosophy_statement,
             leadership_style: phil.leadership_style || null,
             real_world_application: phil.supporting_evidence || null,
-            core_principles: phil.core_principles || null
+            core_principles: phil.core_principles || null,
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Interview response - Inferred leadership approach`,
+            ai_confidence: 0.55
           })
         )
       );

@@ -597,6 +597,8 @@ Return VALID JSON only with this structure:
     if (intelligence.powerPhrases?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.powerPhrases.length} power phrases`);
       for (const pp of intelligence.powerPhrases) {
+        const hasMetrics = pp.metrics && Object.keys(pp.metrics).length > 0;
+        const confidence = hasMetrics ? 0.75 : 0.60;
         insertPromises.push(
           supabase.from('vault_power_phrases').insert({
             vault_id: vaultId,
@@ -606,7 +608,11 @@ Return VALID JSON only with this structure:
             category: pp.category || 'achievement',
             confidence_score: getConfidenceScore(pp),
             keywords: pp.keywords || [],
-            impact_metrics: pp.metrics || null
+            impact_metrics: pp.metrics || null,
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Resume analysis - Found in: ${pp.context || 'work history'}`,
+            ai_confidence: confidence
           }).then(() => { totalInserted++; })
         );
       }
@@ -616,6 +622,8 @@ Return VALID JSON only with this structure:
     if (intelligence.transferableSkills?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.transferableSkills.length} transferable skills`);
       for (const skill of intelligence.transferableSkills) {
+        const confidenceScore = skill.level === 'expert' ? 95 : skill.level === 'advanced' ? 85 : 75;
+        const aiConfidence = skill.level === 'expert' ? 0.70 : skill.level === 'advanced' ? 0.65 : 0.60;
         insertPromises.push(
           supabase.from('vault_transferable_skills').insert({
             vault_id: vaultId,
@@ -623,7 +631,11 @@ Return VALID JSON only with this structure:
             stated_skill: skill.skill,
             equivalent_skills: skill.equivalentSkills || [],
             evidence: skill.evidence || '',
-            confidence_score: skill.level === 'expert' ? 95 : skill.level === 'advanced' ? 85 : 75
+            confidence_score: confidenceScore,
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Resume analysis - ${skill.evidence?.substring(0, 100)}${skill.evidence?.length > 100 ? '...' : ''}`,
+            ai_confidence: aiConfidence
           }).then(() => { totalInserted++; })
         );
       }
@@ -633,6 +645,9 @@ Return VALID JSON only with this structure:
     if (intelligence.hiddenCompetencies?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.hiddenCompetencies.length} hidden competencies`);
       for (const comp of intelligence.hiddenCompetencies) {
+        const confidenceScore = comp.marketValue === 'high' ? 90 : 80;
+        const aiConfidence = comp.marketValue === 'high' ? 0.70 : 0.65;
+        const evidenceString = Array.isArray(comp.evidence) ? comp.evidence.join(', ') : (comp.evidence || '');
         insertPromises.push(
           supabase.from('vault_hidden_competencies').insert({
             vault_id: vaultId,
@@ -640,8 +655,12 @@ Return VALID JSON only with this structure:
             competency_area: comp.competency,
             inferred_capability: comp.description,
             supporting_evidence: comp.evidence || [],
-            confidence_score: comp.marketValue === 'high' ? 90 : 80,
-            certification_equivalent: comp.certificationEquivalent || null
+            confidence_score: confidenceScore,
+            certification_equivalent: comp.certificationEquivalent || null,
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Resume analysis - Inferred from: ${evidenceString.substring(0, 100)}${evidenceString.length > 100 ? '...' : ''}`,
+            ai_confidence: aiConfidence
           }).then(() => { totalInserted++; })
         );
       }
@@ -651,14 +670,20 @@ Return VALID JSON only with this structure:
     if (intelligence.softSkills?.length > 0) {
       console.log(`[AUTO-POPULATE-VAULT] Inserting ${intelligence.softSkills.length} soft skills`);
       for (const soft of intelligence.softSkills) {
+        const confidence = soft.proficiencyLevel === 'expert' ? 0.75 : 0.65;
+        const evidence = soft.evidence || soft.context || '';
         insertPromises.push(
           supabase.from('vault_soft_skills').insert({
             vault_id: vaultId,
             user_id: user.id,
             skill_name: soft.skillName,
-            examples: soft.evidence || soft.context || '',
+            examples: evidence,
             impact: soft.impact || null,
-            proficiency_level: soft.proficiencyLevel || 'proficient'
+            proficiency_level: soft.proficiencyLevel || 'proficient',
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Resume analysis - ${evidence.substring(0, 100)}${evidence.length > 100 ? '...' : ''}`,
+            ai_confidence: confidence
           }).then(() => { totalInserted++; })
         );
       }
@@ -675,7 +700,11 @@ Return VALID JSON only with this structure:
             philosophy_statement: phil.philosophyStatement,
             leadership_style: phil.leadershipStyle || null,
             real_world_application: phil.realWorldApplication || null,
-            core_principles: phil.corePrinciples || []
+            core_principles: phil.corePrinciples || [],
+            quality_tier: 'assumed',
+            needs_user_review: true,
+            inferred_from: `Resume analysis - Inferred from leadership style and approach`,
+            ai_confidence: 0.60
           }).then(() => { totalInserted++; })
         );
       }
