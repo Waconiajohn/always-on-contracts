@@ -36,28 +36,47 @@ export const ClarifyingQuestions = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-4">
-        <HelpCircle className="h-5 w-5 text-blue-500" />
-        <h3 className="font-semibold text-lg">Quick Questions</h3>
-        <Badge variant="outline">Optional - improves results</Badge>
+      <div className="flex items-center gap-3 mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <HelpCircle className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-semibold text-lg">Quick Questions</h3>
+          <Badge variant="outline" className="mt-1 bg-muted/50">
+            Optional - improves results
+          </Badge>
+        </div>
       </div>
 
       {questions.map((question, index) => (
-        <Card key={question.id} className="p-4">
-          <div className="space-y-3">
-            <Label className="text-base font-medium">
-              {index + 1}. {question.text}
+        <Card 
+          key={question.id} 
+          className="p-5 hover:shadow-md transition-shadow bg-gradient-to-br from-card to-card/50"
+        >
+          <div className="space-y-4">
+            <Label className="text-base font-medium flex items-start gap-2">
+              <span className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                {index + 1}
+              </span>
+              <span className="flex-1">{question.text}</span>
             </Label>
 
             {question.type === 'multiple_choice' && question.options ? (
               <RadioGroup
                 value={answers[question.id] || ''}
                 onValueChange={(value) => handleAnswerChange(question.id, value)}
+                className="space-y-2"
               >
                 {question.options.map(option => (
-                  <div key={option.value} className="flex items-center space-x-2 p-2 rounded hover:bg-accent">
+                  <div 
+                    key={option.value} 
+                    className="flex items-center space-x-3 p-3 rounded-md hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all cursor-pointer"
+                  >
                     <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
-                    <Label htmlFor={`${question.id}-${option.value}`} className="flex-1 cursor-pointer">
+                    <Label 
+                      htmlFor={`${question.id}-${option.value}`} 
+                      className="flex-1 cursor-pointer font-normal"
+                    >
                       {option.label}
                     </Label>
                   </div>
@@ -69,28 +88,33 @@ export const ClarifyingQuestions = ({
                 onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                 placeholder="Type your answer..."
                 rows={3}
+                className="resize-none"
               />
             )}
           </div>
         </Card>
       ))}
 
-      <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Mic className="h-5 w-5 text-blue-600" />
-            <Label className="text-base font-medium">Additional Context (Optional)</Label>
+      <Card className="p-5 bg-accent/5 border-accent/20">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <Mic className="h-5 w-5 text-accent" />
+            </div>
+            <div>
+              <Label className="text-base font-medium">Additional Context (Optional)</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add nuance or clarification to your answers above.
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Add nuance or clarification to your answers above.
-          </p>
-          <div className="flex gap-2 items-start">
+          <div className="flex gap-3 items-start">
             <Textarea
               value={voiceContext}
               onChange={(e) => onVoiceTranscript(e.target.value)}
               placeholder="Type or speak additional context..."
               rows={4}
-              className="flex-1"
+              className="flex-1 resize-none"
             />
             <VoiceInput
               onTranscript={onVoiceTranscript}

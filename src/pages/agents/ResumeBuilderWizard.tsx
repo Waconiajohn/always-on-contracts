@@ -590,8 +590,16 @@ const ResumeBuilderWizardContent = () => {
         <div className="min-h-screen bg-background">
           <ResumeBuilderOnboarding />
           <div className="max-w-4xl mx-auto p-6">
-            <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold mb-3">Benchmark Resume Builder</h1>
+            <div className="mb-8 text-center relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-lg blur-3xl -z-10" />
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+                  <span className="text-3xl">✨</span>
+                </div>
+              </div>
+              <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                Benchmark Resume Builder
+              </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Build a resume that exceeds job requirements using AI and your Career Vault intelligence
               </p>
@@ -660,11 +668,11 @@ const ResumeBuilderWizardContent = () => {
     case 'requirement-filter':
       return (
         <div className="min-h-screen bg-background">
-          <div className="p-4">
+          <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
             <Button
               variant="ghost"
               onClick={handleStartOver}
-              className="gap-2"
+              className="gap-2 hover:bg-primary/10"
             >
               <ArrowLeft className="h-4 w-4" />
               Start Over
@@ -687,7 +695,7 @@ const ResumeBuilderWizardContent = () => {
       }
 
       return (
-        <div className="min-h-screen bg-background py-8">
+        <div className="min-h-screen bg-background py-8 bg-gradient-to-b from-background to-primary/5">
           <div className="max-w-4xl mx-auto px-6">
             <RequirementCard
               requirement={currentRequirement}

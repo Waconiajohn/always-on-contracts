@@ -16,26 +16,52 @@ interface CreativeOptionsProps {
 export const CreativeOptions = ({ options, onSelectOption }: CreativeOptionsProps) => (
   <div className="space-y-4">
     {options.map((option, index) => (
-      <Card key={index} className="hover:border-primary transition-colors">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <h4 className="font-semibold">Option {index + 1}</h4>
-            <Badge variant="outline">{option.strength || 'Strong'}</Badge>
+      <Card 
+        key={index} 
+        className="group hover:border-primary hover:shadow-md transition-all duration-300 bg-gradient-to-br from-card to-card/50"
+      >
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                {index + 1}
+              </div>
+              <h4 className="font-semibold text-lg">Option {index + 1}</h4>
+            </div>
+            <Badge 
+              variant="outline" 
+              className="bg-primary/5 border-primary/20 text-primary"
+            >
+              {option.strength || 'Strong'}
+            </Badge>
           </div>
-          <p className="text-sm leading-relaxed">{option.content}</p>
+          
+          <p className="text-foreground leading-relaxed">{option.content}</p>
+          
           {option.reasoning && (
-            <p className="text-xs text-muted-foreground">{option.reasoning}</p>
+            <div className="bg-muted/50 rounded-md p-3 border-l-4 border-primary/30">
+              <p className="text-sm text-muted-foreground">{option.reasoning}</p>
+            </div>
           )}
+          
           {option.keywords && option.keywords.length > 0 && (
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-2 flex-wrap pt-2">
               {option.keywords.map((keyword, i) => (
-                <Badge key={i} variant="secondary" className="text-xs">
+                <Badge 
+                  key={i} 
+                  variant="secondary" 
+                  className="text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                >
                   {keyword}
                 </Badge>
               ))}
             </div>
           )}
-          <Button onClick={() => onSelectOption(index)} className="w-full" size="sm">
+          
+          <Button 
+            onClick={() => onSelectOption(index)} 
+            className="w-full bg-primary hover:bg-primary/90 shadow-sm group-hover:shadow-md transition-all"
+          >
             <Check className="mr-2 h-4 w-4" />
             Select This Option
           </Button>
