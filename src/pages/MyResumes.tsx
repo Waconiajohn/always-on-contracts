@@ -42,7 +42,7 @@ export const MyResumes = () => {
   };
   
   const handleContinueEditing = (resumeId: string) => {
-    navigate('/agents/resume-builder', { state: { resumeId } });
+    navigate('/agents/resume-builder-wizard', { state: { resumeId } });
   };
   
   const handleDuplicate = async (resumeId: string) => {
@@ -128,7 +128,7 @@ export const MyResumes = () => {
             </p>
           </div>
           <Button 
-            onClick={() => navigate('/agents/resume-builder')} 
+            onClick={() => navigate('/agents/resume-builder-wizard')} 
             size="lg" 
             className="gap-2"
           >
@@ -145,7 +145,7 @@ export const MyResumes = () => {
               Create your first AI-powered, ATS-optimized resume tailored to any job description.
             </p>
             <Button 
-              onClick={() => navigate('/agents/resume-builder')} 
+              onClick={() => navigate('/agents/resume-builder-wizard')} 
               size="lg"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -233,3 +233,5 @@ export const MyResumes = () => {
     </div>
   );
 };
+
+export default MyResumes;

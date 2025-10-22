@@ -24,6 +24,7 @@ const ResumeBuilderWizardContent = () => {
 
   // Use store for state management
   const store = useResumeBuilderStore();
+  const [resumeId, setResumeId] = useState<string | null>(null);
   
   // Local wizard flow state
   const [currentStep, setCurrentStep] = useState<WizardStep>('job-input');
@@ -130,9 +131,38 @@ const ResumeBuilderWizardContent = () => {
     }
   };
 
+  // Auto-save effect
+  useEffect(() => {
+    let saveTimeout: NodeJS.Timeout;
+
+    const autoSave = async () => {
+      if (resumeId && (jobAnalysis || resumeSections.length > 0)) {
+        try {
+          await store.saveResume();
+          console.log('Auto-saved resume:', resumeId);
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+        }
+      }
+    };
+
+    // Auto-save every 30 seconds
+    saveTimeout = setTimeout(autoSave, 30000);
+
+    return () => clearTimeout(saveTimeout);
+  }, [resumeId, jobAnalysis, resumeSections]);
+
   // Auto-load job from job search navigation
   useEffect(() => {
     const jobData = location.state as any;
+    
+    // Check if loading existing resume
+    if (jobData?.resumeId) {
+      setResumeId(jobData.resumeId);
+      loadExistingResume(jobData.resumeId);
+      return;
+    }
+    
     if (jobData?.fromJobSearch && jobData?.jobDescription && !autoLoadedJob) {
       setAutoLoadedJob(true);
       
@@ -148,6 +178,50 @@ const ResumeBuilderWizardContent = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  const loadExistingResume = async (id: string) => {
+    try {
+      const { data: resume, error } = await supabase
+        .from('saved_resumes' as any)
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      // Restore state from database
+      const resumeData = resume as any;
+      setJobAnalysis(resumeData.job_analysis);
+      setDisplayJobText(resumeData.job_description);
+      setSelectedFormat(resumeData.selected_format);
+      setVaultMatches(resumeData.vault_matches);
+      setResumeSections(resumeData.sections || []);
+      
+      // Determine which step to resume at
+      if (resumeData.sections && resumeData.sections.length > 0) {
+        setCurrentStep('final-review');
+      } else if (resumeData.requirement_responses && resumeData.requirement_responses.length > 0) {
+        setCurrentStep('requirement-builder');
+        setCurrentRequirementIndex(resumeData.requirement_responses.length);
+      } else if (resumeData.selected_format) {
+        setCurrentStep('format-selection');
+      } else if (resumeData.job_analysis) {
+        setCurrentStep('gap-analysis');
+      }
+      
+      toast({
+        title: "Resume Loaded",
+        description: "Continuing where you left off"
+      });
+    } catch (error) {
+      console.error('Failed to load resume:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load resume. Starting fresh.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleAnalyzeJob = async (jobText: string) => {
     setAnalyzing(true);
@@ -273,9 +347,18 @@ const ResumeBuilderWizardContent = () => {
     }
   };
 
-  const handleRequirementComplete = (response: any) => {
+  const handleRequirementComplete = async (response: any) => {
     // Save response
     store.addRequirementResponse(response);
+
+    // Auto-save after requirement completion
+    if (resumeId) {
+      try {
+        await store.saveResume();
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+    }
 
     // Move to next requirement or generation
     if (currentRequirementIndex < categorizedRequirements.needsInput.length - 1) {
@@ -315,6 +398,41 @@ const ResumeBuilderWizardContent = () => {
     // Simulate generation (in real implementation, this would call an edge function)
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Create or update resume in database
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const resumeData: any = {
+          user_id: user.id,
+          job_title: jobAnalysis?.roleProfile?.title || 'Untitled Position',
+          job_company: jobAnalysis?.roleProfile?.company,
+          job_description: displayJobText,
+          job_analysis: jobAnalysis,
+          selected_format: selectedFormat,
+          sections: resumeSections,
+          vault_matches: vaultMatches,
+          requirement_responses: store.requirementResponses,
+          updated_at: new Date().toISOString()
+        };
+
+        if (resumeId) {
+          await supabase.from('saved_resumes' as any).update(resumeData).eq('id', resumeId);
+        } else {
+          const { data, error } = await supabase
+            .from('saved_resumes' as any)
+            .insert(resumeData)
+            .select()
+            .single();
+          
+          if (!error && data) {
+            setResumeId((data as any).id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save resume:', error);
+    }
+
     setCurrentStep('final-review');
 
     toast({
@@ -333,11 +451,136 @@ const ResumeBuilderWizardContent = () => {
     setResumeSections([]);
   };
 
-  const handleExport = async (format: string) => {
-    toast({
-      title: "Export coming soon",
-      description: `${format.toUpperCase()} export will be available soon`
-    });
+  const handleExport = async (format: 'pdf' | 'docx' | 'html' | 'txt') => {
+    try {
+      const { exportFormats } = await import('@/lib/resumeExportUtils');
+      
+      toast({
+        title: "Generating export...",
+        description: `Creating ${format.toUpperCase()} file`
+      });
+
+      // Prepare structured data
+      const structuredData = {
+        name: jobAnalysis?.roleProfile?.title || 'Professional',
+        contact: {
+          email: 'your.email@example.com',
+          phone: '(555) 123-4567',
+          location: 'City, State',
+          linkedin: ''
+        },
+        sections: resumeSections.map(section => ({
+          title: section.title,
+          type: section.type,
+          content: section.content.map((item: any) => item.content || item)
+        }))
+      };
+
+      const fileName = `Resume_${jobAnalysis?.roleProfile?.title?.replace(/\s+/g, '_') || 'Professional'}`;
+
+      switch(format) {
+        case 'pdf':
+          await exportFormats.atsPDF(structuredData, fileName);
+          break;
+        case 'docx':
+          await exportFormats.generateDOCX(structuredData, fileName);
+          break;
+        case 'html':
+          const htmlContent = generateHTMLContent(structuredData);
+          await exportFormats.htmlExport(htmlContent, fileName);
+          break;
+        case 'txt':
+          await exportFormats.txtExport(structuredData, fileName);
+          break;
+      }
+
+      toast({
+        title: "Export successful!",
+        description: `${format.toUpperCase()} file downloaded`
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const generateHTMLContent = (data: any): string => {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${data.name} - Resume</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      max-width: 8.5in; 
+      margin: 0 auto; 
+      padding: 0.5in; 
+      font-size: 11pt;
+      color: #000;
+    }
+    h1 { 
+      font-size: 24pt; 
+      margin-bottom: 8px; 
+      text-align: center;
+      font-weight: bold;
+    }
+    .contact { 
+      font-size: 10pt; 
+      text-align: center;
+      margin-bottom: 20px; 
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+    }
+    h2 { 
+      font-size: 12pt; 
+      text-transform: uppercase;
+      border-bottom: 1px solid #666; 
+      padding-bottom: 4px; 
+      margin-top: 16px; 
+      margin-bottom: 8px; 
+      font-weight: bold;
+    }
+    p, li { 
+      font-size: 11pt; 
+      line-height: 1.4; 
+      margin: 6px 0; 
+    }
+    ul { 
+      margin: 8px 0; 
+      padding-left: 20px; 
+    }
+    .skills {
+      font-size: 11pt;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <h1>${data.name}</h1>
+  <div class="contact">
+    ${data.contact.email} | ${data.contact.phone} | ${data.contact.location}
+    ${data.contact.linkedin ? `| ${data.contact.linkedin}` : ''}
+  </div>
+  
+  ${data.sections.map((section: any) => `
+    <h2>${section.title}</h2>
+    ${section.type === 'skills' ? `
+      <div class="skills">${section.content.join(', ')}</div>
+    ` : `
+      <ul>
+        ${section.content.map((item: string) => `<li>${item}</li>`).join('')}
+      </ul>
+    `}
+  `).join('')}
+</body>
+</html>
+    `;
   };
 
   // Render based on current step
@@ -522,7 +765,7 @@ const ResumeBuilderWizardContent = () => {
                 );
               }}
               onReorderSections={(sections) => setResumeSections(sections)}
-              onExport={handleExport}
+              onExport={(format: string) => handleExport(format as 'pdf' | 'docx' | 'html' | 'txt')}
               requirementCoverage={vaultMatches?.coverageScore || 0}
               atsScore={vaultMatches?.coverageScore || 0}
               mode={resumeMode}

@@ -67,11 +67,12 @@ export const mainNavItems: NavItem[] = [
       { label: 'Research Hub', path: '/research-hub', icon: LineChart },
     ],
   },
-  {
+    {
     label: 'Resume',
     icon: FileText,
     dropdown: [
-      { label: 'Resume Builder', path: '/agents/resume-builder', icon: FileText },
+      { label: 'Resume Builder', path: '/agents/resume-builder-wizard', icon: FileText },
+      { label: 'My Resumes', path: '/my-resumes', icon: FileText },
       { label: 'Templates', path: '/templates', icon: FileText },
     ],
   },
