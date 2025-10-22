@@ -706,6 +706,39 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_vault_usage: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          feature_name: string
+          feature_record_id: string
+          id: string
+          user_id: string
+          vault_item_id: string
+          vault_item_type: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          feature_name: string
+          feature_record_id: string
+          id?: string
+          user_id: string
+          vault_item_id: string
+          vault_item_type: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          feature_name?: string
+          feature_record_id?: string
+          id?: string
+          user_id?: string
+          vault_item_id?: string
+          vault_item_type?: string
+        }
+        Relationships: []
+      }
       interview_communications: {
         Row: {
           body_content: string
@@ -1379,6 +1412,7 @@ export type Database = {
           optimization_score: number | null
           section_type: string
           user_id: string
+          vault_items_used: Json | null
         }
         Insert: {
           content: string
@@ -1388,6 +1422,7 @@ export type Database = {
           optimization_score?: number | null
           section_type: string
           user_id: string
+          vault_items_used?: Json | null
         }
         Update: {
           content?: string
@@ -1397,6 +1432,7 @@ export type Database = {
           optimization_score?: number | null
           section_type?: string
           user_id?: string
+          vault_items_used?: Json | null
         }
         Relationships: []
       }

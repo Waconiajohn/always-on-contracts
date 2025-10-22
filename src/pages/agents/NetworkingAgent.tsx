@@ -49,23 +49,17 @@ export default function NetworkingAgent() {
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('mcp-networking-orchestrator', {
+      const { data, error } = await supabase.functions.invoke('generate-networking-email', {
         body: {
-          method: 'tools/call',
-          params: {
-            name: 'generate_email',
-            arguments: {
-              context: jobDescription,
-              persona: selectedPersona,
-              purpose: 'informational_interview'
-            }
-          }
+          context: jobDescription,
+          persona: selectedPersona,
+          purpose: 'informational_interview'
         }
       });
 
       if (error) throw error;
 
-      setGeneratedEmail(data.content[0].text);
+      setGeneratedEmail(data.body);
       toast({
         title: "Email generated",
         description: "Your networking email is ready!"

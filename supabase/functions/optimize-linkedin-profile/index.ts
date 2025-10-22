@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,55 @@ serve(async (req) => {
 
   try {
     const { currentHeadline, currentAbout, targetRole, industry, skills } = await req.json();
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const { data: { user } } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
+
+      if (user) {
+        // Fetch Career Vault data
+        const { data: vault } = await supabase
+          .from('career_vault')
+          .select(`
+            *,
+            vault_power_phrases(power_phrase, impact_metrics, category),
+            vault_transferable_skills(stated_skill, evidence, proficiency_level),
+            vault_hidden_competencies(competency_area, inferred_capability)
+          `)
+          .eq('user_id', user.id)
+          .single();
+
+        if (vault) {
+          // Enhance user prompt with vault context
+          const vaultContext = `
+
+CAREER VAULT INTELLIGENCE:
+
+TOP ACHIEVEMENTS (use these specific metrics in profile):
+${vault.vault_power_phrases?.slice(0, 10).map((p: any) => 
+  `- ${p.power_phrase} (Metrics: ${p.impact_metrics})`
+).join('\n') || 'None available'}
+
+CORE COMPETENCIES (highlight these skills):
+${vault.vault_transferable_skills?.slice(0, 5).map((s: any) => 
+  `- ${s.stated_skill}: ${s.evidence} (${s.proficiency_level})`
+).join('\n') || 'None available'}
+
+DIFFERENTIATORS (unique selling points):
+${vault.vault_hidden_competencies?.slice(0, 3).map((c: any) => 
+  `- ${c.competency_area}: ${c.inferred_capability}`
+).join('\n') || 'None available'}`;
+
+          skills.vaultContext = vaultContext;
+        }
+      }
+    }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -102,9 +152,10 @@ CURRENT HEADLINE: ${currentHeadline || 'Not provided'}
 CURRENT ABOUT: ${currentAbout || 'Not provided'}
 TARGET ROLE: ${targetRole}
 INDUSTRY: ${industry}
-CURRENT SKILLS: ${skills?.join(', ') || 'Not provided'}
+CURRENT SKILLS: ${Array.isArray(skills) ? skills.join(', ') : 'Not provided'}
+${skills?.vaultContext || ''}
 
-Provide comprehensive optimization focused on recruiter visibility and executive presence.`;
+Use the Career Vault achievements and metrics to create an EVIDENCE-BASED profile. Every claim should tie back to specific accomplishments.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

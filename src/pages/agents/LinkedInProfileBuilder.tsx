@@ -77,7 +77,7 @@ export default function LinkedInProfileBuilder() {
 
     setIsOptimizing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('optimize-linkedin-with-audit', {
+      const { data, error } = await supabase.functions.invoke('optimize-linkedin-profile', {
         body: {
           currentHeadline,
           currentAbout,
