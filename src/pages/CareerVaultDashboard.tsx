@@ -9,6 +9,7 @@ import { Target, Info } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AddMetricsModal } from "@/components/career-vault/AddMetricsModal";
 import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLanguageModal";
+import { InferredItemsReview } from "@/components/career-vault/InferredItemsReview";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { ContextSidebar } from "@/components/layout/ContextSidebar";
 import { VaultSidebar } from "@/components/career-vault/VaultSidebar";
@@ -579,6 +580,9 @@ const VaultDashboardContent = () => {
           Your career intelligence command center - manage documents, track progress, and deploy your vault
         </p>
       </div>
+
+      {/* AI Inference Review Alert */}
+      <InferredItemsReview />
 
       {/* Master Controls Section */}
       <Card className="mb-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
