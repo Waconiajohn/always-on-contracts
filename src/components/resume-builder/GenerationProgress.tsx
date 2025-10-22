@@ -16,12 +16,18 @@ interface GenerationProgressProps {
   steps?: string[];
   isComplete?: boolean;
   generatingSection?: string | null;
+  vaultItemsUsed?: number;
+  estimatedTimeRemaining?: number;
+  isDualGeneration?: boolean;
 }
 
 export const GenerationProgress: React.FC<GenerationProgressProps> = ({
   currentStep,
   isComplete = false,
-  generatingSection
+  generatingSection,
+  vaultItemsUsed = 0,
+  estimatedTimeRemaining = 20,
+  isDualGeneration = false
 }) => {
   const [animatedSteps, setAnimatedSteps] = useState<GenerationStep[]>([]);
 
@@ -77,9 +83,14 @@ export const GenerationProgress: React.FC<GenerationProgressProps> = ({
           </h3>
           <p className="text-sm text-muted-foreground">
             {isComplete
-              ? 'Compare both versions below'
-              : 'This takes about 15-20 seconds'}
+              ? isDualGeneration ? 'Compare both versions below' : 'Review your content below'
+              : `Estimated time: ~${estimatedTimeRemaining}s`}
           </p>
+          {!isComplete && vaultItemsUsed > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Using {vaultItemsUsed} Career Vault item{vaultItemsUsed !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         {/* Progress Steps */}
@@ -176,8 +187,9 @@ export const GenerationProgress: React.FC<GenerationProgressProps> = ({
         {!isComplete && (
           <div className="mt-6 p-3 bg-card rounded-lg border border-border">
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium">💡 Pro Tip:</span> We're analyzing real-time job
-              market data to ensure your content matches industry standards and ATS requirements.
+              <span className="font-medium">💡 Pro Tip:</span> {isDualGeneration 
+                ? "We're generating both industry-standard and personalized versions for comparison."
+                : "We're analyzing real-time job market data to ensure your content matches industry standards and ATS requirements."}
             </p>
           </div>
         )}

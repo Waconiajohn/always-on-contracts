@@ -26,8 +26,10 @@ interface CategorizedRequirements {
 
 interface ResumeBuilderState {
   // Wizard state
-  currentStep: 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation' | 'final-review';
+  currentStep: 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'section-wizard' | 'generation' | 'final-review';
   currentRequirementIndex: number;
+  currentSectionIndex: number;
+  generationMode: 'full' | 'section-by-section' | null;
   
   // Job data
   jobAnalysis: any | null;
@@ -65,6 +67,8 @@ interface ResumeBuilderState {
   // Actions
   setCurrentStep: (step: ResumeBuilderState['currentStep']) => void;
   setCurrentRequirementIndex: (index: number) => void;
+  setCurrentSectionIndex: (index: number) => void;
+  setGenerationMode: (mode: 'full' | 'section-by-section' | null) => void;
   setJobAnalysis: (analysis: any) => void;
   setDisplayJobText: (text: string) => void;
   setVaultMatches: (matches: any) => void;
@@ -94,6 +98,8 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       // Initial state
       currentStep: 'job-input',
       currentRequirementIndex: 0,
+      currentSectionIndex: 0,
+      generationMode: null,
       jobAnalysis: null,
       displayJobText: '',
       vaultMatches: null,
@@ -122,6 +128,8 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       // Actions
       setCurrentStep: (step) => set({ currentStep: step }),
       setCurrentRequirementIndex: (index) => set({ currentRequirementIndex: index }),
+      setCurrentSectionIndex: (index) => set({ currentSectionIndex: index }),
+      setGenerationMode: (mode) => set({ generationMode: mode }),
       setJobAnalysis: (analysis) => set({ jobAnalysis: analysis }),
       setDisplayJobText: (text) => set({ displayJobText: text }),
       setVaultMatches: (matches) => set({ vaultMatches: matches }),
@@ -250,6 +258,8 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       resetBuilder: () => set({
         currentStep: 'job-input',
         currentRequirementIndex: 0,
+        currentSectionIndex: 0,
+        generationMode: null,
         jobAnalysis: null,
         displayJobText: '',
         vaultMatches: null,

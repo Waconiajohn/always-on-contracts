@@ -15,9 +15,13 @@ import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { SectionWizard } from "@/components/resume-builder/SectionWizard";
+import { GenerationModeSelector } from "@/components/resume-builder/GenerationModeSelector";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
+import { useResumeMilestones } from "@/hooks/useResumeMilestones";
+import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
 
-type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation' | 'final-review';
+type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
 
 const ResumeBuilderWizardContent = () => {
   const { toast } = useToast();
@@ -27,9 +31,13 @@ const ResumeBuilderWizardContent = () => {
   const store = useResumeBuilderStore();
   const [resumeId, setResumeId] = useState<string | null>(null);
   
+  // Fetch resume milestones
+  const { milestones } = useResumeMilestones();
+  
   // Local wizard flow state
   const [currentStep, setCurrentStep] = useState<WizardStep>('job-input');
   const [currentRequirementIndex, setCurrentRequirementIndex] = useState(0);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [categorizedRequirements, setCategorizedRequirements] = useState<any>({
     autoHandled: [],
     needsInput: [],
@@ -44,6 +52,7 @@ const ResumeBuilderWizardContent = () => {
   // Vault matching state
   const [matching, setMatching] = useState(false);
   const [vaultMatches, setVaultMatches] = useState<any>(null);
+  const [enhancedVaultMatches, setEnhancedVaultMatches] = useState<any[]>([]);
   
 
   // Format selection
@@ -282,6 +291,15 @@ const ResumeBuilderWizardContent = () => {
       if (error) throw error;
       
       setVaultMatches(data);
+      
+      // Enhance vault matches with quality scores
+      if (data?.matchedItems) {
+        const enhanced = enhanceVaultMatches(data.matchedItems);
+        setEnhancedVaultMatches(enhanced);
+        
+        // Update store with milestones
+        store.setResumeMilestones(milestones);
+      }
     } catch (error) {
       console.error("Error matching vault:", error);
       toast({
@@ -339,12 +357,68 @@ const ResumeBuilderWizardContent = () => {
 
   const handleContinueFromFilter = (mode: string) => {
     if (mode === 'skip_to_generate') {
-      // Skip directly to generation
-      generateCompleteResume();
+      // Show generation mode selector
+      setCurrentStep('generation-mode');
     } else {
       // Start requirement-by-requirement flow
       setCurrentStep('requirement-builder');
       setCurrentRequirementIndex(0);
+    }
+  };
+
+  const handleGenerationModeSelected = (mode: 'full' | 'section-by-section') => {
+    store.setGenerationMode(mode);
+    
+    if (mode === 'full') {
+      // Full generation - skip to generation
+      generateCompleteResume();
+    } else {
+      // Section-by-section - start wizard
+      setCurrentSectionIndex(0);
+      setCurrentStep('section-wizard');
+    }
+  };
+
+  const handleSectionComplete = (sectionData: any) => {
+    // Save section content
+    setResumeSections(prev => prev.map(s => 
+      s.id === sectionData.sectionId 
+        ? { ...s, content: sectionData.content, vaultItemsUsed: sectionData.vaultItemsUsed }
+        : s
+    ));
+
+    const format = getFormat(selectedFormat || 'executive');
+    if (!format) return;
+
+    // Move to next section or final review
+    if (currentSectionIndex < format.sections.length - 1) {
+      setCurrentSectionIndex(currentSectionIndex + 1);
+    } else {
+      // All sections complete
+      setCurrentStep('final-review');
+      toast({
+        title: "Resume Complete!",
+        description: "All sections have been generated. Review and export below."
+      });
+    }
+  };
+
+  const handleSectionBack = () => {
+    if (currentSectionIndex > 0) {
+      setCurrentSectionIndex(currentSectionIndex - 1);
+    } else {
+      setCurrentStep('generation-mode');
+    }
+  };
+
+  const handleSectionSkip = () => {
+    const format = getFormat(selectedFormat || 'executive');
+    if (!format) return;
+
+    if (currentSectionIndex < format.sections.length - 1) {
+      setCurrentSectionIndex(currentSectionIndex + 1);
+    } else {
+      setCurrentStep('final-review');
     }
   };
 
@@ -410,13 +484,21 @@ const ResumeBuilderWizardContent = () => {
         
         store.setGeneratingSection(section.type);
         
-        const { data: sectionData, error } = await supabase.functions.invoke('generate-resume-section', {
+        const { data: sectionData, error } = await supabase.functions.invoke('generate-dual-resume-section', {
           body: {
-            sectionType: section.type,
-            jobAnalysis,
-            vaultMatches,
-            requirementResponses: store.requirementResponses,
-            format: selectedFormat
+            section_type: section.type,
+            section_guidance: '',
+            vault_items: enhancedVaultMatches || [],
+            resume_milestones: milestones,
+            user_id: user.id,
+            job_title: jobAnalysis?.roleProfile?.title || '',
+            industry: jobAnalysis?.roleProfile?.industry || '',
+            seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level',
+            ats_keywords: jobAnalysis?.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+            requirements: [
+              ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => r.requirement || r),
+              ...(jobAnalysis?.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
+            ]
           }
         });
 
@@ -430,10 +512,10 @@ const ResumeBuilderWizardContent = () => {
           continue;
         }
 
-        // Update section with generated content
+        // Use personalized version by default for full generation
         setResumeSections(prev => prev.map(s => 
           s.id === section.id 
-            ? { ...s, content: sectionData.content }
+            ? { ...s, content: sectionData?.personalizedVersion?.content || sectionData?.content }
             : s
         ));
 
@@ -733,6 +815,69 @@ const ResumeBuilderWizardContent = () => {
         </div>
       );
 
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="p-4">
+            <Button
+              variant="ghost"
+              onClick={() => setCurrentStep('requirement-filter')}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
+
+          <div className="max-w-5xl mx-auto p-6">
+            <GenerationModeSelector
+              onSelectMode={handleGenerationModeSelected}
+              sectionsCount={getFormat(selectedFormat || 'executive')?.sections.length || 0}
+            />
+          </div>
+        </div>
+      );
+
+    case 'section-wizard':
+      const format = getFormat(selectedFormat || 'executive');
+      if (!format) return <div>Invalid format</div>;
+
+      const currentSection = format.sections[currentSectionIndex];
+      if (!currentSection) {
+        setCurrentStep('final-review');
+        return null;
+      }
+
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            <Button
+              variant="ghost"
+              onClick={handleStartOver}
+              className="gap-2 hover:bg-primary/10"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Start Over
+            </Button>
+          </div>
+          
+          <div className="max-w-5xl mx-auto p-6">
+            <SectionWizard
+              section={currentSection}
+              vaultMatches={enhancedVaultMatches}
+              jobAnalysis={jobAnalysis}
+              resumeMilestones={milestones}
+              onSectionComplete={handleSectionComplete}
+              onBack={handleSectionBack}
+              onSkip={handleSectionSkip}
+              isFirst={currentSectionIndex === 0}
+              isLast={currentSectionIndex === format.sections.length - 1}
+              totalSections={format.sections.length}
+              currentIndex={currentSectionIndex}
+            />
+          </div>
+        </div>
+      );
+
     case 'requirement-builder':
       const currentRequirement = categorizedRequirements.needsInput[currentRequirementIndex];
       if (!currentRequirement) {
@@ -765,6 +910,9 @@ const ResumeBuilderWizardContent = () => {
               currentStep={0}
               isComplete={false}
               generatingSection={store.generatingSection}
+              vaultItemsUsed={enhancedVaultMatches.length}
+              estimatedTimeRemaining={20}
+              isDualGeneration={store.generationMode === 'section-by-section'}
             />
           </div>
         </div>
