@@ -1,72 +1,50 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { FileText } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
+
 interface VisualResumePreviewProps {
-  contactInfo: {
-    name: string;
-    email: string;
-    phone: string;
-    location: string;
-    linkedin?: string;
-  };
-  sections: Array<{
-    id: string;
-    type: string;
-    title: string;
-    content: any[];
-  }>;
+  responses: any[];
 }
 
-export const VisualResumePreview = ({ contactInfo, sections }: VisualResumePreviewProps) => {
+export const VisualResumePreview = ({ responses }: VisualResumePreviewProps) => {
+  const completedResponses = responses.filter(r => r.editedContent);
+
+  if (completedResponses.length === 0) {
+    return (
+      <Card className="h-full flex items-center justify-center">
+        <EmptyState
+          icon={FileText}
+          title="No content yet"
+          description="Complete requirements to see your resume preview"
+        />
+      </Card>
+    );
+  }
+
   return (
-    <div 
-      className="bg-white text-black p-12 shadow-lg mx-auto overflow-auto"
-      style={{
-        width: '8.5in',
-        minHeight: '11in',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '11pt',
-      }}
-    >
-      {/* Header */}
-      <div className="text-center mb-6 border-b-2 border-gray-800 pb-4">
-        <h1 className="text-3xl font-bold mb-2">{contactInfo.name || 'Your Name'}</h1>
-        <div className="text-sm text-gray-700">
-          {contactInfo.email && <span>{contactInfo.email}</span>}
-          {contactInfo.phone && <span> | {contactInfo.phone}</span>}
-          {contactInfo.location && <span> | {contactInfo.location}</span>}
-          {contactInfo.linkedin && <span> | {contactInfo.linkedin}</span>}
-        </div>
-      </div>
-      
-      {/* Sections */}
-      {sections.map(section => (
-        <div key={section.id} className="mb-4">
-          <h2 className="text-base font-bold uppercase border-b border-gray-400 pb-1 mb-2">
-            {section.title}
-          </h2>
-          
-          {section.type === 'skills' ? (
-            // Skills: comma-separated for ATS
-            <div className="text-sm leading-relaxed">
-              {section.content.map((item: any) => item.content).join(', ')}
+    <Card className="h-full overflow-auto">
+      <CardHeader>
+        <CardTitle>Resume Preview</CardTitle>
+        <Badge variant="outline">{completedResponses.length} section{completedResponses.length !== 1 ? 's' : ''} completed</Badge>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {completedResponses.map((response, index) => (
+          <div key={index} className="border-l-2 border-primary pl-4">
+            <div className="mb-2">
+              <Badge variant="secondary" className="text-xs">
+                {response.requirement.priority}
+              </Badge>
+              <p className="text-sm font-medium mt-1">{response.requirement.text}</p>
             </div>
-          ) : (
-            // Other sections: bullets
-            <div className="space-y-1 pl-4">
-              {section.content.map((item: any, idx: number) => (
-                <div key={idx} className="text-sm leading-relaxed">
-                  • {item.content}
-                </div>
-              ))}
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {response.editedContent}
             </div>
-          )}
-        </div>
-      ))}
-      
-      {/* Empty state */}
-      {sections.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          <p>Your resume content will appear here</p>
-        </div>
-      )}
-    </div>
+            {index < completedResponses.length - 1 && <Separator className="mt-4" />}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 };

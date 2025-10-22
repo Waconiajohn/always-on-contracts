@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, Clock, TrendingUp, Copy, Download, Trash2 } from "lucide-react";
+import { Plus, Clock, TrendingUp, Copy, Download, Trash2, Loader2, Inbox } from "lucide-react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/EmptyState";
 
 export const MyResumes = () => {
   const [resumes, setResumes] = useState<any[]>([]);
@@ -109,9 +110,22 @@ export const MyResumes = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your resumes...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (resumes.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto p-8 max-w-6xl">
+          <EmptyState
+            icon={Inbox}
+            title="No resumes yet"
+            description="Start building your first conversational, ATS-optimized resume"
+            actionLabel="Create Resume"
+            onAction={() => navigate('/agents/resume-builder-wizard')}
+          />
         </div>
       </div>
     );
@@ -137,23 +151,7 @@ export const MyResumes = () => {
           </Button>
         </div>
         
-        {resumes.length === 0 ? (
-          <Card className="p-12 text-center">
-            <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-2xl font-semibold mb-2">No Resumes Yet</h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Create your first AI-powered, ATS-optimized resume tailored to any job description.
-            </p>
-            <Button 
-              onClick={() => navigate('/agents/resume-builder-wizard')} 
-              size="lg"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Your First Resume
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
+        <div className="grid gap-4">
             {resumes.map(resume => (
               <Card 
                 key={resume.id} 
@@ -227,8 +225,7 @@ export const MyResumes = () => {
                 </CardContent>
               </Card>
             ))}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

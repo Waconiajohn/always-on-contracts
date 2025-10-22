@@ -78,19 +78,23 @@ export const RequirementCard = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to generate questions');
+      }
       
       if (data?.questions && data.questions.length > 0) {
         setQuestions(data.questions);
         setStep('questions');
+        toast.success('Here are some questions to help us personalize your content');
       } else {
         // No questions needed, go straight to options
         setStep('options');
         await generateOptions();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating questions:', error);
-      toast.error('Failed to generate questions. Moving to options...');
+      toast.error(error.message || 'Failed to generate questions. Moving to options...');
       setStep('options');
       await generateOptions();
     } finally {
@@ -116,17 +120,21 @@ export const RequirementCard = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to generate options');
+      }
       
       if (data?.options && data.options.length > 0) {
         setOptions(data.options);
         setStep('options');
+        toast.success('Generated creative options for you!');
       } else {
         toast.error('No options generated. Please try again or skip.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating options:', error);
-      toast.error('Failed to generate options. Please try again.');
+      toast.error(error.message || 'Failed to generate options. Please try again.');
     } finally {
       setGenerating(false);
     }
