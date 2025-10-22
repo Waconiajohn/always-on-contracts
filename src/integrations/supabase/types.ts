@@ -2354,25 +2354,34 @@ export type Database = {
       }
       resumes: {
         Row: {
+          ats_analysis: Json | null
+          ats_score: number | null
           file_name: string
           file_url: string
           id: string
+          last_ats_analysis_at: string | null
           parsed_content: Json | null
           upload_date: string | null
           user_id: string
         }
         Insert: {
+          ats_analysis?: Json | null
+          ats_score?: number | null
           file_name: string
           file_url: string
           id?: string
+          last_ats_analysis_at?: string | null
           parsed_content?: Json | null
           upload_date?: string | null
           user_id: string
         }
         Update: {
+          ats_analysis?: Json | null
+          ats_score?: number | null
           file_name?: string
           file_url?: string
           id?: string
+          last_ats_analysis_at?: string | null
           parsed_content?: Json | null
           upload_date?: string | null
           user_id?: string

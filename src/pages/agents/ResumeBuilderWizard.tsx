@@ -13,7 +13,7 @@ import { GenerationProgress } from "@/components/resume-builder/GenerationProgre
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TrendingUp, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
 import { GenerationModeSelector } from "@/components/resume-builder/GenerationModeSelector";
@@ -61,6 +61,10 @@ const ResumeBuilderWizardContent = () => {
   // Resume content
   const [resumeSections, setResumeSections] = useState<any[]>([]);
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
+
+  // ATS Score state
+  const [atsScoreData, setAtsScoreData] = useState<any>(null);
+  const [analyzingATS, setAnalyzingATS] = useState(false);
 
   // Job text for display in JobInputSection
   const [displayJobText, setDisplayJobText] = useState<string>("");
@@ -195,7 +199,7 @@ const ResumeBuilderWizardContent = () => {
   const loadExistingResume = async (id: string) => {
     try {
       const { data: resume, error } = await supabase
-        .from('saved_resumes' as any)
+        .from('resumes')
         .select('*')
         .eq('id', id)
         .single();
@@ -542,10 +546,10 @@ const ResumeBuilderWizardContent = () => {
       };
 
       if (resumeId) {
-        await supabase.from('saved_resumes' as any).update(resumeData).eq('id', resumeId);
+        await supabase.from('resumes').update(resumeData).eq('id', resumeId);
       } else {
         const { data, error } = await supabase
-          .from('saved_resumes' as any)
+          .from('resumes')
           .insert(resumeData)
           .select()
           .single();
@@ -556,6 +560,11 @@ const ResumeBuilderWizardContent = () => {
       }
 
       setCurrentStep('final-review');
+
+      // Auto-trigger ATS analysis after a small delay
+      setTimeout(() => {
+        analyzeATSScore();
+      }, 1000);
 
       toast({
         title: "Resume Generated!",
@@ -572,6 +581,75 @@ const ResumeBuilderWizardContent = () => {
     }
   };
 
+  const analyzeATSScore = async () => {
+    if (!resumeSections || resumeSections.length === 0 || !jobAnalysis?.originalJobDescription) {
+      toast({
+        title: "Cannot analyze ATS score",
+        description: "Missing resume content or job description",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setAnalyzingATS(true);
+
+    try {
+      // Convert resume sections to plain text for analysis
+      const resumeContent = resumeSections.map(section => {
+        const items = Array.isArray(section.content) 
+          ? section.content.map((item: any) => item.content || item).join('\n')
+          : section.content;
+        return `${section.title.toUpperCase()}\n${items}`;
+      }).join('\n\n');
+
+      const { data, error } = await supabase.functions.invoke('analyze-ats-score', {
+        body: {
+          resumeContent,
+          jobDescription: jobAnalysis.originalJobDescription
+        }
+      });
+
+      if (error) {
+        // Handle rate limiting
+        if (error.message?.includes('429')) {
+          throw new Error('Rate limit exceeded. Please try again in a few moments.');
+        }
+        // Handle payment required
+        if (error.message?.includes('402')) {
+          throw new Error('AI credits required. Please add funds to your workspace.');
+        }
+        throw error;
+      }
+
+      setAtsScoreData(data);
+      
+      // Save ATS score to database
+      if (resumeId) {
+        await supabase
+          .from('resumes')
+          .update({
+            ats_analysis: data,
+            ats_score: data.overallScore,
+            last_ats_analysis_at: new Date().toISOString()
+          })
+          .eq('id', resumeId);
+      }
+      
+      toast({
+        title: "ATS Analysis Complete",
+        description: `Overall score: ${data.overallScore}%`,
+      });
+    } catch (error: any) {
+      console.error('ATS analysis failed:', error);
+      toast({
+        title: "ATS Analysis Failed",
+        description: error.message || "Could not analyze ATS compatibility",
+        variant: "destructive"
+      });
+    } finally {
+      setAnalyzingATS(false);
+    }
+  };
 
   const handleStartOver = () => {
     setCurrentStep('job-input');
@@ -931,14 +1009,34 @@ const ResumeBuilderWizardContent = () => {
                 Build your resume using vault intelligence and gap solutions
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleStartOver}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Start New Resume
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={analyzeATSScore}
+                disabled={analyzingATS}
+                className="gap-2"
+              >
+                {analyzingATS ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4" />
+                    {atsScoreData ? 'Re-Analyze' : 'Analyze'} ATS Score
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleStartOver}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Start New Resume
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-hidden">
@@ -946,6 +1044,9 @@ const ResumeBuilderWizardContent = () => {
               sections={resumeSections}
               jobAnalysis={jobAnalysis}
               vaultMatches={vaultMatches?.matchedItems || []}
+              atsScoreData={atsScoreData}
+              analyzingATS={analyzingATS}
+              onReanalyzeATS={analyzeATSScore}
               onUpdateSection={(sectionId, content) => {
                 setResumeSections(prev =>
                   prev.map(s => s.id === sectionId ? { ...s, content } : s)
@@ -972,7 +1073,7 @@ const ResumeBuilderWizardContent = () => {
               onReorderSections={(sections) => setResumeSections(sections)}
               onExport={(format: string) => handleExport(format as 'pdf' | 'docx' | 'html' | 'txt')}
               requirementCoverage={vaultMatches?.coverageScore || 0}
-              atsScore={vaultMatches?.coverageScore || 0}
+              atsScore={atsScoreData?.overallScore || vaultMatches?.coverageScore || 0}
               mode={resumeMode}
               onModeChange={setResumeMode}
             />

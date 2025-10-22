@@ -4,12 +4,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Plus, GripVertical, Trash2, Download, Eye, Edit3, Sparkles, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, GripVertical, Trash2, Download, Eye, Edit3, Sparkles, Loader2, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SectionGenerationCard } from "./SectionGenerationCard";
+import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
 
 interface ResumeSection {
   id: string;
@@ -36,6 +38,9 @@ interface InteractiveResumeBuilderProps {
   onExport: (format: string) => void;
   requirementCoverage: number;
   atsScore: number;
+  atsScoreData?: any;
+  analyzingATS?: boolean;
+  onReanalyzeATS?: () => void;
   mode: 'edit' | 'preview';
   onModeChange: (mode: 'edit' | 'preview') => void;
   jobAnalysis?: any;
@@ -51,6 +56,9 @@ export const InteractiveResumeBuilder = ({
   onExport,
   requirementCoverage = 0,
   atsScore = 0,
+  atsScoreData,
+  analyzingATS = false,
+  onReanalyzeATS,
   mode,
   onModeChange,
   jobAnalysis,
@@ -551,6 +559,33 @@ export const InteractiveResumeBuilder = ({
           <div className="p-6">
             {mode === 'edit' ? (
               <>
+                {/* ATS Score Card */}
+                {atsScoreData && (
+                  <div className="mb-6">
+                    <ATSScoreCard scoreData={atsScoreData} isLoading={analyzingATS} />
+                  </div>
+                )}
+
+                {/* ATS Improvement Suggestions */}
+                {atsScoreData && atsScoreData.overallScore < 80 && (
+                  <Alert className="mb-6 border-yellow-500/50 bg-yellow-500/10">
+                    <TrendingUp className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                    <AlertDescription className="text-sm">
+                      <strong>Boost your ATS score:</strong> Consider adding more keywords from the job description and quantifying your achievements with metrics.
+                      {onReanalyzeATS && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={onReanalyzeATS}
+                          className="ml-2 h-auto p-0 text-yellow-600 dark:text-yellow-400 underline"
+                        >
+                          Re-analyze after edits
+                        </Button>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Contact Info */}
                 <div className="mb-6 p-4 bg-muted rounded-lg border">
                   <h3 className="font-semibold mb-3 flex items-center gap-2 text-foreground">

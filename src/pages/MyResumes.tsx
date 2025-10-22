@@ -26,10 +26,9 @@ export const MyResumes = () => {
       }
       
       const { data, error } = await supabase
-        .from('saved_resumes' as any)
+        .from('resumes')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_active', true)
         .order('updated_at', { ascending: false });
         
       if (error) throw error;
@@ -49,7 +48,7 @@ export const MyResumes = () => {
   const handleDuplicate = async (resumeId: string) => {
     try {
       const { data: resume, error: fetchError } = await supabase
-        .from('saved_resumes' as any)
+        .from('resumes')
         .select('*')
         .eq('id', resumeId)
         .single();
@@ -75,7 +74,7 @@ export const MyResumes = () => {
       };
       
       const { error: insertError } = await supabase
-        .from('saved_resumes' as any)
+        .from('resumes')
         .insert(duplicateData);
       
       if (insertError) throw insertError;
@@ -93,8 +92,8 @@ export const MyResumes = () => {
     
     try {
       const { error } = await supabase
-        .from('saved_resumes' as any)
-        .update({ is_active: false })
+        .from('resumes')
+        .delete()
         .eq('id', resumeId);
       
       if (error) throw error;
