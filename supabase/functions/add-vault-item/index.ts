@@ -69,10 +69,11 @@ serve(async (req) => {
       .insert({
         vault_id: vaultId,
         user_id: user.id,
-        quality_tier: 'assumed', // Default for user-added items
+        quality_tier: 'gold', // User-added items are gold tier
         needs_user_review: false, // User explicitly added it
         ai_confidence: 1.0, // User input is 100% confident
         last_updated_at: new Date().toISOString(),
+        inferred_from: 'user_manual_entry',
         ...itemData
       })
       .select()

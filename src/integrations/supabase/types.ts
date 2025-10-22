@@ -3076,31 +3076,46 @@ export type Database = {
       }
       vault_behavioral_indicators: {
         Row: {
+          ai_confidence: number | null
           context: string | null
           created_at: string | null
           id: string
           indicator_type: string
+          inferred_from: string | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
           outcome_pattern: string | null
+          quality_tier: string | null
           specific_behavior: string
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           context?: string | null
           created_at?: string | null
           id?: string
           indicator_type: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           outcome_pattern?: string | null
+          quality_tier?: string | null
           specific_behavior: string
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           context?: string | null
           created_at?: string | null
           id?: string
           indicator_type?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           outcome_pattern?: string | null
+          quality_tier?: string | null
           specific_behavior?: string
           user_id?: string
           vault_id?: string
@@ -3156,31 +3171,46 @@ export type Database = {
       }
       vault_executive_presence: {
         Row: {
+          ai_confidence: number | null
           brand_alignment: string | null
           created_at: string | null
           id: string
+          inferred_from: string | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
           perceived_impact: string | null
           presence_indicator: string
+          quality_tier: string | null
           situational_example: string
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           brand_alignment?: string | null
           created_at?: string | null
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           perceived_impact?: string | null
           presence_indicator: string
+          quality_tier?: string | null
           situational_example: string
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           brand_alignment?: string | null
           created_at?: string | null
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           perceived_impact?: string | null
           presence_indicator?: string
+          quality_tier?: string | null
           situational_example?: string
           user_id?: string
           vault_id?: string
@@ -3399,9 +3429,14 @@ export type Database = {
       }
       vault_personality_traits: {
         Row: {
+          ai_confidence: number | null
           behavioral_evidence: string
           created_at: string | null
           id: string
+          inferred_from: string | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
+          quality_tier: string | null
           strength_or_growth: string | null
           trait_name: string
           user_id: string
@@ -3409,9 +3444,14 @@ export type Database = {
           work_context: string | null
         }
         Insert: {
+          ai_confidence?: number | null
           behavioral_evidence: string
           created_at?: string | null
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           strength_or_growth?: string | null
           trait_name: string
           user_id: string
@@ -3419,9 +3459,14 @@ export type Database = {
           work_context?: string | null
         }
         Update: {
+          ai_confidence?: number | null
           behavioral_evidence?: string
           created_at?: string | null
           id?: string
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           strength_or_growth?: string | null
           trait_name?: string
           user_id?: string
@@ -3769,31 +3814,46 @@ export type Database = {
       }
       vault_values_motivations: {
         Row: {
+          ai_confidence: number | null
           career_decisions_influenced: string | null
           created_at: string | null
           id: string
           importance_level: string | null
+          inferred_from: string | null
+          last_updated_at: string | null
           manifestation: string
+          needs_user_review: boolean | null
+          quality_tier: string | null
           user_id: string
           value_name: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           career_decisions_influenced?: string | null
           created_at?: string | null
           id?: string
           importance_level?: string | null
+          inferred_from?: string | null
+          last_updated_at?: string | null
           manifestation: string
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           user_id: string
           value_name: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           career_decisions_influenced?: string | null
           created_at?: string | null
           id?: string
           importance_level?: string | null
+          inferred_from?: string | null
+          last_updated_at?: string | null
           manifestation?: string
+          needs_user_review?: boolean | null
+          quality_tier?: string | null
           user_id?: string
           value_name?: string
           vault_id?: string
@@ -3843,32 +3903,47 @@ export type Database = {
       }
       vault_work_style: {
         Row: {
+          ai_confidence: number | null
           created_at: string | null
           examples: string | null
           id: string
           ideal_environment: string | null
+          inferred_from: string | null
+          last_updated_at: string | null
+          needs_user_review: boolean | null
           preference_area: string
           preference_description: string
+          quality_tier: string | null
           user_id: string
           vault_id: string
         }
         Insert: {
+          ai_confidence?: number | null
           created_at?: string | null
           examples?: string | null
           id?: string
           ideal_environment?: string | null
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           preference_area: string
           preference_description: string
+          quality_tier?: string | null
           user_id: string
           vault_id: string
         }
         Update: {
+          ai_confidence?: number | null
           created_at?: string | null
           examples?: string | null
           id?: string
           ideal_environment?: string | null
+          inferred_from?: string | null
+          last_updated_at?: string | null
+          needs_user_review?: boolean | null
           preference_area?: string
           preference_description?: string
+          quality_tier?: string | null
           user_id?: string
           vault_id?: string
         }

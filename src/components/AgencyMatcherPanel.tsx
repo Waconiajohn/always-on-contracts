@@ -68,39 +68,37 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
     }
   };
 
-  const parseAgencyResults = (_results: string): Agency[] => {
-    // Simple parsing - in production, this would be more sophisticated
-    const mockAgencies: Agency[] = [
-      {
-        id: '1',
-        name: 'TechStaff Solutions',
-        specialization: ['Software Engineering', 'Data Science', 'DevOps'],
-        location: 'San Francisco, CA',
-        contactEmail: 'contact@techstaff.example.com',
-        website: 'https://techstaff.example.com',
-        matchScore: 95
-      },
-      {
-        id: '2',
-        name: 'Executive Search Partners',
-        specialization: ['Senior Leadership', 'C-Suite', 'VP Level'],
-        location: 'New York, NY',
-        contactEmail: 'info@execsearch.example.com',
-        website: 'https://execsearch.example.com',
-        matchScore: 88
-      },
-      {
-        id: '3',
-        name: 'Creative Talent Agency',
-        specialization: ['Design', 'Marketing', 'Creative Director'],
-        location: 'Los Angeles, CA',
-        contactEmail: 'hello@creativetalent.example.com',
-        website: 'https://creativetalent.example.com',
-        matchScore: 82
-      }
-    ];
-
-    return mockAgencies;
+  const parseAgencyResults = (perplexityResponse: string): Agency[] => {
+    const agencies: Agency[] = [];
+    
+    // Split by numbered list items (e.g., "1. Agency Name")
+    const sections = perplexityResponse.split(/\d+\.\s+\*\*/).filter(s => s.trim());
+    
+    sections.forEach((section, index) => {
+      const lines = section.split('\n').filter(l => l.trim());
+      if (lines.length === 0) return;
+      
+      // Extract agency name (first line, remove ** markdown)
+      const name = lines[0].replace(/\*\*/g, '').split(':')[0].trim();
+      
+      // Extract fields using regex patterns
+      const specialization = section.match(/Specialization[:\s]+([^\n]+)/i)?.[1]?.trim() || 'General';
+      const location = section.match(/Location[:\s]+([^\n]+)/i)?.[1]?.trim() || 'Various';
+      const contact = section.match(/Contact[:\s]+([^\n]+)/i)?.[1]?.trim() || '';
+      const website = section.match(/Website[:\s]+([^\n]+)/i)?.[1]?.trim() || '';
+      
+      agencies.push({
+        id: `agency-${index + 1}`,
+        name,
+        specialization: specialization.split(',').map(s => s.trim()),
+        location,
+        contactEmail: contact,
+        website,
+        matchScore: 85 - (index * 5)
+      });
+    });
+    
+    return agencies.length > 0 ? agencies.slice(0, 6) : [];
   };
 
   const filteredAgencies = agencies.filter(agency =>

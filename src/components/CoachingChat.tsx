@@ -138,9 +138,7 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
       setMessages(prev => [...prev, assistantMessage]);
 
       // Store important exchanges in persona memories
-      if (input.length > 50) {
-        await storeMemory(input, data.response);
-      }
+      await storeMemory(input, data.response);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -154,6 +152,9 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
   };
 
   const storeMemory = async (userInput: string, assistantResponse: string) => {
+    // Store if either input OR response is substantial
+    if (userInput.length < 20 && assistantResponse.length < 50) return;
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -161,9 +162,13 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
       await supabase.from('persona_memories').insert({
         user_id: user.id,
         persona_id: coachPersonality,
-        memory_type: 'conversation',
-        content: `User: ${userInput}\nCoach: ${assistantResponse}`,
-        importance: 5
+        memory_type: 'coaching_exchange',
+        content: JSON.stringify({
+          user: userInput,
+          coach: assistantResponse.slice(0, 500),
+          timestamp: new Date().toISOString()
+        }),
+        importance: assistantResponse.length > 200 ? 8 : 5
       });
     } catch (error) {
       console.error('Error storing memory:', error);

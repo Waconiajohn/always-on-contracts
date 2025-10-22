@@ -141,6 +141,9 @@ const ResumeBuilderWizardContent = () => {
     }
   };
 
+  // Auto-save interval (2 minutes)
+  const AUTO_SAVE_INTERVAL = 120000;
+
   // Auto-save effect
   useEffect(() => {
     let saveTimeout: NodeJS.Timeout;
@@ -156,8 +159,8 @@ const ResumeBuilderWizardContent = () => {
       }
     };
 
-    // Auto-save every 30 seconds
-    saveTimeout = setTimeout(autoSave, 30000);
+    // Auto-save every 2 minutes
+    saveTimeout = setTimeout(autoSave, AUTO_SAVE_INTERVAL);
 
     return () => clearTimeout(saveTimeout);
   }, [resumeId, jobAnalysis, resumeSections]);

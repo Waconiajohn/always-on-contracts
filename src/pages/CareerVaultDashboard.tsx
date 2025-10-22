@@ -82,6 +82,11 @@ interface SoftSkill {
   examples: string;
   impact: string | null;
   proficiency_level: string | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
+  ai_confidence?: number | null;
+  inferred_from?: string | null;
 }
 
 interface LeadershipPhilosophy {
@@ -90,6 +95,11 @@ interface LeadershipPhilosophy {
   leadership_style: string | null;
   real_world_application: string | null;
   core_principles: string[] | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
+  ai_confidence?: number | null;
+  inferred_from?: string | null;
 }
 
 interface ExecutivePresence {
@@ -98,6 +108,11 @@ interface ExecutivePresence {
   situational_example: string;
   brand_alignment: string | null;
   perceived_impact: string | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
+  ai_confidence?: number | null;
+  inferred_from?: string | null;
 }
 
 interface PersonalityTrait {
@@ -106,6 +121,11 @@ interface PersonalityTrait {
   behavioral_evidence: string;
   work_context: string | null;
   strength_or_growth: string | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
+  ai_confidence?: number | null;
+  inferred_from?: string | null;
 }
 
 interface WorkStyle {
@@ -114,6 +134,11 @@ interface WorkStyle {
   preference_description: string;
   examples: string | null;
   ideal_environment: string | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
+  ai_confidence?: number | null;
+  inferred_from?: string | null;
 }
 
 interface Value {
@@ -122,6 +147,11 @@ interface Value {
   manifestation: string;
   importance_level: string | null;
   career_decisions_influenced: string | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
+  ai_confidence?: number | null;
+  inferred_from?: string | null;
 }
 
 interface BehavioralIndicator {
@@ -130,6 +160,11 @@ interface BehavioralIndicator {
   specific_behavior: string;
   context: string | null;
   outcome_pattern: string | null;
+  quality_tier?: string | null;
+  needs_user_review?: boolean | null;
+  last_updated_at?: string | null;
+  ai_confidence?: number | null;
+  inferred_from?: string | null;
 }
 
 import { EnhancementQueue } from '@/components/EnhancementQueue';
@@ -871,21 +906,49 @@ const VaultDashboardContent = () => {
                 ...powerPhrases.filter(p => p.quality_tier === 'gold'),
                 ...transferableSkills.filter(s => s.quality_tier === 'gold'),
                 ...hiddenCompetencies.filter(c => c.quality_tier === 'gold'),
+                ...softSkills.filter(ss => ss.quality_tier === 'gold'),
+                ...leadershipPhilosophy.filter(l => l.quality_tier === 'gold'),
+                ...executivePresence.filter(e => e.quality_tier === 'gold'),
+                ...personalityTraits.filter(pt => pt.quality_tier === 'gold'),
+                ...workStyle.filter(ws => ws.quality_tier === 'gold'),
+                ...values.filter(v => v.quality_tier === 'gold'),
+                ...behavioralIndicators.filter(bi => bi.quality_tier === 'gold')
               ].length,
               silver: [
                 ...powerPhrases.filter(p => p.quality_tier === 'silver'),
                 ...transferableSkills.filter(s => s.quality_tier === 'silver'),
                 ...hiddenCompetencies.filter(c => c.quality_tier === 'silver'),
+                ...softSkills.filter(ss => ss.quality_tier === 'silver'),
+                ...leadershipPhilosophy.filter(l => l.quality_tier === 'silver'),
+                ...executivePresence.filter(e => e.quality_tier === 'silver'),
+                ...personalityTraits.filter(pt => pt.quality_tier === 'silver'),
+                ...workStyle.filter(ws => ws.quality_tier === 'silver'),
+                ...values.filter(v => v.quality_tier === 'silver'),
+                ...behavioralIndicators.filter(bi => bi.quality_tier === 'silver')
               ].length,
               bronze: [
                 ...powerPhrases.filter(p => p.quality_tier === 'bronze'),
                 ...transferableSkills.filter(s => s.quality_tier === 'bronze'),
                 ...hiddenCompetencies.filter(c => c.quality_tier === 'bronze'),
+                ...softSkills.filter(ss => ss.quality_tier === 'bronze'),
+                ...leadershipPhilosophy.filter(l => l.quality_tier === 'bronze'),
+                ...executivePresence.filter(e => e.quality_tier === 'bronze'),
+                ...personalityTraits.filter(pt => pt.quality_tier === 'bronze'),
+                ...workStyle.filter(ws => ws.quality_tier === 'bronze'),
+                ...values.filter(v => v.quality_tier === 'bronze'),
+                ...behavioralIndicators.filter(bi => bi.quality_tier === 'bronze')
               ].length,
               assumed: [
                 ...powerPhrases.filter(p => !p.quality_tier || p.quality_tier === 'assumed'),
                 ...transferableSkills.filter(s => !s.quality_tier || s.quality_tier === 'assumed'),
                 ...hiddenCompetencies.filter(c => !c.quality_tier || c.quality_tier === 'assumed'),
+                ...softSkills.filter(ss => !ss.quality_tier || ss.quality_tier === 'assumed'),
+                ...leadershipPhilosophy.filter(l => !l.quality_tier || l.quality_tier === 'assumed'),
+                ...executivePresence.filter(e => !e.quality_tier || e.quality_tier === 'assumed'),
+                ...personalityTraits.filter(pt => !pt.quality_tier || pt.quality_tier === 'assumed'),
+                ...workStyle.filter(ws => !ws.quality_tier || ws.quality_tier === 'assumed'),
+                ...values.filter(v => !v.quality_tier || v.quality_tier === 'assumed'),
+                ...behavioralIndicators.filter(bi => !bi.quality_tier || bi.quality_tier === 'assumed')
               ].length,
             }}
             coreScores={{

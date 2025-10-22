@@ -92,34 +92,43 @@ export const MarketInsightsPanel = ({ targetRole, targetIndustry }: MarketInsigh
   };
 
   const determineDemandLevel = (text: string): 'high' | 'medium' | 'low' => {
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes('high demand') || lowerText.includes('strong demand')) return 'high';
-    if (lowerText.includes('low demand') || lowerText.includes('weak demand')) return 'low';
+    const highKeywords = ['high demand', 'strong demand', 'growing need', 'shortage', 'competitive'];
+    const lowKeywords = ['declining', 'saturated', 'limited opportunities', 'oversupply'];
+    
+    const textLower = text.toLowerCase();
+    if (highKeywords.some(k => textLower.includes(k))) return 'high';
+    if (lowKeywords.some(k => textLower.includes(k))) return 'low';
     return 'medium';
   };
 
   const determineGrowthTrend = (text: string): 'increasing' | 'stable' | 'decreasing' => {
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes('growing') || lowerText.includes('increasing')) return 'increasing';
-    if (lowerText.includes('declining') || lowerText.includes('decreasing')) return 'decreasing';
+    const upKeywords = ['growing', 'increasing', 'expanding', 'rising', 'upward'];
+    const downKeywords = ['declining', 'decreasing', 'shrinking', 'falling'];
+    
+    const textLower = text.toLowerCase();
+    if (upKeywords.some(k => textLower.includes(k))) return 'increasing';
+    if (downKeywords.some(k => textLower.includes(k))) return 'decreasing';
     return 'stable';
   };
 
-  const extractTopSkills = (_text: string): string[] => {
-    // Simple keyword extraction - in production, use NLP
-    const commonSkills = ['Python', 'JavaScript', 'React', 'Node.js', 'AWS', 'Docker', 'Kubernetes', 
-                          'SQL', 'Leadership', 'Communication', 'Project Management', 'Agile'];
-    return commonSkills.slice(0, 6);
+  const extractTopSkills = (text: string): string[] => {
+    const skillMatches = text.match(/(?:Skills?|Requirements?)[:\s]+([^\n]+(?:\n[-•]\s*[^\n]+)*)/i);
+    if (!skillMatches) return [];
+    
+    return skillMatches[1]
+      .split(/\n/)
+      .map(s => s.replace(/^[-•*\d.)\s]+/, '').trim())
+      .filter(s => s.length > 0)
+      .slice(0, 5);
   };
 
-  const extractKeyInsights = (_text: string): string[] => {
-    // Parse the research results into key bullet points
-    return [
-      'Market demand remains strong with steady growth projected',
-      'Compensation trending 8-12% above previous year',
-      'Remote work options increasingly standard',
-      'AI/ML skills becoming more valuable across roles'
-    ];
+  const extractKeyInsights = (text: string): string[] => {
+    const bullets = text.match(/[-•*]\s*([^\n]+)/g);
+    if (bullets && bullets.length > 0) {
+      return bullets.map(b => b.replace(/^[-•*]\s*/, '').trim()).slice(0, 3);
+    }
+    
+    return text.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(0, 3);
   };
 
   const formatSalary = (amount: number) => {

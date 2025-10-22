@@ -51,7 +51,12 @@ serve(async (req) => {
       'vault_transferable_skills',
       'vault_hidden_competencies',
       'vault_soft_skills',
-      'vault_leadership_philosophy'
+      'vault_leadership_philosophy',
+      'vault_executive_presence',
+      'vault_personality_traits',
+      'vault_work_style',
+      'vault_values_motivations',
+      'vault_behavioral_indicators'
     ];
 
     let totalRefreshed = 0;
@@ -116,17 +121,11 @@ serve(async (req) => {
 
     console.log(`[REFRESH-VAULT] Refresh complete! Updated ${totalRefreshed} items`);
 
-    // Update vault overall strength score
-    const { data: counts } = await supabaseClient.rpc('count_vault_intelligence', { 
-      vault_id_param: vaultId 
-    });
-
-    if (counts) {
-      await supabaseClient
-        .from('career_vault')
-        .update({ last_updated_at: new Date().toISOString() })
-        .eq('id', vaultId);
-    }
+    // Update vault last_updated_at
+    await supabaseClient
+      .from('career_vault')
+      .update({ last_updated_at: new Date().toISOString() })
+      .eq('id', vaultId);
 
     return new Response(
       JSON.stringify({ 
