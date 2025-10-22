@@ -9,10 +9,11 @@ import { RequirementFilterView } from "@/components/resume-builder/RequirementFi
 import { RequirementCard } from "@/components/resume-builder/RequirementCard";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
 import { ResumeBuilderOnboarding } from "@/components/resume-builder/ResumeBuilderOnboarding";
+import { GenerationProgress } from "@/components/resume-builder/GenerationProgress";
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 
@@ -380,10 +381,18 @@ const ResumeBuilderWizardContent = () => {
 
   const generateCompleteResume = async () => {
     setCurrentStep('generation');
+    store.setGeneratingSection('summary');
 
-    // Initialize resume sections based on selected format
-    const format = getFormat(selectedFormat || 'executive');
-    if (format) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Initialize resume sections based on selected format
+      const format = getFormat(selectedFormat || 'executive');
+      if (!format) {
+        throw new Error('Invalid format selected');
+      }
+
       const sections = format.sections.map(section => ({
         id: section.id,
         type: section.type,
@@ -392,53 +401,90 @@ const ResumeBuilderWizardContent = () => {
         order: section.order,
         required: section.required
       }));
+      
       setResumeSections(sections);
-    }
 
-    // Simulate generation (in real implementation, this would call an edge function)
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Create or update resume in database
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const resumeData: any = {
-          user_id: user.id,
-          job_title: jobAnalysis?.roleProfile?.title || 'Untitled Position',
-          job_company: jobAnalysis?.roleProfile?.company,
-          job_description: displayJobText,
-          job_analysis: jobAnalysis,
-          selected_format: selectedFormat,
-          sections: resumeSections,
-          vault_matches: vaultMatches,
-          requirement_responses: store.requirementResponses,
-          updated_at: new Date().toISOString()
-        };
-
-        if (resumeId) {
-          await supabase.from('saved_resumes' as any).update(resumeData).eq('id', resumeId);
-        } else {
-          const { data, error } = await supabase
-            .from('saved_resumes' as any)
-            .insert(resumeData)
-            .select()
-            .single();
-          
-          if (!error && data) {
-            setResumeId((data as any).id);
+      // Generate each section sequentially
+      for (const section of sections) {
+        if (!section.required) continue; // Skip optional sections for now
+        
+        store.setGeneratingSection(section.type);
+        
+        const { data: sectionData, error } = await supabase.functions.invoke('generate-resume-section', {
+          body: {
+            sectionType: section.type,
+            jobAnalysis,
+            vaultMatches,
+            requirementResponses: store.requirementResponses,
+            format: selectedFormat
           }
+        });
+
+        if (error) {
+          console.error(`Error generating ${section.type}:`, error);
+          toast({
+            title: `Failed to generate ${section.title}`,
+            description: "Continuing with other sections...",
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        // Update section with generated content
+        setResumeSections(prev => prev.map(s => 
+          s.id === section.id 
+            ? { ...s, content: sectionData.content }
+            : s
+        ));
+
+        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between sections
+      }
+
+      store.setGeneratingSection(null);
+
+      // Save the complete resume
+      const resumeData: any = {
+        user_id: user.id,
+        job_title: jobAnalysis?.roleProfile?.title || 'Untitled Position',
+        job_company: jobAnalysis?.roleProfile?.company,
+        job_description: displayJobText,
+        job_analysis: jobAnalysis,
+        selected_format: selectedFormat,
+        sections: resumeSections,
+        vault_matches: vaultMatches,
+        requirement_responses: store.requirementResponses,
+        updated_at: new Date().toISOString()
+      };
+
+      if (resumeId) {
+        await supabase.from('saved_resumes' as any).update(resumeData).eq('id', resumeId);
+      } else {
+        const { data, error } = await supabase
+          .from('saved_resumes' as any)
+          .insert(resumeData)
+          .select()
+          .single();
+        
+        if (!error && data) {
+          setResumeId((data as any).id);
         }
       }
+
+      setCurrentStep('final-review');
+
+      toast({
+        title: "Resume Generated!",
+        description: "Review and edit your sections below"
+      });
     } catch (error) {
-      console.error('Failed to save resume:', error);
+      console.error('Failed to generate resume:', error);
+      toast({
+        title: "Generation failed",
+        description: "Please try again or contact support",
+        variant: "destructive"
+      });
+      store.setGeneratingSection(null);
     }
-
-    setCurrentStep('final-review');
-
-    toast({
-      title: "Resume Generated!",
-      description: "Review and edit your sections below"
-    });
   };
 
 
@@ -713,14 +759,14 @@ const ResumeBuilderWizardContent = () => {
 
     case 'generation':
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Card className="p-12 text-center max-w-md">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h2 className="text-2xl font-bold mb-2">Generating Your Resume</h2>
-            <p className="text-muted-foreground">
-              Assembling all sections using your approved content...
-            </p>
-          </Card>
+        <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 flex items-center justify-center p-6">
+          <div className="max-w-2xl w-full">
+            <GenerationProgress
+              currentStep={0}
+              isComplete={false}
+              generatingSection={store.generatingSection}
+            />
+          </div>
         </div>
       );
 

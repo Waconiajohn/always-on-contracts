@@ -15,49 +15,57 @@ interface GenerationProgressProps {
   currentStep: number;
   steps?: string[];
   isComplete?: boolean;
+  generatingSection?: string | null;
 }
 
 export const GenerationProgress: React.FC<GenerationProgressProps> = ({
   currentStep,
-  isComplete = false
+  isComplete = false,
+  generatingSection
 }) => {
   const [animatedSteps, setAnimatedSteps] = useState<GenerationStep[]>([]);
 
   useEffect(() => {
     const stepConfigs = [
       {
-        id: 'research',
-        icon: Brain,
-        label: 'AI Research',
-        description: 'Analyzing job description and industry standards'
-      },
-      {
-        id: 'ideal',
-        icon: Sparkles,
-        label: 'Industry Standard',
-        description: 'Generating example based on top performers'
-      },
-      {
-        id: 'personalized',
+        id: 'summary',
         icon: User,
-        label: 'Your Version',
-        description: 'Customizing with your Career Vault data'
+        label: 'Professional Summary',
+        description: 'Crafting your elevator pitch based on requirements'
+      },
+      {
+        id: 'experience',
+        icon: Sparkles,
+        label: 'Work Experience',
+        description: 'Optimizing achievements with vault intelligence'
+      },
+      {
+        id: 'skills',
+        icon: Brain,
+        label: 'Skills & Technologies',
+        description: 'Mapping your expertise to ATS keywords'
       }
     ];
 
-    const newSteps = stepConfigs.map((config, index) => ({
-      ...config,
-      status: isComplete
-        ? 'complete'
-        : index < currentStep
-        ? 'complete'
-        : index === currentStep
-        ? 'active'
-        : 'pending'
-    } as GenerationStep));
+    const newSteps = stepConfigs.map((config) => {
+      let status: 'pending' | 'active' | 'complete' = 'pending';
+      
+      if (isComplete) {
+        status = 'complete';
+      } else if (generatingSection === config.id) {
+        status = 'active';
+      } else if (generatingSection && stepConfigs.findIndex(s => s.id === generatingSection) > stepConfigs.findIndex(s => s.id === config.id)) {
+        status = 'complete';
+      }
+      
+      return {
+        ...config,
+        status
+      } as GenerationStep;
+    });
 
     setAnimatedSteps(newSteps);
-  }, [currentStep, isComplete]);
+  }, [currentStep, isComplete, generatingSection]);
 
   return (
     <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">

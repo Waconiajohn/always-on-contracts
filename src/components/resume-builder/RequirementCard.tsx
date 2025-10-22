@@ -12,6 +12,7 @@ import { VaultMatchesDisplay } from "./VaultMatchesDisplay";
 import { ClarifyingQuestions } from "./ClarifyingQuestions";
 import { CreativeOptions } from "./CreativeOptions";
 import { FinalEdit } from "./FinalEdit";
+import { GapSolutionsCard } from "./GapSolutionsCard";
 
 interface RequirementCardProps {
   requirement: {
@@ -192,6 +193,20 @@ export const RequirementCard = ({
               matchStatus={matchStatus}
               requirement={requirement}
             />
+            
+            {/* Show gap solutions for complete gaps */}
+            {matchStatus === 'complete_gap' && (
+              <GapSolutionsCard
+                requirement={requirement.text}
+                vaultMatches={vaultMatches}
+                jobContext={jobContext}
+                onAddToVault={() => {
+                  toast.success('Solution added to your Career Vault');
+                  // In a real implementation, this would save to the vault
+                }}
+              />
+            )}
+            
             <div className="flex gap-3">
               {matchStatus === 'perfect_match' ? (
                 <Button 
