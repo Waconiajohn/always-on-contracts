@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
 import { SkillsTagInput } from "@/components/linkedin/SkillsTagInput";
 import { ProfileProgressTracker } from "@/components/linkedin/ProfileProgressTracker";
+import { RecruiterSearchSimulator } from "@/components/linkedin/RecruiterSearchSimulator";
 
 export default function LinkedInProfileBuilder() {
   const [currentHeadline, setCurrentHeadline] = useState("");
@@ -440,6 +441,15 @@ export default function LinkedInProfileBuilder() {
                   </div>
                 </div>
               )}
+
+              <Separator />
+
+              <RecruiterSearchSimulator
+                headline={optimizationResult.optimizedHeadline || ""}
+                about={optimizationResult.optimizedAbout || ""}
+                skills={optimizationResult.prioritizedSkills || []}
+                targetRole={targetRole}
+              />
 
               <Separator />
 

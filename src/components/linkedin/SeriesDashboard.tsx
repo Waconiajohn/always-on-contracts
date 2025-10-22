@@ -6,10 +6,12 @@ import { useSeriesManagement } from "@/hooks/useSeriesManagement";
 import { Loader2, Trash2, Plus, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { SeriesPerformanceTracker } from "./SeriesPerformanceTracker";
 
 export function SeriesDashboard({ onGeneratePost }: { onGeneratePost?: (seriesId: string, partNumber: number) => void }) {
   const { series, loading, deleteSeries, getSeriesPostsCount } = useSeriesManagement();
   const [postsCount, setPostsCount] = useState<Record<string, number>>({});
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPostsCounts = async () => {
@@ -45,7 +47,12 @@ export function SeriesDashboard({ onGeneratePost }: { onGeneratePost?: (seriesId
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-6">
+      {selectedSeriesId && (
+        <SeriesPerformanceTracker seriesId={selectedSeriesId} />
+      )}
+      
+      <div className="grid gap-4 md:grid-cols-2">
       {series.map((s) => {
         const completed = postsCount[s.id] || 0;
         const progress = (completed / s.series_length) * 100;
@@ -53,10 +60,10 @@ export function SeriesDashboard({ onGeneratePost }: { onGeneratePost?: (seriesId
         const canGenerateNext = nextPart <= s.series_length;
 
         return (
-          <Card key={s.id}>
+          <Card key={s.id} className={selectedSeriesId === s.id ? "border-primary" : ""}>
             <CardHeader>
               <div className="flex justify-between items-start">
-                <div className="flex-1">
+                <div className="flex-1 cursor-pointer" onClick={() => setSelectedSeriesId(s.id)} role="button" tabIndex={0}>
                   <CardTitle className="text-lg">{s.series_title}</CardTitle>
                   <CardDescription className="mt-1">
                     {s.series_topic}
@@ -115,6 +122,7 @@ export function SeriesDashboard({ onGeneratePost }: { onGeneratePost?: (seriesId
           </Card>
         );
       })}
+      </div>
     </div>
   );
 }

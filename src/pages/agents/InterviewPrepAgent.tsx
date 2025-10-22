@@ -19,6 +19,7 @@ import { ElevatorPitchBuilder } from "@/components/interview/ElevatorPitchBuilde
 import { ThirtyPlanBuilder } from "@/components/interview/ThirtyPlanBuilder";
 import { ThreeTwoOneFramework } from "@/components/interview/ThreeTwoOneFramework";
 import { PanelInterviewGuide } from "@/components/interview/PanelInterviewGuide";
+import { STARStoryGenerator } from "@/components/interview/STARStoryGenerator";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("select-job");
@@ -295,6 +296,8 @@ const InterviewPrepAgentContent = () => {
               </TabsContent>
 
               <TabsContent value="practice" className="mt-4 space-y-4">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  <div className="space-y-6">
                 {!recommendation ? (
                   <div className="space-y-4">
                     <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
@@ -347,22 +350,28 @@ const InterviewPrepAgentContent = () => {
                   </div>
                 )}
 
-                {currentQuestion && (
-                  <div className="space-y-3">
-                    <div className="bg-muted p-4 rounded-lg">
-                      <h3 className="text-sm font-semibold mb-2">💡 How to Answer</h3>
-                      <ul className="text-sm space-y-1 text-muted-foreground">
-                        <li>• Use the STAR method (Situation, Task, Action, Result)</li>
-                        <li>• Reference specific achievements from your Career Vault</li>
-                        <li>• Include quantifiable results when possible</li>
-                        <li>• Connect to the hidden competencies identified</li>
-                      </ul>
-                    </div>
-                    <Button onClick={generateInterviewQuestion} variant="outline" className="w-full">
-                      Next Question
-                    </Button>
+                    {currentQuestion && (
+                      <div className="space-y-3">
+                        <div className="bg-muted p-4 rounded-lg">
+                          <h3 className="text-sm font-semibold mb-2">💡 How to Answer</h3>
+                          <ul className="text-sm space-y-1 text-muted-foreground">
+                            <li>• Use the STAR method (Situation, Task, Action, Result)</li>
+                            <li>• Reference specific achievements from your Career Vault</li>
+                            <li>• Include quantifiable results when possible</li>
+                            <li>• Connect to the hidden competencies identified</li>
+                          </ul>
+                        </div>
+                        <Button onClick={generateInterviewQuestion} variant="outline" className="w-full">
+                          Next Question
+                        </Button>
+                      </div>
+                    )}
+
+                    {vaultData && (
+                      <STARStoryGenerator vaultId={vaultData.id} />
+                    )}
                   </div>
-                )}
+                </ScrollArea>
               </TabsContent>
 
               <TabsContent value="responses" className="mt-4">

@@ -61,16 +61,14 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
     try {
       const { data, error } = await supabase.functions.invoke('generate-star-story', {
         body: {
-          powerPhrase: selectedPhrase.power_phrase,
-          impactMetrics: selectedPhrase.impact_metrics,
-          competency,
-          vaultId
+          rawStory: `${selectedPhrase.power_phrase}. ${selectedPhrase.impact_metrics}. Competency: ${competency}`,
+          action: 'generate'
         }
       });
 
       if (error) throw error;
 
-      setStory(data);
+      setStory(data.starStory);
       
       toast({
         title: "STAR Story Generated",

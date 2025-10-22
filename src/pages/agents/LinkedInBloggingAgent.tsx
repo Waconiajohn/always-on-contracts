@@ -19,6 +19,7 @@ import { HumanWritingAnalyzer } from "@/components/linkedin/HumanWritingAnalyzer
 import { QualityCheckModal } from "@/components/linkedin/QualityCheckModal";
 import { SeriesDashboard } from "@/components/linkedin/SeriesDashboard";
 import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
+import { VaultContentTracker } from "@/components/linkedin/VaultContentTracker";
 
 export default function LinkedInBloggingAgent() {
   const [topic, setTopic] = useState("");
@@ -663,6 +664,8 @@ export default function LinkedInBloggingAgent() {
               )}
             </CardContent>
           </Card>
+
+          <VaultContentTracker />
         </TabsContent>
       </Tabs>
         </div>
