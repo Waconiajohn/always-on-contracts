@@ -80,7 +80,7 @@ export const edgeCasesSuite: TestSuite = {
 
         const { error } = await supabase
           .from('profiles')
-          .update({ current_role: specialChars })
+          .update({ full_name: specialChars })
           .eq('user_id', session.session.user.id);
 
         return {
@@ -160,7 +160,7 @@ export const edgeCasesSuite: TestSuite = {
 
         const { error } = await supabase
           .from('profiles')
-          .update({ current_role: null })
+          .update({ full_name: null })
           .eq('user_id', session.session.user.id);
 
         return {

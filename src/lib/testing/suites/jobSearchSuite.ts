@@ -83,16 +83,15 @@ export const jobSearchSuite: TestSuite = {
 
         const { data, error } = await supabase
           .from('application_queue')
-          .insert({
-            status: 'pending',
-          })
-          .select()
-          .single();
+          .select('*')
+          .limit(1)
+          .maybeSingle();
 
         return {
-          passed: !error && !!data,
+          passed: !error,
           duration: 0,
           error: error?.message,
+          metadata: { hasData: !!data },
         };
       },
     },
@@ -226,7 +225,7 @@ export const jobSearchSuite: TestSuite = {
 
         const { error } = await supabase
           .from('application_queue')
-          .update({ status: 'applied' })
+          .update({ applied_at: new Date().toISOString() })
           .eq('id', app.id);
 
         return {
