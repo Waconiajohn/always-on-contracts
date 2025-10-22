@@ -2801,6 +2801,142 @@ export type Database = {
         }
         Relationships: []
       }
+      test_data_snapshots: {
+        Row: {
+          created_at: string | null
+          data_id: string | null
+          data_type: string
+          id: string
+          test_run_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_id?: string | null
+          data_type: string
+          id?: string
+          test_run_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_id?: string | null
+          data_type?: string
+          id?: string
+          test_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_data_snapshots_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_results: {
+        Row: {
+          category: string
+          console_logs: Json | null
+          created_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          error_stack: string | null
+          id: string
+          metadata: Json | null
+          screenshot_url: string | null
+          status: string
+          test_id: string
+          test_name: string
+          test_run_id: string
+        }
+        Insert: {
+          category: string
+          console_logs?: Json | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          screenshot_url?: string | null
+          status: string
+          test_id: string
+          test_name: string
+          test_run_id: string
+        }
+        Update: {
+          category?: string
+          console_logs?: Json | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          screenshot_url?: string | null
+          status?: string
+          test_id?: string
+          test_name?: string
+          test_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_results_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          duration_ms: number | null
+          environment: string | null
+          failed_tests: number
+          id: string
+          metadata: Json | null
+          passed_tests: number
+          skipped_tests: number
+          started_at: string
+          test_suite_name: string | null
+          total_tests: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          environment?: string | null
+          failed_tests?: number
+          id?: string
+          metadata?: Json | null
+          passed_tests?: number
+          skipped_tests?: number
+          started_at?: string
+          test_suite_name?: string | null
+          total_tests?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          environment?: string | null
+          failed_tests?: number
+          id?: string
+          metadata?: Json | null
+          passed_tests?: number
+          skipped_tests?: number
+          started_at?: string
+          test_suite_name?: string | null
+          total_tests?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_activities: {
         Row: {
           activity_description: string | null

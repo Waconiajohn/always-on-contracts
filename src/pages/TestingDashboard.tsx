@@ -1,0 +1,296 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  Play, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  Activity,
+  FileText,
+  RefreshCw,
+  Loader2,
+} from 'lucide-react';
+import { TestExecutor } from '@/lib/testing/testExecutor';
+import { TestRunSummary } from '@/lib/testing/types';
+import { authenticationSuite, careerVaultSuite } from '@/lib/testing/suites';
+import { toast } from 'sonner';
+
+export default function TestingDashboard() {
+  const [loading, setLoading] = useState(false);
+  const [currentRun, setCurrentRun] = useState<TestRunSummary | null>(null);
+  const [testHistory, setTestHistory] = useState<any[]>([]);
+  const [runningTest, setRunningTest] = useState<string>('');
+
+  const allSuites = [
+    authenticationSuite,
+    careerVaultSuite,
+  ];
+
+  useEffect(() => {
+    loadTestHistory();
+  }, []);
+
+  const loadTestHistory = async () => {
+    const { data } = await supabase
+      .from('test_runs')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(10);
+
+    setTestHistory(data || []);
+  };
+
+  const runTests = async (suiteName?: string) => {
+    setLoading(true);
+    setRunningTest(suiteName || 'All Tests');
+    const executor = new TestExecutor();
+
+    try {
+      const suitesToRun = suiteName
+        ? allSuites.filter((s) => s.id === suiteName)
+        : allSuites;
+
+      for (const suite of suitesToRun) {
+        toast.info(`Running test suite: ${suite.name}`);
+        const summary = await executor.executeSuite(suite, {
+          continueOnFailure: true,
+          screenshot: true,
+          cleanup: true,
+        });
+
+        setCurrentRun(summary);
+        
+        if (summary.failedTests === 0) {
+          toast.success(`✅ ${suite.name} - All tests passed!`);
+        } else {
+          toast.error(`❌ ${suite.name} - ${summary.failedTests} test(s) failed`);
+        }
+      }
+
+      await loadTestHistory();
+    } catch (error: any) {
+      console.error('Test execution failed:', error);
+      toast.error(`Test execution failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+      setRunningTest('');
+    }
+  };
+
+  const calculateOverallStats = () => {
+    if (!testHistory.length) return null;
+
+    const latest = testHistory[0];
+    const passRate = latest.total_tests > 0
+      ? (latest.passed_tests / latest.total_tests) * 100
+      : 0;
+
+    return {
+      total: latest.total_tests,
+      passed: latest.passed_tests,
+      failed: latest.failed_tests,
+      skipped: latest.skipped_tests,
+      passRate,
+      duration: latest.duration_ms,
+    };
+  };
+
+  const stats = calculateOverallStats();
+
+  return (
+    <div className="container mx-auto p-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Testing Dashboard</h1>
+          <p className="text-muted-foreground">
+            Comprehensive automated testing for all application features
+          </p>
+        </div>
+        <Button
+          onClick={() => runTests()}
+          disabled={loading}
+          size="lg"
+          className="gap-2"
+        >
+          {loading ? (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              Running Tests...
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4" />
+              Run All Tests
+            </>
+          )}
+        </Button>
+      </div>
+
+      {loading && runningTest && (
+        <Card className="border-primary">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <p className="text-sm font-medium">Currently running: {runningTest}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {stats && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pass Rate</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.passRate.toFixed(1)}%</div>
+              <Progress value={stats.passRate} className="mt-2" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Failed</CardTitle>
+              <XCircle className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-500">{stats.failed}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Duration</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {((stats.duration || 0) / 1000).toFixed(1)}s
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Suites</CardTitle>
+          <CardDescription>Run individual test suites or all tests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {allSuites.map((suite) => (
+              <Card key={suite.id} className="hover:bg-accent transition-colors">
+                <CardHeader>
+                  <CardTitle className="text-base">{suite.name}</CardTitle>
+                  <CardDescription className="text-sm">{suite.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline">{suite.tests.length} tests</Badge>
+                    <Button
+                      size="sm"
+                      onClick={() => runTests(suite.id)}
+                      disabled={loading}
+                    >
+                      <Play className="h-3 w-3 mr-1" />
+                      Run
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {currentRun && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Latest Test Run</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Test Suite:</span>
+                <span className="text-sm">{currentRun.suiteName}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total Tests:</span>
+                <span className="text-sm">{currentRun.totalTests}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Passed:</span>
+                <span className="text-sm text-green-600">{currentRun.passedTests}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Failed:</span>
+                <span className="text-sm text-red-600">{currentRun.failedTests}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Duration:</span>
+                <span className="text-sm">{(currentRun.duration / 1000).toFixed(2)}s</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Test History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-2">
+              {testHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No test runs yet. Run your first test suite to see results here.
+                </p>
+              ) : (
+                testHistory.map((run) => (
+                  <div
+                    key={run.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
+                  >
+                    <div>
+                      <div className="font-medium">{run.test_suite_name || 'All Tests'}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(run.started_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Badge variant={run.failed_tests === 0 ? 'default' : 'destructive'}>
+                        {run.passed_tests}/{run.total_tests} passed
+                      </Badge>
+                      <Button size="sm" variant="ghost">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

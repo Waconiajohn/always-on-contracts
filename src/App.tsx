@@ -53,6 +53,7 @@ const DailyWorkflow = lazy(() => import("./pages/DailyWorkflow"));
 const SalaryNegotiation = lazy(() => import("./pages/SalaryNegotiation"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ProcessingMonitor = lazy(() => import("./pages/ProcessingMonitor"));
+const TestingDashboard = lazy(() => import("./pages/TestingDashboard"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -125,6 +126,7 @@ const App = () => (
             <Route path="/research-hub" element={<ProtectedRoute><ResearchHub /></ProtectedRoute>} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
             <Route path="/processing-monitor" element={<ProtectedRoute><ProcessingMonitor /></ProtectedRoute>} />
+            <Route path="/testing-dashboard" element={<ProtectedRoute><TestingDashboard /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
                 </Routes>
