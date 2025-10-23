@@ -394,12 +394,36 @@ const ResumeBuilderWizardContent = () => {
         coverage = Math.min(100, Math.round(avgMatchScore + qualityBonus));
       }
 
+      // Extract relevant ATS keywords for this requirement
+      const relevantKeywords: string[] = [];
+      const reqTextLower = req.text.toLowerCase();
+
+      // Collect all ATS keywords from all categories
+      const allAtsKeywords = [
+        ...(jobAnalysis?.atsKeywords?.critical || []),
+        ...(jobAnalysis?.atsKeywords?.important || []),
+        ...(jobAnalysis?.atsKeywords?.nice_to_have || [])
+      ];
+
+      // Find keywords that appear in or are related to this requirement
+      allAtsKeywords.forEach((keyword: string) => {
+        const keywordLower = keyword.toLowerCase();
+        // Check if keyword is mentioned in requirement or vice versa
+        if (reqTextLower.includes(keywordLower) || 
+            keywordLower.includes(reqTextLower.split(' ').find((word: string) => word.length > 3) || '')) {
+          if (!relevantKeywords.includes(keyword)) {
+            relevantKeywords.push(keyword);
+          }
+        }
+      });
+
       // Categorize based on coverage threshold
       const reqWithData = { 
         ...req, 
         coverage, 
         matches: matchingVaultItems, 
-        id: Math.random().toString() 
+        id: Math.random().toString(),
+        atsKeywords: relevantKeywords
       };
 
       if (coverage >= 80) {
