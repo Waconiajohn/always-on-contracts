@@ -13,25 +13,29 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-      if (!session) {
-        navigate("/auth");
-      }
-    });
-
+    // Set up auth state listener FIRST
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) {
-        navigate("/auth");
-      }
+      setLoading(false);
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Only redirect after loading is complete and there's no session
+  useEffect(() => {
+    if (!loading && !session) {
+      navigate("/auth");
+    }
+  }, [loading, session, navigate]);
 
   if (loading) {
     return (
