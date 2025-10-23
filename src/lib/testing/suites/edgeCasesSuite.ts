@@ -42,10 +42,10 @@ export const edgeCasesSuite: TestSuite = {
           .from('career_vault')
           .select('*')
           .eq('user_id', 'non-existent-user-id')
-          .single();
+          .maybeSingle();
 
         return {
-          passed: !!error || !data,
+          passed: !error && !data,
           duration: 0,
           metadata: { hasVault: !!data },
         };
