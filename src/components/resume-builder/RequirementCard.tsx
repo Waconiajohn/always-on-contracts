@@ -51,30 +51,6 @@ export const RequirementCard = ({
   const [generating, setGenerating] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
-  const generateGapSolutions = async () => {
-    if (matchStatus !== 'complete_gap') return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-gap-solutions', {
-        body: {
-          requirement: requirement.text,
-          jobContext,
-          vaultMatches,
-          atsKeywords: requirement.atsKeywords
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.solutions) {
-        toast.success(`Generated ${data.solutions.length} strategic solutions`);
-      }
-    } catch (error: any) {
-      console.error('Error generating gap solutions:', error);
-      toast.error('Failed to generate solutions. Continue anyway.');
-    }
-  };
-
   const handleVoiceTranscript = (transcript: string) => {
     setVoiceContext(prev => prev ? `${prev} ${transcript}` : transcript);
   };
@@ -226,8 +202,6 @@ export const RequirementCard = ({
                 jobContext={jobContext}
                 onAddToVault={() => {
                   toast.success('Solution added to your Career Vault');
-                  // Trigger gap solutions generation
-                  generateGapSolutions();
                 }}
               />
             )}
