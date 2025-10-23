@@ -23,7 +23,9 @@ serve(async (req) => {
     
     // Check if this is primarily an EXPERIENCE requirement (mentions years before degree)
     const hasYearsOfExperience = /\d+\+?\s*(years?|yrs?)/.test(reqLower);
-    const experienceBeforeDegree = hasYearsOfExperience && reqLower.indexOf('year') < reqLower.indexOf('degree');
+    const degreeIndex = reqLower.indexOf('degree');
+    const yearIndex = reqLower.indexOf('year');
+    const experienceBeforeDegree = hasYearsOfExperience && degreeIndex !== -1 && yearIndex < degreeIndex;
     
     // Check if degree is the PRIMARY requirement (not just a parenthetical note)
     const degreePatterns = [
