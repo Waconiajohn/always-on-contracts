@@ -21,6 +21,7 @@ import {
   CreditCard,
   LogOut,
   FlaskConical,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -98,6 +99,16 @@ export const mainNavItems: NavItem[] = [
     label: 'Agencies', 
     path: '/agencies', 
     icon: Building2 
+  },
+  {
+    label: 'Settings',
+    icon: Settings,
+    dropdown: [
+      { label: 'Testing Dashboard', path: '/testing-dashboard', icon: FlaskConical },
+      { label: 'Command Center', path: '/command-center', icon: Command },
+      { label: 'Profile Settings', path: '/profile', icon: User },
+      { label: 'API Keys', path: '/api-keys', icon: Key },
+    ],
   },
 ];
 
