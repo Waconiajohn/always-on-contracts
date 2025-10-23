@@ -11,13 +11,13 @@ import { format } from "date-fns";
 interface Webinar {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   scheduled_date: string;
-  duration_minutes: number;
-  instructor_name: string;
-  max_attendees: number;
-  current_attendees: number;
-  topics: string[];
+  duration_minutes: number | null;
+  instructor_name: string | null;
+  max_attendees: number | null;
+  current_attendees: number | null;
+  topics: string[] | null;
   isRegistered?: boolean;
 }
 
@@ -169,11 +169,11 @@ export const WebinarScheduleWidget = ({ isPlatinum }: WebinarScheduleWidgetProps
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-3 w-3" />
-                  {webinar.duration_minutes} minutes
+                  {webinar.duration_minutes || 60} minutes
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="h-3 w-3" />
-                  {webinar.current_attendees}/{webinar.max_attendees} registered
+                  {webinar.current_attendees || 0}/{webinar.max_attendees || 50} registered
                 </div>
               </div>
 
@@ -183,9 +183,9 @@ export const WebinarScheduleWidget = ({ isPlatinum }: WebinarScheduleWidgetProps
                   variant="outline"
                   className="w-full"
                   onClick={() => handleRegister(webinar.id)}
-                  disabled={webinar.current_attendees >= webinar.max_attendees}
+                  disabled={(webinar.current_attendees || 0) >= (webinar.max_attendees || 50)}
                 >
-                  {webinar.current_attendees >= webinar.max_attendees ? 'Full' : 'Register'}
+                  {(webinar.current_attendees || 0) >= (webinar.max_attendees || 50) ? 'Full' : 'Register'}
                 </Button>
               )}
             </div>

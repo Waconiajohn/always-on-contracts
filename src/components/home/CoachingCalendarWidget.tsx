@@ -9,12 +9,12 @@ import { format, isBefore, subMinutes } from "date-fns";
 
 interface CoachingSession {
   id: string;
-  scheduled_date: string;
-  duration_minutes: number;
-  coach_name: string;
+  scheduled_date: string | null;
+  duration_minutes: number | null;
+  coach_name: string | null;
   calendly_link: string;
   zoom_link: string | null;
-  status: string;
+  status: string | null;
 }
 
 interface CoachingCalendarWidgetProps {
@@ -147,19 +147,21 @@ export const CoachingCalendarWidget = ({ isPlatinum }: CoachingCalendarWidgetPro
               <div key={session.id} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <p className="font-medium text-sm">{session.coach_name}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(session.scheduled_date), 'MMM d, h:mm a')}
-                    </div>
+                    <p className="font-medium text-sm">{session.coach_name || 'Career Coach'}</p>
+                    {session.scheduled_date && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(session.scheduled_date), 'MMM d, h:mm a')}
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {session.duration_minutes} minutes
+                      {session.duration_minutes || 45} minutes
                     </div>
                   </div>
                 </div>
 
-                {session.zoom_link && canJoinSession(session.scheduled_date) && (
+                {session.zoom_link && session.scheduled_date && canJoinSession(session.scheduled_date) && (
                   <Button
                     size="sm"
                     variant="default"

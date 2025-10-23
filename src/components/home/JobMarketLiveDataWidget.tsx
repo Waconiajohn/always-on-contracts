@@ -28,17 +28,8 @@ export const JobMarketLiveDataWidget = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch user's target roles from career vault
-      const { data: vaultData } = await supabase
-        .from('career_vault')
-        .select('target_roles')
-        .eq('user_id', user.id)
-        .single();
-
-      const targetRole = vaultData?.target_roles?.[0] || 'Software Engineer';
-
-      // Call JSearch API via edge function (or direct fetch)
-      // For now, using mock data - will integrate actual JSearch API
+      // TODO: Fetch user's target roles from career vault and integrate JSearch API
+      // For now, using mock data - will integrate actual JSearch API later
       const mockData: JobMarketData = {
         totalJobs: 2847,
         trendingTitles: [

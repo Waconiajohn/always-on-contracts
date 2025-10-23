@@ -12,7 +12,6 @@ import {
   LineChart,
   Users,
   DollarSign,
-  Command,
   Brain,
   BookOpen,
   Calendar,
@@ -105,7 +104,6 @@ export const mainNavItems: NavItem[] = [
     icon: Settings,
     dropdown: [
       { label: 'Testing Dashboard', path: '/testing-dashboard', icon: FlaskConical },
-      { label: 'Command Center', path: '/command-center', icon: Command },
       { label: 'Profile Settings', path: '/profile', icon: User },
       { label: 'API Keys', path: '/api-keys', icon: Key },
     ],
@@ -113,7 +111,6 @@ export const mainNavItems: NavItem[] = [
 ];
 
 export const profileDropdownItems: ProfileItem[] = [
-  { label: 'Command Center', path: '/command-center', icon: Command },
   { label: 'Financial Planning', path: '/agents/financial-planning', icon: DollarSign },
   { label: 'AI Coach', path: '/coaching', icon: Brain },
   { label: 'Learning Center', path: '/learning-center', icon: BookOpen },

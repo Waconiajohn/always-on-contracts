@@ -13,7 +13,7 @@ import { LayoutProvider } from "@/contexts/LayoutContext";
 
 // Lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
-const Home = lazy(() => import("./pages/Home"));
+const UnifiedHomepage = lazy(() => import("./pages/UnifiedHomepage"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ResumeUpload = lazy(() => import("./pages/ResumeUpload"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -48,7 +48,6 @@ const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboardingEn
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
-const CommandCenter = lazy(() => import("./pages/CommandCenter"));
 const DailyWorkflow = lazy(() => import("./pages/DailyWorkflow"));
 const SalaryNegotiation = lazy(() => import("./pages/SalaryNegotiation"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -80,7 +79,7 @@ const App = () => (
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/home" element={<ProtectedRoute><UnifiedHomepage /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
           <Route path="/resume-upload" element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>} />
@@ -105,9 +104,9 @@ const App = () => (
         <Route path="/agents/networking" element={<ProtectedRoute><NetworkingAgent /></ProtectedRoute>} />
         <Route path="/agents/career-trends" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
         <Route path="/agents/financial-planning" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
-        <Route path="/career-tools" element={<Navigate to="/command-center" replace />} />
-        <Route path="/command-center" element={<ProtectedRoute><CommandCenter /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<Navigate to="/command-center" replace />} />
+        <Route path="/career-tools" element={<Navigate to="/home" replace />} />
+        <Route path="/command-center" element={<Navigate to="/home" replace />} />
+        <Route path="/dashboard" element={<Navigate to="/home" replace />} />
         <Route path="/daily-workflow" element={<ProtectedRoute><DailyWorkflow /></ProtectedRoute>} />
         <Route path="/salary-negotiation" element={<ProtectedRoute><SalaryNegotiation /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
