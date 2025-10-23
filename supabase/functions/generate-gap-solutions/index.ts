@@ -12,10 +12,10 @@ serve(async (req) => {
 
   try {
     const { requirement, vault_items, job_title, industry, seniority } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
     
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    if (!PERPLEXITY_API_KEY) {
+      throw new Error('PERPLEXITY_API_KEY not configured');
     }
 
     // Detect requirement type - education vs experience/skill
@@ -179,19 +179,21 @@ RULES:
 - Each bullet must be 1-2 lines maximum
 - Focus on business impact and results`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'llama-3.1-sonar-large-128k-online',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate ${isEducation ? 'EDUCATION CREDENTIALS' : 'WORK EXPERIENCE BULLETS'} for this requirement: "${requirement}". DO NOT repeat this requirement text in your output.` }
+          { role: 'user', content: `Generate ${isEducation ? 'EDUCATION CREDENTIALS' : 'WORK EXPERIENCE BULLETS'} for this requirement: "${requirement}". DO NOT repeat this requirement text in your output. Return valid JSON only.` }
         ],
-        response_format: { type: 'json_object' }
+        temperature: 0.2,
+        top_p: 0.9,
+        max_tokens: 2000
       }),
     });
 
