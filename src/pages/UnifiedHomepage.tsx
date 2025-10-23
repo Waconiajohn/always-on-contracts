@@ -5,7 +5,6 @@ import {
   Target, Calculator
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useJourneyState } from "@/hooks/useJourneyState";
@@ -211,26 +210,26 @@ const UnifiedHomeContent = () => {
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-primary to-purple-600">
+            <div className="p-3 rounded-lg bg-primary">
               <Home className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">
-                Welcome to <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">CareerIQ</span>
+                Welcome to <span className="bg-gradient-to-r from-primary to-blue-700 bg-clip-text text-transparent">CareerIQ</span>
               </h1>
               <p className="text-muted-foreground">Your AI-powered career intelligence platform</p>
             </div>
           </div>
 
           {/* Feature Badges */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-6">
             <Badge variant="secondary" className="bg-primary/10 text-primary">
               🤖 12 AI Agents
             </Badge>
-            <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+            <Badge variant="secondary" className="bg-blue-50/50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
               ✅ Dual-AI Verification
             </Badge>
-            <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
+            <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300">
               🟢 All Systems Active
             </Badge>
             {isPlatinum && (
@@ -240,34 +239,21 @@ const UnifiedHomeContent = () => {
             )}
           </div>
 
-          {/* Vault Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="p-4 border rounded-lg">
-              <div className="text-2xl font-bold">{vaultStats.powerPhrases}</div>
-              <div className="text-sm text-muted-foreground">Power Phrases</div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="text-2xl font-bold">{vaultStats.skills}</div>
-              <div className="text-sm text-muted-foreground">Skills</div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="text-2xl font-bold">{vaultStats.competencies}</div>
-              <div className="text-sm text-muted-foreground">Competencies</div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Vault Progress</span>
-                  <span className="text-sm font-medium">{vaultStats.vaultCompletion}%</span>
-                </div>
-                <Progress value={vaultStats.vaultCompletion} className="h-2" />
-              </div>
-            </div>
+          {/* Quick link to unique features */}
+          <div className="flex justify-center">
+            <button 
+              onClick={() => document.getElementById('unique-features')?.scrollIntoView({ behavior: 'smooth' })}
+              className="group flex items-center gap-3 px-6 py-3 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all shadow-sm hover:shadow-md"
+            >
+              <span className="text-sm font-semibold text-primary">
+                💎 Find out why CareerIQ is different
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Features you won't find anywhere else
+              </span>
+            </button>
           </div>
         </div>
-
-        {/* Unique Features Showcase */}
-        <UniqueFeaturesShowcase />
 
         {/* Main Launchpad Grid */}
         <div className="mb-8">
@@ -286,6 +272,11 @@ const UnifiedHomeContent = () => {
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
           <ActivityFeed />
+        </div>
+
+        {/* Industry-First Features Showcase - Moved to Bottom */}
+        <div id="unique-features" className="mt-12 pt-8 border-t">
+          <UniqueFeaturesShowcase />
         </div>
       </div>
     </ContentLayout>
