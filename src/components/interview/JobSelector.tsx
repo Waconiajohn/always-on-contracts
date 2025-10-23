@@ -26,13 +26,45 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
     if (!user) return;
 
     const { data } = await supabase
-      .from('job_projects')
-      .select('*')
+      .from('application_queue')
+      .select(`
+        *,
+        job_opportunities (
+          id,
+          job_title,
+          agency_id,
+          location,
+          contract_type,
+          job_description,
+          required_skills,
+          external_url,
+          posted_date,
+          hourly_rate_min,
+          hourly_rate_max,
+          contract_duration_months,
+          contract_confidence_score,
+          quality_score
+        )
+      `)
       .eq('user_id', user.id)
-      .in('status', ['applied', 'interviewing', 'offer'])
+      .eq('status', 'approved')
       .order('created_at', { ascending: false });
 
-    setProjects(data || []);
+    // Transform data to match expected format
+    const transformedData = (data || []).map(item => ({
+      id: item.id,
+      job_title: item.job_opportunities?.job_title || 'Unknown Position',
+      company_name: item.job_opportunities?.location || 'Various Companies',
+      created_at: item.created_at,
+      status: item.status,
+      opportunity_id: item.opportunity_id,
+      job_description: item.job_opportunities?.job_description,
+      required_skills: item.job_opportunities?.required_skills,
+      location: item.job_opportunities?.location,
+      match_score: item.match_score
+    }));
+
+    setProjects(transformedData);
   };
 
   const handleProjectSelect = (projectId: string) => {
@@ -71,6 +103,9 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
                   <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
                     <span>{project.job_title} - {project.company_name}</span>
+                    {project.match_score && (
+                      <Badge variant="secondary" className="ml-2">{project.match_score}%</Badge>
+                    )}
                   </div>
                 </SelectItem>
               ))}
@@ -104,8 +139,8 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
               <div className="flex items-start gap-2">
                 <Calendar className="h-4 w-4 mt-0.5" />
                 <div>
-                  <p className="text-sm">Applied: {new Date(selectedProject.created_at).toLocaleDateString()}</p>
-                  <Badge variant="secondary" className="text-xs mt-1">{selectedProject.status}</Badge>
+                  <p className="text-sm">Added: {new Date(selectedProject.created_at).toLocaleDateString()}</p>
+                  <Badge variant="secondary" className="text-xs mt-1">Approved for Interview Prep</Badge>
                 </div>
               </div>
             </div>
@@ -137,8 +172,8 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
         {projects.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             <Briefcase className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No active applications found</p>
-            <p className="text-xs mt-2">Apply to jobs from your Application Queue first</p>
+            <p className="text-sm">No approved jobs found</p>
+            <p className="text-xs mt-2">Go to Application Queue and approve jobs you want to prep for</p>
           </div>
         )}
       </CardContent>
