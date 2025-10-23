@@ -331,9 +331,24 @@ const ResumeBuilderWizardContent = () => {
 
   const categorizeRequirements = () => {
     const allRequirements = [
-      ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => ({ ...r, priority: 'required', source: 'job_description' })),
-      ...(jobAnalysis?.jobRequirements?.preferred || []).map((r: any) => ({ ...r, priority: 'preferred', source: 'job_description' })),
-      ...(jobAnalysis?.industryStandards || []).map((r: any) => ({ text: r, priority: 'nice_to_have', source: 'industry_standard' }))
+      ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => ({ 
+        text: r.requirement || r.text || r, 
+        priority: 'required', 
+        source: 'job_description',
+        importance: r.importance || 10
+      })),
+      ...(jobAnalysis?.jobRequirements?.preferred || []).map((r: any) => ({ 
+        text: r.requirement || r.text || r, 
+        priority: 'preferred', 
+        source: 'job_description',
+        importance: r.importance || 7
+      })),
+      ...(jobAnalysis?.industryStandards || []).map((s: any) => ({ 
+        text: s.standard || s.text || s, 
+        priority: 'nice_to_have', 
+        source: 'industry_standard',
+        importance: s.importance || 5
+      }))
     ];
 
     const categorized = {
@@ -343,20 +358,67 @@ const ResumeBuilderWizardContent = () => {
     };
 
     allRequirements.forEach((req: any) => {
-      // Calculate vault coverage for this requirement
-      const matches = vaultMatches?.matchedItems?.filter((item: any) => 
-        item.matchedRequirement?.toLowerCase().includes(req.text?.toLowerCase() || req)
-      ) || [];
+      // Find vault items that satisfy this requirement
+      const matchingVaultItems = vaultMatches?.matchedItems?.filter((item: any) => {
+        // Check if this vault item satisfies this specific requirement
+        return item.satisfiesRequirements?.some((satisfied: string) => {
+          const reqText = req.text.toLowerCase();
+          const satisfiedText = satisfied.toLowerCase();
+          
+          // Exact match or contains match
+          return satisfiedText === reqText || 
+                 satisfiedText.includes(reqText) || 
+                 reqText.includes(satisfiedText);
+        });
+      }) || [];
 
-      const coverage = matches.length > 0 ? 90 : 0; // Simplified for now
-
-      if (coverage >= 90) {
-        categorized.autoHandled.push({ ...req, coverage, matches, id: Math.random().toString() });
-      } else if (req.source === 'industry_standard') {
-        categorized.optionalEnhancement.push({ ...req, coverage, matches, id: Math.random().toString() });
-      } else {
-        categorized.needsInput.push({ ...req, coverage, matches, id: Math.random().toString() });
+      // Calculate coverage based on:
+      // 1. Number of vault items that address this requirement
+      // 2. Average match score of those items
+      // 3. Quality tier of the items
+      let coverage = 0;
+      
+      if (matchingVaultItems.length > 0) {
+        const avgMatchScore = matchingVaultItems.reduce((sum: number, item: any) => 
+          sum + (item.matchScore || 0), 0
+        ) / matchingVaultItems.length;
+        
+        // Quality tier bonus
+        const qualityBonus = matchingVaultItems.some((item: any) => 
+          item.qualityTier === 'gold'
+        ) ? 10 : matchingVaultItems.some((item: any) => 
+          item.qualityTier === 'silver'
+        ) ? 5 : 0;
+        
+        // Coverage = average match score + quality bonus, capped at 100
+        coverage = Math.min(100, Math.round(avgMatchScore + qualityBonus));
       }
+
+      // Categorize based on coverage threshold
+      const reqWithData = { 
+        ...req, 
+        coverage, 
+        matches: matchingVaultItems, 
+        id: Math.random().toString() 
+      };
+
+      if (coverage >= 80) {
+        // High coverage - auto-handle
+        categorized.autoHandled.push(reqWithData);
+      } else if (req.source === 'industry_standard' && coverage < 50) {
+        // Industry standard with low coverage - optional enhancement
+        categorized.optionalEnhancement.push(reqWithData);
+      } else {
+        // Everything else needs user input
+        categorized.needsInput.push(reqWithData);
+      }
+    });
+
+    console.log('Requirements categorized:', {
+      autoHandled: categorized.autoHandled.length,
+      needsInput: categorized.needsInput.length,
+      optionalEnhancement: categorized.optionalEnhancement.length,
+      totalVaultItems: vaultMatches?.matchedItems?.length || 0
     });
 
     setCategorizedRequirements(categorized);
