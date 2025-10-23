@@ -33,8 +33,8 @@ export const VisualResumePreview = ({
   atsKeywords = { critical: [], important: [], nice_to_have: [] }
 }: VisualResumePreviewProps) => {
   // Support both modes: sections (new) or responses (legacy)
-  const displaySections = sections.length > 0 ? sections : [];
-  const completedResponses = responses.filter(r => r.editedContent);
+  const displaySections = sections?.length > 0 ? sections : [];
+  const completedResponses = responses?.filter(r => r?.editedContent) || [];
   
   const getSectionStatus = (section: ResumeSection) => {
     if (section.content && section.content.length > 0) return 'complete';
@@ -58,8 +58,12 @@ export const VisualResumePreview = ({
     }
   };
   
-  const totalVaultItems = vaultMatches.length;
-  const totalKeywords = [...atsKeywords.critical, ...atsKeywords.important, ...atsKeywords.nice_to_have].length;
+  const totalVaultItems = vaultMatches?.length || 0;
+  const totalKeywords = [
+    ...(atsKeywords?.critical || []), 
+    ...(atsKeywords?.important || []), 
+    ...(atsKeywords?.nice_to_have || [])
+  ].length;
 
   // Show empty state if no sections and no responses
   if (displaySections.length === 0 && completedResponses.length === 0) {
