@@ -20,6 +20,7 @@ import {
   Key,
   CreditCard,
   LogOut,
+  FlaskConical,
   type LucideIcon,
 } from "lucide-react";
 
@@ -106,6 +107,8 @@ export const profileDropdownItems: ProfileItem[] = [
   { label: 'AI Coach', path: '/coaching', icon: Brain },
   { label: 'Learning Center', path: '/learning-center', icon: BookOpen },
   { label: 'Daily Workflow', path: '/daily-workflow', icon: Calendar },
+  { type: 'separator' },
+  { label: 'Testing Dashboard', path: '/testing-dashboard', icon: FlaskConical },
   { type: 'separator' },
   { label: 'Profile Settings', path: '/profile', icon: User },
   { label: 'API Keys', path: '/api-keys', icon: Key },
