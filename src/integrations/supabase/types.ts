@@ -619,6 +619,60 @@ export type Database = {
         }
         Relationships: []
       }
+      coaching_sessions: {
+        Row: {
+          booking_confirmed: boolean | null
+          calendly_link: string
+          coach_name: string | null
+          coach_title: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          is_platinum_only: boolean | null
+          meeting_notes: string | null
+          scheduled_date: string | null
+          session_type: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          zoom_link: string | null
+        }
+        Insert: {
+          booking_confirmed?: boolean | null
+          calendly_link: string
+          coach_name?: string | null
+          coach_title?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_platinum_only?: boolean | null
+          meeting_notes?: string | null
+          scheduled_date?: string | null
+          session_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          zoom_link?: string | null
+        }
+        Update: {
+          booking_confirmed?: boolean | null
+          calendly_link?: string
+          coach_name?: string | null
+          coach_title?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_platinum_only?: boolean | null
+          meeting_notes?: string | null
+          scheduled_date?: string | null
+          session_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          zoom_link?: string | null
+        }
+        Relationships: []
+      }
       communication_templates: {
         Row: {
           body_content: string
@@ -4137,6 +4191,107 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webinar_registrations: {
+        Row: {
+          attended: boolean | null
+          feedback_rating: number | null
+          feedback_text: string | null
+          id: string
+          registered_at: string | null
+          user_id: string | null
+          webinar_id: string | null
+        }
+        Insert: {
+          attended?: boolean | null
+          feedback_rating?: number | null
+          feedback_text?: string | null
+          id?: string
+          registered_at?: string | null
+          user_id?: string | null
+          webinar_id?: string | null
+        }
+        Update: {
+          attended?: boolean | null
+          feedback_rating?: number | null
+          feedback_text?: string | null
+          id?: string
+          registered_at?: string | null
+          user_id?: string | null
+          webinar_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webinar_registrations_webinar_id_fkey"
+            columns: ["webinar_id"]
+            isOneToOne: false
+            referencedRelation: "webinars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webinars: {
+        Row: {
+          calendly_link: string | null
+          created_at: string | null
+          current_attendees: number | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          instructor_name: string | null
+          instructor_title: string | null
+          is_platinum_only: boolean | null
+          max_attendees: number | null
+          recording_url: string | null
+          scheduled_date: string
+          status: string | null
+          thumbnail_url: string | null
+          title: string
+          topics: string[] | null
+          updated_at: string | null
+          zoom_link: string | null
+        }
+        Insert: {
+          calendly_link?: string | null
+          created_at?: string | null
+          current_attendees?: number | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructor_name?: string | null
+          instructor_title?: string | null
+          is_platinum_only?: boolean | null
+          max_attendees?: number | null
+          recording_url?: string | null
+          scheduled_date: string
+          status?: string | null
+          thumbnail_url?: string | null
+          title: string
+          topics?: string[] | null
+          updated_at?: string | null
+          zoom_link?: string | null
+        }
+        Update: {
+          calendly_link?: string | null
+          created_at?: string | null
+          current_attendees?: number | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructor_name?: string | null
+          instructor_title?: string | null
+          is_platinum_only?: boolean | null
+          max_attendees?: number | null
+          recording_url?: string | null
+          scheduled_date?: string
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          topics?: string[] | null
+          updated_at?: string | null
+          zoom_link?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
