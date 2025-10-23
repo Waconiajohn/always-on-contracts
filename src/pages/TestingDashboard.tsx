@@ -38,8 +38,8 @@ export default function TestingDashboard() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
+  // Exclude authentication suite as it interferes with active sessions
   const allSuites = [
-    authenticationSuite,
     careerVaultSuite,
     jobSearchSuite,
     resumeBuilderSuite,
@@ -49,6 +49,9 @@ export default function TestingDashboard() {
     dataPersistenceSuite,
     edgeCasesSuite,
   ];
+
+  // Keep auth suite separate with warning
+  const dangerousSuites = [authenticationSuite];
 
   useEffect(() => {
     loadTestHistory();
@@ -242,7 +245,7 @@ export default function TestingDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Test Suites</CardTitle>
-          <CardDescription>Run individual test suites or all tests</CardDescription>
+          <CardDescription>Run individual test suites or all tests (excludes authentication tests)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -258,10 +261,43 @@ export default function TestingDashboard() {
                     <Button
                       size="sm"
                       onClick={() => runTests(suite.id)}
-                      disabled={loading}
+                      disabled={loading || !userEmail}
                     >
                       <Play className="h-3 w-3 mr-1" />
                       Run
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">⚠️ Dangerous Tests (Disabled)</CardTitle>
+          <CardDescription>
+            These tests modify authentication state and will log you out. Only run in isolated test environments.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {dangerousSuites.map((suite) => (
+              <Card key={suite.id} className="opacity-50">
+                <CardHeader>
+                  <CardTitle className="text-base">{suite.name}</CardTitle>
+                  <CardDescription className="text-sm">{suite.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline">{suite.tests.length} tests</Badge>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled
+                    >
+                      Disabled
                     </Button>
                   </div>
                 </CardContent>
