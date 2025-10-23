@@ -18,9 +18,23 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Detect requirement type
+    // Detect requirement type - education vs experience/skill
     const reqLower = requirement.toLowerCase();
-    const isEducation = reqLower.includes('degree') || reqLower.includes('bachelor') || reqLower.includes('master') || reqLower.includes('phd');
+    
+    // Check if this is primarily an EXPERIENCE requirement (mentions years before degree)
+    const hasYearsOfExperience = /\d+\+?\s*(years?|yrs?)/.test(reqLower);
+    const experienceBeforeDegree = hasYearsOfExperience && reqLower.indexOf('year') < reqLower.indexOf('degree');
+    
+    // Check if degree is the PRIMARY requirement (not just a parenthetical note)
+    const degreePatterns = [
+      /^(bachelor|master|phd|doctorate|associate)/i,
+      /^degree in/i,
+      /(bachelor's|master's|phd|doctorate|associate's)\s+(degree|diploma)/i
+    ];
+    const isPrimaryDegreeRequirement = degreePatterns.some(pattern => pattern.test(requirement.trim()));
+    
+    // It's an education gap ONLY if degree is primary AND experience isn't mentioned first
+    const isEducation = isPrimaryDegreeRequirement && !experienceBeforeDegree;
     const hasEquivalentOption = reqLower.includes('equivalent') || reqLower.includes('or ');
     
     // Build context-aware vault summary
