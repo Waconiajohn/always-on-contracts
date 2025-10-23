@@ -38,6 +38,12 @@ serve(async (req) => {
     // It's an education gap ONLY if degree is primary AND experience isn't mentioned first
     const isEducation = isPrimaryDegreeRequirement && !experienceBeforeDegree;
     const hasEquivalentOption = reqLower.includes('equivalent') || reqLower.includes('or ');
+
+    console.log('=== GAP SOLUTION DETECTION ===');
+    console.log('Requirement:', requirement);
+    console.log('isEducation:', isEducation);
+    console.log('isPrimaryDegreeRequirement:', isPrimaryDegreeRequirement);
+    console.log('experienceBeforeDegree:', experienceBeforeDegree);
     
     // Build context-aware vault summary
     const vaultSummary = vault_items.slice(0, 5).map((item: any) => {
@@ -48,7 +54,11 @@ serve(async (req) => {
     const systemPrompt = isEducation 
       ? `You are a strategic resume writer addressing an EDUCATION GAP. Generate actual education credentials and alternatives, NOT work experience bullets.
 
-CRITICAL: For education gaps, output CREDENTIALS (degrees, certificates, courses), NOT job accomplishments.
+CRITICAL RULES:
+- For education gaps, output CREDENTIALS (degrees, certificates, courses), NOT job accomplishments
+- DO NOT echo back the requirement text in your solutions
+- DO NOT prefix your solutions with "Working knowledge of" or similar phrases
+- Write specific, actionable credentials and qualifications
 
 Context:
 - Job Title: ${job_title} (${seniority} level)
@@ -109,7 +119,11 @@ RULES:
 - Keep each section concise (1-3 lines max)`
       : `You are a strategic resume writer creating SPECIFIC work experience bullets for a SKILL/EXPERIENCE GAP.
 
-CRITICAL: Your output must be actual resume bullets with action verbs and metrics, NOT coaching advice.
+CRITICAL RULES:
+- Your output must be actual resume bullets with action verbs and metrics, NOT coaching advice
+- DO NOT echo back the requirement text in your solutions
+- DO NOT prefix your bullets with "Working knowledge of" or similar phrases from the requirement
+- Write specific accomplishments showing you HAVE this skill, not that you're "working knowledge" level
 
 Context:
 - Job Title: ${job_title} (${seniority} level)
@@ -175,7 +189,7 @@ RULES:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate gap solutions for: ${requirement}` }
+          { role: 'user', content: `Generate ${isEducation ? 'EDUCATION CREDENTIALS' : 'WORK EXPERIENCE BULLETS'} for this requirement: "${requirement}". DO NOT repeat this requirement text in your output.` }
         ],
         response_format: { type: 'json_object' }
       }),
@@ -190,6 +204,33 @@ RULES:
     const data = await response.json();
     const content = data.choices[0].message.content;
     const parsed = JSON.parse(content);
+
+    console.log('AI Response:', JSON.stringify(parsed, null, 2));
+
+    // Validate that AI followed instructions
+    if (!isEducation) {
+      // For skill/experience gaps, check if AI incorrectly echoed the requirement
+      const hasEchoedRequirement = parsed.solutions.some((sol: any) => {
+        const contentLower = (sol.content || '').toLowerCase();
+        return contentLower.includes('working knowledge of') || 
+               contentLower.startsWith(reqLower.substring(0, 20));
+      });
+      
+      if (hasEchoedRequirement) {
+        console.warn('AI echoed requirement text - this should not happen');
+      }
+    }
+
+    // Enforce correct titles based on type
+    if (isEducation) {
+      parsed.solutions[0].title = "Standard Credentials";
+      parsed.solutions[1].title = "Experience Equivalent";
+      parsed.solutions[2].title = "Alternative Credentials";
+    } else {
+      parsed.solutions[0].title = "Industry Standard";
+      parsed.solutions[1].title = "Your Experience Reframed";
+      parsed.solutions[2].title = "Transferable Skills";
+    }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
