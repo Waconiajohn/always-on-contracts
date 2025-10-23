@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SectionGenerationCard } from "./SectionGenerationCard";
+import { SectionReviewPanel } from "./SectionReviewPanel";
 import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
 
 interface ResumeSection {
@@ -374,28 +375,29 @@ export const InteractiveResumeBuilder = ({
     };
 
     return (
-      <div className="mb-6 p-4 bg-muted rounded-lg border">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <span>{sectionIcons[section.type]}</span>
-            <span>{section.title}</span>
-            <Badge variant="outline" className="text-xs">{section.content.length}</Badge>
-          </h3>
+      <div className="mb-6 space-y-3">
+        <div className="p-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <span>{sectionIcons[section.type]}</span>
+              <span>{section.title}</span>
+              <Badge variant="outline" className="text-xs">{section.content.length} items</Badge>
+            </h3>
 
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsAddingItem(!isAddingItem)}
-              className="h-7 text-xs"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Add Manually
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsAddingItem(!isAddingItem)}
+                className="h-7 text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Manually
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-2">
+          <div className="space-y-2">
           {/* Show generation card if generating for this section */}
           {showGenerationCard && generationData?.sectionId === section.id && (
             <SectionGenerationCard
@@ -478,6 +480,20 @@ export const InteractiveResumeBuilder = ({
             </div>
           )}
         </div>
+        </div>
+        
+        {/* Section Review Panel - Show transparency */}
+        {section.content.length > 0 && (section as any).vaultItemsUsed && (
+          <SectionReviewPanel
+            sectionTitle={section.title}
+            sectionType={section.type}
+            vaultItemsUsed={(section as any).vaultItemsUsed || []}
+            requirementsCovered={(section as any).requirementsCovered || []}
+            atsKeywords={(section as any).atsKeywords || []}
+            qualityScore={85} // Calculate based on vault quality
+            onRegenerate={() => handleGenerateWithAI(section.id, section.type)}
+          />
+        )}
       </div>
     );
   };

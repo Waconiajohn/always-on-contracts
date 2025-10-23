@@ -322,13 +322,17 @@ const ResumeBuilderWizardContent = () => {
   const handleFormatSelected = () => {
     if (!selectedFormat) return;
 
-    // Categorize requirements for intelligent filtering
-    categorizeRequirements();
-
-    // Move to requirement filter
-    setCurrentStep('requirement-filter');
+    // Skip requirement filtering and go straight to generation
+    toast({
+      title: "Format selected",
+      description: "Generating your resume with all matched vault items..."
+    });
+    
+    generateCompleteResume();
   };
 
+  // Legacy requirement categorization - only used if user manually navigates to requirement-filter
+  // @ts-ignore - Function kept for backwards compatibility
   const categorizeRequirements = () => {
     const allRequirements = [
       ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => ({ 
@@ -358,91 +362,45 @@ const ResumeBuilderWizardContent = () => {
     };
 
     allRequirements.forEach((req: any) => {
-      // Find vault items that satisfy this requirement
       const matchingVaultItems = vaultMatches?.matchedItems?.filter((item: any) => {
-        // Check if this vault item satisfies this specific requirement
         return item.satisfiesRequirements?.some((satisfied: string) => {
           const reqText = req.text.toLowerCase();
           const satisfiedText = satisfied.toLowerCase();
-          
-          // Exact match or contains match
           return satisfiedText === reqText || 
                  satisfiedText.includes(reqText) || 
                  reqText.includes(satisfiedText);
         });
       }) || [];
 
-      // Calculate coverage based on:
-      // 1. Number of vault items that address this requirement
-      // 2. Average match score of those items
-      // 3. Quality tier of the items
       let coverage = 0;
-      
       if (matchingVaultItems.length > 0) {
         const avgMatchScore = matchingVaultItems.reduce((sum: number, item: any) => 
           sum + (item.matchScore || 0), 0
         ) / matchingVaultItems.length;
         
-        // Quality tier bonus
         const qualityBonus = matchingVaultItems.some((item: any) => 
           item.qualityTier === 'gold'
         ) ? 10 : matchingVaultItems.some((item: any) => 
           item.qualityTier === 'silver'
         ) ? 5 : 0;
         
-        // Coverage = average match score + quality bonus, capped at 100
         coverage = Math.min(100, Math.round(avgMatchScore + qualityBonus));
       }
 
-      // Extract relevant ATS keywords for this requirement
-      const relevantKeywords: string[] = [];
-      const reqTextLower = req.text.toLowerCase();
-
-      // Collect all ATS keywords from all categories
-      const allAtsKeywords = [
-        ...(jobAnalysis?.atsKeywords?.critical || []),
-        ...(jobAnalysis?.atsKeywords?.important || []),
-        ...(jobAnalysis?.atsKeywords?.nice_to_have || [])
-      ];
-
-      // Find keywords that appear in or are related to this requirement
-      allAtsKeywords.forEach((keyword: string) => {
-        const keywordLower = keyword.toLowerCase();
-        // Check if keyword is mentioned in requirement or vice versa
-        if (reqTextLower.includes(keywordLower) || 
-            keywordLower.includes(reqTextLower.split(' ').find((word: string) => word.length > 3) || '')) {
-          if (!relevantKeywords.includes(keyword)) {
-            relevantKeywords.push(keyword);
-          }
-        }
-      });
-
-      // Categorize based on coverage threshold
       const reqWithData = { 
         ...req, 
         coverage, 
         matches: matchingVaultItems, 
-        id: Math.random().toString(),
-        atsKeywords: relevantKeywords
+        id: Math.random().toString()
       };
 
       if (coverage >= 80) {
-        // High coverage - auto-handle
         categorized.autoHandled.push(reqWithData);
       } else if (req.source === 'industry_standard' && coverage < 50) {
-        // Industry standard with low coverage - optional enhancement
         categorized.optionalEnhancement.push(reqWithData);
       } else {
-        // Everything else needs user input
         categorized.needsInput.push(reqWithData);
       }
-    });
-
-    console.log('Requirements categorized:', {
-      autoHandled: categorized.autoHandled.length,
-      needsInput: categorized.needsInput.length,
-      optionalEnhancement: categorized.optionalEnhancement.length,
-      totalVaultItems: vaultMatches?.matchedItems?.length || 0
     });
 
     setCategorizedRequirements(categorized);
@@ -548,7 +506,11 @@ const ResumeBuilderWizardContent = () => {
 
   const generateCompleteResume = async () => {
     setCurrentStep('generation');
-    store.setGeneratingSection('summary');
+    
+    toast({
+      title: "Starting generation",
+      description: "Generating all resume sections with your vault intelligence..."
+    });
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -566,54 +528,72 @@ const ResumeBuilderWizardContent = () => {
         title: section.title,
         content: [],
         order: section.order,
-        required: section.required
+        required: section.required,
+        vaultItemsUsed: [],
+        atsKeywords: [],
+        requirementsCovered: []
       }));
       
       setResumeSections(sections);
 
-      // Generate each section sequentially
-      for (const section of sections) {
-        if (!section.required) continue; // Skip optional sections for now
-        
+      // Track progress
+      let completedCount = 0;
+      const requiredSections = sections.filter(s => s.required);
+      const totalSections = requiredSections.length;
+
+      // Generate all sections in parallel for speed
+      const generationPromises = requiredSections.map(async (section) => {
         store.setGeneratingSection(section.type);
         
-        const { data: sectionData, error } = await supabase.functions.invoke('generate-dual-resume-section', {
-          body: {
-            section_type: section.type,
-            section_guidance: '',
-            vault_items: enhancedVaultMatches || [],
-            resume_milestones: milestones,
-            user_id: user.id,
-            job_title: jobAnalysis?.roleProfile?.title || '',
-            industry: jobAnalysis?.roleProfile?.industry || '',
-            seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level',
-            ats_keywords: jobAnalysis?.atsKeywords || { critical: [], important: [], nice_to_have: [] },
-            requirements: [
-              ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => r.requirement || r),
-              ...(jobAnalysis?.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
-            ]
-          }
-        });
-
-        if (error) {
-          console.error(`Error generating ${section.type}:`, error);
-          toast({
-            title: `Failed to generate ${section.title}`,
-            description: "Continuing with other sections...",
-            variant: "destructive"
+        try {
+          const { data: sectionData, error } = await supabase.functions.invoke('generate-dual-resume-section', {
+            body: {
+              section_type: section.type,
+              section_guidance: '',
+              vault_items: enhancedVaultMatches || [],
+              resume_milestones: milestones,
+              user_id: user.id,
+              job_title: jobAnalysis?.roleProfile?.title || '',
+              industry: jobAnalysis?.roleProfile?.industry || '',
+              seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level',
+              ats_keywords: jobAnalysis?.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+              requirements: [
+                ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => r.requirement || r),
+                ...(jobAnalysis?.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
+              ]
+            }
           });
-          continue;
+
+          if (error) throw error;
+
+          completedCount++;
+          toast({
+            title: `Section ${completedCount}/${totalSections} complete`,
+            description: `${section.title} generated successfully`
+          });
+
+          // Use personalized version by default, extract metadata
+          const content = sectionData?.personalizedVersion?.content || sectionData?.content || [];
+          const contentArray = typeof content === 'string' 
+            ? content.split('\n').filter(Boolean).map(line => ({ id: Date.now() + Math.random(), content: line }))
+            : Array.isArray(content) ? content : [];
+
+          return {
+            ...section,
+            content: contentArray,
+            vaultItemsUsed: sectionData?.vaultItemsUsed || [],
+            atsKeywords: sectionData?.atsKeywords || [],
+            requirementsCovered: sectionData?.requirementsCovered || []
+          };
+        } catch (error) {
+          console.error(`Error generating ${section.type}:`, error);
+          return section; // Return empty section on error
         }
+      });
 
-        // Use personalized version by default for full generation
-        setResumeSections(prev => prev.map(s => 
-          s.id === section.id 
-            ? { ...s, content: sectionData?.personalizedVersion?.content || sectionData?.content }
-            : s
-        ));
-
-        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between sections
-      }
+      // Wait for all sections to complete
+      const generatedSections = await Promise.all(generationPromises);
+      setResumeSections(generatedSections);
 
       store.setGeneratingSection(null);
 
