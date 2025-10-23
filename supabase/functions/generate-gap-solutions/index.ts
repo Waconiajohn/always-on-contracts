@@ -29,27 +29,95 @@ serve(async (req) => {
       return `- ${content.stated_skill || content.skill || content.text || ''}: ${content.evidence || content.description || ''}`.substring(0, 200);
     }).join('\n');
 
-    const systemPrompt = `You are a strategic resume writer creating SPECIFIC, ACTIONABLE resume bullet points (not generic advice).
+    const systemPrompt = isEducation 
+      ? `You are a strategic resume writer addressing an EDUCATION GAP. Generate actual education credentials and alternatives, NOT work experience bullets.
 
-CRITICAL: Your output must be actual resume content the user can copy-paste, NOT coaching advice or abstract suggestions.
+CRITICAL: For education gaps, output CREDENTIALS (degrees, certificates, courses), NOT job accomplishments.
 
 Context:
 - Job Title: ${job_title} (${seniority} level)
 - Industry: ${industry}
-- Requirement: ${requirement}
-${isEducation ? '- THIS IS AN EDUCATION REQUIREMENT' : '- THIS IS A SKILL/EXPERIENCE REQUIREMENT'}
+- Education Requirement: ${requirement}
 ${hasEquivalentOption ? '- Requirement allows "equivalent experience" alternative' : ''}
 
 User's Experience:
 ${vaultSummary || 'Limited vault data available'}
 
-Generate 3 SPECIFIC resume bullet points (not advice):
+Generate 3 EDUCATION-FOCUSED options:
 
-1. **pure_ai** - Industry Standard: Write 2-3 actual resume bullets showing how ${seniority}-level ${job_title}s typically present ${isEducation ? 'their education or equivalent credentials' : 'this capability'}. Use action verbs, metrics, and specifics.
+1. **pure_ai** - Standard Credentials:
+   - Format: "Degree Name in [Field], University Name (Year)"
+   - Example: "Bachelor of Science in Information Technology, State University (2018)"
+   - Generate 1-2 realistic education credentials that fulfill this requirement
 
-2. **vault_based** - Adapted from User's Vault: Transform the user's actual vault experience into 2-3 resume bullets that ${isEducation && hasEquivalentOption ? 'position their experience as degree-equivalent' : 'demonstrate this requirement'}. Use their real evidence.
+2. **vault_based** - Experience as Equivalent:
+   - Format: "[X] years of [relevant experience] (equivalent to [degree type] per job requirements)"
+   - Example: "15+ years progressive IT leadership experience (equivalent to Bachelor's degree per posting requirements)"
+   - Use their actual vault experience to create an equivalency statement
 
-3. **alternative** - ${isEducation ? 'Equivalent Credentials' : 'Transferable Approach'}: Write 2-3 resume bullets showing ${isEducation ? 'certifications, coursework, or self-directed learning' : 'adjacent experience or rapid learning ability'}.
+3. **alternative** - Alternative Credentials:
+   - Format: List of certifications, courses, professional development
+   - Example: "• Certified Information Systems Security Professional (CISSP)\n• Google IT Professional Certificate\n• 200+ hours technical training (Coursera, LinkedIn Learning)"
+   - Generate realistic alternative credentials that could substitute for the degree
+
+Return JSON:
+{
+  "solutions": [
+    {
+      "approach": "pure_ai",
+      "title": "Standard Credentials",
+      "content": "[Education credential format, not work bullets]",
+      "reasoning": "1-sentence on why this credential matches the requirement"
+    },
+    {
+      "approach": "vault_based", 
+      "title": "Experience Equivalent",
+      "content": "[Years of experience equivalency statement]",
+      "reasoning": "1-sentence on how their experience maps to degree requirement"
+    },
+    {
+      "approach": "alternative",
+      "title": "Alternative Credentials",
+      "content": "[List of certifications/courses/training]",
+      "reasoning": "1-sentence on why these alternatives work for ${seniority} ${job_title} roles"
+    }
+  ]
+}
+
+RULES:
+- DO NOT generate work experience bullets (e.g., "Led team of 25...")
+- DO generate education credentials, certificates, courses
+- For pure_ai: Use standard degree format
+- For vault_based: Position years of experience as equivalent if they have ${hasEquivalentOption ? '10+' : '15+'} years
+- For alternative: List specific certifications relevant to ${industry}
+- Keep each section concise (1-3 lines max)`
+      : `You are a strategic resume writer creating SPECIFIC work experience bullets for a SKILL/EXPERIENCE GAP.
+
+CRITICAL: Your output must be actual resume bullets with action verbs and metrics, NOT coaching advice.
+
+Context:
+- Job Title: ${job_title} (${seniority} level)
+- Industry: ${industry}
+- Skill/Experience Requirement: ${requirement}
+
+User's Experience:
+${vaultSummary || 'Limited vault data available'}
+
+Generate 3 SPECIFIC resume bullet point sets:
+
+1. **pure_ai** - Industry Standard:
+   - Write 2-3 resume bullets showing how ${seniority}-level ${job_title}s typically demonstrate this capability
+   - Use action verbs (Led, Architected, Drove, Implemented), metrics, and business impact
+   - Example: "• Architected cloud migration strategy reducing infrastructure costs by 35% ($2M annually)"
+
+2. **vault_based** - Your Experience:
+   - Transform the user's actual vault experience into 2-3 resume bullets demonstrating this requirement
+   - Use their real evidence and accomplishments
+   - Reframe their experience to highlight this specific capability
+
+3. **alternative** - Transferable Approach:
+   - Write 2-3 resume bullets showing adjacent experience or rapid learning ability
+   - Emphasize adaptability and related skills that transfer to this requirement
 
 Return JSON:
 {
@@ -57,31 +125,29 @@ Return JSON:
     {
       "approach": "pure_ai",
       "title": "Industry Standard",
-      "content": "• Bullet point 1 with action verb, context, and result\n• Bullet point 2...",
-      "reasoning": "1-sentence explanation of why this positioning works"
+      "content": "• [Action verb] [what you did] [quantified result]\n• [Another bullet]...",
+      "reasoning": "1-sentence on why this positioning works"
     },
     {
       "approach": "vault_based", 
       "title": "Your Experience Reframed",
-      "content": "• Bullet using their actual experience...",
+      "content": "• [Bullet using their vault experience]...",
       "reasoning": "1-sentence on how their vault maps to requirement"
     },
     {
       "approach": "alternative",
-      "title": "${isEducation ? 'Equivalent Credentials' : 'Transferable Skills'}",
-      "content": "• Bullet emphasizing ${isEducation ? 'learning & certifications' : 'adaptability & adjacent skills'}...",
+      "title": "Transferable Skills",
+      "content": "• [Bullet emphasizing adaptability]...",
       "reasoning": "1-sentence on why this works for ${seniority} roles"
     }
   ]
 }
 
 RULES:
-- Write ACTUAL resume bullets, not advice like "Highlight X" or "Emphasize Y"
-- Use specific action verbs: Led, Architected, Optimized, Drove, Implemented
-- Include metrics where logical (%, $, timeframes, team size)
+- Write ACTUAL resume bullets with action verbs and metrics
+- Include specific outcomes (%, $, timeframes, team size)
 - Each bullet must be 1-2 lines maximum
-- Focus on outcomes and business impact
-${isEducation ? '- For education: If they lack degree but have experience, position years of work as equivalent' : '- For skills: Focus on results achieved using adjacent/transferable capabilities'}`;
+- Focus on business impact and results`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
