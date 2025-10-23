@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,9 +8,12 @@ import {
   CheckCircle2,
   Lightbulb,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { GapSolutionsCard } from "./GapSolutionsCard";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface GapAnalysisViewProps {
   unmatchedRequirements: string[];
@@ -28,9 +32,21 @@ export const GapAnalysisView = ({
   vaultMatches = [],
   jobAnalysis
 }: GapAnalysisViewProps) => {
-  // Calculate matched count directly from unmatched requirements
   const matchedCount = totalRequirements - unmatchedRequirements.length;
   const gapCount = unmatchedRequirements.length;
+  
+  // Track which gaps are expanded and addressed
+  const [expandedGaps, setExpandedGaps] = useState<Record<number, boolean>>({});
+  const [addressedGaps, setAddressedGaps] = useState<Record<number, boolean>>({});
+
+  const toggleGap = (index: number) => {
+    setExpandedGaps(prev => ({ ...prev, [index]: !prev[index] }));
+  };
+
+  const handleAddToVault = (index: number, solution: string) => {
+    setAddressedGaps(prev => ({ ...prev, [index]: true }));
+    console.log('Added solution to vault:', solution);
+  };
 
   const getCoverageColor = () => {
     if (coverageScore >= 80) return "text-success";
@@ -43,9 +59,11 @@ export const GapAnalysisView = ({
     return <AlertTriangle className="h-6 w-6 text-warning" />;
   };
 
+  const addressedCount = Object.values(addressedGaps).filter(Boolean).length;
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-3">Gap Analysis Complete</h1>
@@ -55,7 +73,7 @@ export const GapAnalysisView = ({
         </div>
 
         {/* Coverage Summary */}
-        <Card className="p-6">
+        <Card className="p-6 bg-card border">
           <div className="flex items-start gap-4">
             {getCoverageIcon()}
             <div className="flex-1">
@@ -99,40 +117,102 @@ export const GapAnalysisView = ({
               <h2 className="text-2xl font-semibold">
                 Requirements Not Fully Matched ({gapCount})
               </h2>
-              <Badge variant="outline" className="bg-warning/10">
-                Needs Attention
-              </Badge>
+              <div className="flex items-center gap-3">
+                {addressedCount > 0 && (
+                  <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+                    {addressedCount} Addressed
+                  </Badge>
+                )}
+                {gapCount > addressedCount && (
+                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                    {gapCount - addressedCount} Remaining
+                  </Badge>
+                )}
+              </div>
             </div>
 
-            <Alert>
+            <Alert className="border-primary/20 bg-primary/5">
               <Lightbulb className="h-4 w-4" />
-              <AlertTitle>AI Gap Solutions Available</AlertTitle>
+              <AlertTitle>Click any requirement to see AI-generated solutions</AlertTitle>
               <AlertDescription>
-                After extensive analysis of your Career Vault against this job's requirements, 
-                we've identified {gapCount} {gapCount === 1 ? 'area' : 'areas'} where you may not have 
-                direct experience documented—but that doesn't mean you can't address {gapCount === 1 ? 'it' : 'them'}. 
-                For each gap, we've generated three strategic approaches: an industry-standard response, 
-                a reframing based on your existing experience, and an alternative positioning using transferable skills. 
-                Choose the best solution for each requirement, and it will be saved to your Career Vault 
-                for use on future applications as well.
+                Each gap has three strategic approaches: industry standard, vault-based adaptation, 
+                and alternative positioning. Choose the best solution and add it to your Career Vault.
               </AlertDescription>
             </Alert>
 
-            {unmatchedRequirements.map((requirement, index) => (
-              <GapSolutionsCard
-                key={index}
-                requirement={requirement}
-                vaultMatches={vaultMatches}
-                jobContext={{
-                  title: jobAnalysis?.roleProfile?.title || 'this role',
-                  industry: jobAnalysis?.roleProfile?.industry || 'your industry',
-                  seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level'
-                }}
-                onAddToVault={(solution) => {
-                  console.log('Added solution to vault:', solution);
-                }}
-              />
-            ))}
+            {/* Gap Cards Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {unmatchedRequirements.map((requirement, index) => {
+                const isExpanded = expandedGaps[index];
+                const isAddressed = addressedGaps[index];
+
+                return (
+                  <Collapsible
+                    key={index}
+                    open={isExpanded}
+                    onOpenChange={() => toggleGap(index)}
+                    className={`border rounded-lg transition-all ${
+                      isExpanded ? 'col-span-full' : ''
+                    }`}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Card className={`p-4 cursor-pointer hover:shadow-md transition-all ${
+                        isAddressed ? 'border-success/50 bg-success/5' : 'border-border'
+                      }`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              {isAddressed ? (
+                                <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
+                              ) : (
+                                <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
+                              )}
+                              <Badge variant="outline" className="text-xs">
+                                {isAddressed ? 'Addressed' : 'Needs Attention'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm font-medium line-clamp-3">
+                              {requirement}
+                            </p>
+                          </div>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          )}
+                        </div>
+                        {!isExpanded && (
+                          <Button
+                            size="sm"
+                            variant={isAddressed ? "outline" : "default"}
+                            className="w-full mt-3"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleGap(index);
+                            }}
+                          >
+                            {isAddressed ? 'Review Solution' : 'Address This'}
+                          </Button>
+                        )}
+                      </Card>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent className="mt-4">
+                      <GapSolutionsCard
+                        requirement={requirement}
+                        vaultMatches={vaultMatches}
+                        jobContext={{
+                          title: jobAnalysis?.roleProfile?.title || 'this role',
+                          industry: jobAnalysis?.roleProfile?.industry || 'your industry',
+                          seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level'
+                        }}
+                        onAddToVault={(solution) => handleAddToVault(index, solution)}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -152,7 +232,15 @@ export const GapAnalysisView = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end pt-6">
+        <div className="flex items-center justify-between pt-6 border-t">
+          <div className="text-sm text-muted-foreground">
+            {addressedCount > 0 && gapCount > addressedCount && (
+              <span>You've addressed {addressedCount} of {gapCount} gaps. You can continue or address more.</span>
+            )}
+            {addressedCount === gapCount && gapCount > 0 && (
+              <span className="text-success font-medium">All gaps addressed! Ready to generate.</span>
+            )}
+          </div>
           <Button
             onClick={onContinue}
             size="lg"
@@ -176,15 +264,15 @@ export const GapAnalysisView = ({
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">2.</span>
-                  <span>Each section shows which vault items were used and why</span>
+                  <span>Solutions you've added will be integrated into the appropriate sections</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">3.</span>
-                  <span>You can review, edit, and approve each section</span>
+                  <span>Each section shows which vault items were used and why</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">4.</span>
-                  <span>Gaps will be addressed with transferable skills and workarounds</span>
+                  <span>You can review, edit, and approve each section before finalizing</span>
                 </li>
               </ul>
             </div>

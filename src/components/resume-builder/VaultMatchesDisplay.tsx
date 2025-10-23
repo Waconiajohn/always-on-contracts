@@ -2,6 +2,24 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, AlertTriangle, X, Award, Clock } from "lucide-react";
 
+// Helper to safely extract displayable text from any vault item type
+const getVaultItemDisplay = (match: any): string => {
+  if (!match) return 'Vault item';
+  
+  // Try multiple fields in order of preference
+  const content = match.content || match;
+  return content.text ||
+         content.stated_skill ||
+         content.skill ||
+         content.inferred_from ||
+         content.description ||
+         (content.evidence && Array.isArray(content.evidence) ? content.evidence[0] : null) ||
+         match.text ||
+         match.stated_skill ||
+         match.skill ||
+         'Vault item';
+};
+
 interface VaultMatchesDisplayProps {
   vaultMatches: any[];
   matchStatus: string;
@@ -52,7 +70,7 @@ export const VaultMatchesDisplay = ({ vaultMatches, matchStatus }: VaultMatchesD
                   <div className="flex items-start gap-2">
                     <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
                     <div className="flex-1">
-                      <span>{match.content || match.text || match.stated_skill || match.inferred_from || 'Vault item'}</span>
+                      <span>{getVaultItemDisplay(match)}</span>
                       <div className="flex items-center gap-2 mt-1">
                         <QualityIcon className={`h-3 w-3 ${quality.color}`} />
                         <span className={`text-xs ${quality.color}`}>{quality.label}</span>
