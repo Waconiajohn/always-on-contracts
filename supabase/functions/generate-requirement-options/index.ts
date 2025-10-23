@@ -42,38 +42,55 @@ serve(async (req) => {
       numOptions = 4; // Complex case
     }
 
-    const prompt = `You are a resume expert creating multiple strategic options to address a job requirement.
+    // Build vault context
+    const vaultContext = vaultMatches?.slice(0, 5).map((m: any) => {
+      const content = m.content || m;
+      return `- ${content.stated_skill || content.skill || content.text || ''}: ${content.evidence || content.description || ''}`.substring(0, 200);
+    }).join('\n') || 'No vault data';
+
+    const prompt = `You are a professional resume writer creating ACTUAL RESUME BULLETS (not advice or coaching suggestions).
+
+CRITICAL: Output must be copy-paste ready resume content using action verbs, metrics, and outcomes. DO NOT write coaching like "Highlight X" or "Emphasize Y".
 
 REQUIREMENT: ${requirement}
 MATCH STATUS: ${matchStatus}
-VAULT MATCHES: ${JSON.stringify(vaultMatches)}
-USER ANSWERS: ${JSON.stringify(answers)}
-VOICE CONTEXT: ${voiceContext || 'None provided'}
-JOB CONTEXT: ${JSON.stringify(jobContext)}
+JOB: ${jobContext?.title || 'Unknown'} (${jobContext?.seniority || 'mid'} level)
 
-Generate ${numOptions} different creative options to address this requirement. Each option should:
-1. Use different strategic framing (aggregate, range, specific example, career trajectory, etc.)
-2. Incorporate the user's vault data and clarification answers
-3. Include relevant ATS keywords
-4. Be truthful while positioning the candidate optimally
-5. Be 1-3 sentences of resume-quality content
+USER'S ACTUAL EXPERIENCE:
+${vaultContext}
 
-For each option, explain:
-- The strategic approach (why this framing works)
-- Keywords included
-- What it addresses
-- Any considerations/tradeoffs
+USER'S CLARIFICATIONS:
+${answers ? JSON.stringify(answers) : 'None'}
+${voiceContext ? `VOICE NOTES: ${voiceContext}` : ''}
 
-Return ONLY a JSON object with this structure:
+Create ${numOptions} DIFFERENT resume bullet point options addressing this requirement. Each must:
+1. Start with strong action verb (Led, Architected, Drove, Optimized, Implemented)
+2. Include specific context and scope
+3. Show measurable outcomes where possible (%, $, timeframes)
+4. Use different strategic framings:
+   - Aggregate approach (combine multiple experiences)
+   - Range with peak example ("5-10 projects, including...")
+   - Career trajectory (growth over time)
+   - Specific high-impact example
+5. Be 1-2 lines maximum (40-60 words)
+6. Use ATS keywords naturally
+
+RULES:
+- Write ACTUAL bullets ready to paste into a resume
+- NO phrases like "Highlight", "Demonstrate", "Showcase", "Emphasize"
+- Use ONLY information from vault/answers (or industry standards if no data)
+- Each option must feel substantively different
+
+Return JSON:
 {
   "options": [
     {
-      "content": "The actual resume content here...",
-      "approach": "Strategic framing used (e.g., 'Aggregate Approach', 'Range with Example')",
-      "reasoning": "Why this option works and what it addresses",
-      "keywords": ["keyword1", "keyword2"],
-      "strength": "Main strength of this approach",
-      "consideration": "Any tradeoff or consideration"
+      "content": "• Led cross-functional team of 8 engineers to deliver...",
+      "approach": "Aggregate Approach - combines 3 vault items",
+      "reasoning": "Shows breadth and leadership",
+      "keywords": ["team", "delivery", "engineering"],
+      "strength": "Demonstrates scale",
+      "consideration": "Less specific on individual projects"
     }
   ]
 }`;
