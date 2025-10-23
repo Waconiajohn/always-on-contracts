@@ -35,6 +35,8 @@ export default function TestingDashboard() {
   const [currentRun, setCurrentRun] = useState<TestRunSummary | null>(null);
   const [testHistory, setTestHistory] = useState<any[]>([]);
   const [runningTest, setRunningTest] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   const allSuites = [
     authenticationSuite,
@@ -50,7 +52,14 @@ export default function TestingDashboard() {
 
   useEffect(() => {
     loadTestHistory();
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setUserEmail(session?.user?.email || null);
+    setSessionLoaded(true);
+  };
 
   const loadTestHistory = async () => {
     const { data } = await supabase
@@ -63,6 +72,13 @@ export default function TestingDashboard() {
   };
 
   const runTests = async (suiteName?: string) => {
+    // Check auth before running
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('You must be logged in to run tests. Please refresh the page and try again.');
+      return;
+    }
+
     setLoading(true);
     setRunningTest(suiteName || 'All Tests');
     const executor = new TestExecutor();
@@ -127,10 +143,27 @@ export default function TestingDashboard() {
           <p className="text-muted-foreground">
             Comprehensive automated testing for all application features
           </p>
+          {sessionLoaded && (
+            <div className="mt-2 flex items-center gap-2">
+              <Badge variant={userEmail ? "default" : "destructive"} className="gap-1">
+                {userEmail ? (
+                  <>
+                    <CheckCircle2 className="h-3 w-3" />
+                    Authenticated as {userEmail}
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-3 w-3" />
+                    Not authenticated
+                  </>
+                )}
+              </Badge>
+            </div>
+          )}
         </div>
         <Button
           onClick={() => runTests()}
-          disabled={loading}
+          disabled={loading || !userEmail}
           size="lg"
           className="gap-2"
         >
