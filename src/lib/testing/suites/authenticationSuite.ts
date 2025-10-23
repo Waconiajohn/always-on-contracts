@@ -14,21 +14,43 @@ export const authenticationSuite: TestSuite = {
       category: 'authentication',
       priority: 'critical',
       execute: async () => {
-        const email = `test-${Date.now()}@example.com`;
-        const password = 'TestPass123!@#';
+        // Store current session to restore later
+        const { data: { session: originalSession } } = await supabase.auth.getSession();
+        
+        try {
+          const email = `test-${Date.now()}@example.com`;
+          const password = 'TestPass123!@#';
 
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: 'Test User' } },
-        });
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { full_name: 'Test User' },
+              emailRedirectTo: `${window.location.origin}/`
+            },
+          });
 
-        return {
-          passed: !error && !!data.user,
-          duration: 0,
-          error: error?.message,
-          metadata: { userId: data.user?.id },
-        };
+          // Sign out the test user and restore original session
+          if (data.user) {
+            await supabase.auth.signOut();
+            if (originalSession) {
+              await supabase.auth.setSession(originalSession);
+            }
+          }
+
+          return {
+            passed: !error && !!data.user,
+            duration: 0,
+            error: error?.message,
+            metadata: { userId: data.user?.id },
+          };
+        } catch (err: any) {
+          // Restore original session on error
+          if (originalSession) {
+            await supabase.auth.setSession(originalSession);
+          }
+          throw err;
+        }
       },
     },
     {
@@ -60,22 +82,48 @@ export const authenticationSuite: TestSuite = {
       category: 'authentication',
       priority: 'critical',
       execute: async () => {
-        const email = `test-${Date.now()}@example.com`;
-        const password = 'TestPass123!@#';
+        const { data: { session: originalSession } } = await supabase.auth.getSession();
+        
+        try {
+          const email = `test-${Date.now()}@example.com`;
+          const password = 'TestPass123!@#';
 
-        await supabase.auth.signUp({ email, password });
+          await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/`
+            }
+          });
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+          // Sign out the newly created user
+          await supabase.auth.signOut();
 
-        return {
-          passed: !error && !!data.session,
-          duration: 0,
-          error: error?.message,
-          metadata: { hasSession: !!data.session },
-        };
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          const testPassed = !error && !!data.session;
+
+          // Clean up and restore original session
+          await supabase.auth.signOut();
+          if (originalSession) {
+            await supabase.auth.setSession(originalSession);
+          }
+
+          return {
+            passed: testPassed,
+            duration: 0,
+            error: error?.message,
+            metadata: { hasSession: !!data.session },
+          };
+        } catch (err: any) {
+          if (originalSession) {
+            await supabase.auth.setSession(originalSession);
+          }
+          throw err;
+        }
       },
     },
     {
@@ -100,19 +148,26 @@ export const authenticationSuite: TestSuite = {
     {
       id: 'auth-005',
       name: 'Session persistence after refresh',
-      description: 'Session should persist after page reload',
+      description: 'Session should persist and be retrievable',
       category: 'authentication',
       priority: 'high',
       execute: async () => {
-        const { data: sessionBefore } = await supabase.auth.getSession();
-        const { data: sessionAfter } = await supabase.auth.getSession();
+        const { data: { session: sessionBefore } } = await supabase.auth.getSession();
+        
+        // Verify session exists and has required properties
+        const hasPersistentSession = 
+          !!sessionBefore && 
+          !!sessionBefore.user && 
+          !!sessionBefore.access_token &&
+          !!sessionBefore.refresh_token;
 
         return {
-          passed: sessionBefore.session?.user.id === sessionAfter.session?.user.id,
+          passed: hasPersistentSession,
           duration: 0,
           metadata: {
-            userIdBefore: sessionBefore.session?.user.id,
-            userIdAfter: sessionAfter.session?.user.id,
+            hasSession: !!sessionBefore,
+            hasUser: !!sessionBefore?.user,
+            hasAccessToken: !!sessionBefore?.access_token,
           },
         };
       },
@@ -124,15 +179,43 @@ export const authenticationSuite: TestSuite = {
       category: 'authentication',
       priority: 'critical',
       execute: async () => {
-        const { error: signOutError } = await supabase.auth.signOut();
-        const { data: sessionAfter } = await supabase.auth.getSession();
+        // Create and sign in a temporary test user
+        const { data: { session: originalSession } } = await supabase.auth.getSession();
+        
+        try {
+          const email = `test-${Date.now()}@example.com`;
+          const password = 'TestPass123!@#';
 
-        return {
-          passed: !signOutError && !sessionAfter.session,
-          duration: 0,
-          error: signOutError?.message,
-          metadata: { hasSessionAfterSignOut: !!sessionAfter.session },
-        };
+          await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/`
+            }
+          });
+
+          const { error: signOutError } = await supabase.auth.signOut();
+          const { data: sessionAfter } = await supabase.auth.getSession();
+
+          const testPassed = !signOutError && !sessionAfter.session;
+
+          // Restore original session
+          if (originalSession) {
+            await supabase.auth.setSession(originalSession);
+          }
+
+          return {
+            passed: testPassed,
+            duration: 0,
+            error: signOutError?.message,
+            metadata: { hasSessionAfterSignOut: !!sessionAfter.session },
+          };
+        } catch (err: any) {
+          if (originalSession) {
+            await supabase.auth.setSession(originalSession);
+          }
+          throw err;
+        }
       },
     },
     {
