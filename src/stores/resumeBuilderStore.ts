@@ -294,7 +294,23 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
         selectedFormat: state.selectedFormat,
         contactInfo: state.contactInfo,
         resumeId: state.resumeId
-      })
+      }),
+      onRehydrateStorage: () => (state) => {
+        // Sanitize rehydrated state to prevent spread syntax errors
+        if (state) {
+          // Ensure atsKeywords is always a proper object
+          if (state.jobAnalysis && !state.jobAnalysis.atsKeywords) {
+            state.jobAnalysis.atsKeywords = { critical: [], important: [], nice_to_have: [] };
+          }
+          // Ensure vaultMatches has proper structure
+          if (state.vaultMatches && !Array.isArray(state.vaultMatches.matchedItems)) {
+            state.vaultMatches.matchedItems = [];
+          }
+          if (state.vaultMatches && !Array.isArray(state.vaultMatches.unmatchedRequirements)) {
+            state.vaultMatches.unmatchedRequirements = [];
+          }
+        }
+      }
     }
   )
 );

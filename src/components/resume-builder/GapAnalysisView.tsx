@@ -304,7 +304,7 @@ export const GapAnalysisView = ({
               sections={previewSections}
               addressedGaps={Object.keys(addressedGaps).filter(k => addressedGaps[Number(k)])}
               vaultMatches={vaultMatches}
-              atsKeywords={jobAnalysis?.atsKeywords}
+              atsKeywords={jobAnalysis?.atsKeywords || { critical: [], important: [], nice_to_have: [] }}
             />
           </div>
         </ResizablePanel>
