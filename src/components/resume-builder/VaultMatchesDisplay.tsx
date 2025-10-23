@@ -52,7 +52,7 @@ export const VaultMatchesDisplay = ({ vaultMatches, matchStatus }: VaultMatchesD
                   <div className="flex items-start gap-2">
                     <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
                     <div className="flex-1">
-                      <span>{match.content || match.text}</span>
+                      <span>{match.content || match.text || match.stated_skill || match.inferred_from || 'Vault item'}</span>
                       <div className="flex items-center gap-2 mt-1">
                         <QualityIcon className={`h-3 w-3 ${quality.color}`} />
                         <span className={`text-xs ${quality.color}`}>{quality.label}</span>
