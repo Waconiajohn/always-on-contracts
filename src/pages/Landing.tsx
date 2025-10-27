@@ -177,8 +177,8 @@ export default function Landing() {
               <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-xl">C</span>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <div>
+                <h1 className="text-2xl font-bold text-foreground">
                   CareerIQ
                 </h1>
                 <p className="text-xs text-muted-foreground font-medium">AI-Powered Career Intelligence</p>
