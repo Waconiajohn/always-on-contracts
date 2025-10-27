@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface InterviewQuestion {
   id: string;
@@ -138,13 +139,41 @@ export function InterviewPrep({
 
     setGeneratingQuestions(true);
     
-    // Mock generation
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-interview-prep', {
+        body: {
+          resumeContent,
+          jobTitle,
+          jobDescription
+        }
+      });
+
+      if (error) {
+        console.error('Interview prep error:', error);
+        if (error.message?.includes('429') || error.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again in a moment.');
+        }
+        if (error.message?.includes('402') || error.status === 402) {
+          throw new Error('AI credits required. Please add funds to your workspace.');
+        }
+        throw error;
+      }
+
+      if (!data?.success || !data?.questions) {
+        throw new Error('Invalid response from interview prep service');
+      }
+
+      setQuestions(data.questions);
+      onGenerate?.(data.questions);
+      toast.success(`Generated ${data.questions.length} interview questions!`);
+    } catch (error: any) {
+      console.error('Failed to generate questions:', error);
+      toast.error(error.message || 'Failed to generate questions. Please try again.');
+      // Fallback to mock questions if AI fails
       setQuestions(mockQuestions);
+    } finally {
       setGeneratingQuestions(false);
-      onGenerate?.(mockQuestions);
-      toast.success(`Generated ${mockQuestions.length} interview questions!`);
-    }, 2000);
+    }
   };
 
   const handleAnalyzeResponse = async () => {

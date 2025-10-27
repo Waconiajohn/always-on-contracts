@@ -320,13 +320,13 @@ const ResumeBuilderWizardContent = () => {
   const handleFormatSelected = () => {
     if (!selectedFormat) return;
 
-    // Skip requirement filtering and go straight to generation
+    // Move to generation mode selector
     toast({
       title: "Format selected",
-      description: "Generating your resume with all matched vault items..."
+      description: "Choose how you'd like to build your resume"
     });
     
-    generateCompleteResume();
+    setCurrentStep('generation-mode');
   };
 
   // Legacy requirement categorization - only used if user manually navigates to requirement-filter
@@ -674,15 +674,24 @@ const ResumeBuilderWizardContent = () => {
       });
 
       if (error) {
+        console.error('ATS analysis error:', error);
         // Handle rate limiting
-        if (error.message?.includes('429')) {
+        if (error.message?.includes('429') || error.status === 429) {
           throw new Error('Rate limit exceeded. Please try again in a few moments.');
         }
         // Handle payment required
-        if (error.message?.includes('402')) {
+        if (error.message?.includes('402') || error.status === 402) {
           throw new Error('AI credits required. Please add funds to your workspace.');
         }
+        // Handle generic AI errors
+        if (error.message?.includes('AI_GENERATION_FAILED')) {
+          throw new Error('AI service error. Please try again in a moment.');
+        }
         throw error;
+      }
+
+      if (!data) {
+        throw new Error('No data returned from ATS analysis');
       }
 
       setAtsScoreData(data);
@@ -960,12 +969,13 @@ const ResumeBuilderWizardContent = () => {
         </div>
       );
 
+    case 'generation-mode':
       return (
         <div className="min-h-screen bg-background">
           <div className="p-4">
             <Button
               variant="ghost"
-              onClick={() => setCurrentStep('requirement-filter')}
+              onClick={() => setCurrentStep('format-selection')}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
