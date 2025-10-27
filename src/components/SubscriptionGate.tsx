@@ -12,7 +12,8 @@ interface SubscriptionGateProps {
 
 export const SubscriptionGate = ({ 
   featureName, 
-  children
+  children,
+  requiredTier
 }: SubscriptionGateProps) => {
   const { subscription, loading } = useSubscription();
   const navigate = useNavigate();
@@ -25,7 +26,12 @@ export const SubscriptionGate = ({
     );
   }
 
-  if (!subscription?.subscribed) {
+  // Check tier-specific requirements
+  const hasAccess = requiredTier === 'concierge_elite'
+    ? subscription?.tier === 'concierge_elite' || subscription?.is_retirement_client
+    : subscription?.subscribed;
+
+  if (!hasAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-2xl mx-auto">
@@ -36,10 +42,12 @@ export const SubscriptionGate = ({
               </div>
             </div>
             <h2 className="text-2xl font-bold">
-              Upgrade to Access {featureName}
+              {requiredTier === 'concierge_elite' ? 'Concierge Elite Exclusive' : `Upgrade to Access ${featureName}`}
             </h2>
             <p className="text-muted-foreground">
-              This feature requires a paid subscription. Unlock all career intelligence tools and accelerate your job search.
+              {requiredTier === 'concierge_elite' 
+                ? 'AI Job Matching is exclusive to Concierge Elite subscribers. Upgrade to have our AI automatically discover and recommend opportunities tailored to your Career Vault.'
+                : 'This feature requires a paid subscription. Unlock all career intelligence tools and accelerate your job search.'}
             </p>
             <div className="flex gap-4 justify-center">
               <Button onClick={() => navigate('/pricing')} size="lg">

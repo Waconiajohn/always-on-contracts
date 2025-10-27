@@ -68,6 +68,9 @@ const TIERS = [
     description: "White-glove career management",
     features: [
       "Everything in Always Ready",
+      "🤖 AI Job Matching Engine",
+      "Automatic job discovery & recommendations",
+      "Personalized match scoring with AI insights",
       "Unlimited AI agents",
       "Dedicated career strategist",
       "Custom automation workflows",

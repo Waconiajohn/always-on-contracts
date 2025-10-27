@@ -1,5 +1,11 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
+[functions.ai-job-matcher]
+verify_jwt = true
+
+[functions.daily-job-matcher]
+verify_jwt = false
+
 [functions.auto-populate-vault]
 verify_jwt = true
 

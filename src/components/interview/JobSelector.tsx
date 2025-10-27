@@ -47,7 +47,6 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
         )
       `)
       .eq('user_id', user.id)
-      .eq('status', 'approved')
       .order('created_at', { ascending: false });
 
     // Transform data to match expected format
@@ -56,7 +55,7 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
       job_title: item.job_opportunities?.job_title || 'Unknown Position',
       company_name: item.job_opportunities?.location || 'Various Companies',
       created_at: item.created_at,
-      status: item.status,
+      application_status: item.application_status,
       opportunity_id: item.opportunity_id,
       job_description: item.job_opportunities?.job_description,
       required_skills: item.job_opportunities?.required_skills,
@@ -140,7 +139,11 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
                 <Calendar className="h-4 w-4 mt-0.5" />
                 <div>
                   <p className="text-sm">Added: {new Date(selectedProject.created_at).toLocaleDateString()}</p>
-                  <Badge variant="secondary" className="text-xs mt-1">Approved for Interview Prep</Badge>
+                  <Badge variant="secondary" className="text-xs mt-1">
+                    {selectedProject.application_status === 'applied' ? 'Applied' : 
+                     selectedProject.application_status === 'interviewing' ? 'Interviewing' :
+                     'In Queue'}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -172,8 +175,8 @@ export const JobSelector = ({ onJobSelected }: JobSelectorProps) => {
         {projects.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             <Briefcase className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No approved jobs found</p>
-            <p className="text-xs mt-2">Go to Application Queue and approve jobs you want to prep for</p>
+            <p className="text-sm">No jobs in your application queue</p>
+            <p className="text-xs mt-2">Add jobs to your application queue to prep for interviews</p>
           </div>
         )}
       </CardContent>

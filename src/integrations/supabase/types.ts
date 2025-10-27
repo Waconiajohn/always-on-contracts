@@ -309,9 +309,45 @@ export type Database = {
           },
         ]
       }
+      ai_match_feedback: {
+        Row: {
+          action: string
+          created_at: string | null
+          feedback_notes: string | null
+          id: string
+          match_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          feedback_notes?: string | null
+          id?: string
+          match_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          feedback_notes?: string | null
+          id?: string
+          match_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_match_feedback_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_queue: {
         Row: {
           ai_customization_notes: string | null
+          application_status: string | null
           applied_at: string | null
           conversation_data: Json | null
           created_at: string | null
@@ -327,11 +363,11 @@ export type Database = {
           opportunity_id: string
           reviewed_at: string | null
           source: string | null
-          status: string
           user_id: string
         }
         Insert: {
           ai_customization_notes?: string | null
+          application_status?: string | null
           applied_at?: string | null
           conversation_data?: Json | null
           created_at?: string | null
@@ -347,11 +383,11 @@ export type Database = {
           opportunity_id: string
           reviewed_at?: string | null
           source?: string | null
-          status?: string
           user_id: string
         }
         Update: {
           ai_customization_notes?: string | null
+          application_status?: string | null
           applied_at?: string | null
           conversation_data?: Json | null
           created_at?: string | null
@@ -367,7 +403,6 @@ export type Database = {
           opportunity_id?: string
           reviewed_at?: string | null
           source?: string | null
-          status?: string
           user_id?: string
         }
         Relationships: [
@@ -3015,6 +3050,54 @@ export type Database = {
           id?: string
           metadata?: Json | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_ai_preferences: {
+        Row: {
+          created_at: string | null
+          email_frequency: string | null
+          enabled: boolean | null
+          id: string
+          last_match_run: string | null
+          max_salary: number | null
+          min_salary: number | null
+          preferred_locations: string[] | null
+          remote_preference: string | null
+          target_industries: string[] | null
+          target_roles: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_frequency?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_match_run?: string | null
+          max_salary?: number | null
+          min_salary?: number | null
+          preferred_locations?: string[] | null
+          remote_preference?: string | null
+          target_industries?: string[] | null
+          target_roles?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_frequency?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_match_run?: string | null
+          max_salary?: number | null
+          min_salary?: number | null
+          preferred_locations?: string[] | null
+          remote_preference?: string | null
+          target_industries?: string[] | null
+          target_roles?: string[] | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
