@@ -19,14 +19,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // 1. Find all Concierge Elite users with AI matching enabled
-    const { data: users, error: usersError } = await supabase
+    const { data: eliteUsers, error: eliteError } = await supabase
       .from('profiles')
       .select(`
         user_id,
         subscriptions!inner (
           tier,
-          is_active,
-          is_retirement_client
+          status
         ),
         user_ai_preferences!left (
           enabled,
@@ -40,14 +39,61 @@ serve(async (req) => {
           status
         )
       `)
-      .eq('subscriptions.is_active', true)
-      .or('subscriptions.tier.eq.concierge_elite,subscriptions.is_retirement_client.eq.true', { foreignTable: 'subscriptions' })
+      .eq('subscriptions.status', 'active')
+      .eq('subscriptions.tier', 'concierge_elite')
       .gte('career_vault.overall_strength_score', 50);
 
-    if (usersError) {
-      console.error('[DAILY-JOB-MATCHER] Error fetching users:', usersError);
-      throw usersError;
+    if (eliteError) {
+      console.error('[DAILY-JOB-MATCHER] Error fetching elite users:', eliteError);
+      throw eliteError;
     }
+
+    // 2. Find retirement access users
+    const { data: retirementUsers, error: retirementError } = await supabase
+      .from('retirement_access_codes')
+      .select(`
+        user_id,
+        profiles!inner (
+          user_id,
+          user_ai_preferences!left (
+            enabled,
+            last_match_run
+          ),
+          career_vault!inner (
+            overall_strength_score
+          ),
+          opportunity_matches (
+            id,
+            status
+          )
+        )
+      `)
+      .eq('is_active', true)
+      .gte('profiles.career_vault.overall_strength_score', 50);
+
+    if (retirementError) {
+      console.error('[DAILY-JOB-MATCHER] Error fetching retirement users:', retirementError);
+      throw retirementError;
+    }
+
+    // 3. Merge both user lists and normalize structure
+    const normalizedRetirementUsers = (retirementUsers || []).map(r => {
+      const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+      return {
+        user_id: r.user_id,
+        user_ai_preferences: profile?.user_ai_preferences,
+        career_vault: profile?.career_vault,
+        opportunity_matches: profile?.opportunity_matches,
+        is_retirement: true
+      };
+    });
+
+    const normalizedEliteUsers = (eliteUsers || []).map(u => ({
+      ...u,
+      is_retirement: false
+    }));
+
+    const users = [...normalizedEliteUsers, ...normalizedRetirementUsers];
 
     if (!users || users.length === 0) {
       console.log('[DAILY-JOB-MATCHER] No eligible users found');
@@ -60,7 +106,7 @@ serve(async (req) => {
       );
     }
 
-    // 2. Filter and prioritize users
+    // 4. Filter and prioritize users
     const eligibleUsers = users.filter(u => {
       // Check if AI preferences exist and are enabled (default to true if not set)
       const prefs = Array.isArray(u.user_ai_preferences) ? u.user_ai_preferences[0] : u.user_ai_preferences;
@@ -103,7 +149,7 @@ serve(async (req) => {
 
     console.log(`[DAILY-JOB-MATCHER] Processing ${eligibleUsers.length} eligible users`);
 
-    // 3. Process each user
+    // 5. Process each user
     const results = {
       total_users: eligibleUsers.length,
       successful: 0,
