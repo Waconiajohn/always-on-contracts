@@ -26,6 +26,36 @@ import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength, analytics } from "@/lib/resumeAnalytics";
 import { executeWithRetry, StateManager } from "@/lib/errorHandling";
 
+// Helper to extract display-friendly text from vault match content
+const getVaultItemLabel = (match: VaultMatch): string => {
+  const content = match.content;
+  
+  if (typeof content === 'string') {
+    return content.length > 40 ? content.substring(0, 40) + '...' : content;
+  }
+  
+  // Try fields in order of preference
+  const fields = [
+    'competency_area', 'inferred_capability',
+    'phrase', 'quantifiable_result',
+    'skill_name', 'trait_name',
+    'job_title', 'company', 'accomplishment',
+    'question', 'strong_answer',
+    'philosophy_statement', 'value_name',
+    'title', 'description', 'name'
+  ];
+  
+  for (const field of fields) {
+    if (content[field] && typeof content[field] === 'string' && content[field].length > 3) {
+      const text = content[field];
+      return text.length > 40 ? text.substring(0, 40) + '...' : text;
+    }
+  }
+  
+  // Fallback to category name
+  return match.vaultCategory.replace(/_/g, ' ');
+};
+
 interface VaultMatch {
   vaultItemId: string;
   vaultCategory: string;
@@ -450,7 +480,7 @@ export const SectionWizard = ({
                             variant="outline"
                             className={`text-xs ${tierColors[qualityTier]}`}
                           >
-                            {tierIcons[qualityTier]} {match.vaultCategory.replace(/_/g, ' ')} ({match.matchScore}%)
+                            {tierIcons[qualityTier]} {getVaultItemLabel(match)} ({match.matchScore}%)
                           </Badge>
                         );
                       })}
