@@ -334,7 +334,7 @@ const JobSearchContent = () => {
 
       toast({
         title: "Added to My Applications",
-        description: `${job.title} at ${job.company} added. View in Application Queue →`
+        description: `${job.title} at ${job.company} added. View in Active Applications →`
       });
     } catch (error: any) {
       console.error('Add to applications error:', error);

@@ -73,7 +73,7 @@ const DailyWorkflow = () => {
                 <div className="flex items-start gap-2">
                   <Checkbox id="job-2" />
                   <label htmlFor="job-2" className="text-sm leading-relaxed">
-                    Add 5-10 interesting jobs to Application Queue
+                    Add 5-10 interesting jobs to Active Applications
                   </label>
                 </div>
                 <div className="flex items-start gap-2">
@@ -97,7 +97,7 @@ const DailyWorkflow = () => {
                 <div className="flex items-start gap-2">
                   <Checkbox id="app-1" />
                   <label htmlFor="app-1" className="text-sm leading-relaxed">
-                    Review Application Queue
+                    Review Active Applications
                   </label>
                 </div>
                 <div className="flex items-start gap-2">

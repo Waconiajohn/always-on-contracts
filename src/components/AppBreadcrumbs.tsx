@@ -14,7 +14,8 @@ const routeNames: Record<string, string> = {
   dashboard: "Dashboard",
   projects: "Projects",
   "job-search": "Job Search",
-  "application-queue": "Application Queue",
+  "active-applications": "Active Applications",
+  "application-queue": "Active Applications", // Legacy route support
   agencies: "Agencies",
   coaching: "Coaching",
   "career-dashboard": "Career Dashboard",

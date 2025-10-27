@@ -104,12 +104,12 @@ const CommandCenter = () => {
           isLocked: !hasVault,
           features: [
             {
-              name: 'Application Queue',
+              name: 'Active Applications',
               icon: FolderKanban,
               completion: 0,
               lastActivity: null,
-              route: '/application-queue',
-              description: 'Jobs you\'re targeting',
+              route: '/active-applications',
+              description: 'Track applications & interviews',
               isLocked: !hasVault || !isSubscribed,
               requiredCompletion: !hasVault ? 'Complete Career Vault first' : !isSubscribed ? 'Upgrade to access' : undefined
             },

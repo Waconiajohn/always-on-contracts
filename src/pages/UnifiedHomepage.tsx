@@ -101,11 +101,11 @@ const UnifiedHomeContent = () => {
       isDualAI: true
     },
     {
-      id: 'application-queue',
-      title: 'Application Queue',
-      description: 'Manage your active applications',
+      id: 'active-applications',
+      title: 'Active Applications',
+      description: 'Track applications, interviews & offers',
       icon: FileText,
-      path: '/application-queue',
+      path: '/active-applications',
       order: 4,
       isLocked: !isVaultComplete,
       lockReason: 'Complete Career Vault first'

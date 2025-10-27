@@ -203,8 +203,8 @@ export const JourneyStateCard = ({
           <Button onClick={() => navigate('/job-search')}>
             Find More Jobs
           </Button>
-          <Button variant="outline" onClick={() => navigate('/application-queue')}>
-            View Queue
+          <Button variant="outline" onClick={() => navigate('/active-applications')}>
+            View Applications
           </Button>
         </div>
 

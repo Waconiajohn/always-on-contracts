@@ -38,7 +38,7 @@ const commandItems: CommandItem[] = [
   { title: "Home", path: "/home", icon: Home, keywords: ["dashboard", "main", "overview"] },
   { title: "Projects", path: "/projects", icon: FolderKanban, keywords: ["tasks", "work"] },
   { title: "Job Search", path: "/agents/job-search", icon: Search, keywords: ["find", "opportunities"] },
-  { title: "Application Queue", path: "/application-queue", icon: ClipboardList, keywords: ["apply", "track"] },
+  { title: "Active Applications", path: "/active-applications", icon: ClipboardList, keywords: ["apply", "track", "queue"] },
   { title: "Agencies", path: "/agencies", icon: Building2, keywords: ["recruiters", "staffing"] },
   { title: "Coaching", path: "/coaching", icon: MessageSquare, keywords: ["mentor", "advice"] },
   { title: "Career Dashboard", path: "/career-dashboard", icon: Target, keywords: ["career", "tools"] },
