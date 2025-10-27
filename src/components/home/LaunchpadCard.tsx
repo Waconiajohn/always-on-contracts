@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { LucideIcon, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { getSeasonalIconColors } from "@/lib/seasonalColors";
+import { getSeasonalIconColor } from "@/lib/seasonalColors";
 
 interface LaunchpadCardProps {
   id: string;
@@ -31,9 +31,10 @@ export const LaunchpadCard = ({
   lockReason,
   isDualAI,
   isPlatinum,
+  order,
 }: LaunchpadCardProps) => {
   const navigate = useNavigate();
-  const seasonalColors = getSeasonalIconColors();
+  const iconColor = getSeasonalIconColor(order || 0);
 
   return (
     <Card
@@ -76,12 +77,8 @@ export const LaunchpadCard = ({
       <div className="p-6 flex flex-col h-full">
         {/* Icon & Title */}
         <div className="flex items-start gap-4 mb-4">
-          <div className={cn(
-            "p-3 rounded-lg shrink-0 transition-colors duration-500",
-            seasonalColors.background,
-            seasonalColors.text
-          )}>
-            <Icon className="h-6 w-6" />
+          <div className="shrink-0">
+            <Icon className={cn("h-6 w-6 transition-colors duration-500", iconColor)} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg mb-1 truncate">{title}</h3>

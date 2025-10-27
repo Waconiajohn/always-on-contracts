@@ -1,14 +1,9 @@
 /**
  * Seasonal color theming for dashboard icons
- * Automatically changes colors based on the current date
+ * Automatically changes icon colors based on the current date
  */
 
 export type Season = 'fall' | 'winter' | 'spring' | 'summer';
-
-export interface SeasonalColors {
-  background: string;
-  text: string;
-}
 
 /**
  * Determines the current season based on the month
@@ -27,30 +22,63 @@ export function getCurrentSeason(): Season {
 }
 
 /**
- * Returns the appropriate color classes for the current season
- * Includes both light and dark mode variants
+ * Returns an array of seasonal colors for icon variety
+ * Each icon can pick from this palette to create visual diversity
  */
-export function getSeasonalIconColors(): SeasonalColors {
+export function getSeasonalColorPalette(): string[] {
   const season = getCurrentSeason();
   
-  const colorMap: Record<Season, SeasonalColors> = {
-    fall: {
-      background: 'bg-orange-100 dark:bg-orange-900/30',
-      text: 'text-orange-600 dark:text-orange-400'
-    },
-    winter: {
-      background: 'bg-blue-100 dark:bg-blue-900/30',
-      text: 'text-blue-600 dark:text-blue-400'
-    },
-    spring: {
-      background: 'bg-green-100 dark:bg-green-900/30',
-      text: 'text-green-600 dark:text-green-400'
-    },
-    summer: {
-      background: 'bg-yellow-100 dark:bg-yellow-900/30',
-      text: 'text-yellow-600 dark:text-yellow-400'
-    }
+  const palettes: Record<Season, string[]> = {
+    fall: [
+      'text-amber-600 dark:text-amber-400',      // Gold
+      'text-orange-700 dark:text-orange-500',    // Burnt orange
+      'text-red-700 dark:text-red-500',          // Burnt red
+      'text-yellow-700 dark:text-yellow-500',    // Deep yellow
+      'text-amber-800 dark:text-amber-600',      // Brown
+      'text-orange-600 dark:text-orange-400',    // Light orange
+      'text-red-600 dark:text-red-400',          // Crimson
+      'text-yellow-600 dark:text-yellow-400'     // Sunflower
+    ],
+    winter: [
+      'text-blue-600 dark:text-blue-400',        // Ice blue
+      'text-cyan-600 dark:text-cyan-400',        // Frost
+      'text-slate-600 dark:text-slate-400',      // Cool gray
+      'text-indigo-600 dark:text-indigo-400',    // Deep blue
+      'text-blue-500 dark:text-blue-300',        // Sky blue
+      'text-cyan-700 dark:text-cyan-500',        // Teal
+      'text-slate-700 dark:text-slate-500',      // Silver
+      'text-blue-700 dark:text-blue-500'         // Navy
+    ],
+    spring: [
+      'text-green-600 dark:text-green-400',      // Fresh green
+      'text-pink-600 dark:text-pink-400',        // Blossom pink
+      'text-emerald-600 dark:text-emerald-400',  // Mint
+      'text-lime-600 dark:text-lime-400',        // Lime green
+      'text-rose-600 dark:text-rose-400',        // Rose
+      'text-teal-600 dark:text-teal-400',        // Turquoise
+      'text-green-500 dark:text-green-300',      // Light green
+      'text-pink-500 dark:text-pink-300'         // Soft pink
+    ],
+    summer: [
+      'text-yellow-600 dark:text-yellow-400',    // Sunny yellow
+      'text-orange-600 dark:text-orange-400',    // Coral
+      'text-sky-600 dark:text-sky-400',          // Sky blue
+      'text-amber-600 dark:text-amber-400',      // Golden
+      'text-red-600 dark:text-red-400',          // Bright red
+      'text-cyan-600 dark:text-cyan-400',        // Turquoise
+      'text-yellow-500 dark:text-yellow-300',    // Light yellow
+      'text-orange-500 dark:text-orange-300'     // Peach
+    ]
   };
   
-  return colorMap[season];
+  return palettes[season];
+}
+
+/**
+ * Gets a specific seasonal color from the palette based on an index
+ * Cycles through the palette if index exceeds available colors
+ */
+export function getSeasonalIconColor(index: number): string {
+  const palette = getSeasonalColorPalette();
+  return palette[index % palette.length];
 }
