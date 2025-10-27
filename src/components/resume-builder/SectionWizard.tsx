@@ -26,51 +26,6 @@ import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength, analytics } from "@/lib/resumeAnalytics";
 import { executeWithRetry, StateManager } from "@/lib/errorHandling";
 
-// Helper to extract display-friendly text from vault match content
-const getVaultItemLabel = (match: VaultMatch): string => {
-  const content = match.content;
-  
-  if (typeof content === 'string') {
-    return content.length > 40 ? content.substring(0, 40) + '...' : content;
-  }
-  
-  // Check root level fields first (for skills, etc.)
-  const rootFields = ['stated_skill', 'skill', 'text'];
-  for (const field of rootFields) {
-    if ((match as any)[field] && typeof (match as any)[field] === 'string' && (match as any)[field].length > 3) {
-      const text = (match as any)[field];
-      return text.length > 40 ? text.substring(0, 40) + '...' : text;
-    }
-  }
-  
-  // Try content fields in order of preference
-  const fields = [
-    'competency_area', 'inferred_capability',
-    'phrase', 'quantifiable_result',
-    'skill_name', 'trait_name',
-    'job_title', 'company', 'accomplishment',
-    'question', 'strong_answer',
-    'philosophy_statement', 'value_name',
-    'inferred_from', 'description', 'title', 'name'
-  ];
-  
-  for (const field of fields) {
-    if (content[field] && typeof content[field] === 'string' && content[field].length > 3) {
-      const text = content[field];
-      return text.length > 40 ? text.substring(0, 40) + '...' : text;
-    }
-  }
-  
-  // Check evidence array
-  if (content.evidence && Array.isArray(content.evidence) && content.evidence.length > 0 && typeof content.evidence[0] === 'string') {
-    const text = content.evidence[0];
-    return text.length > 40 ? text.substring(0, 40) + '...' : text;
-  }
-  
-  // Fallback to category name
-  return match.vaultCategory.replace(/_/g, ' ');
-};
-
 interface VaultMatch {
   vaultItemId: string;
   vaultCategory: string;
@@ -462,7 +417,7 @@ export const SectionWizard = ({
                   </p>
                 </div>
 
-                {relevantMatches.length === 0 ? (
+                {relevantMatches.length === 0 && (
                   <Alert>
                     <Lightbulb className="h-4 w-4" />
                     <AlertTitle>No vault matches found</AlertTitle>
@@ -471,55 +426,6 @@ export const SectionWizard = ({
                       You can add relevant experience to your Career Vault later to improve personalization.
                     </AlertDescription>
                   </Alert>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {relevantMatches.slice(0, 10).map(match => {
-                        const qualityTier = match.qualityTier || 'assumed';
-                        const tierColors = {
-                          gold: 'bg-yellow-100 border-yellow-500 text-yellow-800 dark:bg-yellow-900 dark:border-yellow-600 dark:text-yellow-200',
-                          silver: 'bg-gray-100 border-gray-400 text-gray-800 dark:bg-gray-800 dark:border-gray-500 dark:text-gray-200',
-                          bronze: 'bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-900 dark:border-orange-600 dark:text-orange-200',
-                          assumed: 'bg-slate-100 border-slate-300 text-slate-600 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300'
-                        };
-                        const tierIcons = {
-                          gold: '🥇',
-                          silver: '🥈',
-                          bronze: '🥉',
-                          assumed: '💭'
-                        };
-
-                        return (
-                          <Badge
-                            key={match.vaultItemId}
-                            variant="outline"
-                            className={`text-xs ${tierColors[qualityTier]}`}
-                          >
-                            {tierIcons[qualityTier]} {getVaultItemLabel(match)} ({match.matchScore}%)
-                          </Badge>
-                        );
-                      })}
-                      {relevantMatches.length > 10 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{relevantMatches.length - 10} more
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Quality Tier Legend */}
-                    <div className="text-xs text-muted-foreground text-center space-y-1">
-                      <p className="font-medium">Quality Tiers:</p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        <span>🥇 Quiz-verified</span>
-                        <span>•</span>
-                        <span>🥈 Evidence-based</span>
-                        <span>•</span>
-                        <span>🥉 AI-inferred</span>
-                        <span>•</span>
-                        <span>💭 AI-assumed</span>
-                      </div>
-                    </div>
-                  </div>
                 )}
 
                 <div className="flex flex-col items-center gap-4 mt-6">
