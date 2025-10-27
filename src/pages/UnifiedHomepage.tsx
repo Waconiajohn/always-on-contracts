@@ -74,7 +74,7 @@ const UnifiedHomeContent = () => {
       icon: Target,
       path: '/career-vault-onboarding',
       progress: vaultStats.vaultCompletion,
-      order: vaultStats.vaultCompletion < 100 ? 1 : 8,
+      order: 1,
       isLocked: false,
       isDualAI: true
     },
@@ -84,7 +84,18 @@ const UnifiedHomeContent = () => {
       description: 'Find and save opportunities with AI',
       icon: Briefcase,
       path: '/job-search',
-      order: isVaultComplete ? 1 : 3,
+      order: 2,
+      isLocked: !isVaultComplete,
+      lockReason: 'Complete Career Vault first',
+      isDualAI: true
+    },
+    {
+      id: 'resume-builder',
+      title: 'Resume Builder',
+      description: 'Create tailored, ATS-optimized resumes',
+      icon: FileText,
+      path: '/agents/resume-builder-wizard',
+      order: 3,
       isLocked: !isVaultComplete,
       lockReason: 'Complete Career Vault first',
       isDualAI: true
@@ -95,20 +106,9 @@ const UnifiedHomeContent = () => {
       description: 'Manage your active applications',
       icon: FileText,
       path: '/application-queue',
-      order: 2,
+      order: 4,
       isLocked: !isVaultComplete,
       lockReason: 'Complete Career Vault first'
-    },
-    {
-      id: 'resume-builder',
-      title: 'Resume Builder',
-      description: 'Create tailored, ATS-optimized resumes',
-      icon: FileText,
-      path: '/agents/resume-builder-wizard',
-      order: isVaultComplete ? 3 : 4,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first',
-      isDualAI: true
     },
     {
       id: 'interview-prep',
@@ -116,7 +116,7 @@ const UnifiedHomeContent = () => {
       description: 'Practice with vault-powered responses',
       icon: MessageSquare,
       path: '/agents/interview-prep',
-      order: 4,
+      order: 5,
       isLocked: !isVaultComplete,
       lockReason: 'Complete Career Vault first',
       isDualAI: true
@@ -127,7 +127,7 @@ const UnifiedHomeContent = () => {
       description: 'Optimize your professional presence',
       icon: Linkedin,
       path: '/agents/linkedin-profile-builder',
-      order: 5,
+      order: 6,
       isLocked: !isVaultComplete,
       lockReason: 'Complete Career Vault first'
     },
@@ -137,7 +137,7 @@ const UnifiedHomeContent = () => {
       description: 'Thought leadership and blogging',
       icon: Linkedin,
       path: '/agents/linkedin-blogging',
-      order: 6,
+      order: 7,
       isLocked: !isVaultComplete,
       lockReason: 'Complete Career Vault first'
     },
@@ -147,7 +147,7 @@ const UnifiedHomeContent = () => {
       description: 'Build strategic connections',
       icon: Users,
       path: '/agents/networking',
-      order: 7,
+      order: 8,
       isLocked: !isVaultComplete,
       lockReason: 'Complete Career Vault first'
     },
