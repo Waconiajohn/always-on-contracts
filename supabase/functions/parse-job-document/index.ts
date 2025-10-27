@@ -34,58 +34,92 @@ serve(async (req) => {
     // Handle URL scraping
     if (jobData.url) {
       console.log('Fetching URL:', jobData.url);
-      const urlResponse = await fetch(jobData.url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      
+      try {
+        const urlResponse = await fetch(jobData.url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        // Check if the request was blocked or failed
+        if (!urlResponse.ok) {
+          console.log('URL fetch failed with status:', urlResponse.status);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'BLOCKED',
+              message: 'Unable to access job posting. The website is blocking automated access.',
+              blocked: true
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+          );
         }
-      });
-      
-      // Check if the request was blocked or failed
-      if (!urlResponse.ok) {
+        
+        const html = await urlResponse.text();
+        console.log('HTML fetched, length:', html.length);
+        
+        // Detect common error pages BEFORE parsing
+        const errorPatterns = [
+          /access denied/i,
+          /403 forbidden/i,
+          /suspicious behaviour/i,
+          /unusual behaviour/i,
+          /blocked/i,
+          /captcha/i,
+          /security check/i,
+          /verify you are human/i,
+          /cloudflare/i
+        ];
+        
+        const isErrorPage = errorPatterns.some(pattern => pattern.test(html));
+        
+        if (isErrorPage || html.length < 200) {
+          console.log('Error page detected or content too short');
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'BLOCKED',
+              message: 'The website is blocking automated access to this job posting.',
+              blocked: true
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+          );
+        }
+        
+        // Basic HTML to text conversion (remove tags, clean up)
+        parsedText = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+          
+        // Final check - if parsed text still looks like an error
+        if (parsedText.length < 200 || errorPatterns.some(p => p.test(parsedText))) {
+          console.log('Parsed text looks like error page');
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'BLOCKED',
+              message: 'Unable to extract valid job description from URL.',
+              blocked: true
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching URL:', error);
         return new Response(
           JSON.stringify({
             success: false,
-            error: `Unable to access job posting (${urlResponse.status}). The website may be blocking automated access. Please copy and paste the job description instead.`,
-            suggestion: 'Use the "Paste" tab to paste the job description text directly.'
+            error: 'BLOCKED',
+            message: 'Network error accessing job posting.',
+            blocked: true
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
         );
       }
-      
-      const html = await urlResponse.text();
-      
-      // Detect common error pages
-      const errorPatterns = [
-        /access denied/i,
-        /403 forbidden/i,
-        /suspicious behaviour/i,
-        /unusual behaviour/i,
-        /blocked/i,
-        /captcha/i,
-        /security check/i,
-        /verify you are human/i
-      ];
-      
-      const isErrorPage = errorPatterns.some(pattern => pattern.test(html));
-      
-      if (isErrorPage) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'The website is blocking automated access to this job posting. This is common with job boards to prevent scraping.',
-            suggestion: 'Please copy the job description text and use the "Paste" tab instead.'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-      
-      // Basic HTML to text conversion (remove tags, clean up)
-      parsedText = html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
     }
     // Handle direct text paste
     else if (jobData.text) {

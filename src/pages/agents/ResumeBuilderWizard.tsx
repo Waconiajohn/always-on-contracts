@@ -89,23 +89,24 @@ const ResumeBuilderWizardContent = () => {
 
   // Helper function to fetch full job description from URL
   const fetchFullJobDescription = async (jobData: any) => {
-    toast({
-      title: "Fetching full job description",
-      description: "Getting complete details from the job posting...",
-    });
+    console.log('🔍 Attempting to fetch full job description from URL...');
     
     try {
       const { data, error } = await supabase.functions.invoke('parse-job-document', {
         body: { url: jobData.applyUrl }
       });
       
-      if (error) throw error;
+      // Check for blocked/error response
+      if (error || !data?.success || data?.blocked || data?.error === 'BLOCKED') {
+        console.log('❌ URL fetch blocked or failed, using search result description');
+        throw new Error('URL_BLOCKED');
+      }
       
-      if (data?.success && data.jobDescription) {
-        console.log('✅ Fetched full job description:', {
-          originalLength: jobData.jobDescription.length,
+      if (data?.success && data.jobDescription && data.jobDescription.length > 200) {
+        console.log('✅ Successfully fetched full job description:', {
+          originalLength: jobData.jobDescription?.length || 0,
           fetchedLength: data.jobDescription.length,
-          improvement: data.jobDescription.length - jobData.jobDescription.length
+          improvement: data.jobDescription.length - (jobData.jobDescription?.length || 0)
         });
         
         // Use fetched description with enhanced metadata
@@ -121,25 +122,29 @@ const ResumeBuilderWizardContent = () => {
         
         toast({
           title: "Full description loaded",
-          description: `Fetched ${data.jobDescription.length} characters from job posting`,
+          description: `Successfully fetched complete job details`,
         });
         
         handleAnalyzeJob(enhancedDescription);
-      } else {
-        throw new Error(data?.error || 'Failed to fetch full description');
+        return;
       }
+      
+      // If we got here, the response wasn't good enough
+      throw new Error('INVALID_RESPONSE');
     } catch (error: any) {
-      console.error('❌ Error fetching job description:', error);
+      console.log('⚠️ Falling back to search result description:', error.message);
       
       // Fall back to using the existing job description from search results
-      console.log('⚠️ Falling back to search result description');
-      
       const enhancedDescription = buildEnhancedDescription(jobData);
       setDisplayJobText(enhancedDescription);
       
+      const isBlocked = error?.message === 'URL_BLOCKED' || error?.message?.includes('BLOCKED');
+      
       toast({
-        title: "Using job description from search results",
-        description: error?.message || "Unable to fetch full posting. Using available details.",
+        title: isBlocked ? "Using search result description" : "Using available job details",
+        description: isBlocked 
+          ? "Job board blocked access - using description from search results instead." 
+          : "Using available job information to continue.",
       });
       
       // Proceed with analysis using the available description
