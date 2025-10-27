@@ -174,14 +174,14 @@ export default function Landing() {
           <div className="flex items-center justify-between">
             {/* Prominent CareerIQ Branding */}
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-                <span className="text-primary-foreground font-bold text-xl">C</span>
+              <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-xl">C</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">
+                <h1 className="text-2xl font-bold text-slate-900">
                   CareerIQ
                 </h1>
-                <p className="text-xs text-muted-foreground font-medium">AI-Powered Career Intelligence</p>
+                <p className="text-xs text-slate-600 font-medium">AI-Powered Career Intelligence</p>
               </div>
             </div>
             
