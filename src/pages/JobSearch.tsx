@@ -326,18 +326,18 @@ const JobSearchContent = () => {
           user_id: userId,
           opportunity_id: opportunity.id,
           match_score: job.match_score || 0,
-          status: 'pending',
+          application_status: 'not_applied',
           source: 'manual'
         });
 
       if (queueError) throw queueError;
 
       toast({
-        title: "Added to queue",
-        description: `${job.title} at ${job.company} added to your application queue`
+        title: "Added to My Applications",
+        description: `${job.title} at ${job.company} added. View in Application Queue →`
       });
     } catch (error: any) {
-      console.error('Add to queue error:', error);
+      console.error('Add to applications error:', error);
       toast({
         title: "Failed to add",
         description: error.message,
@@ -988,7 +988,7 @@ const JobSearchContent = () => {
                         Generate Resume
                       </Button>
                       <Button onClick={() => addToQueue(job)} variant="secondary" className="gap-2">
-                        Add to Queue
+                        Add to My Applications
                       </Button>
                       <Button
                         variant="ghost"

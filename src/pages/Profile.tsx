@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
+import { AIMatchingPreferences } from "@/components/AIMatchingPreferences";
 
 interface Profile {
   full_name: string | null;
@@ -308,6 +309,8 @@ const ProfileContent = () => {
               </div>
             </CardContent>
           </Card>
+
+          <AIMatchingPreferences />
         </div>
       </main>
     </div>

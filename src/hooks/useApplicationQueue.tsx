@@ -8,13 +8,14 @@ interface QueueItem {
   opportunity_id: string;
   match_score: number | null;
   status: string | null;
+  application_status: string | null;
   source: string | null;
   created_at: string | null;
   reviewed_at?: string | null;
   applied_at?: string | null;
   ai_customization_notes?: string | null;
   conversation_data?: any;
-  job_opportunities: {
+  opportunity?: {
     id: string;
     job_title: string;
     agency_id: string | null;
@@ -244,7 +245,7 @@ export const useApplicationQueue = () => {
           user_id: user.id,
           opportunity_id: suggestion.opportunity_id,
           match_score: suggestion.match_score || 0,
-          status: 'pending',
+          application_status: 'not_applied',
           source: 'manual'
         });
 
@@ -255,10 +256,19 @@ export const useApplicationQueue = () => {
         .from('opportunity_matches')
         .update({ status: 'queued' })
         .eq('id', suggestionId);
+      
+      // Log feedback
+      await supabase
+        .from('ai_match_feedback')
+        .insert({
+          match_id: suggestionId,
+          user_id: user.id,
+          action: 'added'
+        });
 
       toast({
-        title: "Added to your queue",
-        description: "Job moved to manual queue for review"
+        title: "Added to My Applications",
+        description: "Job moved to your applications for review"
       });
 
       await Promise.all([fetchManualQueue(), fetchAISuggestions()]);
@@ -274,12 +284,24 @@ export const useApplicationQueue = () => {
 
   const dismissSuggestion = async (suggestionId: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { error } = await supabase
         .from('opportunity_matches')
         .update({ status: 'dismissed' })
         .eq('id', suggestionId);
 
       if (error) throw error;
+      
+      // Log feedback
+      await supabase
+        .from('ai_match_feedback')
+        .insert({
+          match_id: suggestionId,
+          user_id: user.id,
+          action: 'dismissed'
+        });
 
       toast({
         title: "Suggestion dismissed",

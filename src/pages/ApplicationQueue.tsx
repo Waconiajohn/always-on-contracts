@@ -4,44 +4,97 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, CheckCircle2, Clock, XCircle, Loader2, Sparkles } from "lucide-react";
+import { Briefcase, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { useApplicationQueue } from "@/hooks/useApplicationQueue";
-import { EnhancedQueueItem } from "@/components/EnhancedQueueItem";
 import { EmptyState } from "@/components/EmptyState";
 import { AISuggestionItem } from "@/components/AISuggestionItem";
+import { SubscriptionGate } from "@/components/SubscriptionGate";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ApplicationQueue() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("my-queue");
-  const [queueTab, setQueueTab] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [suggestionFilter, setSuggestionFilter] = useState("all");
   const { 
     queueItems,
     aiSuggestions,
     loading, 
     stats,
-    approveItem,
-    rejectItem,
     addToManualQueue,
-    dismissSuggestion,
-    bulkApproveHighMatches,
-    clearRejected
+    dismissSuggestion
   } = useApplicationQueue();
 
+  const updateApplicationStatus = async (queueId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('application_queue')
+        .update({ application_status: newStatus })
+        .eq('id', queueId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status updated",
+        description: `Application status changed to ${newStatus.replace('_', ' ')}`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteApplication = async (queueId: string) => {
+    try {
+      const { error } = await supabase
+        .from('application_queue')
+        .delete()
+        .eq('id', queueId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Application removed",
+        description: "Removed from your applications"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const filteredQueueItems = queueItems?.filter(item => {
-    if (queueTab === "all") return true;
-    if (queueTab === "pending") return item.status === "pending" || item.status === "new";
-    if (queueTab === "approved") return item.status === "approved";
-    if (queueTab === "rejected") return item.status === "rejected";
+    if (statusFilter === "all") return true;
+    return item.application_status === statusFilter;
+  }) || [];
+
+  const filteredSuggestions = aiSuggestions?.filter(s => {
+    if (s.status !== 'new') return false;
+    if (suggestionFilter === "all") return true;
+    if (suggestionFilter === "excellent") return (s.match_score || 0) >= 85;
+    if (suggestionFilter === "strong") return (s.match_score || 0) >= 70 && (s.match_score || 0) < 85;
     return true;
   }) || [];
 
-  const activeSuggestions = aiSuggestions?.filter(s => s.status === 'new') || [];
-
   const getMatchScoreBadge = (score: number) => {
-    if (score >= 85) return { color: "bg-green-500", label: "Excellent Match" };
-    if (score >= 70) return { color: "bg-blue-500", label: "Good Match" };
-    if (score >= 50) return { color: "bg-yellow-500", label: "Moderate Match" };
-    return { color: "bg-gray-500", label: "Low Match" };
+    if (score >= 85) return { color: "bg-green-500 text-white", label: "Excellent" };
+    if (score >= 70) return { color: "bg-blue-500 text-white", label: "Strong" };
+    return { color: "bg-yellow-500 text-white", label: "Good" };
+  };
+
+  const statusCounts = {
+    not_applied: queueItems?.filter(i => i.application_status === 'not_applied').length || 0,
+    applied: queueItems?.filter(i => i.application_status === 'applied').length || 0,
+    interviewing: queueItems?.filter(i => i.application_status === 'interviewing').length || 0,
   };
 
   if (loading) {
@@ -78,38 +131,23 @@ export default function ApplicationQueue() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
           <Card>
             <CardHeader className="pb-4">
-              <CardDescription>My Queue</CardDescription>
+              <CardDescription>Total Applications</CardDescription>
               <CardTitle className="text-4xl">{stats.total}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Pending Review
-              </CardDescription>
-              <CardTitle className="text-3xl">{stats.pending}</CardTitle>
+              <CardDescription>Not Applied</CardDescription>
+              <CardTitle className="text-3xl">{statusCounts.not_applied}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Approved
-              </CardDescription>
-              <CardTitle className="text-3xl">{stats.approved}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription className="flex items-center gap-2">
-                <XCircle className="h-4 w-4" />
-                Rejected
-              </CardDescription>
-              <CardTitle className="text-3xl">{stats.rejected}</CardTitle>
+              <CardDescription>Applied</CardDescription>
+              <CardTitle className="text-3xl">{statusCounts.applied}</CardTitle>
             </CardHeader>
           </Card>
           <Card className="border-primary/50">
@@ -124,30 +162,6 @@ export default function ApplicationQueue() {
         </div>
       </div>
 
-          {/* Bulk Actions */}
-      {stats.total > 0 && (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={bulkApproveHighMatches}
-            disabled={(queueItems || []).filter(item => (item.match_score || 0) >= 85 && item.status !== "approved").length === 0}
-          >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Approve All High Matches (85%+)
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearRejected}
-            disabled={stats.rejected === 0}
-          >
-            <XCircle className="h-4 w-4 mr-2" />
-            Clear Rejected Items
-          </Button>
-        </div>
-      )}
-
       {/* Main Tabs: My Queue vs AI Suggestions */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
@@ -160,93 +174,148 @@ export default function ApplicationQueue() {
           </TabsTrigger>
         </TabsList>
 
-        {/* My Queue Tab */}
+        {/* My Applications Tab */}
         <TabsContent value="my-queue" className="space-y-4 mt-6">
-          <Tabs value={queueTab} onValueChange={setQueueTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">
-                All ({stats.total})
-              </TabsTrigger>
-              <TabsTrigger value="pending">
-                Pending ({stats.pending})
-              </TabsTrigger>
-              <TabsTrigger value="approved">
-                Approved ({stats.approved})
-              </TabsTrigger>
-              <TabsTrigger value="rejected">
-                Rejected ({stats.rejected})
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex items-center gap-4 mb-4">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Applications</SelectItem>
+                <SelectItem value="not_applied">Not Applied</SelectItem>
+                <SelectItem value="applied">Applied</SelectItem>
+                <SelectItem value="interviewing">Interviewing</SelectItem>
+                <SelectItem value="offer">Offer</SelectItem>
+                <SelectItem value="rejected_by_employer">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <TabsContent value={queueTab} className="space-y-4 mt-6">
-              {filteredQueueItems.length === 0 ? (
-                <EmptyState
-                  icon={Briefcase}
-                  title={`No ${queueTab === "all" ? "" : queueTab} items in queue`}
-                  description={
-                    queueTab === "all"
-                      ? "Add jobs from search results or promote AI suggestions to build your queue."
-                      : `You don't have any ${queueTab} items yet.`
-                  }
-                  actionLabel="Search Jobs"
-                  onAction={() => navigate("/job-search")}
-                />
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {filteredQueueItems.map((item) => {
-                    const matchBadge = getMatchScoreBadge(item.match_score || 0);
-                    return (
-                      <div key={item.id} className="relative">
-                        <Badge 
-                          className={`absolute -top-2 -right-2 z-10 ${matchBadge.color} text-white`}
-                        >
-                          {Math.round(item.match_score || 0)}% - {matchBadge.label}
-                        </Badge>
-                        <EnhancedQueueItem
-                          item={item}
-                          onApprove={() => approveItem(item.id)}
-                          onReject={() => rejectItem(item.id)}
-                          isPending={false}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        {/* AI Suggestions Tab */}
-        <TabsContent value="ai-suggestions" className="space-y-4 mt-6">
-          {activeSuggestions.length === 0 ? (
+          {filteredQueueItems.length === 0 ? (
             <EmptyState
-              icon={Sparkles}
-              title="No AI suggestions yet"
-              description="AI suggestions will appear here when we find jobs that match your Career Vault profile."
+              icon={Briefcase}
+              title="No applications yet"
+              description="Add jobs from search results or AI suggestions to build your application list."
               actionLabel="Search Jobs"
               onAction={() => navigate("/job-search")}
             />
           ) : (
             <div className="space-y-4">
-              <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                <p className="text-sm text-muted-foreground">
-                  <Sparkles className="h-4 w-4 inline mr-2 text-primary" />
-                  These jobs were automatically matched based on your Career Vault profile. 
-                  Add promising matches to your queue or dismiss ones that don't fit.
-                </p>
-              </div>
-              
-              {activeSuggestions.map((suggestion) => (
-                <AISuggestionItem
-                  key={suggestion.id}
-                  suggestion={suggestion}
-                  onAddToQueue={addToManualQueue}
-                  onDismiss={dismissSuggestion}
-                />
-              ))}
+              {filteredQueueItems.map((item) => {
+                const matchBadge = getMatchScoreBadge(item.match_score || 0);
+                return (
+                  <Card key={item.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <CardTitle className="text-xl">{item.opportunity?.job_title}</CardTitle>
+                            {item.match_score && item.match_score > 0 && (
+                              <Badge className={matchBadge.color}>
+                                {Math.round(item.match_score)}% {matchBadge.label}
+                              </Badge>
+                            )}
+                          </div>
+                          <CardDescription>
+                            {item.opportunity?.location && <span className="mr-4">📍 {item.opportunity.location}</span>}
+                            {item.source && <span className="text-xs">Source: {item.source}</span>}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 mt-4">
+                        <Select 
+                          value={item.application_status || 'not_applied'} 
+                          onValueChange={(value) => updateApplicationStatus(item.id, value)}
+                        >
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="not_applied">Not Applied</SelectItem>
+                            <SelectItem value="applied">Applied</SelectItem>
+                            <SelectItem value="interviewing">Interviewing</SelectItem>
+                            <SelectItem value="offer">Offer</SelectItem>
+                            <SelectItem value="rejected_by_employer">Rejected by Employer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate('/agents/resume-builder', {
+                            state: {
+                              opportunityId: item.opportunity_id,
+                              jobTitle: item.opportunity?.job_title,
+                              jobDescription: item.opportunity?.job_description
+                            }
+                          })}
+                        >
+                          Create Resume
+                        </Button>
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteApplication(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                );
+              })}
             </div>
           )}
+        </TabsContent>
+
+        {/* AI Suggestions Tab */}
+        <TabsContent value="ai-suggestions" className="space-y-4 mt-6">
+          <SubscriptionGate 
+            featureName="AI Job Matching" 
+            requiredTier="concierge_elite"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <Select value={suggestionFilter} onValueChange={setSuggestionFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filter suggestions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Suggestions</SelectItem>
+                  <SelectItem value="excellent">Excellent (85%+)</SelectItem>
+                  <SelectItem value="strong">Strong (70-84%)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {filteredSuggestions.length === 0 ? (
+              <EmptyState
+                icon={Sparkles}
+                title="No AI suggestions yet"
+                description="AI suggestions will appear here when we find jobs that match your Career Vault profile. Our AI runs daily to discover new opportunities."
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                  <p className="text-sm text-muted-foreground">
+                    <Sparkles className="h-4 w-4 inline mr-2 text-primary" />
+                    These jobs were automatically matched based on your Career Vault profile. 
+                    Add promising matches to your applications or dismiss ones that don't fit.
+                  </p>
+                </div>
+                
+                {filteredSuggestions.map((suggestion) => (
+                  <AISuggestionItem
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    onAddToQueue={addToManualQueue}
+                    onDismiss={dismissSuggestion}
+                  />
+                ))}
+              </div>
+            )}
+          </SubscriptionGate>
         </TabsContent>
       </Tabs>
     </div>
