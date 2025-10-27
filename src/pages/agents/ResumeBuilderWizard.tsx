@@ -128,20 +128,22 @@ const ResumeBuilderWizardContent = () => {
       } else {
         throw new Error(data?.error || 'Failed to fetch full description');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error fetching job description:', error);
       
-      // If fetch fails, show error with clear instructions
+      // Fall back to using the existing job description from search results
+      console.log('⚠️ Falling back to search result description');
+      
+      const enhancedDescription = buildEnhancedDescription(jobData);
+      setDisplayJobText(enhancedDescription);
+      
       toast({
-        title: "Could not fetch full job description",
-        description: "Please copy the full job description manually and paste it below.",
-        variant: "destructive"
+        title: "Using job description from search results",
+        description: error?.message || "Unable to fetch full posting. Using available details.",
       });
       
-      // Navigate back to the initial state where user can manually paste
-      // Don't auto-load the truncated description - let them paste manually
-      window.history.replaceState({}, document.title);
-      setAutoLoadedJob(false);
+      // Proceed with analysis using the available description
+      handleAnalyzeJob(enhancedDescription);
     }
   };
 
