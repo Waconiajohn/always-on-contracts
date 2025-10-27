@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CommandMenu } from "@/components/CommandMenu";
 import { TopNav } from "@/components/navigation/TopNav";
@@ -48,7 +48,6 @@ const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboardingEn
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
-const DailyWorkflow = lazy(() => import("./pages/DailyWorkflow"));
 const SalaryNegotiation = lazy(() => import("./pages/SalaryNegotiation"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ProcessingMonitor = lazy(() => import("./pages/ProcessingMonitor"));
@@ -64,20 +63,17 @@ const PageLoader = () => (
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <LayoutProvider>
-        <TooltipProvider delayDuration={300} skipDelayDuration={0}>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <CommandMenu />
-            <div className="flex min-h-screen w-full flex-col">
-              <TopNav />
-              <main className="flex-1">
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
+const AppContent = () => {
+  const location = useLocation();
+  const publicPaths = ['/', '/auth', '/pricing'];
+  const showTopNav = !publicPaths.includes(location.pathname);
+
+  return (
+    <div className="flex min-h-screen w-full flex-col">
+      {showTopNav && <TopNav />}
+      <main className="flex-1">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/home" element={<ProtectedRoute><UnifiedHomepage /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
@@ -100,26 +96,24 @@ const App = () => (
         <Route path="/my-resumes" element={<ProtectedRoute><MyResumes /></ProtectedRoute>} />
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-blogging" element={<ProtectedRoute><LinkedInBloggingAgent /></ProtectedRoute>} />
-        <Route path="/agents/linkedin-profile" element={<ProtectedRoute><LinkedInProfileBuilder /></ProtectedRoute>} />
+        <Route path="/agents/linkedin-profile-builder" element={<ProtectedRoute><LinkedInProfileBuilder /></ProtectedRoute>} />
         <Route path="/agents/networking" element={<ProtectedRoute><NetworkingAgent /></ProtectedRoute>} />
-        <Route path="/agents/career-trends" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
-        <Route path="/agents/financial-planning" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
-        <Route path="/career-tools" element={<Navigate to="/home" replace />} />
-        <Route path="/command-center" element={<Navigate to="/home" replace />} />
-        <Route path="/dashboard" element={<Navigate to="/home" replace />} />
-        <Route path="/daily-workflow" element={<ProtectedRoute><DailyWorkflow /></ProtectedRoute>} />
-        <Route path="/salary-negotiation" element={<ProtectedRoute><SalaryNegotiation /></ProtectedRoute>} />
+        <Route path="/agents/career-trends-scout" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
+        <Route path="/agents/financial-planning-assistant" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/affiliate-portal" element={<ProtectedRoute><AffiliatePortal /></ProtectedRoute>} />
-          <Route path="/redeem-code" element={<ProtectedRoute><RedeemCode /></ProtectedRoute>} />
+            <Route path="/affiliate" element={<ProtectedRoute><AffiliatePortal /></ProtectedRoute>} />
+            <Route path="/redeem-retirement" element={<RedeemCode />} />
             <Route path="/admin" element={<ProtectedRoute><AdminPortal /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/career-vault" element={<ProtectedRoute><CareerVaultDashboard /></ProtectedRoute>} />
-            <Route path="/career-vault/onboarding" element={<ProtectedRoute><CareerVaultOnboarding /></ProtectedRoute>} />
-            {/* Redirects from old War Chest routes */}
-            <Route path="/war-chest" element={<Navigate to="/career-vault" replace />} />
-            <Route path="/war-chest/onboarding" element={<Navigate to="/career-vault/onboarding" replace />} />
+            <Route path="/career-vault-onboarding" element={<ProtectedRoute><CareerVaultOnboarding /></ProtectedRoute>} />
+            {/* Legacy redirects */}
+            <Route path="/career-tools" element={<Navigate to="/home" replace />} />
+            <Route path="/command-center" element={<Navigate to="/home" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+            <Route path="/daily-workflow" element={<Navigate to="/home" replace />} />
+            <Route path="/salary-negotiation" element={<ProtectedRoute><SalaryNegotiation /></ProtectedRoute>} />
             <Route path="/learn" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
             <Route path="/learning-center" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
             <Route path="/research-hub" element={<ProtectedRoute><ResearchHub /></ProtectedRoute>} />
@@ -128,15 +122,28 @@ const App = () => (
             <Route path="/testing-dashboard" element={<ProtectedRoute><TestingDashboard /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </main>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
-    </LayoutProvider>
-  </QueryClientProvider>
-</ErrorBoundary>
+          </Routes>
+        </Suspense>
+      </main>
+    </div>
+  );
+};
+
+const App = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <LayoutProvider>
+        <TooltipProvider delayDuration={300} skipDelayDuration={0}>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <CommandMenu />
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </LayoutProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
