@@ -349,18 +349,25 @@ export type Database = {
           ai_customization_notes: string | null
           application_status: string | null
           applied_at: string | null
+          company_name: string | null
           conversation_data: Json | null
           created_at: string | null
           critical_qualifications: string[] | null
           customized_resume_content: Json | null
           customized_resume_url: string | null
           id: string
+          interview_date: string | null
           interview_prep_session_id: string | null
           keyword_analysis: Json | null
           match_score: number
           networking_contacts: Json | null
           networking_initiated: boolean | null
+          notes: string | null
+          offer_amount: number | null
+          offer_bonus: number | null
+          offer_equity: string | null
           opportunity_id: string
+          project_name: string | null
           reviewed_at: string | null
           source: string | null
           user_id: string
@@ -369,18 +376,25 @@ export type Database = {
           ai_customization_notes?: string | null
           application_status?: string | null
           applied_at?: string | null
+          company_name?: string | null
           conversation_data?: Json | null
           created_at?: string | null
           critical_qualifications?: string[] | null
           customized_resume_content?: Json | null
           customized_resume_url?: string | null
           id?: string
+          interview_date?: string | null
           interview_prep_session_id?: string | null
           keyword_analysis?: Json | null
           match_score: number
           networking_contacts?: Json | null
           networking_initiated?: boolean | null
+          notes?: string | null
+          offer_amount?: number | null
+          offer_bonus?: number | null
+          offer_equity?: string | null
           opportunity_id: string
+          project_name?: string | null
           reviewed_at?: string | null
           source?: string | null
           user_id: string
@@ -389,18 +403,25 @@ export type Database = {
           ai_customization_notes?: string | null
           application_status?: string | null
           applied_at?: string | null
+          company_name?: string | null
           conversation_data?: Json | null
           created_at?: string | null
           critical_qualifications?: string[] | null
           customized_resume_content?: Json | null
           customized_resume_url?: string | null
           id?: string
+          interview_date?: string | null
           interview_prep_session_id?: string | null
           keyword_analysis?: Json | null
           match_score?: number
           networking_contacts?: Json | null
           networking_initiated?: boolean | null
+          notes?: string | null
+          offer_amount?: number | null
+          offer_bonus?: number | null
+          offer_equity?: string | null
           opportunity_id?: string
+          project_name?: string | null
           reviewed_at?: string | null
           source?: string | null
           user_id?: string

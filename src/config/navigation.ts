@@ -6,8 +6,6 @@ import {
   Linkedin,
   MessageSquare,
   Building2,
-  ClipboardList,
-  FolderKanban,
   TrendingUp,
   LineChart,
   Users,
@@ -61,8 +59,7 @@ export const mainNavItems: NavItem[] = [
     icon: Search,
     dropdown: [
       { label: 'Search Jobs', path: '/job-search', icon: Search },
-      { label: 'Application Queue', path: '/application-queue', icon: ClipboardList },
-      { label: 'Active Applications', path: '/projects', icon: FolderKanban },
+      { label: 'Active Applications', path: '/active-applications', icon: Package },
       { label: 'Boolean Search', path: '/boolean-search', icon: Search },
       { label: 'Career Trends', path: '/agents/career-trends', icon: TrendingUp },
       { label: 'Research Hub', path: '/research-hub', icon: LineChart },

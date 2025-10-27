@@ -467,26 +467,91 @@ const JobSearchContent = () => {
       return;
     }
     
-    // If URL exists, we'll fetch full description automatically
-    if (job.apply_url) {
+    try {
+      // First, create or get job_opportunities record
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: existingOpportunity } = await supabase
+        .from('job_opportunities')
+        .select('id')
+        .eq('external_id', job.id || job.title)
+        .eq('external_source', job.source || 'manual')
+        .maybeSingle();
+
+      let opportunityId = existingOpportunity?.id;
+
+      if (!opportunityId) {
+        const { data: newOpportunity, error: createError } = await supabase
+          .from('job_opportunities')
+          .insert({
+            job_title: job.title,
+            job_description: job.description,
+            location: job.location,
+            external_url: job.apply_url,
+            external_id: job.id || job.title,
+            external_source: job.source || 'manual',
+            is_external: true,
+            status: 'active',
+            required_skills: job.required_skills || [],
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        opportunityId = newOpportunity.id;
+      }
+
+      // Check if already in application queue
+      const { data: existingQueue } = await supabase
+        .from('application_queue')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('opportunity_id', opportunityId)
+        .maybeSingle();
+
+      if (!existingQueue) {
+        // Add to application queue
+        const { error: queueError } = await supabase
+          .from('application_queue')
+          .insert({
+            user_id: user.id,
+            opportunity_id: opportunityId,
+            company_name: job.company,
+            match_score: 0,
+            application_status: 'not_applied',
+            source: 'manual'
+          });
+
+        if (queueError) throw queueError;
+      }
+
       toast({
-        title: "Preparing resume generation",
-        description: "We'll fetch the full job description for best results",
+        title: "Added to applications",
+        description: "Preparing resume generation...",
+      });
+
+      // Navigate to resume builder
+      navigate('/agents/resume-builder', {
+        state: {
+          jobTitle: job.title,
+          companyName: job.company,
+          jobDescription: job.description || `${job.title} at ${job.company}`,
+          location: job.location,
+          salary: job.salary_min && job.salary_max ? `${job.salary_min}-${job.salary_max}` : undefined,
+          applyUrl: job.apply_url,
+          opportunityId,
+          fromJobSearch: true
+        }
+      });
+    } catch (error) {
+      console.error('Error adding to queue:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add job to applications. Please try again.",
+        variant: "destructive"
       });
     }
-    
-    // Proceed with navigation
-    navigate('/agents/resume-builder', {
-      state: {
-        jobTitle: job.title,
-        companyName: job.company,
-        jobDescription: job.description || `${job.title} at ${job.company}`,
-        location: job.location,
-        salary: job.salary_min && job.salary_max ? `${job.salary_min}-${job.salary_max}` : undefined,
-        applyUrl: job.apply_url,
-        fromJobSearch: true
-      }
-    });
   };
 
   const toggleJobExpansion = (jobId: string) => {

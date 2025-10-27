@@ -14,7 +14,6 @@ import { LayoutProvider } from "@/contexts/LayoutContext";
 // Lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
 const UnifiedHomepage = lazy(() => import("./pages/UnifiedHomepage"));
-const Projects = lazy(() => import("./pages/Projects"));
 const ResumeUpload = lazy(() => import("./pages/ResumeUpload"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -77,13 +76,14 @@ const AppContent = () => {
           <Route path="/" element={<Landing />} />
           <Route path="/home" element={<ProtectedRoute><UnifiedHomepage /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+          <Route path="/projects" element={<Navigate to="/active-applications" replace />} />
           <Route path="/resume-upload" element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>} />
           <Route path="/coaching" element={<ProtectedRoute><Coaching /></ProtectedRoute>} />
           <Route path="/resume-optimizer" element={<ProtectedRoute><ResumeOptimizer /></ProtectedRoute>} />
           <Route path="/agencies" element={<ProtectedRoute><Agencies /></ProtectedRoute>} />
           <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
-          <Route path="/application-queue" element={<ProtectedRoute><ApplicationQueue /></ProtectedRoute>} />
+          <Route path="/active-applications" element={<ProtectedRoute><ApplicationQueue /></ProtectedRoute>} />
+          <Route path="/application-queue" element={<Navigate to="/active-applications" replace />} />
           <Route path="/boolean-search" element={<ProtectedRoute><BooleanSearch /></ProtectedRoute>} />
           <Route path="/rate-calculator" element={<ProtectedRoute><RateCalculator /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

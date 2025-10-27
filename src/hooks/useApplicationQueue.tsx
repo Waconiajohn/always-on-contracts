@@ -15,6 +15,13 @@ interface QueueItem {
   applied_at?: string | null;
   ai_customization_notes?: string | null;
   conversation_data?: any;
+  interview_date?: string | null;
+  offer_amount?: number | null;
+  offer_bonus?: number | null;
+  offer_equity?: string | null;
+  company_name?: string | null;
+  project_name?: string | null;
+  notes?: string | null;
   opportunity?: {
     id: string;
     job_title: string;

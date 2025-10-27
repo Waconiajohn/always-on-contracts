@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Briefcase, Loader2, Sparkles, Trash2, List, LayoutGrid, Calendar, DollarSign, MessageSquare } from "lucide-react";
 import { useApplicationQueue } from "@/hooks/useApplicationQueue";
 import { EmptyState } from "@/components/EmptyState";
 import { AISuggestionItem } from "@/components/AISuggestionItem";
@@ -12,6 +12,7 @@ import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 export default function ApplicationQueue() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function ApplicationQueue() {
   const [activeTab, setActiveTab] = useState("my-queue");
   const [statusFilter, setStatusFilter] = useState("all");
   const [suggestionFilter, setSuggestionFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const { 
     queueItems,
     aiSuggestions,
@@ -116,9 +118,9 @@ export default function ApplicationQueue() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Application Queue</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Active Applications</h1>
             <p className="text-muted-foreground mt-2">
-              Manage your manual queue and review AI-powered job suggestions
+              Track your applications, manage interviews, and review AI-powered job suggestions
             </p>
           </div>
           <Button
@@ -176,7 +178,7 @@ export default function ApplicationQueue() {
 
         {/* My Applications Tab */}
         <TabsContent value="my-queue" className="space-y-4 mt-6">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center justify-between mb-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Filter by status" />
@@ -190,6 +192,25 @@ export default function ApplicationQueue() {
                 <SelectItem value="rejected_by_employer">Rejected</SelectItem>
               </SelectContent>
             </Select>
+
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4 mr-2" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === "board" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("board")}
+              >
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Board
+              </Button>
+            </div>
           </div>
 
           {filteredQueueItems.length === 0 ? (
@@ -200,7 +221,7 @@ export default function ApplicationQueue() {
               actionLabel="Search Jobs"
               onAction={() => navigate("/job-search")}
             />
-          ) : (
+          ) : viewMode === "list" ? (
             <div className="space-y-4">
               {filteredQueueItems.map((item) => {
                 const matchBadge = getMatchScoreBadge(item.match_score || 0);
@@ -210,7 +231,9 @@ export default function ApplicationQueue() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <CardTitle className="text-xl">{item.opportunity?.job_title}</CardTitle>
+                            <CardTitle className="text-xl">
+                              {item.company_name || item.opportunity?.job_title}
+                            </CardTitle>
                             {item.match_score && item.match_score > 0 && (
                               <Badge className={matchBadge.color}>
                                 {Math.round(item.match_score)}% {matchBadge.label}
@@ -218,8 +241,29 @@ export default function ApplicationQueue() {
                             )}
                           </div>
                           <CardDescription>
-                            {item.opportunity?.location && <span className="mr-4">📍 {item.opportunity.location}</span>}
-                            {item.source && <span className="text-xs">Source: {item.source}</span>}
+                            <div className="space-y-1">
+                              {item.opportunity?.job_title && <div className="font-medium">{item.opportunity.job_title}</div>}
+                              {item.opportunity?.location && <span className="block">📍 {item.opportunity.location}</span>}
+                              {item.interview_date && (
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Calendar className="h-4 w-4" />
+                                  Interview: {format(new Date(item.interview_date), "MMM d, yyyy 'at' h:mm a")}
+                                </div>
+                              )}
+                              {item.offer_amount && (
+                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                  <DollarSign className="h-4 w-4" />
+                                  Offer: ${item.offer_amount.toLocaleString()}
+                                  {item.offer_bonus && ` + $${item.offer_bonus.toLocaleString()} bonus`}
+                                </div>
+                              )}
+                              {item.notes && (
+                                <div className="flex items-start gap-2 text-muted-foreground text-sm mt-2">
+                                  <MessageSquare className="h-4 w-4 mt-0.5" />
+                                  <span>{item.notes}</span>
+                                </div>
+                              )}
+                            </div>
                           </CardDescription>
                         </div>
                       </div>
@@ -264,6 +308,80 @@ export default function ApplicationQueue() {
                       </div>
                     </CardHeader>
                   </Card>
+                );
+              })}
+            </div>
+          ) : (
+            // Board View
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {['not_applied', 'applied', 'interviewing', 'offer'].map((status) => {
+                const statusItems = filteredQueueItems.filter(item => item.application_status === status);
+                const statusLabels: Record<string, string> = {
+                  not_applied: 'Not Applied',
+                  applied: 'Applied',
+                  interviewing: 'Interviewing',
+                  offer: 'Offers'
+                };
+                
+                return (
+                  <div key={status} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">{statusLabels[status]}</h3>
+                      <Badge variant="secondary">{statusItems.length}</Badge>
+                    </div>
+                    <div className="space-y-3 min-h-[400px]">
+                      {statusItems.map((item) => {
+                        const matchBadge = getMatchScoreBadge(item.match_score || 0);
+                        return (
+                          <Card key={item.id} className="p-4">
+                            <div className="space-y-2">
+                              <div className="font-medium text-sm line-clamp-2">
+                                {item.company_name || item.opportunity?.job_title}
+                              </div>
+                              {item.match_score && item.match_score > 0 && (
+                                <Badge className={`${matchBadge.color} text-xs`}>
+                                  {Math.round(item.match_score)}%
+                                </Badge>
+                              )}
+                              {item.interview_date && (
+                                <div className="flex items-center gap-1 text-xs text-primary">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(new Date(item.interview_date), "MMM d")}
+                                </div>
+                              )}
+                              {item.offer_amount && (
+                                <div className="text-xs text-green-600 dark:text-green-400">
+                                  ${item.offer_amount.toLocaleString()}
+                                </div>
+                              )}
+                              <div className="flex gap-2 mt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  onClick={() => navigate('/agents/resume-builder', {
+                                    state: {
+                                      opportunityId: item.opportunity_id,
+                                      jobTitle: item.opportunity?.job_title,
+                                    }
+                                  })}
+                                >
+                                  Resume
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteApplication(item.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
