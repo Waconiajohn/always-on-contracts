@@ -289,9 +289,14 @@ export default function ApplicationQueue() {
                           variant="outline"
                           onClick={() => navigate('/agents/resume-builder', {
                             state: {
+                              fromJobSearch: true,
                               opportunityId: item.opportunity_id,
                               jobTitle: item.opportunity?.job_title,
-                              jobDescription: item.opportunity?.job_description
+                              jobDescription: item.opportunity?.job_description,
+                              companyName: item.company_name,
+                              location: item.opportunity?.location,
+                              applyUrl: item.opportunity?.external_url,
+                              salary: item.offer_amount ? `$${item.offer_amount.toLocaleString()}` : undefined
                             }
                           })}
                         >
@@ -361,8 +366,13 @@ export default function ApplicationQueue() {
                                   className="text-xs"
                                   onClick={() => navigate('/agents/resume-builder', {
                                     state: {
+                                      fromJobSearch: true,
                                       opportunityId: item.opportunity_id,
                                       jobTitle: item.opportunity?.job_title,
+                                      jobDescription: item.opportunity?.job_description,
+                                      companyName: item.company_name,
+                                      location: item.opportunity?.location,
+                                      applyUrl: item.opportunity?.external_url
                                     }
                                   })}
                                 >
