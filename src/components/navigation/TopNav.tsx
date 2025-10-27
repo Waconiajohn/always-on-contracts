@@ -9,6 +9,7 @@ import { ProfileDropdown } from "./ProfileDropdown";
 import { MobileNav } from "./MobileNav";
 import { mainNavItems } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import { getSeasonalIconColor } from "@/lib/seasonalColors";
 
 export const TopNav = () => {
   const { subscription } = useSubscription();
@@ -34,8 +35,9 @@ export const TopNav = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1 flex-1">
-          {mainNavItems.map((item) => {
+          {mainNavItems.map((item, index) => {
             const ItemIcon = item.icon;
+            const iconColor = getSeasonalIconColor(index);
 
             if (item.dropdown) {
               return (
@@ -44,6 +46,7 @@ export const TopNav = () => {
                   trigger={item.label}
                   icon={item.icon}
                   items={item.dropdown}
+                  iconColor={iconColor}
                 />
               );
             }
@@ -61,7 +64,7 @@ export const TopNav = () => {
                   isActive && "bg-accent text-accent-foreground"
                 )}
               >
-                <ItemIcon className="h-4 w-4" />
+                <ItemIcon className={cn("h-4 w-4 transition-colors duration-500", iconColor)} />
                 <span>{item.label}</span>
               </Link>
             );

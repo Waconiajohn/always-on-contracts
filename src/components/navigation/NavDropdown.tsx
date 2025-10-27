@@ -19,9 +19,10 @@ interface NavDropdownProps {
   trigger: string;
   icon: LucideIcon;
   items: DropdownItem[];
+  iconColor?: string;
 }
 
-export const NavDropdown = ({ trigger, icon: Icon, items }: NavDropdownProps) => {
+export const NavDropdown = ({ trigger, icon: Icon, items, iconColor }: NavDropdownProps) => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
@@ -37,7 +38,7 @@ export const NavDropdown = ({ trigger, icon: Icon, items }: NavDropdownProps) =>
           isChildActive && "bg-accent text-accent-foreground"
         )}
       >
-        <Icon className="h-4 w-4" />
+        <Icon className={cn("h-4 w-4 transition-colors duration-500", iconColor)} />
         <span>{trigger}</span>
         <ChevronDown className={cn(
           "h-4 w-4 transition-transform duration-200",
