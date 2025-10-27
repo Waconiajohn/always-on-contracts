@@ -34,7 +34,16 @@ const getVaultItemLabel = (match: VaultMatch): string => {
     return content.length > 40 ? content.substring(0, 40) + '...' : content;
   }
   
-  // Try fields in order of preference
+  // Check root level fields first (for skills, etc.)
+  const rootFields = ['stated_skill', 'skill', 'text'];
+  for (const field of rootFields) {
+    if ((match as any)[field] && typeof (match as any)[field] === 'string' && (match as any)[field].length > 3) {
+      const text = (match as any)[field];
+      return text.length > 40 ? text.substring(0, 40) + '...' : text;
+    }
+  }
+  
+  // Try content fields in order of preference
   const fields = [
     'competency_area', 'inferred_capability',
     'phrase', 'quantifiable_result',
@@ -42,7 +51,7 @@ const getVaultItemLabel = (match: VaultMatch): string => {
     'job_title', 'company', 'accomplishment',
     'question', 'strong_answer',
     'philosophy_statement', 'value_name',
-    'title', 'description', 'name'
+    'inferred_from', 'description', 'title', 'name'
   ];
   
   for (const field of fields) {
@@ -50,6 +59,12 @@ const getVaultItemLabel = (match: VaultMatch): string => {
       const text = content[field];
       return text.length > 40 ? text.substring(0, 40) + '...' : text;
     }
+  }
+  
+  // Check evidence array
+  if (content.evidence && Array.isArray(content.evidence) && content.evidence.length > 0 && typeof content.evidence[0] === 'string') {
+    const text = content.evidence[0];
+    return text.length > 40 ? text.substring(0, 40) + '...' : text;
   }
   
   // Fallback to category name
