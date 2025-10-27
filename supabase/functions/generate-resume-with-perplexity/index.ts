@@ -297,7 +297,7 @@ Output clean resume content only. No citations, no sources.`;
             // Fallback: try to extract from text
             const skillMatches = jsonText.match(/"([^"]+)"/g);
             if (skillMatches && skillMatches.length > 0) {
-              parsed = skillMatches.map(s => s.replace(/"/g, ''));
+              parsed = skillMatches.map((s: any) => s.replace(/"/g, ''));
             } else {
               throw new Error('Could not parse skills array');
             }
@@ -312,7 +312,7 @@ Output clean resume content only. No citations, no sources.`;
 
         // Fallback for skills: try line-by-line extraction
         if (['skills_list', 'core_competencies', 'key_skills', 'technical_skills'].includes(section_type)) {
-          const lines = generatedContent.split('\n').filter(l => l.trim());
+          const lines = generatedContent.split('\n').filter((l: any) => l.trim());
           const skills: string[] = [];
           for (const line of lines) {
             const cleaned = line.replace(/^[•\-*\d.]+\s*/, '').trim();

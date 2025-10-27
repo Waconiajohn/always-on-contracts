@@ -100,13 +100,13 @@ JOB TITLE: ${jobTitle || 'Target role'}
 PURPOSE: ${purpose || 'informational_interview'}
 
 USER'S KEY ACHIEVEMENTS:
-${topAchievements.map(a => `- ${a.power_phrase} (${a.impact_metrics})`).join('\n')}
+${topAchievements.map((a: any) => `- ${a.power_phrase} (${a.impact_metrics})`).join('\n')}
 
 USER'S EXPERTISE:
-${topSkills.map(s => `- ${s.stated_skill}: ${s.evidence}`).join('\n')}
+${topSkills.map((s: any) => `- ${s.stated_skill}: ${s.evidence}`).join('\n')}
 
 USER'S DIFFERENTIATORS:
-${keyCompetencies.map(c => `- ${c.competency_area}: ${c.inferred_capability}`).join('\n')}
+${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capability}`).join('\n')}
 
 Return JSON:
 {

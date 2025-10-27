@@ -132,23 +132,14 @@ const ResumeBuilderWizardContent = () => {
       // If we got here, the response wasn't good enough
       throw new Error('INVALID_RESPONSE');
     } catch (error: any) {
-      console.log('⚠️ Falling back to search result description:', error.message);
-      
-      // Fall back to using the existing job description from search results
-      const enhancedDescription = buildEnhancedDescription(jobData);
-      setDisplayJobText(enhancedDescription);
-      
-      const isBlocked = error?.message === 'URL_BLOCKED' || error?.message?.includes('BLOCKED');
+      console.log('⚠️ Job board blocked access:', error.message);
       
       toast({
-        title: isBlocked ? "Using search result description" : "Using available job details",
-        description: isBlocked 
-          ? "Job board blocked access - using description from search results instead." 
-          : "Using available job information to continue.",
+        title: "Job Board Blocked Access",
+        description: "Please copy and paste the full job description using the Import button.",
+        variant: "destructive",
+        duration: 8000
       });
-      
-      // Proceed with analysis using the available description
-      handleAnalyzeJob(enhancedDescription);
     }
   };
 

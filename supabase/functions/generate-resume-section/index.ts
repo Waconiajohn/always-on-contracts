@@ -294,7 +294,7 @@ Return as plain text or JSON array depending on section type.`
           // Fallback: try to extract skills from text
           const skillMatches = generatedContent.match(/"([^"]+)"/g)
           if (skillMatches && skillMatches.length > 0) {
-            parsed = skillMatches.map(s => s.replace(/"/g, ''))
+            parsed = skillMatches.map((s: any) => s.replace(/"/g, ''))
             console.log('Extracted skills from text:', parsed.length)
           } else {
             throw new Error('AI returned non-array for skills section and extraction failed')
@@ -310,7 +310,7 @@ Return as plain text or JSON array depending on section type.`
         parsed = generatedContent
       } else if (['skills_list', 'core_competencies', 'technical_skills', 'key_skills'].includes(sectionType)) {
         // For skills, try aggressive extraction
-        const lines = generatedContent.split('\n').filter(l => l.trim())
+        const lines = generatedContent.split('\n').filter((l: any) => l.trim())
         const skills: string[] = []
 
         for (const line of lines) {

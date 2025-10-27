@@ -135,13 +135,13 @@ serve(async (req) => {
 CAREER ACHIEVEMENTS:
 
 Power Phrases (Key Accomplishments):
-${vaultContext.powerPhrases.map(p => `- ${p.phrase} ${p.metrics ? `(Metrics: ${JSON.stringify(p.metrics)})` : ''}`).join('\n')}
+${vaultContext.powerPhrases.map((p: any) => `- ${p.phrase} ${p.metrics ? `(Metrics: ${JSON.stringify(p.metrics)})` : ''}`).join('\n')}
 
 Transferable Skills:
-${vaultContext.skills.map(s => `- ${s.skill}: ${s.evidence}`).join('\n')}
+${vaultContext.skills.map((s: any) => `- ${s.skill}: ${s.evidence}`).join('\n')}
 
 Hidden Competencies (Differentiators):
-${vaultContext.competencies.map(c => `- ${c.area}: ${c.capability}`).join('\n')}
+${vaultContext.competencies.map((c: any) => `- ${c.area}: ${c.capability}`).join('\n')}
 
 GUIDELINES:
 1. Create topics that showcase specific achievements (not generic advice)
@@ -235,7 +235,7 @@ EXAMPLES OF BAD TOPICS:
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
       {
         status: 500,
