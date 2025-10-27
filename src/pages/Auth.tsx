@@ -32,8 +32,8 @@ const Auth = () => {
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        // If vault exists and has resume, go to command center, otherwise start onboarding
-        navigate(vault?.resume_raw_text ? "/command-center" : "/career-vault/onboarding");
+        // If vault exists and has resume, go to home, otherwise start onboarding
+        navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
       }
     });
 
@@ -45,7 +45,7 @@ const Auth = () => {
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        navigate(vault?.resume_raw_text ? "/command-center" : "/career-vault/onboarding");
+        navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
       }
     });
 
