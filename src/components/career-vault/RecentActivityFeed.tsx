@@ -56,19 +56,31 @@ export const RecentActivityFeed = ({ vaultId }: RecentActivityFeedProps) => {
           <Activity className="h-5 w-5" />
           Recent Activity
         </h3>
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-14 bg-muted animate-pulse rounded" />
+          ))}
+        </div>
       </Card>
     );
   }
 
   if (activities.length === 0) {
     return (
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Activity className="h-5 w-5" />
+      <Card className="p-6 bg-gradient-to-br from-muted/30 to-background border-dashed">
+        <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+          <Activity className="h-5 w-5 text-muted-foreground" />
           Recent Activity
         </h3>
-        <p className="text-sm text-muted-foreground">No recent activity. Start building your vault!</p>
+        <div className="mt-4 space-y-2">
+          <p className="text-sm text-muted-foreground">
+            🚀 Your vault journey starts here
+          </p>
+          <p className="text-xs text-muted-foreground">
+            As you upload documents, complete interviews, and enhance your career intelligence, 
+            you'll see all your progress tracked here in real-time.
+          </p>
+        </div>
       </Card>
     );
   }

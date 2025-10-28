@@ -22,14 +22,15 @@ export const SmartNextSteps = ({
   const getRecommendations = () => {
     const recommendations = [];
 
+    // Priority 1: Complete interview if not done
     if (interviewProgress < 100) {
-      const itemsToUnlock = Math.round((100 - interviewProgress) * 2); // Rough estimate
+      const itemsToUnlock = Math.round((100 - interviewProgress) * 2);
       recommendations.push({
         icon: <Target className="h-5 w-5" />,
-        title: 'Complete Your Interview',
-        description: `You're ${interviewProgress}% done. Unlock ~${itemsToUnlock} more intelligence items.`,
-        impact: `Unlock ${itemsToUnlock} items`,
-        time: '~15 min',
+        title: 'Complete Career Interview',
+        description: `${interviewProgress}% complete. Finish to unlock your full intelligence profile.`,
+        impact: `+${itemsToUnlock} more items`,
+        time: '15-20 min',
         action: () => navigate('/career-vault/onboarding'),
         actionText: 'Continue Interview',
         variant: 'default' as const,
@@ -37,46 +38,70 @@ export const SmartNextSteps = ({
       });
     }
 
-    if (strengthScore < 70 && totalItems > 0) {
-      const pointsToGain = 70 - strengthScore;
+    // Priority 2: Improve quality if interview is done but score is low
+    if (interviewProgress === 100 && strengthScore < 60) {
       recommendations.push({
         icon: <TrendingUp className="h-5 w-5" />,
-        title: 'Boost Your Strength Score',
-        description: `Add quantified achievements to reach Strong (70/100)`,
-        impact: `+${pointsToGain} points → Strong level`,
-        time: '~10 min',
-        action: () => navigate('/career-vault/onboarding'),
-        actionText: 'Add Achievements',
+        title: 'Verify Your Intelligence',
+        description: `Review and verify AI-assumed items to boost quality from ${strengthScore} to 60+`,
+        impact: `+${Math.ceil((60 - strengthScore) / 5)} items verified → Solid level`,
+        time: '5-10 min',
+        action: () => {
+          const element = document.querySelector('[data-verification-workflow]');
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        },
+        actionText: 'Start Verifying',
+        variant: 'default' as const,
+        priority: 1
+      });
+    }
+
+    // Priority 3: Add quantified achievements if score is moderate
+    if (strengthScore >= 30 && strengthScore < 70 && totalItems > 10) {
+      const pointsNeeded = 70 - strengthScore;
+      recommendations.push({
+        icon: <Sparkles className="h-5 w-5" />,
+        title: 'Add Metrics to Achievements',
+        description: `Quantify your accomplishments with numbers, percentages, and dollar amounts`,
+        impact: `+${pointsNeeded} points → Strong level`,
+        time: '10-15 min',
+        action: () => {
+          const element = document.querySelector('[data-contents-table]');
+          element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+        actionText: 'Add Metrics',
         variant: 'secondary' as const,
         priority: 2
       });
     }
 
-    if (!hasLeadership && totalItems > 20) {
+    // Priority 4: Deploy if everything is solid
+    if (strengthScore >= 60 && interviewProgress === 100) {
+      recommendations.push({
+        icon: <Rocket className="h-5 w-5" />,
+        title: 'Start Using Your Vault',
+        description: 'Your vault is ready! Generate tailored resumes and prep for interviews.',
+        impact: 'Vault operational ✓',
+        time: 'Ready now',
+        action: () => navigate('/agents/resume-builder'),
+        actionText: 'Build Resume',
+        variant: 'default' as const,
+        priority: 0
+      });
+    }
+
+    // Priority 5: Leadership for senior roles
+    if (!hasLeadership && totalItems > 30 && strengthScore >= 50) {
       recommendations.push({
         icon: <Sparkles className="h-5 w-5" />,
-        title: 'Add Leadership Examples',
-        description: 'Complete Executive Presence for elite interview positioning',
-        impact: '+8 points → Better interviews',
-        time: '~8 min',
+        title: 'Add Leadership Stories',
+        description: 'Strengthen your executive positioning with leadership examples',
+        impact: '+10-15 points → Elite positioning',
+        time: '8-12 min',
         action: () => navigate('/career-vault/onboarding'),
         actionText: 'Add Leadership',
         variant: 'outline' as const,
         priority: 3
-      });
-    }
-
-    if (strengthScore >= 70 && interviewProgress === 100) {
-      recommendations.push({
-        icon: <Rocket className="h-5 w-5" />,
-        title: 'Deploy Your Vault',
-        description: 'Generate tailored resumes and interview prep for specific jobs',
-        impact: 'Your vault is ready for production use',
-        time: 'Start now',
-        action: () => navigate('/agents/resume-builder'),
-        actionText: 'Use My Vault',
-        variant: 'default' as const,
-        priority: 1
       });
     }
 

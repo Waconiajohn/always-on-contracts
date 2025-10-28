@@ -1124,14 +1124,14 @@ const VaultDashboardContent = () => {
       </div>
       
       {/* Phase 4: Maintenance & Verification */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div data-verification-workflow className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <VerificationWorkflow vaultId={vaultId} />
         <FreshnessManager vaultId={vaultId} />
         <DuplicateDetector vaultId={vaultId} />
       </div>
 
       {/* Unified Vault Contents Table - NEW: Phase 0 */}
-      <div className="mb-6">
+      <div data-contents-table className="mb-6">
         <VaultContentsTable
           powerPhrases={powerPhrases}
           transferableSkills={transferableSkills}
