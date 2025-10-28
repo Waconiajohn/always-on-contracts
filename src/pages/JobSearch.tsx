@@ -39,6 +39,12 @@ interface JobResult {
   employment_type?: string | null;
   match_score?: number | null;
   required_skills?: string[] | null;
+  vault_match?: {
+    score: number;
+    matching_skills: string[];
+    hidden_strengths: string[];
+    recommendation: string;
+  };
 }
 
 const JobSearchContent = () => {
@@ -54,6 +60,8 @@ const JobSearchContent = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState<number | null>(null);
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  const [useVaultMatching, setUseVaultMatching] = useState(true); // Phase 2: Auto-enable vault matching
+  const [isCalculatingMatches, setIsCalculatingMatches] = useState(false);
   
   // Filters
   const [dateFilter, setDateFilter] = useState<string>('30d');
@@ -184,6 +192,55 @@ const JobSearchContent = () => {
     }
   };
 
+  // Phase 2: Calculate vault-based match scores for jobs
+  const calculateVaultMatches = async (jobsList: JobResult[]) => {
+    if (!userId) return;
+    
+    setIsCalculatingMatches(true);
+    try {
+      // Call ai-job-matcher for top 10 jobs
+      const topJobs = jobsList.slice(0, 10);
+      
+      for (const job of topJobs) {
+        const { data, error } = await supabase.functions.invoke('ai-job-matcher', {
+          body: {
+            userId,
+            jobOpportunities: [{
+              id: job.id,
+              job_title: job.title,
+              job_description: job.description || '',
+              required_skills: job.required_skills || [],
+              location: job.location || '',
+              hourly_rate_min: job.salary_min || 0,
+              hourly_rate_max: job.salary_max || 0
+            }]
+          }
+        });
+
+        if (!error && data?.matches?.[0]) {
+          const match = data.matches[0];
+          setJobs(prev => prev.map(j => 
+            j.id === job.id 
+              ? {
+                  ...j,
+                  vault_match: {
+                    score: match.match_score,
+                    matching_skills: match.matching_skills,
+                    hidden_strengths: match.hidden_strengths,
+                    recommendation: match.ai_recommendation
+                  }
+                }
+              : j
+          ));
+        }
+      }
+    } catch (error) {
+      console.error('Error calculating vault matches:', error);
+    } finally {
+      setIsCalculatingMatches(false);
+    }
+  };
+
   const handleSearch = async (isBooleanSearch = false, loadMore = false) => {
     if (!searchQuery.trim()) {
       toast({
@@ -238,6 +295,11 @@ const JobSearchContent = () => {
         setJobs(prev => [...prev, ...newJobs]);
       } else {
         setJobs(newJobs);
+        
+        // Phase 2: Calculate vault-based match scores if enabled
+        if (useVaultMatching && newJobs.length > 0 && userId) {
+          calculateVaultMatches(newJobs);
+        }
       }
       
       setSearchTime(data.executionTimeMs);
