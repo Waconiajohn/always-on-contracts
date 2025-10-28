@@ -116,7 +116,7 @@ export const VaultReviewInterface = ({
           recordId: skill.id,
           tableName: 'vault_transferable_skills',
           category: 'Transferable Skill',
-          content: skill.skill || '',
+          content: skill.stated_skill || '',
           subContent: skill.evidence || '',
           metadata: skill,
           confidence: skill.proficiency_level === 'expert' ? 95 : 85,
@@ -291,7 +291,7 @@ export const VaultReviewInterface = ({
     setEditedSubContent(currentItem.subContent || '');
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     const updatedItems = [...items];
     updatedItems[currentIndex] = {
       ...currentItem,
@@ -301,6 +301,10 @@ export const VaultReviewInterface = ({
     };
     setItems(updatedItems);
     setIsEditing(false);
+    
+    // Update progress in database
+    await updateReviewProgress(updatedItems);
+    
     moveToNext();
   };
 
@@ -310,10 +314,27 @@ export const VaultReviewInterface = ({
     setEditedSubContent('');
   };
 
-  const updateItemStatus = (status: 'approved' | 'rejected') => {
+  const updateItemStatus = async (status: 'approved' | 'rejected') => {
     const updatedItems = [...items];
     updatedItems[currentIndex] = { ...currentItem, status };
     setItems(updatedItems);
+    
+    // Update progress in database in real-time
+    await updateReviewProgress(updatedItems);
+  };
+  
+  const updateReviewProgress = async (updatedItems: typeof items) => {
+    const reviewedCount = updatedItems.filter(i => i.status !== 'pending').length;
+    const progressPercentage = Math.round((reviewedCount / updatedItems.length) * 100);
+    
+    try {
+      await supabase
+        .from('career_vault')
+        .update({ review_completion_percentage: progressPercentage })
+        .eq('id', vaultId);
+    } catch (error) {
+      console.error('[VAULT_REVIEW] Error updating progress:', error);
+    }
   };
 
   const moveToNext = () => {
@@ -372,12 +393,10 @@ export const VaultReviewInterface = ({
       }
 
       // Update vault completion and review status
-      const completionPercentage = Math.round((approvedItems.length / items.length) * 100);
-
       const { error: updateError } = await supabase
         .from('career_vault')
         .update({
-          interview_completion_percentage: Math.max(85, completionPercentage),
+          review_completion_percentage: 100, // Review is complete
           reviewed: true,
           reviewed_at: new Date().toISOString()
         })

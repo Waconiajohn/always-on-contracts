@@ -50,7 +50,7 @@ export const useOnboarding = () => {
       // Check for career vault and interview responses
       const { data: vault } = await supabase
         .from("career_vault")
-        .select("id, interview_completion_percentage, overall_strength_score")
+        .select("id, interview_completion_percentage, review_completion_percentage, overall_strength_score")
         .eq("user_id", user.id)
         .single();
 
@@ -69,7 +69,8 @@ export const useOnboarding = () => {
       const hasReviewedVault = localStorage.getItem(`vault_reviewed_${user.id}`) === "true";
       
       // Get vault completion metrics
-      const vaultCompletionPercentage = vault?.interview_completion_percentage || 0;
+      // Use review_completion_percentage for actual user review progress
+      const vaultCompletionPercentage = vault?.review_completion_percentage || 0;
       const vaultStrengthScore = vault?.overall_strength_score || 0;
       
       // Calculate total intelligence (would need to query actual tables for accurate count)

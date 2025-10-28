@@ -19,12 +19,12 @@ export const useCareerVaultGate = () => {
 
       const { data } = await supabase
         .from('career_vault')
-        .select('interview_completion_percentage')
+        .select('review_completion_percentage')
         .eq('user_id', user.id)
         .single();
 
       if (data) {
-        const completion = data.interview_completion_percentage || 0;
+        const completion = data.review_completion_percentage || 0;
         setVaultCompletion(completion);
         setIsVaultComplete(completion === 100);
       }
