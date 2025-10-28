@@ -47,7 +47,9 @@ const InterviewPrepAgentContent = () => {
         *,
         vault_power_phrases(*),
         vault_transferable_skills(*),
-        vault_hidden_competencies(*)
+        vault_hidden_competencies(*),
+        vault_soft_skills(*),
+        vault_personality_traits(*)
       `)
       .eq('user_id', user.id)
       .single();

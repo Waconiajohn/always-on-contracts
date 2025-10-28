@@ -1077,99 +1077,18 @@ const VaultDashboardContent = () => {
       {/* Unified Vault Contents Table - NEW: Phase 0 */}
       <div className="mb-6">
         <VaultContentsTable
-          allItems={[
-            ...powerPhrases.map(p => ({
-              id: p.id,
-              category: 'Power Phrases',
-              content: p.power_phrase,
-              qualityTier: p.quality_tier || 'assumed',
-              source: 'Resume',
-              usageCount: 0,
-              lastUpdated: p.last_updated_at || (p as any).created_at
-            })),
-            ...transferableSkills.map(s => ({
-              id: s.id,
-              category: 'Transferable Skills',
-              content: s.stated_skill,
-              qualityTier: s.quality_tier || 'assumed',
-              source: 'Resume',
-              usageCount: 0,
-              lastUpdated: s.last_updated_at || (s as any).created_at
-            })),
-            ...hiddenCompetencies.map(c => ({
-              id: c.id,
-              category: 'Hidden Competencies',
-              content: c.inferred_capability,
-              qualityTier: c.quality_tier || 'assumed',
-              source: 'AI Inference',
-              usageCount: 0,
-              lastUpdated: c.last_updated_at || (c as any).created_at
-            })),
-            ...softSkills.map(ss => ({
-              id: ss.id,
-              category: 'Soft Skills',
-              content: ss.skill_name,
-              qualityTier: ss.quality_tier || 'assumed',
-              source: ss.inferred_from || 'Interview',
-              usageCount: 0,
-              lastUpdated: ss.last_updated_at || (ss as any).created_at
-            })),
-            ...leadershipPhilosophy.map(l => ({
-              id: l.id,
-              category: 'Leadership Philosophy',
-              content: l.philosophy_statement,
-              qualityTier: l.quality_tier || 'assumed',
-              source: l.inferred_from || 'Interview',
-              usageCount: 0,
-              lastUpdated: l.last_updated_at || (l as any).created_at
-            })),
-            ...executivePresence.map(e => ({
-              id: e.id,
-              category: 'Executive Presence',
-              content: e.presence_indicator,
-              qualityTier: e.quality_tier || 'assumed',
-              source: e.inferred_from || 'Interview',
-              usageCount: 0,
-              lastUpdated: e.last_updated_at || (e as any).created_at
-            })),
-            ...personalityTraits.map(pt => ({
-              id: pt.id,
-              category: 'Personality Traits',
-              content: pt.trait_name,
-              qualityTier: pt.quality_tier || 'assumed',
-              source: pt.inferred_from || 'Interview',
-              usageCount: 0,
-              lastUpdated: pt.last_updated_at || (pt as any).created_at
-            })),
-            ...workStyle.map(ws => ({
-              id: ws.id,
-              category: 'Work Style',
-              content: ws.preference_description,
-              qualityTier: ws.quality_tier || 'assumed',
-              source: ws.inferred_from || 'Interview',
-              usageCount: 0,
-              lastUpdated: ws.last_updated_at || (ws as any).created_at
-            })),
-            ...values.map(v => ({
-              id: v.id,
-              category: 'Values & Motivations',
-              content: v.value_name,
-              qualityTier: v.quality_tier || 'assumed',
-              source: v.inferred_from || 'Interview',
-              usageCount: 0,
-              lastUpdated: v.last_updated_at || (v as any).created_at
-            })),
-            ...behavioralIndicators.map(bi => ({
-              id: bi.id,
-              category: 'Behavioral Indicators',
-              content: bi.specific_behavior,
-              qualityTier: bi.quality_tier || 'assumed',
-              source: bi.inferred_from || 'Interview',
-              usageCount: 0,
-              lastUpdated: bi.last_updated_at || (bi as any).created_at
-            }))
-          ]}
-          onRefresh={fetchData}
+          powerPhrases={powerPhrases}
+          transferableSkills={transferableSkills}
+          hiddenCompetencies={hiddenCompetencies}
+          softSkills={softSkills}
+          leadershipPhilosophy={leadershipPhilosophy}
+          executivePresence={executivePresence}
+          personalityTraits={personalityTraits}
+          workStyle={workStyle}
+          values={values}
+          behavioralIndicators={behavioralIndicators}
+          onEdit={(item) => console.log('Edit:', item)}
+          onView={(item) => console.log('View:', item)}
         />
       </div>
 
@@ -1183,22 +1102,22 @@ const VaultDashboardContent = () => {
                   name: 'Power Phrases',
                   description: 'Achievement statements like "Increased revenue by 40%"',
                   icon: '💪',
-                  count: stats.total_power_phrases,
-                  isEmpty: stats.total_power_phrases === 0
+                  count: stats?.total_power_phrases || 0,
+                  isEmpty: (stats?.total_power_phrases || 0) === 0
                 },
                 {
                   name: 'Skills',
                   description: 'Technical and soft skills extracted from your experience',
                   icon: '🛠️',
-                  count: stats.total_transferable_skills,
-                  isEmpty: stats.total_transferable_skills === 0
+                  count: stats?.total_transferable_skills || 0,
+                  isEmpty: (stats?.total_transferable_skills || 0) === 0
                 },
                 {
                   name: 'Competencies',
                   description: 'High-level capabilities like "Strategic Planning"',
                   icon: '💡',
-                  count: stats.total_hidden_competencies,
-                  isEmpty: stats.total_hidden_competencies === 0
+                  count: stats?.total_hidden_competencies || 0,
+                  isEmpty: (stats?.total_hidden_competencies || 0) === 0
                 }
               ],
               leadership: [
@@ -1206,15 +1125,15 @@ const VaultDashboardContent = () => {
                   name: 'Leadership Philosophy',
                   description: 'Your approach to leading teams',
                   icon: '🎯',
-                  count: stats.total_leadership_philosophy,
-                  isEmpty: stats.total_leadership_philosophy === 0
+                  count: stats?.total_leadership_philosophy || 0,
+                  isEmpty: (stats?.total_leadership_philosophy || 0) === 0
                 },
                 {
                   name: 'Executive Presence',
                   description: 'How you show up in professional settings',
                   icon: '👔',
-                  count: stats.total_executive_presence,
-                  isEmpty: stats.total_executive_presence === 0
+                  count: stats?.total_executive_presence || 0,
+                  isEmpty: (stats?.total_executive_presence || 0) === 0
                 }
               ],
               culture: [
@@ -1222,36 +1141,36 @@ const VaultDashboardContent = () => {
                   name: 'Soft Skills',
                   description: 'Communication, teamwork, problem-solving abilities',
                   icon: '🧠',
-                  count: stats.total_soft_skills,
-                  isEmpty: stats.total_soft_skills === 0
+                  count: stats?.total_soft_skills || 0,
+                  isEmpty: (stats?.total_soft_skills || 0) === 0
                 },
                 {
                   name: 'Personality Traits',
                   description: 'Your natural work tendencies and characteristics',
                   icon: '🎭',
-                  count: stats.total_personality_traits,
-                  isEmpty: stats.total_personality_traits === 0
+                  count: stats?.total_personality_traits || 0,
+                  isEmpty: (stats?.total_personality_traits || 0) === 0
                 },
                 {
                   name: 'Work Style',
                   description: 'Your preferences for how you work best',
                   icon: '⚙️',
-                  count: stats.total_work_style,
-                  isEmpty: stats.total_work_style === 0
+                  count: stats?.total_work_style || 0,
+                  isEmpty: (stats?.total_work_style || 0) === 0
                 },
                 {
                   name: 'Values',
                   description: 'What matters most to you in your career',
                   icon: '💎',
-                  count: stats.total_values,
-                  isEmpty: stats.total_values === 0
+                  count: stats?.total_values || 0,
+                  isEmpty: (stats?.total_values || 0) === 0
                 },
                 {
                   name: 'Behavioral Indicators',
                   description: 'Observable patterns in how you work',
                   icon: '🔍',
-                  count: stats.total_behavioral_indicators,
-                  isEmpty: stats.total_behavioral_indicators === 0
+                  count: stats?.total_behavioral_indicators || 0,
+                  isEmpty: (stats?.total_behavioral_indicators || 0) === 0
                 }
               ]
             }}

@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeContent, jobTitle, jobDescription } = await req.json();
+    const { resumeContent, jobTitle, jobDescription, vaultIntelligence } = await req.json();
 
     if (!resumeContent || !jobDescription) {
       throw new Error('Resume content and job description are required');
@@ -48,11 +48,31 @@ JOB DETAILS:
 - Title: ${jobTitle || 'Not specified'}
 - Description: ${jobDescription}
 
+${vaultIntelligence ? `
+CAREER VAULT INTELLIGENCE:
+The candidate has the following verified strengths in their vault:
+
+Power Phrases:
+${vaultIntelligence.powerPhrases?.slice(0, 5).map((p: any) => `- ${p.power_phrase || p.phrase}`).join('\n') || 'None'}
+
+Key Competencies:
+${vaultIntelligence.competencies?.slice(0, 5).map((c: any) => `- ${c.competency_area || c.inferred_capability}`).join('\n') || 'None'}
+
+Soft Skills:
+${vaultIntelligence.softSkills?.slice(0, 5).map((s: any) => `- ${s.skill_name}`).join('\n') || 'None'}
+
+Personality Traits:
+${vaultIntelligence.personalityTraits?.slice(0, 3).map((t: any) => `- ${t.trait_name}`).join('\n') || 'None'}
+
+Use these vault items to generate more personalized questions and suggest STAR story answers.
+` : ''}
+
 Generate 8-10 interview questions that:
 1. Mix behavioral, technical, situational, and leadership questions
 2. Are specifically tailored to the candidate's experience and the target role
 3. Vary in difficulty (easy, medium, hard)
 4. Cover key competencies mentioned in the job description
+${vaultIntelligence ? '5. Leverage the verified vault intelligence to suggest specific examples from their career' : ''}
 
 For each question, provide:
 - category: behavioral | technical | situational | leadership
@@ -60,6 +80,7 @@ For each question, provide:
 - question: The actual interview question
 - context: Why this question is being asked (1-2 sentences)
 - tips: Array of 3-4 specific tips for answering this question effectively
+${vaultIntelligence ? '- vaultSuggestions: Array of specific vault items (power phrases, competencies) the candidate can reference in their answer' : ''}
 - starFramework (optional, for behavioral/situational questions):
   - situation: Guidance on what situation details to include
   - task: What task/responsibility to clarify
@@ -72,6 +93,7 @@ CRITICAL REQUIREMENTS:
 - Include questions that test both hard skills and soft skills
 - Ensure questions allow candidate to showcase resume achievements
 - Make questions specific to the industry and role
+${vaultIntelligence ? '- When suggesting answers, reference specific vault items to make them more concrete' : ''}
 
 Return as JSON array with this structure:
 [
@@ -82,6 +104,7 @@ Return as JSON array with this structure:
     "question": "...",
     "context": "...",
     "tips": ["...", "...", "..."],
+    ${vaultIntelligence ? '"vaultSuggestions": ["Power Phrase: Increased revenue by 40%", "Competency: Strategic planning"],' : ''}
     "starFramework": {
       "situation": "...",
       "task": "...",

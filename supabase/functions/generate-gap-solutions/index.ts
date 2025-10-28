@@ -46,10 +46,13 @@ serve(async (req) => {
     console.log('isPrimaryDegreeRequirement:', isPrimaryDegreeRequirement);
     console.log('experienceBeforeDegree:', experienceBeforeDegree);
     
-    // Build context-aware vault summary
-    const vaultSummary = vault_items.slice(0, 5).map((item: any) => {
+    // Build context-aware vault summary (use top 15-20 items for better context)
+    const vaultSummary = vault_items.slice(0, 20).map((item: any) => {
       const content = item.content || item;
-      return `- ${content.stated_skill || content.skill || content.text || ''}: ${content.evidence || content.description || ''}`.substring(0, 200);
+      // Include FULL content, not truncated
+      const mainText = content.stated_skill || content.skill || content.text || content.power_phrase || '';
+      const evidence = content.evidence || content.supporting_evidence || content.description || '';
+      return `- ${mainText}${evidence ? ': ' + evidence : ''}`;
     }).join('\n');
 
     const systemPrompt = isEducation 

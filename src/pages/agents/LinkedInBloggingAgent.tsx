@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,11 @@ export default function LinkedInBloggingAgent() {
   const [loadingTopics, setLoadingTopics] = useState(false);
   const { toast } = useToast();
   const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
+
+  // Auto-load vault topic suggestions on mount - Phase 2
+  useEffect(() => {
+    handleLoadVaultTopics();
+  }, []);
 
   const postsThisWeek = [
     { day: 'Monday', status: 'published' as const, title: '5 Ways to Position Your Executive Experience' },
