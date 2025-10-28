@@ -331,13 +331,14 @@ export const VaultReviewInterface = ({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
-            <CardTitle>Review Your Career Intelligence</CardTitle>
+          <CardTitle>Review Your Career Intelligence</CardTitle>
             <Badge variant="secondary">
               {currentIndex + 1} of {items.length}
             </Badge>
           </div>
-          <CardDescription>
-            AI extracted {items.length} intelligence items. Quick review: approve, edit, or skip.
+          <CardDescription className="space-y-2">
+            <p>AI extracted {items.length} intelligence items from your resume. These are <strong>facts about you</strong>, not predictions.</p>
+            <p className="text-xs">Quick review: approve accurate items, edit for corrections, or skip if incorrect.</p>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -377,9 +378,23 @@ export const VaultReviewInterface = ({
             // View Mode
             <div className="space-y-4">
               <div>
-                <h3 className="text-xl font-semibold mb-2">{currentItem.content}</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  {currentItem.content || '[No content - data extraction issue]'}
+                </h3>
                 {currentItem.subContent && (
                   <p className="text-muted-foreground">{currentItem.subContent}</p>
+                )}
+                {!currentItem.content && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                    <p className="font-medium text-amber-900 mb-2">⚠️ Missing Content</p>
+                    <p className="text-amber-800">This item has no content to display. This usually means the data extraction didn't map correctly. You can safely skip this item.</p>
+                    <details className="mt-2 text-xs text-amber-700">
+                      <summary className="cursor-pointer">Debug Info</summary>
+                      <pre className="mt-2 p-2 bg-amber-100 rounded overflow-auto">
+                        {JSON.stringify(currentItem.metadata, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
                 )}
               </div>
 
