@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { transformExtractedDataToItems } from '@/lib/utils/vaultDataTransformer';
 
 interface VaultItem {
   id?: string;
@@ -53,130 +54,17 @@ export const VaultReviewInterface = ({
 }: VaultReviewInterfaceProps) => {
   const { toast } = useToast();
   const [items, setItems] = useState<VaultItem[]>(() => {
-    // Convert extracted data into reviewable items
-    const allItems: VaultItem[] = [];
-
-    // Power Phrases
-    extractedData.powerPhrases?.forEach((pp: any) => {
-      allItems.push({
-        category: 'Power Phrase',
-        content: pp.phrase,
-        subContent: pp.context,
-        metadata: pp,
-        confidence: pp.confidence || 85,
-        status: 'pending'
-      });
-    });
-
-    // Transferable Skills
-    extractedData.transferableSkills?.forEach((skill: any) => {
-      allItems.push({
-        category: 'Transferable Skill',
-        content: skill.skill,
-        subContent: skill.evidence,
-        metadata: skill,
-        confidence: skill.level === 'expert' ? 95 : skill.level === 'advanced' ? 85 : 75,
-        status: 'pending'
-      });
-    });
-
-    // Hidden Competencies
-    extractedData.hiddenCompetencies?.forEach((comp: any) => {
-      allItems.push({
-        category: 'Hidden Competency',
-        content: comp.competency,
-        subContent: comp.description,
-        metadata: comp,
-        confidence: 80,
-        status: 'pending'
-      });
-    });
-
-    // Soft Skills
-    extractedData.softSkills?.forEach((soft: any) => {
-      allItems.push({
-        category: 'Soft Skill',
-        content: soft.skillName,
-        subContent: soft.evidence,
-        metadata: soft,
-        confidence: 80,
-        status: 'pending'
-      });
-    });
-
-    // Leadership Philosophy
-    extractedData.leadershipPhilosophy?.forEach((phil: any) => {
-      allItems.push({
-        category: 'Leadership Philosophy',
-        content: phil.philosophyStatement,
-        subContent: phil.realWorldApplication,
-        metadata: phil,
-        confidence: 85,
-        status: 'pending'
-      });
-    });
-
-    // Executive Presence
-    extractedData.executivePresence?.forEach((pres: any) => {
-      allItems.push({
-        category: 'Executive Presence',
-        content: pres.presenceIndicator,
-        subContent: pres.situationalExample,
-        metadata: pres,
-        confidence: 80,
-        status: 'pending'
-      });
-    });
-
-    // Personality Traits
-    extractedData.personalityTraits?.forEach((trait: any) => {
-      allItems.push({
-        category: 'Personality Trait',
-        content: trait.traitName,
-        subContent: trait.behavioralEvidence,
-        metadata: trait,
-        confidence: 75,
-        status: 'pending'
-      });
-    });
-
-    // Work Style
-    extractedData.workStyle?.forEach((style: any) => {
-      allItems.push({
-        category: 'Work Style',
-        content: style.preferenceArea,
-        subContent: style.preferenceDescription,
-        metadata: style,
-        confidence: 75,
-        status: 'pending'
-      });
-    });
-
-    // Values
-    extractedData.values?.forEach((value: any) => {
-      allItems.push({
-        category: 'Core Value',
-        content: value.valueName,
-        subContent: value.manifestation,
-        metadata: value,
-        confidence: 80,
-        status: 'pending'
-      });
-    });
-
-    // Behavioral Indicators
-    extractedData.behavioralIndicators?.forEach((indicator: any) => {
-      allItems.push({
-        category: 'Behavioral Pattern',
-        content: indicator.indicatorType,
-        subContent: indicator.specificBehavior,
-        metadata: indicator,
-        confidence: 75,
-        status: 'pending'
-      });
-    });
-
-    return allItems;
+    console.log('[VAULT_REVIEW] Transforming extracted data:', extractedData);
+    const transformedItems = transformExtractedDataToItems(extractedData);
+    console.log('[VAULT_REVIEW] Transformed items:', transformedItems);
+    
+    // Log any items with missing content for debugging
+    const missingContent = transformedItems.filter(item => !item.content);
+    if (missingContent.length > 0) {
+      console.warn('[VAULT_REVIEW] Items with missing content:', missingContent);
+    }
+    
+    return transformedItems;
   });
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -250,25 +138,75 @@ export const VaultReviewInterface = ({
     setIsSaving(true);
 
     try {
-      // Save approved and edited items to database
       const approvedItems = items.filter(i => i.status === 'approved' || i.status === 'edited');
-
-      toast({
-        title: 'Saving Your Vault...',
-        description: `Finalizing ${approvedItems.length} intelligence items`,
-      });
-
-      // Note: Items are already in the database from auto-populate
-      // We just need to delete rejected ones
       const rejectedItems = items.filter(i => i.status === 'rejected');
 
-      // TODO: Implement deletion of rejected items
-      // This would require adding IDs when we load items from the database
+      toast({
+        title: 'Cleaning Up Your Vault...',
+        description: `Removing ${rejectedItems.length} rejected items`,
+      });
 
-      // Update vault completion percentage
+      // DELETE REJECTED ITEMS FROM DATABASE
+      // Items are already saved from auto-populate, now we delete what user rejected
+      if (rejectedItems.length > 0) {
+        console.log('[VAULT_REVIEW] Deleting rejected items:', rejectedItems);
+        
+        // Group by category for efficient batch deletion
+        const itemsByCategory = rejectedItems.reduce((acc, item) => {
+          if (!acc[item.category]) acc[item.category] = [];
+          acc[item.category].push(item);
+          return acc;
+        }, {} as Record<string, VaultItem[]>);
+
+        // Delete from each table
+        const categoryTableMap: Record<string, string> = {
+          'Power Phrase': 'vault_power_phrases',
+          'Transferable Skill': 'vault_transferable_skills',
+          'Hidden Competency': 'vault_hidden_competencies',
+          'Soft Skill': 'vault_soft_skills',
+          'Leadership Philosophy': 'vault_leadership_philosophy',
+          'Executive Presence': 'vault_executive_presence',
+          'Personality Trait': 'vault_personality_traits',
+          'Work Style': 'vault_work_style',
+          'Core Value': 'vault_values',
+          'Behavioral Pattern': 'vault_behavioral_indicators'
+        };
+
+        for (const [category, categoryItems] of Object.entries(itemsByCategory)) {
+          const tableName = categoryTableMap[category];
+          if (!tableName) continue;
+
+          // Delete items by matching content (since we don't have IDs from the review interface)
+          // This is safe because we're matching on vault_id + content
+          for (const item of categoryItems) {
+            try {
+              // Different tables have different primary content fields
+              const contentField = tableName === 'vault_power_phrases' ? 'phrase' :
+                                 tableName === 'vault_transferable_skills' ? 'skill' :
+                                 tableName === 'vault_hidden_competencies' ? 'competency' :
+                                 tableName === 'vault_soft_skills' ? 'skill_name' :
+                                 'content'; // generic fallback
+
+              const { error: deleteError } = await supabase
+                .from(tableName as any)
+                .delete()
+                .eq('vault_id', vaultId)
+                .ilike(contentField, item.content);
+
+              if (deleteError) {
+                console.error(`[VAULT_REVIEW] Error deleting from ${tableName}:`, deleteError);
+              }
+            } catch (err) {
+              console.error(`[VAULT_REVIEW] Exception deleting item:`, err);
+            }
+          }
+        }
+      }
+
+      // Update vault completion and review status
       const completionPercentage = Math.round((approvedItems.length / items.length) * 100);
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('career_vault')
         .update({
           interview_completion_percentage: Math.max(85, completionPercentage),
@@ -277,14 +215,18 @@ export const VaultReviewInterface = ({
         })
         .eq('id', vaultId);
 
+      if (updateError) {
+        throw updateError;
+      }
+
       toast({
-        title: 'Vault Complete!',
-        description: `${approvedItems.length} items approved, ${rejectedItems.length} rejected`,
+        title: 'Vault Cleaned Up!',
+        description: `Kept ${approvedItems.length} items, removed ${rejectedItems.length} items`,
       });
 
       onComplete();
     } catch (error) {
-      console.error('Error saving vault review:', error);
+      console.error('[VAULT_REVIEW] Error saving vault review:', error);
       toast({
         title: 'Error',
         description: 'Failed to save your review. Please try again.',
@@ -331,14 +273,14 @@ export const VaultReviewInterface = ({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
-          <CardTitle>Review Your Career Intelligence</CardTitle>
+            <CardTitle>Review & Clean Up Your Vault</CardTitle>
             <Badge variant="secondary">
               {currentIndex + 1} of {items.length}
             </Badge>
           </div>
           <CardDescription className="space-y-2">
-            <p>AI extracted {items.length} intelligence items from your resume. These are <strong>facts about you</strong>, not predictions.</p>
-            <p className="text-xs">Quick review: approve accurate items, edit for corrections, or skip if incorrect.</p>
+            <p>AI has already populated your vault with {items.length} intelligence items extracted from your resume. These are <strong>facts about you</strong>, not predictions.</p>
+            <p className="text-xs">Review each item: <strong>Approve</strong> accurate items, <strong>Edit</strong> for corrections, or <strong>Skip</strong> to remove incorrect ones from your vault.</p>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
