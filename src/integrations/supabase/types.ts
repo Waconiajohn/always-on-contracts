@@ -4405,6 +4405,18 @@ export type Database = {
       check_password_strength: { Args: { password: string }; Returns: boolean }
       cleanup_expired_cache: { Args: never; Returns: undefined }
       generate_api_key: { Args: never; Returns: string }
+      get_items_needing_review: {
+        Args: { p_user_id: string }
+        Returns: {
+          content: string
+          created_at: string
+          evidence: string
+          id: string
+          quality_tier: string
+          type: string
+          vault_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
