@@ -333,12 +333,25 @@ Return as plain text or JSON array depending on section type.`
       }
     }
 
+    // Track vault items used for attribution
+    const vaultItemsUsed = vaultItems && vaultItems.length > 0
+      ? vaultItems.map((item: any) => ({
+          id: item.vaultItemId || item.id,
+          category: item.category || item.vaultCategory,
+          qualityTier: item.qualityTier || 'assumed',
+          excerpt: typeof item.content === 'string' 
+            ? item.content.substring(0, 100)
+            : JSON.stringify(item.content).substring(0, 100)
+        }))
+      : [];
+
     return new Response(
       JSON.stringify({
         success: true,
         sectionType,
         content: parsed,
-        rawContent: generatedContent
+        rawContent: generatedContent,
+        vaultItemsUsed // NEW: Return attribution data
       }),
       {
         headers: {

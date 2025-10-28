@@ -179,6 +179,10 @@ import { VaultStatusHero } from '@/components/career-vault/VaultStatusHero';
 import { VaultContents } from '@/components/career-vault/VaultContents';
 import { QualityBoosters } from '@/components/career-vault/QualityBoosters';
 import { MilestoneManager } from '@/components/career-vault/MilestoneManager';
+import { VaultContentsTable } from '@/components/career-vault/VaultContentsTable';
+import { QualityTierExplainer } from '@/components/career-vault/QualityTierExplainer';
+import { VaultActivityFeed } from '@/components/career-vault/VaultActivityFeed';
+import { VaultSuggestionsWidget } from '@/components/career-vault/VaultSuggestionsWidget';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Shield } from 'lucide-react';
 import {
@@ -963,8 +967,214 @@ const VaultDashboardContent = () => {
         </div>
       )}
 
-      {/* Vault Contents */}
-      {stats && (
+      {/* Quality Tier Explainer - NEW: Phase 0 */}
+      {strengthScore && (
+        <div className="mb-6">
+          <QualityTierExplainer
+            goldCount={[
+              ...powerPhrases.filter(p => p.quality_tier === 'gold'),
+              ...transferableSkills.filter(s => s.quality_tier === 'gold'),
+              ...hiddenCompetencies.filter(c => c.quality_tier === 'gold'),
+              ...softSkills.filter(ss => ss.quality_tier === 'gold'),
+              ...leadershipPhilosophy.filter(l => l.quality_tier === 'gold'),
+              ...executivePresence.filter(e => e.quality_tier === 'gold'),
+              ...personalityTraits.filter(pt => pt.quality_tier === 'gold'),
+              ...workStyle.filter(ws => ws.quality_tier === 'gold'),
+              ...values.filter(v => v.quality_tier === 'gold'),
+              ...behavioralIndicators.filter(bi => bi.quality_tier === 'gold')
+            ].length}
+            silverCount={[
+              ...powerPhrases.filter(p => p.quality_tier === 'silver'),
+              ...transferableSkills.filter(s => s.quality_tier === 'silver'),
+              ...hiddenCompetencies.filter(c => c.quality_tier === 'silver'),
+              ...softSkills.filter(ss => ss.quality_tier === 'silver'),
+              ...leadershipPhilosophy.filter(l => l.quality_tier === 'silver'),
+              ...executivePresence.filter(e => e.quality_tier === 'silver'),
+              ...personalityTraits.filter(pt => pt.quality_tier === 'silver'),
+              ...workStyle.filter(ws => ws.quality_tier === 'silver'),
+              ...values.filter(v => v.quality_tier === 'silver'),
+              ...behavioralIndicators.filter(bi => bi.quality_tier === 'silver')
+            ].length}
+            bronzeCount={[
+              ...powerPhrases.filter(p => p.quality_tier === 'bronze'),
+              ...transferableSkills.filter(s => s.quality_tier === 'bronze'),
+              ...hiddenCompetencies.filter(c => c.quality_tier === 'bronze'),
+              ...softSkills.filter(ss => ss.quality_tier === 'bronze'),
+              ...leadershipPhilosophy.filter(l => l.quality_tier === 'bronze'),
+              ...executivePresence.filter(e => e.quality_tier === 'bronze'),
+              ...personalityTraits.filter(pt => pt.quality_tier === 'bronze'),
+              ...workStyle.filter(ws => ws.quality_tier === 'bronze'),
+              ...values.filter(v => v.quality_tier === 'bronze'),
+              ...behavioralIndicators.filter(bi => bi.quality_tier === 'bronze')
+            ].length}
+            assumedCount={[
+              ...powerPhrases.filter(p => !p.quality_tier || p.quality_tier === 'assumed'),
+              ...transferableSkills.filter(s => !s.quality_tier || s.quality_tier === 'assumed'),
+              ...hiddenCompetencies.filter(c => !c.quality_tier || c.quality_tier === 'assumed'),
+              ...softSkills.filter(ss => !ss.quality_tier || ss.quality_tier === 'assumed'),
+              ...leadershipPhilosophy.filter(l => !l.quality_tier || l.quality_tier === 'assumed'),
+              ...executivePresence.filter(e => !e.quality_tier || e.quality_tier === 'assumed'),
+              ...personalityTraits.filter(pt => !pt.quality_tier || pt.quality_tier === 'assumed'),
+              ...workStyle.filter(ws => !ws.quality_tier || ws.quality_tier === 'assumed'),
+              ...values.filter(v => !v.quality_tier || v.quality_tier === 'assumed'),
+              ...behavioralIndicators.filter(bi => !bi.quality_tier || bi.quality_tier === 'assumed')
+            ].length}
+            totalItems={totalIntelligenceItems}
+            onVerifyAssumed={() => navigate('/career-vault/onboarding')}
+          />
+        </div>
+      )}
+
+      {/* Vault Improvement Suggestions - NEW: Phase 0 */}
+      {strengthScore && (
+        <div className="mb-6">
+          <VaultSuggestionsWidget
+            assumedCount={[
+              ...powerPhrases.filter(p => !p.quality_tier || p.quality_tier === 'assumed'),
+              ...transferableSkills.filter(s => !s.quality_tier || s.quality_tier === 'assumed'),
+              ...hiddenCompetencies.filter(c => !c.quality_tier || c.quality_tier === 'assumed'),
+              ...softSkills.filter(ss => !ss.quality_tier || ss.quality_tier === 'assumed'),
+              ...leadershipPhilosophy.filter(l => !l.quality_tier || l.quality_tier === 'assumed'),
+              ...executivePresence.filter(e => !e.quality_tier || e.quality_tier === 'assumed'),
+              ...personalityTraits.filter(pt => !pt.quality_tier || pt.quality_tier === 'assumed'),
+              ...workStyle.filter(ws => !ws.quality_tier || ws.quality_tier === 'assumed'),
+              ...values.filter(v => !v.quality_tier || v.quality_tier === 'assumed'),
+              ...behavioralIndicators.filter(bi => !bi.quality_tier || bi.quality_tier === 'assumed')
+            ].length}
+            weakPhrasesCount={powerPhrases.filter(p => 
+              !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
+            ).length}
+            staleItemsCount={[
+              ...powerPhrases,
+              ...transferableSkills,
+              ...hiddenCompetencies,
+              ...softSkills
+            ].filter(item => {
+              const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
+              if (!lastUpdated) return true;
+              const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+              return daysSince > 180; // 6 months
+            }).length}
+            onVerifyAssumed={() => navigate('/career-vault/onboarding')}
+            onAddMetrics={() => setAddMetricsModalOpen(true)}
+            onUpdateStale={() => setModernizeModalOpen(true)}
+          />
+        </div>
+      )}
+
+      {/* Vault Activity Feed - NEW: Phase 0 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <VaultActivityFeed vaultId={vaultId} limit={7} />
+        <SmartNextSteps
+          interviewProgress={stats.interview_completion_percentage}
+          strengthScore={strengthScore?.total || 0}
+          totalItems={totalIntelligenceItems}
+          hasLeadership={stats.total_leadership_philosophy > 0}
+          hasExecutivePresence={stats.total_executive_presence > 0}
+        />
+      </div>
+
+      {/* Unified Vault Contents Table - NEW: Phase 0 */}
+      <div className="mb-6">
+        <VaultContentsTable
+          allItems={[
+            ...powerPhrases.map(p => ({
+              id: p.id,
+              category: 'Power Phrases',
+              content: p.power_phrase,
+              qualityTier: p.quality_tier || 'assumed',
+              source: 'Resume',
+              usageCount: 0,
+              lastUpdated: p.last_updated_at || (p as any).created_at
+            })),
+            ...transferableSkills.map(s => ({
+              id: s.id,
+              category: 'Transferable Skills',
+              content: s.stated_skill,
+              qualityTier: s.quality_tier || 'assumed',
+              source: 'Resume',
+              usageCount: 0,
+              lastUpdated: s.last_updated_at || (s as any).created_at
+            })),
+            ...hiddenCompetencies.map(c => ({
+              id: c.id,
+              category: 'Hidden Competencies',
+              content: c.inferred_capability,
+              qualityTier: c.quality_tier || 'assumed',
+              source: 'AI Inference',
+              usageCount: 0,
+              lastUpdated: c.last_updated_at || (c as any).created_at
+            })),
+            ...softSkills.map(ss => ({
+              id: ss.id,
+              category: 'Soft Skills',
+              content: ss.skill_name,
+              qualityTier: ss.quality_tier || 'assumed',
+              source: ss.inferred_from || 'Interview',
+              usageCount: 0,
+              lastUpdated: ss.last_updated_at || (ss as any).created_at
+            })),
+            ...leadershipPhilosophy.map(l => ({
+              id: l.id,
+              category: 'Leadership Philosophy',
+              content: l.philosophy_statement,
+              qualityTier: l.quality_tier || 'assumed',
+              source: l.inferred_from || 'Interview',
+              usageCount: 0,
+              lastUpdated: l.last_updated_at || (l as any).created_at
+            })),
+            ...executivePresence.map(e => ({
+              id: e.id,
+              category: 'Executive Presence',
+              content: e.presence_indicator,
+              qualityTier: e.quality_tier || 'assumed',
+              source: e.inferred_from || 'Interview',
+              usageCount: 0,
+              lastUpdated: e.last_updated_at || (e as any).created_at
+            })),
+            ...personalityTraits.map(pt => ({
+              id: pt.id,
+              category: 'Personality Traits',
+              content: pt.trait_name,
+              qualityTier: pt.quality_tier || 'assumed',
+              source: pt.inferred_from || 'Interview',
+              usageCount: 0,
+              lastUpdated: pt.last_updated_at || (pt as any).created_at
+            })),
+            ...workStyle.map(ws => ({
+              id: ws.id,
+              category: 'Work Style',
+              content: ws.preference_description,
+              qualityTier: ws.quality_tier || 'assumed',
+              source: ws.inferred_from || 'Interview',
+              usageCount: 0,
+              lastUpdated: ws.last_updated_at || (ws as any).created_at
+            })),
+            ...values.map(v => ({
+              id: v.id,
+              category: 'Values & Motivations',
+              content: v.value_name,
+              qualityTier: v.quality_tier || 'assumed',
+              source: v.inferred_from || 'Interview',
+              usageCount: 0,
+              lastUpdated: v.last_updated_at || (v as any).created_at
+            })),
+            ...behavioralIndicators.map(bi => ({
+              id: bi.id,
+              category: 'Behavioral Indicators',
+              content: bi.specific_behavior,
+              qualityTier: bi.quality_tier || 'assumed',
+              source: bi.inferred_from || 'Interview',
+              usageCount: 0,
+              lastUpdated: bi.last_updated_at || (bi as any).created_at
+            }))
+          ]}
+          onRefresh={fetchData}
+        />
+      </div>
+
+      {/* Vault Contents (OLD - replaced by table above) */}
+      {stats && false && (
         <div className="mb-6">
           <VaultContents
             categories={{

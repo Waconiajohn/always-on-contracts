@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Loader2
 } from "lucide-react";
+import { VaultItemAttributionBadge } from "@/components/career-vault/VaultItemAttributionBadge";
 
 import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
@@ -76,6 +77,7 @@ export const SectionWizard = ({
   const [personalizedContent, setPersonalizedContent] = useState<any>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
+  const [vaultItemsUsed, setVaultItemsUsed] = useState<any[]>([]);
 
   // State manager for recovery
   const stateManager = new StateManager(`section-${section.id}`);
@@ -208,6 +210,14 @@ export const SectionWizard = ({
 
       setIdealContent(dualData.idealVersion.content);
       setPersonalizedContent(dualData.personalizedVersion.content);
+      
+      // Store vault items used for attribution
+      setVaultItemsUsed(dualData.vaultItemsUsed || relevantMatches.map(m => ({
+        id: m.vaultItemId,
+        category: m.vaultCategory,
+        qualityTier: m.qualityTier,
+        excerpt: typeof m.content === 'string' ? m.content.substring(0, 100) : JSON.stringify(m.content).substring(0, 100)
+      })));
 
       setCurrentGenerationStep(3); // Complete
       setShowComparison(true);
@@ -486,6 +496,30 @@ export const SectionWizard = ({
               onOpenEditor={handleOpenEditor}
               jobTitle={jobAnalysis.roleProfile?.title}
             />
+          )}
+
+          {/* Vault Attribution - Show which items were used */}
+          {vaultItemsUsed.length > 0 && generatedContent && !showComparison && (
+            <Alert>
+              <Sparkles className="h-4 w-4" />
+              <AlertTitle>Career Vault Items Used</AlertTitle>
+              <AlertDescription>
+                <div className="space-y-2 mt-3">
+                  {vaultItemsUsed.slice(0, 5).map((item, idx) => (
+                    <VaultItemAttributionBadge
+                      key={idx}
+                      vaultItem={item}
+                      compact
+                    />
+                  ))}
+                  {vaultItemsUsed.length > 5 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{vaultItemsUsed.length - 5} more vault items used
+                    </p>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Single Content Review (after selection) */}
