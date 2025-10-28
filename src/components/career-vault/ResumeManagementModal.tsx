@@ -38,8 +38,13 @@ export const ResumeManagementModal = ({
       const text = await file.text();
 
       if (selectedAction === 'replace') {
-        // Delete all existing vault data
-        await Promise.all([
+        toast({
+          title: 'Clearing vault...',
+          description: 'Removing old data before processing new resume.',
+        });
+
+        // CRITICAL: Delete ALL existing vault data first and wait for completion
+        const deleteResults = await Promise.allSettled([
           supabase.from('vault_power_phrases').delete().eq('vault_id', vaultId),
           supabase.from('vault_transferable_skills').delete().eq('vault_id', vaultId),
           supabase.from('vault_hidden_competencies').delete().eq('vault_id', vaultId),
@@ -54,8 +59,17 @@ export const ResumeManagementModal = ({
           supabase.from('vault_resume_milestones').delete().eq('vault_id', vaultId),
         ]);
 
-        // Reset vault progress
-        await supabase
+        // Check if any deletes failed
+        const failedDeletes = deleteResults.filter(r => r.status === 'rejected');
+        if (failedDeletes.length > 0) {
+          console.error('Some vault deletes failed:', failedDeletes);
+          throw new Error('Failed to clear vault completely. Please try again.');
+        }
+
+        console.log('[VAULT-CLEAR] All vault items deleted successfully');
+
+        // Reset vault progress and update resume text
+        const { error: resetError } = await supabase
           .from('career_vault')
           .update({
             interview_completion_percentage: 0,
@@ -72,12 +86,20 @@ export const ResumeManagementModal = ({
             total_behavioral_indicators: 0,
             overall_strength_score: 0,
             resume_raw_text: text,
-            auto_populated: false
+            auto_populated: false,
+            reviewed: false
           })
           .eq('id', vaultId);
 
+        if (resetError) {
+          console.error('[VAULT-CLEAR] Failed to reset vault:', resetError);
+          throw new Error('Failed to reset vault progress. Please try again.');
+        }
+
+        console.log('[VAULT-CLEAR] Vault reset complete, starting AI analysis...');
+
         toast({
-          title: 'Old data cleared',
+          title: 'Vault cleared successfully',
           description: 'Running AI analysis on new resume...',
         });
       } else {
