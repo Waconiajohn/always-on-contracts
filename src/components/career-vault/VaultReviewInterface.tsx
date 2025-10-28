@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,11 +27,14 @@ interface VaultItem {
   metadata?: any;
   confidence?: number;
   status: 'pending' | 'approved' | 'edited' | 'rejected';
+  // Database identifiers for deletion
+  tableName?: string;
+  recordId?: string;
 }
 
 interface VaultReviewInterfaceProps {
   vaultId: string;
-  extractedData: any;
+  extractedData?: any; // Optional - will load from DB if not provided
   onComplete: () => void;
 }
 
@@ -53,25 +56,213 @@ export const VaultReviewInterface = ({
   onComplete
 }: VaultReviewInterfaceProps) => {
   const { toast } = useToast();
-  const [items, setItems] = useState<VaultItem[]>(() => {
-    console.log('[VAULT_REVIEW] Transforming extracted data:', extractedData);
-    const transformedItems = transformExtractedDataToItems(extractedData);
-    console.log('[VAULT_REVIEW] Transformed items:', transformedItems);
-    
-    // Log any items with missing content for debugging
-    const missingContent = transformedItems.filter(item => !item.content);
-    if (missingContent.length > 0) {
-      console.warn('[VAULT_REVIEW] Items with missing content:', missingContent);
-    }
-    
-    return transformedItems;
-  });
+  const [items, setItems] = useState<VaultItem[]>([]);
+  const [isLoadingFromDb, setIsLoadingFromDb] = useState(!extractedData);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [editedSubContent, setEditedSubContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // PHASE 3: Load data directly from database
+  const loadItemsFromDatabase = async () => {
+    try {
+      console.log('[VAULT_REVIEW] Loading items from database for vault:', vaultId);
+      const allItems: VaultItem[] = [];
+
+      // Fetch from all 10 vault tables in parallel
+      const [
+        powerPhrasesRes,
+        transferableSkillsRes,
+        hiddenCompetenciesRes,
+        softSkillsRes,
+        leadershipPhilosophyRes,
+        executivePresenceRes,
+        personalityTraitsRes,
+        workStyleRes,
+        valuesRes,
+        behavioralIndicatorsRes
+      ] = await Promise.all([
+        supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_personality_traits').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_work_style').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_values_motivations').select('*').eq('vault_id', vaultId),
+        supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vaultId)
+      ]);
+
+      // Transform Power Phrases
+      powerPhrasesRes.data?.forEach((pp: any) => {
+        allItems.push({
+          recordId: pp.id,
+          tableName: 'vault_power_phrases',
+          category: 'Power Phrase',
+          content: pp.phrase || '',
+          subContent: pp.context || '',
+          metadata: pp,
+          confidence: 85,
+          status: 'pending'
+        });
+      });
+
+      // Transform Transferable Skills
+      transferableSkillsRes.data?.forEach((skill: any) => {
+        allItems.push({
+          recordId: skill.id,
+          tableName: 'vault_transferable_skills',
+          category: 'Transferable Skill',
+          content: skill.skill || '',
+          subContent: skill.evidence || '',
+          metadata: skill,
+          confidence: skill.proficiency_level === 'expert' ? 95 : 85,
+          status: 'pending'
+        });
+      });
+
+      // Transform Hidden Competencies
+      hiddenCompetenciesRes.data?.forEach((comp: any) => {
+        allItems.push({
+          recordId: comp.id,
+          tableName: 'vault_hidden_competencies',
+          category: 'Hidden Competency',
+          content: comp.competency || '',
+          subContent: comp.description || '',
+          metadata: comp,
+          confidence: 80,
+          status: 'pending'
+        });
+      });
+
+      // Transform Soft Skills
+      softSkillsRes.data?.forEach((soft: any) => {
+        allItems.push({
+          recordId: soft.id,
+          tableName: 'vault_soft_skills',
+          category: 'Soft Skill',
+          content: soft.skill_name || '',
+          subContent: soft.evidence || '',
+          metadata: soft,
+          confidence: 80,
+          status: 'pending'
+        });
+      });
+
+      // Transform Leadership Philosophy
+      leadershipPhilosophyRes.data?.forEach((phil: any) => {
+        allItems.push({
+          recordId: phil.id,
+          tableName: 'vault_leadership_philosophy',
+          category: 'Leadership Philosophy',
+          content: phil.philosophy_statement || '',
+          subContent: phil.real_world_application || '',
+          metadata: phil,
+          confidence: 85,
+          status: 'pending'
+        });
+      });
+
+      // Transform Executive Presence
+      executivePresenceRes.data?.forEach((pres: any) => {
+        allItems.push({
+          recordId: pres.id,
+          tableName: 'vault_executive_presence',
+          category: 'Executive Presence',
+          content: pres.presence_indicator || '',
+          subContent: pres.evidence || '',
+          metadata: pres,
+          confidence: 80,
+          status: 'pending'
+        });
+      });
+
+      // Transform Personality Traits
+      personalityTraitsRes.data?.forEach((trait: any) => {
+        allItems.push({
+          recordId: trait.id,
+          tableName: 'vault_personality_traits',
+          category: 'Personality Trait',
+          content: trait.trait_name || '',
+          subContent: trait.behavioral_evidence || '',
+          metadata: trait,
+          confidence: 75,
+          status: 'pending'
+        });
+      });
+
+      // Transform Work Style
+      workStyleRes.data?.forEach((style: any) => {
+        allItems.push({
+          recordId: style.id,
+          tableName: 'vault_work_style',
+          category: 'Work Style',
+          content: style.preference_area || '',
+          subContent: style.preference_description || '',
+          metadata: style,
+          confidence: 75,
+          status: 'pending'
+        });
+      });
+
+      // Transform Values
+      valuesRes.data?.forEach((value: any) => {
+        allItems.push({
+          recordId: value.id,
+          tableName: 'vault_values_motivations',
+          category: 'Core Value',
+          content: value.value_name || '',
+          subContent: value.manifestation || '',
+          metadata: value,
+          confidence: 80,
+          status: 'pending'
+        });
+      });
+
+      // Transform Behavioral Indicators
+      behavioralIndicatorsRes.data?.forEach((indicator: any) => {
+        allItems.push({
+          recordId: indicator.id,
+          tableName: 'vault_behavioral_indicators',
+          category: 'Behavioral Pattern',
+          content: indicator.indicator_type || '',
+          subContent: indicator.specific_behavior || '',
+          metadata: indicator,
+          confidence: 75,
+          status: 'pending'
+        });
+      });
+
+      console.log('[VAULT_REVIEW] Loaded', allItems.length, 'items from database');
+      setItems(allItems);
+      setIsLoadingFromDb(false);
+    } catch (error) {
+      console.error('[VAULT_REVIEW] Error loading from database:', error);
+      toast({
+        title: 'Error Loading Vault',
+        description: 'Failed to load your vault items. Please refresh the page.',
+        variant: 'destructive'
+      });
+      setIsLoadingFromDb(false);
+    }
+  };
+
+  // Load items on mount (Phase 3: Database-first approach)
+  React.useEffect(() => {
+    if (extractedData) {
+      // Legacy: Use extractedData if provided
+      console.log('[VAULT_REVIEW] Using extractedData prop (legacy mode)');
+      const transformedItems = transformExtractedDataToItems(extractedData);
+      setItems(transformedItems);
+    } else {
+      // Phase 3: Load from database
+      console.log('[VAULT_REVIEW] Loading from database (Phase 3 mode)');
+      loadItemsFromDatabase();
+    }
+  }, [vaultId, extractedData]);
 
   const currentItem = items[currentIndex];
   const progress = (items.filter(i => i.status !== 'pending').length / items.length) * 100;
@@ -147,58 +338,29 @@ export const VaultReviewInterface = ({
       });
 
       // DELETE REJECTED ITEMS FROM DATABASE
-      // Items are already saved from auto-populate, now we delete what user rejected
+      // Phase 3: Use actual record IDs for precise deletion
       if (rejectedItems.length > 0) {
-        console.log('[VAULT_REVIEW] Deleting rejected items:', rejectedItems);
+        console.log('[VAULT_REVIEW] Deleting', rejectedItems.length, 'rejected items');
         
-        // Group by category for efficient batch deletion
-        const itemsByCategory = rejectedItems.reduce((acc, item) => {
-          if (!acc[item.category]) acc[item.category] = [];
-          acc[item.category].push(item);
-          return acc;
-        }, {} as Record<string, VaultItem[]>);
+        for (const item of rejectedItems) {
+          if (!item.recordId || !item.tableName) {
+            console.warn('[VAULT_REVIEW] Skipping item without ID/table:', item);
+            continue;
+          }
 
-        // Delete from each table
-        const categoryTableMap: Record<string, string> = {
-          'Power Phrase': 'vault_power_phrases',
-          'Transferable Skill': 'vault_transferable_skills',
-          'Hidden Competency': 'vault_hidden_competencies',
-          'Soft Skill': 'vault_soft_skills',
-          'Leadership Philosophy': 'vault_leadership_philosophy',
-          'Executive Presence': 'vault_executive_presence',
-          'Personality Trait': 'vault_personality_traits',
-          'Work Style': 'vault_work_style',
-          'Core Value': 'vault_values',
-          'Behavioral Pattern': 'vault_behavioral_indicators'
-        };
+          try {
+            const { error: deleteError } = await supabase
+              .from(item.tableName as any)
+              .delete()
+              .eq('id', item.recordId);
 
-        for (const [category, categoryItems] of Object.entries(itemsByCategory)) {
-          const tableName = categoryTableMap[category];
-          if (!tableName) continue;
-
-          // Delete items by matching content (since we don't have IDs from the review interface)
-          // This is safe because we're matching on vault_id + content
-          for (const item of categoryItems) {
-            try {
-              // Different tables have different primary content fields
-              const contentField = tableName === 'vault_power_phrases' ? 'phrase' :
-                                 tableName === 'vault_transferable_skills' ? 'skill' :
-                                 tableName === 'vault_hidden_competencies' ? 'competency' :
-                                 tableName === 'vault_soft_skills' ? 'skill_name' :
-                                 'content'; // generic fallback
-
-              const { error: deleteError } = await supabase
-                .from(tableName as any)
-                .delete()
-                .eq('vault_id', vaultId)
-                .ilike(contentField, item.content);
-
-              if (deleteError) {
-                console.error(`[VAULT_REVIEW] Error deleting from ${tableName}:`, deleteError);
-              }
-            } catch (err) {
-              console.error(`[VAULT_REVIEW] Exception deleting item:`, err);
+            if (deleteError) {
+              console.error(`[VAULT_REVIEW] Error deleting ${item.recordId} from ${item.tableName}:`, deleteError);
+            } else {
+              console.log(`[VAULT_REVIEW] Deleted ${item.content} from ${item.tableName}`);
             }
+          } catch (err) {
+            console.error(`[VAULT_REVIEW] Exception deleting item:`, err);
           }
         }
       }
@@ -249,6 +411,25 @@ export const VaultReviewInterface = ({
     'Core Value': 'bg-emerald-500/10 text-emerald-700 border-emerald-300',
     'Behavioral Pattern': 'bg-violet-500/10 text-violet-700 border-violet-300'
   };
+
+  // Show loading state while fetching from database
+  if (isLoadingFromDb) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="py-12 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Loading Your Vault...</h2>
+              <p className="text-sm text-muted-foreground">
+                Fetching {items.length > 0 ? items.length : 'your'} intelligence items from the database
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!currentItem) {
     return (

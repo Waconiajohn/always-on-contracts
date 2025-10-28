@@ -324,7 +324,7 @@ const CareerVaultOnboardingEnhanced = () => {
         />
       )}
 
-      {currentStep === 'review' && vaultId && extractedData && (
+      {currentStep === 'review' && vaultId && (
         <VaultReviewInterface
           vaultId={vaultId}
           extractedData={extractedData}
