@@ -46,14 +46,21 @@ serve(async (req) => {
 
     console.log('Generating LinkedIn topic suggestions from vault for user:', user.id);
 
-    // Fetch top vault items (power phrases with metrics, transferable skills)
+    // Fetch ALL vault items (all 10 intelligence categories)
     const { data: vault, error: vaultError } = await supabase
       .from('career_vault')
       .select(`
         *,
         vault_power_phrases(id, power_phrase, category, impact_metrics, confidence_score, quality_tier),
         vault_transferable_skills(id, stated_skill, evidence, confidence_score, quality_tier),
-        vault_hidden_competencies(id, competency_area, inferred_capability, confidence_score, quality_tier)
+        vault_hidden_competencies(id, competency_area, inferred_capability, confidence_score, quality_tier),
+        vault_soft_skills(id, skill_category, specific_skill, confidence_score, quality_tier),
+        vault_leadership_philosophy(id, philosophy_statement, leadership_style, confidence_score, quality_tier),
+        vault_executive_presence(id, indicator_type, specific_behavior, confidence_score, quality_tier),
+        vault_personality_traits(id, trait_name, behavioral_evidence, confidence_score, quality_tier),
+        vault_work_style(id, style_category, specific_preference, confidence_score, quality_tier),
+        vault_values_motivations(id, value_name, manifestation, confidence_score, quality_tier),
+        vault_behavioral_indicators(id, indicator_type, specific_behavior, confidence_score, quality_tier)
       `)
       .eq('user_id', user.id)
       .single();
@@ -98,7 +105,23 @@ serve(async (req) => {
       .sort((a: any, b: any) => (b.confidence_score || 0) - (a.confidence_score || 0))
       .slice(0, 5);
 
-    if (topPowerPhrases.length === 0 && topSkills.length === 0 && topCompetencies.length === 0) {
+    // Get soft skills
+    const topSoftSkills = (vault.vault_soft_skills || [])
+      .filter((s: any) => s.skill_category && s.specific_skill)
+      .sort((a: any, b: any) => (b.confidence_score || 0) - (a.confidence_score || 0))
+      .slice(0, 5);
+
+    // Get leadership insights
+    const leadershipInsights = (vault.vault_leadership_philosophy || [])
+      .filter((l: any) => l.philosophy_statement)
+      .slice(0, 2);
+
+    // Get executive presence indicators
+    const executivePresence = (vault.vault_executive_presence || [])
+      .filter((e: any) => e.indicator_type && e.specific_behavior)
+      .slice(0, 3);
+
+    if (topPowerPhrases.length === 0 && topSkills.length === 0 && topCompetencies.length === 0 && topSoftSkills.length === 0) {
       return new Response(
         JSON.stringify({
           success: true,
@@ -126,6 +149,21 @@ serve(async (req) => {
         id: c.id,
         area: c.competency_area,
         capability: c.inferred_capability
+      })),
+      softSkills: topSoftSkills.map((s: any) => ({
+        id: s.id,
+        category: s.skill_category,
+        skill: s.specific_skill
+      })),
+      leadership: leadershipInsights.map((l: any) => ({
+        id: l.id,
+        statement: l.philosophy_statement,
+        style: l.leadership_style
+      })),
+      executivePresence: executivePresence.map((e: any) => ({
+        id: e.id,
+        type: e.indicator_type,
+        behavior: e.specific_behavior
       }))
     };
 
@@ -142,6 +180,15 @@ ${vaultContext.skills.map((s: any) => `- ${s.skill}: ${s.evidence}`).join('\n')}
 
 Hidden Competencies (Differentiators):
 ${vaultContext.competencies.map((c: any) => `- ${c.area}: ${c.capability}`).join('\n')}
+
+Soft Skills & Interpersonal:
+${vaultContext.softSkills.map((s: any) => `- ${s.category}: ${s.skill}`).join('\n')}
+
+Leadership Philosophy:
+${vaultContext.leadership.map((l: any) => `- ${l.statement} (${l.style})`).join('\n')}
+
+Executive Presence:
+${vaultContext.executivePresence.map((e: any) => `- ${e.type}: ${e.behavior}`).join('\n')}
 
 GUIDELINES:
 1. Create topics that showcase specific achievements (not generic advice)
@@ -222,7 +269,10 @@ EXAMPLES OF BAD TOPICS:
         totalVaultItems: {
           powerPhrases: vaultContext.powerPhrases.length,
           skills: vaultContext.skills.length,
-          competencies: vaultContext.competencies.length
+          competencies: vaultContext.competencies.length,
+          softSkills: vaultContext.softSkills.length,
+          leadership: vaultContext.leadership.length,
+          executivePresence: vaultContext.executivePresence.length
         }
       }),
       {

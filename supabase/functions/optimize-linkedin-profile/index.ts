@@ -26,14 +26,21 @@ serve(async (req) => {
       );
 
       if (user) {
-        // Fetch Career Vault data
+        // Fetch ALL Career Vault data (10 intelligence categories)
         const { data: vault } = await supabase
           .from('career_vault')
           .select(`
             *,
             vault_power_phrases(power_phrase, impact_metrics, category),
             vault_transferable_skills(stated_skill, evidence, proficiency_level),
-            vault_hidden_competencies(competency_area, inferred_capability)
+            vault_hidden_competencies(competency_area, inferred_capability),
+            vault_soft_skills(skill_category, specific_skill),
+            vault_leadership_philosophy(philosophy_statement, leadership_style, core_principles),
+            vault_executive_presence(indicator_type, specific_behavior, context),
+            vault_personality_traits(trait_name, behavioral_evidence),
+            vault_work_style(style_category, specific_preference),
+            vault_values_motivations(value_name, manifestation, importance_level),
+            vault_behavioral_indicators(indicator_type, specific_behavior, outcome_pattern)
           `)
           .eq('user_id', user.id)
           .single();
@@ -52,6 +59,36 @@ ${vault.vault_power_phrases?.slice(0, 10).map((p: any) =>
 CORE COMPETENCIES (highlight these skills):
 ${vault.vault_transferable_skills?.slice(0, 5).map((s: any) => 
   `- ${s.stated_skill}: ${s.evidence} (${s.proficiency_level})`
+).join('\n') || 'None available'}
+
+SOFT SKILLS & INTERPERSONAL:
+${vault.vault_soft_skills?.slice(0, 5).map((s: any) => 
+  `- ${s.skill_category}: ${s.specific_skill}`
+).join('\n') || 'None available'}
+
+LEADERSHIP PHILOSOPHY:
+${vault.vault_leadership_philosophy?.slice(0, 2).map((l: any) => 
+  `- ${l.philosophy_statement} (Style: ${l.leadership_style})`
+).join('\n') || 'None available'}
+
+EXECUTIVE PRESENCE INDICATORS:
+${vault.vault_executive_presence?.slice(0, 3).map((e: any) => 
+  `- ${e.indicator_type}: ${e.specific_behavior}`
+).join('\n') || 'None available'}
+
+PERSONALITY TRAITS (authentic humanization):
+${vault.vault_personality_traits?.slice(0, 3).map((p: any) => 
+  `- ${p.trait_name}: ${p.behavioral_evidence}`
+).join('\n') || 'None available'}
+
+WORK STYLE PREFERENCES:
+${vault.vault_work_style?.slice(0, 2).map((w: any) => 
+  `- ${w.style_category}: ${w.specific_preference}`
+).join('\n') || 'None available'}
+
+VALUES & MOTIVATIONS:
+${vault.vault_values_motivations?.slice(0, 3).map((v: any) => 
+  `- ${v.value_name}: ${v.manifestation} (${v.importance_level})`
 ).join('\n') || 'None available'}
 
 DIFFERENTIATORS (unique selling points):

@@ -49,7 +49,12 @@ const InterviewPrepAgentContent = () => {
         vault_transferable_skills(*),
         vault_hidden_competencies(*),
         vault_soft_skills(*),
-        vault_personality_traits(*)
+        vault_personality_traits(*),
+        vault_leadership_philosophy(*),
+        vault_executive_presence(*),
+        vault_work_style(*),
+        vault_values_motivations(*),
+        vault_behavioral_indicators(*)
       `)
       .eq('user_id', user.id)
       .single();

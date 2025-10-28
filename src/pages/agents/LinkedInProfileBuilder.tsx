@@ -40,7 +40,14 @@ export default function LinkedInProfileBuilder() {
         *,
         vault_power_phrases(power_phrase, category),
         vault_transferable_skills(stated_skill, evidence),
-        vault_hidden_competencies(competency_area, inferred_capability)
+        vault_hidden_competencies(competency_area, inferred_capability),
+        vault_soft_skills(skill_category, specific_skill),
+        vault_leadership_philosophy(philosophy_statement, leadership_style),
+        vault_executive_presence(indicator_type, specific_behavior),
+        vault_personality_traits(trait_name, behavioral_evidence),
+        vault_work_style(style_category, specific_preference),
+        vault_values_motivations(value_name, manifestation),
+        vault_behavioral_indicators(indicator_type, specific_behavior)
       `)
       .eq('user_id', user.id)
       .single();
@@ -52,8 +59,19 @@ export default function LinkedInProfileBuilder() {
     if (!vaultData) return [];
     const suggestions: string[] = [];
     
+    // Include transferable skills
     if (vaultData.vault_transferable_skills) {
       suggestions.push(...vaultData.vault_transferable_skills.map((s: any) => s.stated_skill));
+    }
+    
+    // Include soft skills
+    if (vaultData.vault_soft_skills) {
+      suggestions.push(...vaultData.vault_soft_skills.map((s: any) => s.specific_skill));
+    }
+    
+    // Include leadership competencies
+    if (vaultData.vault_leadership_philosophy) {
+      suggestions.push(...vaultData.vault_leadership_philosophy.map((l: any) => l.leadership_style));
     }
     
     return [...new Set(suggestions)].slice(0, 15);

@@ -31,20 +31,27 @@ export function VaultContentTracker() {
         .select('*')
         .eq('user_id', user.id);
 
-      // Fetch all vault items
+      // Fetch ALL vault items (10 categories)
       const { data: vault } = await supabase
         .from('career_vault')
         .select(`
           vault_power_phrases(id, power_phrase, impact_metrics),
           vault_transferable_skills(id, stated_skill),
-          vault_hidden_competencies(id, competency_area)
+          vault_hidden_competencies(id, competency_area),
+          vault_soft_skills(id, skill_category),
+          vault_leadership_philosophy(id, philosophy_statement),
+          vault_executive_presence(id, indicator_type),
+          vault_personality_traits(id, trait_name),
+          vault_work_style(id, style_category),
+          vault_values_motivations(id, value_name),
+          vault_behavioral_indicators(id, indicator_type)
         `)
         .eq('user_id', user.id)
         .single();
 
       if (!usage || !vault) return;
 
-      // Calculate stats
+      // Calculate stats across ALL 10 vault tables
       const usedItemIds = new Set(usage.map(u => u.vault_item_id));
       
       const powerPhrasesUsed = vault.vault_power_phrases?.filter((p: any) => 
@@ -59,13 +66,29 @@ export function VaultContentTracker() {
         usedItemIds.has(c.id)
       ).length || 0;
 
-      // Find underutilized high-value items
+      // Track additional categories (used in totalUsed count)
+      const otherCategoriesUsed = [
+        vault.vault_soft_skills,
+        vault.vault_leadership_philosophy,
+        vault.vault_executive_presence,
+        vault.vault_personality_traits,
+        vault.vault_work_style,
+        vault.vault_values_motivations,
+        vault.vault_behavioral_indicators
+      ].reduce((sum, category) => {
+        const count = category?.filter((item: any) => usedItemIds.has(item.id)).length || 0;
+        return sum + count;
+      }, 0);
+
+      const totalUsed = powerPhrasesUsed + skillsUsed + competenciesUsed + otherCategoriesUsed;
+
+      // Find underutilized high-value items (prioritize power phrases with metrics)
       const underutilized = vault.vault_power_phrases?.filter((p: any) => 
         !usedItemIds.has(p.id) && p.impact_metrics
       ).slice(0, 5) || [];
 
       setStats({
-        totalUsed: usage.length,
+        totalUsed,
         powerPhrasesUsed,
         skillsUsed,
         competenciesUsed,
