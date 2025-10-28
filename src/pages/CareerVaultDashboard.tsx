@@ -629,7 +629,7 @@ const VaultDashboardContent = () => {
       });
 
       // Navigate to onboarding
-      navigate('/career-vault/onboarding');
+      navigate('/career-vault-onboarding');
     } catch (error) {
       console.error('Error clearing vault:', error);
       toast({
@@ -676,7 +676,7 @@ const VaultDashboardContent = () => {
               <p className="text-xs text-muted-foreground">Undiscovered strengths</p>
             </div>
           </div>
-          <Button size="lg" onClick={() => navigate('/career-vault/onboarding')}>
+          <Button size="lg" onClick={() => navigate('/career-vault-onboarding')}>
             Build Your Career Vault
           </Button>
         </Card>
@@ -787,7 +787,7 @@ const VaultDashboardContent = () => {
             {stats.interview_completion_percentage < 100 ? (
               <Button 
                 className="justify-start"
-                onClick={() => navigate('/career-vault/onboarding')}
+                onClick={() => navigate('/career-vault-onboarding')}
               >
                 <PlayCircle className="h-4 w-4 mr-2" />
                 Continue Interview
@@ -954,7 +954,7 @@ const VaultDashboardContent = () => {
             bronzeCount={qualityDistribution.bronze}
             assumedCount={qualityDistribution.assumed}
             totalItems={totalIntelligenceItems}
-            onVerifyAssumed={() => navigate('/career-vault/onboarding')}
+            onVerifyAssumed={() => navigate('/career-vault-onboarding')}
           />
         </div>
       )}
@@ -978,7 +978,7 @@ const VaultDashboardContent = () => {
               const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
               return daysSince > 180; // 6 months
             }).length}
-            onVerifyAssumed={() => navigate('/career-vault/onboarding')}
+            onVerifyAssumed={() => navigate('/career-vault-onboarding')}
             onAddMetrics={() => setAddMetricsModalOpen(true)}
             onUpdateStale={() => setModernizeModalOpen(true)}
           />
@@ -1175,7 +1175,7 @@ const VaultDashboardContent = () => {
             }}
             onAddItem={() => {
               // Navigate to onboarding to add items
-              navigate('/career-vault/onboarding');
+              navigate('/career-vault-onboarding');
             }}
             onViewCategory={(categoryName) => {
               // Switch to the appropriate tab in the dashboard

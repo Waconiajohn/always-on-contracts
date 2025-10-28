@@ -31,7 +31,7 @@ export const SmartNextSteps = ({
         description: `${interviewProgress}% complete. Finish to unlock your full intelligence profile.`,
         impact: `+${itemsToUnlock} more items`,
         time: '15-20 min',
-        action: () => navigate('/career-vault/onboarding'),
+        action: () => navigate('/career-vault-onboarding'),
         actionText: 'Continue Interview',
         variant: 'default' as const,
         priority: 1
@@ -98,7 +98,7 @@ export const SmartNextSteps = ({
         description: 'Strengthen your executive positioning with leadership examples',
         impact: '+10-15 points → Elite positioning',
         time: '8-12 min',
-        action: () => navigate('/career-vault/onboarding'),
+        action: () => navigate('/career-vault-onboarding'),
         actionText: 'Add Leadership',
         variant: 'outline' as const,
         priority: 3

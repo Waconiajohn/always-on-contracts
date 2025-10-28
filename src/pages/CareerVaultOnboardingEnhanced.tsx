@@ -258,7 +258,7 @@ const CareerVaultOnboardingEnhanced = () => {
     
     if (data.useManualInterview) {
       console.log('[ONBOARDING] Falling back to manual interview');
-      navigate('/career-vault/onboarding');
+      navigate('/career-vault-onboarding');
       return;
     }
 
