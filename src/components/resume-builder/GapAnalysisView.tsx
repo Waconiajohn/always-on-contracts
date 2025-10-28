@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -34,6 +36,7 @@ export const GapAnalysisView = ({
   vaultMatches = [],
   jobAnalysis
 }: GapAnalysisViewProps) => {
+  const { toast } = useToast();
   const matchedCount = totalRequirements - unmatchedRequirements.length;
   const gapCount = unmatchedRequirements.length;
   
@@ -45,9 +48,61 @@ export const GapAnalysisView = ({
     setExpandedGaps(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
-  const handleAddToVault = (index: number, solution: string) => {
+  const handleAddToVault = async (index: number, solution: any) => {
     setAddressedGaps(prev => ({ ...prev, [index]: true }));
-    console.log('Added solution to vault:', solution);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get user's vault ID
+      const { data: vault } = await supabase
+        .from('career_vault')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!vault) return;
+
+      // Determine category based on solution type
+      const category = solution.isEducation ? 'education' : 
+                      solution.type === 'skill' ? 'transferable_skills' : 
+                      'power_phrases';
+
+      // Determine quality tier: vault-based = silver, AI = bronze
+      const quality_tier = solution.approach === 'vault_based' ? 'silver' : 'bronze';
+
+      // Save to appropriate vault table
+      const { error } = await supabase.functions.invoke('add-vault-item', {
+        body: {
+          vaultId: vault.id,
+          category,
+          itemData: {
+            [category === 'power_phrases' ? 'power_phrase' : 
+              category === 'transferable_skills' ? 'stated_skill' : 
+              'content']: solution.content,
+            quality_tier,
+            source: 'gap_analysis',
+            satisfies_requirement: unmatchedRequirements[index],
+            confidence_score: solution.approach === 'vault_based' ? 85 : 70
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Added to Career Vault",
+        description: `This ${category.replace('_', ' ')} will be available for all future resumes`,
+      });
+    } catch (error: any) {
+      console.error('Error adding to vault:', error);
+      toast({
+        title: "Failed to add to vault",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   const getCoverageColor = () => {
