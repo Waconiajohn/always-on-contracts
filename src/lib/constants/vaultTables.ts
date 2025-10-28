@@ -25,15 +25,15 @@ export type VaultTableName = typeof VAULT_TABLES[number];
  */
 export const VAULT_TABLE_FIELDS = {
   vault_power_phrases: 'id, power_phrase, impact_metrics, category, quality_tier',
-  vault_transferable_skills: 'id, stated_skill, proficiency_level, years_experience, quality_tier',
-  vault_hidden_competencies: 'id, competency_area, inferred_capability, evidence_from_resume, quality_tier',
-  vault_soft_skills: 'id, skill_category, skill_name, proficiency_level, quality_tier',
-  vault_leadership_philosophy: 'id, philosophy_statement, application_examples, quality_tier',
-  vault_executive_presence: 'id, indicator_type, manifestation, recognition, quality_tier',
-  vault_personality_traits: 'id, trait_name, trait_category, professional_context, quality_tier',
-  vault_work_style: 'id, style_category, preference_description, quality_tier',
-  vault_values_motivations: 'id, value_name, value_category, manifestation, quality_tier',
-  vault_behavioral_indicators: 'id, indicator_type, behavior_description, evidence, quality_tier'
+  vault_transferable_skills: 'id, stated_skill, evidence, quality_tier',
+  vault_hidden_competencies: 'id, competency_area, inferred_capability, quality_tier',
+  vault_soft_skills: 'id, skill_name, examples, proficiency_level, quality_tier',
+  vault_leadership_philosophy: 'id, philosophy_statement, leadership_style, real_world_application, quality_tier',
+  vault_executive_presence: 'id, presence_indicator, situational_example, perceived_impact, quality_tier',
+  vault_personality_traits: 'id, trait_name, behavioral_evidence, work_context, quality_tier',
+  vault_work_style: 'id, preference_area, preference_description, ideal_environment, quality_tier',
+  vault_values_motivations: 'id, value_name, importance_level, manifestation, quality_tier',
+  vault_behavioral_indicators: 'id, indicator_type, specific_behavior, context, outcome_pattern, quality_tier'
 } as const;
 
 /**
@@ -113,7 +113,7 @@ const TABLE_CONFIGS: Record<VaultTableName, TableConfig> = {
   },
   vault_executive_presence: {
     name: 'vault_executive_presence',
-    contentField: 'manifestation',
+    contentField: 'presence_indicator',
     idField: 'vault_id',
     timestampField: 'created_at',
     displayName: 'Executive Presence'
@@ -141,7 +141,7 @@ const TABLE_CONFIGS: Record<VaultTableName, TableConfig> = {
   },
   vault_behavioral_indicators: {
     name: 'vault_behavioral_indicators',
-    contentField: 'behavior_description',
+    contentField: 'specific_behavior',
     idField: 'vault_id',
     timestampField: 'created_at',
     displayName: 'Behavioral Indicator'
