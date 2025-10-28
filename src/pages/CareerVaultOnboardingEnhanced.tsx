@@ -79,14 +79,8 @@ const CareerVaultOnboardingEnhanced = () => {
       if (existingVault) {
         setVaultId(existingVault.id);
 
-        // Only redirect if vault is complete AND we're starting fresh
-        if ((existingVault.interview_completion_percentage ?? 0) >= 85 && currentStep === 'upload') {
-          toast({
-            title: 'Vault Already Complete',
-            description: 'Redirecting to your Career Vault dashboard...'
-          });
-          navigate('/career-vault');
-        }
+        // Note: Removed auto-redirect logic. Users can access vault even if interview is complete
+        // because they may need to verify assumed items or improve vault quality.
       }
       } catch (error) {
         console.error('Error checking vault:', error);
