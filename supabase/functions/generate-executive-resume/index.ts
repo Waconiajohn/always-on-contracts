@@ -50,17 +50,17 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    // Step 2: Get ALL vault intelligence
-    const { data: vaultData, error: vaultError } = await supabase.functions.invoke('get-vault-intelligence', {
-      body: { jobDescription },
+    // Step 2: Get ALL vault intelligence (get-vault-data fetches all 10 tables)
+    const { data: vaultData, error: vaultError } = await supabase.functions.invoke('get-vault-data', {
+      body: { userId: user.id },
       headers: { Authorization: authHeader }
     });
 
-    if (vaultError || !vaultData?.intelligence) {
+    if (vaultError || !vaultData?.data?.intelligence) {
       throw new Error('Failed to fetch Career Vault data');
     }
 
-    const intelligence = vaultData.intelligence;
+    const intelligence = vaultData.data.intelligence;
 
     // Step 3: Analyze job description
     const { data: jobAnalysis, error: analysisError } = await supabase.functions.invoke('analyze-job-qualifications', {

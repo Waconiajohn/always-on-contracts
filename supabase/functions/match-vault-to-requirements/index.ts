@@ -59,26 +59,28 @@ serve(async (req) => {
 
     console.log('Matching vault to requirements for user:', userId);
 
-    // Fetch ALL 20 intelligence categories from Career Vault
-    const { data: vaultData, error: vaultError } = await supabase
-      .from('career_vault')
-      .select(`
-        *,
-        vault_power_phrases(*),
-        vault_transferable_skills(*),
-        vault_hidden_competencies(*),
-        vault_soft_skills(*),
-        vault_leadership_philosophy(*),
-        vault_executive_presence(*),
-        vault_personality_traits(*),
-        vault_work_style(*),
-        vault_values_motivations(*),
-        vault_behavioral_indicators(*),
-        vault_resume_milestones(*),
-        vault_interview_responses(*)
-      `)
-      .eq('user_id', userId)
-      .single();
+    // Fetch ALL vault intelligence using centralized function (ensures all 10 tables)
+    const { data: vaultResponse, error: vaultError } = await supabase.functions.invoke('get-vault-data', {
+      body: { userId }
+    });
+
+    if (vaultError || !vaultResponse?.data) {
+      throw new Error('Could not fetch career vault data');
+    }
+
+    const vaultData = {
+      ...vaultResponse.data.vault,
+      vault_power_phrases: vaultResponse.data.intelligence.powerPhrases,
+      vault_transferable_skills: vaultResponse.data.intelligence.transferableSkills,
+      vault_hidden_competencies: vaultResponse.data.intelligence.hiddenCompetencies,
+      vault_soft_skills: vaultResponse.data.intelligence.softSkills,
+      vault_leadership_philosophy: vaultResponse.data.intelligence.leadershipPhilosophy,
+      vault_executive_presence: vaultResponse.data.intelligence.executivePresence,
+      vault_personality_traits: vaultResponse.data.intelligence.personalityTraits,
+      vault_work_style: vaultResponse.data.intelligence.workStyle,
+      vault_values_motivations: vaultResponse.data.intelligence.values,
+      vault_behavioral_indicators: vaultResponse.data.intelligence.behavioralIndicators
+    };
 
     if (vaultError || !vaultData) {
       throw new Error('Could not fetch career vault data');

@@ -61,13 +61,16 @@ serve(async (req) => {
 
     console.log('[OPTIMIZE-RESUME] Starting for user:', user.id);
 
-    // Fetch Career Vault intelligence
+    // Fetch ALL Career Vault intelligence (get-vault-data fetches all 10 tables)
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
-      'get-vault-intelligence',
-      { headers: { Authorization: authHeader } }
+      'get-vault-data',
+      { 
+        body: { userId: user.id },
+        headers: { Authorization: authHeader } 
+      }
     );
 
-    const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
+    const intelligence = intelligenceError ? null : intelligenceData?.data?.intelligence;
     
     if (intelligence) {
       console.log('[OPTIMIZE-RESUME] Career Vault loaded:', {
