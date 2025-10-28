@@ -12,11 +12,66 @@ interface AssumedItem {
   content: string;
   item_type: string;
   verification_status: string;
+  table_name: string;
 }
 
 interface VerificationWorkflowProps {
   vaultId: string;
 }
+
+// Configuration for all vault tables
+const TABLE_CONFIG = {
+  vault_power_phrases: {
+    contentField: 'power_phrase',
+    evidenceField: 'impact_metrics',
+    displayName: 'Achievement',
+  },
+  vault_confirmed_skills: {
+    contentField: 'skill_name',
+    evidenceField: 'custom_notes',
+    displayName: 'Skill',
+  },
+  vault_hidden_competencies: {
+    contentField: 'inferred_capability',
+    evidenceField: 'evidence_from_resume',
+    displayName: 'Competency',
+  },
+  vault_soft_skills: {
+    contentField: 'skill_name',
+    evidenceField: 'examples',
+    displayName: 'Soft Skill',
+  },
+  vault_leadership_philosophy: {
+    contentField: 'philosophy_statement',
+    evidenceField: 'real_world_application',
+    displayName: 'Leadership Philosophy',
+  },
+  vault_executive_presence: {
+    contentField: 'presence_indicator',
+    evidenceField: 'situational_example',
+    displayName: 'Executive Presence',
+  },
+  vault_personality_traits: {
+    contentField: 'trait_name',
+    evidenceField: 'behavioral_evidence',
+    displayName: 'Personality Trait',
+  },
+  vault_work_style: {
+    contentField: 'preference_area',
+    evidenceField: 'preference_description',
+    displayName: 'Work Style',
+  },
+  vault_values_motivations: {
+    contentField: 'value_name',
+    evidenceField: 'manifestation',
+    displayName: 'Core Value',
+  },
+  vault_behavioral_indicators: {
+    contentField: 'specific_behavior',
+    evidenceField: 'outcome_pattern',
+    displayName: 'Behavioral Pattern',
+  },
+} as const;
 
 export const VerificationWorkflow = ({ vaultId }: VerificationWorkflowProps) => {
   const [assumedItems, setAssumedItems] = useState<AssumedItem[]>([]);
@@ -29,44 +84,177 @@ export const VerificationWorkflow = ({ vaultId }: VerificationWorkflowProps) => 
   const loadAssumedItems = async () => {
     setIsLoading(true);
     
+    const items: AssumedItem[] = [];
+
+    // Fetch power phrases
     const { data: powerPhrases } = await supabase
       .from('vault_power_phrases')
       .select('id, power_phrase, quality_tier')
       .eq('vault_id', vaultId)
       .eq('quality_tier', 'assumed');
 
+    if (powerPhrases) {
+      items.push(...powerPhrases.map(p => ({
+        id: p.id,
+        content: p.power_phrase || '',
+        item_type: 'vault_power_phrases',
+        table_name: 'vault_power_phrases',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch confirmed skills (uses user_id, no quality_tier - uses source='inferred' instead)
     const { data: skills } = await supabase
       .from('vault_confirmed_skills')
-      .select('id, skill_name, source')
+      .select('id, skill_name')
       .eq('user_id', vaultId)
       .eq('source', 'inferred');
 
+    if (skills) {
+      items.push(...skills.map(s => ({
+        id: s.id,
+        content: s.skill_name || '',
+        item_type: 'vault_confirmed_skills',
+        table_name: 'vault_confirmed_skills',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch hidden competencies
     const { data: competencies } = await supabase
       .from('vault_hidden_competencies')
       .select('id, inferred_capability, quality_tier')
       .eq('vault_id', vaultId)
       .eq('quality_tier', 'assumed');
 
-    const items: AssumedItem[] = [
-      ...(powerPhrases?.map(p => ({ 
-        id: p.id, 
-        content: p.power_phrase || '', 
-        item_type: 'power_phrase',
-        verification_status: p.quality_tier || 'assumed'
-      })) || []),
-      ...(skills?.map(s => ({ 
-        id: s.id, 
-        content: s.skill_name || '', 
-        item_type: 'skill',
+    if (competencies) {
+      items.push(...competencies.map(c => ({
+        id: c.id,
+        content: c.inferred_capability || '',
+        item_type: 'vault_hidden_competencies',
+        table_name: 'vault_hidden_competencies',
         verification_status: 'assumed'
-      })) || []),
-      ...(competencies?.map(c => ({ 
-        id: c.id, 
-        content: c.inferred_capability || '', 
-        item_type: 'competency',
-        verification_status: c.quality_tier || 'assumed'
-      })) || [])
-    ];
+      })));
+    }
+
+    // Fetch soft skills
+    const { data: softSkills } = await supabase
+      .from('vault_soft_skills')
+      .select('id, skill_name, quality_tier')
+      .eq('vault_id', vaultId)
+      .eq('quality_tier', 'assumed');
+
+    if (softSkills) {
+      items.push(...softSkills.map(s => ({
+        id: s.id,
+        content: s.skill_name || '',
+        item_type: 'vault_soft_skills',
+        table_name: 'vault_soft_skills',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch leadership philosophy
+    const { data: leadership } = await supabase
+      .from('vault_leadership_philosophy')
+      .select('id, philosophy_statement, quality_tier')
+      .eq('vault_id', vaultId)
+      .eq('quality_tier', 'assumed');
+
+    if (leadership) {
+      items.push(...leadership.map(l => ({
+        id: l.id,
+        content: l.philosophy_statement || '',
+        item_type: 'vault_leadership_philosophy',
+        table_name: 'vault_leadership_philosophy',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch executive presence
+    const { data: execPresence } = await supabase
+      .from('vault_executive_presence')
+      .select('id, presence_indicator, quality_tier')
+      .eq('vault_id', vaultId)
+      .eq('quality_tier', 'assumed');
+
+    if (execPresence) {
+      items.push(...execPresence.map(e => ({
+        id: e.id,
+        content: e.presence_indicator || '',
+        item_type: 'vault_executive_presence',
+        table_name: 'vault_executive_presence',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch personality traits
+    const { data: traits } = await supabase
+      .from('vault_personality_traits')
+      .select('id, trait_name, quality_tier')
+      .eq('vault_id', vaultId)
+      .eq('quality_tier', 'assumed');
+
+    if (traits) {
+      items.push(...traits.map(t => ({
+        id: t.id,
+        content: t.trait_name || '',
+        item_type: 'vault_personality_traits',
+        table_name: 'vault_personality_traits',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch work style
+    const { data: workStyle } = await supabase
+      .from('vault_work_style')
+      .select('id, preference_area, quality_tier')
+      .eq('vault_id', vaultId)
+      .eq('quality_tier', 'assumed');
+
+    if (workStyle) {
+      items.push(...workStyle.map(w => ({
+        id: w.id,
+        content: w.preference_area || '',
+        item_type: 'vault_work_style',
+        table_name: 'vault_work_style',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch values & motivations
+    const { data: values } = await supabase
+      .from('vault_values_motivations')
+      .select('id, value_name, quality_tier')
+      .eq('vault_id', vaultId)
+      .eq('quality_tier', 'assumed');
+
+    if (values) {
+      items.push(...values.map(v => ({
+        id: v.id,
+        content: v.value_name || '',
+        item_type: 'vault_values_motivations',
+        table_name: 'vault_values_motivations',
+        verification_status: 'assumed'
+      })));
+    }
+
+    // Fetch behavioral indicators
+    const { data: behaviors } = await supabase
+      .from('vault_behavioral_indicators')
+      .select('id, specific_behavior, quality_tier')
+      .eq('vault_id', vaultId)
+      .eq('quality_tier', 'assumed');
+
+    if (behaviors) {
+      items.push(...behaviors.map(b => ({
+        id: b.id,
+        content: b.specific_behavior || '',
+        item_type: 'vault_behavioral_indicators',
+        table_name: 'vault_behavioral_indicators',
+        verification_status: 'assumed'
+      })));
+    }
 
     setAssumedItems(items);
     setIsLoading(false);
@@ -81,25 +269,53 @@ export const VerificationWorkflow = ({ vaultId }: VerificationWorkflowProps) => 
 
     setIsVerifying(true);
     const item = assumedItems[currentIndex];
-    const tableName = 
-      item.item_type === 'power_phrase' ? 'vault_power_phrases' :
-      item.item_type === 'skill' ? 'vault_confirmed_skills' :
-      'vault_hidden_competencies';
+    const tableName = item.table_name as keyof typeof TABLE_CONFIG;
 
-    const updateData: any = { 
-      quality_tier: status === 'verified' ? 'gold' : 'assumed',
-      needs_user_review: false
-    };
-    
-    // For power phrases, we can add evidence
-    if (status === 'verified' && evidence && item.item_type === 'power_phrase') {
-      updateData.impact_metrics = { evidence };
+    let error = null;
+
+    // Type-safe update based on table name
+    if (tableName === 'vault_power_phrases') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.impact_metrics = evidence;
+      ({ error } = await supabase.from('vault_power_phrases').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_confirmed_skills') {
+      // vault_confirmed_skills uses 'source' instead of quality_tier
+      const updateData: any = { source: status === 'verified' ? 'verified' : 'inferred' };
+      if (status === 'verified' && evidence) updateData.custom_notes = evidence;
+      ({ error } = await supabase.from('vault_confirmed_skills').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_hidden_competencies') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.evidence_from_resume = evidence;
+      ({ error } = await supabase.from('vault_hidden_competencies').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_soft_skills') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.examples = evidence;
+      ({ error } = await supabase.from('vault_soft_skills').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_leadership_philosophy') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.real_world_application = evidence;
+      ({ error } = await supabase.from('vault_leadership_philosophy').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_executive_presence') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.situational_example = evidence;
+      ({ error } = await supabase.from('vault_executive_presence').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_personality_traits') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.behavioral_evidence = evidence;
+      ({ error } = await supabase.from('vault_personality_traits').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_work_style') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.preference_description = evidence;
+      ({ error } = await supabase.from('vault_work_style').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_values_motivations') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.manifestation = evidence;
+      ({ error } = await supabase.from('vault_values_motivations').update(updateData).eq('id', item.id));
+    } else if (tableName === 'vault_behavioral_indicators') {
+      const updateData: any = { quality_tier: status === 'verified' ? 'gold' : 'assumed', needs_user_review: false };
+      if (status === 'verified' && evidence) updateData.outcome_pattern = evidence;
+      ({ error } = await supabase.from('vault_behavioral_indicators').update(updateData).eq('id', item.id));
     }
-
-    const { error } = await supabase
-      .from(tableName)
-      .update(updateData)
-      .eq('id', item.id);
 
     if (error) {
       toast({
@@ -134,12 +350,8 @@ export const VerificationWorkflow = ({ vaultId }: VerificationWorkflowProps) => 
   };
 
   const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'power_phrase': return 'Achievement';
-      case 'skill': return 'Skill';
-      case 'competency': return 'Competency';
-      default: return type;
-    }
+    const config = TABLE_CONFIG[type as keyof typeof TABLE_CONFIG];
+    return config?.displayName || type;
   };
 
   if (isLoading) {
