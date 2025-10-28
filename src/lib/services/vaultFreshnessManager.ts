@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from './vaultActivityLogger';
+import { VAULT_TABLE_NAMES, getTableConfig } from '@/lib/constants/vaultTables';
 
 export interface StaleItem {
   id: string;
@@ -11,79 +12,48 @@ export interface StaleItem {
 
 export const getStaleItems = async (vaultId: string, daysThreshold: number = 180): Promise<StaleItem[]> => {
   try {
-    const { data: powerPhrases, error: ppError } = await supabase
-      .from('vault_power_phrases')
-      .select('id, power_phrase, last_updated_at')
-      .eq('vault_id', vaultId);
-
-    const { data: skills, error: skillsError } = await supabase
-      .from('vault_confirmed_skills')
-      .select('id, skill_name, created_at')
-      .eq('user_id', vaultId);
-
-    const { data: competencies, error: compError } = await supabase
-      .from('vault_hidden_competencies')
-      .select('id, inferred_capability, last_updated_at')
-      .eq('vault_id', vaultId);
-
-    if (ppError || skillsError || compError) {
-      throw new Error('Error fetching vault items');
-    }
-
-    const allItems: StaleItem[] = [];
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysThreshold);
 
-    // Process power phrases
-    powerPhrases?.forEach(item => {
-      if (item.last_updated_at) {
-        const lastUpdated = new Date(item.last_updated_at);
-        if (lastUpdated < cutoffDate) {
-          const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
-          allItems.push({
-            id: item.id,
-            content: item.power_phrase || '',
-            item_type: 'power_phrase',
-            last_updated_at: item.last_updated_at,
-            age_days: ageDays
-          });
-        }
+    // Fetch items from all 10 vault tables dynamically
+    const fetchPromises = VAULT_TABLE_NAMES.map(async (tableName) => {
+      const config = getTableConfig(tableName);
+      const idFieldValue = config.idField === 'user_id' ? vaultId : vaultId;
+      
+      const { data, error } = await supabase
+        .from(tableName)
+        .select(`id, ${config.contentField}, ${config.timestampField}`)
+        .eq(config.idField, idFieldValue);
+
+      if (error) {
+        console.error(`Error fetching ${tableName}:`, error);
+        return [];
       }
+
+      return (data || [])
+        .filter((item: any) => {
+          const timestamp = item[config.timestampField];
+          if (!timestamp) return false;
+          const lastUpdated = new Date(timestamp);
+          return lastUpdated < cutoffDate;
+        })
+        .map((item: any) => {
+          const timestamp = item[config.timestampField];
+          const lastUpdated = new Date(timestamp);
+          const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
+          
+          return {
+            id: item.id,
+            content: item[config.contentField] || '',
+            item_type: tableName,
+            last_updated_at: timestamp,
+            age_days: ageDays,
+          };
+        });
     });
 
-    // Process skills (using created_at as proxy for freshness)
-    skills?.forEach(item => {
-      if (item.created_at) {
-        const lastUpdated = new Date(item.created_at);
-        if (lastUpdated < cutoffDate) {
-          const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
-          allItems.push({
-            id: item.id,
-            content: item.skill_name || '',
-            item_type: 'skill',
-            last_updated_at: item.created_at,
-            age_days: ageDays
-          });
-        }
-      }
-    });
-
-    // Process competencies
-    competencies?.forEach(item => {
-      if (item.last_updated_at) {
-        const lastUpdated = new Date(item.last_updated_at);
-        if (lastUpdated < cutoffDate) {
-          const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
-          allItems.push({
-            id: item.id,
-            content: item.inferred_capability || '',
-            item_type: 'competency',
-            last_updated_at: item.last_updated_at,
-            age_days: ageDays
-          });
-        }
-      }
-    });
+    const results = await Promise.all(fetchPromises);
+    const allItems = results.flat();
 
     return allItems.sort((a, b) => b.age_days - a.age_days);
   } catch (error) {
@@ -94,22 +64,25 @@ export const getStaleItems = async (vaultId: string, daysThreshold: number = 180
 
 export const refreshItem = async (itemId: string, itemType: string, vaultId: string) => {
   try {
-    const tableName = 
-      itemType === 'power_phrase' ? 'vault_power_phrases' :
-      itemType === 'skill' ? 'vault_confirmed_skills' :
-      'vault_hidden_competencies';
+    const config = getTableConfig(itemType);
+    if (!config) {
+      throw new Error(`Unknown item type: ${itemType}`);
+    }
 
-    const { error } = await supabase
-      .from(tableName)
-      .update({ last_updated_at: new Date().toISOString() })
-      .eq('id', itemId);
+    // Only update if the table has a last_updated_at field (not all do)
+    if (config.timestampField === 'last_updated_at') {
+      const { error } = await supabase
+        .from(config.name)
+        .update({ last_updated_at: new Date().toISOString() })
+        .eq('id', itemId);
 
-    if (error) throw error;
+      if (error) throw error;
+    }
 
     await logActivity({
       vaultId,
       activityType: 'strength_score_change',
-      description: `Refreshed ${itemType}`,
+      description: `Refreshed ${config.displayName}`,
       metadata: { item_id: itemId }
     });
 

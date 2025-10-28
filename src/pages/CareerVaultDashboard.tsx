@@ -14,6 +14,7 @@ import { ContentLayout } from "@/components/layout/ContentLayout";
 import { ContextSidebar } from "@/components/layout/ContextSidebar";
 import { VaultSidebar } from "@/components/career-vault/VaultSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
+import { calculateQualityDistribution, type QualityDistribution } from "@/lib/utils/qualityDistribution";
 
 interface VaultStats {
   total_power_phrases: number;
@@ -228,6 +229,7 @@ const VaultDashboardContent = () => {
   const [behavioralIndicators, setBehavioralIndicators] = useState<BehavioralIndicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [strengthScore, setStrengthScore] = useState<StrengthScore | null>(null);
+  const [qualityDistribution, setQualityDistribution] = useState<QualityDistribution>({ gold: 0, silver: 0, bronze: 0, assumed: 0 });
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -403,6 +405,21 @@ const VaultDashboardContent = () => {
             behavioralData.data || []
           );
           setStrengthScore(score);
+
+          // Calculate quality distribution once for all 10 vault tables
+          const distribution = calculateQualityDistribution(
+            phrasesData.data || [],
+            skillsData.data || [],
+            competenciesData.data || [],
+            softSkillsData.data || [],
+            leadershipData.data || [],
+            presenceData.data || [],
+            traitsData.data || [],
+            styleData.data || [],
+            valuesData.data || [],
+            behavioralData.data || []
+          );
+          setQualityDistribution(distribution);
 
           // Update stats with ACTUAL counts from fetched data (not stale vault totals)
           setStats({
@@ -915,56 +932,7 @@ const VaultDashboardContent = () => {
               }
             }}
             onRefresh={handleRefreshVault}
-            qualityDistribution={{
-              gold: [
-                ...powerPhrases.filter(p => p.quality_tier === 'gold'),
-                ...transferableSkills.filter(s => s.quality_tier === 'gold'),
-                ...hiddenCompetencies.filter(c => c.quality_tier === 'gold'),
-                ...softSkills.filter(ss => ss.quality_tier === 'gold'),
-                ...leadershipPhilosophy.filter(l => l.quality_tier === 'gold'),
-                ...executivePresence.filter(e => e.quality_tier === 'gold'),
-                ...personalityTraits.filter(pt => pt.quality_tier === 'gold'),
-                ...workStyle.filter(ws => ws.quality_tier === 'gold'),
-                ...values.filter(v => v.quality_tier === 'gold'),
-                ...behavioralIndicators.filter(bi => bi.quality_tier === 'gold')
-              ].length,
-              silver: [
-                ...powerPhrases.filter(p => p.quality_tier === 'silver'),
-                ...transferableSkills.filter(s => s.quality_tier === 'silver'),
-                ...hiddenCompetencies.filter(c => c.quality_tier === 'silver'),
-                ...softSkills.filter(ss => ss.quality_tier === 'silver'),
-                ...leadershipPhilosophy.filter(l => l.quality_tier === 'silver'),
-                ...executivePresence.filter(e => e.quality_tier === 'silver'),
-                ...personalityTraits.filter(pt => pt.quality_tier === 'silver'),
-                ...workStyle.filter(ws => ws.quality_tier === 'silver'),
-                ...values.filter(v => v.quality_tier === 'silver'),
-                ...behavioralIndicators.filter(bi => bi.quality_tier === 'silver')
-              ].length,
-              bronze: [
-                ...powerPhrases.filter(p => p.quality_tier === 'bronze'),
-                ...transferableSkills.filter(s => s.quality_tier === 'bronze'),
-                ...hiddenCompetencies.filter(c => c.quality_tier === 'bronze'),
-                ...softSkills.filter(ss => ss.quality_tier === 'bronze'),
-                ...leadershipPhilosophy.filter(l => l.quality_tier === 'bronze'),
-                ...executivePresence.filter(e => e.quality_tier === 'bronze'),
-                ...personalityTraits.filter(pt => pt.quality_tier === 'bronze'),
-                ...workStyle.filter(ws => ws.quality_tier === 'bronze'),
-                ...values.filter(v => v.quality_tier === 'bronze'),
-                ...behavioralIndicators.filter(bi => bi.quality_tier === 'bronze')
-              ].length,
-              assumed: [
-                ...powerPhrases.filter(p => !p.quality_tier || p.quality_tier === 'assumed'),
-                ...transferableSkills.filter(s => !s.quality_tier || s.quality_tier === 'assumed'),
-                ...hiddenCompetencies.filter(c => !c.quality_tier || c.quality_tier === 'assumed'),
-                ...softSkills.filter(ss => !ss.quality_tier || ss.quality_tier === 'assumed'),
-                ...leadershipPhilosophy.filter(l => !l.quality_tier || l.quality_tier === 'assumed'),
-                ...executivePresence.filter(e => !e.quality_tier || e.quality_tier === 'assumed'),
-                ...personalityTraits.filter(pt => !pt.quality_tier || pt.quality_tier === 'assumed'),
-                ...workStyle.filter(ws => !ws.quality_tier || ws.quality_tier === 'assumed'),
-                ...values.filter(v => !v.quality_tier || v.quality_tier === 'assumed'),
-                ...behavioralIndicators.filter(bi => !bi.quality_tier || bi.quality_tier === 'assumed')
-              ].length,
-            }}
+            qualityDistribution={qualityDistribution}
             coreScores={{
               powerPhrases: strengthScore.powerPhrasesScore,
               skills: strengthScore.transferableSkillsScore,
@@ -981,54 +949,10 @@ const VaultDashboardContent = () => {
       {strengthScore && (
         <div className="mb-6">
           <QualityTierExplainer
-            goldCount={[
-              ...powerPhrases.filter(p => p.quality_tier === 'gold'),
-              ...transferableSkills.filter(s => s.quality_tier === 'gold'),
-              ...hiddenCompetencies.filter(c => c.quality_tier === 'gold'),
-              ...softSkills.filter(ss => ss.quality_tier === 'gold'),
-              ...leadershipPhilosophy.filter(l => l.quality_tier === 'gold'),
-              ...executivePresence.filter(e => e.quality_tier === 'gold'),
-              ...personalityTraits.filter(pt => pt.quality_tier === 'gold'),
-              ...workStyle.filter(ws => ws.quality_tier === 'gold'),
-              ...values.filter(v => v.quality_tier === 'gold'),
-              ...behavioralIndicators.filter(bi => bi.quality_tier === 'gold')
-            ].length}
-            silverCount={[
-              ...powerPhrases.filter(p => p.quality_tier === 'silver'),
-              ...transferableSkills.filter(s => s.quality_tier === 'silver'),
-              ...hiddenCompetencies.filter(c => c.quality_tier === 'silver'),
-              ...softSkills.filter(ss => ss.quality_tier === 'silver'),
-              ...leadershipPhilosophy.filter(l => l.quality_tier === 'silver'),
-              ...executivePresence.filter(e => e.quality_tier === 'silver'),
-              ...personalityTraits.filter(pt => pt.quality_tier === 'silver'),
-              ...workStyle.filter(ws => ws.quality_tier === 'silver'),
-              ...values.filter(v => v.quality_tier === 'silver'),
-              ...behavioralIndicators.filter(bi => bi.quality_tier === 'silver')
-            ].length}
-            bronzeCount={[
-              ...powerPhrases.filter(p => p.quality_tier === 'bronze'),
-              ...transferableSkills.filter(s => s.quality_tier === 'bronze'),
-              ...hiddenCompetencies.filter(c => c.quality_tier === 'bronze'),
-              ...softSkills.filter(ss => ss.quality_tier === 'bronze'),
-              ...leadershipPhilosophy.filter(l => l.quality_tier === 'bronze'),
-              ...executivePresence.filter(e => e.quality_tier === 'bronze'),
-              ...personalityTraits.filter(pt => pt.quality_tier === 'bronze'),
-              ...workStyle.filter(ws => ws.quality_tier === 'bronze'),
-              ...values.filter(v => v.quality_tier === 'bronze'),
-              ...behavioralIndicators.filter(bi => bi.quality_tier === 'bronze')
-            ].length}
-            assumedCount={[
-              ...powerPhrases.filter(p => !p.quality_tier || p.quality_tier === 'assumed'),
-              ...transferableSkills.filter(s => !s.quality_tier || s.quality_tier === 'assumed'),
-              ...hiddenCompetencies.filter(c => !c.quality_tier || c.quality_tier === 'assumed'),
-              ...softSkills.filter(ss => !ss.quality_tier || ss.quality_tier === 'assumed'),
-              ...leadershipPhilosophy.filter(l => !l.quality_tier || l.quality_tier === 'assumed'),
-              ...executivePresence.filter(e => !e.quality_tier || e.quality_tier === 'assumed'),
-              ...personalityTraits.filter(pt => !pt.quality_tier || pt.quality_tier === 'assumed'),
-              ...workStyle.filter(ws => !ws.quality_tier || ws.quality_tier === 'assumed'),
-              ...values.filter(v => !v.quality_tier || v.quality_tier === 'assumed'),
-              ...behavioralIndicators.filter(bi => !bi.quality_tier || bi.quality_tier === 'assumed')
-            ].length}
+            goldCount={qualityDistribution.gold}
+            silverCount={qualityDistribution.silver}
+            bronzeCount={qualityDistribution.bronze}
+            assumedCount={qualityDistribution.assumed}
             totalItems={totalIntelligenceItems}
             onVerifyAssumed={() => navigate('/career-vault/onboarding')}
           />
@@ -1039,19 +963,8 @@ const VaultDashboardContent = () => {
       {strengthScore && (
         <div className="mb-6">
           <VaultSuggestionsWidget
-            assumedCount={[
-              ...powerPhrases.filter(p => !p.quality_tier || p.quality_tier === 'assumed'),
-              ...transferableSkills.filter(s => !s.quality_tier || s.quality_tier === 'assumed'),
-              ...hiddenCompetencies.filter(c => !c.quality_tier || c.quality_tier === 'assumed'),
-              ...softSkills.filter(ss => !ss.quality_tier || ss.quality_tier === 'assumed'),
-              ...leadershipPhilosophy.filter(l => !l.quality_tier || l.quality_tier === 'assumed'),
-              ...executivePresence.filter(e => !e.quality_tier || e.quality_tier === 'assumed'),
-              ...personalityTraits.filter(pt => !pt.quality_tier || pt.quality_tier === 'assumed'),
-              ...workStyle.filter(ws => !ws.quality_tier || ws.quality_tier === 'assumed'),
-              ...values.filter(v => !v.quality_tier || v.quality_tier === 'assumed'),
-              ...behavioralIndicators.filter(bi => !bi.quality_tier || bi.quality_tier === 'assumed')
-            ].length}
-            weakPhrasesCount={powerPhrases.filter(p => 
+            assumedCount={qualityDistribution.assumed}
+            weakPhrasesCount={powerPhrases.filter(p =>
               !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
             ).length}
             staleItemsCount={[

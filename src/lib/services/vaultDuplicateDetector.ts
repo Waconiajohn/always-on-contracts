@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { VAULT_TABLE_NAMES, getTableConfig } from '@/lib/constants/vaultTables';
 
 export interface DuplicateGroup {
   items: Array<{
@@ -50,26 +51,25 @@ const calculateSimilarity = (str1: string, str2: string): number => {
 
 export const findDuplicates = async (vaultId: string, similarityThreshold: number = 85): Promise<DuplicateGroup[]> => {
   try {
-    const { data: powerPhrases } = await supabase
-      .from('vault_power_phrases')
-      .select('id, power_phrase')
-      .eq('vault_id', vaultId);
+    // Fetch items from all 10 vault tables dynamically
+    const fetchPromises = VAULT_TABLE_NAMES.map(async (tableName) => {
+      const config = getTableConfig(tableName);
+      const idFieldValue = config.idField === 'user_id' ? vaultId : vaultId;
+      
+      const { data } = await supabase
+        .from(tableName)
+        .select(`id, ${config.contentField}`)
+        .eq(config.idField, idFieldValue);
 
-    const { data: skills } = await supabase
-      .from('vault_confirmed_skills')
-      .select('id, skill_name')
-      .eq('user_id', vaultId);
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        content: item[config.contentField] || '',
+        type: tableName,
+      }));
+    });
 
-    const { data: competencies } = await supabase
-      .from('vault_hidden_competencies')
-      .select('id, inferred_capability')
-      .eq('vault_id', vaultId);
-
-    const allItems = [
-      ...(powerPhrases?.map(p => ({ id: p.id, content: p.power_phrase, type: 'power_phrase' })) || []),
-      ...(skills?.map(s => ({ id: s.id, content: s.skill_name, type: 'skill' })) || []),
-      ...(competencies?.map(c => ({ id: c.id, content: c.inferred_capability, type: 'competency' })) || [])
-    ];
+    const results = await Promise.all(fetchPromises);
+    const allItems = results.flat();
 
     const duplicateGroups: DuplicateGroup[] = [];
     const processed = new Set<string>();
@@ -119,13 +119,14 @@ export const findDuplicates = async (vaultId: string, similarityThreshold: numbe
 
 export const mergeItems = async (_keepItemId: string, deleteItemIds: string[], itemType: string) => {
   try {
-    const tableName = 
-      itemType === 'power_phrase' ? 'vault_power_phrases' :
-      itemType === 'skill' ? 'vault_confirmed_skills' :
-      'vault_hidden_competencies';
+    // Use the centralized table config to get the correct table name
+    const config = getTableConfig(itemType);
+    if (!config) {
+      throw new Error(`Unknown item type: ${itemType}`);
+    }
 
     const { error } = await supabase
-      .from(tableName)
+      .from(config.name)
       .delete()
       .in('id', deleteItemIds);
 

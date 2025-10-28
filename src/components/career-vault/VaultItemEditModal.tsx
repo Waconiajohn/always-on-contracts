@@ -77,9 +77,9 @@ export const VaultItemEditModal = ({ item, open, onOpenChange, onSave }: VaultIt
 
   const getEvidenceField = (category: string): string | null => {
     const mapping: { [key: string]: string | null } = {
-      'Power Phrase': null,
+      'Power Phrase': 'impact_metrics',
       'Skill': 'evidence',
-      'Competency': null,
+      'Competency': 'evidence_from_resume',
       'Soft Skill': 'examples',
       'Leadership': 'real_world_application',
       'Executive Presence': 'situational_example',
