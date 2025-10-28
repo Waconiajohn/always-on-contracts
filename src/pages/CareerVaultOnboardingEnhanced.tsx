@@ -13,6 +13,7 @@ import { VoiceNoteRecorder } from '@/components/career-vault/VoiceNoteRecorder';
 import { CompetencyQuizEngine } from '@/components/career-vault/CompetencyQuizEngine';
 import { CompetencyQuizResults } from '@/components/career-vault/CompetencyQuizResults';
 import { Button } from '@/components/ui/button';
+import { VaultDuplicationDialog } from '@/components/career-vault/VaultDuplicationDialog';
 
 type OnboardingStep = 'upload' | 'goals' | 'auto-populate' | 'review' | 'quiz' | 'quiz-results' | 'enhance' | 'complete';
 
@@ -44,6 +45,9 @@ const CareerVaultOnboardingEnhanced = () => {
   const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
   const [quizResults, setQuizResults] = useState<any>(null);
   const hasCheckedVault = useRef(false);
+  const [showDuplicationDialog, setShowDuplicationDialog] = useState(false);
+  const [existingVaultData, setExistingVaultData] = useState<any>(null);
+  const [pendingUpload, setPendingUpload] = useState(false);
 
   const steps = [
     { id: 'upload', label: 'Upload Resume', icon: Upload },
@@ -78,6 +82,7 @@ const CareerVaultOnboardingEnhanced = () => {
 
       if (existingVault) {
         setVaultId(existingVault.id);
+        setExistingVaultData(existingVault);
 
         // Note: Removed auto-redirect logic. Users can access vault even if interview is complete
         // because they may need to verify assumed items or improve vault quality.
@@ -99,6 +104,12 @@ const CareerVaultOnboardingEnhanced = () => {
 
   const handleUpload = async () => {
     if (!resumeFile) return;
+
+    // Check for existing vault before upload
+    if (existingVaultData && !pendingUpload) {
+      setShowDuplicationDialog(true);
+      return;
+    }
 
     setIsUploading(true);
 
@@ -136,13 +147,16 @@ const CareerVaultOnboardingEnhanced = () => {
         throw new Error(processData?.error || 'Failed to process resume');
       }
 
-      // Create or update vault
+      // Create or update vault with extraction metadata
+      const extractionRunId = `extract_${Date.now()}_${user.id.slice(0, 8)}`;
       const { data: vaultData } = await supabase
         .from('career_vault')
         .upsert({
           user_id: user.id,
           resume_raw_text: processData.extractedText,
-          initial_analysis: processData.analysis || {}
+          initial_analysis: processData.analysis || {},
+          extraction_run_id: extractionRunId,
+          extraction_timestamp: new Date().toISOString()
         }, { onConflict: 'user_id' })
         .select()
         .single();
@@ -186,6 +200,7 @@ const CareerVaultOnboardingEnhanced = () => {
         description: 'Now let\'s set your career goals'
       });
 
+      setPendingUpload(false);
       setCurrentStep('goals');
     } catch (error: any) {
       console.error('[UPLOAD] Error:', error);
@@ -196,7 +211,15 @@ const CareerVaultOnboardingEnhanced = () => {
       });
     } finally {
       setIsUploading(false);
+      setPendingUpload(false);
     }
+  };
+
+  const handleReplaceVault = () => {
+    setPendingUpload(true);
+    setShowDuplicationDialog(false);
+    // Trigger the upload
+    setTimeout(() => handleUpload(), 0);
   };
 
   const handleGoalsComplete = async (goalsData: { target_roles: string[]; target_industries: string[] }) => {
@@ -449,6 +472,15 @@ const CareerVaultOnboardingEnhanced = () => {
           </div>
         </Card>
       )}
+
+      {/* Vault Duplication Dialog */}
+      <VaultDuplicationDialog
+        open={showDuplicationDialog}
+        onOpenChange={setShowDuplicationDialog}
+        existingVault={existingVaultData}
+        onReplace={handleReplaceVault}
+        onCancel={() => setShowDuplicationDialog(false)}
+      />
     </div>
   );
 };

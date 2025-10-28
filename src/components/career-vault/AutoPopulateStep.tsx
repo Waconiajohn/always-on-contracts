@@ -129,6 +129,14 @@ export const AutoPopulateStep = ({
       setExtractedData(data);
       setStatus('success');
 
+      // Phase 3: Save extraction item count to vault
+      await supabase
+        .from('career_vault')
+        .update({ 
+          extraction_item_count: data.totalExtracted 
+        })
+        .eq('id', vaultId);
+
       toast({
         title: 'Vault Auto-Populated!',
         description: `Successfully extracted ${data.totalExtracted} intelligence items across ${data.categories.length} categories`

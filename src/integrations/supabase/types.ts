@@ -599,6 +599,9 @@ export type Database = {
           auto_populated: boolean | null
           auto_population_confidence: string | null
           created_at: string
+          extraction_item_count: number | null
+          extraction_run_id: string | null
+          extraction_timestamp: string | null
           focus_set_at: string | null
           id: string
           initial_analysis: Json | null
@@ -626,6 +629,9 @@ export type Database = {
           auto_populated?: boolean | null
           auto_population_confidence?: string | null
           created_at?: string
+          extraction_item_count?: number | null
+          extraction_run_id?: string | null
+          extraction_timestamp?: string | null
           focus_set_at?: string | null
           id?: string
           initial_analysis?: Json | null
@@ -653,6 +659,9 @@ export type Database = {
           auto_populated?: boolean | null
           auto_population_confidence?: string | null
           created_at?: string
+          extraction_item_count?: number | null
+          extraction_run_id?: string | null
+          extraction_timestamp?: string | null
           focus_set_at?: string | null
           id?: string
           initial_analysis?: Json | null

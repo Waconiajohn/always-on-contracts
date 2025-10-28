@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +64,60 @@ export const VaultReviewInterface = ({
   const [editedContent, setEditedContent] = useState('');
   const [editedSubContent, setEditedSubContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Phase 4: Session keepalive to prevent logout during long reviews
+  useEffect(() => {
+    const keepAlive = setInterval(async () => {
+      try {
+        await supabase.auth.refreshSession();
+        console.log('[VAULT_REVIEW] Session refreshed');
+      } catch (error) {
+        console.error('[VAULT_REVIEW] Session refresh failed:', error);
+      }
+    }, 5 * 60 * 1000); // Every 5 minutes
+
+    return () => clearInterval(keepAlive);
+  }, []);
+
+  // Phase 4: Auto-save progress to localStorage every 30 seconds
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    const autoSave = setInterval(() => {
+      const progress = {
+        vaultId,
+        currentIndex,
+        timestamp: Date.now(),
+        totalItems: items.length,
+        approvedCount: items.filter(i => i.status === 'approved').length,
+        editedCount: items.filter(i => i.status === 'edited').length,
+        rejectedCount: items.filter(i => i.status === 'rejected').length
+      };
+      localStorage.setItem(`vault_review_progress_${vaultId}`, JSON.stringify(progress));
+      console.log('[VAULT_REVIEW] Progress auto-saved');
+    }, 30 * 1000); // Every 30 seconds
+
+    return () => clearInterval(autoSave);
+  }, [items, currentIndex, vaultId]);
+
+  // Phase 4: Restore progress from localStorage on mount
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`vault_review_progress_${vaultId}`);
+    if (savedProgress && items.length > 0) {
+      try {
+        const progress = JSON.parse(savedProgress);
+        const timeSinceLastSave = Date.now() - progress.timestamp;
+        
+        // Only restore if saved within last 24 hours
+        if (timeSinceLastSave < 24 * 60 * 60 * 1000) {
+          setCurrentIndex(progress.currentIndex);
+          console.log('[VAULT_REVIEW] Progress restored from localStorage');
+        }
+      } catch (error) {
+        console.error('[VAULT_REVIEW] Failed to restore progress:', error);
+      }
+    }
+  }, [items.length, vaultId]);
 
   // PHASE 3: Load data directly from database
   const loadItemsFromDatabase = async () => {
