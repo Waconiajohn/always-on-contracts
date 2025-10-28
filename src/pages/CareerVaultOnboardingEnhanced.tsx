@@ -327,7 +327,6 @@ const CareerVaultOnboardingEnhanced = () => {
       {currentStep === 'review' && vaultId && (
         <VaultReviewInterface
           vaultId={vaultId}
-          extractedData={extractedData}
           onComplete={handleReviewComplete}
         />
       )}
