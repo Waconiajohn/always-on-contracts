@@ -80,6 +80,10 @@ Successfully completed a comprehensive audit across **all major features** to en
    - ✅ **VERIFIED:** Fetches all 10 vault tables in parallel
    - ✅ Single source of truth for vault data retrieval
 
+7. **`ai-job-matcher`**
+   - ✅ Now queries all 10 vault tables
+   - ✅ Job matching includes soft_skills, leadership, executive_presence, personality, work_style, values
+
 ---
 
 ## ✅ Phase 8: Database Schema Validation (COMPLETE)

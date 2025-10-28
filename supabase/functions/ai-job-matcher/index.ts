@@ -110,7 +110,7 @@ serve(async (req) => {
       );
     }
 
-    // 3. Fetch Career Vault Data
+    // 3. Fetch Career Vault Data (ALL 10 vault tables)
     const { data: vaultData, error: vaultError } = await supabase
       .from('career_vault')
       .select(`
@@ -121,9 +121,13 @@ serve(async (req) => {
         vault_power_phrases (id, phrase, category, context, impact_metrics),
         vault_transferable_skills (id, skill_name, proficiency_level, years_experience, endorsements),
         vault_hidden_competencies (id, competency, evidence, depth_score),
-        vault_leadership_philosophy (id, principle, application, outcomes),
-        vault_intangible_skills (id, skill_name, manifestation, recognition),
-        vault_working_knowledge (id, technology, experience_level, last_used)
+        vault_soft_skills (id, skill_category, skill_name, proficiency_level),
+        vault_leadership_philosophy (id, philosophy_statement, application_examples),
+        vault_executive_presence (id, indicator_type, manifestation, recognition),
+        vault_personality_traits (id, trait_name, trait_category, professional_context),
+        vault_work_style (id, style_category, preference_description),
+        vault_values_motivations (id, value_name, value_category, manifestation),
+        vault_behavioral_indicators (id, indicator_type, behavior_description, evidence)
       `)
       .eq('user_id', user.id)
       .single();
@@ -211,7 +215,7 @@ serve(async (req) => {
       );
     }
 
-    // 6. Prepare compact vault data for AI
+    // 6. Prepare compact vault data for AI (ALL 10 vault categories)
     const compactVault = {
       target_roles: vaultData.target_roles || [],
       target_industries: vaultData.target_industries || [],
@@ -220,7 +224,12 @@ serve(async (req) => {
         `${s.skill_name} (${s.proficiency_level}, ${s.years_experience}y)`
       ),
       competencies: (vaultData.vault_hidden_competencies || []).slice(0, 10).map((c: any) => c.competency),
-      leadership: (vaultData.vault_leadership_philosophy || []).slice(0, 5).map((l: any) => l.principle)
+      soft_skills: (vaultData.vault_soft_skills || []).slice(0, 10).map((s: any) => s.skill_name),
+      leadership: (vaultData.vault_leadership_philosophy || []).slice(0, 5).map((l: any) => l.philosophy_statement),
+      executive_presence: (vaultData.vault_executive_presence || []).slice(0, 5).map((e: any) => e.indicator_type),
+      personality: (vaultData.vault_personality_traits || []).slice(0, 5).map((p: any) => p.trait_name),
+      work_style: (vaultData.vault_work_style || []).slice(0, 5).map((w: any) => w.style_category),
+      values: (vaultData.vault_values_motivations || []).slice(0, 5).map((v: any) => v.value_name)
     };
 
     // 7. Fetch recent feedback for learning
@@ -251,9 +260,14 @@ CANDIDATE PROFILE:
 - Target Roles: ${compactVault.target_roles.join(', ')}
 - Target Industries: ${compactVault.target_industries.join(', ')}
 - Key Achievements: ${compactVault.key_phrases.join(' | ')}
-- Skills: ${compactVault.skills.join(', ')}
+- Technical Skills: ${compactVault.skills.join(', ')}
+- Soft Skills: ${compactVault.soft_skills.join(', ')}
 - Competencies: ${compactVault.competencies.join(', ')}
-- Leadership Philosophy: ${compactVault.leadership.join(', ')}${learningContext}
+- Leadership Philosophy: ${compactVault.leadership.join(', ')}
+- Executive Presence: ${compactVault.executive_presence.join(', ')}
+- Personality Traits: ${compactVault.personality.join(', ')}
+- Work Style: ${compactVault.work_style.join(', ')}
+- Values: ${compactVault.values.join(', ')}${learningContext}
 
 JOB POSTING:
 Title: ${job.job_title}
