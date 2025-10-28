@@ -183,6 +183,11 @@ import { VaultContentsTable } from '@/components/career-vault/VaultContentsTable
 import { QualityTierExplainer } from '@/components/career-vault/QualityTierExplainer';
 import { VaultActivityFeed } from '@/components/career-vault/VaultActivityFeed';
 import { VaultSuggestionsWidget } from '@/components/career-vault/VaultSuggestionsWidget';
+import { VaultQualityScore } from '@/components/career-vault/VaultQualityScore';
+import { CategoryOrganizer } from '@/components/career-vault/CategoryOrganizer';
+import { FreshnessManager } from '@/components/career-vault/FreshnessManager';
+import { DuplicateDetector } from '@/components/career-vault/DuplicateDetector';
+import { VerificationWorkflow } from '@/components/career-vault/VerificationWorkflow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Shield } from 'lucide-react';
 import {
@@ -1062,7 +1067,51 @@ const VaultDashboardContent = () => {
         </div>
       )}
 
-      {/* Vault Activity Feed - NEW: Phase 0 */}
+      {/* Phase 3: Quality Score & Organization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <VaultQualityScore
+          currentScore={strengthScore?.total || 0}
+          maxScore={150}
+          level={strengthScore?.level || 'Developing'}
+          nextLevel={strengthScore?.level === 'Developing' ? 'Solid' : 
+                    strengthScore?.level === 'Solid' ? 'Strong' :
+                    strengthScore?.level === 'Strong' ? 'Elite' : 'Exceptional'}
+          pointsToNextLevel={
+            strengthScore?.level === 'Developing' ? 50 - (strengthScore?.total || 0) :
+            strengthScore?.level === 'Solid' ? 75 - (strengthScore?.total || 0) :
+            strengthScore?.level === 'Strong' ? 100 - (strengthScore?.total || 0) :
+            strengthScore?.level === 'Elite' ? 125 - (strengthScore?.total || 0) : 0
+          }
+          weeklyImprovement={5}
+          percentile={Math.min(95, Math.floor((strengthScore?.total || 0) / 1.5))}
+        />
+        
+        <CategoryOrganizer
+          stats={{
+            resumeContent: {
+              achievements: powerPhrases.length,
+              powerPhrases: powerPhrases.length,
+              skills: transferableSkills.length,
+              education: 0
+            },
+            interviewPrep: {
+              leadershipStories: leadershipPhilosophy.length,
+              softSkills: softSkills.length,
+              problemSolving: 0,
+              competencies: hiddenCompetencies.length
+            },
+            targeting: {
+              differentiators: executivePresence.length,
+              cultureFit: values.length,
+              personalityTraits: personalityTraits.length,
+              workStyle: workStyle.length
+            }
+          }}
+          onCategoryClick={(category) => console.log('Category clicked:', category)}
+        />
+      </div>
+
+      {/* Vault Activity Feed - Phase 0 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <VaultActivityFeed vaultId={vaultId} limit={7} />
         <SmartNextSteps
@@ -1072,6 +1121,13 @@ const VaultDashboardContent = () => {
           hasLeadership={stats.total_leadership_philosophy > 0}
           hasExecutivePresence={stats.total_executive_presence > 0}
         />
+      </div>
+      
+      {/* Phase 4: Maintenance & Verification */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <VerificationWorkflow vaultId={vaultId} />
+        <FreshnessManager vaultId={vaultId} />
+        <DuplicateDetector vaultId={vaultId} />
       </div>
 
       {/* Unified Vault Contents Table - NEW: Phase 0 */}
