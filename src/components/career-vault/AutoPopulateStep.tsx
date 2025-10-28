@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sparkles, Brain, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { executeWithRetry } from '@/lib/errorHandling';
 
 interface AutoPopulateStepProps {
   vaultId: string;
@@ -36,6 +37,7 @@ export const AutoPopulateStep = ({
   const [deepAnalysis, setDeepAnalysis] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState('');
   const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Auto-start population after a brief delay
@@ -45,9 +47,12 @@ export const AutoPopulateStep = ({
 
     return () => {
       clearTimeout(timer);
-      // Cleanup message interval on unmount
+      // Cleanup intervals on unmount
       if (messageIntervalRef.current) {
         clearInterval(messageIntervalRef.current);
+      }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
       }
     };
   }, []);
@@ -56,7 +61,16 @@ export const AutoPopulateStep = ({
     setStatus('processing');
     setProgress(10);
 
+    let progressInterval: NodeJS.Timeout | null = null;
+
     try {
+      // Phase 3: Refresh session before long operation
+      console.log('[AUTO-POPULATE] Refreshing auth session...');
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn('[AUTO-POPULATE] Session refresh warning:', refreshError);
+      }
+
       const messages = [
         '🧠 AI is analyzing your achievements...',
         '💡 Discovering hidden competencies...',
@@ -68,11 +82,11 @@ export const AutoPopulateStep = ({
       let messageIndex = 0;
 
       // Progress updates - stop at 85%
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setProgress(prev => {
           const next = Math.min(prev + 5, 85);
           if (next >= 85) {
-            clearInterval(progressInterval);
+            if (progressInterval) clearInterval(progressInterval);
             // Switch to deep analysis mode
             setDeepAnalysis(true);
             setAnalysisMessage(messages[0]);
@@ -87,37 +101,88 @@ export const AutoPopulateStep = ({
         });
       }, 600);
 
+      // Phase 4: Heartbeat to check database for updates
+      heartbeatIntervalRef.current = setInterval(async () => {
+        const { data: vaultData } = await supabase
+          .from('career_vault')
+          .select('extraction_item_count')
+          .eq('id', vaultId)
+          .single();
+        
+        if (vaultData?.extraction_item_count && vaultData.extraction_item_count > 0) {
+          setProgress(prev => Math.min(prev + 2, 95));
+        }
+      }, 10000); // Check every 10 seconds
+
       toast({
         title: 'AI Analysis Started',
         description: 'Extracting comprehensive career intelligence from your resume...'
       });
 
-      // Call the auto-populate function
-      const { data, error } = await supabase.functions.invoke('auto-populate-vault', {
-        body: {
-          vaultId,
-          resumeText,
-          targetRoles,
-          targetIndustries
-        }
-      });
+      // Phase 1: Call with retry mechanism and better error handling
+      const data = await executeWithRetry(
+        async () => {
+          console.log('[AUTO-POPULATE] Calling edge function...');
+          const { data, error } = await supabase.functions.invoke('auto-populate-vault', {
+            body: {
+              vaultId,
+              resumeText,
+              targetRoles,
+              targetIndustries
+            }
+          });
 
-      clearInterval(progressInterval);
+          console.log('[AUTO-POPULATE] Response received:', {
+            hasData: !!data,
+            hasError: !!error,
+            dataStructure: data ? Object.keys(data) : [],
+            errorDetails: error
+          });
+
+          // Handle network/timeout errors
+          if (error) {
+            if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
+              throw new Error('Network timeout - AI analysis took longer than expected. Checking if data was saved...');
+            }
+            throw error;
+          }
+
+          // Validate response structure
+          if (!data || typeof data !== 'object') {
+            throw new Error('Invalid response from AI - please try again');
+          }
+
+          if (data.success === false) {
+            throw new Error(data.error || 'Auto-population failed - no specific error provided');
+          }
+
+          if (!data.success) {
+            throw new Error('Auto-population failed');
+          }
+
+          return data;
+        },
+        {
+          operationName: 'AI Vault Auto-Population',
+          config: {
+            maxRetries: 1,
+            baseDelay: 2000
+          },
+          showToasts: false // We'll handle toasts manually
+        }
+      );
+
+      // Cleanup intervals
+      if (progressInterval) clearInterval(progressInterval);
       if (messageIntervalRef.current) {
         clearInterval(messageIntervalRef.current);
         messageIntervalRef.current = null;
       }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       setDeepAnalysis(false);
-
-      console.log('[AUTO-POPULATE] Full response:', { data, error });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data.success) {
-        throw new Error(data.error || 'Auto-population failed');
-      }
 
       console.log('[AUTO-POPULATE] Success! Extracted data:', {
         totalExtracted: data.totalExtracted,
@@ -129,7 +194,7 @@ export const AutoPopulateStep = ({
       setExtractedData(data);
       setStatus('success');
 
-      // Phase 3: Save extraction item count to vault
+      // Save extraction item count to vault
       await supabase
         .from('career_vault')
         .update({ 
@@ -144,13 +209,50 @@ export const AutoPopulateStep = ({
     } catch (error: any) {
       console.error('[AUTO-POPULATE] Error:', error);
 
-      // Cleanup intervals on error
+      // Cleanup intervals
+      if (progressInterval) clearInterval(progressInterval);
       if (messageIntervalRef.current) {
         clearInterval(messageIntervalRef.current);
         messageIntervalRef.current = null;
       }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       setDeepAnalysis(false);
 
+      // Phase 2: Polling fallback - check if data was actually inserted
+      console.log('[AUTO-POPULATE] Checking database for inserted data...');
+      const { data: vaultData } = await supabase
+        .from('career_vault')
+        .select('auto_populated, extraction_item_count')
+        .eq('id', vaultId)
+        .single();
+
+      console.log('[AUTO-POPULATE] Vault recovery check:', vaultData);
+
+      if (vaultData?.auto_populated === true && vaultData?.extraction_item_count && vaultData.extraction_item_count > 0) {
+        // Success! The function worked but response didn't arrive
+        console.log('[AUTO-POPULATE] Recovery successful: Data was inserted despite timeout');
+        
+        setProgress(100);
+        setExtractedData({
+          success: true,
+          totalExtracted: vaultData.extraction_item_count,
+          categories: [],
+          message: 'Auto-population completed (recovered from timeout)'
+        });
+        setStatus('success');
+        
+        toast({
+          title: 'Vault Auto-Populated!',
+          description: `Successfully extracted ${vaultData.extraction_item_count} items (recovered from timeout)`
+        });
+        
+        return; // Don't show error
+      }
+
+      // Actual failure - show error
       setStatus('error');
       setErrorMessage(error.message || 'Failed to auto-populate vault');
 
