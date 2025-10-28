@@ -18,10 +18,12 @@ export const getStaleItems = async (vaultId: string, daysThreshold: number = 180
     // Fetch items from all 10 vault tables dynamically
     const fetchPromises = VAULT_TABLE_NAMES.map(async (tableName) => {
       const config = getTableConfig(tableName);
+      if (!config) return [];
+      
       const idFieldValue = config.idField === 'user_id' ? vaultId : vaultId;
       
       const { data, error } = await supabase
-        .from(tableName)
+        .from(config.name)
         .select(`id, ${config.contentField}, ${config.timestampField}`)
         .eq(config.idField, idFieldValue);
 

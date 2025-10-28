@@ -54,10 +54,12 @@ export const findDuplicates = async (vaultId: string, similarityThreshold: numbe
     // Fetch items from all 10 vault tables dynamically
     const fetchPromises = VAULT_TABLE_NAMES.map(async (tableName) => {
       const config = getTableConfig(tableName);
+      if (!config) return [];
+      
       const idFieldValue = config.idField === 'user_id' ? vaultId : vaultId;
       
       const { data } = await supabase
-        .from(tableName)
+        .from(config.name)
         .select(`id, ${config.contentField}`)
         .eq(config.idField, idFieldValue);
 
