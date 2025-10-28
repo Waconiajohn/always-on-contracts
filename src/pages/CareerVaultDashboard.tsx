@@ -28,7 +28,7 @@ interface VaultStats {
   total_values: number;
   total_behavioral_indicators: number;
   overall_strength_score: number;
-  interview_completion_percentage: number;
+  review_completion_percentage: number;
 }
 
 interface StrengthScore {
@@ -363,7 +363,7 @@ const VaultDashboardContent = () => {
             total_values: vault.total_values || 0,
             total_behavioral_indicators: vault.total_behavioral_indicators || 0,
             overall_strength_score: vault.overall_strength_score || 0,
-            interview_completion_percentage: vault.interview_completion_percentage || 0
+            review_completion_percentage: vault.review_completion_percentage || 0
           });
 
           // Fetch all intelligence data in parallel
@@ -434,7 +434,7 @@ const VaultDashboardContent = () => {
             total_values: (valuesData.data || []).length,
             total_behavioral_indicators: (behavioralData.data || []).length,
             overall_strength_score: score.total,
-            interview_completion_percentage: vault.interview_completion_percentage || 0
+            review_completion_percentage: vault.review_completion_percentage || 0
           });
 
           // Update vault totals in database with actual counts
@@ -602,7 +602,7 @@ const VaultDashboardContent = () => {
         supabase.from('vault_confirmed_skills').delete().eq('user_id', user.id),
       ]);
 
-      // Reset career vault counters
+      // Reset career vault counters (both legacy and current completion fields)
       await supabase
         .from('career_vault')
         .update({
@@ -707,7 +707,7 @@ const VaultDashboardContent = () => {
             onToggle={toggleRightSidebar}
           >
             <VaultSidebar
-              completionPercentage={stats.interview_completion_percentage}
+              completionPercentage={stats.review_completion_percentage}
               totalItems={totalIntelligenceItems}
               strengthScore={stats.overall_strength_score}
               onQuickAction={(action) => {
@@ -747,7 +747,7 @@ const VaultDashboardContent = () => {
             <p className="text-sm text-muted-foreground">
               {vault?.auto_populated
                 ? `Onboarding: Complete • ${totalIntelligenceItems} items extracted • Vault Quality: ${strengthScore?.total || 0}/100`
-                : `Interview: ${stats.interview_completion_percentage}% complete • ${totalIntelligenceItems} items extracted`
+                : `Review: ${stats.review_completion_percentage}% complete • ${totalIntelligenceItems} items extracted`
               }
             </p>
           </div>
@@ -785,13 +785,13 @@ const VaultDashboardContent = () => {
               {isReanalyzing ? 'Re-Analyzing...' : 'Re-Analyze All'}
             </Button>
             
-            {stats.interview_completion_percentage < 100 ? (
+            {stats.review_completion_percentage < 100 ? (
               <Button 
                 className="justify-start"
                 onClick={() => navigate('/career-vault-onboarding')}
               >
                 <PlayCircle className="h-4 w-4 mr-2" />
-                Continue Interview
+                Continue Review
               </Button>
             ) : (
               <Button
@@ -832,7 +832,7 @@ const VaultDashboardContent = () => {
               <p className="font-medium text-destructive">⚠️ This will permanently delete:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>All {totalIntelligenceItems} intelligence items</li>
-                <li>Your completed interview ({stats?.interview_completion_percentage}%)</li>
+                <li>Your review progress ({stats?.review_completion_percentage}%)</li>
                 <li>All power phrases, skills, and competencies</li>
                 <li>All uploaded resume data</li>
               </ul>
@@ -865,7 +865,7 @@ const VaultDashboardContent = () => {
       {/* Quick Stats Cards */}
       <VaultQuickStats
         totalItems={totalIntelligenceItems}
-        interviewProgress={stats.interview_completion_percentage}
+        interviewProgress={stats.review_completion_percentage}
         strengthScore={strengthScore?.total || 0}
         lastUpdated={null}
       />
@@ -874,7 +874,7 @@ const VaultDashboardContent = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <RecentActivityFeed vaultId={vaultId} />
         <SmartNextSteps
-          interviewProgress={stats.interview_completion_percentage}
+          interviewProgress={stats.review_completion_percentage}
           strengthScore={strengthScore?.total || 0}
           totalItems={totalIntelligenceItems}
           hasLeadership={stats.total_leadership_philosophy > 0}
@@ -1034,7 +1034,7 @@ const VaultDashboardContent = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <VaultActivityFeed vaultId={vaultId} limit={7} />
         <SmartNextSteps
-          interviewProgress={stats.interview_completion_percentage}
+          interviewProgress={stats.review_completion_percentage}
           strengthScore={strengthScore?.total || 0}
           totalItems={totalIntelligenceItems}
           hasLeadership={stats.total_leadership_philosophy > 0}
@@ -1216,15 +1216,15 @@ const VaultDashboardContent = () => {
         </div>
       )}
 
-      {/* Interview Progress */}
+      {/* Review Progress */}
       <Card className="p-6 mb-8">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold">Interview Completion</h3>
-          <span className="text-sm text-muted-foreground">{stats.interview_completion_percentage}%</span>
+          <h3 className="text-lg font-semibold">Review Completion</h3>
+          <span className="text-sm text-muted-foreground">{stats.review_completion_percentage}%</span>
         </div>
-        <Progress value={stats.interview_completion_percentage} className="h-2" />
+        <Progress value={stats.review_completion_percentage} className="h-2" />
         <p className="text-sm text-muted-foreground mt-2">
-          Continue the interview to unlock more intelligence categories
+          Continue reviewing AI-extracted items to complete your vault
         </p>
       </Card>
 

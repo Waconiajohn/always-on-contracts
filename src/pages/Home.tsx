@@ -55,7 +55,7 @@ const HomeContent = () => {
       // Load vault completion
       const { data: vaultData } = await supabase
         .from('career_vault')
-        .select('interview_completion_percentage, total_power_phrases, total_transferable_skills, total_hidden_competencies')
+        .select('review_completion_percentage, total_power_phrases, total_transferable_skills, total_hidden_competencies')
         .eq('user_id', user.id)
         .single();
 

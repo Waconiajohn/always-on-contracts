@@ -50,7 +50,7 @@ export const useOnboarding = () => {
       // Check for career vault and interview responses
       const { data: vault } = await supabase
         .from("career_vault")
-        .select("id, interview_completion_percentage, review_completion_percentage, overall_strength_score")
+        .select("id, review_completion_percentage, overall_strength_score")
         .eq("user_id", user.id)
         .single();
 

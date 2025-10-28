@@ -60,8 +60,8 @@ const CorporateAssistantContent = () => {
 
     if (data) {
       setVaultId(data.id);
-      setCompletionPercentage(data.interview_completion_percentage || 0);
-      if (data.interview_completion_percentage === 100) {
+      setCompletionPercentage(data.review_completion_percentage || 0);
+      if (data.review_completion_percentage === 100) {
         setStep('building');
       } else if (data.resume_raw_text) {
         setStep('interview');
@@ -140,7 +140,7 @@ const CorporateAssistantContent = () => {
         .upsert({
           user_id: userId,
           resume_raw_text: sanitizedText,
-          interview_completion_percentage: 0
+          review_completion_percentage: 0
         }, { onConflict: 'user_id' })
         .select()
         .single();
@@ -241,7 +241,7 @@ const CorporateAssistantContent = () => {
 
       await supabase
         .from('career_vault')
-        .update({ interview_completion_percentage: completion })
+        .update({ review_completion_percentage: completion })
         .eq('id', wcId);
 
     } catch (error: any) {

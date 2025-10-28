@@ -49,16 +49,16 @@ export const getVaultStatus = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from('career_vault')
-      .select('interview_completion_percentage, overall_strength_score')
+      .select('review_completion_percentage, overall_strength_score')
       .eq('user_id', userId)
       .single();
 
     if (error) throw error;
 
     return {
-      completionPercentage: data?.interview_completion_percentage || 0,
+      completionPercentage: data?.review_completion_percentage || 0,
       strengthScore: data?.overall_strength_score || 0,
-      isComplete: (data?.interview_completion_percentage || 0) === 100
+      isComplete: (data?.review_completion_percentage || 0) === 100
     };
   } catch (error) {
     console.error('Error getting Career Vault status:', error);

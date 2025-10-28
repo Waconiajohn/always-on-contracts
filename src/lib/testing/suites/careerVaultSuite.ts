@@ -215,7 +215,7 @@ export const careerVaultSuite: TestSuite = {
           .eq('user_id', session.session.user.id)
           .single();
 
-        const completionPercentage = vault?.interview_completion_percentage || 0;
+        const completionPercentage = vault?.review_completion_percentage || 0;
 
         return {
           passed: completionPercentage >= 0 && completionPercentage <= 100,

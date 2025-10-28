@@ -42,7 +42,7 @@ export const useJourneyState = () => {
       const [vaultData, profileData, applicationsData, interviewsData, recentAppsData] = await Promise.all([
         supabase
           .from('career_vault')
-          .select('interview_completion_percentage')
+          .select('review_completion_percentage')
           .eq('user_id', user.id)
           .single(),
         supabase
@@ -68,7 +68,7 @@ export const useJourneyState = () => {
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
-      const vaultCompletion = vaultData.data?.interview_completion_percentage || 0;
+      const vaultCompletion = vaultData.data?.review_completion_percentage || 0;
       const celebrationSeen = profileData.data?.vault_completion_celebration_seen || false;
       const activeApplications = applicationsData.count || 0;
       const upcomingInterviews = interviewsData.count || 0;

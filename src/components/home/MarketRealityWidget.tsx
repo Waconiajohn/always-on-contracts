@@ -17,7 +17,7 @@ export const MarketRealityWidget = () => {
 
       const { data, error } = await supabase
         .from("career_vault")
-        .select("interview_completion_percentage")
+        .select("review_completion_percentage")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -26,7 +26,7 @@ export const MarketRealityWidget = () => {
     },
   });
 
-  const completion = vaultData?.interview_completion_percentage || 0;
+  const completion = vaultData?.review_completion_percentage || 0;
   const isComplete = completion === 100;
 
   return (

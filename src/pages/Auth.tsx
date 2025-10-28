@@ -28,7 +28,7 @@ const Auth = () => {
         // Check if user has completed vault onboarding
         const { data: vault } = await supabase
           .from('career_vault')
-          .select('resume_raw_text, interview_completion_percentage')
+          .select('resume_raw_text, review_completion_percentage')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
@@ -41,7 +41,7 @@ const Auth = () => {
       if (session) {
         const { data: vault } = await supabase
           .from('career_vault')
-          .select('resume_raw_text, interview_completion_percentage')
+          .select('resume_raw_text, review_completion_percentage')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
