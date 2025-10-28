@@ -41,9 +41,9 @@ export const VaultStatusHero = ({
   const [showDetails, setShowDetails] = useState(false);
 
   const getStatusIcon = () => {
-    if (strengthScore >= 80) return <CheckCircle className="h-6 w-6 text-green-500" />;
-    if (strengthScore >= 60) return <TrendingUp className="h-6 w-6 text-blue-500" />;
-    return <AlertCircle className="h-6 w-6 text-amber-500" />;
+    if (strengthScore >= 80) return <CheckCircle className="h-6 w-6 text-success" />;
+    if (strengthScore >= 60) return <TrendingUp className="h-6 w-6 text-info" />;
+    return <AlertCircle className="h-6 w-6 text-warning" />;
   };
 
   const getStatusMessage = () => {
@@ -87,13 +87,13 @@ export const VaultStatusHero = ({
             </div>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-success" />
                 <span className="font-medium">{totalItems} intelligence items extracted</span>
               </div>
               {quickWinsAvailable > 0 && (
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-amber-500" />
-                  <span className="font-medium text-amber-600 dark:text-amber-400">
+                  <TrendingUp className="h-4 w-4 text-warning" />
+                  <span className="font-medium text-warning">
                     {quickWinsAvailable} Quick Win{quickWinsAvailable > 1 ? 's' : ''} Available
                   </span>
                 </div>
@@ -105,11 +105,11 @@ export const VaultStatusHero = ({
         {/* Right: Actions */}
         <div className="flex flex-col gap-3 lg:min-w-[240px]">
           {quickWinsAvailable > 0 && nextLevel && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <p className="text-xs font-medium text-amber-900 dark:text-amber-100 mb-1">
+            <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
+              <p className="text-xs font-medium mb-1">
                 Next Level: {nextLevel}
               </p>
-              <p className="text-xs text-amber-700 dark:text-amber-300">
+              <p className="text-xs text-muted-foreground">
                 +{pointsNeeded} points needed
               </p>
             </div>
@@ -154,20 +154,20 @@ export const VaultStatusHero = ({
             <div className="mb-4">
               <h3 className="font-semibold text-sm text-muted-foreground mb-3">Quality Distribution</h3>
               <div className="grid grid-cols-4 gap-2">
-                <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950 rounded">
-                  <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{qualityDistribution.gold}</div>
+                <div className="text-center p-2 bg-tier-gold-bg rounded border border-tier-gold/20">
+                  <div className="text-2xl font-bold text-tier-gold">{qualityDistribution.gold}</div>
                   <div className="text-xs text-muted-foreground">Gold</div>
                 </div>
-                <div className="text-center p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                  <div className="text-2xl font-bold">{qualityDistribution.silver}</div>
+                <div className="text-center p-2 bg-tier-silver-bg rounded border border-tier-silver/20">
+                  <div className="text-2xl font-bold text-tier-silver">{qualityDistribution.silver}</div>
                   <div className="text-xs text-muted-foreground">Silver</div>
                 </div>
-                <div className="text-center p-2 bg-orange-50 dark:bg-orange-950 rounded">
-                  <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">{qualityDistribution.bronze}</div>
+                <div className="text-center p-2 bg-tier-bronze-bg rounded border border-tier-bronze/20">
+                  <div className="text-2xl font-bold text-tier-bronze">{qualityDistribution.bronze}</div>
                   <div className="text-xs text-muted-foreground">Bronze</div>
                 </div>
-                <div className="text-center p-2 bg-red-50 dark:bg-red-950 rounded">
-                  <div className="text-2xl font-bold text-red-700 dark:text-red-300">{qualityDistribution.assumed}</div>
+                <div className="text-center p-2 bg-tier-assumed-bg rounded border border-tier-assumed/20">
+                  <div className="text-2xl font-bold text-tier-assumed">{qualityDistribution.assumed}</div>
                   <div className="text-xs text-muted-foreground">Assumed</div>
                 </div>
               </div>

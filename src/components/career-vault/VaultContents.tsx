@@ -31,10 +31,10 @@ export const VaultContents = ({
 
   const getQualityBadge = (tier: string) => {
     const colors = {
-      gold: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      silver: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-      bronze: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-      assumed: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
+      gold: 'bg-tier-gold-bg text-tier-gold border-tier-gold',
+      silver: 'bg-tier-silver-bg text-tier-silver border-tier-silver',
+      bronze: 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze',
+      assumed: 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed'
     };
     return colors[tier as keyof typeof colors] || colors.assumed;
   };
@@ -51,7 +51,7 @@ export const VaultContents = ({
                 <Badge variant="outline" className="text-xs">Empty</Badge>
               ) : (
                 <>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-success" />
                   <Badge variant="secondary" className="text-xs">{cat.count} item{cat.count !== 1 ? 's' : ''}</Badge>
                   {cat.qualityStats && (
                     <>
@@ -60,8 +60,8 @@ export const VaultContents = ({
                           {cat.qualityStats.gold} Gold
                         </Badge>
                       )}
-                      {cat.qualityStats.needsReview > 0 && (
-                        <Badge variant="outline" className="text-xs border-amber-500 text-amber-700">
+                       {cat.qualityStats.needsReview > 0 && (
+                        <Badge variant="outline" className="text-xs border-warning text-warning">
                           {cat.qualityStats.needsReview} Need Review
                         </Badge>
                       )}

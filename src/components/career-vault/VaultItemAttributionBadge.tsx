@@ -29,26 +29,26 @@ export const VaultItemAttributionBadge = ({
   const getQualityIcon = (tier: string) => {
     switch (tier) {
       case 'gold':
-        return <Trophy className="h-3 w-3 text-yellow-600" />;
+        return <Trophy className="h-3 w-3 text-tier-gold" />;
       case 'silver':
-        return <Star className="h-3 w-3 text-gray-600" />;
+        return <Star className="h-3 w-3 text-tier-silver" />;
       case 'bronze':
-        return <Star className="h-3 w-3 text-orange-600" />;
+        return <Star className="h-3 w-3 text-tier-bronze" />;
       default:
-        return <AlertTriangle className="h-3 w-3 text-red-600" />;
+        return <AlertTriangle className="h-3 w-3 text-tier-assumed" />;
     }
   };
 
   const getQualityColor = (tier: string) => {
     switch (tier) {
       case 'gold':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-200';
+        return 'bg-tier-gold-bg text-tier-gold border-tier-gold';
       case 'silver':
-        return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-200';
+        return 'bg-tier-silver-bg text-tier-silver border-tier-silver';
       case 'bronze':
-        return 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900 dark:text-orange-200';
+        return 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze';
       default:
-        return 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-300';
+        return 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed';
     }
   };
 
