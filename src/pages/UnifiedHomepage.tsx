@@ -48,7 +48,7 @@ const UnifiedHomeContent = () => {
 
       const { data } = await supabase
         .from('career_vault')
-        .select('total_power_phrases, total_transferable_skills, total_hidden_competencies, interview_completion_percentage')
+        .select('total_power_phrases, total_transferable_skills, total_hidden_competencies, review_completion_percentage')
         .eq('user_id', user.id)
         .single();
 
@@ -57,7 +57,7 @@ const UnifiedHomeContent = () => {
           powerPhrases: data.total_power_phrases || 0,
           skills: data.total_transferable_skills || 0,
           competencies: data.total_hidden_competencies || 0,
-          vaultCompletion: data.interview_completion_percentage || 0
+          vaultCompletion: data.review_completion_percentage || 0
         });
       }
     } catch (error) {
