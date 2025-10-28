@@ -37,9 +37,9 @@ export const VerificationWorkflow = ({ vaultId }: VerificationWorkflowProps) => 
 
     const { data: skills } = await supabase
       .from('vault_confirmed_skills')
-      .select('id, skill_name, quality_tier')
+      .select('id, skill_name, source')
       .eq('user_id', vaultId)
-      .eq('quality_tier', 'assumed');
+      .eq('source', 'inferred');
 
     const { data: competencies } = await supabase
       .from('vault_hidden_competencies')
@@ -50,21 +50,21 @@ export const VerificationWorkflow = ({ vaultId }: VerificationWorkflowProps) => 
     const items: AssumedItem[] = [
       ...(powerPhrases?.map(p => ({ 
         id: p.id, 
-        content: p.power_phrase, 
+        content: p.power_phrase || '', 
         item_type: 'power_phrase',
-        verification_status: p.quality_tier 
+        verification_status: p.quality_tier || 'assumed'
       })) || []),
       ...(skills?.map(s => ({ 
         id: s.id, 
-        content: s.skill_name, 
+        content: s.skill_name || '', 
         item_type: 'skill',
-        verification_status: s.quality_tier 
+        verification_status: 'assumed'
       })) || []),
       ...(competencies?.map(c => ({ 
         id: c.id, 
-        content: c.inferred_capability, 
+        content: c.inferred_capability || '', 
         item_type: 'competency',
-        verification_status: c.quality_tier 
+        verification_status: c.quality_tier || 'assumed'
       })) || [])
     ];
 

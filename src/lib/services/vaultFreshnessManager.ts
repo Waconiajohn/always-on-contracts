@@ -18,7 +18,7 @@ export const getStaleItems = async (vaultId: string, daysThreshold: number = 180
 
     const { data: skills, error: skillsError } = await supabase
       .from('vault_confirmed_skills')
-      .select('id, skill_name, last_updated_at')
+      .select('id, skill_name, created_at')
       .eq('user_id', vaultId);
 
     const { data: competencies, error: compError } = await supabase
@@ -36,46 +36,52 @@ export const getStaleItems = async (vaultId: string, daysThreshold: number = 180
 
     // Process power phrases
     powerPhrases?.forEach(item => {
-      const lastUpdated = new Date(item.last_updated_at);
-      if (lastUpdated < cutoffDate) {
-        const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
-        allItems.push({
-          id: item.id,
-          content: item.power_phrase,
-          item_type: 'power_phrase',
-          last_updated_at: item.last_updated_at,
-          age_days: ageDays
-        });
+      if (item.last_updated_at) {
+        const lastUpdated = new Date(item.last_updated_at);
+        if (lastUpdated < cutoffDate) {
+          const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
+          allItems.push({
+            id: item.id,
+            content: item.power_phrase || '',
+            item_type: 'power_phrase',
+            last_updated_at: item.last_updated_at,
+            age_days: ageDays
+          });
+        }
       }
     });
 
-    // Process skills
+    // Process skills (using created_at as proxy for freshness)
     skills?.forEach(item => {
-      const lastUpdated = new Date(item.last_updated_at);
-      if (lastUpdated < cutoffDate) {
-        const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
-        allItems.push({
-          id: item.id,
-          content: item.skill_name,
-          item_type: 'skill',
-          last_updated_at: item.last_updated_at,
-          age_days: ageDays
-        });
+      if (item.created_at) {
+        const lastUpdated = new Date(item.created_at);
+        if (lastUpdated < cutoffDate) {
+          const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
+          allItems.push({
+            id: item.id,
+            content: item.skill_name || '',
+            item_type: 'skill',
+            last_updated_at: item.created_at,
+            age_days: ageDays
+          });
+        }
       }
     });
 
     // Process competencies
     competencies?.forEach(item => {
-      const lastUpdated = new Date(item.last_updated_at);
-      if (lastUpdated < cutoffDate) {
-        const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
-        allItems.push({
-          id: item.id,
-          content: item.inferred_capability,
-          item_type: 'competency',
-          last_updated_at: item.last_updated_at,
-          age_days: ageDays
-        });
+      if (item.last_updated_at) {
+        const lastUpdated = new Date(item.last_updated_at);
+        if (lastUpdated < cutoffDate) {
+          const ageDays = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
+          allItems.push({
+            id: item.id,
+            content: item.inferred_capability || '',
+            item_type: 'competency',
+            last_updated_at: item.last_updated_at,
+            age_days: ageDays
+          });
+        }
       }
     });
 
