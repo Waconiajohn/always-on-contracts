@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Target, Info } from "lucide-react";
+import { Target, Info, Rocket, Upload, PlayCircle, RotateCcw, Plus, Sparkles, Loader2, Shield } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AddMetricsModal } from "@/components/career-vault/AddMetricsModal";
 import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLanguageModal";
@@ -15,6 +15,40 @@ import { ContextSidebar } from "@/components/layout/ContextSidebar";
 import { VaultSidebar } from "@/components/career-vault/VaultSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
 import { calculateQualityDistribution, type QualityDistribution } from "@/lib/utils/qualityDistribution";
+import { EnhancementQueue } from '@/components/EnhancementQueue';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
+import { VaultQuickStats } from '@/components/career-vault/VaultQuickStats';
+import { RecentActivityFeed } from '@/components/career-vault/RecentActivityFeed';
+import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
+import { VaultStatusHero } from '@/components/career-vault/VaultStatusHero';
+import { VaultContents } from '@/components/career-vault/VaultContents';
+import { QualityBoosters } from '@/components/career-vault/QualityBoosters';
+import { MilestoneManager } from '@/components/career-vault/MilestoneManager';
+import { VaultContentsTable } from '@/components/career-vault/VaultContentsTable';
+import { QualityTierExplainer } from '@/components/career-vault/QualityTierExplainer';
+import { VaultActivityFeed } from '@/components/career-vault/VaultActivityFeed';
+import { VaultSuggestionsWidget } from '@/components/career-vault/VaultSuggestionsWidget';
+import { VaultQualityScore } from '@/components/career-vault/VaultQualityScore';
+import { CategoryOrganizer } from '@/components/career-vault/CategoryOrganizer';
+import { FreshnessManager } from '@/components/career-vault/FreshnessManager';
+import { DuplicateDetector } from '@/components/career-vault/DuplicateDetector';
+import { VerificationWorkflow } from '@/components/career-vault/VerificationWorkflow';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { VaultItemViewModal } from '@/components/career-vault/VaultItemViewModal';
+import { VaultItemEditModal } from '@/components/career-vault/VaultItemEditModal';
 
 interface VaultStats {
   total_power_phrases: number;
@@ -167,43 +201,6 @@ interface BehavioralIndicator {
   ai_confidence?: number | null;
   inferred_from?: string | null;
 }
-
-import { EnhancementQueue } from '@/components/EnhancementQueue';
-import { useNavigate } from 'react-router-dom';
-import { Rocket, Upload, PlayCircle, RotateCcw, Plus, Sparkles, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
-import { VaultQuickStats } from '@/components/career-vault/VaultQuickStats';
-import { RecentActivityFeed } from '@/components/career-vault/RecentActivityFeed';
-import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
-import { VaultStatusHero } from '@/components/career-vault/VaultStatusHero';
-import { VaultContents } from '@/components/career-vault/VaultContents';
-import { QualityBoosters } from '@/components/career-vault/QualityBoosters';
-import { MilestoneManager } from '@/components/career-vault/MilestoneManager';
-import { VaultContentsTable } from '@/components/career-vault/VaultContentsTable';
-import { QualityTierExplainer } from '@/components/career-vault/QualityTierExplainer';
-import { VaultActivityFeed } from '@/components/career-vault/VaultActivityFeed';
-import { VaultSuggestionsWidget } from '@/components/career-vault/VaultSuggestionsWidget';
-import { VaultQualityScore } from '@/components/career-vault/VaultQualityScore';
-import { CategoryOrganizer } from '@/components/career-vault/CategoryOrganizer';
-import { FreshnessManager } from '@/components/career-vault/FreshnessManager';
-import { DuplicateDetector } from '@/components/career-vault/DuplicateDetector';
-import { VerificationWorkflow } from '@/components/career-vault/VerificationWorkflow';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Shield } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { VaultItemViewModal } from '@/components/career-vault/VaultItemViewModal';
-import { VaultItemEditModal } from '@/components/career-vault/VaultItemEditModal';
-import { useToast } from '@/hooks/use-toast';
 
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
