@@ -200,6 +200,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { VaultItemViewModal } from '@/components/career-vault/VaultItemViewModal';
+import { VaultItemEditModal } from '@/components/career-vault/VaultItemEditModal';
 import { useToast } from '@/hooks/use-toast';
 
 const VaultDashboardContent = () => {
@@ -226,6 +228,9 @@ const VaultDashboardContent = () => {
   const [behavioralIndicators, setBehavioralIndicators] = useState<BehavioralIndicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [strengthScore, setStrengthScore] = useState<StrengthScore | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const calculateStrengthScore = (
     phrases: PowerPhrase[], 
@@ -1143,10 +1148,35 @@ const VaultDashboardContent = () => {
           workStyle={workStyle}
           values={values}
           behavioralIndicators={behavioralIndicators}
-          onEdit={(item) => console.log('Edit:', item)}
-          onView={(item) => console.log('View:', item)}
+          onEdit={(item) => {
+            setSelectedItem(item);
+            setEditModalOpen(true);
+          }}
+          onView={(item) => {
+            setSelectedItem(item);
+            setViewModalOpen(true);
+          }}
         />
       </div>
+
+      {/* View & Edit Modals */}
+      <VaultItemViewModal
+        item={selectedItem}
+        open={viewModalOpen}
+        onOpenChange={setViewModalOpen}
+      />
+      <VaultItemEditModal
+        item={selectedItem}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSave={() => {
+          fetchData();
+          toast({
+            title: 'Success',
+            description: 'Vault item updated successfully',
+          });
+        }}
+      />
 
       {/* Vault Contents (OLD - replaced by table above) */}
       {stats && false && (
