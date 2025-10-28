@@ -154,6 +154,12 @@ export const VaultReviewInterface = ({
 
       // Transform Leadership Philosophy
       leadershipPhilosophyRes.data?.forEach((phil: any) => {
+        console.log('[VAULT_REVIEW] Leadership Philosophy item:', {
+          id: phil.id,
+          philosophy_statement: phil.philosophy_statement,
+          statement_type: typeof phil.philosophy_statement,
+          statement_length: phil.philosophy_statement?.length
+        });
         allItems.push({
           recordId: phil.id,
           tableName: 'vault_leadership_philosophy',
