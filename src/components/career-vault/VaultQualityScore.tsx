@@ -26,12 +26,12 @@ export const VaultQualityScore = ({
 
   const getLevelColor = (level: string) => {
     switch (level.toLowerCase()) {
-      case 'developing': return 'bg-gray-500';
-      case 'solid': return 'bg-blue-500';
-      case 'strong': return 'bg-purple-500';
-      case 'elite': return 'bg-orange-500';
-      case 'exceptional': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
+      case 'developing': return 'bg-vault-developing';
+      case 'solid': return 'bg-vault-solid';
+      case 'strong': return 'bg-vault-strong';
+      case 'elite': return 'bg-vault-elite';
+      case 'exceptional': return 'bg-vault-exceptional';
+      default: return 'bg-muted';
     }
   };
 
@@ -83,8 +83,8 @@ export const VaultQualityScore = ({
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-3 bg-background rounded-lg border">
-            <div className="flex items-center justify-center gap-1 text-2xl font-bold text-green-600 mb-1">
+          <div className="text-center p-3 bg-card rounded-lg border border-border">
+            <div className="flex items-center justify-center gap-1 text-2xl font-bold text-success mb-1">
               {weeklyImprovement > 0 && '+'}
               {weeklyImprovement}
               <TrendingUp className="h-5 w-5" />
@@ -94,8 +94,8 @@ export const VaultQualityScore = ({
             </p>
           </div>
           
-          <div className="text-center p-3 bg-background rounded-lg border">
-            <div className="flex items-center justify-center gap-1 text-2xl font-bold text-primary mb-1">
+          <div className="text-center p-3 bg-card rounded-lg border border-border">
+            <div className="flex items-center justify-center gap-1 text-2xl font-bold text-info mb-1">
               {percentile}%
               <Target className="h-5 w-5" />
             </div>
@@ -106,32 +106,40 @@ export const VaultQualityScore = ({
         </div>
 
         {/* Milestones */}
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t border-border">
           <p className="text-sm font-medium mb-3">Unlock Milestones:</p>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className={currentScore >= 50 ? 'text-green-600' : 'text-muted-foreground'}>
+              <span className={currentScore >= 50 ? 'text-success' : 'text-muted-foreground'}>
                 {currentScore >= 50 ? '✓' : '○'}
               </span>
-              <span>50 pts - Solid Foundation</span>
+              <span className={currentScore >= 50 ? 'text-foreground' : 'text-muted-foreground'}>
+                50 pts - Solid Foundation
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={currentScore >= 75 ? 'text-green-600' : 'text-muted-foreground'}>
+              <span className={currentScore >= 75 ? 'text-success' : 'text-muted-foreground'}>
                 {currentScore >= 75 ? '✓' : '○'}
               </span>
-              <span>75 pts - Verified Professional</span>
+              <span className={currentScore >= 75 ? 'text-foreground' : 'text-muted-foreground'}>
+                75 pts - Verified Professional
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={currentScore >= 100 ? 'text-green-600' : 'text-muted-foreground'}>
+              <span className={currentScore >= 100 ? 'text-success' : 'text-muted-foreground'}>
                 {currentScore >= 100 ? '✓' : '○'}
               </span>
-              <span>100 pts - Elite Candidate</span>
+              <span className={currentScore >= 100 ? 'text-foreground' : 'text-muted-foreground'}>
+                100 pts - Elite Candidate
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={currentScore >= 125 ? 'text-green-600' : 'text-muted-foreground'}>
+              <span className={currentScore >= 125 ? 'text-success' : 'text-muted-foreground'}>
                 {currentScore >= 125 ? '✓' : '○'}
               </span>
-              <span>125 pts - Exceptional Profile</span>
+              <span className={currentScore >= 125 ? 'text-foreground' : 'text-muted-foreground'}>
+                125 pts - Exceptional Profile
+              </span>
             </div>
           </div>
         </div>

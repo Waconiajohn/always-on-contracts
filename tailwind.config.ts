@@ -65,6 +65,16 @@ export default {
           processing: "hsl(var(--ai-processing))",
           complete: "hsl(var(--ai-complete))",
         },
+        'vault': {
+          developing: "hsl(var(--vault-developing))",
+          solid: "hsl(var(--vault-solid))",
+          strong: "hsl(var(--vault-strong))",
+          elite: "hsl(var(--vault-elite))",
+          exceptional: "hsl(var(--vault-exceptional))",
+        },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
       },
       boxShadow: {
         'glow': '0 0 20px hsl(var(--ai-glow) / 0.5)',
