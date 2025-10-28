@@ -51,11 +51,11 @@ const CommandCenter = () => {
       // Fetch Career Vault completion
       const { data: vault } = await supabase
         .from('career_vault')
-        .select('interview_completion_percentage')
+        .select('review_completion_percentage')
         .eq('user_id', user.id)
         .single();
 
-      const vaultComplete = vault?.interview_completion_percentage || 0;
+      const vaultComplete = vault?.review_completion_percentage || 0;
       setVaultCompletion(vaultComplete);
 
       // Check subscription status

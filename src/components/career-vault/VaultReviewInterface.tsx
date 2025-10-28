@@ -310,6 +310,38 @@ export const VaultReviewInterface = ({
     }
   };
 
+  // Phase 4: Defensive check - redirect if vault is empty
+  useEffect(() => {
+    const checkVaultState = async () => {
+      try {
+        const { data: vault } = await supabase
+          .from('career_vault')
+          .select('total_power_phrases, total_transferable_skills, total_hidden_competencies')
+          .eq('id', vaultId)
+          .single();
+        
+        const totalItems = (vault?.total_power_phrases || 0) + 
+                          (vault?.total_transferable_skills || 0) + 
+                          (vault?.total_hidden_competencies || 0);
+        
+        if (totalItems === 0 && items.length === 0 && !isLoadingFromDb) {
+          // Vault is empty - redirect to onboarding
+          console.log('[VAULT_REVIEW] Vault is empty, redirecting to onboarding');
+          toast({
+            title: 'Vault is Empty',
+            description: 'Please upload a resume to populate your vault first.',
+            variant: 'destructive'
+          });
+          window.location.href = '/career-vault-onboarding';
+        }
+      } catch (error) {
+        console.error('[VAULT_REVIEW] Error checking vault state:', error);
+      }
+    };
+    
+    checkVaultState();
+  }, [vaultId, items.length, isLoadingFromDb]);
+
   // Load items on mount (Phase 3: Database-first approach)
   React.useEffect(() => {
     if (extractedData) {

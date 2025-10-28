@@ -607,6 +607,7 @@ const VaultDashboardContent = () => {
         .from('career_vault')
         .update({
           interview_completion_percentage: 0,
+          review_completion_percentage: 0,
           total_power_phrases: 0,
           total_transferable_skills: 0,
           total_hidden_competencies: 0,
