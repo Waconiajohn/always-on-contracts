@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Target, TrendingUp, Compass, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Target, TrendingUp, Compass, ChevronRight, Loader2, Clock, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface CareerFocusClarifierProps {
   onComplete: (data: {
@@ -11,35 +15,100 @@ interface CareerFocusClarifierProps {
     targetIndustries: string[];
     excludedIndustries: string[];
   }) => void;
-  detectedRole?: string;
-  detectedIndustry?: string;
+  detectedRole: string;
+  detectedIndustry: string;
+  resumeText: string;
 }
 
 export const CareerFocusClarifier = ({ 
   onComplete, 
   detectedRole,
-  detectedIndustry 
+  detectedIndustry,
+  resumeText
 }: CareerFocusClarifierProps) => {
+  const { toast } = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [careerDirection, setCareerDirection] = useState<'stay' | 'pivot' | 'explore' | null>(null);
-  const [targetRoles, setTargetRoles] = useState<string[]>(detectedRole ? [detectedRole] : []);
-  const [targetIndustries, setTargetIndustries] = useState<string[]>(detectedIndustry ? [detectedIndustry] : []);
+  const [targetRoles, setTargetRoles] = useState<string[]>([]);
+  const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
   const [excludedIndustries, setExcludedIndustries] = useState<string[]>([]);
+  const [customRoles, setCustomRoles] = useState<string>("");
+  const [customIndustries, setCustomIndustries] = useState<string>("");
+  
+  // AI suggestions for pivot
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [suggestedRoles, setSuggestedRoles] = useState<string[]>([]);
+  const [suggestedIndustries, setSuggestedIndustries] = useState<string[]>([]);
 
-  const handleDirectionSelect = (direction: 'stay' | 'pivot' | 'explore') => {
+  const handleDirectionSelect = async (direction: 'stay' | 'pivot' | 'explore') => {
     setCareerDirection(direction);
+    
+    // Pre-populate based on direction
+    if (direction === 'stay') {
+      setTargetRoles([detectedRole]);
+      setTargetIndustries([detectedIndustry]);
+    } else if (direction === 'pivot') {
+      // Load AI suggestions for adjacent roles/industries
+      setIsLoadingSuggestions(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('suggest-adjacent-roles', {
+          body: {
+            resumeText,
+            currentRole: detectedRole,
+            currentIndustry: detectedIndustry
+          }
+        });
+
+        if (error) throw error;
+        
+        if (data?.suggestedRoles) {
+          setSuggestedRoles(data.suggestedRoles);
+        }
+        if (data?.suggestedIndustries) {
+          setSuggestedIndustries(data.suggestedIndustries);
+        }
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+        toast({
+          title: 'Could not load suggestions',
+          description: 'You can still manually select roles and industries.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }
+    
     setStep(2);
   };
 
   const handleComplete = () => {
-    if (!careerDirection || targetRoles.length === 0 || targetIndustries.length === 0) {
+    // Parse custom inputs
+    const customRolesList = customRoles
+      .split(',')
+      .map(r => r.trim())
+      .filter(r => r.length > 0);
+    const customIndustriesList = customIndustries
+      .split(',')
+      .map(i => i.trim())
+      .filter(i => i.length > 0);
+
+    const finalRoles = [...new Set([...targetRoles, ...customRolesList])];
+    const finalIndustries = [...new Set([...targetIndustries, ...customIndustriesList])];
+
+    if (!careerDirection || finalRoles.length === 0 || finalIndustries.length === 0) {
+      toast({
+        title: 'Incomplete Selection',
+        description: 'Please select at least one role and one industry.',
+        variant: 'destructive'
+      });
       return;
     }
     
     onComplete({
       careerDirection,
-      targetRoles,
-      targetIndustries,
+      targetRoles: finalRoles,
+      targetIndustries: finalIndustries,
       excludedIndustries
     });
   };
@@ -62,14 +131,19 @@ export const CareerFocusClarifier = ({
     );
   };
 
-  // Step 1: Career Direction
+  // Step 1: Career Direction with Realistic Messaging
   if (step === 1) {
     return (
       <Card className="w-full max-w-3xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl">What's Your Career Goal?</CardTitle>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary" className="text-sm">
+              Detected: {detectedRole} in {detectedIndustry}
+            </Badge>
+          </div>
+          <CardTitle className="text-2xl">Choose Your Career Path</CardTitle>
           <CardDescription>
-            This helps us ask the right questions and avoid wasting your time on irrelevant areas.
+            This determines how we'll focus your Career Vault. Staying in your field is the fastest path to re-employment.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -82,15 +156,23 @@ export const CareerFocusClarifier = ({
                 <Target className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-1">Stay in My Current Field</h3>
-                <p className="text-sm text-muted-foreground">
-                  Continue advancing in my current role and industry
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-lg font-semibold">Stay in My Lane</h3>
+                  <Badge variant="outline" className="text-xs bg-primary/5">Recommended</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Continue in {detectedRole} roles within {detectedIndustry}
                 </p>
-                {detectedRole && detectedIndustry && (
-                  <Badge variant="secondary" className="mt-2">
-                    Detected: {detectedRole} in {detectedIndustry}
-                  </Badge>
-                )}
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>Fastest re-employment</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Your experience translates directly</span>
+                  </div>
+                </div>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
@@ -105,10 +187,20 @@ export const CareerFocusClarifier = ({
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-1">Pivot to a New Industry or Role</h3>
-                <p className="text-sm text-muted-foreground">
-                  I'm looking to transition into something different
+                <h3 className="text-lg font-semibold mb-1">Strategic Pivot</h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Transition to adjacent roles or industries using transferable skills
                 </p>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>2-4 month timeline</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    <span>AI will suggest adjacent paths</span>
+                  </div>
+                </div>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
@@ -123,10 +215,20 @@ export const CareerFocusClarifier = ({
                 <Compass className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-1">Exploring Multiple Paths</h3>
-                <p className="text-sm text-muted-foreground">
-                  I'm open to opportunities across different roles and industries
+                <h3 className="text-lg font-semibold mb-1">Full Exploration</h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Open to opportunities across different roles and industries
                 </p>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>Timeline varies widely</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Compass className="w-3 h-3" />
+                    <span>Maximum flexibility</span>
+                  </div>
+                </div>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
@@ -136,7 +238,7 @@ export const CareerFocusClarifier = ({
     );
   }
 
-  // Step 2: Focus Areas
+  // Step 2: Focus Refinement with Smart Defaults
   if (step === 2) {
     const commonRoles = [
       "VP Engineering", "CTO", "Engineering Director",
@@ -152,54 +254,99 @@ export const CareerFocusClarifier = ({
       "Retail", "Education", "Media & Entertainment"
     ];
 
+    // Use AI suggestions for pivot, common lists for explore
+    const displayRoles = careerDirection === 'pivot' && suggestedRoles.length > 0 
+      ? suggestedRoles 
+      : commonRoles;
+    const displayIndustries = careerDirection === 'pivot' && suggestedIndustries.length > 0
+      ? suggestedIndustries
+      : commonIndustries;
+
     return (
       <Card className="w-full max-w-3xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl">Define Your Target Focus</CardTitle>
+          <CardTitle className="text-2xl">
+            {careerDirection === 'stay' && 'Confirm Your Target Focus'}
+            {careerDirection === 'pivot' && 'AI-Suggested Adjacent Paths'}
+            {careerDirection === 'explore' && 'Define Your Target Focus'}
+          </CardTitle>
           <CardDescription>
-            Select the roles and industries you're targeting. We'll focus our questions on these areas.
+            {careerDirection === 'stay' && 'These are pre-filled based on your background. You can add similar roles below.'}
+            {careerDirection === 'pivot' && 'Based on your transferable skills, these adjacent paths might be a good fit.'}
+            {careerDirection === 'explore' && 'Select any roles and industries you\'re interested in exploring.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div>
-            <h3 className="font-semibold mb-3">Target Roles</h3>
-            <div className="flex flex-wrap gap-2">
-              {commonRoles.map(role => (
-                <Badge
-                  key={role}
-                  variant={targetRoles.includes(role) ? "default" : "outline"}
-                  className="cursor-pointer px-4 py-2 text-sm"
-                  onClick={() => toggleRole(role)}
-                >
-                  {role}
-                </Badge>
-              ))}
+          {isLoadingSuggestions && (
+            <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Analyzing your transferable skills...</span>
             </div>
-          </div>
+          )}
 
-          <div>
-            <h3 className="font-semibold mb-3">Target Industries</h3>
-            <div className="flex flex-wrap gap-2">
-              {commonIndustries.map(industry => (
-                <Badge
-                  key={industry}
-                  variant={targetIndustries.includes(industry) ? "default" : "outline"}
-                  className="cursor-pointer px-4 py-2 text-sm"
-                  onClick={() => toggleIndustry(industry)}
-                >
-                  {industry}
-                </Badge>
-              ))}
-            </div>
-          </div>
+          {!isLoadingSuggestions && (
+            <>
+              <div>
+                <h3 className="font-semibold mb-3">Target Roles</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {displayRoles.map(role => (
+                    <Badge
+                      key={role}
+                      variant={targetRoles.includes(role) ? "default" : "outline"}
+                      className="cursor-pointer px-4 py-2 text-sm"
+                      onClick={() => toggleRole(role)}
+                    >
+                      {role}
+                    </Badge>
+                  ))}
+                </div>
+                <div>
+                  <Label htmlFor="customRoles">Add Custom Roles (comma-separated)</Label>
+                  <Input
+                    id="customRoles"
+                    placeholder="e.g., Head of Product, VP Operations"
+                    value={customRoles}
+                    onChange={(e) => setCustomRoles(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-3">Target Industries</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {displayIndustries.map(industry => (
+                    <Badge
+                      key={industry}
+                      variant={targetIndustries.includes(industry) ? "default" : "outline"}
+                      className="cursor-pointer px-4 py-2 text-sm"
+                      onClick={() => toggleIndustry(industry)}
+                    >
+                      {industry}
+                    </Badge>
+                  ))}
+                </div>
+                <div>
+                  <Label htmlFor="customIndustries">Add Custom Industries (comma-separated)</Label>
+                  <Input
+                    id="customIndustries"
+                    placeholder="e.g., Artificial Intelligence, Renewable Energy"
+                    value={customIndustries}
+                    onChange={(e) => setCustomIndustries(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex gap-3 pt-4">
-            <Button variant="outline" onClick={() => setStep(1)}>
+            <Button variant="outline" onClick={() => setStep(1)} disabled={isLoadingSuggestions}>
               Back
             </Button>
             <Button 
               onClick={() => setStep(3)}
-              disabled={targetRoles.length === 0 || targetIndustries.length === 0}
+              disabled={isLoadingSuggestions || (targetRoles.length === 0 && !customRoles) || (targetIndustries.length === 0 && !customIndustries)}
               className="flex-1"
             >
               Continue
@@ -221,7 +368,7 @@ export const CareerFocusClarifier = ({
       <CardHeader>
         <CardTitle className="text-2xl">Any Industries to Avoid?</CardTitle>
         <CardDescription>
-          Optional: Select industries you don't want to pursue. This prevents us from asking irrelevant questions.
+          Optional: Select industries you don't want to pursue. This helps us avoid asking irrelevant questions.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

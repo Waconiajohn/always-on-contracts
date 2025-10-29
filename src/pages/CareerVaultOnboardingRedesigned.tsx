@@ -13,8 +13,8 @@ import { IntelligentQuestionFlow } from '@/components/career-vault/IntelligentQu
 import { BenchmarkComparisonReview } from '@/components/career-vault/BenchmarkComparisonReview';
 
 type OnboardingStep = 
-  | 'focus' 
-  | 'upload' 
+  | 'upload'    // STEP 1: Upload resume first
+  | 'focus'     // STEP 2: Career focus with intelligent defaults
   | 'research' 
   | 'questions' 
   | 'benchmark' 
@@ -37,8 +37,8 @@ const CareerVaultOnboardingRedesigned = () => {
   const { toast } = useToast();
   const hasCheckedAuth = useRef(false);
 
-  // Step state
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('focus');
+  // Step state - START WITH UPLOAD
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
   
   // Career Focus data
   const [careerDirection, setCareerDirection] = useState<'stay' | 'pivot' | 'explore'>('stay');
@@ -65,8 +65,8 @@ const CareerVaultOnboardingRedesigned = () => {
   const [gapAnalysis, setGapAnalysis] = useState<any>(null);
 
   const steps = [
-    { id: 'focus', label: 'Career Focus', icon: Target },
-    { id: 'upload', label: 'Upload', icon: Upload },
+    { id: 'upload', label: 'Upload', icon: Upload },       // STEP 1: Upload first
+    { id: 'focus', label: 'Career Focus', icon: Target },  // STEP 2: Focus with AI defaults
     { id: 'research', label: 'Research', icon: Brain },
     { id: 'questions', label: 'Questions', icon: Sparkles },
     { id: 'benchmark', label: 'Review', icon: TrendingUp },
@@ -119,7 +119,7 @@ const CareerVaultOnboardingRedesigned = () => {
     checkAuth();
   }, [navigate]);
 
-  // PHASE 1: Career Focus Handler
+  // PHASE 1: Career Focus Handler (now happens AFTER upload)
   const handleFocusComplete = (data: {
     careerDirection: 'stay' | 'pivot' | 'explore';
     targetRoles: string[];
@@ -130,7 +130,7 @@ const CareerVaultOnboardingRedesigned = () => {
     setTargetRoles(data.targetRoles);
     setTargetIndustries(data.targetIndustries);
     setExcludedIndustries(data.excludedIndustries);
-    setCurrentStep('upload');
+    setCurrentStep('research');
   };
 
   // PHASE 2: Resume Upload Handler
@@ -247,10 +247,10 @@ const CareerVaultOnboardingRedesigned = () => {
 
       toast({
         title: 'Resume Uploaded!',
-        description: 'Starting industry research...'
+        description: 'Now let\'s define your career direction...'
       });
 
-      setCurrentStep('research');
+      setCurrentStep('focus');
     } catch (error) {
       console.error('[UPLOAD] Upload error:', error);
       toast({
@@ -441,20 +441,21 @@ const CareerVaultOnboardingRedesigned = () => {
       </div>
 
       {/* Step Content */}
-      {currentStep === 'focus' && (
-        <CareerFocusClarifier
-          onComplete={handleFocusComplete}
-          detectedRole={detectedRole || undefined}
-          detectedIndustry={detectedIndustry || undefined}
-        />
-      )}
-
       {currentStep === 'upload' && (
         <ResumeUploadCard
           resumeFile={resumeFile}
           isUploading={isUploading}
           onFileSelect={handleFileSelect}
           onUpload={handleUpload}
+        />
+      )}
+
+      {currentStep === 'focus' && (
+        <CareerFocusClarifier
+          onComplete={handleFocusComplete}
+          detectedRole={detectedRole || 'Professional'}
+          detectedIndustry={detectedIndustry || 'General'}
+          resumeText={resumeText}
         />
       )}
 

@@ -317,3 +317,6 @@ verify_jwt = true
 
 [functions.generate-gap-analysis]
 verify_jwt = true
+
+[functions.suggest-adjacent-roles]
+verify_jwt = true
