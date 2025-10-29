@@ -274,7 +274,7 @@ const CareerVaultOnboardingRedesigned = () => {
       }
 
       // Extract properly parsed text and detected data
-      const resumeText = functionData.resumeText || '';
+      const resumeText = functionData.extractedText || '';
       const detectedRoleValue = functionData.role || null;
       const detectedIndustryValue = functionData.industry || null;
 
