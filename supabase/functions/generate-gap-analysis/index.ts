@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,119 +12,100 @@ serve(async (req) => {
   }
 
   try {
-    const { vaultId, industryStandards, currentVaultData } = await req.json();
+    const { vaultId, industryStandards } = await req.json();
+    console.log('[GAP ANALYSIS] Generating analysis for vault:', vaultId);
 
-    console.log('[GAP-ANALYSIS] Generating gap analysis for vault:', vaultId);
-
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Generate comprehensive gap analysis using AI
-    const prompt = `
-You are analyzing a career profile against industry standards.
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-INDUSTRY STANDARDS:
-${JSON.stringify(industryStandards, null, 2)}
+    // Fetch ALL vault data across tables
+    const [phrases, skills, competencies, softSkills, leadership] = await Promise.all([
+      supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId)
+    ]);
 
-CURRENT CAREER VAULT DATA:
-${JSON.stringify(currentVaultData, null, 2)}
+    const vaultSummary = {
+      powerPhrasesCount: phrases.data?.length || 0,
+      skillsCount: skills.data?.length || 0,
+      competenciesCount: competencies.data?.length || 0,
+      softSkillsCount: softSkills.data?.length || 0,
+      leadershipCount: leadership.data?.length || 0,
+      topPhrases: phrases.data?.slice(0, 5).map(p => p.power_phrase) || [],
+      topSkills: skills.data?.slice(0, 5).map(s => s.stated_skill) || []
+    };
 
-Generate a comprehensive gap analysis in JSON format:
+    // Use AI to generate comprehensive gap analysis
+    const prompt = `You are an expert career advisor. Compare this user's career vault against industry standards and generate a comprehensive gap analysis.
+
+**User's Vault Summary**:
+${JSON.stringify(vaultSummary, null, 2)}
+
+**Industry Standards**:
+${JSON.stringify(industryStandards, null, 2).substring(0, 1000)}
+
+Generate a gap analysis as JSON:
 {
+  "overallAnalysis": {
+    "vaultStrength": 75,
+    "benchmarkAlignment": 68,
+    "competitivePosition": "Strong Candidate"
+  },
   "strengths": [
     {
-      "category": "regulatory_compliance",
-      "score": 95,
-      "benchmark": 90,
+      "category": "Technical Skills",
+      "userScore": 85,
+      "benchmarkScore": 75,
       "status": "exceeds",
-      "evidence": ["PCI-DSS experience", "SOC 2 certified"],
-      "message": "You exceed industry standards in this area"
-    }
-  ],
-  "opportunities": [
-    {
-      "category": "board_experience",
-      "score": 70,
-      "benchmark": 75,
-      "status": "matches",
-      "gap": 5,
-      "evidence": ["3 board presentations"],
-      "message": "You match expectations but could highlight more",
-      "recommendations": [
-        "Quantify the impact of board presentations",
-        "Mention any advisory board roles"
-      ]
+      "evidence": ["User has 15 technical skills vs. benchmark of 10"],
+      "recommendations": ["Highlight these in resume header"]
     }
   ],
   "gaps": [
     {
-      "category": "leadership_scope",
-      "score": 60,
-      "benchmark": 80,
+      "category": "Quantifiable Metrics",
+      "userScore": 60,
+      "benchmarkScore": 85,
       "status": "below",
-      "gap": 20,
-      "severity": "medium",
-      "evidence": ["Team size: 30, Benchmark: 45"],
-      "message": "Your scope is below typical for this role",
-      "recommendations": [
-        "Highlight trajectory: grew team from X to 30",
-        "Mention indirect reports or cross-functional leadership",
-        "Add budget management details"
-      ],
-      "quickFix": {
-        "action": "add_to_vault",
-        "items": [
-          "Led cross-functional initiatives impacting 100+ people",
-          "Managed $5M engineering budget with 15% YoY efficiency improvement"
-        ]
-      }
+      "evidence": ["Only 3 power phrases with metrics vs. benchmark of 8"],
+      "recommendations": ["Add specific budget amounts", "Include team size numbers"]
     }
   ],
-  "overallAnalysis": {
-    "vaultStrength": 72,
-    "benchmarkAlignment": 85,
-    "competitivePosition": "Strong candidate with opportunity areas",
-    "topStrengths": ["regulatory_compliance", "technical_depth"],
-    "topGaps": ["leadership_scope", "industry_networking"],
-    "readiness": "Interview-ready with gap mitigation"
-  },
-  "recommendations": [
+  "opportunities": [
     {
-      "priority": "high",
-      "category": "leadership_scope",
-      "action": "Add quantified leadership metrics",
-      "impact": 15,
-      "items": ["Budget size", "Growth trajectory", "Cross-functional impact"]
+      "category": "Leadership Philosophy",
+      "userScore": 50,
+      "benchmarkScore": 70,
+      "status": "developing",
+      "evidence": ["No leadership philosophy documented"],
+      "recommendations": ["Define leadership approach", "Add examples of mentoring"]
     }
   ]
-}
-
-Be specific and actionable. Focus on what hiring managers look for.
-`;
+}`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a career analyst comparing candidates against industry benchmarks. Always return valid JSON.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: 'You are an expert career advisor. Provide detailed gap analysis in valid JSON format.' },
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.4,
-        max_tokens: 3000,
-      }),
+        temperature: 0.5,
+        response_format: { type: "json_object" }
+      })
     });
 
     if (!aiResponse.ok) {
@@ -131,81 +113,29 @@ Be specific and actionable. Focus on what hiring managers look for.
     }
 
     const aiData = await aiResponse.json();
-    const analysisContent = aiData.choices[0]?.message?.content || '{}';
-    
-    let gapAnalysis;
-    try {
-      const jsonMatch = analysisContent.match(/```json\n([\s\S]*?)\n```/) || 
-                       analysisContent.match(/```\n([\s\S]*?)\n```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : analysisContent;
-      gapAnalysis = JSON.parse(jsonStr);
-    } catch (parseError) {
-      console.error('[GAP-ANALYSIS] Parse error:', parseError);
-      gapAnalysis = { strengths: [], opportunities: [], gaps: [], overallAnalysis: {} };
-    }
+    const gapAnalysis = JSON.parse(aiData.choices[0].message.content);
 
-    // Store gap analysis in database
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    await fetch(`${supabaseUrl}/rest/v1/career_vault?id=eq.${vaultId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'apikey': supabaseKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        gap_analysis: gapAnalysis,
-        benchmark_comparison: {
-          strengths: gapAnalysis.strengths || [],
-          gaps: gapAnalysis.gaps || [],
-          overall: gapAnalysis.overallAnalysis || {}
-        }
-      })
+    console.log('[GAP ANALYSIS] Analysis complete:', {
+      strengths: gapAnalysis.strengths?.length || 0,
+      gaps: gapAnalysis.gaps?.length || 0,
+      opportunities: gapAnalysis.opportunities?.length || 0
     });
-
-    // Store as research record
-    await fetch(`${supabaseUrl}/rest/v1/career_vault_industry_research`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'apikey': supabaseKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        vault_id: vaultId,
-        research_type: 'gap_analysis',
-        target_role: industryStandards.targetRole || 'Not specified',
-        target_industry: industryStandards.targetIndustry || 'Not specified',
-        research_results: gapAnalysis,
-        confidence_score: 90
-      })
-    });
-
-    console.log('[GAP-ANALYSIS] Analysis completed successfully');
 
     return new Response(
       JSON.stringify({
         success: true,
-        gapAnalysis,
-        summary: {
-          strengthsCount: gapAnalysis.strengths?.length || 0,
-          gapsCount: gapAnalysis.gaps?.length || 0,
-          overallStrength: gapAnalysis.overallAnalysis?.vaultStrength || 0
-        }
+        gapAnalysis
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('[GAP-ANALYSIS] Error:', error);
+    console.error('[GAP ANALYSIS] Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        success: false 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { 
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

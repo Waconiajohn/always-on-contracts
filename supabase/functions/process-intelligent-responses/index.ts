@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,78 +13,54 @@ serve(async (req) => {
 
   try {
     const { vaultId, responses, industryStandards } = await req.json();
+    console.log('[PROCESS RESPONSES] Processing', responses.length, 'responses for vault:', vaultId);
 
-    console.log('[PROCESS-RESPONSES] Processing', responses.length, 'responses for vault:', vaultId);
-
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    if (!lovableApiKey) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Use AI to convert responses into vault items
-    const prompt = `
-You are processing user responses to create structured career vault items.
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-USER RESPONSES:
-${JSON.stringify(responses, null, 2)}
+    // Use AI to parse responses into structured vault items
+    const prompt = `Parse these user responses into structured career vault items. Extract power phrases, skills, competencies, and soft skills.
 
-INDUSTRY STANDARDS FOR CONTEXT:
-${JSON.stringify(industryStandards, null, 2)}
+**User Responses**: ${JSON.stringify(responses)}
+**Industry Context**: ${JSON.stringify(industryStandards).substring(0, 500)}
 
-For each response, generate vault items that should be added. Return JSON:
+Generate vault items as JSON:
 {
-  "newItems": [
-    {
-      "category": "power_phrases|transferable_skills|hidden_competencies|soft_skills|etc",
-      "table": "vault_power_phrases|vault_transferable_skills|etc",
-      "content": "Specific, quantified achievement or skill",
-      "context": "Additional context",
-      "confidence": "high|medium|low",
-      "source": "user_qa",
-      "sourceQuestionId": "q1"
-    }
+  "powerPhrases": [
+    { "category": "Achievement", "phrase": "Led $2M budget optimization", "metrics": {"amount": 2000000}, "confidence": 0.9 }
   ],
-  "gapsClosed": [
-    { "gap": "regulatory_compliance", "status": "closed|partial" }
+  "skills": [
+    { "skill": "Budget Management", "evidence": "Managed $2M budget", "confidence": 0.85 }
   ],
-  "impactAnalysis": {
-    "itemsAdded": 12,
-    "gapsClosedCount": 3,
-    "strengthBoost": 15
-  }
-}
-
-RULES:
-- Create specific, actionable vault items
-- Quantify everything possible
-- One response may create multiple vault items
-- Tag with high confidence since user provided it directly
-`;
+  "softSkills": [
+    { "skill": "Leadership", "example": "Mentored 5 team members", "impact": "Increased team productivity by 30%", "proficiency": "advanced" }
+  ],
+  "competencies": [
+    { "area": "Strategic Planning", "capability": "Long-term vision and execution", "evidence": ["Led 3-year transformation"] }
+  ]
+}`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a career data processor converting user responses into structured career intelligence. Always return valid JSON.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: 'You are an expert at extracting career intelligence. Return valid JSON only.' },
+          { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 3000,
-      }),
+        response_format: { type: "json_object" }
+      })
     });
 
     if (!aiResponse.ok) {
@@ -91,113 +68,99 @@ RULES:
     }
 
     const aiData = await aiResponse.json();
-    const resultContent = aiData.choices[0]?.message?.content || '{}';
-    
-    let result;
-    try {
-      const jsonMatch = resultContent.match(/```json\n([\s\S]*?)\n```/) || 
-                       resultContent.match(/```\n([\s\S]*?)\n```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : resultContent;
-      result = JSON.parse(jsonStr);
-    } catch (parseError) {
-      console.error('[PROCESS-RESPONSES] Parse error:', parseError);
-      result = { newItems: [], gapsClosed: [], impactAnalysis: {} };
+    const parsedItems = JSON.parse(aiData.choices[0].message.content);
+
+    let newItemsCreated = 0;
+
+    // Insert power phrases
+    if (parsedItems.powerPhrases?.length > 0) {
+      const { error } = await supabase.from('vault_power_phrases').insert(
+        parsedItems.powerPhrases.map((p: any) => ({
+          vault_id: vaultId,
+          category: p.category || 'Achievement',
+          power_phrase: p.phrase,
+          impact_metrics: p.metrics,
+          confidence_score: p.confidence || 0.8,
+          quality_tier: 'gold',
+          source: 'intelligent_interview'
+        }))
+      );
+      if (!error) newItemsCreated += parsedItems.powerPhrases.length;
     }
 
-    // Store responses in database
-    const responseRecords = responses.map((r: any) => ({
+    // Insert transferable skills
+    if (parsedItems.skills?.length > 0) {
+      const { error } = await supabase.from('vault_transferable_skills').insert(
+        parsedItems.skills.map((s: any) => ({
+          vault_id: vaultId,
+          stated_skill: s.skill,
+          evidence: s.evidence,
+          confidence_score: s.confidence || 0.8,
+          quality_tier: 'gold',
+          source: 'intelligent_interview'
+        }))
+      );
+      if (!error) newItemsCreated += parsedItems.skills.length;
+    }
+
+    // Insert soft skills
+    if (parsedItems.softSkills?.length > 0) {
+      const { error } = await supabase.from('vault_soft_skills').insert(
+        parsedItems.softSkills.map((s: any) => ({
+          vault_id: vaultId,
+          skill_name: s.skill,
+          examples: s.example,
+          impact: s.impact,
+          proficiency_level: s.proficiency || 'intermediate',
+          quality_tier: 'gold',
+          inferred_from: 'intelligent_interview'
+        }))
+      );
+      if (!error) newItemsCreated += parsedItems.softSkills.length;
+    }
+
+    // Insert hidden competencies
+    if (parsedItems.competencies?.length > 0) {
+      const { error } = await supabase.from('vault_hidden_competencies').insert(
+        parsedItems.competencies.map((c: any) => ({
+          vault_id: vaultId,
+          competency_area: c.area,
+          inferred_capability: c.capability,
+          supporting_evidence: c.evidence,
+          confidence_score: 0.85,
+          quality_tier: 'gold',
+          source: 'intelligent_interview'
+        }))
+      );
+      if (!error) newItemsCreated += parsedItems.competencies.length;
+    }
+
+    // Store raw responses
+    await supabase.from('career_vault_intelligent_responses').insert({
       vault_id: vaultId,
-      question_id: r.questionId,
-      question_type: r.questionType,
-      question_category: r.category,
-      question_text: r.question,
-      user_response: r.answer,
-      skipped: r.skipped || false,
-      impact_score: r.impactScore || 0
-    }));
-
-    await fetch(`${supabaseUrl}/rest/v1/career_vault_intelligent_responses`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'apikey': supabaseKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(responseRecords)
+      responses: responses,
+      processed_items: parsedItems,
+      items_created: newItemsCreated
     });
 
-    // Insert new vault items into appropriate tables
-    const insertedItemIds: string[] = [];
-    
-    for (const item of result.newItems || []) {
-      const tableName = item.table;
-      const itemData = {
-        vault_id: vaultId,
-        content: item.content,
-        context: item.context,
-        confidence: item.confidence,
-        source: 'user_qa',
-        ai_generated: true,
-        verified: false,
-        status: 'approved'
-      };
-
-      try {
-        const insertResponse = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'apikey': supabaseKey,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(itemData)
-        });
-
-        if (insertResponse.ok) {
-          const insertedData = await insertResponse.json();
-          insertedItemIds.push(insertedData[0]?.id);
-        }
-      } catch (insertError) {
-        console.error('[PROCESS-RESPONSES] Insert error for table', tableName, insertError);
-      }
-    }
-
-    // Update vault completion status
-    await fetch(`${supabaseUrl}/rest/v1/career_vault?id=eq.${vaultId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'apikey': supabaseKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        intelligent_qa_completed: true,
-        vault_strength_after_qa: (result.impactAnalysis?.strengthBoost || 0) + 85
-      })
-    });
-
-    console.log('[PROCESS-RESPONSES] Processed successfully. Created', insertedItemIds.length, 'new vault items');
+    console.log('[PROCESS RESPONSES] Created', newItemsCreated, 'new vault items');
 
     return new Response(
       JSON.stringify({
         success: true,
-        newItemsCreated: insertedItemIds.length,
-        gapsClosed: result.gapsClosed || [],
-        impactAnalysis: result.impactAnalysis || {},
-        itemIds: insertedItemIds
+        newItemsCreated,
+        parsedItems
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('[PROCESS-RESPONSES] Error:', error);
+    console.error('[PROCESS RESPONSES] Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        success: false 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { 
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

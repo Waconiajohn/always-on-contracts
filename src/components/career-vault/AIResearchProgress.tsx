@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ResearchStage {
   id: string;
@@ -75,30 +76,53 @@ export const AIResearchProgress = ({
         }
       }
 
-      // Mock research data (in real implementation, this would come from the edge function)
-      const mockResearchData = {
-        roleOverview: {
-          description: `${targetRole} in ${targetIndustry}`,
-          typicalSeniority: 'Executive',
-          averageTenure: '3-5 years'
-        },
-        mustHaveSkills: [
-          { skill: 'Leadership', importance: 'critical', marketFrequency: 95 },
-          { skill: 'Strategic Planning', importance: 'critical', marketFrequency: 90 },
-          { skill: 'Budget Management', importance: 'important', marketFrequency: 85 }
-        ],
-        leadershipScope: {
-          typicalTeamSize: { min: 30, max: 100 },
-          typicalBudgetRange: '$5M-$25M'
-        },
-        expectedExperiences: [
-          { experience: 'Board presentations', frequency: 75 },
-          { experience: 'Fundraising involvement', frequency: 60 }
-        ]
-      };
+      // Call real industry research function
+      try {
+        const { data, error } = await supabase.functions.invoke('conduct-industry-research', {
+          body: {
+            targetRole,
+            targetIndustry
+          }
+        });
 
-      setResearchData(mockResearchData);
-      setTimeout(() => onComplete(mockResearchData), 1000);
+        if (error) throw error;
+
+        const realResearchData = data?.research || {
+          roleOverview: {
+            description: `${targetRole} in ${targetIndustry}`,
+            typicalSeniority: 'Executive',
+            averageTenure: '3-5 years'
+          },
+          mustHaveSkills: [
+            { skill: 'Leadership', importance: 'critical', marketFrequency: 95 },
+            { skill: 'Strategic Planning', importance: 'critical', marketFrequency: 90 }
+          ],
+          leadershipScope: {
+            typicalTeamSize: { min: 30, max: 100 },
+            typicalBudgetRange: '$5M-$25M'
+          },
+          expectedExperiences: [
+            { experience: 'Board presentations', frequency: 75 }
+          ]
+        };
+
+        setResearchData(realResearchData);
+        setTimeout(() => onComplete(realResearchData), 1000);
+      } catch (error) {
+        console.error('[AI RESEARCH] Error conducting research:', error);
+        // Fallback to basic data if API fails
+        const fallbackData = {
+          roleOverview: {
+            description: `${targetRole} in ${targetIndustry}`,
+            typicalSeniority: 'Executive'
+          },
+          mustHaveSkills: [
+            { skill: 'Leadership', importance: 'critical', marketFrequency: 95 }
+          ]
+        };
+        setResearchData(fallbackData);
+        setTimeout(() => onComplete(fallbackData), 1000);
+      }
     };
 
     performResearch();

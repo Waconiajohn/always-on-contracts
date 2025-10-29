@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,147 +13,147 @@ serve(async (req) => {
 
   try {
     const { vaultId, resumeData, industryResearch, targetRole, targetIndustry } = await req.json();
+    console.log('[INTELLIGENT QUESTIONS] Generating questions for vault:', vaultId);
 
-    console.log('[GENERATE-QUESTIONS] Generating intelligent questions for vault:', vaultId);
-
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Build AI prompt for question generation
-    const prompt = `
-You are an AI career coach generating intelligent questions to build a comprehensive career vault.
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-RESUME DATA:
-${JSON.stringify(resumeData, null, 2)}
+    // Get existing vault data to identify gaps
+    const { data: existingPhrases } = await supabase
+      .from('vault_power_phrases')
+      .select('power_phrase, category')
+      .eq('vault_id', vaultId);
 
-INDUSTRY STANDARDS (${targetRole} in ${targetIndustry}):
-${JSON.stringify(industryResearch, null, 2)}
+    const { data: existingSkills } = await supabase
+      .from('vault_transferable_skills')
+      .select('stated_skill')
+      .eq('vault_id', vaultId);
 
-Generate 15-20 targeted questions that:
-1. QUANTIFY vague achievements (e.g., "led team" → ask team size, budget)
-2. PROBE FOR GAPS in industry-expected experiences
-3. DISCOVER HIDDEN ACHIEVEMENTS not on resume
-4. IDENTIFY TRANSFERABLE SKILLS and soft skills
-5. EXPLORE COMPETITIVE ADVANTAGES unique to this person
+    // Generate targeted questions using AI
+    const prompt = `You are an expert career coach conducting an intelligent interview. Based on the resume and industry research, generate 15-20 targeted questions organized into 3-4 batches.
 
-Return a JSON array of question objects with this structure:
+**Resume Summary**: ${resumeData.resumeText.substring(0, 500)}...
+**Target Role**: ${targetRole}
+**Target Industry**: ${targetIndustry}
+**Industry Standards**: ${JSON.stringify(industryResearch).substring(0, 800)}
+
+**Existing Vault Data**:
+- Power Phrases: ${existingPhrases?.length || 0} items
+- Skills: ${existingSkills?.length || 0} items
+
+Generate questions that:
+1. Fill gaps in their career vault compared to industry standards
+2. Uncover hidden achievements and metrics
+3. Explore leadership philosophy and soft skills
+4. Discover transferable skills they haven't mentioned
+
+Format as JSON array of batches:
 [
   {
-    "id": "q1",
-    "type": "quantify_achievement|gap_probe|hidden_achievement|soft_skills|competitive_advantage",
-    "category": "leadership_scope|regulatory|board_experience|soft_skills|etc",
-    "question": "Clear, specific question",
-    "inputType": "multiple_choice|checkbox_grid|range_slider|textarea|yes_no_expand",
-    "options": [
-      { "value": "option1", "label": "Display text", "icon": "emoji" }
+    "category": "Quantifiable Achievements",
+    "description": "Let's uncover the metrics behind your accomplishments",
+    "questions": [
+      {
+        "text": "What was the largest budget you managed?",
+        "type": "text",
+        "impact": 3
+      }
     ],
-    "followUp": "Optional follow-up question if they select certain options",
-    "why": "Why this question matters (shown to user)",
-    "impactScore": 15,
-    "priority": 1-3
+    "totalImpact": 15
   }
 ]
 
-CRITICAL RULES:
-- Only ask questions that ADD VALUE beyond the resume
-- Make options actionable and specific
-- Use emojis for visual appeal
-- Group related questions by category
-- Prioritize high-impact questions
-- Don't ask about things already clearly stated in resume
-`;
+Each question should have:
+- text: Clear, specific question
+- type: "text", "number", or "multiple_choice"
+- impact: 1-5 (how much this helps their vault)
+- options: (only for multiple_choice)`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert career coach who generates targeted questions to build comprehensive career profiles. Always respond with valid JSON arrays.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: 'You are an expert career coach. Generate intelligent, targeted questions in valid JSON format.' },
+          { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
-      }),
+        response_format: { type: "json_object" }
+      })
     });
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI API error: ${aiResponse.status}`);
+    if (!response.ok) {
+      throw new Error(`AI API error: ${response.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    const questionsContent = aiData.choices[0]?.message?.content || '[]';
+    const aiData = await response.json();
+    let questionBatches;
     
-    // Extract JSON from markdown if present
-    let questions;
     try {
-      const jsonMatch = questionsContent.match(/```json\n([\s\S]*?)\n```/) || 
-                       questionsContent.match(/```\n([\s\S]*?)\n```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : questionsContent;
-      questions = JSON.parse(jsonStr);
+      const content = aiData.choices[0].message.content;
+      const parsed = JSON.parse(content);
+      questionBatches = parsed.batches || parsed.questionBatches || parsed;
     } catch (parseError) {
-      console.error('[GENERATE-QUESTIONS] Parse error:', parseError);
-      questions = [];
+      console.error('[INTELLIGENT QUESTIONS] Failed to parse AI response, using fallback');
+      // Fallback questions
+      questionBatches = generateFallbackQuestions(targetRole);
     }
 
-    // Sort by priority and impact
-    questions.sort((a: any, b: any) => {
-      if (a.priority !== b.priority) return a.priority - b.priority;
-      return (b.impactScore || 0) - (a.impactScore || 0);
-    });
-
-    // Group questions by category for batching
-    const questionBatches: any[] = [];
-    const categories = [...new Set(questions.map((q: any) => q.category))];
-    
-    for (const category of categories) {
-      const categoryQuestions = questions.filter((q: any) => q.category === category);
-      questionBatches.push({
-        category,
-        questions: categoryQuestions.slice(0, 5), // Max 5 questions per batch
-        totalImpact: categoryQuestions.reduce((sum: number, q: any) => sum + (q.impactScore || 0), 0)
-      });
-    }
-
-    console.log('[GENERATE-QUESTIONS] Generated', questions.length, 'questions in', questionBatches.length, 'batches');
+    console.log('[INTELLIGENT QUESTIONS] Generated', questionBatches.length, 'question batches');
 
     return new Response(
       JSON.stringify({
         success: true,
-        questions,
-        questionBatches,
-        totalQuestions: questions.length,
-        metadata: {
-          targetRole,
-          targetIndustry,
-          vaultId
-        }
+        questionBatches
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('[GENERATE-QUESTIONS] Error:', error);
+    console.error('[INTELLIGENT QUESTIONS] Error:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
+        success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        success: false 
+        questionBatches: generateFallbackQuestions('Professional')
       }),
-      { 
-        status: 500,
+      {
+        status: 200, // Still return 200 with fallback
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
 });
+
+function generateFallbackQuestions(targetRole: string) {
+  return [
+    {
+      category: "Achievements & Metrics",
+      description: "Let's quantify your impact",
+      questions: [
+        { text: "What was your largest budget or financial responsibility?", type: "text", impact: 4 },
+        { text: "How many people did you manage or influence?", type: "number", impact: 4 },
+        { text: "What percentage improvements did you achieve?", type: "text", impact: 5 }
+      ],
+      totalImpact: 13
+    },
+    {
+      category: "Leadership & Influence",
+      description: "Understanding your leadership approach",
+      questions: [
+        { text: "Describe a time you led through ambiguity or change", type: "text", impact: 4 },
+        { text: "What's your approach to developing team members?", type: "text", impact: 3 }
+      ],
+      totalImpact: 7
+    }
+  ];
+}
