@@ -438,6 +438,45 @@ export const VaultReviewInterface = ({
     }
   };
 
+  const handleSkipReview = async () => {
+    try {
+      setIsSaving(true);
+
+      console.log('[VAULT-REVIEW] Skipping review - auto-approving all items');
+
+      // Update the vault's completion status
+      const { error: updateError } = await supabase
+        .from('career_vault')
+        .update({ 
+          reviewed: true,
+          reviewed_at: new Date().toISOString(),
+          review_completion_percentage: 100
+        })
+        .eq('id', vaultId);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Review Skipped",
+        description: "All items have been auto-approved. You can edit them later from your vault dashboard.",
+      });
+
+      // Clear any saved progress
+      localStorage.removeItem(`vault_review_progress_${vaultId}`);
+      
+      onComplete();
+    } catch (error) {
+      console.error('[VAULT-REVIEW] Error skipping review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to skip review. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleComplete = async () => {
     setIsSaving(true);
 
@@ -566,9 +605,19 @@ export const VaultReviewInterface = ({
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
             <CardTitle>Review & Clean Up Your Vault</CardTitle>
-            <Badge variant="secondary">
-              {currentIndex + 1} of {items.length}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary">
+                {currentIndex + 1} of {items.length}
+              </Badge>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSkipReview}
+                disabled={isSaving}
+              >
+                Skip Review & Continue
+              </Button>
+            </div>
           </div>
           <CardDescription className="space-y-2">
             <p>AI has already populated your vault with {items.length} intelligence items extracted from your resume. These are <strong>facts about you</strong>, not predictions.</p>

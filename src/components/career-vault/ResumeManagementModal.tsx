@@ -60,8 +60,6 @@ export const ResumeManagementModal = ({
           supabase.from('vault_behavioral_indicators').delete().eq('vault_id', vaultId),
           supabase.from('vault_interview_responses').delete().eq('vault_id', vaultId),
           supabase.from('vault_resume_milestones').delete().eq('vault_id', vaultId),
-          supabase.from('vault_projects').delete().eq('vault_id', vaultId),
-          supabase.from('vault_stakeholder_management').delete().eq('vault_id', vaultId),
           supabase.from('vault_confirmed_skills').delete().eq('user_id', user.id), // Uses user_id!
         ]);
 

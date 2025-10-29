@@ -813,6 +813,22 @@ Return VALID JSON only with this structure:
 
     console.log(`[AUTO-POPULATE-VAULT] Successfully inserted ${successCount}/${totalInserted} items`);
 
+    // CRITICAL FIX: Calculate ACTUAL item count from intelligence data, not promise results
+    const actualItemCount = (
+      (intelligence.powerPhrases?.length || 0) +
+      (intelligence.transferableSkills?.length || 0) +
+      (intelligence.hiddenCompetencies?.length || 0) +
+      (intelligence.softSkills?.length || 0) +
+      (intelligence.leadershipPhilosophy?.length || 0) +
+      (intelligence.executivePresence?.length || 0) +
+      (intelligence.personalityTraits?.length || 0) +
+      (intelligence.workStyle?.length || 0) +
+      (intelligence.values?.length || 0) +
+      (intelligence.behavioralIndicators?.length || 0)
+    );
+
+    console.log(`[AUTO-POPULATE-VAULT] ACTUAL ITEM COUNT: ${actualItemCount} items across all categories`);
+
     // Update career vault with totals and metadata
     const updateData: any = {
       interview_completion_percentage: 100, // Auto-populated vaults are 100% complete
@@ -820,7 +836,7 @@ Return VALID JSON only with this structure:
       auto_population_confidence: intelligence.summary?.confidence || 'medium',
       overall_strength_score: intelligence.summary?.completenessScore || 85,
       last_updated_at: new Date().toISOString(),
-      extraction_item_count: successCount, // CRITICAL FIX: Set the actual count
+      extraction_item_count: actualItemCount, // FIXED: Use calculated count from data arrays
       extraction_timestamp: new Date().toISOString()
     };
 
