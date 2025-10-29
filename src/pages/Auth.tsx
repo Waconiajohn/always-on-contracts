@@ -23,29 +23,58 @@ const Auth = () => {
   const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        // Check if user has completed vault onboarding
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('resume_raw_text, review_completion_percentage')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        
-        // If vault exists and has resume, go to home, otherwise start onboarding
-        navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
+        // Defer vault check to avoid blocking auth state changes
+        setTimeout(async () => {
+          try {
+            const { data: vault, error } = await supabase
+              .from('career_vault')
+              .select('resume_raw_text, review_completion_percentage')
+              .eq('user_id', session.user.id)
+              .maybeSingle();
+            
+            if (error) {
+              console.error('Error checking vault:', error);
+              // If error, default to onboarding
+              navigate("/career-vault-onboarding");
+              return;
+            }
+            
+            // If vault exists and has resume, go to home, otherwise start onboarding
+            navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
+          } catch (err) {
+            console.error('Unexpected error:', err);
+            navigate("/career-vault-onboarding");
+          }
+        }, 0);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('resume_raw_text, review_completion_percentage')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        
-        navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
+        setTimeout(async () => {
+          try {
+            const { data: vault, error } = await supabase
+              .from('career_vault')
+              .select('resume_raw_text, review_completion_percentage')
+              .eq('user_id', session.user.id)
+              .maybeSingle();
+            
+            if (error) {
+              console.error('Error checking vault:', error);
+              navigate("/career-vault-onboarding");
+              return;
+            }
+            
+            navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
+          } catch (err) {
+            console.error('Unexpected error:', err);
+            navigate("/career-vault-onboarding");
+          }
+        }, 0);
       }
     });
 
