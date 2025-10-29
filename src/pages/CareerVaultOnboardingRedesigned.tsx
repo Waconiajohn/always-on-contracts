@@ -228,21 +228,27 @@ const CareerVaultOnboardingRedesigned = () => {
 
       // Quick AI analysis to detect role/industry
       try {
+        console.log('[UPLOAD] Calling process-resume for role/industry detection...');
         const { data: functionData, error: functionError } = await supabase.functions.invoke('process-resume', {
           body: { resumeText: text }
         });
 
         if (functionError) {
           console.error('[UPLOAD] Process-resume error:', functionError);
-        } else if (functionData?.role) {
-          setDetectedRole(functionData.role);
-        }
-        if (functionData?.industry) {
-          setDetectedIndustry(functionData.industry);
+        } else if (functionData) {
+          console.log('[UPLOAD] Process-resume response:', functionData);
+          if (functionData.role) {
+            setDetectedRole(functionData.role);
+            console.log('[UPLOAD] Detected role:', functionData.role);
+          }
+          if (functionData.industry) {
+            setDetectedIndustry(functionData.industry);
+            console.log('[UPLOAD] Detected industry:', functionData.industry);
+          }
         }
       } catch (analysisError) {
         console.error('[UPLOAD] Analysis failed, continuing anyway:', analysisError);
-        // Don't block the flow if analysis fails
+        // Don't block the flow if analysis fails - will use defaults
       }
 
       toast({
