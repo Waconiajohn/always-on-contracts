@@ -164,7 +164,12 @@ const CareerVaultOnboardingRedesigned = () => {
     
     if (!allowedTypes.includes(resumeFile.type)) {
       console.warn('[UPLOAD] Unsupported file type:', resumeFile.type);
-      // Allow upload anyway but warn
+      toast({
+        title: 'Unsupported File Type',
+        description: 'Please upload a PDF, Word document, or text file',
+        variant: 'destructive'
+      });
+      return;
     }
 
     console.log('[UPLOAD] Starting upload...', {
@@ -187,53 +192,7 @@ const CareerVaultOnboardingRedesigned = () => {
         return;
       }
 
-      // Read resume text - handle binary files properly
-      console.log('[UPLOAD] Reading resume file...');
-      let text = '';
-      
-      // For text files, read directly
-      if (resumeFile.type === 'text/plain' || resumeFile.name.endsWith('.txt')) {
-        text = await resumeFile.text();
-      } else {
-        // For binary files (PDF, DOCX), read as text but clean null bytes
-        const rawText = await resumeFile.text();
-        // Remove null bytes and other control characters that PostgreSQL can't handle
-        text = rawText.replace(/\u0000/g, '').replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F]/g, '');
-        console.log('[UPLOAD] Cleaned binary file text, removed control characters');
-      }
-      
-      console.log('[UPLOAD] Resume text length:', text.length);
-      
-      if (text.length === 0) {
-        toast({
-          title: 'Empty File',
-          description: 'The resume file appears to be empty or unreadable. Please upload a valid resume.',
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      setResumeText(text);
-
-      // Upload to storage
-      const fileName = `${user.id}/${Date.now()}_${resumeFile.name}`;
-      console.log('[UPLOAD] Uploading to storage:', fileName);
-      const { error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, resumeFile, { upsert: true });
-
-      if (uploadError) {
-        console.error('[UPLOAD] Storage upload error:', uploadError);
-        toast({
-          title: 'Upload Failed',
-          description: `Storage error: ${uploadError.message}`,
-          variant: 'destructive'
-        });
-        throw uploadError;
-      }
-      console.log('[UPLOAD] Storage upload successful');
-
-      // Create or update vault
+      // Create or get vault ID first
       let currentVaultId = vaultId;
       
       if (!currentVaultId) {
@@ -244,8 +203,7 @@ const CareerVaultOnboardingRedesigned = () => {
             target_roles: targetRoles,
             target_industries: targetIndustries,
             excluded_industries: excludedIndustries,
-            career_direction: careerDirection,
-            resume_raw_text: text
+            career_direction: careerDirection
           })
           .select()
           .single();
@@ -260,56 +218,113 @@ const CareerVaultOnboardingRedesigned = () => {
         }
         currentVaultId = newVault.id;
         setVaultId(currentVaultId);
-      } else {
-        const { error: updateError } = await supabase
-          .from('career_vault')
-          .update({
-            target_roles: targetRoles,
-            target_industries: targetIndustries,
-            excluded_industries: excludedIndustries,
-            career_direction: careerDirection,
-            resume_raw_text: text
-          })
-          .eq('id', currentVaultId);
-
-        if (updateError) {
-          toast({
-            title: 'Vault Update Failed',
-            description: updateError.message,
-            variant: 'destructive'
-          });
-          throw updateError;
-        }
       }
 
-      // Quick AI analysis to detect role/industry
-      try {
-        console.log('[UPLOAD] Calling process-resume for role/industry detection...');
-        const { data: functionData, error: functionError } = await supabase.functions.invoke('process-resume', {
-          body: { resumeText: text }
-        });
+      // Convert file to base64
+      console.log('[UPLOAD] Converting file to base64...');
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1]; // Remove data:... prefix
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(resumeFile);
+      });
 
-        if (functionError) {
-          console.error('[UPLOAD] Process-resume error:', functionError);
-        } else if (functionData) {
-          console.log('[UPLOAD] Process-resume response:', functionData);
-          if (functionData.role) {
-            setDetectedRole(functionData.role);
-            console.log('[UPLOAD] Detected role:', functionData.role);
-          }
-          if (functionData.industry) {
-            setDetectedIndustry(functionData.industry);
-            console.log('[UPLOAD] Detected industry:', functionData.industry);
+      console.log('[UPLOAD] Calling process-resume edge function...');
+      
+      // Call process-resume edge function with base64 data
+      const { data: functionData, error: functionError } = await supabase.functions.invoke(
+        'process-resume',
+        {
+          body: {
+            resumeFile: base64Data,
+            fileType: resumeFile.type,
+            vaultId: currentVaultId
           }
         }
-      } catch (analysisError) {
-        console.error('[UPLOAD] Analysis failed, continuing anyway:', analysisError);
-        // Don't block the flow if analysis fails - will use defaults
+      );
+
+      if (functionError) {
+        console.error('[UPLOAD] Process-resume error:', functionError);
+        toast({
+          title: 'Processing Failed',
+          description: functionError.message || 'Failed to process resume',
+          variant: 'destructive'
+        });
+        throw functionError;
+      }
+
+      if (!functionData) {
+        throw new Error('No data returned from resume processing');
+      }
+
+      console.log('[UPLOAD] Process-resume response:', functionData);
+
+      // Check if resume processing was successful
+      if (!functionData.success) {
+        toast({
+          title: 'Processing Failed',
+          description: functionData.error || 'Failed to process resume',
+          variant: 'destructive'
+        });
+        throw new Error(functionData.error || 'Resume processing failed');
+      }
+
+      // Extract properly parsed text and detected data
+      const resumeText = functionData.resumeText || '';
+      const detectedRoleValue = functionData.role || null;
+      const detectedIndustryValue = functionData.industry || null;
+
+      console.log('[UPLOAD] Extracted data:', {
+        textLength: resumeText.length,
+        role: detectedRoleValue,
+        industry: detectedIndustryValue
+      });
+
+      if (!resumeText || resumeText.length === 0) {
+        toast({
+          title: 'Empty Resume',
+          description: 'Could not extract text from the resume. Please ensure the file is not empty or corrupted.',
+          variant: 'destructive'
+        });
+        throw new Error('Resume text extraction failed');
+      }
+
+      // Update state with properly parsed data
+      setResumeText(resumeText);
+      setDetectedRole(detectedRoleValue);
+      setDetectedIndustry(detectedIndustryValue);
+
+      // Update vault with parsed resume text
+      const { error: updateError } = await supabase
+        .from('career_vault')
+        .update({
+          resume_raw_text: resumeText,
+          target_roles: targetRoles,
+          target_industries: targetIndustries,
+          excluded_industries: excludedIndustries,
+          career_direction: careerDirection
+        })
+        .eq('id', currentVaultId);
+
+      if (updateError) {
+        console.error('[UPLOAD] Vault update error:', updateError);
+        toast({
+          title: 'Update Failed',
+          description: updateError.message,
+          variant: 'destructive'
+        });
+        throw updateError;
       }
 
       toast({
-        title: 'Resume Uploaded!',
-        description: 'Now let\'s define your career direction...'
+        title: 'Resume Uploaded Successfully!',
+        description: detectedRoleValue 
+          ? `Detected role: ${detectedRoleValue}` 
+          : 'Now let\'s define your career direction...'
       });
 
       setCurrentStep('focus');
