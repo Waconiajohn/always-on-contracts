@@ -240,27 +240,19 @@ export const CareerFocusClarifier = ({
 
   // Step 2: Focus Refinement with Smart Defaults
   if (step === 2) {
-    const commonRoles = [
-      "VP Engineering", "CTO", "Engineering Director",
-      "VP Product", "Product Director", "Head of Product",
-      "VP Operations", "COO", "Operations Director",
-      "VP Marketing", "CMO", "Marketing Director",
-      "VP Sales", "CRO", "Sales Director"
-    ];
+    // Always start with detected role/industry from resume
+    const baseRoles = detectedRole ? [detectedRole] : [];
+    const baseIndustries = detectedIndustry ? [detectedIndustry] : [];
 
-    const commonIndustries = [
-      "FinTech", "Healthcare Tech", "SaaS", "E-commerce",
-      "Enterprise Software", "Consulting", "Manufacturing",
-      "Retail", "Education", "Media & Entertainment"
-    ];
-
-    // Use AI suggestions for pivot, common lists for explore
+    // For pivot, use AI suggestions OR detected + similar variations
+    // For explore, start with detected only (user adds more via custom input)
+    // For stay, just detected role/industry (already pre-populated)
     const displayRoles = careerDirection === 'pivot' && suggestedRoles.length > 0 
       ? suggestedRoles 
-      : commonRoles;
+      : baseRoles;
     const displayIndustries = careerDirection === 'pivot' && suggestedIndustries.length > 0
       ? suggestedIndustries
-      : commonIndustries;
+      : baseIndustries;
 
     return (
       <Card className="w-full max-w-3xl mx-auto">
@@ -271,9 +263,9 @@ export const CareerFocusClarifier = ({
             {careerDirection === 'explore' && 'Define Your Target Focus'}
           </CardTitle>
           <CardDescription>
-            {careerDirection === 'stay' && 'These are pre-filled based on your background. You can add similar roles below.'}
+            {careerDirection === 'stay' && 'Your detected role and industry are pre-filled. Add similar roles using the custom input below.'}
             {careerDirection === 'pivot' && 'Based on your transferable skills, these adjacent paths might be a good fit.'}
-            {careerDirection === 'explore' && 'Select any roles and industries you\'re interested in exploring.'}
+            {careerDirection === 'explore' && 'Your current role/industry is shown below. Add any other roles and industries you want to explore using the custom inputs.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -301,10 +293,10 @@ export const CareerFocusClarifier = ({
                   ))}
                 </div>
                 <div>
-                  <Label htmlFor="customRoles">Add Custom Roles (comma-separated)</Label>
+                  <Label htmlFor="customRoles">Add More Roles (comma-separated)</Label>
                   <Input
                     id="customRoles"
-                    placeholder="e.g., Head of Product, VP Operations"
+                    placeholder="e.g., Senior Manager, Director of Engineering"
                     value={customRoles}
                     onChange={(e) => setCustomRoles(e.target.value)}
                     className="mt-1"
@@ -327,10 +319,10 @@ export const CareerFocusClarifier = ({
                   ))}
                 </div>
                 <div>
-                  <Label htmlFor="customIndustries">Add Custom Industries (comma-separated)</Label>
+                  <Label htmlFor="customIndustries">Add More Industries (comma-separated)</Label>
                   <Input
                     id="customIndustries"
-                    placeholder="e.g., Artificial Intelligence, Renewable Energy"
+                    placeholder="e.g., Healthcare, Financial Services"
                     value={customIndustries}
                     onChange={(e) => setCustomIndustries(e.target.value)}
                     className="mt-1"
