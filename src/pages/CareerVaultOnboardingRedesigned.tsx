@@ -96,8 +96,11 @@ const CareerVaultOnboardingRedesigned = () => {
         .maybeSingle();
 
       if (existingVault?.resume_raw_text) {
-        console.log('[REDESIGNED ONBOARDING] User has existing vault - allowing upgrade to new flow');
+        console.log('[REDESIGNED ONBOARDING] User has existing vault with resume - resuming flow');
         setVaultId(existingVault.id);
+        
+        // Load existing resume data
+        setResumeText(existingVault.resume_raw_text);
         
         // Pre-populate with existing data if available
         if (existingVault.target_roles && existingVault.target_roles.length > 0) {
@@ -109,6 +112,27 @@ const CareerVaultOnboardingRedesigned = () => {
         if (existingVault.career_direction && 
             ['stay', 'pivot', 'explore'].includes(existingVault.career_direction)) {
           setCareerDirection(existingVault.career_direction as 'stay' | 'pivot' | 'explore');
+        }
+        
+        // Load detected role/industry from initial_analysis if available
+        const analysis = existingVault.initial_analysis as any;
+        if (analysis?.role) {
+          setDetectedRole(analysis.role as string);
+        }
+        if (analysis?.industry) {
+          setDetectedIndustry(analysis.industry as string);
+        }
+        
+        // Determine which step to resume from based on completion
+        if (existingVault.review_completion_percentage === 100) {
+          // Vault is complete, go to complete screen
+          setCurrentStep('complete');
+        } else if (existingVault.target_roles && existingVault.target_roles.length > 0) {
+          // Has resume and focus, continue to research or questions
+          setCurrentStep('research');
+        } else {
+          // Has resume but no focus yet, start at focus step
+          setCurrentStep('focus');
         }
       } else if (existingVault) {
         // Empty vault exists, just set the ID
