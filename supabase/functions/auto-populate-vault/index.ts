@@ -819,7 +819,9 @@ Return VALID JSON only with this structure:
       auto_populated: true,
       auto_population_confidence: intelligence.summary?.confidence || 'medium',
       overall_strength_score: intelligence.summary?.completenessScore || 85,
-      last_updated_at: new Date().toISOString()
+      last_updated_at: new Date().toISOString(),
+      extraction_item_count: successCount, // CRITICAL FIX: Set the actual count
+      extraction_timestamp: new Date().toISOString()
     };
 
     // Count items per category for totals

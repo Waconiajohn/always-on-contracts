@@ -47,7 +47,6 @@ const CareerVaultOnboardingEnhanced = () => {
   const hasCheckedVault = useRef(false);
   const [showDuplicationDialog, setShowDuplicationDialog] = useState(false);
   const [existingVaultData, setExistingVaultData] = useState<any>(null);
-  const [pendingUpload, setPendingUpload] = useState(false);
 
   const steps = [
     { id: 'upload', label: 'Upload Resume', icon: Upload },
@@ -102,15 +101,17 @@ const CareerVaultOnboardingEnhanced = () => {
     }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = async (bypassDuplicationCheck: boolean = false) => {
     if (!resumeFile) return;
 
-    // Check for existing vault before upload
-    if (existingVaultData && !pendingUpload) {
+    // Check for existing vault before upload (unless bypassing)
+    if (existingVaultData && !bypassDuplicationCheck) {
+      console.log('[UPLOAD] Existing vault detected, showing duplication dialog');
       setShowDuplicationDialog(true);
       return;
     }
 
+    console.log('[UPLOAD] Starting upload process', { bypassDuplicationCheck });
     setIsUploading(true);
 
     try {
@@ -200,7 +201,6 @@ const CareerVaultOnboardingEnhanced = () => {
         description: 'Now let\'s set your career goals'
       });
 
-      setPendingUpload(false);
       setCurrentStep('goals');
     } catch (error: any) {
       console.error('[UPLOAD] Error:', error);
@@ -211,15 +211,15 @@ const CareerVaultOnboardingEnhanced = () => {
       });
     } finally {
       setIsUploading(false);
-      setPendingUpload(false);
     }
   };
 
-  const handleReplaceVault = () => {
-    setPendingUpload(true);
+  const handleReplaceVault = async () => {
+    console.log('[REPLACE] User confirmed vault replacement');
     setShowDuplicationDialog(false);
-    // Trigger the upload
-    setTimeout(() => handleUpload(), 0);
+    
+    // Call handleUpload with bypass flag to skip duplication check
+    await handleUpload(true);
   };
 
   const handleGoalsComplete = async (goalsData: { target_roles: string[]; target_industries: string[] }) => {

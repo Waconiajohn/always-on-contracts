@@ -38,12 +38,15 @@ export const ResumeManagementModal = ({
       const text = await file.text();
 
       if (selectedAction === 'replace') {
+        console.log('[VAULT-CLEAR] Starting complete vault replacement...');
+        
         toast({
           title: 'Clearing vault...',
           description: 'Removing old data before processing new resume.',
         });
 
         // CRITICAL: Delete ALL existing vault data first and wait for completion
+        // Note: vault_confirmed_skills uses user_id, not vault_id
         const deleteResults = await Promise.allSettled([
           supabase.from('vault_power_phrases').delete().eq('vault_id', vaultId),
           supabase.from('vault_transferable_skills').delete().eq('vault_id', vaultId),
@@ -57,18 +60,21 @@ export const ResumeManagementModal = ({
           supabase.from('vault_behavioral_indicators').delete().eq('vault_id', vaultId),
           supabase.from('vault_interview_responses').delete().eq('vault_id', vaultId),
           supabase.from('vault_resume_milestones').delete().eq('vault_id', vaultId),
+          supabase.from('vault_projects').delete().eq('vault_id', vaultId),
+          supabase.from('vault_stakeholder_management').delete().eq('vault_id', vaultId),
+          supabase.from('vault_confirmed_skills').delete().eq('user_id', user.id), // Uses user_id!
         ]);
 
         // Check if any deletes failed
         const failedDeletes = deleteResults.filter(r => r.status === 'rejected');
         if (failedDeletes.length > 0) {
-          console.error('Some vault deletes failed:', failedDeletes);
+          console.error('[VAULT-CLEAR] Some vault deletes failed:', failedDeletes);
           throw new Error('Failed to clear vault completely. Please try again.');
         }
 
         console.log('[VAULT-CLEAR] All vault items deleted successfully');
 
-        // Reset vault progress and update resume text
+        // CRITICAL: Reset vault progress AND extraction_item_count to 0
         const { error: resetError } = await supabase
           .from('career_vault')
           .update({
@@ -85,9 +91,11 @@ export const ResumeManagementModal = ({
             total_values: 0,
             total_behavioral_indicators: 0,
             overall_strength_score: 0,
+            extraction_item_count: 0, // CRITICAL FIX: Reset to 0
             resume_raw_text: text,
             auto_populated: false,
-            reviewed: false
+            reviewed: false,
+            extraction_timestamp: new Date().toISOString()
           })
           .eq('id', vaultId);
 
@@ -96,7 +104,23 @@ export const ResumeManagementModal = ({
           throw new Error('Failed to reset vault progress. Please try again.');
         }
 
-        console.log('[VAULT-CLEAR] Vault reset complete, starting AI analysis...');
+        console.log('[VAULT-CLEAR] Vault reset complete');
+
+        // VERIFICATION STEP: Confirm vault is actually empty
+        const verificationResults = await Promise.all([
+          supabase.from('vault_power_phrases').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+          supabase.from('vault_transferable_skills').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+          supabase.from('vault_confirmed_skills').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+        ]);
+
+        const totalRemaining = verificationResults.reduce((sum, result) => sum + (result.count || 0), 0);
+        
+        if (totalRemaining > 0) {
+          console.error('[VAULT-CLEAR] Verification failed: Found', totalRemaining, 'remaining items');
+          throw new Error(`Vault clear verification failed: ${totalRemaining} items still exist. Please try again.`);
+        }
+
+        console.log('[VAULT-CLEAR] Verification passed: Vault is empty. Starting AI analysis...');
 
         toast({
           title: 'Vault cleared successfully',
