@@ -240,9 +240,11 @@ const CareerVaultOnboardingRedesigned = () => {
         'process-resume',
         {
           body: {
-            resumeFile: base64Data,
+            fileData: base64Data,
+            fileName: resumeFile.name,
+            fileSize: resumeFile.size,
             fileType: resumeFile.type,
-            vaultId: currentVaultId
+            userId: user.id
           }
         }
       );
