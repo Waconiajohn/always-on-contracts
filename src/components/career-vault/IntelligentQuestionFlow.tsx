@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { QuestionBatchCard } from "./QuestionBatchCard";
-import { CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 
 interface Question {
   id: string;
@@ -38,7 +37,6 @@ export const IntelligentQuestionFlow = ({
 }: IntelligentQuestionFlowProps) => {
   const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
-  const [currentBatchResponses, setCurrentBatchResponses] = useState<any[]>([]);
   const [estimatedStrength, setEstimatedStrength] = useState(vaultStrength);
 
   const currentBatch = questionBatches[currentBatchIndex];
@@ -54,7 +52,6 @@ export const IntelligentQuestionFlow = ({
 
     if (currentBatchIndex < questionBatches.length - 1) {
       setCurrentBatchIndex(prev => prev + 1);
-      setCurrentBatchResponses([]);
     } else {
       onComplete(allResponses);
     }

@@ -70,7 +70,6 @@ export const AIResearchProgress = ({
         const steps = stage.duration * 10;
         for (let j = 0; j <= steps; j++) {
           await new Promise(resolve => setTimeout(resolve, 100));
-          const stageProgress = (j / steps) * 100;
           const totalProgress = ((i + (j / steps)) / stages.length) * 100;
           setProgress(totalProgress);
         }

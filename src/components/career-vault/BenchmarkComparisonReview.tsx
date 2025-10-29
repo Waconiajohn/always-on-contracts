@@ -98,8 +98,7 @@ export const BenchmarkComparisonReview = ({
               <div className="flex items-center gap-2">
                 <Progress 
                   value={gap.score} 
-                  className="flex-1"
-                  indicatorClassName={gap.status === 'exceeds' ? 'bg-success' : gap.status === 'below' ? 'bg-destructive' : ''}
+                  className={`flex-1 ${gap.status === 'exceeds' ? '[&>div]:bg-success' : gap.status === 'below' ? '[&>div]:bg-destructive' : ''}`}
                 />
                 <span className="text-sm font-medium">{gap.score}%</span>
               </div>
