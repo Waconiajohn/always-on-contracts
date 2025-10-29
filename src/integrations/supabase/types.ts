@@ -598,13 +598,19 @@ export type Database = {
         Row: {
           auto_populated: boolean | null
           auto_population_confidence: string | null
+          benchmark_comparison: Json | null
+          career_direction: string | null
           created_at: string
+          excluded_industries: string[] | null
           extraction_item_count: number | null
           extraction_run_id: string | null
           extraction_timestamp: string | null
           focus_set_at: string | null
+          gap_analysis: Json | null
           id: string
+          industry_research_completed: boolean | null
           initial_analysis: Json | null
+          intelligent_qa_completed: boolean | null
           interview_completion_percentage: number | null
           last_updated_at: string
           overall_strength_score: number | null
@@ -624,17 +630,25 @@ export type Database = {
           total_work_style: number | null
           user_id: string
           vault_name: string | null
+          vault_strength_after_qa: number | null
+          vault_strength_before_qa: number | null
         }
         Insert: {
           auto_populated?: boolean | null
           auto_population_confidence?: string | null
+          benchmark_comparison?: Json | null
+          career_direction?: string | null
           created_at?: string
+          excluded_industries?: string[] | null
           extraction_item_count?: number | null
           extraction_run_id?: string | null
           extraction_timestamp?: string | null
           focus_set_at?: string | null
+          gap_analysis?: Json | null
           id?: string
+          industry_research_completed?: boolean | null
           initial_analysis?: Json | null
+          intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_updated_at?: string
           overall_strength_score?: number | null
@@ -654,17 +668,25 @@ export type Database = {
           total_work_style?: number | null
           user_id: string
           vault_name?: string | null
+          vault_strength_after_qa?: number | null
+          vault_strength_before_qa?: number | null
         }
         Update: {
           auto_populated?: boolean | null
           auto_population_confidence?: string | null
+          benchmark_comparison?: Json | null
+          career_direction?: string | null
           created_at?: string
+          excluded_industries?: string[] | null
           extraction_item_count?: number | null
           extraction_run_id?: string | null
           extraction_timestamp?: string | null
           focus_set_at?: string | null
+          gap_analysis?: Json | null
           id?: string
+          industry_research_completed?: boolean | null
           initial_analysis?: Json | null
+          intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_updated_at?: string
           overall_strength_score?: number | null
@@ -684,8 +706,107 @@ export type Database = {
           total_work_style?: number | null
           user_id?: string
           vault_name?: string | null
+          vault_strength_after_qa?: number | null
+          vault_strength_before_qa?: number | null
         }
         Relationships: []
+      }
+      career_vault_industry_research: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          perplexity_citations: string[] | null
+          research_results: Json
+          research_type: string
+          target_industry: string
+          target_role: string
+          updated_at: string | null
+          vault_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          perplexity_citations?: string[] | null
+          research_results?: Json
+          research_type: string
+          target_industry: string
+          target_role: string
+          updated_at?: string | null
+          vault_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          perplexity_citations?: string[] | null
+          research_results?: Json
+          research_type?: string
+          target_industry?: string
+          target_role?: string
+          updated_at?: string | null
+          vault_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_vault_industry_research_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_vault_intelligent_responses: {
+        Row: {
+          created_at: string | null
+          created_items: string[] | null
+          id: string
+          impact_score: number | null
+          question_category: string
+          question_id: string
+          question_text: string
+          question_type: string
+          skipped: boolean | null
+          user_response: Json
+          vault_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_items?: string[] | null
+          id?: string
+          impact_score?: number | null
+          question_category: string
+          question_id: string
+          question_text: string
+          question_type: string
+          skipped?: boolean | null
+          user_response?: Json
+          vault_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_items?: string[] | null
+          id?: string
+          impact_score?: number | null
+          question_category?: string
+          question_id?: string
+          question_text?: string
+          question_type?: string
+          skipped?: boolean | null
+          user_response?: Json
+          vault_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_vault_intelligent_responses_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coaching_sessions: {
         Row: {
