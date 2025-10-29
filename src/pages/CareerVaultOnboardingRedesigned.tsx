@@ -189,8 +189,7 @@ const CareerVaultOnboardingRedesigned = () => {
             target_industries: targetIndustries,
             excluded_industries: excludedIndustries,
             career_direction: careerDirection,
-            resume_raw_text: text,
-            resume_file_name: resumeFile.name
+            resume_raw_text: text
           })
           .select()
           .single();
@@ -213,8 +212,7 @@ const CareerVaultOnboardingRedesigned = () => {
             target_industries: targetIndustries,
             excluded_industries: excludedIndustries,
             career_direction: careerDirection,
-            resume_raw_text: text,
-            resume_file_name: resumeFile.name
+            resume_raw_text: text
           })
           .eq('id', currentVaultId);
 
