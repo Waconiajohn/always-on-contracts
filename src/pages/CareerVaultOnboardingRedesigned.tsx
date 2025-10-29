@@ -76,7 +76,7 @@ const CareerVaultOnboardingRedesigned = () => {
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
-  // Check authentication
+  // Check authentication and handle existing vaults
   useEffect(() => {
     if (hasCheckedAuth.current) return;
     hasCheckedAuth.current = true;
@@ -88,16 +88,31 @@ const CareerVaultOnboardingRedesigned = () => {
         return;
       }
 
-      // Check for existing vault
+      // Check for existing vault with data
       const { data: existingVault } = await supabase
         .from('career_vault')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (existingVault) {
+      if (existingVault?.resume_raw_text) {
+        console.log('[REDESIGNED ONBOARDING] User has existing vault - allowing upgrade to new flow');
         setVaultId(existingVault.id);
-        // Optionally skip to a later step if they already have data
+        
+        // Pre-populate with existing data if available
+        if (existingVault.target_roles && existingVault.target_roles.length > 0) {
+          setTargetRoles(existingVault.target_roles);
+        }
+        if (existingVault.target_industries && existingVault.target_industries.length > 0) {
+          setTargetIndustries(existingVault.target_industries);
+        }
+        if (existingVault.career_direction && 
+            ['stay', 'pivot', 'explore'].includes(existingVault.career_direction)) {
+          setCareerDirection(existingVault.career_direction as 'stay' | 'pivot' | 'explore');
+        }
+      } else if (existingVault) {
+        // Empty vault exists, just set the ID
+        setVaultId(existingVault.id);
       }
     };
 
@@ -292,7 +307,17 @@ const CareerVaultOnboardingRedesigned = () => {
   };
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* New Experience Notice */}
+      <div className="bg-primary/10 border-b border-primary/20 py-3">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm font-medium text-primary">
+            ✨ New & Improved Career Vault - Now with industry intelligence powered by AI research!
+          </p>
+        </div>
+      </div>
+      
+      <div className="container max-w-4xl py-8 space-y-6">
       {/* Progress Header */}
       <div className="space-y-4">
         <div>
@@ -406,6 +431,7 @@ const CareerVaultOnboardingRedesigned = () => {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 };
