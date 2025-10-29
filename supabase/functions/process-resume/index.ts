@@ -813,6 +813,10 @@ serve(async (req) => {
       confidence_level: validation.confidence > 0.8 ? 'high' : validation.confidence > 0.6 ? 'medium' : 'low'
     });
 
+    // Extract role and industry for Career Vault redesign
+    const detectedRole = analysis.recommended_positions?.[0] || null;
+    const detectedIndustry = analysis.industry_expertise?.[0] || null;
+
     return new Response(JSON.stringify({
       success: true,
       analysis,
@@ -821,7 +825,9 @@ serve(async (req) => {
         (validation.confidence > 0.8 ? 'high' : validation.confidence > 0.6 ? 'medium' : 'low'),
       validationReason: validation.reason,
       dataQualityIssues: analysis.data_quality_issues || [],
-      confidenceBreakdown: analysis.confidence_scores
+      confidenceBreakdown: analysis.confidence_scores,
+      role: detectedRole,
+      industry: detectedIndustry
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

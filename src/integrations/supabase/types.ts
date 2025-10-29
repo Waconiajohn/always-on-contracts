@@ -713,100 +713,87 @@ export type Database = {
       }
       career_vault_industry_research: {
         Row: {
-          confidence_score: number | null
-          created_at: string | null
+          common_skills: Json | null
+          created_at: string
           id: string
-          perplexity_citations: string[] | null
-          research_results: Json
-          research_type: string
+          industry_trends: Json | null
+          key_metrics: Json | null
+          leadership_traits: Json | null
+          research_content: string
+          research_provider: string
           target_industry: string
           target_role: string
-          updated_at: string | null
+          updated_at: string
+          user_id: string
           vault_id: string | null
         }
         Insert: {
-          confidence_score?: number | null
-          created_at?: string | null
+          common_skills?: Json | null
+          created_at?: string
           id?: string
-          perplexity_citations?: string[] | null
-          research_results?: Json
-          research_type: string
+          industry_trends?: Json | null
+          key_metrics?: Json | null
+          leadership_traits?: Json | null
+          research_content: string
+          research_provider?: string
           target_industry: string
           target_role: string
-          updated_at?: string | null
+          updated_at?: string
+          user_id: string
           vault_id?: string | null
         }
         Update: {
-          confidence_score?: number | null
-          created_at?: string | null
+          common_skills?: Json | null
+          created_at?: string
           id?: string
-          perplexity_citations?: string[] | null
-          research_results?: Json
-          research_type?: string
+          industry_trends?: Json | null
+          key_metrics?: Json | null
+          leadership_traits?: Json | null
+          research_content?: string
+          research_provider?: string
           target_industry?: string
           target_role?: string
-          updated_at?: string | null
+          updated_at?: string
+          user_id?: string
           vault_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "career_vault_industry_research_vault_id_fkey"
-            columns: ["vault_id"]
-            isOneToOne: false
-            referencedRelation: "career_vault"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       career_vault_intelligent_responses: {
         Row: {
-          created_at: string | null
-          created_items: string[] | null
+          batch_number: number | null
+          created_at: string
           id: string
-          impact_score: number | null
-          question_category: string
-          question_id: string
-          question_text: string
-          question_type: string
-          skipped: boolean | null
-          user_response: Json
-          vault_id: string | null
+          items_created: number | null
+          processed_items: Json | null
+          responses: Json
+          updated_at: string
+          user_id: string
+          vault_id: string
         }
         Insert: {
-          created_at?: string | null
-          created_items?: string[] | null
+          batch_number?: number | null
+          created_at?: string
           id?: string
-          impact_score?: number | null
-          question_category: string
-          question_id: string
-          question_text: string
-          question_type: string
-          skipped?: boolean | null
-          user_response?: Json
-          vault_id?: string | null
+          items_created?: number | null
+          processed_items?: Json | null
+          responses?: Json
+          updated_at?: string
+          user_id: string
+          vault_id: string
         }
         Update: {
-          created_at?: string | null
-          created_items?: string[] | null
+          batch_number?: number | null
+          created_at?: string
           id?: string
-          impact_score?: number | null
-          question_category?: string
-          question_id?: string
-          question_text?: string
-          question_type?: string
-          skipped?: boolean | null
-          user_response?: Json
-          vault_id?: string | null
+          items_created?: number | null
+          processed_items?: Json | null
+          responses?: Json
+          updated_at?: string
+          user_id?: string
+          vault_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "career_vault_intelligent_responses_vault_id_fkey"
-            columns: ["vault_id"]
-            isOneToOne: false
-            referencedRelation: "career_vault"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       coaching_sessions: {
         Row: {
