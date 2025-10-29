@@ -144,6 +144,35 @@ const CareerVaultOnboardingRedesigned = () => {
   const handleUpload = async () => {
     if (!resumeFile) return;
 
+    // Validate file
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (resumeFile.size > maxSize) {
+      toast({
+        title: 'File Too Large',
+        description: 'Resume file must be less than 10MB',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    
+    if (!allowedTypes.includes(resumeFile.type)) {
+      console.warn('[UPLOAD] Unsupported file type:', resumeFile.type);
+      // Allow upload anyway but warn
+    }
+
+    console.log('[UPLOAD] Starting upload...', {
+      fileName: resumeFile.name,
+      fileType: resumeFile.type,
+      fileSize: resumeFile.size
+    });
+
     setIsUploading(true);
 
     try {
@@ -158,24 +187,51 @@ const CareerVaultOnboardingRedesigned = () => {
         return;
       }
 
-      // Read resume text
-      const text = await resumeFile.text();
+      // Read resume text - handle binary files properly
+      console.log('[UPLOAD] Reading resume file...');
+      let text = '';
+      
+      // For text files, read directly
+      if (resumeFile.type === 'text/plain' || resumeFile.name.endsWith('.txt')) {
+        text = await resumeFile.text();
+      } else {
+        // For binary files (PDF, DOCX), read as text but clean null bytes
+        const rawText = await resumeFile.text();
+        // Remove null bytes and other control characters that PostgreSQL can't handle
+        text = rawText.replace(/\u0000/g, '').replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F]/g, '');
+        console.log('[UPLOAD] Cleaned binary file text, removed control characters');
+      }
+      
+      console.log('[UPLOAD] Resume text length:', text.length);
+      
+      if (text.length === 0) {
+        toast({
+          title: 'Empty File',
+          description: 'The resume file appears to be empty or unreadable. Please upload a valid resume.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       setResumeText(text);
 
       // Upload to storage
       const fileName = `${user.id}/${Date.now()}_${resumeFile.name}`;
+      console.log('[UPLOAD] Uploading to storage:', fileName);
       const { error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(fileName, resumeFile, { upsert: true });
 
       if (uploadError) {
+        console.error('[UPLOAD] Storage upload error:', uploadError);
         toast({
           title: 'Upload Failed',
-          description: 'Failed to upload resume to storage',
+          description: `Storage error: ${uploadError.message}`,
           variant: 'destructive'
         });
         throw uploadError;
       }
+      console.log('[UPLOAD] Storage upload successful');
 
       // Create or update vault
       let currentVaultId = vaultId;
@@ -259,9 +315,12 @@ const CareerVaultOnboardingRedesigned = () => {
       setCurrentStep('focus');
     } catch (error) {
       console.error('[UPLOAD] Upload error:', error);
+      console.error('[UPLOAD] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('[UPLOAD] Error message:', errorMessage);
       toast({
         title: 'Upload Failed',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
