@@ -481,16 +481,23 @@ async function multiPassAnalysis(
                 content: `Analyze this resume comprehensively. Extract all data with confidence scores.
 
 CRITICAL INSTRUCTIONS:
-1. Extract EXACT employment dates in YYYY-MM format
-2. Calculate total years_experience by summing all employment periods
-3. Quantify ALL achievements with numbers, percentages, or metrics
-4. Identify contract/freelance indicators
-5. For each field, provide confidence: "high" (>80%), "medium" (50-80%), "low" (<50%)
+1. Extract the candidate's CURRENT OR MOST RECENT job title as "current_role" (e.g., "Senior Drilling Engineer", "VP of Engineering", "Product Manager")
+2. Identify the PRIMARY INDUSTRY from their work history as "primary_industry" (e.g., "Oil & Gas", "Technology", "Healthcare", "Financial Services")
+3. Extract EXACT employment dates in YYYY-MM format
+4. Calculate total years_experience by summing all employment periods
+5. Quantify ALL achievements with numbers, percentages, or metrics
+6. Identify contract/freelance indicators
+7. For each field, provide confidence: "high" (>80%), "medium" (50-80%), "low" (<50%)
+
+EXAMPLES:
+- If resume shows "Senior Drilling Engineer at Halliburton" → current_role: "Senior Drilling Engineer", primary_industry: "Oil & Gas"
+- If resume shows "VP Engineering at Stripe" → current_role: "VP Engineering", primary_industry: "FinTech"
+- If resume shows "Product Manager at Kaiser Permanente" → current_role: "Product Manager", primary_industry: "Healthcare"
 
 RESUME TEXT:
 ${text}
 
-Focus on: years_experience, key_achievements (quantified), industry_expertise, management_capabilities, skills, target_hourly_rate_min, target_hourly_rate_max, recommended_positions, analysis_summary.
+Focus on: current_role (REQUIRED), primary_industry (REQUIRED), years_experience, key_achievements (quantified), industry_expertise, management_capabilities, skills, target_hourly_rate_min, target_hourly_rate_max, recommended_positions, analysis_summary.
 
 Provide confidence_scores object with confidence level for each major field.`
               }
@@ -503,6 +510,14 @@ Provide confidence_scores object with confidence level for each major field.`
                 parameters: {
                   type: "object",
                   properties: {
+                    current_role: { 
+                      type: "string",
+                      description: "The candidate's current or most recent job title (e.g., 'Senior Drilling Engineer', 'VP Engineering')"
+                    },
+                    primary_industry: { 
+                      type: "string",
+                      description: "The candidate's primary industry based on work history (e.g., 'Oil & Gas', 'Technology', 'Healthcare')"
+                    },
                     years_experience: { type: "number" },
                     key_achievements: { type: "array", items: { type: "string" } },
                     industry_expertise: { type: "array", items: { type: "string" } },
@@ -515,6 +530,8 @@ Provide confidence_scores object with confidence level for each major field.`
                     confidence_scores: {
                       type: "object",
                       properties: {
+                        current_role: { type: "string" },
+                        primary_industry: { type: "string" },
                         years_experience: { type: "string" },
                         skills: { type: "string" },
                         achievements: { type: "string" },
@@ -527,7 +544,7 @@ Provide confidence_scores object with confidence level for each major field.`
                       items: { type: "string" }
                     }
                   },
-                  required: ["years_experience", "key_achievements", "industry_expertise", "skills", "analysis_summary"]
+                  required: ["current_role", "primary_industry", "years_experience", "key_achievements", "industry_expertise", "skills", "analysis_summary"]
                 }
               }
             }],
@@ -585,6 +602,65 @@ function extractBasicSkills(text: string): string[] {
   return commonSkills.filter(skill => 
     new RegExp(skill, 'i').test(text)
   ).slice(0, 10);
+}
+
+// Phase 4: Regex-based fallback for role and industry extraction
+function extractRoleAndIndustryFallback(text: string): { role: string | null; industry: string | null } {
+  // Common job titles to search for
+  const jobTitlePatterns = [
+    /\b(Senior|Lead|Principal|Staff|Chief)\s+([\w\s]+?)\s+Engineer\b/i,
+    /\b(VP|Vice President|Director|Manager|Head)\s+of\s+([\w\s]+)\b/i,
+    /\b(Senior|Lead|Principal)\s+([\w\s]+?)\s+(Manager|Developer|Designer|Analyst|Architect)\b/i,
+    /\b([\w\s]+?)\s+(Engineer|Manager|Director|Developer|Designer|Analyst|Architect|Specialist)\b/i,
+    /\b(CTO|CEO|COO|CMO|CFO|CIO)\b/i
+  ];
+
+  // Common industries to search for
+  const industryKeywords: Record<string, RegExp[]> = {
+    "Oil & Gas": [/\b(oil|gas|petroleum|drilling|exploration|energy|upstream|downstream|oilfield)\b/i, /\b(halliburton|schlumberger|baker hughes|weatherford|chevron|exxon|shell|bp)\b/i],
+    "Technology": [/\b(software|technology|tech|saas|cloud|platform|digital)\b/i, /\b(google|microsoft|amazon|facebook|apple|meta|netflix)\b/i],
+    "FinTech": [/\b(fintech|payments|banking|financial services|crypto|blockchain|trading)\b/i, /\b(stripe|paypal|square|coinbase|robinhood)\b/i],
+    "Healthcare": [/\b(healthcare|medical|hospital|pharma|biotech|clinical|patient)\b/i, /\b(kaiser|mayo|pfizer|moderna|medtronic)\b/i],
+    "E-commerce": [/\b(e-commerce|ecommerce|retail|marketplace|shopping)\b/i, /\b(amazon|shopify|ebay|etsy|walmart)\b/i],
+    "Manufacturing": [/\b(manufacturing|production|industrial|factory|automotive)\b/i, /\b(tesla|ford|gm|boeing|caterpillar)\b/i],
+    "Consulting": [/\b(consulting|advisory|strategy|professional services)\b/i, /\b(mckinsey|bain|bcg|deloitte|accenture|pwc)\b/i],
+    "Finance": [/\b(finance|investment|banking|asset management|private equity|venture capital)\b/i, /\b(goldman|morgan|jpmorgan|blackrock|vanguard)\b/i]
+  };
+
+  let detectedRole: string | null = null;
+  let detectedIndustry: string | null = null;
+
+  // Try to find job title
+  for (const pattern of jobTitlePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      detectedRole = match[0].trim();
+      break;
+    }
+  }
+
+  // Try to find industry (count matches for each industry)
+  const industryScores: Record<string, number> = {};
+  for (const [industry, patterns] of Object.entries(industryKeywords)) {
+    let score = 0;
+    for (const pattern of patterns) {
+      const matches = text.match(new RegExp(pattern, 'gi'));
+      if (matches) {
+        score += matches.length;
+      }
+    }
+    if (score > 0) {
+      industryScores[industry] = score;
+    }
+  }
+
+  // Pick the industry with the highest score
+  if (Object.keys(industryScores).length > 0) {
+    detectedIndustry = Object.entries(industryScores)
+      .sort(([, a], [, b]) => b - a)[0][0];
+  }
+
+  return { role: detectedRole, industry: detectedIndustry };
 }
 
 serve(async (req) => {
@@ -814,8 +890,20 @@ serve(async (req) => {
     });
 
     // Extract role and industry for Career Vault redesign
-    const detectedRole = analysis.recommended_positions?.[0] || null;
-    const detectedIndustry = analysis.industry_expertise?.[0] || null;
+    // Priority: AI extracted current_role > recommended_positions > regex fallback
+    let detectedRole = analysis.current_role || analysis.recommended_positions?.[0] || null;
+    let detectedIndustry = analysis.primary_industry || analysis.industry_expertise?.[0] || null;
+
+    // Phase 4: Use regex fallback if AI didn't find role or industry
+    if (!detectedRole || !detectedIndustry) {
+      console.log('[PROCESS-RESUME] AI extraction incomplete, using regex fallback');
+      const fallback = extractRoleAndIndustryFallback(cleanedText);
+      detectedRole = detectedRole || fallback.role;
+      detectedIndustry = detectedIndustry || fallback.industry;
+      console.log('[PROCESS-RESUME] Fallback results:', { role: fallback.role, industry: fallback.industry });
+    }
+
+    console.log('[PROCESS-RESUME] Final detected role/industry:', { detectedRole, detectedIndustry });
 
     return new Response(JSON.stringify({
       success: true,

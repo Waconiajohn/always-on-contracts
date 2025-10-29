@@ -15,8 +15,8 @@ interface CareerFocusClarifierProps {
     targetIndustries: string[];
     excludedIndustries: string[];
   }) => void;
-  detectedRole: string;
-  detectedIndustry: string;
+  detectedRole?: string;
+  detectedIndustry?: string;
   resumeText: string;
 }
 
@@ -45,8 +45,8 @@ export const CareerFocusClarifier = ({
     
     // Pre-populate based on direction
     if (direction === 'stay') {
-      setTargetRoles([detectedRole]);
-      setTargetIndustries([detectedIndustry]);
+      setTargetRoles(detectedRole ? [detectedRole] : []);
+      setTargetIndustries(detectedIndustry ? [detectedIndustry] : []);
     } else if (direction === 'pivot') {
       // Load AI suggestions for adjacent roles/industries
       setIsLoadingSuggestions(true);

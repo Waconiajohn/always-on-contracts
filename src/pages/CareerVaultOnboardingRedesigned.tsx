@@ -300,6 +300,24 @@ const CareerVaultOnboardingRedesigned = () => {
       setDetectedRole(detectedRoleValue);
       setDetectedIndustry(detectedIndustryValue);
 
+      // Log detection results for debugging
+      console.log('[ONBOARDING] Resume processing complete:', {
+        role: detectedRoleValue,
+        industry: detectedIndustryValue,
+        hasRole: !!detectedRoleValue,
+        hasIndustry: !!detectedIndustryValue
+      });
+      
+      // If detection failed, show a warning but continue
+      if (!detectedRoleValue || !detectedIndustryValue) {
+        console.warn('[ONBOARDING] Role or industry detection failed - user will need to enter manually');
+        toast({
+          title: "Partial Detection",
+          description: "We couldn't detect your role or industry. Please enter them manually in the next step.",
+          variant: "default"
+        });
+      }
+
       // Update vault with parsed resume text
       const { error: updateError } = await supabase
         .from('career_vault')
@@ -535,8 +553,8 @@ const CareerVaultOnboardingRedesigned = () => {
       {currentStep === 'focus' && (
         <CareerFocusClarifier
           onComplete={handleFocusComplete}
-          detectedRole={detectedRole || 'Professional'}
-          detectedIndustry={detectedIndustry || 'General'}
+          detectedRole={detectedRole || undefined}
+          detectedIndustry={detectedIndustry || undefined}
           resumeText={resumeText}
         />
       )}
