@@ -48,6 +48,17 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
   const hasExistingAnalysis = existingData?.initialAnalysis && existingData?.vaultId;
 
   const handleFileUpload = async (file: File) => {
+    // Check if supabase client is initialized
+    if (!supabase || !supabase.auth) {
+      setError('Authentication system is still loading. Please wait a moment and try again.');
+      toast({
+        title: 'Please Wait',
+        description: 'The authentication system is initializing. Try again in a moment.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Wait a moment for auth to load if needed
     const currentUser = user || (await supabase.auth.getUser()).data.user;
     
@@ -107,6 +118,11 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
     setError(null);
 
     try {
+      // Check if supabase client is initialized
+      if (!supabase || !supabase.auth) {
+        throw new Error('Authentication system is still loading. Please wait a moment.');
+      }
+
       // Get current user
       const currentUser = user || (await supabase.auth.getUser()).data.user;
       if (!currentUser) throw new Error('User not authenticated');
