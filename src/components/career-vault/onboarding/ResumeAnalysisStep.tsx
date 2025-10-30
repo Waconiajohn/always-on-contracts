@@ -48,8 +48,16 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
   const hasExistingAnalysis = existingData?.initialAnalysis && existingData?.vaultId;
 
   const handleFileUpload = async (file: File) => {
-    if (!user) {
+    // Wait a moment for auth to load if needed
+    const currentUser = user || (await supabase.auth.getUser()).data.user;
+    
+    if (!currentUser) {
       setError('You must be logged in to upload a resume');
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to continue',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -99,11 +107,15 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
     setError(null);
 
     try {
+      // Get current user
+      const currentUser = user || (await supabase.auth.getUser()).data.user;
+      if (!currentUser) throw new Error('User not authenticated');
+
       // Create vault record first
       const { data: vaultData, error: vaultError } = await supabase
         .from('career_vault')
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           resume_raw_text: text,
           onboarding_step: 'resume_uploaded',
           vault_version: '2.0',
@@ -255,16 +267,16 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
               </div>
             ) : (
               <div className="space-y-4">
-                <Upload className="w-16 h-16 text-slate-400 mx-auto" />
+                <Upload className="w-16 h-16 text-blue-600 mx-auto" />
                 <div>
-                  <p className="font-medium text-slate-900 mb-1">
+                  <p className="font-semibold text-slate-900 mb-1 text-lg">
                     Drop your resume here or click to browse
                   </p>
-                  <p className="text-sm text-slate-600">Supports PDF, DOC, DOCX, TXT</p>
+                  <p className="text-sm font-medium text-slate-700">Supports PDF, DOC, DOCX, TXT</p>
                 </div>
                 <Button
                   onClick={() => document.getElementById('resume-upload')?.click()}
-                  variant="outline"
+                  size="lg"
                   className="mt-4"
                 >
                   Select File
