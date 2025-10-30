@@ -612,7 +612,9 @@ export type Database = {
           initial_analysis: Json | null
           intelligent_qa_completed: boolean | null
           interview_completion_percentage: number | null
+          last_gap_analysis_at: string | null
           last_updated_at: string
+          onboarding_step: string | null
           overall_strength_score: number | null
           resume_raw_text: string | null
           review_completion_percentage: number | null
@@ -632,6 +634,7 @@ export type Database = {
           vault_name: string | null
           vault_strength_after_qa: number | null
           vault_strength_before_qa: number | null
+          vault_version: string | null
         }
         Insert: {
           auto_populated?: boolean | null
@@ -650,7 +653,9 @@ export type Database = {
           initial_analysis?: Json | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
+          last_gap_analysis_at?: string | null
           last_updated_at?: string
+          onboarding_step?: string | null
           overall_strength_score?: number | null
           resume_raw_text?: string | null
           review_completion_percentage?: number | null
@@ -670,6 +675,7 @@ export type Database = {
           vault_name?: string | null
           vault_strength_after_qa?: number | null
           vault_strength_before_qa?: number | null
+          vault_version?: string | null
         }
         Update: {
           auto_populated?: boolean | null
@@ -688,7 +694,9 @@ export type Database = {
           initial_analysis?: Json | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
+          last_gap_analysis_at?: string | null
           last_updated_at?: string
+          onboarding_step?: string | null
           overall_strength_score?: number | null
           resume_raw_text?: string | null
           review_completion_percentage?: number | null
@@ -708,6 +716,7 @@ export type Database = {
           vault_name?: string | null
           vault_strength_after_qa?: number | null
           vault_strength_before_qa?: number | null
+          vault_version?: string | null
         }
         Relationships: []
       }
@@ -3684,6 +3693,59 @@ export type Database = {
           },
         ]
       }
+      vault_gap_analysis: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          gap_description: string
+          gap_type: string
+          id: string
+          recommended_actions: string[] | null
+          severity: string | null
+          target_role: string | null
+          updated_at: string | null
+          user_id: string
+          vault_evidence: string[] | null
+          vault_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          gap_description: string
+          gap_type: string
+          id?: string
+          recommended_actions?: string[] | null
+          severity?: string | null
+          target_role?: string | null
+          updated_at?: string | null
+          user_id: string
+          vault_evidence?: string[] | null
+          vault_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          gap_description?: string
+          gap_type?: string
+          id?: string
+          recommended_actions?: string[] | null
+          severity?: string | null
+          target_role?: string | null
+          updated_at?: string | null
+          user_id?: string
+          vault_evidence?: string[] | null
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_gap_analysis_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_hidden_competencies: {
         Row: {
           ai_confidence: number | null
@@ -4537,12 +4599,30 @@ export type Database = {
           vault_id: string
         }[]
       }
+      get_vault_statistics: { Args: { p_vault_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      search_vault_items: {
+        Args: {
+          p_categories?: string[]
+          p_limit?: number
+          p_quality_tiers?: string[]
+          p_search_query: string
+          p_vault_id: string
+        }
+        Returns: {
+          content: string
+          created_at: string
+          item_id: string
+          quality_tier: string
+          relevance_score: number
+          table_name: string
+        }[]
       }
     }
     Enums: {
