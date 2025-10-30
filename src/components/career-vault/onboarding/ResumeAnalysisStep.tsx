@@ -106,8 +106,8 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
           user_id: user.id,
           resume_raw_text: text,
           onboarding_step: 'resume_uploaded',
-          vault_version: 2,
-        })
+          vault_version: '2.0',
+        } as any)
         .select()
         .single();
 

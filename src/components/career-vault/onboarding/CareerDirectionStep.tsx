@@ -143,7 +143,7 @@ export default function CareerDirectionStep({
           target_roles: selectedRoles,
           target_industries: selectedIndustries,
           onboarding_step: 'targets_set',
-        })
+        } as any)
         .eq('id', vaultId);
 
       if (error) throw error;
