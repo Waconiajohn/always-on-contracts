@@ -43,7 +43,8 @@ const RedeemCode = lazy(() => import("./pages/RedeemCode"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboard"));
-const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboardingRedesigned"));
+const CareerVaultOnboardingLegacy = lazy(() => import("./pages/CareerVaultOnboardingRedesigned"));
+const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboarding"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
@@ -108,6 +109,7 @@ const AppContent = () => {
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/career-vault" element={<ProtectedRoute><CareerVaultDashboard /></ProtectedRoute>} />
             <Route path="/career-vault-onboarding" element={<ProtectedRoute><CareerVaultOnboarding /></ProtectedRoute>} />
+            <Route path="/career-vault-onboarding-legacy" element={<ProtectedRoute><CareerVaultOnboardingLegacy /></ProtectedRoute>} />
             {/* Legacy redirects */}
             <Route path="/career-tools" element={<Navigate to="/home" replace />} />
             <Route path="/command-center" element={<Navigate to="/home" replace />} />
