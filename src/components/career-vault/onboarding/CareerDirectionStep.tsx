@@ -20,13 +20,11 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Target,
   TrendingUp,
   Compass,
   Sparkles,
-  CheckCircle2,
   Plus,
   X,
   Loader2,

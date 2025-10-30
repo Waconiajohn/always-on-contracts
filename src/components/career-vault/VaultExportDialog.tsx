@@ -35,15 +35,9 @@ import {
   FileText,
   Sparkles,
   CheckCircle2,
-  ExternalLink,
 } from 'lucide-react';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface VaultExportDialogProps {
-  vaultId: string;
-  totalItems: number;
-}
 
 const CATEGORIES = [
   { key: 'power_phrases', label: 'Power Phrases', icon: '💪' },
@@ -65,7 +59,7 @@ const QUALITY_TIERS = [
   { key: 'assumed', label: 'Assumed (Low)', color: 'bg-gray-100 text-gray-800' },
 ];
 
-export default function VaultExportDialog({ vaultId, totalItems }: VaultExportDialogProps) {
+export default function VaultExportDialog({ vaultId }: { vaultId: string; totalItems?: number }) {
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<'json' | 'csv' | 'text'>('json');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(

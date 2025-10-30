@@ -33,10 +33,8 @@ import {
   Users,
   TrendingUp,
   Loader2,
-  AlertTriangle,
   ChevronRight,
   Check,
-  X
 } from 'lucide-react';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useToast } from '@/hooks/use-toast';
@@ -159,7 +157,7 @@ export default function SmartReviewWorkflow({
     // Add to review actions
     setReviewActions(prev => [
       ...prev.filter(a => a.itemId !== item.id),
-      { itemId: item.id, itemType: item.type, action, updatedData: action === 'edit' ? { content: editedContent } : undefined }
+      { itemId: item.id, itemType: item.type, action, updatedData: action === 'confirm' ? { content: editedContent } : undefined }
     ]);
 
     // Remove from current list

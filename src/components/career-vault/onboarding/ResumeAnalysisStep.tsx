@@ -36,7 +36,6 @@ interface ResumeAnalysisStepProps {
 export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeAnalysisStepProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState(existingData?.resumeText || '');
   const [analysis, setAnalysis] = useState(existingData?.initialAnalysis || null);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +53,6 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       return;
     }
 
-    setResumeFile(file);
     setIsUploading(true);
     setError(null);
 

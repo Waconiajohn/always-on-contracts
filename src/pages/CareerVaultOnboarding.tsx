@@ -15,12 +15,12 @@
 // =====================================================
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '@supabase/auth-helpers-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Sparkles, TrendingUp, Target, Brain, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Sparkles, TrendingUp, Target, Brain, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Step components (to be created)
@@ -57,10 +57,7 @@ interface OnboardingData {
 export default function CareerVaultOnboarding() {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const supabase = useSupabaseClient();
   const user = useUser();
   const { toast } = useToast();
 
@@ -77,16 +74,16 @@ export default function CareerVaultOnboarding() {
         .limit(1)
         .single();
 
-      if (existingVault && existingVault.onboarding_step !== 'onboarding_complete') {
+      if (existingVault && (existingVault as any).onboarding_step !== 'onboarding_complete') {
         // Resume from where they left off
         setOnboardingData({
           vaultId: existingVault.id,
-          resumeText: existingVault.resume_raw_text,
+          resumeText: existingVault.resume_raw_text || undefined,
           initialAnalysis: existingVault.initial_analysis,
-          careerDirection: existingVault.career_direction,
-          targetRoles: existingVault.target_roles,
-          targetIndustries: existingVault.target_industries,
-          vaultStrength: existingVault.vault_strength_after_qa || existingVault.vault_strength_before_qa
+          careerDirection: (existingVault.career_direction as any) || undefined,
+          targetRoles: existingVault.target_roles || undefined,
+          targetIndustries: existingVault.target_industries || undefined,
+          vaultStrength: existingVault.vault_strength_after_qa || existingVault.vault_strength_before_qa || undefined
         });
 
         // Map onboarding step to UI step
@@ -100,7 +97,7 @@ export default function CareerVaultOnboarding() {
           'review_complete': 'gaps',
         };
 
-        setCurrentStep(stepMap[existingVault.onboarding_step] || 'upload');
+        setCurrentStep(stepMap[(existingVault as any).onboarding_step] || 'upload');
 
         toast({
           title: '🔄 Welcome Back!',
@@ -110,7 +107,7 @@ export default function CareerVaultOnboarding() {
     };
 
     checkExistingVault();
-  }, [user, supabase, toast]);
+  }, [user, toast]);
 
   // Step configuration with marketing messages
   const steps = [
@@ -164,15 +161,6 @@ export default function CareerVaultOnboarding() {
     setOnboardingData(prev => ({ ...prev, ...updates }));
   };
 
-  // Step navigation
-  const goToNextStep = () => {
-    const stepFlow: OnboardingStep[] = ['upload', 'analysis', 'direction', 'research', 'extraction', 'review', 'gaps', 'complete'];
-    const currentIndex = stepFlow.indexOf(currentStep);
-    if (currentIndex < stepFlow.length - 1) {
-      setCurrentStep(stepFlow[currentIndex + 1]);
-    }
-  };
-
   // Render current step component
   const renderStep = () => {
     switch (currentStep) {
@@ -196,17 +184,17 @@ export default function CareerVaultOnboarding() {
               setCurrentStep('research');
             }}
             initialAnalysis={onboardingData.initialAnalysis}
-            vaultId={onboardingData.vaultId}
+            vaultId={onboardingData.vaultId || ''}
           />
         );
 
       case 'research':
         return (
           <IndustryResearchProgress
-            vaultId={onboardingData.vaultId!}
-            targetRoles={onboardingData.targetRoles!}
-            targetIndustries={onboardingData.targetIndustries!}
-            careerDirection={onboardingData.careerDirection!}
+            vaultId={onboardingData.vaultId || ''}
+            targetRoles={onboardingData.targetRoles || []}
+            targetIndustries={onboardingData.targetIndustries || []}
+            careerDirection={onboardingData.careerDirection || 'stay'}
             onComplete={(researchData) => {
               updateOnboardingData({ industryResearch: researchData });
               setCurrentStep('extraction');
@@ -217,10 +205,10 @@ export default function CareerVaultOnboarding() {
       case 'extraction':
         return (
           <AutoPopulationProgress
-            vaultId={onboardingData.vaultId!}
-            resumeText={onboardingData.resumeText!}
-            targetRoles={onboardingData.targetRoles!}
-            targetIndustries={onboardingData.targetIndustries!}
+            vaultId={onboardingData.vaultId || ''}
+            resumeText={onboardingData.resumeText || ''}
+            targetRoles={onboardingData.targetRoles || []}
+            targetIndustries={onboardingData.targetIndustries || []}
             industryResearch={onboardingData.industryResearch}
             onComplete={(extractedData) => {
               updateOnboardingData({

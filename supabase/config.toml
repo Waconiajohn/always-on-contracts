@@ -320,3 +320,39 @@ verify_jwt = true
 
 [functions.suggest-adjacent-roles]
 verify_jwt = true
+
+[functions.analyze-resume-initial]
+verify_jwt = true
+
+[functions.suggest-career-paths]
+verify_jwt = true
+
+[functions.research-industry-standards]
+verify_jwt = true
+
+[functions.auto-populate-vault-v2]
+verify_jwt = true
+
+[functions.extract-vault-intangibles]
+verify_jwt = true
+
+[functions.process-review-actions]
+verify_jwt = true
+
+[functions.generate-gap-filling-questions]
+verify_jwt = true
+
+[functions.process-gap-filling-responses]
+verify_jwt = true
+
+[functions.generate-completion-benchmark]
+verify_jwt = true
+
+[functions.search-vault-advanced]
+verify_jwt = true
+
+[functions.bulk-vault-operations]
+verify_jwt = true
+
+[functions.export-vault]
+verify_jwt = true

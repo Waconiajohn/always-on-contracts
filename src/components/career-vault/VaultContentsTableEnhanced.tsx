@@ -45,18 +45,7 @@ interface VaultContentsTableEnhancedProps {
   onSelectionChange?: (selectedItems: VaultItem[]) => void;
 }
 
-const CATEGORY_TO_TABLE: Record<string, string> = {
-  'Power Phrase': 'vault_power_phrases',
-  'Skill': 'vault_transferable_skills',
-  'Competency': 'vault_hidden_competencies',
-  'Soft Skill': 'vault_soft_skills',
-  'Leadership': 'vault_leadership_philosophy',
-  'Executive Presence': 'vault_executive_presence',
-  'Personality': 'vault_personality_traits',
-  'Work Style': 'vault_work_style',
-  'Value': 'vault_values_motivations',
-  'Behavior': 'vault_behavioral_indicators',
-};
+// Note: CATEGORY_TO_TABLE mapping reserved for future use
 
 export default function VaultContentsTableEnhanced({
   powerPhrases,
