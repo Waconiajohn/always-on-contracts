@@ -769,12 +769,12 @@ serve(async (req) => {
     console.log('[PROCESS-RESUME] Starting - content-type:', req.headers.get('content-type'));
     
     const contentType = req.headers.get('content-type') || '';
-    let fileText: string | undefined;
-    let fileData: string | undefined;
-    let fileName: string;
-    let fileSize: number;
-    let fileType: string;
-    let reqUserId: string;
+    let fileText: string | undefined = undefined;
+    let fileData: string | undefined = undefined;
+    let fileName: string = '';
+    let fileSize: number = 0;
+    let fileType: string = '';
+    let reqUserId: string = '';
 
     // Handle FormData (from file upload)
     if (contentType.includes('multipart/form-data')) {
