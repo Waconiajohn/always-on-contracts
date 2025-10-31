@@ -766,7 +766,53 @@ serve(async (req) => {
   let userId: string | null = null;
 
   try {
-    const { fileText, fileData, fileName, fileSize, fileType, userId: reqUserId } = await req.json();
+    console.log('[PROCESS-RESUME] Starting - content-type:', req.headers.get('content-type'));
+    
+    const contentType = req.headers.get('content-type') || '';
+    let fileText: string | undefined;
+    let fileData: string | undefined;
+    let fileName: string;
+    let fileSize: number;
+    let fileType: string;
+    let reqUserId: string;
+
+    // Handle FormData (from file upload)
+    if (contentType.includes('multipart/form-data')) {
+      console.log('[PROCESS-RESUME] Parsing FormData');
+      const formData = await req.formData();
+      const file = formData.get('file') as File;
+      
+      if (!file) {
+        throw new Error('No file found in FormData');
+      }
+      
+      // Convert file to base64
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      fileData = btoa(String.fromCharCode(...uint8Array));
+      fileName = file.name;
+      fileSize = file.size;
+      fileType = file.type || 'application/octet-stream';
+      
+      // Get userId from JWT token
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        throw new Error('No authorization header found');
+      }
+      
+      const token = authHeader.replace('Bearer ', '');
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      reqUserId = payload.sub;
+      
+      console.log('[PROCESS-RESUME] FormData parsed - file:', fileName, 'size:', fileSize, 'type:', fileType);
+    } else {
+      // Handle JSON (backward compatibility)
+      console.log('[PROCESS-RESUME] Parsing JSON');
+      const body = await req.json();
+      ({ fileText, fileData, fileName, fileSize, fileType, userId: reqUserId } = body);
+      console.log('[PROCESS-RESUME] JSON parsed - file:', fileName);
+    }
+    
     userId = reqUserId;
 
     if (!fileName || !userId) {

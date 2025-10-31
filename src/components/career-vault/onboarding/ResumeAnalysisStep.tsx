@@ -85,7 +85,18 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
         body: formData,
       });
 
-      if (processError) throw processError;
+      console.log('Process resume response:', { data, processError });
+
+      if (processError) {
+        console.error('Process error:', processError);
+        throw new Error(processError.message || 'Failed to process resume');
+      }
+
+      if (!data?.success) {
+        const errorMsg = data?.error || data?.details || 'Failed to extract resume content';
+        console.error('Processing failed:', errorMsg);
+        throw new Error(errorMsg);
+      }
 
       const extractedText = data.extractedText || data.resume_text || data.text || '';
 
