@@ -7,3 +7,7 @@ export { interviewPrepSuite } from './interviewPrepSuite';
 export { performanceSuite } from './performanceSuite';
 export { dataPersistenceSuite } from './dataPersistenceSuite';
 export { edgeCasesSuite } from './edgeCasesSuite';
+
+// Career Vault 2.0 test suites
+export { careerVault2Suite } from './careerVault2Suite';
+export { smokeTestSuite } from './smokeTestSuite';

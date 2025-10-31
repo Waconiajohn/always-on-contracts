@@ -27,6 +27,8 @@ import {
   performanceSuite,
   dataPersistenceSuite,
   edgeCasesSuite,
+  careerVault2Suite,
+  smokeTestSuite,
 } from '@/lib/testing/suites';
 import { toast } from 'sonner';
 
@@ -38,7 +40,13 @@ export default function TestingDashboard() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
-  // Exclude authentication suite as it interferes with active sessions
+  // Priority test suites for Career Vault 2.0
+  const prioritySuites = [
+    smokeTestSuite,
+    careerVault2Suite,
+  ];
+
+  // Other functional test suites (exclude auth as it interferes with active sessions)
   const allSuites = [
     careerVaultSuite,
     jobSearchSuite,
@@ -88,8 +96,8 @@ export default function TestingDashboard() {
 
     try {
       const suitesToRun = suiteName
-        ? allSuites.filter((s) => s.id === suiteName)
-        : allSuites;
+        ? [...prioritySuites, ...allSuites].filter((s) => s.id === suiteName)
+        : [...prioritySuites, ...allSuites];
 
       for (const suite of suitesToRun) {
         toast.info(`Running test suite: ${suite.name}`);
@@ -242,10 +250,47 @@ export default function TestingDashboard() {
         </div>
       )}
 
+      <Card className="border-primary">
+        <CardHeader>
+          <CardTitle>🚀 Priority: Career Vault 2.0 Tests</CardTitle>
+          <CardDescription>
+            Run these first to verify migrations and critical paths (completes in ~2 minutes)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            {prioritySuites.map((suite) => (
+              <Card key={suite.id} className="hover:bg-accent transition-colors border-primary/50">
+                <CardHeader>
+                  <CardTitle className="text-base">{suite.name}</CardTitle>
+                  <CardDescription className="text-sm">{suite.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="border-primary text-primary">
+                      {suite.tests.length} tests
+                    </Badge>
+                    <Button
+                      size="sm"
+                      onClick={() => runTests(suite.id)}
+                      disabled={loading || !userEmail}
+                      className="bg-primary"
+                    >
+                      <Play className="h-3 w-3 mr-1" />
+                      Run
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
-          <CardTitle>Test Suites</CardTitle>
-          <CardDescription>Run individual test suites or all tests (excludes authentication tests)</CardDescription>
+          <CardTitle>All Test Suites</CardTitle>
+          <CardDescription>Comprehensive test coverage for all features (excludes authentication tests)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
