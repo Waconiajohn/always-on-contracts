@@ -31,6 +31,11 @@ import {
   smokeTestSuite,
 } from '@/lib/testing/suites';
 import { toast } from 'sonner';
+import { TestResultsReport } from '@/components/testing/TestResultsReport';
+import { BugTracker } from '@/components/testing/BugTracker';
+import { DeploymentSignoff } from '@/components/testing/DeploymentSignoff';
+import { TestingGuide } from '@/components/testing/TestingGuide';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function TestingDashboard() {
   const [loading, setLoading] = useState(false);
@@ -148,6 +153,26 @@ export default function TestingDashboard() {
 
   return (
     <div className="container mx-auto p-8 space-y-6">
+      <Tabs defaultValue="guide" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="guide">Deployment Guide</TabsTrigger>
+          <TabsTrigger value="testing">Testing</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="bugs">Bug Tracker</TabsTrigger>
+          <TabsTrigger value="signoff">Sign-Off</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="guide" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Deployment & Testing Guide</h2>
+            <p className="text-muted-foreground">
+              Step-by-step guide for deploying Career Vault 2.0 to production
+            </p>
+          </div>
+          <TestingGuide />
+        </TabsContent>
+
+        <TabsContent value="testing" className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Testing Dashboard</h1>
@@ -422,6 +447,84 @@ export default function TestingDashboard() {
           </ScrollArea>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="results" className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold">Test Results & Analytics</h2>
+              <p className="text-muted-foreground">
+                Comprehensive test execution results and performance metrics
+              </p>
+            </div>
+
+            {currentRun && <TestResultsReport summary={currentRun} />}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Historical Test Runs</CardTitle>
+                <CardDescription>
+                  View past test execution history and trends
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-3">
+                    {testHistory.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No test runs yet. Execute tests to see historical data here.
+                      </p>
+                    ) : (
+                      testHistory.map((run) => (
+                        <Card key={run.id} className="hover:bg-accent transition-colors">
+                          <CardContent className="pt-4">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-1">
+                                <h4 className="font-medium">{run.test_suite_name || 'All Tests'}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(run.started_at).toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Badge variant={run.failed_tests === 0 ? 'default' : 'destructive'}>
+                                  {run.passed_tests}/{run.total_tests} passed
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                  {((run.duration_ms || 0) / 1000).toFixed(1)}s
+                                </span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="bugs" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Bug Tracking & Management</h2>
+            <p className="text-muted-foreground">
+              Document and track issues found during QA testing
+            </p>
+          </div>
+          <BugTracker />
+        </TabsContent>
+
+        <TabsContent value="signoff" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Production Deployment Sign-Off</h2>
+            <p className="text-muted-foreground">
+              Complete all required checklist items before deploying to production
+            </p>
+          </div>
+          <DeploymentSignoff />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
