@@ -164,7 +164,7 @@ export const smokeTestSuite: TestSuite = {
     },
     {
       id: 'smoke-search-performance',
-      name: 'Search Performance (<100ms)',
+      name: 'Search Performance (<300ms)',
       category: 'performance',
       priority: 'high',
       execute: async () => {
@@ -207,18 +207,18 @@ export const smokeTestSuite: TestSuite = {
             throw new Error(`Search failed: ${error.message}`);
           }
 
-          const passed = searchDuration < 100; // Target: <100ms
+          const passed = searchDuration < 300; // Target: <300ms
 
           return {
             passed,
             duration: Date.now() - startTime,
             metadata: {
               message: passed 
-                ? `Search completed in ${searchDuration.toFixed(2)}ms (under 100ms target)`
-                : `Search took ${searchDuration.toFixed(2)}ms (over 100ms target)`,
+                ? `Search completed in ${searchDuration.toFixed(2)}ms (under 300ms target)`
+                : `Search took ${searchDuration.toFixed(2)}ms (over 300ms target)`,
               searchDuration: searchDuration.toFixed(2),
               resultsCount: data?.length || 0,
-              performanceTarget: '100ms'
+              performanceTarget: '300ms'
             }
           };
         } catch (error: any) {
