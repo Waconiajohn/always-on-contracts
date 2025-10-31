@@ -20,7 +20,7 @@ export const edgeCasesSuite: TestSuite = {
           const { data, error } = await supabase
             .from('career_vault')
             .select('*')
-            .eq('user_id', 'non-existent-user-id-12345')
+            .eq('user_id', '00000000-0000-0000-0000-000000000000')
             .maybeSingle();
 
           // Should not error, just return null
@@ -57,7 +57,7 @@ export const edgeCasesSuite: TestSuite = {
           const { data, error } = await supabase
             .from('resume_versions')
             .select('*')
-            .eq('user_id', 'non-existent-user-id-12345');
+            .eq('user_id', '00000000-0000-0000-0000-000000000000');
 
           if (error) throw error;
 

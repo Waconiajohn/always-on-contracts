@@ -60,7 +60,7 @@ export const resumeBuilderSuite: TestSuite = {
 
           const { data, error } = await supabase
             .from('resumes')
-            .select('id, file_name, created_at')
+            .select('id, file_name, upload_date')
             .eq('user_id', session.session.user.id)
             .limit(10);
 
@@ -131,7 +131,7 @@ export const resumeBuilderSuite: TestSuite = {
         try {
           const { data, error } = await supabase
             .from('resume_templates')
-            .select('id, name, category')
+            .select('id, template_name, template_type')
             .limit(20);
 
           if (error) throw error;

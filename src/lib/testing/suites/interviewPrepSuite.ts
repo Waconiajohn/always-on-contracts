@@ -212,13 +212,10 @@ export const interviewPrepSuite: TestSuite = {
         const startTime = Date.now();
         
         try {
-          const { data: session } = await supabase.auth.getSession();
-          if (!session.session) throw new Error('Not authenticated');
-
+          // research_findings table doesn't have user_id - it's a public reference table
           const { data, error } = await supabase
             .from('research_findings')
             .select('*')
-            .eq('user_id', session.session.user.id)
             .limit(10);
 
           if (error) throw error;
