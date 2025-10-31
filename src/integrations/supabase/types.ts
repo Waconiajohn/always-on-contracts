@@ -4642,7 +4642,6 @@ export type Database = {
         Returns: {
           confidence_score: number
           content: string
-          effectiveness_score: number
           item_id: string
           item_type: string
           match_rank: number
