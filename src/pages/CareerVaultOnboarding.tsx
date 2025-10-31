@@ -16,12 +16,13 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@supabase/auth-helpers-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useUser, useSupabaseClient } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Sparkles, TrendingUp, Target, Brain, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { CareerVaultErrorBoundary } from '@/components/ErrorBoundary';
+import { OnboardingData } from '@/types/career-vault';
 
 // Step components (to be created)
 import ResumeAnalysisStep from '@/components/career-vault/onboarding/ResumeAnalysisStep';
@@ -32,7 +33,8 @@ import SmartReviewWorkflow from '@/components/career-vault/onboarding/SmartRevie
 import GapFillingQuestionsFlow from '@/components/career-vault/onboarding/GapFillingQuestionsFlow';
 import VaultCompletionSummary from '@/components/career-vault/onboarding/VaultCompletionSummary';
 
-type OnboardingStep =
+// UI step type (different from database OnboardingStep)
+type UIStep =
   | 'upload'
   | 'analysis'
   | 'direction'
@@ -42,23 +44,12 @@ type OnboardingStep =
   | 'gaps'
   | 'complete';
 
-interface OnboardingData {
-  vaultId?: string;
-  resumeText?: string;
-  initialAnalysis?: any;
-  careerDirection?: 'stay' | 'pivot' | 'explore';
-  targetRoles?: string[];
-  targetIndustries?: string[];
-  industryResearch?: any;
-  extractedData?: any;
-  vaultStrength?: number;
-}
-
 export default function CareerVaultOnboarding() {
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('upload');
+  const [currentStep, setCurrentStep] = useState<UIStep>('upload');
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
   const navigate = useNavigate();
-  const user = useUser();
+  const { user } = useUser();
+  const supabase = useSupabaseClient();
   const { toast } = useToast();
 
   // Check if resuming existing onboarding
@@ -74,20 +65,20 @@ export default function CareerVaultOnboarding() {
         .limit(1)
         .single();
 
-      if (existingVault && (existingVault as any).onboarding_step !== 'onboarding_complete') {
+      if (existingVault && existingVault.onboarding_step !== 'onboarding_complete') {
         // Resume from where they left off
         setOnboardingData({
           vaultId: existingVault.id,
           resumeText: existingVault.resume_raw_text || undefined,
-          initialAnalysis: existingVault.initial_analysis,
-          careerDirection: (existingVault.career_direction as any) || undefined,
+          initialAnalysis: existingVault.initial_analysis as any, // JSON type from DB
+          careerDirection: existingVault.career_direction as 'stay' | 'pivot' | 'explore' | undefined,
           targetRoles: existingVault.target_roles || undefined,
           targetIndustries: existingVault.target_industries || undefined,
           vaultStrength: existingVault.vault_strength_after_qa || existingVault.vault_strength_before_qa || undefined
         });
 
         // Map onboarding step to UI step
-        const stepMap: { [key: string]: OnboardingStep } = {
+        const stepMap: Record<string, UIStep> = {
           'not_started': 'upload',
           'resume_uploaded': 'analysis',
           'analysis_complete': 'direction',
@@ -97,7 +88,8 @@ export default function CareerVaultOnboarding() {
           'review_complete': 'gaps',
         };
 
-        setCurrentStep(stepMap[(existingVault as any).onboarding_step] || 'upload');
+        const dbStep = existingVault.onboarding_step;
+        setCurrentStep((dbStep && stepMap[dbStep]) || 'upload');
 
         toast({
           title: '🔄 Welcome Back!',
@@ -276,6 +268,7 @@ export default function CareerVaultOnboarding() {
   };
 
   return (
+    <CareerVaultErrorBoundary>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Header */}
@@ -386,5 +379,6 @@ export default function CareerVaultOnboarding() {
         </div>
       </div>
     </div>
+    </CareerVaultErrorBoundary>
   );
 }

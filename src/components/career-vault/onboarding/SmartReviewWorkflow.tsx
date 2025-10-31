@@ -36,7 +36,7 @@ import {
   ChevronRight,
   Check,
 } from 'lucide-react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface SmartReviewWorkflowProps {

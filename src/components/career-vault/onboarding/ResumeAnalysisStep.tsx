@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Upload, FileText, Sparkles, TrendingUp, Award, Briefcase, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
+import { useUser, useSupabaseClient } from '@/hooks/useAuth';
 
 interface ResumeAnalysisStepProps {
   onComplete: (data: {
@@ -41,7 +41,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
   const [error, setError] = useState<string | null>(null);
 
   const supabase = useSupabaseClient();
-  const user = useUser();
+  const { user } = useUser();
   const { toast } = useToast();
 
   // If we already have analysis, show it
