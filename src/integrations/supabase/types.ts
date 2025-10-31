@@ -4633,19 +4633,20 @@ export type Database = {
       }
       search_vault_items: {
         Args: {
-          p_categories?: string[]
+          p_category?: string
           p_limit?: number
-          p_quality_tiers?: string[]
+          p_quality_tier?: string
           p_search_query: string
           p_vault_id: string
         }
         Returns: {
+          confidence_score: number
           content: string
-          created_at: string
+          effectiveness_score: number
           item_id: string
+          item_type: string
+          match_rank: number
           quality_tier: string
-          relevance_score: number
-          table_name: string
         }[]
       }
     }
