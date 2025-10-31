@@ -139,8 +139,7 @@ export function useAutoSave(options: AutoSaveOptions) {
 // Hook for auto-saving onboarding step changes
 export function useOnboardingAutoSave(
   vaultId: string | undefined,
-  currentStep: string,
-  onboardingData: any
+  currentStep: string
 ) {
   const supabase = useSupabaseClient();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');

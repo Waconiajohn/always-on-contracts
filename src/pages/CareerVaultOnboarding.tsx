@@ -54,7 +54,7 @@ export default function CareerVaultOnboarding() {
   const { toast } = useToast();
 
   // Auto-save progress
-  const saveStatus = useOnboardingAutoSave(onboardingData.vaultId, currentStep, onboardingData);
+  const saveStatus = useOnboardingAutoSave(onboardingData.vaultId, currentStep);
 
   // Check if resuming existing onboarding
   useEffect(() => {

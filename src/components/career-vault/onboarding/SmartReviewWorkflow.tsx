@@ -94,7 +94,7 @@ export default function SmartReviewWorkflow({
 
       for (const table of tablesToQuery) {
         const { data, error } = await supabase
-          .from(table)
+          .from(table as any)
           .select('*')
           .eq('vault_id', vaultId)
           .order('confidence_score', { ascending: true });
