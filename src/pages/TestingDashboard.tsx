@@ -152,8 +152,8 @@ export default function TestingDashboard() {
   const stats = calculateOverallStats();
 
   return (
-    <div className="container mx-auto p-8 space-y-6">
-      <Tabs defaultValue="guide" className="w-full">
+    <div className="container mx-auto p-8 h-[calc(100vh-4rem)] flex flex-col">
+      <Tabs defaultValue="guide" className="w-full flex flex-col flex-1 overflow-hidden">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="guide">Deployment Guide</TabsTrigger>
           <TabsTrigger value="testing">Testing</TabsTrigger>
@@ -162,7 +162,7 @@ export default function TestingDashboard() {
           <TabsTrigger value="signoff">Sign-Off</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="guide" className="space-y-6">
+        <TabsContent value="guide" className="space-y-6 overflow-y-auto flex-1">
           <div>
             <h2 className="text-2xl font-bold">Deployment & Testing Guide</h2>
             <p className="text-muted-foreground">
@@ -172,7 +172,7 @@ export default function TestingDashboard() {
           <TestingGuide />
         </TabsContent>
 
-        <TabsContent value="testing" className="space-y-6">
+        <TabsContent value="testing" className="space-y-6 overflow-y-auto flex-1">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Testing Dashboard</h1>
@@ -449,7 +449,7 @@ export default function TestingDashboard() {
       </Card>
         </TabsContent>
 
-        <TabsContent value="results" className="space-y-6">
+        <TabsContent value="results" className="space-y-6 overflow-y-auto flex-1">
           <div className="space-y-4">
             <div>
               <h2 className="text-2xl font-bold">Test Results & Analytics</h2>
@@ -505,7 +505,7 @@ export default function TestingDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="bugs" className="space-y-6">
+        <TabsContent value="bugs" className="space-y-6 overflow-y-auto flex-1">
           <div>
             <h2 className="text-2xl font-bold">Bug Tracking & Management</h2>
             <p className="text-muted-foreground">
@@ -515,7 +515,7 @@ export default function TestingDashboard() {
           <BugTracker />
         </TabsContent>
 
-        <TabsContent value="signoff" className="space-y-6">
+        <TabsContent value="signoff" className="space-y-6 overflow-y-auto flex-1">
           <div>
             <h2 className="text-2xl font-bold">Production Deployment Sign-Off</h2>
             <p className="text-muted-foreground">
