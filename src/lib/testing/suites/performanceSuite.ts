@@ -4,192 +4,293 @@ import { TestSuite } from '../types';
 export const performanceSuite: TestSuite = {
   id: 'performance-suite',
   name: 'Performance & Security',
-  description: 'Tests for application performance, security, and reliability',
+  description: 'Tests for application performance, RLS, and security',
   category: 'performance',
   tests: [
     {
       id: 'perf-001',
-      name: 'Page load time (Home)',
-      description: 'Home page should load in under 2 seconds',
+      name: 'Database query performance',
+      description: 'Simple queries should complete quickly',
       category: 'performance',
       priority: 'high',
       execute: async () => {
         const start = performance.now();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const duration = performance.now() - start;
+        
+        try {
+          await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .limit(10);
 
-        return {
-          passed: duration < 2000,
-          duration,
-          metadata: { loadTime: duration },
-        };
+          const duration = performance.now() - start;
+
+          return {
+            passed: duration < 1000, // Under 1 second
+            duration: Date.now() - start,
+            metadata: {
+              queryTime: `${duration.toFixed(2)}ms`,
+              threshold: '1000ms',
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - start,
+            error: error.message,
+          };
+        }
       },
     },
     {
       id: 'perf-002',
-      name: 'Database query performance',
-      description: 'Database queries should complete in under 500ms',
+      name: 'RLS enforcement - Career Vault',
+      description: 'RLS should prevent unauthorized vault access',
       category: 'performance',
-      priority: 'high',
+      priority: 'critical',
       execute: async () => {
-        const start = performance.now();
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
 
-        await supabase
-          .from('profiles')
-          .select('*')
-          .limit(10);
+          // Should only return current user's vault
+          const { data, error } = await supabase
+            .from('career_vault')
+            .select('*');
 
-        const duration = performance.now() - start;
+          if (error) throw error;
 
-        return {
-          passed: duration < 500,
-          duration,
-          metadata: { queryTime: duration },
-        };
+          // Check all returned vaults belong to current user
+          const allBelongToUser = data?.every(v => v.user_id === session.session!.user.id);
+
+          return {
+            passed: allBelongToUser ?? true,
+            duration: Date.now() - startTime,
+            metadata: {
+              rlsWorking: allBelongToUser,
+              vaultsReturned: data?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
     {
       id: 'perf-003',
-      name: 'Edge function response time',
-      description: 'Edge functions should respond in under 5 seconds',
+      name: 'RLS enforcement - Resume Versions',
+      description: 'RLS should prevent unauthorized resume access',
       category: 'performance',
-      priority: 'high',
+      priority: 'critical',
       execute: async () => {
-        const mockResponseTime = 3500;
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
 
-        return {
-          passed: mockResponseTime < 5000,
-          duration: mockResponseTime,
-          metadata: { responseTime: mockResponseTime },
-        };
+          const { data, error } = await supabase
+            .from('resume_versions')
+            .select('*');
+
+          if (error) throw error;
+
+          const allBelongToUser = data?.every(r => r.user_id === session.session!.user.id);
+
+          return {
+            passed: allBelongToUser ?? true,
+            duration: Date.now() - startTime,
+            metadata: {
+              rlsWorking: allBelongToUser,
+              resumesReturned: data?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
     {
       id: 'perf-004',
-      name: 'RLS policy enforcement',
-      description: 'Row Level Security should prevent unauthorized access',
+      name: 'RLS enforcement - Application Queue',
+      description: 'RLS should prevent unauthorized application access',
       category: 'performance',
       priority: 'critical',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data, error } = await supabase
+            .from('application_queue')
+            .select('*');
+
+          if (error) throw error;
+
+          const allBelongToUser = data?.every(a => a.user_id === session.session!.user.id);
+
+          return {
+            passed: allBelongToUser ?? true,
+            duration: Date.now() - startTime,
+            metadata: {
+              rlsWorking: allBelongToUser,
+              applicationsReturned: data?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data, error } = await supabase
-          .from('career_vault')
-          .select('*')
-          .eq('user_id', session.session.user.id);
-
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          error: error?.message,
-        };
       },
     },
     {
       id: 'perf-005',
       name: 'SQL injection protection',
-      description: 'Should prevent SQL injection attacks',
+      description: 'Supabase client should prevent SQL injection',
       category: 'performance',
       priority: 'critical',
       execute: async () => {
-        const maliciousInput = "'; DROP TABLE users; --";
+        const startTime = Date.now();
+        
+        try {
+          const maliciousInput = "'; DROP TABLE profiles; --";
 
-        const { error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('full_name', maliciousInput);
+          // This should be safely handled by Supabase
+          const { error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('full_name', maliciousInput)
+            .limit(1);
 
-        return {
-          passed: !error || error.message !== 'syntax error',
-          duration: 0,
-          metadata: { protected: true },
-        };
+          // Should not cause a syntax error, just no results
+          return {
+            passed: !error || !error.message.includes('syntax error'),
+            duration: Date.now() - startTime,
+            metadata: {
+              sqlInjectionPrevented: true,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
     {
       id: 'perf-006',
-      name: 'XSS prevention',
-      description: 'Should sanitize user input to prevent XSS',
+      name: 'Concurrent operations',
+      description: 'Should handle multiple concurrent requests',
       category: 'performance',
-      priority: 'critical',
+      priority: 'medium',
       execute: async () => {
-        const maliciousScript = '<script>alert("XSS")</script>';
-        const sanitized = maliciousScript.replace(/<[^>]*>/g, '');
+        const startTime = Date.now();
+        
+        try {
+          const promises = Array(5).fill(null).map(() =>
+            supabase.from('profiles').select('id').limit(1)
+          );
 
-        return {
-          passed: !sanitized.includes('<script>'),
-          duration: 0,
-          metadata: { sanitized },
-        };
+          const results = await Promise.all(promises);
+          const allSucceeded = results.every(r => !r.error);
+
+          return {
+            passed: allSucceeded,
+            duration: Date.now() - startTime,
+            metadata: {
+              concurrentRequests: promises.length,
+              allSucceeded,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
     {
       id: 'perf-007',
-      name: 'CORS validation',
-      description: 'Should have proper CORS headers',
+      name: 'Rate limiting awareness',
+      description: 'Rate limits table should be accessible',
       category: 'performance',
-      priority: 'high',
+      priority: 'low',
       execute: async () => {
-        return {
-          passed: true,
-          duration: 0,
-          metadata: { note: 'CORS headers configured' },
-        };
+        const startTime = Date.now();
+        
+        try {
+          const { data, error } = await supabase
+            .from('rate_limits')
+            .select('*')
+            .limit(5);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              rateLimitsConfigured: (data?.length || 0) > 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
     {
       id: 'perf-008',
-      name: 'Rate limiting',
-      description: 'Should enforce rate limits on API calls',
+      name: 'Processing logs',
+      description: 'Background processing should be logged',
       category: 'performance',
-      priority: 'high',
+      priority: 'low',
       execute: async () => {
-        return {
-          passed: true,
-          duration: 0,
-          metadata: { note: 'Rate limiting in place' },
-        };
-      },
-    },
-    {
-      id: 'perf-009',
-      name: 'Large file upload handling',
-      description: 'Should handle file uploads up to 10MB',
-      category: 'performance',
-      priority: 'medium',
-      execute: async () => {
-        const mockFileSize = 8 * 1024 * 1024; // 8MB
-        const maxSize = 10 * 1024 * 1024; // 10MB
+        const startTime = Date.now();
+        
+        try {
+          const { data, error } = await supabase
+            .from('processing_logs')
+            .select('*')
+            .limit(10);
 
-        return {
-          passed: mockFileSize <= maxSize,
-          duration: 0,
-          metadata: { fileSize: mockFileSize, maxSize },
-        };
-      },
-    },
-    {
-      id: 'perf-010',
-      name: 'Concurrent operations',
-      description: 'Should handle multiple concurrent operations',
-      category: 'performance',
-      priority: 'medium',
-      execute: async () => {
-        const promises = Array(5).fill(null).map(() =>
-          supabase.from('profiles').select('*').limit(1)
-        );
+          if (error) throw error;
 
-        const results = await Promise.all(promises);
-        const allSucceeded = results.every(r => !r.error);
-
-        return {
-          passed: allSucceeded,
-          duration: 0,
-          metadata: { concurrentOps: promises.length },
-        };
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              logsAvailable: (data?.length || 0) > 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
   ],

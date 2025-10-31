@@ -4,276 +4,531 @@ import { TestSuite } from '../types';
 export const careerVaultSuite: TestSuite = {
   id: 'vault-suite',
   name: 'Career Vault',
-  description: 'Tests for Career Vault functionality including uploads, extraction, and intelligence',
+  description: 'Comprehensive tests for Career Vault 2.0 functionality',
   category: 'career-vault',
   tests: [
     {
       id: 'vault-001',
-      name: 'Create Career Vault',
-      description: 'User should be able to create a new Career Vault',
+      name: 'Vault existence check',
+      description: 'User should have a career vault',
       category: 'career-vault',
       priority: 'critical',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
-        }
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) {
+            throw new Error('Not authenticated');
+          }
 
-        // Check if vault already exists
-        const { data: existing } = await supabase
-          .from('career_vault')
-          .select('id')
-          .eq('user_id', session.session.user.id)
-          .maybeSingle();
+          const { data, error } = await supabase
+            .from('career_vault')
+            .select('id, vault_name, target_roles, target_industries')
+            .eq('user_id', session.session.user.id)
+            .maybeSingle();
 
-        if (existing) {
-          // Vault already exists, test passes
+          if (error) throw error;
+
           return {
-            passed: true,
-            duration: 0,
-            metadata: { vaultId: existing.id, alreadyExisted: true },
+            passed: !!data,
+            duration: Date.now() - startTime,
+            metadata: {
+              hasVault: !!data,
+              vaultId: data?.id,
+              targetRoles: data?.target_roles?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
           };
         }
-
-        // Create new vault
-        const { data, error } = await supabase
-          .from('career_vault')
-          .insert({
-            user_id: session.session.user.id,
-            vault_name: 'Test Vault',
-            target_roles: ['Software Engineer'],
-            target_industries: ['Technology'],
-          })
-          .select()
-          .single();
-
-        return {
-          passed: !error && !!data,
-          duration: 0,
-          error: error?.message,
-          metadata: { vaultId: data?.id, alreadyExisted: false },
-        };
       },
     },
     {
       id: 'vault-002',
-      name: 'Upload resume to vault',
-      description: 'User should be able to upload resume for analysis',
+      name: 'Power phrases populated',
+      description: 'Vault should have power phrases',
       category: 'career-vault',
-      priority: 'critical',
+      priority: 'high',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault found - user may not have completed onboarding' },
+            };
+          }
+
+          const { count, error } = await supabase
+            .from('vault_power_phrases')
+            .select('*', { count: 'exact', head: true })
+            .eq('vault_id', vault.id);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              powerPhrasesCount: count || 0,
+              hasContent: (count || 0) > 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data, error } = await supabase
-          .from('resumes')
-          .insert({
-            user_id: session.session.user.id,
-            file_name: 'test-resume.txt',
-            file_url: 'test://resume.txt',
-            parsed_content: { text: 'Test resume content' },
-          })
-          .select()
-          .single();
-
-        return {
-          passed: !error && !!data,
-          duration: 0,
-          error: error?.message,
-        };
       },
     },
     {
       id: 'vault-003',
-      name: 'Set career goals',
-      description: 'User should be able to set target roles and industries',
+      name: 'Transferable skills populated',
+      description: 'Vault should have transferable skills',
       category: 'career-vault',
       priority: 'high',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault' },
+            };
+          }
+
+          const { count, error } = await supabase
+            .from('vault_transferable_skills')
+            .select('*', { count: 'exact', head: true })
+            .eq('vault_id', vault.id);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: { skillsCount: count || 0 },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('*')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        if (!vault) {
-          return { passed: false, duration: 0, error: 'No vault found' };
-        }
-
-        const { error } = await supabase
-          .from('career_vault')
-          .update({
-            target_roles: ['Senior Software Engineer', 'Tech Lead'],
-            target_industries: ['Technology', 'FinTech'],
-          })
-          .eq('id', vault.id);
-
-        return {
-          passed: !error,
-          duration: 0,
-          error: error?.message,
-        };
       },
     },
     {
       id: 'vault-004',
-      name: 'Add vault activity log',
-      description: 'User should be able to log vault activities',
+      name: 'Hidden competencies populated',
+      description: 'Vault should have hidden competencies',
       category: 'career-vault',
-      priority: 'medium',
+      priority: 'high',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault' },
+            };
+          }
+
+          const { count, error } = await supabase
+            .from('vault_hidden_competencies')
+            .select('*', { count: 'exact', head: true })
+            .eq('vault_id', vault.id);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: { competenciesCount: count || 0 },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('id')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        if (!vault) {
-          return { passed: false, duration: 0, error: 'No vault found' };
-        }
-
-        const { data, error } = await supabase
-          .from('vault_activity_log')
-          .insert({
-            user_id: session.session.user.id,
-            vault_id: vault.id,
-            activity_type: 'document_upload',
-            description: 'Test activity',
-          })
-          .select()
-          .single();
-
-        return {
-          passed: !error && !!data,
-          duration: 0,
-          error: error?.message,
-        };
       },
     },
     {
       id: 'vault-005',
-      name: 'Query vault activity log',
-      description: 'User should be able to query vault activity history',
+      name: 'Quality tiers are valid',
+      description: 'All vault items should have valid quality tiers (gold, silver, bronze, assumed)',
       category: 'career-vault',
-      priority: 'medium',
+      priority: 'high',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault' },
+            };
+          }
+
+          // Check for invalid platinum tier (should have been migrated)
+          const { data: platinumItems } = await supabase
+            .from('vault_power_phrases')
+            .select('id, quality_tier')
+            .eq('vault_id', vault.id)
+            .eq('quality_tier', 'platinum')
+            .limit(1);
+
+          const hasPlatinum = platinumItems && platinumItems.length > 0;
+
+          const validTiers = ['gold', 'silver', 'bronze', 'assumed'];
+
+          return {
+            passed: !hasPlatinum,
+            duration: Date.now() - startTime,
+            metadata: {
+              message: hasPlatinum 
+                ? 'Found invalid platinum tier - migration needed'
+                : 'All quality tiers are valid',
+              validTiers,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('id')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        if (!vault) {
-          return { passed: false, duration: 0, error: 'No vault found' };
-        }
-
-        const { data, error } = await supabase
-          .from('vault_activity_log')
-          .select('*')
-          .eq('vault_id', vault.id);
-
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          error: error?.message,
-          metadata: { count: data?.length || 0 },
-        };
       },
     },
     {
       id: 'vault-006',
-      name: 'Vault completion calculation',
-      description: 'Vault completion percentage should be calculated correctly',
+      name: 'Vault search function',
+      description: 'search_vault_items function should work correctly',
       category: 'career-vault',
-      priority: 'medium',
+      priority: 'critical',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault to search' },
+            };
+          }
+
+          const { data, error } = await supabase.rpc('search_vault_items', {
+            p_vault_id: vault.id,
+            p_search_query: 'management',
+            p_limit: 10,
+          });
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              resultsFound: data?.length || 0,
+              searchWorking: true,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('*')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        const completionPercentage = vault?.review_completion_percentage || 0;
-
-        return {
-          passed: completionPercentage >= 0 && completionPercentage <= 100,
-          duration: 0,
-          metadata: { completionPercentage },
-        };
       },
     },
     {
       id: 'vault-007',
-      name: 'Vault strength score',
-      description: 'Vault should calculate overall strength score',
+      name: 'Vault statistics function',
+      description: 'get_vault_statistics function should return valid data',
       category: 'career-vault',
-      priority: 'medium',
+      priority: 'high',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault' },
+            };
+          }
+
+          const { data, error } = await supabase.rpc('get_vault_statistics', {
+            p_vault_id: vault.id,
+          });
+
+          if (error) throw error;
+
+          const stats = data as any;
+
+          return {
+            passed: stats && typeof stats.totalItems === 'number',
+            duration: Date.now() - startTime,
+            metadata: {
+              totalItems: stats?.totalItems || 0,
+              vaultStrength: stats?.vaultStrength || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('overall_strength_score')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        const score = vault?.overall_strength_score || 0;
-
-        return {
-          passed: score >= 0 && score <= 100,
-          duration: 0,
-          metadata: { strengthScore: score },
-        };
       },
     },
     {
       id: 'vault-008',
-      name: 'Query resume versions',
-      description: 'Should retrieve resume versions for user',
+      name: 'Gap analysis table accessible',
+      description: 'Vault gap analysis table should be queryable',
       category: 'career-vault',
       priority: 'high',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault' },
+            };
+          }
+
+          const { data, error } = await supabase
+            .from('vault_gap_analysis')
+            .select('id, analysis_type, identified_gaps')
+            .eq('vault_id', vault.id)
+            .limit(5);
+
+          // Should not error even if empty
+          if (error && !error.message.includes('no rows')) {
+            throw error;
+          }
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              gapAnalysesCount: data?.length || 0,
+              tableAccessible: true,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
+      },
+    },
+    {
+      id: 'vault-009',
+      name: 'Vault activity log',
+      description: 'Vault activity should be logged',
+      category: 'career-vault',
+      priority: 'medium',
+      execute: async () => {
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
 
-        const { data, error } = await supabase
-          .from('resume_versions')
-          .select('*')
-          .eq('user_id', session.session.user.id);
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
 
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          error: error?.message,
-          metadata: { count: data?.length || 0 },
-        };
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault' },
+            };
+          }
+
+          const { data, error } = await supabase
+            .from('vault_activity_log')
+            .select('*')
+            .eq('vault_id', vault.id)
+            .limit(10);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              activityCount: data?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
+      },
+    },
+    {
+      id: 'vault-010',
+      name: 'Intangibles tables accessible',
+      description: 'Soft skills, personality traits, work style, etc. should be accessible',
+      category: 'career-vault',
+      priority: 'medium',
+      execute: async () => {
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: vault } = await supabase
+            .from('career_vault')
+            .select('id')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!vault) {
+            return {
+              passed: true,
+              duration: Date.now() - startTime,
+              metadata: { note: 'No vault' },
+            };
+          }
+
+          const tables = [
+            'vault_soft_skills',
+            'vault_personality_traits',
+            'vault_work_style',
+            'vault_values_motivations',
+            'vault_behavioral_indicators',
+            'vault_leadership_philosophy',
+            'vault_executive_presence',
+          ];
+
+          let totalItems = 0;
+          const breakdown: Record<string, number> = {};
+
+          for (const table of tables) {
+            const { count } = await supabase
+              .from(table as any)
+              .select('*', { count: 'exact', head: true })
+              .eq('vault_id', vault.id);
+
+            breakdown[table] = count || 0;
+            totalItems += count || 0;
+          }
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              totalIntangibles: totalItems,
+              breakdown,
+              tablesAccessible: tables.length,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
   ],

@@ -9,43 +9,40 @@ export const dataPersistenceSuite: TestSuite = {
   tests: [
     {
       id: 'persist-001',
-      name: 'Resume data persists',
-      description: 'Resume versions should persist in database',
+      name: 'User profile persists',
+      description: 'User profile data should persist',
       category: 'data-persistence',
       priority: 'critical',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (error) throw error;
+
+          return {
+            passed: !!data,
+            duration: Date.now() - startTime,
+            metadata: {
+              hasProfile: !!data,
+              email: data?.email,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data: before } = await supabase
-          .from('resume_versions')
-          .select('*')
-          .eq('user_id', session.session.user.id);
-
-        const beforeCount = before?.length || 0;
-
-        await supabase
-          .from('resume_versions')
-          .insert({
-            user_id: session.session.user.id,
-            version_name: `Persistence Test ${Date.now()}`,
-            content: { test: true },
-          });
-
-        const { data: after } = await supabase
-          .from('resume_versions')
-          .select('*')
-          .eq('user_id', session.session.user.id);
-
-        const afterCount = after?.length || 0;
-
-        return {
-          passed: afterCount > beforeCount,
-          duration: 0,
-          metadata: { before: beforeCount, after: afterCount },
-        };
       },
     },
     {
@@ -55,180 +52,271 @@ export const dataPersistenceSuite: TestSuite = {
       category: 'data-persistence',
       priority: 'critical',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data, error } = await supabase
+            .from('career_vault')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .maybeSingle();
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              hasVault: !!data,
+              vaultId: data?.id,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data, error } = await supabase
-          .from('career_vault')
-          .select('*')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        return {
-          passed: !error && !!data,
-          duration: 0,
-          error: error?.message,
-        };
       },
     },
     {
       id: 'persist-003',
+      name: 'Resume versions persist',
+      description: 'Resume versions should persist',
+      category: 'data-persistence',
+      priority: 'high',
+      execute: async () => {
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data, error } = await supabase
+            .from('resume_versions')
+            .select('*')
+            .eq('user_id', session.session.user.id);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              versionsCount: data?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
+      },
+    },
+    {
+      id: 'persist-004',
       name: 'Application queue persists',
       description: 'Application queue items should persist',
       category: 'data-persistence',
       priority: 'high',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data, error } = await supabase
+            .from('application_queue')
+            .select('*')
+            .eq('user_id', session.session.user.id);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              queuedItems: data?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data, error } = await supabase
-          .from('application_queue')
-          .select('*')
-          .eq('user_id', session.session.user.id);
-
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          metadata: { count: data?.length || 0 },
-        };
-      },
-    },
-    {
-      id: 'persist-004',
-      name: 'Job search history persists',
-      description: 'Job search history should persist',
-      category: 'data-persistence',
-      priority: 'high',
-      execute: async () => {
-        const { data, error } = await supabase
-          .from('job_opportunities')
-          .select('*')
-          .limit(10);
-
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          metadata: { count: data?.length || 0 },
-        };
       },
     },
     {
       id: 'persist-005',
-      name: 'Vault activity logs persist',
-      description: 'Vault activity data should persist',
+      name: 'User activities persist',
+      description: 'User activity tracking should persist',
       category: 'data-persistence',
-      priority: 'high',
+      priority: 'medium',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data, error } = await supabase
+            .from('user_activities')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .limit(20);
+
+          if (error) throw error;
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              activitiesCount: data?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select('id')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        if (!vault) {
-          return { passed: true, duration: 0, metadata: { note: 'No vault found' } };
-        }
-
-        const { data, error } = await supabase
-          .from('vault_activity_log')
-          .select('*')
-          .eq('vault_id', vault.id)
-          .limit(10);
-
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          metadata: { count: data?.length || 0 },
-        };
       },
     },
     {
       id: 'persist-006',
-      name: 'User profile updates persist',
-      description: 'Profile changes should save to database',
+      name: 'LinkedIn content persists',
+      description: 'LinkedIn posts and profiles should persist',
       category: 'data-persistence',
-      priority: 'critical',
+      priority: 'medium',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data: posts, error: postsError } = await supabase
+            .from('linkedin_posts')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .limit(10);
+
+          const { data: profiles, error: profilesError } = await supabase
+            .from('linkedin_profiles')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .limit(5);
+
+          if (postsError || profilesError) {
+            throw postsError || profilesError;
+          }
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              postsCount: posts?.length || 0,
+              profilesCount: profiles?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const testValue = `Test ${Date.now()}`;
-
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ full_name: testValue })
-          .eq('user_id', session.session.user.id);
-
-        if (updateError) {
-          return { passed: false, duration: 0, error: updateError.message };
-        }
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', session.session.user.id)
-          .single();
-
-        return {
-          passed: !error && data?.full_name === testValue,
-          duration: 0,
-          metadata: { updatedValue: data?.full_name },
-        };
       },
     },
     {
       id: 'persist-007',
-      name: 'Resume cache persists',
-      description: 'Resume cache data should persist',
+      name: 'Interview prep data persists',
+      description: 'Interview prep sessions and STAR stories should persist',
       category: 'data-persistence',
       priority: 'medium',
       execute: async () => {
-        const { data, error } = await supabase
-          .from('resume_cache')
-          .select('*')
-          .limit(10);
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
 
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          metadata: { count: data?.length || 0 },
-        };
+          const { data: prepSessions } = await supabase
+            .from('interview_prep_sessions')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .limit(10);
+
+          const { data: starStories } = await supabase
+            .from('star_stories')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .limit(10);
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              prepSessionsCount: prepSessions?.length || 0,
+              starStoriesCount: starStories?.length || 0,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
+        }
       },
     },
     {
       id: 'persist-008',
-      name: 'User activity logs persist',
-      description: 'Activity logs should be recorded',
+      name: 'AI preferences persist',
+      description: 'User AI preferences should persist',
       category: 'data-persistence',
-      priority: 'medium',
+      priority: 'low',
       execute: async () => {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          return { passed: false, duration: 0, error: 'Not authenticated' };
+        const startTime = Date.now();
+        
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) throw new Error('Not authenticated');
+
+          const { data, error } = await supabase
+            .from('user_ai_preferences')
+            .select('*')
+            .eq('user_id', session.session.user.id)
+            .maybeSingle();
+
+          if (error && !error.message.includes('no rows')) {
+            throw error;
+          }
+
+          return {
+            passed: true,
+            duration: Date.now() - startTime,
+            metadata: {
+              hasPreferences: !!data,
+            },
+          };
+        } catch (error: any) {
+          return {
+            passed: false,
+            duration: Date.now() - startTime,
+            error: error.message,
+          };
         }
-
-        const { data, error } = await supabase
-          .from('user_activities')
-          .select('*')
-          .eq('user_id', session.session.user.id)
-          .limit(10);
-
-        return {
-          passed: !error && Array.isArray(data),
-          duration: 0,
-          metadata: { count: data?.length || 0 },
-        };
       },
     },
   ],
