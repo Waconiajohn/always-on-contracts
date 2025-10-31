@@ -3695,46 +3695,70 @@ export type Database = {
       }
       vault_gap_analysis: {
         Row: {
+          analysis_type: string | null
+          competitive_insights: Json | null
           confidence_score: number | null
           created_at: string | null
           gap_description: string
           gap_type: string
           id: string
+          identified_gaps: Json | null
+          opportunities: Json | null
+          percentile_ranking: number | null
+          recommendations: Json | null
           recommended_actions: string[] | null
           severity: string | null
+          strengths: Json | null
           target_role: string | null
           updated_at: string | null
           user_id: string
           vault_evidence: string[] | null
           vault_id: string
+          vault_strength_at_analysis: number | null
         }
         Insert: {
+          analysis_type?: string | null
+          competitive_insights?: Json | null
           confidence_score?: number | null
           created_at?: string | null
           gap_description: string
           gap_type: string
           id?: string
+          identified_gaps?: Json | null
+          opportunities?: Json | null
+          percentile_ranking?: number | null
+          recommendations?: Json | null
           recommended_actions?: string[] | null
           severity?: string | null
+          strengths?: Json | null
           target_role?: string | null
           updated_at?: string | null
           user_id: string
           vault_evidence?: string[] | null
           vault_id: string
+          vault_strength_at_analysis?: number | null
         }
         Update: {
+          analysis_type?: string | null
+          competitive_insights?: Json | null
           confidence_score?: number | null
           created_at?: string | null
           gap_description?: string
           gap_type?: string
           id?: string
+          identified_gaps?: Json | null
+          opportunities?: Json | null
+          percentile_ranking?: number | null
+          recommendations?: Json | null
           recommended_actions?: string[] | null
           severity?: string | null
+          strengths?: Json | null
           target_role?: string | null
           updated_at?: string | null
           user_id?: string
           vault_evidence?: string[] | null
           vault_id?: string
+          vault_strength_at_analysis?: number | null
         }
         Relationships: [
           {
