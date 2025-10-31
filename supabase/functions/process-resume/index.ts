@@ -564,38 +564,89 @@ Provide confidence_scores object with confidence level for each major field.`
         throw new Error("No analysis returned from AI");
       }
 
+      // Log what we received from AI for debugging
+      console.log('[multiPassAnalysis] Tool call received:', {
+        hasToolCall: !!toolCall,
+        hasFunctionArgs: !!toolCall?.function?.arguments,
+        firstChars: toolCall?.function?.arguments?.substring(0, 100) || 'NO ARGS'
+      });
+
       let analysis;
+      const rawArgs = toolCall.function.arguments;
+      
       try {
         // First, try to parse as-is
-        analysis = JSON.parse(toolCall.function.arguments);
+        analysis = JSON.parse(rawArgs);
+        console.log('[multiPassAnalysis] Successfully parsed JSON on first attempt');
       } catch (parseError: any) {
-        console.error('[multiPassAnalysis] JSON parse error:', parseError.message);
-        console.error('[multiPassAnalysis] Raw arguments (first 500 chars):', toolCall.function.arguments.substring(0, 500));
+        console.error('[multiPassAnalysis] Initial parse failed:', parseError.message);
+        console.error('[multiPassAnalysis] Raw args (first 800 chars):', rawArgs.substring(0, 800));
+        console.error('[multiPassAnalysis] Raw args (last 200 chars):', rawArgs.substring(Math.max(0, rawArgs.length - 200)));
         
-        // Try to clean and fix common JSON issues
+        // Aggressive cleanup for malformed JSON
         try {
-          let cleaned = toolCall.function.arguments
-            .replace(/^[^{[]+/, '') // Remove junk before first { or [
-            .replace(/[^}\]]+$/, '') // Remove junk after last } or ]
-            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-            .replace(/\n/g, ' ')           // Remove newlines
-            .replace(/\r/g, '')            // Remove carriage returns
-            .trim();
+          let cleaned = rawArgs;
           
-          console.log('[multiPassAnalysis] Attempting to parse cleaned JSON...');
-          analysis = JSON.parse(cleaned);
-          console.log('[multiPassAnalysis] Successfully parsed cleaned JSON');
-        } catch (cleanError: any) {
-          console.error('[multiPassAnalysis] Cleaned JSON also failed:', cleanError.message);
-          
-          // If this is not the last attempt, throw to trigger retry
-          if (attempt < maxRetries) {
-            console.log(`[multiPassAnalysis] Will retry (attempt ${attempt + 1}/${maxRetries})`);
-            throw new Error(`JSON parsing failed on attempt ${attempt + 1}: ${parseError.message}. Retrying...`);
+          // Remove any leading garbage (anything before first { or [)
+          const firstBrace = cleaned.indexOf('{');
+          const firstBracket = cleaned.indexOf('[');
+          let startPos = -1;
+          if (firstBrace !== -1 && firstBracket !== -1) {
+            startPos = Math.min(firstBrace, firstBracket);
+          } else if (firstBrace !== -1) {
+            startPos = firstBrace;
+          } else if (firstBracket !== -1) {
+            startPos = firstBracket;
           }
           
-          // On last attempt, throw a user-friendly error
-          throw new Error('AI returned invalid data format after multiple attempts. Please try uploading your resume again or paste the text directly.');
+          if (startPos > 0) {
+            console.log(`[multiPassAnalysis] Removing ${startPos} leading chars`);
+            cleaned = cleaned.substring(startPos);
+          }
+          
+          // Remove any trailing garbage (anything after last } or ])
+          const lastBrace = cleaned.lastIndexOf('}');
+          const lastBracket = cleaned.lastIndexOf(']');
+          let endPos = -1;
+          if (lastBrace !== -1 && lastBracket !== -1) {
+            endPos = Math.max(lastBrace, lastBracket);
+          } else if (lastBrace !== -1) {
+            endPos = lastBrace;
+          } else if (lastBracket !== -1) {
+            endPos = lastBracket;
+          }
+          
+          if (endPos !== -1 && endPos < cleaned.length - 1) {
+            console.log(`[multiPassAnalysis] Removing ${cleaned.length - endPos - 1} trailing chars`);
+            cleaned = cleaned.substring(0, endPos + 1);
+          }
+          
+          // Fix common JSON issues
+          cleaned = cleaned
+            .replace(/,(\s*[}\]])/g, '$1')    // Remove trailing commas
+            .replace(/\n/g, ' ')               // Remove newlines
+            .replace(/\r/g, '')                // Remove carriage returns
+            .replace(/\t/g, ' ')               // Replace tabs with spaces
+            .replace(/\s+/g, ' ')              // Collapse multiple spaces
+            .trim();
+          
+          console.log('[multiPassAnalysis] Cleaned JSON (first 500 chars):', cleaned.substring(0, 500));
+          analysis = JSON.parse(cleaned);
+          console.log('[multiPassAnalysis] Successfully parsed after cleanup');
+        } catch (cleanError: any) {
+          console.error('[multiPassAnalysis] Cleanup also failed:', cleanError.message);
+          console.error('[multiPassAnalysis] This was attempt', attempt, 'of', maxRetries);
+          
+          // If not last attempt, retry
+          if (attempt < maxRetries) {
+            const delay = attempt * 2000; // 2s, 4s, 6s
+            console.log(`[multiPassAnalysis] Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            throw new Error(`Retrying after JSON parse failure (attempt ${attempt}/${maxRetries})`);
+          }
+          
+          // Last attempt failed - return error to user
+          throw new Error('Unable to process resume format. Please try converting to PDF or pasting text directly.');
         }
       }
       
