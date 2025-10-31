@@ -564,7 +564,22 @@ Provide confidence_scores object with confidence level for each major field.`
         throw new Error("No analysis returned from AI");
       }
 
-      const analysis = JSON.parse(toolCall.function.arguments);
+      let analysis;
+      try {
+        analysis = JSON.parse(toolCall.function.arguments);
+      } catch (parseError: any) {
+        console.error('[multiPassAnalysis] JSON parse error:', parseError.message);
+        console.error('[multiPassAnalysis] Raw arguments that failed to parse:', toolCall.function.arguments.substring(0, 500));
+        console.error('[multiPassAnalysis] Full tool call:', JSON.stringify(toolCall, null, 2));
+        
+        // If this is not the last attempt, throw to trigger retry
+        if (attempt < maxRetries) {
+          throw new Error(`JSON parsing failed on attempt ${attempt + 1}: ${parseError.message}. Retrying...`);
+        }
+        
+        // On last attempt, throw a user-friendly error
+        throw new Error('AI returned malformed data after multiple attempts. Please try uploading your resume again or paste the text directly.');
+      }
       
       // Phase 5.3: Apply smart defaults for missing data
       const yearsEstimate = estimateYearsFromText(text);
@@ -582,8 +597,12 @@ Provide confidence_scores object with confidence level for each major field.`
       };
     } catch (error) {
       lastError = error as Error;
+      console.error(`[multiPassAnalysis] Attempt ${attempt + 1}/${maxRetries + 1} failed:`, lastError.message);
+      
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`[multiPassAnalysis] Waiting ${waitTime}ms before retry ${attempt + 2}`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
   }
