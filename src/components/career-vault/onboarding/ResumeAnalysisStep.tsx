@@ -87,7 +87,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
 
       if (processError) throw processError;
 
-      const extractedText = data.resume_text || data.text || '';
+      const extractedText = data.extractedText || data.resume_text || data.text || '';
 
       if (!extractedText || extractedText.length < 100) {
         throw new Error('Could not extract enough text from your resume. Please try a different format or paste your resume text directly.');
