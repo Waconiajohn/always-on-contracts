@@ -566,19 +566,37 @@ Provide confidence_scores object with confidence level for each major field.`
 
       let analysis;
       try {
+        // First, try to parse as-is
         analysis = JSON.parse(toolCall.function.arguments);
       } catch (parseError: any) {
         console.error('[multiPassAnalysis] JSON parse error:', parseError.message);
-        console.error('[multiPassAnalysis] Raw arguments that failed to parse:', toolCall.function.arguments.substring(0, 500));
-        console.error('[multiPassAnalysis] Full tool call:', JSON.stringify(toolCall, null, 2));
+        console.error('[multiPassAnalysis] Raw arguments (first 500 chars):', toolCall.function.arguments.substring(0, 500));
         
-        // If this is not the last attempt, throw to trigger retry
-        if (attempt < maxRetries) {
-          throw new Error(`JSON parsing failed on attempt ${attempt + 1}: ${parseError.message}. Retrying...`);
+        // Try to clean and fix common JSON issues
+        try {
+          let cleaned = toolCall.function.arguments
+            .replace(/^[^{[]+/, '') // Remove junk before first { or [
+            .replace(/[^}\]]+$/, '') // Remove junk after last } or ]
+            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+            .replace(/\n/g, ' ')           // Remove newlines
+            .replace(/\r/g, '')            // Remove carriage returns
+            .trim();
+          
+          console.log('[multiPassAnalysis] Attempting to parse cleaned JSON...');
+          analysis = JSON.parse(cleaned);
+          console.log('[multiPassAnalysis] Successfully parsed cleaned JSON');
+        } catch (cleanError: any) {
+          console.error('[multiPassAnalysis] Cleaned JSON also failed:', cleanError.message);
+          
+          // If this is not the last attempt, throw to trigger retry
+          if (attempt < maxRetries) {
+            console.log(`[multiPassAnalysis] Will retry (attempt ${attempt + 1}/${maxRetries})`);
+            throw new Error(`JSON parsing failed on attempt ${attempt + 1}: ${parseError.message}. Retrying...`);
+          }
+          
+          // On last attempt, throw a user-friendly error
+          throw new Error('AI returned invalid data format after multiple attempts. Please try uploading your resume again or paste the text directly.');
         }
-        
-        // On last attempt, throw a user-friendly error
-        throw new Error('AI returned malformed data after multiple attempts. Please try uploading your resume again or paste the text directly.');
       }
       
       // Phase 5.3: Apply smart defaults for missing data
