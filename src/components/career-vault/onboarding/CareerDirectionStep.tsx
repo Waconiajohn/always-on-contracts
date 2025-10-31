@@ -101,6 +101,17 @@ export default function CareerDirectionStep({
         title: '🎯 AI Suggestions Ready',
         description: data.meta?.message || 'Career path suggestions generated',
       });
+
+      // Show marketing message if available
+      if (data.meta?.uniqueValue) {
+        setTimeout(() => {
+          toast({
+            title: '✨ What Makes Us Different',
+            description: data.meta.uniqueValue,
+            duration: 5000,
+          });
+        }, 2000);
+      }
     } catch (err: any) {
       console.error('Suggestion error:', err);
       toast({

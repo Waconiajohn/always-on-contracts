@@ -19,10 +19,11 @@ import { useNavigate } from 'react-router-dom';
 import { useUser, useSupabaseClient } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Sparkles, TrendingUp, Target, Brain, CheckCircle2 } from 'lucide-react';
+import { Sparkles, TrendingUp, Target, Brain, CheckCircle2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CareerVaultErrorBoundary } from '@/components/ErrorBoundary';
 import { OnboardingData } from '@/types/career-vault';
+import { useOnboardingAutoSave } from '@/hooks/useAutoSave';
 
 // Step components (to be created)
 import ResumeAnalysisStep from '@/components/career-vault/onboarding/ResumeAnalysisStep';
@@ -51,6 +52,9 @@ export default function CareerVaultOnboarding() {
   const { user } = useUser();
   const supabase = useSupabaseClient();
   const { toast } = useToast();
+
+  // Auto-save progress
+  const saveStatus = useOnboardingAutoSave(onboardingData.vaultId, currentStep, onboardingData);
 
   // Check if resuming existing onboarding
   useEffect(() => {
@@ -296,11 +300,26 @@ export default function CareerVaultOnboarding() {
               <span className="font-medium text-slate-700">
                 Step {currentStepIndex + 1} of {steps.length}
               </span>
-              <span className="text-slate-600">
-                {onboardingData.vaultStrength
-                  ? `Vault Strength: ${onboardingData.vaultStrength}%`
-                  : 'Starting your journey...'}
-              </span>
+              <div className="flex items-center gap-3">
+                {/* Auto-save status indicator */}
+                {saveStatus === 'saving' && (
+                  <span className="flex items-center gap-1.5 text-blue-600 text-xs">
+                    <Save className="w-3 h-3 animate-pulse" />
+                    Saving...
+                  </span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span className="flex items-center gap-1.5 text-green-600 text-xs">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Saved
+                  </span>
+                )}
+                <span className="text-slate-600">
+                  {onboardingData.vaultStrength
+                    ? `Vault Strength: ${onboardingData.vaultStrength}%`
+                    : 'Starting your journey...'}
+                </span>
+              </div>
             </div>
 
             <Progress value={progressPercentage} className="h-2" />

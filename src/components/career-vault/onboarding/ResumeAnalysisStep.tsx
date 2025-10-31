@@ -163,10 +163,22 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       const initialAnalysis = analysisData.data;
       setAnalysis(initialAnalysis);
 
+      // Show success toast with marketing message
       toast({
         title: '🎯 Analysis Complete!',
         description: analysisData.meta?.message || 'Your resume has been analyzed with AI-powered intelligence.',
       });
+
+      // Show unique value proposition after a brief delay
+      if (analysisData.meta?.uniqueValue) {
+        setTimeout(() => {
+          toast({
+            title: '✨ What Makes Us Different',
+            description: analysisData.meta.uniqueValue,
+            duration: 5000,
+          });
+        }, 2500);
+      }
 
       // Auto-advance after showing results for 2 seconds
       setTimeout(() => {
