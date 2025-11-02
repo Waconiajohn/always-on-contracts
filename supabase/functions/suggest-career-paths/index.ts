@@ -15,9 +15,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const LOVABLE_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface CareerPathRequest {
   resumeAnalysis: {
@@ -163,15 +162,9 @@ Background: ${resumeAnalysis.keyAchievements.slice(0, 5).join('; ')}
 Suggest a DIVERSE range of career options. Show them possibilities they might not have considered.`;
     }
 
-    // Call Lovable AI
-    const aiResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
+    // Call Perplexity AI
+    const { response: aiData, metrics: aiMetrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -209,19 +202,17 @@ NO MARKDOWN. ONLY JSON.`,
             content: userPrompt,
           },
         ],
-        temperature: 0.7, // Higher creativity for suggestions
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
         max_tokens: 3000,
-      }),
-    });
+      },
+      'suggest-career-paths',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Lovable AI error:', errorText);
-      throw new Error(`AI suggestion failed: ${aiResponse.status}`);
-    }
+    await logAIUsage(aiMetrics);
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
+    const aiContent = cleanCitations(aiData.choices[0].message.content);
 
     let suggestions: CareerPathResponse;
     try {

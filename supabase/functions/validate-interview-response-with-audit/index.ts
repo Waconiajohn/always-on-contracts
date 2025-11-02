@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,7 +57,6 @@ serve(async (req) => {
     const audit = auditData.audit;
 
     // Specific STAR analysis
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const starPrompt = `Analyze this interview answer for STAR structure:
 
 QUESTION: ${question}
@@ -70,23 +71,21 @@ Rate (1-10):
 
 Provide specific improvements for each component.`;
 
-    const starResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: starData, metrics: starMetrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are an interview coach expert.' },
           { role: 'user', content: starPrompt }
-        ]
-      })
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'validate-interview-response-with-audit',
+      user.id
+    );
 
-    const starData = await starResponse.json();
-    const starAnalysis = starData.choices[0].message.content;
+    await logAIUsage(starMetrics);
+
+    const starAnalysis = cleanCitations(starData.choices[0].message.content);
 
     // Update response
     if (responseId) {

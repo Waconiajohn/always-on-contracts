@@ -21,9 +21,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const LOVABLE_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface GapResponse {
   questionId: string;
@@ -154,26 +153,20 @@ RETURN VALID JSON ONLY:
 NO MARKDOWN. ONLY JSON.`;
 
     // Call AI to process responses
-    const aiResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
+    const { response: aiData, metrics: aiMetrics } = await callPerplexity(
+      {
         messages: [{ role: 'user', content: processingPrompt }],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.3,
         max_tokens: 2500,
-      }),
-    });
+      },
+      'process-gap-filling-responses',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI processing failed: ${aiResponse.status}`);
-    }
+    await logAIUsage(aiMetrics);
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
+    const aiContent = cleanCitations(aiData.choices[0].message.content);
 
     // Parse JSON response
     let processedData;

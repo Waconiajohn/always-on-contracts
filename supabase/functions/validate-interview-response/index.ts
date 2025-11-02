@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -128,32 +130,23 @@ CRITICAL VALIDATION RULES:
 - When score >= 70, celebrate the quality and mention they can continue`;
 
     console.log('Validating interview response');
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: aiResponse, metrics } = await callPerplexity(
+      {
         messages: [
           { 
             role: 'system', 
             content: 'You are an expert interview coach validating response quality. Return only valid JSON.' 
           },
           { role: 'user', content: validationPrompt }
-        ]
-      }),
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'validate-interview-response'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      throw new Error(`Failed to validate response: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const validationText = aiResponse.choices[0].message.content.trim();
+    const validationText = cleanCitations(aiResponse.choices[0].message.content).trim();
     
     // Extract JSON from response
     const jsonMatch = validationText.match(/\{[\s\S]*\}/);

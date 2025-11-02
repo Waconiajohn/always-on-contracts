@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import "https://deno.land/x/xhr@0.3.0/mod.ts";
 import { getDocumentProxy } from "https://esm.sh/unpdf@0.11.0";
 import JSZip from "https://esm.sh/jszip@3.10.1";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 // Phase 1.3: Security Headers
 const corsHeaders = {
@@ -275,7 +277,7 @@ function logMetrics(metrics: ProcessingMetrics, stage: string) {
 }
 
 // Phase 1.1: Document Parser with pdf-parse and smart fallback
-async function parseFile(base64Data: string, fileType: string, apiKey: string): Promise<string> {
+async function parseFile(base64Data: string, fileType: string): Promise<string> {
   console.log(`[parseFile] Starting to parse file of type: ${fileType}`);
   
   try {
@@ -323,8 +325,8 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
         
         // Smart fallback: if we extracted very little text, it's likely a scanned PDF
         if (extractedText.length < 100) {
-          console.log('[parseFile] Extracted minimal text from PDF, likely scanned - falling back to AI vision');
-          return await extractWithVisionAI(base64Data, fileType, apiKey);
+          console.log('[parseFile] Extracted minimal text from PDF, likely scanned');
+          throw new Error('This appears to be a scanned PDF. Please convert it to a text-based PDF or use a Word document instead.');
         }
         
         console.log(`[parseFile] Successfully extracted ${extractedText.length} characters from PDF using unpdf`);
@@ -332,8 +334,7 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
         
       } catch (pdfError: any) {
         console.error('[parseFile] unpdf failed:', pdfError);
-        console.log('[parseFile] Falling back to AI vision');
-        return await extractWithVisionAI(base64Data, fileType, apiKey);
+        throw new Error('Unable to extract text from PDF. Please ensure it is a text-based PDF (not scanned) or convert to Word document.');
       }
     }
 
@@ -419,61 +420,6 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
   }
 }
 
-// Helper function for AI vision extraction (fallback for scanned documents)
-async function extractWithVisionAI(base64Data: string, fileType: string, apiKey: string): Promise<string> {
-  console.log('[extractWithVisionAI] Using Lovable AI vision for text extraction');
-  
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Extract all text content from this document image. Return ONLY the extracted text without any additional commentary, formatting, or explanations. Preserve the original structure and formatting as much as possible.'
-          },
-          {
-            type: 'inline_data',
-            inline_data: {
-              mime_type: fileType,
-              data: base64Data
-            }
-          }
-        ]
-      }],
-      max_tokens: 4000
-    })
-  });
-
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error('AI service rate limit reached. Please try again in a few moments.');
-    }
-    if (response.status === 402) {
-      throw new Error('AI service payment required. Please contact support.');
-    }
-    const errorText = await response.text();
-    throw new Error(`AI extraction failed (${response.status}): ${errorText}`);
-  }
-
-  const data = await response.json();
-  const extractedText = data.choices?.[0]?.message?.content;
-
-  if (!extractedText || extractedText.trim().length < 50) {
-    console.log('[extractWithVisionAI] AI extracted minimal or no text');
-    throw new Error('Unable to extract sufficient text from document. The document may be blank, corrupted, or contain only images without text.');
-  }
-
-  console.log(`[extractWithVisionAI] Successfully extracted ${extractedText.length} characters using AI vision`);
-  return extractedText;
-}
-
 // Phase 1.2: Detect binary data in text field (for backward compatibility)
 function detectBinaryData(text: string): { isBinary: boolean; type?: string } {
   if (text.startsWith('%PDF-')) {
@@ -496,61 +442,51 @@ function detectBinaryData(text: string): { isBinary: boolean; type?: string } {
 }
 
 // Phase 1.3: AI-Powered Resume Validation
-async function validateIsResume(text: string, apiKey: string): Promise<{
+async function validateIsResume(text: string, userId?: string): Promise<{
   isResume: boolean;
   confidence: number;
   reason: string;
 }> {
   try {
-    const response = await circuitBreaker.call(() => 
-      fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          max_tokens: 1024,
-          messages: [
-            {
-              role: "system",
-              content: "You are a resume classifier. Respond with structured JSON only."
-            },
-            {
-              role: "user",
-              content: `Analyze if this is a professional resume/CV. Look for: contact info, work history, education, skills.
+    const { response: data, metrics } = await circuitBreaker.call(() => 
+      callPerplexity({
+        messages: [
+          {
+            role: "system",
+            content: "You are a resume classifier. Respond with structured JSON only."
+          },
+          {
+            role: "user",
+            content: `Analyze if this is a professional resume/CV. Look for: contact info, work history, education, skills.
 
 TEXT (first 5000 chars):
 ${text.substring(0, 5000)}
 
 Respond with confidence 0.0-1.0 and brief reason.`
-            }
-          ],
-          tools: [{
-            type: "function",
-            function: {
-              name: "classify_document",
-              parameters: {
-                type: "object",
-                properties: {
-                  isResume: { type: "boolean" },
-                  confidence: { type: "number" },
-                  reason: { type: "string" }
-                },
-                required: ["isResume", "confidence", "reason"]
-              }
-            }
-          }],
-          tool_choice: { type: "function", function: { name: "classify_document" } }
-        }),
-      })
+          }
+        ],
+        model: PERPLEXITY_MODELS.SMALL,
+        max_tokens: 1024,
+      }, 'validate-resume', userId)
     );
 
-    if (!response.ok) throw new Error('Validation failed');
+    await logAIUsage(metrics);
     
-    const data = await response.json();
-    const result = JSON.parse(data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments || '{}');
+    // Parse structured output from tool call
+    const content = data.choices?.[0]?.message?.content;
+    let result;
+    try {
+      result = JSON.parse(content);
+    } catch {
+      // If not JSON, try to extract from text
+      const isResumeMatch = /isResume["\s:]+(?:true|false)/i.exec(content);
+      const confidenceMatch = /confidence["\s:]+([0-9.]+)/i.exec(content);
+      result = {
+        isResume: isResumeMatch ? isResumeMatch[0].includes('true') : false,
+        confidence: confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.5,
+        reason: 'Parsed from text response'
+      };
+    }
     return result;
   } catch (error) {
     // Fallback to keyword-based validation
@@ -601,7 +537,6 @@ function estimateHourlyRate(text: string, years: number): { min: number; max: nu
 // Phase 5.1: Multi-Pass Analysis with Confidence Scoring
 async function multiPassAnalysis(
   text: string,
-  apiKey: string,
   userId: string,
   maxRetries = 2
 ): Promise<any> {
@@ -610,164 +545,104 @@ async function multiPassAnalysis(
   // First pass: Basic extraction (fast)
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await circuitBreaker.call(() =>
-        fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            max_tokens: 4096,
-            messages: [
-              {
-                role: "system",
-                content: "You are an expert resume analyzer. Always respond with valid JSON and provide confidence scores."
-              },
-              {
-                role: "user",
-                content: `Analyze this resume comprehensively. Extract all data with confidence scores.
+      const { response: data, metrics } = await circuitBreaker.call(() =>
+        callPerplexity({
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert resume analyzer. Always respond with valid JSON and provide confidence scores."
+            },
+            {
+              role: "user",
+              content: `Analyze this resume comprehensively. Extract all data with confidence scores.
 
 CRITICAL INSTRUCTIONS:
-1. Extract the candidate's CURRENT OR MOST RECENT job title as "current_role" (e.g., "Senior Drilling Engineer", "VP of Engineering", "Product Manager")
-2. Identify the PRIMARY INDUSTRY from their work history as "primary_industry" (e.g., "Oil & Gas", "Technology", "Healthcare", "Financial Services")
+1. Extract the candidate's CURRENT OR MOST RECENT job title as "current_role"
+2. Identify the PRIMARY INDUSTRY from their work history as "primary_industry"
 3. Extract EXACT employment dates in YYYY-MM format
 4. Calculate total years_experience by summing all employment periods
 5. Quantify ALL achievements with numbers, percentages, or metrics
 6. Identify contract/freelance indicators
 7. For each field, provide confidence: "high" (>80%), "medium" (50-80%), "low" (<50%)
 
-EXAMPLES:
-- If resume shows "Senior Drilling Engineer at Halliburton" → current_role: "Senior Drilling Engineer", primary_industry: "Oil & Gas"
-- If resume shows "VP Engineering at Stripe" → current_role: "VP Engineering", primary_industry: "FinTech"
-- If resume shows "Product Manager at Kaiser Permanente" → current_role: "Product Manager", primary_industry: "Healthcare"
-
 RESUME TEXT:
 ${text}
 
 Focus on: current_role (REQUIRED), primary_industry (REQUIRED), years_experience, key_achievements (quantified), industry_expertise, management_capabilities, skills, target_hourly_rate_min, target_hourly_rate_max, recommended_positions, analysis_summary.
 
-Provide confidence_scores object with confidence level for each major field.`
-              }
-            ],
-            tools: [{
-              type: "function",
-              function: {
-                name: "analyze_resume",
-                description: "Extract structured resume data with confidence scoring",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    current_role: { 
-                      type: "string",
-                      description: "The candidate's current or most recent job title (e.g., 'Senior Drilling Engineer', 'VP Engineering')"
-                    },
-                    primary_industry: { 
-                      type: "string",
-                      description: "The candidate's primary industry based on work history (e.g., 'Oil & Gas', 'Technology', 'Healthcare')"
-                    },
-                    years_experience: { type: "number" },
-                    key_achievements: { type: "array", items: { type: "string" } },
-                    industry_expertise: { type: "array", items: { type: "string" } },
-                    management_capabilities: { type: "array", items: { type: "string" } },
-                    skills: { type: "array", items: { type: "string" } },
-                    target_hourly_rate_min: { type: "number" },
-                    target_hourly_rate_max: { type: "number" },
-                    recommended_positions: { type: "array", items: { type: "string" } },
-                    analysis_summary: { type: "string" },
-                    confidence_scores: {
-                      type: "object",
-                      properties: {
-                        current_role: { type: "string" },
-                        primary_industry: { type: "string" },
-                        years_experience: { type: "string" },
-                        skills: { type: "string" },
-                        achievements: { type: "string" },
-                        rates: { type: "string" },
-                        overall: { type: "string" }
-                      }
-                    },
-                    data_quality_issues: {
-                      type: "array",
-                      items: { type: "string" }
-                    }
-                  },
-                  required: ["current_role", "primary_industry", "years_experience", "key_achievements", "industry_expertise", "skills", "analysis_summary"]
-                }
-              }
-            }],
-            tool_choice: { type: "function", function: { name: "analyze_resume" } }
-          }),
-        })
+Provide confidence_scores object with confidence level for each major field.
+
+Return ONLY valid JSON in this exact structure:
+{
+  "current_role": "string",
+  "primary_industry": "string",
+  "years_experience": number,
+  "key_achievements": ["string"],
+  "industry_expertise": ["string"],
+  "management_capabilities": ["string"],
+  "skills": ["string"],
+  "target_hourly_rate_min": number,
+  "target_hourly_rate_max": number,
+  "recommended_positions": ["string"],
+  "analysis_summary": "string",
+  "confidence_scores": {
+    "current_role": "high|medium|low",
+    "primary_industry": "high|medium|low",
+    "years_experience": "high|medium|low",
+    "skills": "high|medium|low",
+    "achievements": "high|medium|low",
+    "rates": "high|medium|low",
+    "overall": "high|medium|low"
+  },
+  "data_quality_issues": ["string"]
+}`
+            }
+          ],
+          model: PERPLEXITY_MODELS.DEFAULT,
+          max_tokens: 4096,
+          temperature: 0.2,
+        }, 'multipass-analysis', userId)
       );
 
-      if (!response.ok) {
-        throw new Error(`AI analysis failed: ${response.status}`);
-      }
+      await logAIUsage(metrics);
 
-      const data = await response.json();
-      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      const content = data.choices?.[0]?.message?.content;
       
-      if (!toolCall) {
+      if (!content) {
         throw new Error("No analysis returned from AI");
       }
 
       // Log what we received from AI for debugging
-      console.log('[multiPassAnalysis] Tool call received:', {
-        hasToolCall: !!toolCall,
-        hasFunctionArgs: !!toolCall?.function?.arguments,
-        firstChars: toolCall?.function?.arguments?.substring(0, 100) || 'NO ARGS'
-      });
+      console.log('[multiPassAnalysis] Response received, length:', content.length);
 
       let analysis;
-      const rawArgs = toolCall.function.arguments;
       
       try {
-        // First, try to parse as-is
-        analysis = JSON.parse(rawArgs);
+        // Try to parse as-is
+        analysis = JSON.parse(content);
         console.log('[multiPassAnalysis] Successfully parsed JSON on first attempt');
       } catch (parseError: any) {
         console.error('[multiPassAnalysis] Initial parse failed:', parseError.message);
-        console.error('[multiPassAnalysis] Raw args (first 800 chars):', rawArgs.substring(0, 800));
-        console.error('[multiPassAnalysis] Raw args (last 200 chars):', rawArgs.substring(Math.max(0, rawArgs.length - 200)));
         
         // Aggressive cleanup for malformed JSON
         try {
-          let cleaned = rawArgs;
+          let cleaned = content;
           
-          // Remove any leading garbage (anything before first { or [)
+          // Remove markdown code blocks if present
+          cleaned = cleaned.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+          
+          // Remove any leading garbage (anything before first {)
           const firstBrace = cleaned.indexOf('{');
-          const firstBracket = cleaned.indexOf('[');
-          let startPos = -1;
-          if (firstBrace !== -1 && firstBracket !== -1) {
-            startPos = Math.min(firstBrace, firstBracket);
-          } else if (firstBrace !== -1) {
-            startPos = firstBrace;
-          } else if (firstBracket !== -1) {
-            startPos = firstBracket;
+          if (firstBrace > 0) {
+            console.log(`[multiPassAnalysis] Removing ${firstBrace} leading chars`);
+            cleaned = cleaned.substring(firstBrace);
           }
           
-          if (startPos > 0) {
-            console.log(`[multiPassAnalysis] Removing ${startPos} leading chars`);
-            cleaned = cleaned.substring(startPos);
-          }
-          
-          // Remove any trailing garbage (anything after last } or ])
+          // Remove any trailing garbage (anything after last })
           const lastBrace = cleaned.lastIndexOf('}');
-          const lastBracket = cleaned.lastIndexOf(']');
-          let endPos = -1;
-          if (lastBrace !== -1 && lastBracket !== -1) {
-            endPos = Math.max(lastBrace, lastBracket);
-          } else if (lastBrace !== -1) {
-            endPos = lastBrace;
-          } else if (lastBracket !== -1) {
-            endPos = lastBracket;
-          }
-          
-          if (endPos !== -1 && endPos < cleaned.length - 1) {
-            console.log(`[multiPassAnalysis] Removing ${cleaned.length - endPos - 1} trailing chars`);
-            cleaned = cleaned.substring(0, endPos + 1);
+          if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
+            console.log(`[multiPassAnalysis] Removing ${cleaned.length - lastBrace - 1} trailing chars`);
+            cleaned = cleaned.substring(0, lastBrace + 1);
           }
           
           // Fix common JSON issues
@@ -779,22 +654,20 @@ Provide confidence_scores object with confidence level for each major field.`
             .replace(/\s+/g, ' ')              // Collapse multiple spaces
             .trim();
           
-          console.log('[multiPassAnalysis] Cleaned JSON (first 500 chars):', cleaned.substring(0, 500));
           analysis = JSON.parse(cleaned);
           console.log('[multiPassAnalysis] Successfully parsed after cleanup');
         } catch (cleanError: any) {
           console.error('[multiPassAnalysis] Cleanup also failed:', cleanError.message);
-          console.error('[multiPassAnalysis] This was attempt', attempt, 'of', maxRetries);
           
           // If not last attempt, retry
           if (attempt < maxRetries) {
-            const delay = attempt * 2000; // 2s, 4s, 6s
+            const delay = attempt * 2000;
             console.log(`[multiPassAnalysis] Waiting ${delay}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             throw new Error(`Retrying after JSON parse failure (attempt ${attempt}/${maxRetries})`);
           }
           
-          // Last attempt failed - return error to user
+          // Last attempt failed
           throw new Error('Unable to process resume format. Please try converting to PDF or pasting text directly.');
         }
       }
@@ -908,7 +781,6 @@ serve(async (req) => {
   const startTime = Date.now();
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   let queueId: string | null = null;
@@ -1056,10 +928,10 @@ serve(async (req) => {
         .update({ progress: 15 })
         .eq('id', queueId);
 
-      // Parse the file using Lovable AI
+      // Parse the file
       try {
         const parseStart = Date.now();
-        extractedText = await parseFile(fileData, fileType || '', LOVABLE_API_KEY);
+        extractedText = await parseFile(fileData, fileType || '');
         metrics.parseTime = Date.now() - parseStart;
         logMetrics(metrics, 'File parsing');
       } catch (error: any) {
@@ -1146,7 +1018,7 @@ serve(async (req) => {
       .eq('id', queueId);
 
     // Phase 1.4: Validate document
-    const validation = await validateIsResume(cleanedText, LOVABLE_API_KEY);
+    const validation = await validateIsResume(cleanedText, userId);
 
     if (!validation.isResume || validation.confidence < 0.5) {
       throw new Error(ERROR_MESSAGES['not_a_resume']);
@@ -1158,7 +1030,7 @@ serve(async (req) => {
 
     // Phase 5.1: Multi-pass analysis with confidence scoring
     const analysisStart = Date.now();
-    const analysis = await multiPassAnalysis(cleanedText, LOVABLE_API_KEY, userId);
+    const analysis = await multiPassAnalysis(cleanedText, userId);
     metrics.analysisTime = Date.now() - analysisStart;
     logMetrics(metrics, 'AI analysis');
 

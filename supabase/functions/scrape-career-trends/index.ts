@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +15,6 @@ serve(async (req) => {
 
   try {
     const { industry, roleType, keywords } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
 
     const systemPrompt = `You are an elite career intelligence analyst specializing in emerging trends, industry shifts, and market dynamics.
 
@@ -134,30 +131,21 @@ KEYWORDS: ${keywords?.join(', ') || 'Broad career trends'}
 
 Provide 5-8 highly relevant, actionable trends with specific guidance for job seekers. Prioritize non-obvious insights over common knowledge.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: data, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.4,
-      }),
-    });
+      },
+      'scrape-career-trends'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI research failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const researchResult = data.choices[0].message.content;
+    const researchResult = cleanCitations(data.choices[0].message.content);
 
     let parsedResult;
     try {
