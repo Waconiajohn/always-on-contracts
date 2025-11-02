@@ -1,6 +1,7 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,24 +77,21 @@ Provide harsh, realistic feedback on:
 
 Be brutally honest.`;
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const pass2Response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: pass2Response, metrics: pass2Metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are a critical hiring manager.' },
           { role: 'user', content: hiringManagerPrompt }
-        ]
-      })
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'optimize-resume-with-audit-pass2',
+      user.id
+    );
 
-    const pass2Data = await pass2Response.json();
-    const hiringManagerFeedback = pass2Data.choices[0].message.content;
+    await logAIUsage(pass2Metrics);
+
+    const hiringManagerFeedback = cleanCitations(pass2Response.choices[0].message.content);
 
     // Pass 3: Refinement based on feedback
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 3: Refinement');
@@ -110,23 +108,21 @@ ${JSON.stringify(vaultData)}
 
 Rewrite the resume addressing all feedback while maintaining authenticity.`;
 
-    const pass3Response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: pass3Response, metrics: pass3Metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are an expert resume writer.' },
           { role: 'user', content: refinementPrompt }
-        ]
-      })
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'optimize-resume-with-audit-pass3',
+      user.id
+    );
 
-    const pass3Data = await pass3Response.json();
-    optimizedResume = pass3Data.choices[0].message.content;
+    await logAIUsage(pass3Metrics);
+
+    optimizedResume = cleanCitations(pass3Response.choices[0].message.content);
 
     // Pass 4: DUAL AI AUDIT
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 4: Dual AI audit');

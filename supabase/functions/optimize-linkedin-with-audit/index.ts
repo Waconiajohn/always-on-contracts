@@ -1,6 +1,7 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,7 +37,6 @@ serve(async (req) => {
     const vaultData = vaultResponse.data?.intelligence || {};
 
     // Generate optimized profile
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const optimizationPrompt = `Optimize this LinkedIn profile:
 
 CURRENT PROFILE:
@@ -63,23 +63,21 @@ Return JSON:
   "optimization_tips": ["tip1", "tip2", ...]
 }`;
 
-    const optimizationResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: optimizationResponse, metrics: optimizationMetrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are a LinkedIn optimization expert.' },
           { role: 'user', content: optimizationPrompt }
-        ]
-      })
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'optimize-linkedin-with-audit',
+      user.id
+    );
 
-    const optimizationData = await optimizationResponse.json();
-    const optimizedContent = optimizationData.choices[0].message.content;
+    await logAIUsage(optimizationMetrics);
+
+    const optimizedContent = cleanCitations(optimizationResponse.choices[0].message.content);
 
     let optimizedProfile;
     try {
