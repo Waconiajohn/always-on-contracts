@@ -87,8 +87,24 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
 
       console.log('Process resume response:', { data, processError });
 
+      // Phase 5.3: Enhanced error tracking
       if (processError) {
-        console.error('Process error:', processError);
+        console.error('Process error:', {
+          message: processError.message,
+          status: processError.status,
+          details: processError.details,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Track error in analytics (if window.gtag exists)
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'resume_upload_error', {
+            error_type: processError.status || 'unknown',
+            file_type: file.type,
+            file_size: file.size
+          });
+        }
+        
         throw new Error(processError.message || 'Failed to process resume');
       }
 

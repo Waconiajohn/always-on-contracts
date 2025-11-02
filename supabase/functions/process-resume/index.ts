@@ -4,9 +4,13 @@ import "https://deno.land/x/xhr@0.3.0/mod.ts";
 import { getDocumentProxy } from "https://esm.sh/unpdf@0.11.0";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 
+// Phase 1.3: Security Headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block"
 };
 
 // Phase 1.3: Robust Text Cleanup
@@ -58,14 +62,23 @@ class AICircuitBreaker {
 
 const circuitBreaker = new AICircuitBreaker();
 
-// Phase 4.1: Error Messages (simple, no solutions shown to user)
+// Phase 3.1: Expanded Error Messages
 const ERROR_MESSAGES: Record<string, string> = {
   'scanned_pdf': 'Unable to process this PDF file',
   'insufficient_content': 'Resume appears incomplete or too short',
   'parsing_failed': 'Unable to read document content',
   'not_a_resume': 'This document does not appear to be a resume',
   'ai_analysis_failed': 'AI analysis encountered an error - please try again',
-  'rate_limit_exceeded': 'Upload limit reached - please try again shortly'
+  'rate_limit_exceeded': 'Upload limit reached - please try again shortly',
+  // DOCX-specific errors
+  'docx_corrupted': 'This Word document appears to be corrupted',
+  'docx_password_protected': 'Password-protected documents are not supported',
+  'docx_empty': 'This document appears to be empty',
+  'docx_invalid_structure': 'Invalid Word document structure',
+  // Validation errors
+  'file_too_large': 'File size exceeds 10MB limit',
+  'unsupported_format': 'Unsupported file format',
+  'authentication_failed': 'Authentication required to upload resumes'
 };
 
 // Phase 3.3: Check Rate Limit
@@ -115,43 +128,147 @@ async function recordRateLimit(supabase: any, userId: string) {
     });
 }
 
-// Helper: Extract text from Word XML (handles document.xml, header.xml, footer.xml)
-function extractTextFromWordXml(xml: string): string {
-  const textParts: string[] = [];
+// Phase 4.1: Enhanced DOCX Text Extraction with Structure Preservation
+function extractTextFromWordXml(xml: string, preserveStructure: boolean = true): string {
+  const paragraphs: string[] = [];
 
-  // Extract all <w:t> elements (text runs)
-  // This regex captures text inside <w:t> tags, including text with xml:space="preserve"
-  const textPattern = /<w:t(?:\s+[^>]*)?>(.*?)<\/w:t>/gs;
-  let match;
+  // Extract paragraphs to preserve document structure
+  const paragraphPattern = /<w:p[^>]*>(.*?)<\/w:p>/gs;
+  let paragraphMatch;
 
-  while ((match = textPattern.exec(xml)) !== null) {
-    const text = match[1];
-    if (text) {
-      // Decode XML entities
-      const decodedText = text
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .replace(/&apos;/g, "'");
-      textParts.push(decodedText);
+  while ((paragraphMatch = paragraphPattern.exec(xml)) !== null) {
+    const paragraphXml = paragraphMatch[1];
+    const textPattern = /<w:t(?:\s+[^>]*)?>(.*?)<\/w:t>/gs;
+    let textMatch;
+    const paragraphText: string[] = [];
+
+    while ((textMatch = textPattern.exec(paragraphXml)) !== null) {
+      const text = textMatch[1];
+      if (text) {
+        // Decode XML entities
+        const decodedText = text
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'");
+        paragraphText.push(decodedText);
+      }
+    }
+
+    if (paragraphText.length > 0) {
+      paragraphs.push(paragraphText.join(' ').trim());
     }
   }
 
-  // Add paragraph breaks where appropriate
-  // Look for paragraph boundaries (<w:p>) to preserve document structure
-  const paragraphPattern = /<w:p[\s>]/g;
-  const paragraphCount = (xml.match(paragraphPattern) || []).length;
+  // Join paragraphs with double newline to preserve structure
+  if (preserveStructure) {
+    return paragraphs.join('\n\n').trim();
+  } else {
+    return paragraphs.join(' ').trim();
+  }
+}
 
-  // Join text with spaces, but try to preserve line breaks
-  let fullText = textParts.join(' ');
+// Phase 4.2: Section Header Detection
+function detectSections(text: string): Record<string, string> {
+  const sections: Record<string, string> = {};
+  const sectionHeaders = [
+    { name: 'summary', patterns: [/professional summary|executive summary|profile|summary/i] },
+    { name: 'experience', patterns: [/work experience|professional experience|employment history|experience/i] },
+    { name: 'education', patterns: [/education|academic background|qualifications/i] },
+    { name: 'skills', patterns: [/skills|technical skills|core competencies/i] },
+    { name: 'achievements', patterns: [/achievements|accomplishments|awards/i] }
+  ];
 
-  // Clean up excessive whitespace while preserving single spaces
-  fullText = fullText
-    .replace(/\s+/g, ' ')
-    .trim();
+  const lines = text.split('\n');
+  let currentSection = 'other';
+  let currentText: string[] = [];
 
-  return fullText;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Check if line is a section header
+    let foundSection = false;
+    for (const section of sectionHeaders) {
+      if (section.patterns.some(pattern => pattern.test(trimmed))) {
+        // Save previous section
+        if (currentText.length > 0) {
+          sections[currentSection] = currentText.join('\n').trim();
+        }
+        currentSection = section.name;
+        currentText = [];
+        foundSection = true;
+        break;
+      }
+    }
+
+    if (!foundSection && trimmed) {
+      currentText.push(trimmed);
+    }
+  }
+
+  // Save last section
+  if (currentText.length > 0) {
+    sections[currentSection] = currentText.join('\n').trim();
+  }
+
+  return sections;
+}
+
+// Phase 1.2: File Validation
+function validateFile(file: File, fileSize: number): { valid: boolean; error?: string } {
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_MIME_TYPES = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'text/plain'
+  ];
+
+  // Check file size
+  if (fileSize > MAX_FILE_SIZE) {
+    return {
+      valid: false,
+      error: ERROR_MESSAGES['file_too_large']
+    };
+  }
+
+  // Check MIME type
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    return {
+      valid: false,
+      error: ERROR_MESSAGES['unsupported_format']
+    };
+  }
+
+  // Check file extension matches MIME type
+  const fileName = file.name.toLowerCase();
+  if (file.type.includes('pdf') && !fileName.endsWith('.pdf')) {
+    return { valid: false, error: 'File extension does not match content type' };
+  }
+  if (file.type.includes('word') && !fileName.endsWith('.docx') && !fileName.endsWith('.doc')) {
+    return { valid: false, error: 'File extension does not match content type' };
+  }
+
+  return { valid: true };
+}
+
+// Phase 2.3: Processing Metrics
+interface ProcessingMetrics {
+  startTime: number;
+  parseTime?: number;
+  validationTime?: number;
+  analysisTime?: number;
+  cacheTime?: number;
+}
+
+function createMetrics(): ProcessingMetrics {
+  return { startTime: Date.now() };
+}
+
+function logMetrics(metrics: ProcessingMetrics, stage: string) {
+  const elapsed = Date.now() - metrics.startTime;
+  console.log(`[METRICS] ${stage}: ${elapsed}ms`);
 }
 
 // Phase 1.1: Document Parser with pdf-parse and smart fallback
@@ -277,7 +394,16 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
 
       } catch (docxError: any) {
         console.error('[parseFile] DOCX parsing failed:', docxError);
-        throw new Error(`Unable to read Word document: ${docxError.message}`);
+        // Phase 3.2: Map DOCX errors to user-friendly messages
+        let errorType = 'docx_invalid_structure';
+        if (docxError.message.includes('password')) {
+          errorType = 'docx_password_protected';
+        } else if (docxError.message.includes('corrupted') || docxError.message.includes('invalid')) {
+          errorType = 'docx_corrupted';
+        } else if (docxError.message.includes('empty')) {
+          errorType = 'docx_empty';
+        }
+        throw new Error(ERROR_MESSAGES[errorType]);
       }
     }
 
@@ -788,7 +914,16 @@ serve(async (req) => {
   try {
     console.log('[PROCESS-RESUME] Starting - content-type:', req.headers.get('content-type'));
     
+    // Phase 3.3: Enhanced Structured Logging
+    console.log('[PROCESS-RESUME] === REQUEST START ===');
+    console.log('[PROCESS-RESUME] User-Agent:', req.headers.get('user-agent'));
+    
+    // Phase 2.3: Initialize metrics
+    const metrics = createMetrics();
+    
     const contentType = req.headers.get('content-type') || '';
+    console.log('[PROCESS-RESUME] Content-Type:', contentType);
+    
     let fileText: string | undefined = undefined;
     let fileData: string | undefined = undefined;
     let fileName: string = '';
@@ -806,23 +941,50 @@ serve(async (req) => {
         throw new Error('No file found in FormData');
       }
       
-      // Convert file to base64
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      fileData = btoa(String.fromCharCode(...uint8Array));
       fileName = file.name;
       fileSize = file.size;
       fileType = file.type || 'application/octet-stream';
       
-      // Get userId from JWT token
-      const authHeader = req.headers.get('authorization');
-      if (!authHeader) {
-        throw new Error('No authorization header found');
+      // Phase 1.2: Validate file before processing
+      const validation = validateFile(file, fileSize);
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
       
-      const token = authHeader.replace('Bearer ', '');
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      reqUserId = payload.sub;
+      // Phase 2.1: Convert to base64 in chunks to avoid stack overflow
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const CHUNK_SIZE = 8192;
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i += CHUNK_SIZE) {
+        const chunk = uint8Array.subarray(i, Math.min(i + CHUNK_SIZE, uint8Array.length));
+        binary += String.fromCharCode(...chunk);
+      }
+      fileData = btoa(binary);
+      console.log('[PROCESS-RESUME] Converted file to base64:', fileData.length, 'chars');
+      
+      // Phase 1.1: Replace manual JWT parsing with Supabase auth
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        throw new Error(ERROR_MESSAGES['authentication_failed']);
+      }
+      
+      // Create a Supabase client with the user's auth header
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        {
+          global: { headers: { Authorization: authHeader } }
+        }
+      );
+
+      // Validate and extract user
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error(ERROR_MESSAGES['authentication_failed']);
+      }
+      reqUserId = user.id;
+      console.log('[PROCESS-RESUME] User authenticated:', user.id);
       
       console.log('[PROCESS-RESUME] FormData parsed - file:', fileName, 'size:', fileSize, 'type:', fileType);
     } else {
@@ -834,6 +996,7 @@ serve(async (req) => {
     }
     
     userId = reqUserId;
+    logMetrics(metrics, 'Request parsing');
 
     if (!fileName || !userId) {
       throw new Error("Missing required fields: fileName and userId are required");
@@ -844,40 +1007,6 @@ serve(async (req) => {
     }
 
     let extractedText = '';
-
-    // Phase 1: Handle file parsing based on what was provided
-    if (fileData) {
-      // New method: Parse file from base64 data
-      await supabase.from('resume_processing_queue')
-        .insert({
-          user_id: userId,
-          file_name: fileName,
-          file_size: fileSize || 0,
-          file_type: fileType || 'unknown',
-          status: 'processing',
-          progress: 15
-        })
-        .select()
-        .single()
-        .then(({ data, error }) => {
-          if (error) throw error;
-          queueId = data.id;
-        });
-
-      // Parse the file using Lovable AI
-      try {
-        extractedText = await parseFile(fileData, fileType || '', LOVABLE_API_KEY);
-      } catch (error: any) {
-        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
-      }
-    } else if (fileText) {
-      // Legacy method: Check if text is actually binary data
-      const binaryCheck = detectBinaryData(fileText);
-      if (binaryCheck.isBinary) {
-        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
-      }
-      extractedText = fileText;
-    }
 
     // Phase 3.3: Check rate limit
     const rateLimit = await checkRateLimit(supabase, userId);
@@ -893,24 +1022,60 @@ serve(async (req) => {
       });
     }
 
-    // Phase 3.2: Create queue entry (if not already created during file parsing)
-    if (!queueId) {
-      const { data: queueEntry, error: queueError } = await supabase
-        .from('resume_processing_queue')
-        .insert({
-          user_id: userId,
-          file_name: fileName,
-          file_size: fileSize || 0,
-          file_type: fileType || 'unknown',
-          status: 'processing',
-          progress: 10
-        })
-        .select()
-        .single();
+    // Phase 2.2: Consolidate queue entry creation (single point)
+    console.log('[PROCESS-RESUME] Creating queue entry');
+    const { data: queueEntry, error: queueError } = await supabase
+      .from('resume_processing_queue')
+      .insert({
+        user_id: userId,
+        file_name: fileName,
+        file_size: fileSize || 0,
+        file_type: fileType || 'unknown',
+        status: 'processing',
+        progress: 5
+      })
+      .select()
+      .single();
 
-      if (queueError) throw queueError;
-      queueId = queueEntry.id;
+    if (queueError) {
+      console.error('[PROCESS-RESUME] Queue creation failed:', queueError);
+      throw new Error('Failed to initialize processing queue');
     }
+    queueId = queueEntry.id;
+    console.log('[PROCESS-RESUME] Queue entry created:', queueId);
+
+    // Phase 1: Handle file parsing based on what was provided
+    let extractedText = '';
+    
+    if (fileData) {
+      // New method: Parse file from base64 data
+      await supabase.from('resume_processing_queue')
+        .update({ progress: 15 })
+        .eq('id', queueId);
+
+      // Parse the file using Lovable AI
+      try {
+        const parseStart = Date.now();
+        extractedText = await parseFile(fileData, fileType || '', LOVABLE_API_KEY);
+        metrics.parseTime = Date.now() - parseStart;
+        logMetrics(metrics, 'File parsing');
+      } catch (error: any) {
+        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
+      }
+    } else if (fileText) {
+      // Legacy method: Check if text is actually binary data
+      const binaryCheck = detectBinaryData(fileText);
+      if (binaryCheck.isBinary) {
+        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
+      }
+      extractedText = fileText;
+    }
+    
+    // Phase 3.3: Enhanced extraction logging
+    console.log('[PROCESS-RESUME] === EXTRACTION COMPLETE ===');
+    console.log('[PROCESS-RESUME] Extracted text length:', extractedText.length);
+    console.log('[PROCESS-RESUME] First 200 chars:', extractedText.substring(0, 200));
+    console.log('[PROCESS-RESUME] Last 200 chars:', extractedText.substring(Math.max(0, extractedText.length - 200)));
 
     // Phase 1.4: Clean text
     const cleanedText = robustTextCleanup(extractedText);
@@ -989,7 +1154,15 @@ serve(async (req) => {
       .eq('id', queueId);
 
     // Phase 5.1: Multi-pass analysis with confidence scoring
+    const analysisStart = Date.now();
     const analysis = await multiPassAnalysis(cleanedText, LOVABLE_API_KEY, userId);
+    metrics.analysisTime = Date.now() - analysisStart;
+    logMetrics(metrics, 'AI analysis');
+
+    // Phase 3.3: Enhanced analysis logging
+    console.log('[PROCESS-RESUME] === ANALYSIS COMPLETE ===');
+    console.log('[PROCESS-RESUME] Confidence:', analysis.confidence_scores);
+    console.log('[PROCESS-RESUME] Data quality issues:', analysis.data_quality_issues);
 
     await supabase.from('resume_processing_queue')
       .update({ progress: 85 })

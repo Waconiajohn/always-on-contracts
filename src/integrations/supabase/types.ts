@@ -2047,6 +2047,80 @@ export type Database = {
           },
         ]
       }
+      processing_metrics: {
+        Row: {
+          analysis_confidence: string | null
+          analysis_time_ms: number | null
+          cache_hit_count: number | null
+          created_at: string | null
+          error_message: string | null
+          error_type: string | null
+          extracted_text_length: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          parse_time_ms: number | null
+          queue_id: string | null
+          success: boolean
+          total_time_ms: number
+          user_id: string | null
+          validation_confidence: number | null
+          validation_time_ms: number | null
+          was_cached: boolean | null
+        }
+        Insert: {
+          analysis_confidence?: string | null
+          analysis_time_ms?: number | null
+          cache_hit_count?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          extracted_text_length?: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          parse_time_ms?: number | null
+          queue_id?: string | null
+          success: boolean
+          total_time_ms: number
+          user_id?: string | null
+          validation_confidence?: number | null
+          validation_time_ms?: number | null
+          was_cached?: boolean | null
+        }
+        Update: {
+          analysis_confidence?: string | null
+          analysis_time_ms?: number | null
+          cache_hit_count?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          extracted_text_length?: number | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          parse_time_ms?: number | null
+          queue_id?: string | null
+          success?: boolean
+          total_time_ms?: number
+          user_id?: string | null
+          validation_confidence?: number | null
+          validation_time_ms?: number | null
+          was_cached?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_metrics_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "resume_processing_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           automation_activated_at: string | null
