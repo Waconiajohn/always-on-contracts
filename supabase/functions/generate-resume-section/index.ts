@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,11 +22,6 @@ serve(async (req) => {
       vaultId,
       enhanceMode = false
     } = await req.json()
-
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY')
-    if (!lovableKey) {
-      throw new Error('LOVABLE_API_KEY not configured')
-    }
 
     // Build context for AI
     const jobContext = `
@@ -222,57 +219,25 @@ Generate appropriate content for this section that incorporates the vault items 
 Return as plain text or JSON array depending on section type.`
     }
 
-    console.log('Calling Lovable AI for section generation...')
+    console.log('Calling Perplexity for section generation...')
     console.log('Section type:', sectionType)
     console.log('Vault items:', vaultItems?.length || 0)
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.7, // Slightly higher for creative writing
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
         max_tokens: 2048
-      })
-    })
+      },
+      'generate-resume-section'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Lovable AI error:', response.status, errorText)
-      
-      // Pass through rate limit and payment errors to client
-      if (response.status === 429 || response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: response.status === 429 
-              ? 'Rate limit exceeded. Please try again in a moment.'
-              : 'Payment required. Please add credits to your workspace.'
-          }),
-          {
-            status: response.status,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-      }
-      
-      throw new Error(`AI generation failed: ${response.status}`)
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json()
-    let generatedContent = data.choices?.[0]?.message?.content || ''
+    let generatedContent = response.choices?.[0]?.message?.content || ''
 
     console.log('Raw AI response:', generatedContent.substring(0, 200))
 

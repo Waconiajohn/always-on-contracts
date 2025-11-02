@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -108,7 +110,6 @@ serve(async (req) => {
       }))
     ];
 
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
     const matches: VaultMatch[] = [];
 
     // Process each vault category
@@ -138,8 +139,8 @@ serve(async (req) => {
       }
     };
 
-    // Use Lovable AI to intelligently match vault items to requirements
-    if (lovableKey) {
+    // Use Perplexity AI to intelligently match vault items to requirements
+    try {
       // Compact vault data to prevent token overflow
       const compactVault = vaultCategories.map(cat => ({
         category: cat.name,
@@ -234,38 +235,30 @@ Return ONLY valid JSON:
   "unmatchedRequirements": ["Requirements with no vault coverage"]
 }`;
 
-      try {
-        const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [{ role: 'user', content: matchingPrompt }],
-            temperature: 0.4,
-            max_tokens: 4096 // Reduced to prevent truncation
-          })
-        });
+      const { response, metrics } = await callPerplexity(
+        {
+          messages: [{ role: 'user', content: matchingPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
+          temperature: 0.4,
+          max_tokens: 4096
+        },
+        'match-vault-to-requirements',
+        userId
+      );
 
-        if (lovableResponse.ok) {
-          const lovableData = await lovableResponse.json();
-          const textContent = lovableData.choices?.[0]?.message?.content || '{}';
-          const parsed = safeJSONParse(textContent);
+      await logAIUsage(metrics);
 
-          if (parsed?.matches && Array.isArray(parsed.matches)) {
-            matches.push(...parsed.matches.slice(0, 50)); // Limit results
-            console.log(`AI matched ${parsed.matches.length} vault items`);
-          } else {
-            console.warn('AI response missing matches array, using fallback');
-          }
-        } else {
-          console.error('AI API error:', lovableResponse.status, await lovableResponse.text());
-        }
-      } catch (error) {
-        console.error('Error in AI matching:', error);
+      const textContent = response.choices?.[0]?.message?.content || '{}';
+      const parsed = safeJSONParse(textContent);
+
+      if (parsed?.matches && Array.isArray(parsed.matches)) {
+        matches.push(...parsed.matches.slice(0, 50));
+        console.log(`AI matched ${parsed.matches.length} vault items`);
+      } else {
+        console.warn('AI response missing matches array, using fallback');
       }
+    } catch (error) {
+      console.error('Error in AI matching:', error);
     }
 
     // Fallback: Basic keyword matching if AI fails

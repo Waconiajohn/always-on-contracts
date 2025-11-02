@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -110,12 +112,6 @@ serve(async (req) => {
 
     console.log(`[VAULT-RECOMMENDATIONS] Found ${issues.length} items needing improvement`);
 
-    // Generate AI recommendations
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const recommendations = [];
 
     for (const issue of issues.slice(0, limit)) {
@@ -172,27 +168,19 @@ Return ONLY valid JSON:
 }`;
 
       try {
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+        const { response, metrics } = await callPerplexity(
+          {
             messages: [{ role: 'user', content: prompt }],
+            model: PERPLEXITY_MODELS.DEFAULT,
             temperature: 0.3,
-            response_format: { type: "json_object" }
-          })
-        });
+          },
+          'generate-vault-recommendations',
+          user.id
+        );
 
-        if (!aiResponse.ok) {
-          console.error('[VAULT-RECOMMENDATIONS] AI error:', await aiResponse.text());
-          continue;
-        }
+        await logAIUsage(metrics);
 
-        const aiData = await aiResponse.json();
-        const recommendation = JSON.parse(aiData.choices[0].message.content);
+        const recommendation = JSON.parse(response.choices[0].message.content);
 
         recommendations.push({
           vaultCategory: issue.category,

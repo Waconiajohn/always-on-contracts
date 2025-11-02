@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,66 +92,21 @@ ${analysis.management_capabilities?.length ? `MANAGEMENT CAPABILITIES:\n${analys
 
 Based on this ${analysis.seniority_level || 'experienced'} professional's background, suggest appropriate target roles.`;
 
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'suggest_target_roles',
-              description: 'Suggest target job roles for a professional based on their career profile',
-              parameters: {
-                type: 'object',
-                properties: {
-                  current_level: {
-                    type: 'array',
-                    description: '3-5 roles matching their current seniority and industry expertise',
-                    items: { type: 'string' }
-                  },
-                  stretch: {
-                    type: 'array',
-                    description: '2-3 roles one level above (promotions/leadership)',
-                    items: { type: 'string' }
-                  },
-                  safety: {
-                    type: 'array',
-                    description: '1-2 lateral or alternative roles in adjacent fields',
-                    items: { type: 'string' }
-                  },
-                  reasoning: {
-                    type: 'string',
-                    description: 'Brief explanation of why these roles fit the candidate'
-                  }
-                },
-                required: ['current_level', 'stretch', 'safety', 'reasoning'],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: 'function', function: { name: 'suggest_target_roles' } }
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'infer-target-roles',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Lovable AI error:', aiResponse.status, errorText);
-      throw new Error(`Failed to generate role suggestions: ${aiResponse.status} - ${errorText}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
+    const aiData = response;
     
     // Extract tool call result
     const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
