@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -270,14 +272,8 @@ Provide:
 
 Be concise but specific.`;
 
-        const verifyResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${perplexityKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'llama-3.1-sonar-large-128k-online',
+        const { response, metrics } = await callPerplexity(
+          {
             messages: [
               {
                 role: 'system',
@@ -288,33 +284,33 @@ Be concise but specific.`;
                 content: verificationPrompt
               }
             ],
+            model: PERPLEXITY_MODELS.HUGE,
             temperature: 0.2,
             max_tokens: 1500,
             search_recency_filter: 'month',
-          }),
-        });
+          },
+          'analyze-resume-and-research',
+          user.id
+        );
 
-        if (verifyResponse.ok) {
-          const verifyData = await verifyResponse.json();
-          verification_result = verifyData.choices[0]?.message?.content;
-          citations = verifyData.citations || [];
+        await logAIUsage(metrics);
+
+        verification_result = response.choices[0]?.message?.content;
+        citations = response.citations || [];
           
-          console.log('Perplexity verification complete with', citations.length, 'citations');
+        console.log('Perplexity verification complete with', citations.length, 'citations');
 
-          // Store verification
-          await supabase
-            .from('vault_verifications')
-            .insert({
-              user_id: user.id,
-              verification_type: 'skills',
-              original_content: skills,
-              verification_result,
-              citations,
-              verified_at: new Date().toISOString(),
-            });
-        } else {
-          console.error('Perplexity verification failed:', await verifyResponse.text());
-        }
+        // Store verification
+        await supabase
+          .from('vault_verifications')
+          .insert({
+            user_id: user.id,
+            verification_type: 'skills',
+            original_content: skills,
+            verification_result,
+            citations,
+            verified_at: new Date().toISOString(),
+          });
       } catch (verifyError) {
         console.error('Error during Perplexity verification:', verifyError);
         // Continue without verification - not critical

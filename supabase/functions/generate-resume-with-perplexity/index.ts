@@ -1,42 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Utility to clean citations from generated content
-const cleanCitations = (text: string): string => {
-  if (!text) return '';
-
-  let cleaned = text;
-
-  // Remove citation markers [1], [2], etc.
-  cleaned = cleaned.replace(/\[\d+\]/g, '');
-
-  // Remove "According to X," patterns
-  cleaned = cleaned.replace(/According to [^,\.]+,?\s*/gi, '');
-  cleaned = cleaned.replace(/Based on [^,\.]+,?\s*/gi, '');
-  cleaned = cleaned.replace(/Research shows (that\s+)?/gi, '');
-  cleaned = cleaned.replace(/Industry data (shows|indicates) (that\s+)?/gi, '');
-  cleaned = cleaned.replace(/Studies (show|indicate) (that\s+)?/gi, '');
-  cleaned = cleaned.replace(/Data from [^,\.]+,?\s*/gi, '');
-  cleaned = cleaned.replace(/As reported by [^,\.]+,?\s*/gi, '');
-
-  // Remove source mentions at end of sentences
-  cleaned = cleaned.replace(/\(source:[^\)]+\)/gi, '');
-  cleaned = cleaned.replace(/\(via [^\)]+\)/gi, '');
-
-  // Clean up spacing issues
-  cleaned = cleaned.replace(/\s+/g, ' ');
-  cleaned = cleaned.replace(/\s+\./g, '.');
-  cleaned = cleaned.replace(/\s+,/g, ',');
-
-  // Fix sentence capitalization after removal
-  cleaned = cleaned.replace(/\.\s+([a-z])/g, (match, p1) => '. ' + p1.toUpperCase());
-
-  return cleaned.trim();
 };
 
 serve(async (req) => {
@@ -233,14 +202,8 @@ Output clean resume content only. No citations, no sources.`;
     }
 
     // Call Perplexity API
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -251,21 +214,18 @@ Output clean resume content only. No citations, no sources.`;
             content: userPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.HUGE,
         temperature: 0.3, // Lower for more consistent output
         max_tokens: 2000,
         return_citations: false, // We don't want citations
         search_recency_filter: null, // Don't trigger web search for generation
-      }),
-    });
+      },
+      'generate-resume-with-perplexity'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Perplexity API error:', response.status, errorText);
-      throw new Error(`Perplexity API failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    let generatedContent = data.choices[0]?.message?.content || '';
+    let generatedContent = response.choices[0]?.message?.content || '';
 
     console.log('Raw Perplexity output (first 200 chars):', generatedContent.substring(0, 200));
 

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 // Edge function for analyzing job requirements
 
@@ -180,34 +182,27 @@ Return ONLY valid JSON:
 
     if (perplexityKey) {
       try {
-        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${perplexityKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'sonar',
+        const { response, metrics } = await callPerplexity(
+          {
             messages: [{
               role: 'user',
               content: industryPrompt
             }],
+            model: PERPLEXITY_MODELS.DEFAULT,
             temperature: 0.3,
             max_tokens: 2000
-          })
-        });
+          },
+          'analyze-job-requirements'
+        );
 
-        if (perplexityResponse.ok) {
-          try {
-            const perplexityData = await perplexityResponse.json();
-            const content = perplexityData.choices?.[0]?.message?.content || '{}';
-            const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            const parsed = JSON.parse(cleanedContent);
-            industryStandards = parsed.industryStandards || [];
-          } catch (parseError) {
-            console.error('Failed to parse industry standards JSON:', parseError);
-          }
-        }
+        await logAIUsage(metrics);
+
+        const content = response.choices?.[0]?.message?.content || '{}';
+        const cleanedContent = cleanCitations(content).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(cleanedContent);
+        industryStandards = parsed.industryStandards || [];
+      } catch (parseError) {
+        console.error('Failed to parse industry standards JSON:', parseError);
       } catch (error) {
         console.error('Perplexity error:', error);
       }

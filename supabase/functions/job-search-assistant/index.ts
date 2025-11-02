@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { PERPLEXITY_CONFIG } from '../_shared/ai-config.ts';
+import { PERPLEXITY_CONFIG, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,12 +15,7 @@ serve(async (req) => {
 
   try {
     const { messages, context } = await req.json();
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error('PERPLEXITY_API_KEY is not configured');
-    }
-
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -60,6 +55,11 @@ Example:
 [Action: View Healthcare Matches]
 [Action: Adjust Filters]"`;
 
+    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+    if (!PERPLEXITY_API_KEY) {
+      throw new Error('PERPLEXITY_API_KEY is not configured');
+    }
+
     const response = await fetch(PERPLEXITY_CONFIG.API_URL, {
       method: 'POST',
       headers: {
@@ -67,7 +67,7 @@ Example:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+        model: PERPLEXITY_MODELS.HUGE,
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
