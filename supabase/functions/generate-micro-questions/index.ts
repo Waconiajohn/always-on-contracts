@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -116,12 +118,6 @@ serve(async (req) => {
 
     console.log(`[MICRO-QUESTIONS] Generating questions for ${itemsToUpgrade.length} items`);
 
-    // Generate micro-questions using AI
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const microQuestions = [];
 
     for (const { category, item, currentTier, targetTier } of itemsToUpgrade) {
@@ -176,27 +172,19 @@ OR for multiple choice:
 }`;
 
       try {
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+        const { response, metrics } = await callPerplexity(
+          {
             messages: [{ role: 'user', content: prompt }],
+            model: PERPLEXITY_MODELS.DEFAULT,
             temperature: 0.3,
-            response_format: { type: "json_object" }
-          })
-        });
+          },
+          'generate-micro-questions',
+          user.id
+        );
 
-        if (!aiResponse.ok) {
-          console.error('[MICRO-QUESTIONS] AI error:', await aiResponse.text());
-          continue;
-        }
+        await logAIUsage(metrics);
 
-        const aiData = await aiResponse.json();
-        const questionData = JSON.parse(aiData.choices[0].message.content);
+        const questionData = JSON.parse(response.choices[0].message.content);
 
         // Insert question into database
         const { data: questionRecord, error: insertError } = await supabase

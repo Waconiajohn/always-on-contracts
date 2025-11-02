@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 /**
  * Generate Dynamic Skill Verification Questions
@@ -63,8 +65,6 @@ serve(async (req) => {
     }
 
     // 2. Use AI to extract skills from milestone descriptions
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
     // Combine milestone data for analysis
     const milestoneContext = milestones.map(m => `
@@ -116,26 +116,19 @@ Return as JSON:
 
 Extract up to 20 most important skills. Focus on what makes this person SPECIALIZED.`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [{ role: 'user', content: prompt }],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.3,
-        response_format: { type: "json_object" }
-      })
-    });
+      },
+      'generate-skill-verification-questions',
+      user_id
+    );
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI extraction failed: ${aiResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const extractedSkills = JSON.parse(aiData.choices[0].message.content);
+    const extractedSkills = JSON.parse(response.choices[0].message.content);
 
     console.log(`[SKILL-VERIFICATION] Extracted ${extractedSkills.skills?.length || 0} skills`);
 

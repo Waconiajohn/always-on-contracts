@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,9 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -113,30 +112,22 @@ OUTPUT REQUIREMENTS:
 - Sort by date (most recent first)
 - SKIP any entry missing required fields`;
 
-    console.log('[PARSE-RESUME-MILESTONES] Calling Gemini 2.5 Flash...');
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    console.log('[PARSE-RESUME-MILESTONES] Calling Perplexity...');
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
-        ]
-      }),
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'parse-resume-milestones',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[PARSE-RESUME-MILESTONES] AI error:', response.status, errorText);
-      throw new Error(`AI parsing failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await response.json();
-    const aiResponse = aiData.choices[0].message.content;
+    const aiResponse = response.choices[0].message.content;
 
     let parsed;
     try {

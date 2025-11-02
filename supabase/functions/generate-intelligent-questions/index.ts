@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,14 +17,20 @@ serve(async (req) => {
     const { vaultId, resumeData, industryResearch, targetRole, targetIndustry } = await req.json();
     console.log('[INTELLIGENT QUESTIONS] Generating questions for vault:', vaultId);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | undefined;
+    if (authHeader) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+        userId = user?.id;
+      } catch (e) {
+        console.log('Could not extract user for cost tracking:', e);
+      }
+    }
 
     // Get existing vault data to identify gaps
     const { data: existingPhrases } = await supabase
@@ -75,28 +83,22 @@ Each question should have:
 - impact: 1-5 (how much this helps their vault)
 - options: (only for multiple_choice)`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are an expert career coach. Generate intelligent, targeted questions in valid JSON format.' },
           { role: 'user', content: prompt }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.7,
-        response_format: { type: "json_object" }
-      })
-    });
+      },
+      'generate-intelligent-questions',
+      userId
+    );
 
-    if (!response.ok) {
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await response.json();
+    const aiData = response;
     let questionBatches;
     
     try {
