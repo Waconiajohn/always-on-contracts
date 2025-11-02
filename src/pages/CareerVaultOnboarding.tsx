@@ -90,6 +90,27 @@ export default function CareerVaultOnboarding() {
         const hasResumeText = existingVault.resume_raw_text && existingVault.resume_raw_text.length > 100;
         const hasAnalysis = existingVault.initial_analysis && Object.keys(existingVault.initial_analysis).length > 0;
 
+        // Check completion indicators to determine actual step
+        const reviewCompletion = existingVault.review_completion_percentage || 0;
+        const hasVaultData = existingVault.vault_strength_after_qa || existingVault.vault_strength_before_qa;
+        const hasTargets = existingVault.target_roles && existingVault.target_industries;
+        
+        // Determine actual step based on what's completed, not just onboarding_step
+        let actualStep = mappedStep;
+        
+        if (reviewCompletion >= 1) {
+          // Review is 100% complete - skip to gaps
+          actualStep = 'gaps';
+        } else if (hasVaultData) {
+          // Has vault data - should be on review
+          actualStep = 'review';
+        } else if (hasTargets && hasAnalysis) {
+          // Has career direction set - should be on research or beyond
+          if (mappedStep === 'upload' || mappedStep === 'analysis' || mappedStep === 'direction') {
+            actualStep = 'research';
+          }
+        }
+
         // Only restore data and show "Welcome Back" if there's actual progress
         // (not_started means they haven't uploaded a resume yet)
         if (dbStep && dbStep !== 'not_started') {
@@ -122,11 +143,23 @@ export default function CareerVaultOnboarding() {
             vaultStrength: existingVault.vault_strength_after_qa || existingVault.vault_strength_before_qa || undefined
           });
 
-          setCurrentStep(mappedStep);
+          // Use actualStep instead of mappedStep to skip completed phases
+          setCurrentStep(actualStep);
+
+          const stepLabels: Record<UIStep, string> = {
+            upload: 'Upload Resume',
+            analysis: 'AI Analysis',
+            direction: 'Career Direction',
+            research: 'Market Research',
+            extraction: 'Intelligence Extraction',
+            review: 'Vault Review',
+            gaps: 'Gap Analysis',
+            complete: 'Complete'
+          };
 
           toast({
             title: '🔄 Welcome Back!',
-            description: 'We saved your progress. Continuing from where you left off...',
+            description: `Continuing from: ${stepLabels[actualStep]}`,
           });
         } else {
           // Just set the vaultId for reuse, but start fresh at upload step
