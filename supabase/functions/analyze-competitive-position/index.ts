@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +15,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -66,19 +67,13 @@ Deno.serve(async (req) => {
       .eq('user_id', user_id)
       .single();
 
-    // Step 4: Use Lovable AI to analyze competitive position
-    const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    // Step 4: Use Perplexity to analyze competitive position
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
-            content: 'You are a career positioning analyst. Analyze candidate strength vs market requirements.'
+            content: 'You are a career positioning analyst. Analyze candidate strength vs market requirements. Return valid JSON only.'
           },
           {
             role: 'user',
@@ -104,66 +99,29 @@ CAREER VAULT INTELLIGENCE:
 DETAILED INTELLIGENCE:
 ${JSON.stringify(vaultIntelligence, null, 2)}
 
-Calculate:
-1. Competitive positioning score (0-100)
-2. Skills that command salary premiums for this role
-3. Specific achievements that justify above-market compensation
-4. Gaps that might limit negotiation leverage
-5. Recommended positioning strategy`
+Return JSON with:
+{
+  "competitive_score": 0-100,
+  "skill_premiums": {},
+  "above_market_strengths": [],
+  "potential_gaps": [],
+  "recommended_positioning": "",
+  "salary_range_recommendation": { "minimum_acceptable": 0, "target": 0, "stretch": 0 }
+}`
           }
         ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'analyze_position',
-            description: 'Analyze candidate competitive position',
-            parameters: {
-              type: 'object',
-              properties: {
-                competitive_score: { 
-                  type: 'integer',
-                  description: '0-100 score of candidate strength vs market'
-                },
-                skill_premiums: {
-                  type: 'object',
-                  additionalProperties: {
-                    type: 'object',
-                    properties: {
-                      has_skill: { type: 'boolean' },
-                      estimated_value_add: { type: 'number' },
-                      reasoning: { type: 'string' }
-                    }
-                  }
-                },
-                above_market_strengths: {
-                  type: 'array',
-                  items: { type: 'string' }
-                },
-                potential_gaps: {
-                  type: 'array',
-                  items: { type: 'string' }
-                },
-                recommended_positioning: { type: 'string' },
-                salary_range_recommendation: {
-                  type: 'object',
-                  properties: {
-                    minimum_acceptable: { type: 'number' },
-                    target: { type: 'number' },
-                    stretch: { type: 'number' }
-                  }
-                }
-              },
-              required: ['competitive_score', 'skill_premiums', 'above_market_strengths']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'analyze_position' } }
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'analyze-competitive-position',
+      user.id
+    );
 
-    const analysisData = await analysisResponse.json();
-    const toolCall = analysisData.choices[0]?.message?.tool_calls?.[0];
-    const analysis = JSON.parse(toolCall?.function?.arguments || '{}');
+    await logAIUsage(metrics);
+
+    // Parse JSON from response
+    const content = response.choices[0].message.content;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
     // Step 5: Calculate overall percentile positioning
     const marketMedian = market_data?.extracted_data?.percentile_50 || 0;

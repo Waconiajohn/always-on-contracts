@@ -1,6 +1,7 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,11 +37,6 @@ serve(async (req) => {
   }
 
   try {
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY is not configured');
-    }
-
     const { jobDescription, opportunityId } = await req.json();
     
     let jobDescriptionText = jobDescription;
@@ -69,115 +65,44 @@ serve(async (req) => {
       throw new Error('Job description must be at least 50 characters');
     }
 
-    console.log('Analyzing job description with Lovable AI...');
+    console.log('Analyzing job description with Perplexity...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing job descriptions. Use the analyze_job tool to extract structured information.'
+            content: 'You are an expert at analyzing job descriptions. Extract structured information using tool calling.'
           },
           {
             role: 'user',
             content: `Analyze this job description:\n\n${jobDescriptionText}`
           }
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "analyze_job",
-              description: "Extract structured information from a job description",
-              parameters: {
-                type: "object",
-                properties: {
-                  professionalTitle: { type: "string", description: "The job title" },
-                  industry: { type: "string", description: "The industry" },
-                  standardizedQualifications: {
-                    type: "object",
-                    properties: {
-                      required: { type: "array", items: { type: "string" }, description: "Required qualifications" },
-                      preferred: { type: "array", items: { type: "string" }, description: "Preferred qualifications" },
-                      technical: { type: "array", items: { type: "string" }, description: "Technical skills" },
-                      soft: { type: "array", items: { type: "string" }, description: "Soft skills" }
-                    },
-                    required: ["required", "preferred", "technical", "soft"]
-                  },
-                  hiringManagerPerspective: {
-                    type: "object",
-                    properties: {
-                      keyPriorities: { type: "array", items: { type: "string" } },
-                      redFlags: { type: "array", items: { type: "string" } },
-                      idealCandidate: { type: "string" }
-                    },
-                    required: ["keyPriorities", "redFlags", "idealCandidate"]
-                  },
-                  atsKeywords: { type: "array", items: { type: "string" }, description: "Important ATS keywords" },
-                  compensationRange: {
-                    type: "object",
-                    properties: {
-                      min: { type: "number" },
-                      max: { type: "number" },
-                      currency: { type: "string" }
-                    },
-                    nullable: true
-                  }
-                },
-                required: ["professionalTitle", "industry", "standardizedQualifications", "hiringManagerPerspective", "atsKeywords", "compensationRange"]
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "analyze_job" } }
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+      },
+      'analyze-job-qualifications'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: "Rate limit exceeded. Please try again in a moment.",
-            errorCode: "RATE_LIMIT"
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: "AI credits exhausted. Please add more credits to your workspace.",
-            errorCode: "CREDITS_EXHAUSTED"
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      throw new Error(`AI gateway error: ${response.status}`);
+    await logAIUsage(metrics);
+
+    if (!response.choices?.[0]?.message) {
+      console.error('Perplexity response error:', JSON.stringify(response));
+      throw new Error('Invalid Perplexity response');
     }
 
-    const data = await response.json();
-    console.log('AI response:', JSON.stringify(data, null, 2));
+    // Parse JSON from response content since Perplexity doesn't support tool calling
+    const content = response.choices[0].message.content;
+    console.log('Perplexity response:', content.substring(0, 200));
     
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in response');
+    }
+    
+    const analysisData = JSON.parse(jsonMatch[0]);
+    const toolCall = { function: { arguments: JSON.stringify(analysisData) } };
     
     if (!toolCall || !toolCall.function?.arguments) {
       throw new Error('No analysis data returned from AI');
