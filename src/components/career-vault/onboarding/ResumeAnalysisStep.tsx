@@ -93,15 +93,9 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       }
 
       if (!data?.success) {
-        const errorMsg = data?.error || data?.details || 'Failed to extract resume content';
-        const solutions = data?.solutions || [];
-        console.error('Processing failed:', errorMsg, 'Solutions:', solutions);
-
-        // Show helpful error with first solution if available
-        const helpfulMsg = solutions.length > 0
-          ? `${errorMsg}. Try this: ${solutions[0]}`
-          : errorMsg;
-        throw new Error(helpfulMsg);
+        const errorMsg = data?.error || data?.details || 'Unable to process this resume file';
+        console.error('Processing failed:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Try multiple possible response formats
@@ -110,12 +104,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       console.log('Extracted text length:', extractedText?.length, 'First 100 chars:', extractedText?.substring(0, 100));
 
       if (!extractedText || extractedText.length < 100) {
-        const solutions = data?.solutions || [
-          'Try converting to PDF format',
-          'Ensure document is not password protected',
-          'Try uploading a different format'
-        ];
-        throw new Error(`Could not extract enough text from your resume. ${solutions[0]}`);
+        throw new Error('Unable to read the resume content. Please try a different file.');
       }
 
       setResumeText(extractedText);

@@ -58,56 +58,14 @@ class AICircuitBreaker {
 
 const circuitBreaker = new AICircuitBreaker();
 
-// Phase 4.1: Intelligent Error Solutions
-const ERROR_SOLUTIONS: Record<string, { message: string; solutions: string[] }> = {
-  'scanned_pdf': {
-    message: 'This appears to be a scanned PDF with no selectable text',
-    solutions: [
-      'Try using a PDF with selectable text instead',
-      'Convert to Word format (.docx) first',
-      'Re-scan the document with OCR enabled'
-    ]
-  },
-  'insufficient_content': {
-    message: 'Resume appears incomplete or too short',
-    solutions: [
-      'Ensure all pages were included in the upload',
-      'Check for blank pages in your document',
-      'Try uploading a different format'
-    ]
-  },
-  'parsing_failed': {
-    message: 'Unable to extract text from document',
-    solutions: [
-      'Try converting to PDF format',
-      'Ensure document is not password protected',
-      'Use plain text format (.txt) as an alternative'
-    ]
-  },
-  'not_a_resume': {
-    message: 'This document does not appear to be a resume',
-    solutions: [
-      'Ensure you uploaded the correct file',
-      'Check that the document contains work experience and skills',
-      'Try uploading a standard resume format'
-    ]
-  },
-  'ai_analysis_failed': {
-    message: 'AI analysis encountered an error',
-    solutions: [
-      'The AI service may be temporarily busy',
-      'Try again in a few moments',
-      'Contact support if the issue persists'
-    ]
-  },
-  'rate_limit_exceeded': {
-    message: 'Upload limit reached',
-    solutions: [
-      'You have reached your hourly upload limit',
-      'Please wait before uploading more resumes',
-      'Upgrade to premium for higher limits'
-    ]
-  }
+// Phase 4.1: Error Messages (simple, no solutions shown to user)
+const ERROR_MESSAGES: Record<string, string> = {
+  'scanned_pdf': 'Unable to process this PDF file',
+  'insufficient_content': 'Resume appears incomplete or too short',
+  'parsing_failed': 'Unable to read document content',
+  'not_a_resume': 'This document does not appear to be a resume',
+  'ai_analysis_failed': 'AI analysis encountered an error - please try again',
+  'rate_limit_exceeded': 'Upload limit reached - please try again shortly'
 };
 
 // Phase 3.3: Check Rate Limit
@@ -155,6 +113,45 @@ async function recordRateLimit(supabase: any, userId: string) {
       onConflict: 'user_id,endpoint,window_start',
       ignoreDuplicates: false
     });
+}
+
+// Helper: Extract text from Word XML (handles document.xml, header.xml, footer.xml)
+function extractTextFromWordXml(xml: string): string {
+  const textParts: string[] = [];
+
+  // Extract all <w:t> elements (text runs)
+  // This regex captures text inside <w:t> tags, including text with xml:space="preserve"
+  const textPattern = /<w:t(?:\s+[^>]*)?>(.*?)<\/w:t>/gs;
+  let match;
+
+  while ((match = textPattern.exec(xml)) !== null) {
+    const text = match[1];
+    if (text) {
+      // Decode XML entities
+      const decodedText = text
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'");
+      textParts.push(decodedText);
+    }
+  }
+
+  // Add paragraph breaks where appropriate
+  // Look for paragraph boundaries (<w:p>) to preserve document structure
+  const paragraphPattern = /<w:p[\s>]/g;
+  const paragraphCount = (xml.match(paragraphPattern) || []).length;
+
+  // Join text with spaces, but try to preserve line breaks
+  let fullText = textParts.join(' ');
+
+  // Clean up excessive whitespace while preserving single spaces
+  fullText = fullText
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return fullText;
 }
 
 // Phase 1.1: Document Parser with pdf-parse and smart fallback
@@ -220,10 +217,10 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
       }
     }
 
-    // For DOCX files - parse XML structure directly
+    // For DOCX files - parse XML structure with comprehensive extraction
     if (fileType.includes('word') || fileType.includes('docx') || fileType.includes('doc')) {
       console.log('[parseFile] Word document detected, parsing XML structure');
-      
+
       try {
         // Convert base64 to buffer
         const binaryString = atob(base64Data);
@@ -231,33 +228,56 @@ async function parseFile(base64Data: string, fileType: string, apiKey: string): 
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        
+
         const zip = await JSZip.loadAsync(bytes);
+        const allText: string[] = [];
+
+        // Extract from main document
         const documentXml = await zip.file('word/document.xml')?.async('string');
-        
         if (!documentXml) {
-          throw new Error('Unable to find document.xml in DOCX');
+          throw new Error('Invalid DOCX file: missing document.xml');
         }
-        
-        // Extract text from XML (basic extraction)
-        const textMatches = documentXml.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
-        const extractedText = textMatches
-          .map(match => match.replace(/<[^>]+>/g, ''))
-          .join(' ')
-          .trim();
-        
-        if (extractedText.length < 100) {
-          console.log('[parseFile] Extracted minimal text from DOCX - falling back to AI vision');
-          return await extractWithVisionAI(base64Data, fileType, apiKey);
+
+        // Extract text from main document
+        const mainText = extractTextFromWordXml(documentXml);
+        if (mainText) allText.push(mainText);
+
+        // Extract from headers
+        const headerFiles = Object.keys(zip.files).filter(name =>
+          name.startsWith('word/header') && name.endsWith('.xml')
+        );
+        for (const headerFile of headerFiles) {
+          const headerXml = await zip.file(headerFile)?.async('string');
+          if (headerXml) {
+            const headerText = extractTextFromWordXml(headerXml);
+            if (headerText) allText.push(headerText);
+          }
         }
-        
+
+        // Extract from footers
+        const footerFiles = Object.keys(zip.files).filter(name =>
+          name.startsWith('word/footer') && name.endsWith('.xml')
+        );
+        for (const footerFile of footerFiles) {
+          const footerXml = await zip.file(footerFile)?.async('string');
+          if (footerXml) {
+            const footerText = extractTextFromWordXml(footerXml);
+            if (footerText) allText.push(footerText);
+          }
+        }
+
+        const extractedText = allText.join('\n\n').trim();
+
+        if (!extractedText || extractedText.length < 20) {
+          throw new Error('Document appears to be empty or contains no extractable text');
+        }
+
         console.log(`[parseFile] Successfully extracted ${extractedText.length} characters from DOCX`);
         return extractedText;
-        
+
       } catch (docxError: any) {
         console.error('[parseFile] DOCX parsing failed:', docxError);
-        console.log('[parseFile] Falling back to AI vision');
-        return await extractWithVisionAI(base64Data, fileType, apiKey);
+        throw new Error(`Unable to read Word document: ${docxError.message}`);
       }
     }
 
@@ -848,15 +868,13 @@ serve(async (req) => {
       try {
         extractedText = await parseFile(fileData, fileType || '', LOVABLE_API_KEY);
       } catch (error: any) {
-        const errorInfo = ERROR_SOLUTIONS['parsing_failed'];
-        throw new Error(`${errorInfo.message}: ${error.message}`);
+        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
       }
     } else if (fileText) {
       // Legacy method: Check if text is actually binary data
       const binaryCheck = detectBinaryData(fileText);
       if (binaryCheck.isBinary) {
-        const errorInfo = ERROR_SOLUTIONS['parsing_failed'];
-        throw new Error(`${errorInfo.message}: Detected binary ${binaryCheck.type || 'data'} instead of text. Please send file as base64 in fileData parameter.`);
+        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
       }
       extractedText = fileText;
     }
@@ -864,12 +882,10 @@ serve(async (req) => {
     // Phase 3.3: Check rate limit
     const rateLimit = await checkRateLimit(supabase, userId);
     if (!rateLimit.allowed) {
-      const errorInfo = ERROR_SOLUTIONS['rate_limit_exceeded'];
       return new Response(JSON.stringify({
         success: false,
-        error: errorInfo.message,
+        error: ERROR_MESSAGES['rate_limit_exceeded'],
         errorType: 'rate_limit_exceeded',
-        solutions: errorInfo.solutions,
         remaining: 0
       }), {
         status: 429,
@@ -963,10 +979,9 @@ serve(async (req) => {
 
     // Phase 1.4: Validate document
     const validation = await validateIsResume(cleanedText, LOVABLE_API_KEY);
-    
+
     if (!validation.isResume || validation.confidence < 0.5) {
-      const errorInfo = ERROR_SOLUTIONS['not_a_resume'];
-      throw new Error(`${errorInfo.message}: ${validation.reason}`);
+      throw new Error(ERROR_MESSAGES['not_a_resume']);
     }
 
     await supabase.from('resume_processing_queue')
@@ -1056,7 +1071,7 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    const errorType = Object.keys(ERROR_SOLUTIONS).find(key => 
+    const errorType = Object.keys(ERROR_MESSAGES).find(key =>
       errorMessage.toLowerCase().includes(key.replace(/_/g, ' '))
     ) || 'parsing_failed';
 
@@ -1087,13 +1102,12 @@ serve(async (req) => {
       });
     }
 
-    const errorInfo = ERROR_SOLUTIONS[errorType] || ERROR_SOLUTIONS['parsing_failed'];
-    
+    const errorMsg = ERROR_MESSAGES[errorType] || ERROR_MESSAGES['parsing_failed'] || 'Unable to process resume';
+
     return new Response(JSON.stringify({
       success: false,
-      error: errorInfo.message,
+      error: errorMsg,
       errorType,
-      solutions: errorInfo.solutions,
       details: errorMessage
     }), {
       status: 200,
