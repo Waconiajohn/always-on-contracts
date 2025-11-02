@@ -3767,6 +3767,39 @@ export type Database = {
           },
         ]
       }
+      vault_fix_audit: {
+        Row: {
+          fixed_at: string | null
+          had_analysis: boolean | null
+          id: string
+          new_onboarding_step: string | null
+          old_onboarding_step: string | null
+          resume_text_length: number | null
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          fixed_at?: string | null
+          had_analysis?: boolean | null
+          id?: string
+          new_onboarding_step?: string | null
+          old_onboarding_step?: string | null
+          resume_text_length?: number | null
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          fixed_at?: string | null
+          had_analysis?: boolean | null
+          id?: string
+          new_onboarding_step?: string | null
+          old_onboarding_step?: string | null
+          resume_text_length?: number | null
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: []
+      }
       vault_gap_analysis: {
         Row: {
           analysis_type: string | null

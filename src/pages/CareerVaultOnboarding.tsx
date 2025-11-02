@@ -72,9 +72,10 @@ export default function CareerVaultOnboarding() {
       if (existingVault && existingVault.onboarding_step !== 'onboarding_complete') {
         const dbStep = existingVault.onboarding_step;
 
-        // Map onboarding step to UI step
+        // Map onboarding step to UI step (handles both old and new naming conventions)
         const stepMap: Record<string, UIStep> = {
           'not_started': 'upload',
+          'resume_upload': 'upload',          // Backwards compatibility for incomplete uploads
           'resume_uploaded': 'analysis',
           'analysis_complete': 'direction',
           'targets_set': 'research',
@@ -85,9 +86,32 @@ export default function CareerVaultOnboarding() {
 
         const mappedStep = (dbStep && stepMap[dbStep]) || 'upload';
 
+        // Check for incomplete analysis state (resume uploaded but analysis failed/incomplete)
+        const hasResumeText = existingVault.resume_raw_text && existingVault.resume_raw_text.length > 100;
+        const hasAnalysis = existingVault.initial_analysis && Object.keys(existingVault.initial_analysis).length > 0;
+
         // Only restore data and show "Welcome Back" if there's actual progress
         // (not_started means they haven't uploaded a resume yet)
         if (dbStep && dbStep !== 'not_started') {
+          
+          // SMART DETECTION: If we have resume text but no analysis, resume from analysis step
+          if (hasResumeText && !hasAnalysis && (dbStep === 'resume_upload' || dbStep === 'resume_uploaded')) {
+            setOnboardingData({
+              vaultId: existingVault.id,
+              resumeText: existingVault.resume_raw_text || undefined,
+              // Don't set initialAnalysis - let ResumeAnalysisStep show the trigger UI
+            });
+            setCurrentStep('analysis'); // Force to analysis step
+            
+            toast({
+              title: '📄 Resume Found',
+              description: 'Your resume is saved. Complete the AI analysis to continue.',
+              duration: 4000,
+            });
+            return; // Exit early to prevent showing "Welcome Back" message
+          }
+          
+          // Normal flow: We have both resume and analysis
           setOnboardingData({
             vaultId: existingVault.id,
             resumeText: existingVault.resume_raw_text || undefined,

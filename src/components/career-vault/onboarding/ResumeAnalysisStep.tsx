@@ -39,6 +39,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
   const [resumeText, setResumeText] = useState(existingData?.resumeText || '');
   const [analysis, setAnalysis] = useState(existingData?.initialAnalysis || null);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const supabase = useSupabaseClient();
   const { user } = useUser();
@@ -46,6 +47,9 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
 
   // If we already have analysis, show it
   const hasExistingAnalysis = existingData?.initialAnalysis && existingData?.vaultId;
+  
+  // SMART DETECTION: Check if we have resume text but need analysis
+  const needsAnalysis = existingData?.resumeText && existingData?.vaultId && !existingData?.initialAnalysis;
 
   const handleFileUpload = async (file: File) => {
     // Check if supabase client is initialized
@@ -141,13 +145,22 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
     }
   };
 
-  const analyzeResume = async (text: string) => {
-    if (!user) return;
-
-    setIsAnalyzing(true);
-    setError(null);
+  const analyzeResumeWithRetry = async (text: string, vaultId?: string, attempt: number = 1): Promise<void> => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
 
     try {
+      setIsAnalyzing(true);
+      setError(null);
+      setRetryCount(attempt);
+
+      if (attempt > 1) {
+        toast({
+          title: `🔄 Retry Attempt ${attempt}/${MAX_RETRIES}`,
+          description: 'Retrying analysis...',
+        });
+      }
+
       // Check if supabase client is initialized
       if (!supabase || !supabase.auth) {
         throw new Error('Authentication system is still loading. Please wait a moment.');
@@ -157,21 +170,24 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       const currentUser = user || (await supabase.auth.getUser()).data.user;
       if (!currentUser) throw new Error('User not authenticated');
 
-      // Create vault record first
-      const { data: vaultData, error: vaultError } = await supabase
-        .from('career_vault')
-        .insert({
-          user_id: currentUser.id,
-          resume_raw_text: text,
-          onboarding_step: 'resume_uploaded',
-          vault_version: '2.0',
-        } as any)
-        .select()
-        .single();
+      let currentVaultId = vaultId;
 
-      if (vaultError) throw vaultError;
+      // Create vault record if not exists
+      if (!currentVaultId) {
+        const { data: vaultData, error: vaultError } = await supabase
+          .from('career_vault')
+          .insert({
+            user_id: currentUser.id,
+            resume_raw_text: text,
+            onboarding_step: 'resume_uploaded',
+            vault_version: '2.0',
+          } as any)
+          .select()
+          .single();
 
-      const vaultId = vaultData.id;
+        if (vaultError) throw vaultError;
+        currentVaultId = vaultData.id;
+      }
 
       // Call analyze-resume-initial function
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke(
@@ -179,7 +195,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
         {
           body: {
             resumeText: text,
-            vaultId: vaultId,
+            vaultId: currentVaultId,
           },
         }
       );
@@ -192,6 +208,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
 
       const initialAnalysis = analysisData.data;
       setAnalysis(initialAnalysis);
+      setRetryCount(0);
 
       // Show success toast with marketing message
       toast({
@@ -213,22 +230,37 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       // Auto-advance after showing results for 2 seconds
       setTimeout(() => {
         onComplete({
-          vaultId,
+          vaultId: currentVaultId!,
           resumeText: text,
           initialAnalysis,
         });
       }, 2000);
 
     } catch (err: any) {
-      console.error('Analysis error:', err);
-      setError(err.message || 'Failed to analyze resume');
-      setIsAnalyzing(false);
-      toast({
-        title: 'Analysis Failed',
-        description: err.message || 'Please try again or contact support.',
-        variant: 'destructive',
-      });
+      console.error(`Analysis error (attempt ${attempt}):`, err);
+
+      // Retry logic
+      if (attempt < MAX_RETRIES) {
+        setTimeout(() => {
+          analyzeResumeWithRetry(text, vaultId, attempt + 1);
+        }, RETRY_DELAY);
+      } else {
+        // Max retries reached
+        setError(err.message || 'Failed to analyze resume');
+        setIsAnalyzing(false);
+        setRetryCount(0);
+        toast({
+          title: 'Analysis Failed After 3 Attempts',
+          description: 'Please try uploading your resume again or contact support.',
+          variant: 'destructive',
+        });
+      }
     }
+  };
+
+  const analyzeResume = async (text: string, vaultId?: string) => {
+    if (!user) return;
+    return analyzeResumeWithRetry(text, vaultId);
   };
 
   const handleManualContinue = () => {
@@ -240,6 +272,71 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       });
     }
   };
+
+  const handleResetUpload = () => {
+    setResumeText('');
+    setAnalysis(null);
+    setError(null);
+    setRetryCount(0);
+  };
+
+  // EXPLICIT ANALYSIS TRIGGER UI: Show when we have resume text but need analysis
+  if (needsAnalysis && !isAnalyzing) {
+    return (
+      <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200 shadow-xl">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-6 h-6 text-blue-600" />
+            <CardTitle className="text-2xl">Analysis Incomplete</CardTitle>
+          </div>
+          <CardDescription>
+            Your resume is saved, but the AI analysis wasn't completed. Let's finish it now.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Alert className="border-blue-200 bg-blue-50">
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            <AlertDescription>
+              We found your uploaded resume. Click below to run the AI analysis and continue building your Career Vault.
+            </AlertDescription>
+          </Alert>
+
+          {retryCount > 0 && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              <AlertDescription>
+                Retry attempt {retryCount} of 3...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              size="lg"
+              className="flex-1"
+              onClick={() => analyzeResume(existingData?.resumeText!, existingData?.vaultId)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Analyze Resume Now
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="flex-1"
+              onClick={handleResetUpload}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Different Resume
+            </Button>
+          </div>
+
+          <div className="text-sm text-muted-foreground text-center">
+            Analysis takes ~5 seconds and uses AI to extract your skills, achievements, and career trajectory.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // If we have existing analysis, show summary and continue button
   if (hasExistingAnalysis && analysis) {
