@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,9 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -32,8 +31,6 @@ serve(async (req) => {
     const { responseText, questionText, vaultId, milestone_id = null } = await req.json();
 
     console.log(`[EXTRACT-VAULT-INTELLIGENCE] Analyzing response (${responseText.length} chars)...`);
-
-    const systemPrompt = `You are an expert career intelligence analyst extracting structured data from executive interview responses across ALL 20 intelligence categories.`;
 
     const prompt = `Analyze this interview response and extract career intelligence across ALL 20 categories with executive-level rigor.
 
@@ -97,37 +94,31 @@ Return as JSON with ALL applicable categories:
 
 CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave categories empty if there's ANY relevant intelligence. Be generous in extraction - this is for an executive's career vault.`;
 
-    // Use Claude Sonnet 4 for superior intelligence extraction
-    console.log('[EXTRACT-VAULT-INTELLIGENCE] Using Claude Sonnet 4 for deep analysis...');
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+    console.log('[EXTRACT-VAULT-INTELLIGENCE] Using Perplexity for deep analysis...');
+    
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: 'You are an expert career intelligence analyst extracting structured data from executive interview responses across ALL 20 intelligence categories. Return valid JSON only.' },
           { role: 'user', content: prompt }
         ],
-        response_format: { type: "json_object" },
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.5,
-      }),
-    });
+        max_tokens: 4000,
+        return_citations: false,
+      },
+      'extract-vault-intelligence',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[EXTRACT-VAULT-INTELLIGENCE] AI error:', response.status, errorText);
-      throw new Error(`AI extraction failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await response.json();
     let intelligence;
     
     try {
-      const content = aiData.choices[0].message.content;
-      intelligence = typeof content === 'string' ? JSON.parse(content) : content;
+      const content = response.choices[0].message.content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      intelligence = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     } catch (e) {
       console.error('[EXTRACT-VAULT-INTELLIGENCE] Failed to parse:', e);
       intelligence = {};
@@ -337,7 +328,6 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
       );
     }
 
-    // Execute all inserts in parallel
     console.log(`[EXTRACT-VAULT-INTELLIGENCE] Inserting ${totalExtracted} intelligence items...`);
     await Promise.all(insertPromises);
 

@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,11 +19,6 @@ serve(async (req) => {
     
     if (!jobDescription || !vaultId) {
       throw new Error('Job description and vault ID required');
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     // Get vault data
@@ -41,22 +38,7 @@ serve(async (req) => {
 
     console.log('[30-60-90-PLAN] Generating plan for:', jobDescription.slice(0, 100));
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a career strategist helping candidates create actionable 30-60-90 day onboarding plans.'
-          },
-          {
-            role: 'user',
-            content: `Job Description:
+    const prompt = `Job Description:
 ${jobDescription}
 
 ${companyResearch ? `Company Context:
@@ -66,64 +48,57 @@ Candidate Background:
 - Target Roles: ${vault.target_roles?.join(', ') || 'Not specified'}
 - Industries: ${vault.target_industries?.join(', ') || 'Not specified'}
 
-Create a detailed 30-60-90 day onboarding plan tailored to this role and company.`
+Create a detailed 30-60-90 day onboarding plan tailored to this role and company.
+
+Return JSON with this structure:
+{
+  "first_30_days": {
+    "learning_objectives": ["..."],
+    "relationships": ["..."],
+    "technical_goals": ["..."]
+  },
+  "days_31_60": {
+    "early_wins": ["..."],
+    "contributions": ["..."],
+    "feedback_loops": ["..."]
+  },
+  "days_61_90": {
+    "value_creation": ["..."],
+    "integration": ["..."],
+    "long_term_planning": ["..."]
+  }
+}`;
+
+    const { response, metrics } = await callPerplexity(
+      {
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a career strategist helping candidates create actionable 30-60-90 day onboarding plans. Return valid JSON only.'
+          },
+          {
+            role: 'user',
+            content: prompt
           }
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "create_30_60_90_plan",
-            description: "Create onboarding roadmap",
-            parameters: {
-              type: "object",
-              properties: {
-                first_30_days: {
-                  type: "object",
-                  properties: {
-                    learning_objectives: { type: "array", items: { type: "string" } },
-                    relationships: { type: "array", items: { type: "string" } },
-                    technical_goals: { type: "array", items: { type: "string" } }
-                  }
-                },
-                days_31_60: {
-                  type: "object",
-                  properties: {
-                    early_wins: { type: "array", items: { type: "string" } },
-                    contributions: { type: "array", items: { type: "string" } },
-                    feedback_loops: { type: "array", items: { type: "string" } }
-                  }
-                },
-                days_61_90: {
-                  type: "object",
-                  properties: {
-                    value_creation: { type: "array", items: { type: "string" } },
-                    integration: { type: "array", items: { type: "string" } },
-                    long_term_planning: { type: "array", items: { type: "string" } }
-                  }
-                }
-              },
-              required: ["first_30_days", "days_31_60", "days_61_90"]
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "create_30_60_90_plan" } }
-      })
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 2000,
+        return_citations: false,
+      },
+      'generate-30-60-90-plan'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[30-60-90-PLAN] API error:', response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const content = response.choices[0].message.content;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
     
-    if (!toolCall) {
+    if (!jsonMatch) {
       throw new Error('No plan generated');
     }
 
-    const planData = JSON.parse(toolCall.function.arguments);
+    const planData = JSON.parse(jsonMatch[0]);
 
     console.log('[30-60-90-PLAN] Generated successfully');
 

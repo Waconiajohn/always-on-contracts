@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,29 +65,24 @@ Return JSON array:
 }]`;
 
     console.log('Discovering hidden competencies for career vault:', vaultId);
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are an expert career analyst specializing in discovering hidden capabilities and reframing experience. Return only valid JSON.' },
           { role: 'user', content: prompt }
-        ]
-      }),
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.6,
+        max_tokens: 2000,
+        return_citations: false,
+      },
+      'discover-hidden-competencies'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      throw new Error(`Failed to discover hidden competencies: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const competenciesText = aiResponse.choices[0].message.content.trim();
+    const competenciesText = cleanCitations(response.choices[0].message.content.trim());
     const jsonMatch = competenciesText.match(/\[[\s\S]*\]/);
     const competencies = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
