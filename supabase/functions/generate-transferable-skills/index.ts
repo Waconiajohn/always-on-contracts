@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -61,29 +63,19 @@ Return JSON array:
 }]`;
 
     console.log('Generating transferable skills for Career Vault:', vaultId);
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a career strategist specializing in skills translation and career pivoting. Return only valid JSON.' },
-          { role: 'user', content: prompt }
-        ]
-      }),
-    });
+    
+    const { response, metrics } = await callPerplexity({
+      messages: [
+        { role: 'system', content: 'You are a career strategist specializing in skills translation and career pivoting. Return only valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      model: PERPLEXITY_MODELS.SMALL,
+      temperature: 0.2,
+    }, 'generate-transferable-skills', vault.user_id);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      throw new Error(`Failed to generate transferable skills: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const skillsText = aiResponse.choices[0].message.content.trim();
+    const skillsText = cleanCitations(response.choices[0].message.content).trim();
     const jsonMatch = skillsText.match(/\[[\s\S]*\]/);
     const skills = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 

@@ -148,68 +148,32 @@ Values: ${intelligence.values.map((v: any) => v.value).join(', ')}
 - Use EXACT keywords and phrases from job description
 - All bullets must have metrics (%, $, #, time)
 - Last job gets 70% of detail, previous jobs get 30%
-- No generic statements - everything must be specific and quantified`;
+- No generic statements - everything must be specific and quantified
 
-    const pass1Response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are an elite executive resume writer. Use the generate_resume tool to create a structured resume.' },
-          { role: 'user', content: pass1Prompt }
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "generate_resume",
-            description: "Generate a structured executive resume",
-            parameters: {
-              type: "object",
-              properties: {
-                summaryStatement: { type: "string" },
-                keySkills: { type: "array", items: { type: "string" } },
-                selectedAccomplishments: { 
-                  type: "array", 
-                  items: { 
-                    type: "object",
-                    properties: {
-                      achievement: { type: "string" },
-                      metrics: { type: "string" }
-                    }
-                  } 
-                },
-                workHistory: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      company: { type: "string" },
-                      dates: { type: "string" },
-                      bullets: { type: "array", items: { type: "string" } }
-                    }
-                  }
-                },
-                strongWorkingKnowledge: { type: "array", items: { type: "string" } }
-              },
-              required: ["summaryStatement", "keySkills", "selectedAccomplishments", "workHistory", "strongWorkingKnowledge"]
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "generate_resume" } }
-      }),
-    });
+Return a JSON object with this structure:
+{
+  "summaryStatement": "string",
+  "keySkills": ["string"],
+  "selectedAccomplishments": [{"achievement": "string", "metrics": "string"}],
+  "workHistory": [{"title": "string", "company": "string", "dates": "string", "bullets": ["string"]}],
+  "strongWorkingKnowledge": ["string"]
+}`;
 
-    if (!pass1Response.ok) {
-      throw new Error(`AI error in Pass 1: ${pass1Response.status}`);
-    }
+    const { response: pass1Response, metrics: pass1Metrics } = await callPerplexity({
+      messages: [
+        { role: 'system', content: 'You are an elite executive resume writer. Return only valid JSON.' },
+        { role: 'user', content: pass1Prompt }
+      ],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.3,
+    }, 'generate-executive-resume-pass1', user.id);
 
-    const pass1Data = await pass1Response.json();
-    const pass1Resume = JSON.parse(pass1Data.choices[0].message.tool_calls[0].function.arguments);
+    await logAIUsage(pass1Metrics);
+
+    const pass1Text = cleanCitations(pass1Response.choices[0].message.content);
+    const pass1Match = pass1Text.match(/\{[\s\S]*\}/);
+    if (!pass1Match) throw new Error('Failed to parse Pass 1 resume');
+    const pass1Resume = JSON.parse(pass1Match[0]);
 
     console.log('[GENERATE-RESUME] Pass 1 complete, starting hiring manager review');
 
@@ -236,58 +200,32 @@ Review this resume as a critical hiring manager. Identify:
 4. What metrics would make me excited
 5. Any gaps in addressing the job requirements
 
-Be brutally honest. What would make this candidate stand out?`;
+Be brutally honest. What would make this candidate stand out?
 
-    const pass2Response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a critical hiring manager reviewing a resume. Use the review_resume tool.' },
-          { role: 'user', content: pass2Prompt }
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "review_resume",
-            description: "Provide critical feedback on resume",
-            parameters: {
-              type: "object",
-              properties: {
-                missingElements: { type: "array", items: { type: "string" } },
-                rewordingSuggestions: { 
-                  type: "array", 
-                  items: { 
-                    type: "object",
-                    properties: {
-                      original: { type: "string" },
-                      suggested: { type: "string" },
-                      reason: { type: "string" }
-                    }
-                  }
-                },
-                keywordGaps: { type: "array", items: { type: "string" } },
-                strengthenMetrics: { type: "array", items: { type: "string" } },
-                overallFeedback: { type: "string" }
-              },
-              required: ["missingElements", "rewordingSuggestions", "keywordGaps", "strengthenMetrics", "overallFeedback"]
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "review_resume" } }
-      }),
-    });
+Return JSON:
+{
+  "missingElements": ["string"],
+  "rewordingSuggestions": [{"original": "string", "suggested": "string", "reason": "string"}],
+  "keywordGaps": ["string"],
+  "strengthenMetrics": ["string"],
+  "overallFeedback": "string"
+}`;
 
-    if (!pass2Response.ok) {
-      throw new Error(`AI error in Pass 2: ${pass2Response.status}`);
-    }
+    const { response: pass2Response, metrics: pass2Metrics } = await callPerplexity({
+      messages: [
+        { role: 'system', content: 'You are a critical hiring manager. Return only valid JSON.' },
+        { role: 'user', content: pass2Prompt }
+      ],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.2,
+    }, 'generate-executive-resume-pass2', user.id);
 
-    const pass2Data = await pass2Response.json();
-    const hiringManagerFeedback = JSON.parse(pass2Data.choices[0].message.tool_calls[0].function.arguments);
+    await logAIUsage(pass2Metrics);
+
+    const pass2Text = cleanCitations(pass2Response.choices[0].message.content);
+    const pass2Match = pass2Text.match(/\{[\s\S]*\}/);
+    if (!pass2Match) throw new Error('Failed to parse Pass 2 feedback');
+    const hiringManagerFeedback = JSON.parse(pass2Match[0]);
 
     console.log('[GENERATE-RESUME] Hiring manager review complete, refining resume');
 
@@ -308,68 +246,32 @@ ${hiringManagerFeedback.rewordingSuggestions.map((s: any) =>
 ).join('\n')}
 
 **YOUR TASK:**
-Create the FINAL refined resume incorporating all feedback. Use the same 5-section structure but with improvements.`;
+Create the FINAL refined resume incorporating all feedback. Use the same 5-section structure but with improvements.
 
-    const pass3Response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are refining a resume based on hiring manager feedback. Use the generate_resume tool.' },
-          { role: 'user', content: pass3Prompt }
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "generate_resume",
-            description: "Generate refined executive resume",
-            parameters: {
-              type: "object",
-              properties: {
-                summaryStatement: { type: "string" },
-                keySkills: { type: "array", items: { type: "string" } },
-                selectedAccomplishments: { 
-                  type: "array", 
-                  items: { 
-                    type: "object",
-                    properties: {
-                      achievement: { type: "string" },
-                      metrics: { type: "string" }
-                    }
-                  } 
-                },
-                workHistory: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      company: { type: "string" },
-                      dates: { type: "string" },
-                      bullets: { type: "array", items: { type: "string" } }
-                    }
-                  }
-                },
-                strongWorkingKnowledge: { type: "array", items: { type: "string" } }
-              },
-              required: ["summaryStatement", "keySkills", "selectedAccomplishments", "workHistory", "strongWorkingKnowledge"]
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "generate_resume" } }
-      }),
-    });
+Return JSON:
+{
+  "summaryStatement": "string",
+  "keySkills": ["string"],
+  "selectedAccomplishments": [{"achievement": "string", "metrics": "string"}],
+  "workHistory": [{"title": "string", "company": "string", "dates": "string", "bullets": ["string"]}],
+  "strongWorkingKnowledge": ["string"]
+}`;
 
-    if (!pass3Response.ok) {
-      throw new Error(`AI error in Pass 3: ${pass3Response.status}`);
-    }
+    const { response: pass3Response, metrics: pass3Metrics } = await callPerplexity({
+      messages: [
+        { role: 'system', content: 'You are refining a resume. Return only valid JSON.' },
+        { role: 'user', content: pass3Prompt }
+      ],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.3,
+    }, 'generate-executive-resume-pass3', user.id);
 
-    const pass3Data = await pass3Response.json();
-    const finalResume = JSON.parse(pass3Data.choices[0].message.tool_calls[0].function.arguments);
+    await logAIUsage(pass3Metrics);
+
+    const pass3Text = cleanCitations(pass3Response.choices[0].message.content);
+    const pass3Match = pass3Text.match(/\{[\s\S]*\}/);
+    if (!pass3Match) throw new Error('Failed to parse Pass 3 resume');
+    const finalResume = JSON.parse(pass3Match[0]);
 
     console.log('[GENERATE-RESUME] Refinement complete, generating document');
 

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,23 +26,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Call AI for quick analysis
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a career analysis AI. Analyze resumes and extract:
+    const prompt = `Analyze this resume and extract:
 1. Count of power phrases (quantified achievements)
 2. Count of identified skills
 3. Count of key achievements
@@ -52,22 +38,23 @@ Return JSON format:
   "skills": number,
   "achievements": number,
   "intelligenceScore": number (typically 30-50 for basic resumes, 70-100 for complete Career Vaults)
-}`
-          },
-          {
-            role: 'user',
-            content: `Analyze this resume:\n\n${resumeText.substring(0, 3000)}`
-          }
-        ]
-      })
-    });
+}
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI API error: ${aiResponse.statusText}`);
-    }
+Resume:
+${resumeText.substring(0, 3000)}`;
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices[0].message.content;
+    const { response, metrics } = await callPerplexity({
+      messages: [
+        { role: 'system', content: 'You are a career analysis AI. Return only valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      model: PERPLEXITY_MODELS.SMALL,
+      temperature: 0.2,
+    }, 'quick-analyze-resume', userId);
+
+    await logAIUsage(metrics);
+
+    const content = cleanCitations(response.choices[0].message.content);
     
     // Parse JSON from AI response
     let analysis;

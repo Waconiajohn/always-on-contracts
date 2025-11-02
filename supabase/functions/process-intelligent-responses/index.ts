@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,14 +17,16 @@ serve(async (req) => {
     const { vaultId, responses, industryStandards } = await req.json();
     console.log('[PROCESS RESPONSES] Processing', responses.length, 'responses for vault:', vaultId);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get vault to find user_id
+    const { data: vault } = await supabase
+      .from('career_vault')
+      .select('user_id')
+      .eq('id', vaultId)
+      .single();
 
     // Use AI to parse responses into structured vault items
     const prompt = `Parse these user responses into structured career vault items. Extract power phrases, skills, competencies, and soft skills.
@@ -46,29 +50,19 @@ Generate vault items as JSON:
   ]
 }`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are an expert at extracting career intelligence. Return valid JSON only.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
-        response_format: { type: "json_object" }
-      })
-    });
+    const { response, metrics } = await callPerplexity({
+      messages: [
+        { role: 'system', content: 'You are an expert at extracting career intelligence. Return valid JSON only.' },
+        { role: 'user', content: prompt }
+      ],
+      model: PERPLEXITY_MODELS.SMALL,
+      temperature: 0.3,
+    }, 'process-intelligent-responses', vault?.user_id);
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const parsedItems = JSON.parse(aiData.choices[0].message.content);
+    const content = cleanCitations(response.choices[0].message.content);
+    const parsedItems = JSON.parse(content);
 
     let newItemsCreated = 0;
 
