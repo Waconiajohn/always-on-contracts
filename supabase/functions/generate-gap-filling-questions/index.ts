@@ -206,7 +206,7 @@ NO MARKDOWN. ONLY JSON.`;
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
+        model: 'google/gemini-2.5-flash',
         messages: [{ role: 'user', content: gapAnalysisPrompt }],
         temperature: 0.5,
         max_tokens: 3000,
