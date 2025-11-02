@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,12 +61,6 @@ serve(async (req) => {
     const { jobTitle, jobDescription, company, location, source }: JobAnalysisRequest = await req.json();
 
     console.log(`Analyzing job: ${jobTitle} from ${company || 'Unknown'}`);
-
-    // Call Lovable AI for analysis
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
 
     const prompt = `ROLE: You are a senior recruitment analyst with 15+ years evaluating job postings for quality, authenticity, and contract classification. You've analyzed 100K+ job descriptions across industries.
 
@@ -152,14 +148,8 @@ OUTPUT FORMAT (Strict JSON matching schema):
   "reasoning": "detailed explanation with evidence"
 }`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -170,18 +160,18 @@ OUTPUT FORMAT (Strict JSON matching schema):
             content: prompt
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.3,
-      }),
-    });
+        max_tokens: 1500,
+        return_citations: false,
+      },
+      'analyze-job-quality',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI analysis failed: ${aiResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const analysisText = aiData.choices[0].message.content;
+    const analysisText = cleanCitations(response.choices[0].message.content);
 
     console.log('AI Response:', analysisText);
 

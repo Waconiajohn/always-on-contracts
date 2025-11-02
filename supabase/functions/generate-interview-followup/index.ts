@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -118,59 +120,39 @@ Return a JSON object with:
 }
 `;
 
-    // Call Lovable AI
-    const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "generate_email",
-            description: "Generate interview follow-up email content",
-            parameters: {
-              type: "object",
-              properties: {
-                subject: { type: "string", description: "Email subject line" },
-                body: { type: "string", description: "Email body content" },
-                timing: { type: "string", description: "Recommended timing" },
-                tips: { 
-                  type: "array", 
-                  items: { type: "string" },
-                  description: "3-5 tips for the email"
-                }
-              },
-              required: ["subject", "body", "timing", "tips"],
-              additionalProperties: false
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "generate_email" } }
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 1000,
+        return_citations: false,
+      },
+      'generate-interview-followup',
+      user.id
+    );
 
-    if (!lovableResponse.ok) {
-      const errorText = await lovableResponse.text();
-      console.error('Lovable AI error:', lovableResponse.status, errorText);
-      throw new Error(`AI generation failed: ${lovableResponse.status}`);
+    await logAIUsage(metrics);
+
+    const content = cleanCitations(response.choices[0].message.content);
+
+    // Parse JSON from response
+    let generatedContent;
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      generatedContent = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    } catch (e) {
+      console.error('Failed to parse AI response:', e);
+      generatedContent = {
+        subject: `Following up on ${project.job_title} Interview`,
+        body: content,
+        timing: timing,
+        tips: []
+      };
     }
-
-    const aiResult = await lovableResponse.json();
-    const toolCall = aiResult.choices[0]?.message?.tool_calls?.[0];
-    
-    if (!toolCall) {
-      throw new Error('No tool call in AI response');
-    }
-
-    const generatedContent = JSON.parse(toolCall.function.arguments);
 
     return new Response(
       JSON.stringify({

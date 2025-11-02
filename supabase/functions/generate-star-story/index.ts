@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,9 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -33,7 +32,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { rawStory, action = 'generate', provider = 'lovable' } = await req.json();
+    const { rawStory, action = 'generate' } = await req.json();
 
     console.log('[GENERATE-STAR-STORY] Starting:', { action, hasRawStory: !!rawStory, user: user.id });
 
@@ -232,23 +231,10 @@ ${intelligence ? '✅ Uses Career Vault verified data where available' : ''}
 Return the same JSON structure with refined content.`;
     }
 
-    const apiUrl = provider === 'openai'
-      ? 'https://api.openai.com/v1/chat/completions'
-      : 'https://ai.gateway.lovable.dev/v1/chat/completions';
-    
-    const apiKey = provider === 'openai' ? OPENAI_API_KEY : LOVABLE_API_KEY;
-    const model = provider === 'openai' ? 'gpt-4o-mini' : 'google/gemini-2.5-flash';
+    console.log(`[GENERATE-STAR-STORY] Using Perplexity`);
 
-    console.log(`[GENERATE-STAR-STORY] Using ${provider} AI`);
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { 
             role: 'system', 
@@ -256,19 +242,18 @@ Return the same JSON structure with refined content.`;
           },
           { role: 'user', content: prompt }
         ],
-        temperature: provider === 'openai' ? 0.7 : undefined,
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
         max_tokens: 1500,
-      }),
-    });
+        return_citations: false,
+      },
+      'generate-star-story',
+      user.id
+    );
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('AI API error:', response.status, error);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = cleanCitations(response.choices[0].message.content);
 
     // Parse the JSON response
     const jsonMatch = content.match(/\{[\s\S]*\}/);

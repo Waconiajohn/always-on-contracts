@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,7 +48,6 @@ serve(async (req) => {
     const audit = auditData.audit;
 
     // Generate engagement analysis
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const engagementPrompt = `Analyze this LinkedIn post for engagement potential:
 
 POST:
@@ -61,23 +62,24 @@ Rate on:
 
 Provide specific suggestions to improve engagement.`;
 
-    const engagementResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are a LinkedIn content strategist.' },
           { role: 'user', content: engagementPrompt }
-        ]
-      })
-    });
+        ],
+        model: PERPLEXITY_MODELS.SMALL,
+        temperature: 0.7,
+        max_tokens: 800,
+        return_citations: false,
+      },
+      'analyze-linkedin-post-with-audit',
+      user.id
+    );
 
-    const engagementData = await engagementResponse.json();
-    const engagementAnalysis = engagementData.choices[0].message.content;
+    await logAIUsage(metrics);
+
+    const engagementAnalysis = cleanCitations(response.choices[0].message.content);
 
     // Update post with audit results
     if (postId) {

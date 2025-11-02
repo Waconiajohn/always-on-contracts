@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,11 +17,6 @@ serve(async (req) => {
     
     if (!seriesTopic || !seriesLength) {
       throw new Error('Series topic and length are required');
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     const systemPrompt = `You are an expert LinkedIn series strategist focused on creating authentic, executive-level content.
@@ -61,63 +58,31 @@ Target Audience: ${targetAudience || 'Not specified'}
 
 Generate titles that sound practical and problem-focused, not theoretical.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'create_series_outline',
-            description: 'Generate LinkedIn blog series outline',
-            parameters: {
-              type: 'object',
-              properties: {
-                seriesTitle: { type: 'string' },
-                parts: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      partNumber: { type: 'integer' },
-                      title: { type: 'string' },
-                      focusStatement: { type: 'string' },
-                      category: { type: 'string', enum: ['foundation', 'implementation', 'leadership'] }
-                    },
-                    required: ['partNumber', 'title', 'focusStatement', 'category']
-                  }
-                }
-              },
-              required: ['seriesTitle', 'parts']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'create_series_outline' } }
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 1500,
+        return_citations: false,
+      },
+      'generate-series-outline'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      throw new Error(`AI generation failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const result = await response.json();
-    const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+    const content = cleanCitations(response.choices[0].message.content);
     
-    if (!toolCall) {
-      throw new Error('No tool call in AI response');
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in response');
     }
 
-    const outline = JSON.parse(toolCall.function.arguments);
+    const outline = JSON.parse(jsonMatch[0]);
 
     return new Response(JSON.stringify(outline), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

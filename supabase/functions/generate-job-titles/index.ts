@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,10 +14,6 @@ serve(async (req) => {
 
   try {
     const { resumeAnalysis, currentPositions } = await req.json();
-
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
 
     const prompt = `Based on this resume analysis, suggest 5 relevant job titles for contract/interim executive positions that this person should target. 
 
@@ -33,31 +29,25 @@ IMPORTANT: Only suggest NEW job titles that are NOT already in their current lis
 Return ONLY a JSON array of 5 job title strings, nothing else. Example format:
 ["Chief Financial Officer", "Interim CFO", "VP of Finance", "Director of Financial Planning", "Controller"]`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
-            role: "user",
+            role: 'user',
             content: prompt,
           },
         ],
-      }),
-    });
+        model: PERPLEXITY_MODELS.SMALL,
+        temperature: 0.7,
+        max_tokens: 300,
+        return_citations: false,
+      },
+      'generate-job-titles'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = cleanCitations(response.choices[0].message.content);
     
     // Extract JSON array from the response
     const jsonMatch = content.match(/\[.*\]/s);

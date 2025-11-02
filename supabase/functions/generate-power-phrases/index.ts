@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,7 +35,6 @@ serve(async (req) => {
 
     if (!vault) throw new Error('Career Vault not found');
 
-    // Use Lovable AI to generate power phrases
     const prompt = `You are an expert resume writer. Convert weak resume statements into powerful, quantified achievement statements.
 
 Resume Text: ${vault.resume_raw_text}
@@ -65,29 +66,25 @@ Return JSON array with format:
 }]`;
 
     console.log('Generating power phrases for Career Vault:', vaultId);
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are an expert resume writer specializing in quantified achievement statements. Return only valid JSON.' },
           { role: 'user', content: prompt }
-        ]
-      }),
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 2000,
+        return_citations: false,
+      },
+      'generate-power-phrases',
+      vault.user_id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      throw new Error(`Failed to generate power phrases: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const powerPhrasesText = aiResponse.choices[0].message.content.trim();
+    const powerPhrasesText = cleanCitations(response.choices[0].message.content.trim());
     
     // Extract JSON from response
     const jsonMatch = powerPhrasesText.match(/\[[\s\S]*\]/);
