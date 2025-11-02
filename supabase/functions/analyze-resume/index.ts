@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,33 +15,15 @@ serve(async (req) => {
 
   try {
     const { resumeText, userId } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     if (!supabaseUrl || !supabaseKey) throw new Error("Supabase credentials not configured");
     if (!userId) throw new Error("User ID is required");
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Analyze resume using Lovable AI
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert resume analyzer who returns structured JSON. Always respond with valid JSON matching the tool schema exactly.`
-          },
-          {
-            role: "user",
-            content: `ROLE: You are an elite resume analysis AI specializing in executive career positioning and contract/freelance work optimization.
+    const prompt = `ROLE: You are an elite resume analysis AI specializing in executive career positioning and contract/freelance work optimization.
 
 RESUME TEXT:
 ${resumeText}
@@ -65,103 +49,68 @@ ERROR HANDLING:
 - Never leave required fields empty - use reasonable defaults
 - Flag any data quality concerns
 
-Focus on positioning experience as premium value for executive and strategic opportunities.`
-          }
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "analyze_resume",
-              description: "Extract structured information from a professional resume",
-              parameters: {
-                type: "object",
-                properties: {
-                  years_experience: { type: "number" },
-                  key_achievements: { 
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  industry_expertise: {
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  management_capabilities: {
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  skills: {
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  target_hourly_rate_min: { type: "number" },
-                  target_hourly_rate_max: { type: "number" },
-                  recommended_positions: {
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  analysis_summary: { type: "string" },
-                  work_history: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        job_title: { type: "string" },
-                        company_name: { type: "string" },
-                        start_date: { type: "string" },
-                        end_date: { type: "string" },
-                        is_current: { type: "boolean" },
-                        industry: { type: "string" },
-                        key_responsibilities: {
-                          type: "array",
-                          items: { type: "string" }
-                        },
-                        achievements: {
-                          type: "array",
-                          items: { type: "string" }
-                        },
-                        technologies_used: {
-                          type: "array",
-                          items: { type: "string" }
-                        },
-                        team_size: { type: "number" },
-                        budget_managed: { type: "string" }
-                      }
-                    }
-                  }
-                },
-                required: [
-                  "years_experience",
-                  "key_achievements",
-                  "industry_expertise",
-                  "skills",
-                  "target_hourly_rate_min",
-                  "target_hourly_rate_max",
-                  "recommended_positions",
-                  "analysis_summary"
-                ]
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "analyze_resume" } }
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI analysis failed: ${response.status}`);
+Return ONLY valid JSON matching this structure exactly:
+{
+  "years_experience": number,
+  "key_achievements": string[],
+  "industry_expertise": string[],
+  "management_capabilities": string[],
+  "skills": string[],
+  "target_hourly_rate_min": number,
+  "target_hourly_rate_max": number,
+  "recommended_positions": string[],
+  "analysis_summary": string,
+  "work_history": [
+    {
+      "job_title": string,
+      "company_name": string,
+      "start_date": string,
+      "end_date": string,
+      "is_current": boolean,
+      "industry": string,
+      "key_responsibilities": string[],
+      "achievements": string[],
+      "technologies_used": string[],
+      "team_size": number,
+      "budget_managed": string
     }
+  ]
+}
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+Focus on positioning experience as premium value for executive and strategic opportunities.`;
+
+    const { response, metrics } = await callPerplexity(
+      {
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert resume analyzer who returns structured JSON. Always respond with valid JSON matching the tool schema exactly.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.3,
+        max_tokens: 4000,
+        return_citations: false,
+      },
+      'analyze-resume',
+      userId
+    );
+
+    await logAIUsage(metrics);
+
+    // Extract JSON from response
+    const content = response.choices[0].message.content;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
     
-    if (!toolCall) {
+    if (!jsonMatch) {
       throw new Error("No analysis returned from AI");
     }
 
-    const analysis = JSON.parse(toolCall.function.arguments);
+    const analysis = JSON.parse(jsonMatch[0]);
 
     // Extract work_history separately and exclude from database insert
     const { work_history, ...analysisForDb } = analysis;

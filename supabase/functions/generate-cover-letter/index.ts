@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,12 +22,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user context
@@ -91,15 +87,8 @@ CRITICAL GUIDELINES:
 
 Format as plain text with proper spacing between paragraphs.`;
 
-    // Call Lovable AI
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -110,18 +99,18 @@ Format as plain text with proper spacing between paragraphs.`;
             content: prompt
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.8,
-      }),
-    });
+        max_tokens: 1200,
+        return_citations: false,
+      },
+      'generate-cover-letter',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
-      throw new Error(`AI service error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const coverLetter = aiResponse.choices[0].message.content;
+    const coverLetter = cleanCitations(response.choices[0].message.content);
 
     console.log('Cover letter generated successfully');
 

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,31 +77,30 @@ Return ONLY a JSON object with this structure:
   ]
 }`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
+          {
+            role: "system",
+            content: "You are an expert resume advisor. Return valid JSON only."
+          },
           {
             role: "user",
             content: prompt,
           },
         ],
-      }),
-    });
+        model: PERPLEXITY_MODELS.SMALL,
+        temperature: 0.7,
+        max_tokens: 800,
+        return_citations: false,
+      },
+      'generate-requirement-questions',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Lovable AI API error:", response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = cleanCitations(response.choices[0].message.content);
 
     console.log("AI response:", content);
 
