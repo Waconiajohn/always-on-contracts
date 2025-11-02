@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // Using pinned version to avoid dev environment type resolution issues
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 // Dual Resume Section Generator - generates both ideal and personalized versions
 const corsHeaders = {
@@ -66,21 +68,6 @@ serve(async (req) => {
 
     console.log(`Generating dual versions for ${section_type}`);
 
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableKey) {
-      console.error('❌ LOVABLE_API_KEY not configured');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'API_KEY_MISSING',
-          message: 'AI service is not configured. Please contact support.'
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -140,45 +127,16 @@ Create an INDUSTRY STANDARD version that:
 
 Return ONLY the content, no explanations.`;
 
-    const idealResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [{ role: 'user', content: idealPrompt }],
-        temperature: 0.6,
-        max_tokens: 1500
-      })
-    });
+    const { response: idealResponse, metrics: idealMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: idealPrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.6,
+      max_tokens: 1500,
+    }, 'generate-dual-resume-section-ideal', user_id);
 
-    if (!idealResponse.ok) {
-      console.error(`❌ Ideal generation API failed: ${idealResponse.status}`);
-      const errorText = await idealResponse.text();
-      console.error('API error details:', errorText);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'AI_GENERATION_FAILED',
-          message: idealResponse.status === 429 
-            ? 'AI service is busy. Please wait a moment and try again.'
-            : idealResponse.status === 402
-            ? 'AI credits depleted. Please add credits to continue.'
-            : 'AI generation service encountered an error. Please try again.',
-          statusCode: idealResponse.status
-        }),
-        {
-          status: idealResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    await logAIUsage(idealMetrics);
 
-    const idealData = await idealResponse.json();
-    let idealContent = idealData.choices?.[0]?.message?.content || '';
+    let idealContent = cleanCitations(idealResponse.choices?.[0]?.message?.content || '');
 
     // Clean up skills section to ensure comma-separated format
     if (section_type === 'skills' || section_type === 'skills_list') {
@@ -336,45 +294,16 @@ ${vault_items.length === 0 && !hasResumeData && !hasSkillsData ? 'NOTE: No candi
 
 Return ONLY the content, no explanations.`;
 
-    const personalizedResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [{ role: 'user', content: personalizedPrompt }],
-        temperature: 0.5,
-        max_tokens: 1500
-      })
-    });
+    const { response: personalizedResponse, metrics: personalizedMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: personalizedPrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.5,
+      max_tokens: 1500,
+    }, 'generate-dual-resume-section-personalized', user_id);
 
-    if (!personalizedResponse.ok) {
-      console.error(`❌ Personalized generation API failed: ${personalizedResponse.status}`);
-      const errorText = await personalizedResponse.text();
-      console.error('API error details:', errorText);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'AI_GENERATION_FAILED',
-          message: personalizedResponse.status === 429 
-            ? 'AI service is busy. Please wait a moment and try again.'
-            : personalizedResponse.status === 402
-            ? 'AI credits depleted. Please add credits to continue.'
-            : 'AI generation service encountered an error. Please try again.',
-          statusCode: personalizedResponse.status
-        }),
-        {
-          status: personalizedResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    await logAIUsage(personalizedMetrics);
 
-    const personalizedData = await personalizedResponse.json();
-    let personalizedContent = personalizedData.choices?.[0]?.message?.content || '';
+    let personalizedContent = cleanCitations(personalizedResponse.choices?.[0]?.message?.content || '');
 
     // Clean up skills section to ensure comma-separated format
     if (section_type === 'skills' || section_type === 'skills_list') {

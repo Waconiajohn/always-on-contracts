@@ -2,6 +2,8 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs';
 import * as pdfjsworker from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs';
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 // Force import of worker
 type PDFWorker = typeof pdfjsworker;
@@ -105,62 +107,29 @@ serve(async (req) => {
         );
       }
     }
-    // For DOC/DOCX files, use Lovable AI
+    // For DOC/DOCX files, use Perplexity AI
     else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      
-      if (!LOVABLE_API_KEY) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Service not configured. Please contact support.',
-            needsConfig: true
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-
-      console.log('Parsing Word document with Lovable AI...');
+      console.log('Parsing Word document with Perplexity AI...');
 
       try {
-        // Create a simpler request focusing on text extraction
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a document text extractor. Extract all text content from documents and return only the plain text without any formatting or commentary.'
-              },
-              {
-                role: 'user',
-                content: `Please extract all text from this Word document and return only the plain text content.\n\nBase64 data length: ${fileData.length} characters`
-              }
-            ],
-            max_tokens: 4000
-          }),
-        });
+        const { response: aiResponse, metrics } = await callPerplexity({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a document text extractor. Extract all text content from documents and return only the plain text without any formatting or commentary.'
+            },
+            {
+              role: 'user',
+              content: `Please extract all text from this Word document and return only the plain text content.\n\nBase64 data length: ${fileData.length} characters`
+            }
+          ],
+          model: PERPLEXITY_MODELS.DEFAULT,
+          max_tokens: 4000,
+        }, 'parse-resume-docx', 'system');
 
-        if (!aiResponse.ok) {
-          const errorText = await aiResponse.text();
-          console.error('Lovable AI error:', aiResponse.status, errorText);
-          
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'Unable to process Word document at this time. Please try converting to PDF or using a TXT file.' 
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
+        await logAIUsage(metrics);
 
-        const aiResult = await aiResponse.json();
-        extractedText = aiResult.choices?.[0]?.message?.content || '';
+        extractedText = cleanCitations(aiResponse.choices?.[0]?.message?.content || '');
 
         if (!extractedText || extractedText.length < 50) {
           return new Response(

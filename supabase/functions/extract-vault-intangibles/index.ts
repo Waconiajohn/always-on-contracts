@@ -20,9 +20,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const LOVABLE_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface IntangiblesRequest {
   resumeText: string;
@@ -114,22 +113,16 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const leadershipResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        messages: [{ role: 'user', content: leadershipPrompt }],
-        temperature: 0.4,
-        max_tokens: 2000,
-      }),
-    });
+    const { response: leadershipResponse, metrics: leadershipMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: leadershipPrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.4,
+      max_tokens: 2000,
+    }, 'extract-vault-intangibles-leadership', user.id);
 
-    const leadershipData = await leadershipResponse.json();
-    const leadershipContent = leadershipData.choices[0].message.content;
+    await logAIUsage(leadershipMetrics);
+
+    const leadershipContent = cleanCitations(leadershipResponse.choices[0].message.content);
     const cleanedLeadership = leadershipContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const leadershipItems = JSON.parse(cleanedLeadership).leadershipPhilosophy;
 
@@ -182,22 +175,16 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const presenceResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        messages: [{ role: 'user', content: presencePrompt }],
-        temperature: 0.4,
-        max_tokens: 2000,
-      }),
-    });
+    const { response: presenceResponse, metrics: presenceMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: presencePrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.4,
+      max_tokens: 2000,
+    }, 'extract-vault-intangibles-presence', user.id);
 
-    const presenceData = await presenceResponse.json();
-    const presenceContent = presenceData.choices[0].message.content;
+    await logAIUsage(presenceMetrics);
+
+    const presenceContent = cleanCitations(presenceResponse.choices[0].message.content);
     const cleanedPresence = presenceContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const presenceItems = JSON.parse(cleanedPresence).executivePresence;
 
@@ -249,22 +236,16 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const personalityResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        messages: [{ role: 'user', content: personalityPrompt }],
-        temperature: 0.4,
-        max_tokens: 2000,
-      }),
-    });
+    const { response: personalityResponse, metrics: personalityMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: personalityPrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.4,
+      max_tokens: 2000,
+    }, 'extract-vault-intangibles-personality', user.id);
 
-    const personalityData = await personalityResponse.json();
-    const personalityContent = personalityData.choices[0].message.content;
+    await logAIUsage(personalityMetrics);
+
+    const personalityContent = cleanCitations(personalityResponse.choices[0].message.content);
     const cleanedPersonality = personalityContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const personalityItems = JSON.parse(cleanedPersonality).personalityTraits;
 
@@ -315,22 +296,16 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const workStyleResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        messages: [{ role: 'user', content: workStylePrompt }],
-        temperature: 0.4,
-        max_tokens: 1500,
-      }),
-    });
+    const { response: workStyleResponse, metrics: workStyleMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: workStylePrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.4,
+      max_tokens: 1500,
+    }, 'extract-vault-intangibles-workstyle', user.id);
 
-    const workStyleData = await workStyleResponse.json();
-    const workStyleContent = workStyleData.choices[0].message.content;
+    await logAIUsage(workStyleMetrics);
+
+    const workStyleContent = cleanCitations(workStyleResponse.choices[0].message.content);
     const cleanedWorkStyle = workStyleContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const workStyleItems = JSON.parse(cleanedWorkStyle).workStyle;
 
@@ -380,22 +355,16 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const valuesResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        messages: [{ role: 'user', content: valuesPrompt }],
-        temperature: 0.4,
-        max_tokens: 1500,
-      }),
-    });
+    const { response: valuesResponse, metrics: valuesMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: valuesPrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.4,
+      max_tokens: 1500,
+    }, 'extract-vault-intangibles-values', user.id);
 
-    const valuesData = await valuesResponse.json();
-    const valuesContent = valuesData.choices[0].message.content;
+    await logAIUsage(valuesMetrics);
+
+    const valuesContent = cleanCitations(valuesResponse.choices[0].message.content);
     const cleanedValues = valuesContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const valuesItems = JSON.parse(cleanedValues).valuesMotivations;
 
@@ -447,22 +416,16 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const behavioralResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        messages: [{ role: 'user', content: behavioralPrompt }],
-        temperature: 0.4,
-        max_tokens: 1500,
-      }),
-    });
+    const { response: behavioralResponse, metrics: behavioralMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: behavioralPrompt }],
+      model: PERPLEXITY_MODELS.DEFAULT,
+      temperature: 0.4,
+      max_tokens: 1500,
+    }, 'extract-vault-intangibles-behavioral', user.id);
 
-    const behavioralData = await behavioralResponse.json();
-    const behavioralContent = behavioralData.choices[0].message.content;
+    await logAIUsage(behavioralMetrics);
+
+    const behavioralContent = cleanCitations(behavioralResponse.choices[0].message.content);
     const cleanedBehavioral = behavioralContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const behavioralItems = JSON.parse(cleanedBehavioral).behavioralIndicators;
 
