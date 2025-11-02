@@ -14,6 +14,8 @@
 // =====================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,11 +49,6 @@ serve(async (req) => {
     const { targetRole, targetIndustry, vaultId, careerDirection = 'stay' } = await req.json();
 
     console.log('[RESEARCH-INDUSTRY] Starting research for:', { targetRole, targetIndustry, vaultId });
-
-    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!perplexityApiKey) {
-      throw new Error('PERPLEXITY_API_KEY not configured');
-    }
 
     // Build comprehensive research query
     const researchQuery = `
@@ -119,15 +116,9 @@ Focus on 2025 market data. Be specific and quantitative where possible.
 `;
 
     // Call Perplexity API with retry logic for resilience
-    const perplexityResponse = await withRetry(() =>
-      fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${perplexityApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-large-128k-online',
+    const { response: perplexityResponse, metrics } = await withRetry(() =>
+      callPerplexity(
+        {
           messages: [
             {
               role: 'system',
@@ -138,27 +129,25 @@ Focus on 2025 market data. Be specific and quantitative where possible.
               content: researchQuery
             }
           ],
+          model: PERPLEXITY_MODELS.HUGE,
           temperature: 0.2,
           max_tokens: 4000,
-        }),
-      })
+        },
+        'research-industry-standards'
+      )
     );
 
-    if (!perplexityResponse.ok) {
-      const errorText = await perplexityResponse.text();
-      console.error('[RESEARCH-INDUSTRY] Perplexity API error:', errorText);
-      throw new Error(`Perplexity API error: ${perplexityResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const perplexityData = await perplexityResponse.json();
-    const researchContent = perplexityData.choices[0]?.message?.content || '{}';
+    const researchContent = perplexityResponse.choices[0]?.message?.content || '{}';
     
     // Extract JSON from markdown code blocks if present
     let researchResults;
     try {
-      const jsonMatch = researchContent.match(/```json\n([\s\S]*?)\n```/) || 
-                       researchContent.match(/```\n([\s\S]*?)\n```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : researchContent;
+      const cleanedContent = cleanCitations(researchContent);
+      const jsonMatch = cleanedContent.match(/```json\n([\s\S]*?)\n```/) || 
+                       cleanedContent.match(/```\n([\s\S]*?)\n```/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : cleanedContent;
       researchResults = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('[RESEARCH-INDUSTRY] JSON parse error:', parseError);
@@ -171,7 +160,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
     }
 
     // Extract citations
-    const citations = perplexityData.citations || [];
+    const citations = perplexityResponse.citations || [];
 
     // Store research in database
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

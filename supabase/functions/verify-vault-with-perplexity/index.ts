@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,15 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!PERPLEXITY_API_KEY) {
-      console.log('[VERIFY-VAULT] Perplexity API key not configured, skipping verification');
-      return new Response(
-        JSON.stringify({ verified: false, message: 'Verification unavailable' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -96,14 +89,8 @@ Provide current market data with sources.`;
 
     console.log('[VERIFY-VAULT] Calling Perplexity API...');
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -114,22 +101,20 @@ Provide current market data with sources.`;
             content: verificationPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.HUGE,
         temperature: 0.2,
         max_tokens: 1000,
         return_related_questions: false,
         search_recency_filter: 'month',
-      }),
-    });
+      },
+      'verify-vault-with-perplexity',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[VERIFY-VAULT] Perplexity error:', response.status, errorText);
-      throw new Error(`Perplexity API failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const verification_result = data.choices[0]?.message?.content;
-    const citations = data.citations || [];
+    const verification_result = response.choices[0]?.message?.content;
+    const citations = response.citations || [];
 
     console.log('[VERIFY-VAULT] Verification complete');
 

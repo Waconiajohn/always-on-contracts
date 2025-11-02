@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,17 +14,10 @@ serve(async (req) => {
 
   try {
     const { resumeContent, jobDescription } = await req.json();
-    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-
-    if (!perplexityApiKey) {
-      throw new Error('PERPLEXITY_API_KEY not configured');
-    }
 
     console.log('Verifying resume claims with Perplexity...');
 
-    // Extract key claims from resume for verification
-    const verificationPrompt = `
-You are a fact-checker for professional resumes. Analyze the following resume content and verify the factual accuracy of key claims.
+    const verificationPrompt = `You are a fact-checker for professional resumes. Analyze the following resume content and verify the factual accuracy of key claims.
 
 Resume Content:
 ${resumeContent}
@@ -57,17 +52,10 @@ Return your analysis in this exact JSON structure:
     "<general recommendation 1>",
     "<general recommendation 2>"
   ]
-}
-`;
+}`;
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'sonar',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -78,26 +66,22 @@ Return your analysis in this exact JSON structure:
             content: verificationPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.2,
         max_tokens: 2000,
         return_citations: true,
         search_recency_filter: 'month'
-      }),
-    });
+      },
+      'verify-resume-claims'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Perplexity API error:', response.status, errorText);
-      throw new Error(`Perplexity API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
     console.log('Perplexity response received');
 
     let verificationResult;
     try {
-      // Extract JSON from response
-      const content = data.choices[0].message.content;
+      const content = cleanCitations(response.choices[0].message.content);
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         verificationResult = JSON.parse(jsonMatch[0]);
@@ -106,7 +90,6 @@ Return your analysis in this exact JSON structure:
       }
     } catch (parseError) {
       console.error('Error parsing Perplexity response:', parseError);
-      // Fallback result
       verificationResult = {
         confidence: 70,
         verifiedClaims: [],
@@ -115,8 +98,7 @@ Return your analysis in this exact JSON structure:
       };
     }
 
-    // Extract citations from Perplexity response
-    const citations = data.citations?.map((citation: any) => ({
+    const citations = response.citations?.map((citation: any) => ({
       title: citation.title || 'Source',
       url: citation.url || '',
       snippet: citation.text || ''

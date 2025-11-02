@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY')!;
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -153,14 +154,8 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
 
     console.log(`Perplexity research request: ${research_type}`);
     
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -171,23 +166,21 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
             content: researchQuery
           }
         ],
+        model: PERPLEXITY_MODELS.HUGE,
         temperature: 0.2,
         max_tokens: 3000,
         return_related_questions: true,
         search_recency_filter: 'month',
-      }),
-    });
+      },
+      'perplexity-research',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Perplexity API error:', response.status, errorText);
-      throw new Error(`Perplexity API failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const research_result = data.choices[0]?.message?.content;
-    const citations = data.citations || [];
-    const related_questions = data.related_questions || [];
+    const research_result = response.choices[0]?.message?.content;
+    const citations = response.citations || [];
+    const related_questions = response.related_questions || [];
 
     // Store research result
     const { error: insertError } = await supabase

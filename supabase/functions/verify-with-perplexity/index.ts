@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +13,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY')!;
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -97,14 +98,8 @@ Provide factual verification with current sources.`;
 
     console.log('Calling Perplexity for verification...');
     
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -115,22 +110,20 @@ Provide factual verification with current sources.`;
             content: verificationPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.HUGE,
         temperature: 0.2,
         max_tokens: 2000,
         return_related_questions: true,
         search_recency_filter: 'month',
-      }),
-    });
+      },
+      'verify-with-perplexity',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Perplexity API error:', response.status, errorText);
-      throw new Error(`Perplexity API failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const verification_result = data.choices[0]?.message?.content;
-    const citations = data.citations || [];
+    const verification_result = response.choices[0]?.message?.content;
+    const citations = response.citations || [];
 
     // Store verification result
     const { error: insertError } = await supabase
