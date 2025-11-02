@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,15 +20,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: resumeText, currentRole, currentIndustry' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('[SUGGEST-ADJACENT-ROLES] LOVABLE_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'AI service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -61,56 +54,23 @@ Return ONLY a JSON object with this structure:
 
 Be specific and realistic. Do not suggest complete career pivots.`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: 'You are a career transition expert who helps people identify realistic adjacent career paths based on transferable skills. Always return valid JSON.' },
           { role: 'user', content: prompt }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.7,
-      }),
-    });
+        max_tokens: 1500,
+        return_citations: false,
+      },
+      'suggest-adjacent-roles'
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('[SUGGEST-ADJACENT-ROLES] AI API error:', aiResponse.status, errorText);
-      
-      // Return fallback suggestions
-      return new Response(
-        JSON.stringify({
-          suggestedRoles: [
-            "VP Product",
-            "Head of Operations",
-            "VP Engineering",
-            "Chief Technology Officer",
-            "General Manager"
-          ],
-          suggestedIndustries: [
-            "SaaS",
-            "FinTech",
-            "Enterprise Software",
-            "Technology Consulting",
-            "Healthcare Tech"
-          ],
-          reasoning: "These are common adjacent paths for experienced professionals. (AI suggestions unavailable)"
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content;
-
-    if (!aiContent) {
-      console.error('[SUGGEST-ADJACENT-ROLES] No content in AI response');
-      throw new Error('No content in AI response');
-    }
+    const aiContent = cleanCitations(response.choices[0].message.content);
 
     console.log('[SUGGEST-ADJACENT-ROLES] Raw AI response:', aiContent);
 

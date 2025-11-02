@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,11 +18,6 @@ serve(async (req) => {
 
     if (!jobDescription || !agentType) {
       throw new Error('Job description and agent type are required');
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     let personas: any[] = [];
@@ -118,55 +115,31 @@ Return JSON with: { "recommendedPersona": "mentor|challenger|strategist", "reaso
 Return JSON with: { "recommendedPersona": "relationship_builder|strategic_connector|data_driven", "reasoning": "brief explanation", "confidence": 0-100 }`;
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Job Description:\n\n${jobDescription}` }
         ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'recommend_persona',
-              description: 'Return persona recommendation with reasoning',
-              parameters: {
-                type: 'object',
-                properties: {
-                  recommendedPersona: { type: 'string' },
-                  reasoning: { type: 'string' },
-                  confidence: { type: 'number' }
-                },
-                required: ['recommendedPersona', 'reasoning', 'confidence'],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: 'function', function: { name: 'recommend_persona' } }
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.3,
+        max_tokens: 1000,
+        return_citations: false,
+      },
+      'recommend-persona'
+    );
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Lovable AI error:', error);
-      throw new Error('Failed to get persona recommendation');
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const content = response.choices[0].message.content;
     
-    if (!toolCall?.function?.arguments) {
+    // Extract JSON from response (Perplexity returns JSON in content)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
       throw new Error('No recommendation returned');
     }
 
-    const recommendation = JSON.parse(toolCall.function.arguments);
+    const recommendation = JSON.parse(jsonMatch[0]);
 
     return new Response(
       JSON.stringify({

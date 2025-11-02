@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -79,32 +76,28 @@ Return JSON with:
 Keep the enhanced answer realistic and grounded in their actual experience. Don't fabricate - enhance.`;
 
     console.log('Generating enhanced answer example');
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { 
             role: 'system', 
             content: 'You are an expert interview coach creating enhanced answer examples. Return only valid JSON.' 
           },
           { role: 'user', content: enhancementPrompt }
-        ]
-      }),
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.5,
+        max_tokens: 2000,
+        return_citations: false,
+      },
+      'update-strong-answer',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      throw new Error(`Failed to generate enhanced answer: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const enhancedText = aiResponse.choices[0].message.content.trim();
+    const enhancedText = response.choices[0].message.content.trim();
     
     // Extract JSON from response
     const jsonMatch = enhancedText.match(/\{[\s\S]*\}/);
