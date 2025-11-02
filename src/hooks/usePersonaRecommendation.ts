@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { handleEdgeFunctionError } from '@/lib/errorHandling';
 
 export interface PersonaRecommendation {
   recommendedPersona: string;
@@ -45,9 +46,10 @@ export const usePersonaRecommendation = (agentType: 'resume' | 'interview' | 'ne
       }
     } catch (error) {
       console.error('Error getting persona recommendation:', error);
+      const errorInfo = handleEdgeFunctionError(error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to get persona recommendation",
+        title: errorInfo.title,
+        description: errorInfo.message,
         variant: "destructive"
       });
     } finally {

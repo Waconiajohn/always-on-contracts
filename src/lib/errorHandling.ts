@@ -1,8 +1,89 @@
 /**
  * Comprehensive Error Handling & Retry Logic
+ * Frontend error handling utilities that work with backend AIError responses
  */
 
 import { toast } from 'sonner';
+
+/**
+ * Structured error from edge functions
+ */
+export interface EdgeFunctionError {
+  code: 'RATE_LIMIT' | 'PAYMENT_REQUIRED' | 'TIMEOUT' | 'INVALID_RESPONSE' | 'API_ERROR' | 'CIRCUIT_OPEN' | 'VALIDATION_ERROR';
+  message: string;
+  retryable: boolean;
+  retryAfter?: number;
+  details?: string;
+}
+
+/**
+ * Handle edge function errors and return user-friendly messages
+ */
+export function handleEdgeFunctionError(error: any): { title: string; message: string; retryable: boolean } {
+  // Check if it's a structured error response
+  if (error?.error) {
+    const edgeError = error.error as EdgeFunctionError;
+    
+    switch (edgeError.code) {
+      case 'RATE_LIMIT':
+        return {
+          title: 'Too Many Requests',
+          message: edgeError.message || 'Please wait a moment and try again.',
+          retryable: true
+        };
+      
+      case 'PAYMENT_REQUIRED':
+        return {
+          title: 'Credits Required',
+          message: edgeError.message || 'Please add more credits to continue.',
+          retryable: false
+        };
+      
+      case 'TIMEOUT':
+        return {
+          title: 'Request Timed Out',
+          message: edgeError.message || 'The request took too long. Please try again.',
+          retryable: true
+        };
+      
+      case 'CIRCUIT_OPEN':
+        return {
+          title: 'Service Temporarily Unavailable',
+          message: edgeError.message || 'The AI service is recovering. Please try again in a few minutes.',
+          retryable: true
+        };
+      
+      case 'INVALID_RESPONSE':
+        return {
+          title: 'Invalid Response',
+          message: edgeError.message || 'The AI returned an invalid response. Please try again.',
+          retryable: true
+        };
+      
+      default:
+        return {
+          title: 'Error',
+          message: edgeError.message || 'An unexpected error occurred.',
+          retryable: edgeError.retryable
+        };
+    }
+  }
+  
+  // Fallback to generic error handling
+  if (error instanceof Error) {
+    return {
+      title: 'Error',
+      message: error.message,
+      retryable: true
+    };
+  }
+  
+  return {
+    title: 'Unknown Error',
+    message: 'An unexpected error occurred. Please try again.',
+    retryable: true
+  };
+}
 
 export interface RetryConfig {
   maxRetries: number;
