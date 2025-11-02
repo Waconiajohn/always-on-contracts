@@ -48,27 +48,15 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-
-    if (!LOVABLE_API_KEY) {
-      throw new Error('Missing required API keys');
-    }
-
     const { content, contentType, context }: AuditRequest = await req.json();
 
     console.log(`[DUAL-AI-AUDIT] Starting audit for ${contentType}`);
 
-    // Step 1: Primary AI Analysis (Gemini via Lovable AI)
+    // Step 1: Primary AI Analysis using Perplexity
     const primaryPrompt = buildPrimaryPrompt(content, contentType, context);
     
-    const primaryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: primaryResponse, metrics: primaryMetrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -79,18 +67,15 @@ serve(async (req) => {
             content: primaryPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.7,
-      }),
-    });
+      },
+      'dual-ai-audit-primary'
+    );
 
-    if (!primaryResponse.ok) {
-      const errorText = await primaryResponse.text();
-      console.error('[DUAL-AI-AUDIT] Primary AI error:', errorText);
-      throw new Error(`Primary AI analysis failed: ${errorText}`);
-    }
-
-    const primaryData = await primaryResponse.json();
-    const primaryAnalysis = primaryData.choices[0].message.content;
+    await logAIUsage(primaryMetrics);
+    
+    const primaryAnalysis = primaryResponse.choices[0].message.content;
 
     console.log('[DUAL-AI-AUDIT] Primary analysis complete');
 
@@ -121,17 +106,11 @@ serve(async (req) => {
 
     console.log('[DUAL-AI-AUDIT] Verification complete');
 
-    // Step 3: Synthesize Results
+    // Step 3: Synthesize Results using Perplexity
     const synthesisPrompt = buildSynthesisPrompt(primaryAnalysis, verificationAnalysis, contentType);
     
-    const synthesisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response: synthesisResponse, metrics: synthesisMetrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -142,12 +121,15 @@ serve(async (req) => {
             content: synthesisPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.5,
-      }),
-    });
+      },
+      'dual-ai-audit-synthesis'
+    );
 
-    const synthesisData = await synthesisResponse.json();
-    const consensusAnalysis = synthesisData.choices[0].message.content;
+    await logAIUsage(synthesisMetrics);
+    
+    const consensusAnalysis = synthesisResponse.choices[0].message.content;
 
     console.log('[DUAL-AI-AUDIT] Synthesis complete');
 

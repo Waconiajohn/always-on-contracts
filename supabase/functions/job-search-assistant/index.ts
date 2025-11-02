@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { PERPLEXITY_CONFIG, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +21,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Get user ID for cost tracking
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | undefined;
+    if (authHeader) {
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
+        userId = user?.id;
+      } catch (e) {
+        console.log('Could not extract user for cost tracking:', e);
+      }
+    }
 
     // Build system prompt with Career Vault context
     const systemPrompt = `You are an AI Job Search Assistant powered by the user's Career Vault.
@@ -87,7 +100,59 @@ Example:
       });
     }
 
-    return new Response(response.body, {
+    // Track token usage from streaming response (estimate for now)
+    // Note: Streaming responses don't provide token counts, so we log after stream completes
+    const requestId = `job-search-assistant-${Date.now()}`;
+    
+    // Estimate tokens (rough approximation: 4 chars per token)
+    const estimatedInputTokens = Math.ceil(JSON.stringify(messages).length / 4);
+    
+    // Create a transform stream to count output tokens
+    const { readable, writable } = new TransformStream();
+    let outputText = '';
+    
+    response.body?.pipeTo(writable);
+    
+    const trackingReader = readable.getReader();
+    const trackingStream = new ReadableStream({
+      async start(controller) {
+        try {
+          while (true) {
+            const { done, value } = await trackingReader.read();
+            if (done) {
+              // Log usage after stream completes
+              const estimatedOutputTokens = Math.ceil(outputText.length / 4);
+              const cost = ((estimatedInputTokens * 0.001) + (estimatedOutputTokens * 0.001)) / 1000; // HUGE model pricing
+              
+              await logAIUsage({
+                function_name: 'job-search-assistant',
+                model: PERPLEXITY_MODELS.HUGE,
+                input_tokens: estimatedInputTokens,
+                output_tokens: estimatedOutputTokens,
+                cost_usd: cost,
+                request_id: requestId,
+                user_id: userId,
+                created_at: new Date().toISOString()
+              });
+              
+              controller.close();
+              break;
+            }
+            
+            // Track output for token estimation
+            const chunk = new TextDecoder().decode(value);
+            outputText += chunk;
+            
+            controller.enqueue(value);
+          }
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.error(error);
+        }
+      }
+    });
+
+    return new Response(trackingStream, {
       headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
     });
   } catch (error) {

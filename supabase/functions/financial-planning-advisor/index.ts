@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,11 +23,6 @@ serve(async (req) => {
       careerGoals,
       advisoryType 
     } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
 
     const systemPrompt = `You are an elite financial planning advisor specializing in career transitions and retirement planning for professionals.
 
@@ -186,30 +183,21 @@ ADVISORY TYPE: ${advisoryType || 'comprehensive'}
 
 Provide actionable, career-aligned financial guidance with specific numbers and timelines.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.2,
-      }),
-    });
+      },
+      'financial-planning-advisor'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI advisory failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const advisoryResult = data.choices[0].message.content;
+    const advisoryResult = response.choices[0].message.content;
 
     let parsedResult;
     try {

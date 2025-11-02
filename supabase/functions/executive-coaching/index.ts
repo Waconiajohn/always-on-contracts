@@ -152,9 +152,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -177,8 +174,7 @@ serve(async (req) => {
       message, 
       coachPersonality = 'robert',
       intensityLevel = 'moderate',
-      conversationHistory = [],
-      provider = 'lovable'
+      conversationHistory = []
     } = await req.json();
 
     console.log('Coaching request:', { sessionId, coachPersonality, intensityLevel });
@@ -227,38 +223,23 @@ serve(async (req) => {
       { role: 'user', content: message }
     ];
 
-    // Call AI provider
-    const apiUrl = provider === 'openai'
-      ? 'https://api.openai.com/v1/chat/completions'
-      : 'https://ai.gateway.lovable.dev/v1/chat/completions';
-    
-    const apiKey = provider === 'openai' ? OPENAI_API_KEY : LOVABLE_API_KEY;
-    const model = provider === 'openai' ? 'gpt-4o-mini' : 'google/gemini-2.5-flash';
+    // Call Perplexity for coaching response
+    console.log('Using Perplexity for coaching');
 
-    console.log(`Using ${provider} AI for coaching`);
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
+    const { response, metrics } = await callPerplexity(
+      {
         messages,
-        temperature: provider === 'openai' ? 0.7 : undefined,
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
         max_tokens: 1000,
-      }),
-    });
+      },
+      'executive-coaching',
+      user.id
+    );
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('AI API error:', response.status, error);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const assistantMessage = data.choices[0].message.content;
+    const assistantMessage = response.choices[0].message.content;
 
     // Update session with new conversation
     const updatedHistory = [...conversationHistory, 
