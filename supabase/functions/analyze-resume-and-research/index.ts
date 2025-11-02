@@ -15,7 +15,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const authHeader = req.headers.get('Authorization');
@@ -145,29 +144,25 @@ CRITICAL REQUIREMENTS:
 
 Aim for 25-30 total skills with hierarchical organization and evidence-based validation.`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'user',
             content: prompt,
           },
         ],
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.6,
+        max_tokens: 4000,
+      },
+      'analyze-resume-and-research',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      throw new Error('Failed to analyze resume');
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices[0]?.message?.content || '[]';
+    const content = response.choices[0]?.message?.content || '[]';
     
     // Extract JSON from markdown code blocks if present
     let jsonContent = content;

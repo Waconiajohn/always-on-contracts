@@ -21,8 +21,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const LOVABLE_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 interface AutoPopulateRequest {
   resumeText: string;

@@ -73,8 +73,19 @@ serve(async (req) => {
 
     console.log('Analyzing job requirements for:', jobTitle);
 
-    // PHASE 1: Extract requirements from job description using Lovable AI
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+    // Get user ID for cost tracking
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | undefined;
+    if (authHeader) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+        userId = user?.id;
+      } catch (e) {
+        console.log('Could not extract user for cost tracking:', e);
+      }
+    }
+
+    // PHASE 1: Extract requirements from job description using Perplexity AI
 
     const jdAnalysisPrompt = `Analyze this job description and extract detailed requirements:
 
@@ -128,37 +139,29 @@ Return ONLY valid JSON with this structure:
       atsKeywords: { critical: [], important: [], bonus: [] }
     };
 
-    if (lovableKey) {
-      const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+    try {
+      const { response, metrics } = await callPerplexity(
+        {
           messages: [{ role: 'user', content: jdAnalysisPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
+          temperature: 0.3,
           max_tokens: 4096
-        })
-      });
+        },
+        'analyze-job-requirements',
+        userId
+      );
 
-      if (lovableResponse.ok) {
-        try {
-          const lovableData = await lovableResponse.json();
-          const textContent = lovableData.choices?.[0]?.message?.content || '{}';
-          const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          jdAnalysis = JSON.parse(cleanedText);
-          console.log('Successfully parsed JD analysis');
-        } catch (parseError) {
-          console.error('Failed to parse JD analysis JSON:', parseError);
-        }
-      } else {
-        console.error('Lovable API error:', lovableResponse.status, await lovableResponse.text());
-      }
+      await logAIUsage(metrics);
+
+      const textContent = cleanCitations(response.choices?.[0]?.message?.content || '{}');
+      const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      jdAnalysis = JSON.parse(cleanedText);
+      console.log('Successfully parsed JD analysis');
+    } catch (parseError) {
+      console.error('Failed to parse JD analysis JSON:', parseError);
     }
 
     // PHASE 2: Get industry standards using Perplexity
-    const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
 
     const industryPrompt = `What are the current industry standards and expectations for a ${jdAnalysis.roleProfile.title} role in the ${jdAnalysis.roleProfile.industry} industry?
 
@@ -180,32 +183,31 @@ Return ONLY valid JSON:
 
     let industryStandards: IndustryStandard[] = [];
 
-    if (perplexityKey) {
-      try {
-        const { response, metrics } = await callPerplexity(
-          {
-            messages: [{
-              role: 'user',
-              content: industryPrompt
-            }],
-            model: PERPLEXITY_MODELS.DEFAULT,
-            temperature: 0.3,
-            max_tokens: 2000
-          },
-          'analyze-job-requirements'
-        );
+    try {
+      const { response, metrics } = await callPerplexity(
+        {
+          messages: [{
+            role: 'user',
+            content: industryPrompt
+          }],
+          model: PERPLEXITY_MODELS.DEFAULT,
+          temperature: 0.3,
+          max_tokens: 2000
+        },
+        'analyze-job-requirements',
+        userId
+      );
 
-        await logAIUsage(metrics);
+      await logAIUsage(metrics);
 
-        const content = response.choices?.[0]?.message?.content || '{}';
-        const cleanedContent = cleanCitations(content).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const parsed = JSON.parse(cleanedContent);
-        industryStandards = parsed.industryStandards || [];
-      } catch (parseError) {
-        console.error('Failed to parse industry standards JSON:', parseError);
-      } catch (error) {
-        console.error('Perplexity error:', error);
-      }
+      const content = response.choices?.[0]?.message?.content || '{}';
+      const cleanedContent = cleanCitations(content).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleanedContent);
+      industryStandards = parsed.industryStandards || [];
+    } catch (parseError) {
+      console.error('Failed to parse industry standards JSON:', parseError);
+    } catch (error) {
+      console.error('Perplexity error:', error);
     }
 
     // PHASE 3: Get profession benchmarks using Gemini
@@ -236,33 +238,28 @@ Return ONLY valid JSON:
     let differentiators: string[] = [];
     let gapAnalysis: any = { commonlyMissing: [], riskAreas: [] };
 
-    if (lovableKey) {
-      const benchmarkResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+    try {
+      const { response, metrics } = await callPerplexity(
+        {
           messages: [{ role: 'user', content: benchmarkPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
+          temperature: 0.3,
           max_tokens: 4096
-        })
-      });
+        },
+        'analyze-job-requirements',
+        userId
+      );
 
-      if (benchmarkResponse.ok) {
-        try {
-          const benchmarkData = await benchmarkResponse.json();
-          const textContent = benchmarkData.choices?.[0]?.message?.content || '{}';
-          const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          const parsed = JSON.parse(cleanedText);
-          professionBenchmarks = parsed.professionBenchmarks || [];
-          differentiators = parsed.differentiators || [];
-          gapAnalysis = parsed.gapAnalysis || { commonlyMissing: [], riskAreas: [] };
-        } catch (parseError) {
-          console.error('Failed to parse benchmarks JSON:', parseError);
-        }
-      }
+      await logAIUsage(metrics);
+
+      const textContent = cleanCitations(response.choices?.[0]?.message?.content || '{}');
+      const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleanedText);
+      professionBenchmarks = parsed.professionBenchmarks || [];
+      differentiators = parsed.differentiators || [];
+      gapAnalysis = parsed.gapAnalysis || { commonlyMissing: [], riskAreas: [] };
+    } catch (parseError) {
+      console.error('Failed to parse benchmarks JSON:', parseError);
     }
 
     const result: AnalysisResult = {
