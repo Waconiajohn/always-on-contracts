@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,11 +17,6 @@ serve(async (req) => {
     const { targetRole, targetIndustry } = await req.json();
     console.log('[INDUSTRY RESEARCH] Starting research for:', { targetRole, targetIndustry });
 
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error('PERPLEXITY_API_KEY not configured');
-    }
-
     // Conduct comprehensive industry research using Perplexity
     const researchPrompt = `You are an expert career intelligence researcher. Conduct comprehensive research on ${targetRole} positions in the ${targetIndustry} industry.
 
@@ -32,14 +29,8 @@ Provide detailed information on:
 
 Focus on actionable, specific insights that would help someone build a competitive career profile.`;
 
-    const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -50,19 +41,16 @@ Focus on actionable, specific insights that would help someone build a competiti
             content: researchPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.HUGE,
         temperature: 0.2,
         max_tokens: 2000
-      })
-    });
+      },
+      'conduct-industry-research'
+    );
 
-    if (!perplexityResponse.ok) {
-      const errorText = await perplexityResponse.text();
-      console.error('[INDUSTRY RESEARCH] Perplexity API error:', errorText);
-      throw new Error(`Perplexity API error: ${perplexityResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const perplexityData = await perplexityResponse.json();
-    const researchContent = perplexityData.choices[0].message.content;
+    const researchContent = response.choices[0].message.content;
 
     console.log('[INDUSTRY RESEARCH] Research completed successfully');
 

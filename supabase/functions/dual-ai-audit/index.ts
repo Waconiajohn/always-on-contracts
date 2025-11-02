@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,9 +49,8 @@ serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
 
-    if (!LOVABLE_API_KEY || !PERPLEXITY_API_KEY) {
+    if (!LOVABLE_API_KEY) {
       throw new Error('Missing required API keys');
     }
 
@@ -96,14 +97,8 @@ serve(async (req) => {
     // Step 2: Perplexity Fact-Checking
     const verificationPrompt = buildVerificationPrompt(content, contentType, primaryAnalysis, context);
     
-    const verificationResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+    const { response: verificationResponse, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -114,18 +109,15 @@ serve(async (req) => {
             content: verificationPrompt
           }
         ],
+        model: PERPLEXITY_MODELS.HUGE,
         temperature: 0.2,
-      }),
-    });
+      },
+      'dual-ai-audit'
+    );
 
-    if (!verificationResponse.ok) {
-      const errorText = await verificationResponse.text();
-      console.error('[DUAL-AI-AUDIT] Perplexity error:', errorText);
-      throw new Error(`Verification analysis failed: ${errorText}`);
-    }
+    await logAIUsage(metrics);
 
-    const verificationData = await verificationResponse.json();
-    const verificationAnalysis = verificationData.choices[0].message.content;
+    const verificationAnalysis = verificationResponse.choices[0].message.content;
 
     console.log('[DUAL-AI-AUDIT] Verification complete');
 

@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 // Generate gap solutions using Perplexity AI
 const corsHeaders = {
@@ -13,11 +15,6 @@ serve(async (req) => {
 
   try {
     const { requirement, vault_items, job_title, industry, seniority } = await req.json();
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error('PERPLEXITY_API_KEY not configured');
-    }
 
     // Detect requirement type - education vs experience/skill
     const reqLower = requirement.toLowerCase();
@@ -183,32 +180,23 @@ RULES:
 - Each bullet must be 1-2 lines maximum
 - Focus on business impact and results`;
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'sonar-pro',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Generate ${isEducation ? 'EDUCATION CREDENTIALS' : 'WORK EXPERIENCE BULLETS'} for this requirement: "${requirement}". DO NOT repeat this requirement text in your output. Return valid JSON only.` }
         ],
+        model: PERPLEXITY_MODELS.HUGE, // Using sonar-pro equivalent
         temperature: 0.2,
         top_p: 0.9,
         max_tokens: 2000
-      }),
-    });
+      },
+      'generate-gap-solutions'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = cleanCitations(response.choices[0].message.content);
     const parsed = JSON.parse(content);
 
     console.log('AI Response:', JSON.stringify(parsed, null, 2));
