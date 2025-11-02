@@ -22,9 +22,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const LOVABLE_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface BenchmarkRequest {
   vaultId: string;
@@ -209,26 +208,20 @@ RETURN VALID JSON ONLY (no markdown, no explanations):
 NO MARKDOWN. ONLY JSON.`;
 
     // Call AI for benchmark analysis
-    const aiResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [{ role: 'user', content: benchmarkPrompt }],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.3,
         max_tokens: 3000,
-      }),
-    });
+      },
+      'generate-completion-benchmark',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI analysis failed: ${aiResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
+    const aiContent = response.choices[0].message.content;
 
     // Parse JSON response
     let benchmarkAnalysis;

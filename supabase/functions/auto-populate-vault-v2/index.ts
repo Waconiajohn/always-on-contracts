@@ -20,9 +20,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface AutoPopulateRequest {
   resumeText: string;
@@ -152,28 +151,22 @@ RETURN VALID JSON ONLY (no markdown, no explanations):
 
 CRITICAL: Extract ONLY what is explicitly stated. Do NOT invent achievements. If metrics are vague, mark confidence lower.`;
 
-    const powerPhrasesResponse = await withRetry(() =>
-      fetch(LOVABLE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-exp',
+    const { response: powerPhrasesResponse, metrics: powerMetrics } = await withRetry(() =>
+      callPerplexity(
+        {
           messages: [{ role: 'user', content: powerPhrasesPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
           temperature: 0.2,
           max_tokens: 4000,
-        }),
-      })
+        },
+        'auto-populate-vault-v2',
+        user.id
+      )
     );
+    
+    await logAIUsage(powerMetrics);
 
-    if (!powerPhrasesResponse.ok) {
-      throw new Error(`Power phrases extraction failed: ${powerPhrasesResponse.status}`);
-    }
-
-    const powerPhrasesData = await powerPhrasesResponse.json();
-    const powerPhrasesContent = powerPhrasesData.choices[0].message.content;
+    const powerPhrasesContent = powerPhrasesResponse.choices[0].message.content;
     const cleanedPowerPhrases = powerPhrasesContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const powerPhrases = JSON.parse(cleanedPowerPhrases).powerPhrases;
 
@@ -243,28 +236,22 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const skillsResponse = await withRetry(() =>
-      fetch(LOVABLE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-exp',
+    const { response: skillsResponse, metrics: skillsMetrics } = await withRetry(() =>
+      callPerplexity(
+        {
           messages: [{ role: 'user', content: skillsPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
           temperature: 0.2,
           max_tokens: 4000,
-        }),
-      })
+        },
+        'auto-populate-vault-v2',
+        user.id
+      )
     );
+    
+    await logAIUsage(skillsMetrics);
 
-    if (!skillsResponse.ok) {
-      throw new Error(`Skills extraction failed: ${skillsResponse.status}`);
-    }
-
-    const skillsData = await skillsResponse.json();
-    const skillsContent = skillsData.choices[0].message.content;
+    const skillsContent = skillsResponse.choices[0].message.content;
     const cleanedSkills = skillsContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const transferableSkills = JSON.parse(cleanedSkills).transferableSkills;
 
@@ -327,28 +314,22 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const competenciesResponse = await withRetry(() =>
-      fetch(LOVABLE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-exp',
+    const { response: competenciesResponse, metrics: competenciesMetrics } = await withRetry(() =>
+      callPerplexity(
+        {
           messages: [{ role: 'user', content: competenciesPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
           temperature: 0.3,
           max_tokens: 3000,
-        }),
-      })
+        },
+        'auto-populate-vault-v2',
+        user.id
+      )
     );
+    
+    await logAIUsage(competenciesMetrics);
 
-    if (!competenciesResponse.ok) {
-      throw new Error(`Competencies extraction failed: ${competenciesResponse.status}`);
-    }
-
-    const competenciesData = await competenciesResponse.json();
-    const competenciesContent = competenciesData.choices[0].message.content;
+    const competenciesContent = competenciesResponse.choices[0].message.content;
     const cleanedCompetencies = competenciesContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const hiddenCompetencies = JSON.parse(cleanedCompetencies).hiddenCompetencies;
 
@@ -412,28 +393,22 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const softSkillsResponse = await withRetry(() =>
-      fetch(LOVABLE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-exp',
+    const { response: softSkillsResponse, metrics: softSkillsMetrics } = await withRetry(() =>
+      callPerplexity(
+        {
           messages: [{ role: 'user', content: softSkillsPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
           temperature: 0.3,
           max_tokens: 3000,
-        }),
-      })
+        },
+        'auto-populate-vault-v2',
+        user.id
+      )
     );
+    
+    await logAIUsage(softSkillsMetrics);
 
-    if (!softSkillsResponse.ok) {
-      throw new Error(`Soft skills extraction failed: ${softSkillsResponse.status}`);
-    }
-
-    const softSkillsData = await softSkillsResponse.json();
-    const softSkillsContent = softSkillsData.choices[0].message.content;
+    const softSkillsContent = softSkillsResponse.choices[0].message.content;
     const cleanedSoftSkills = softSkillsContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const softSkills = JSON.parse(cleanedSoftSkills).softSkills;
 
