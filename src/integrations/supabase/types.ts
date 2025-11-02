@@ -395,6 +395,33 @@ export type Database = {
         }
         Relationships: []
       }
+      api_rate_limits: {
+        Row: {
+          created_at: string
+          function_name: string
+          id: string
+          request_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          function_name: string
+          id?: string
+          request_count?: number
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          function_name?: string
+          id?: string
+          request_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       application_queue: {
         Row: {
           ai_customization_notes: string | null
@@ -3486,6 +3513,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_quotas: {
+        Row: {
+          created_at: string
+          daily_request_limit: number
+          id: string
+          monthly_cost_limit_usd: number | null
+          monthly_cost_spent_usd: number | null
+          monthly_request_count: number
+          monthly_request_limit: number
+          reset_date: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_request_limit?: number
+          id?: string
+          monthly_cost_limit_usd?: number | null
+          monthly_cost_spent_usd?: number | null
+          monthly_request_count?: number
+          monthly_request_limit?: number
+          reset_date?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_request_limit?: number
+          id?: string
+          monthly_cost_limit_usd?: number | null
+          monthly_cost_spent_usd?: number | null
+          monthly_request_count?: number
+          monthly_request_limit?: number
+          reset_date?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4804,6 +4873,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_quota_status: {
+        Row: {
+          budget_exceeded: boolean | null
+          cost_usage_percent: number | null
+          daily_request_limit: number | null
+          monthly_cost_limit_usd: number | null
+          monthly_cost_spent_usd: number | null
+          monthly_request_count: number | null
+          monthly_request_limit: number | null
+          quota_exceeded: boolean | null
+          reset_date: string | null
+          tier: string | null
+          usage_percent: number | null
+          user_id: string | null
+        }
+        Insert: {
+          budget_exceeded?: never
+          cost_usage_percent?: never
+          daily_request_limit?: number | null
+          monthly_cost_limit_usd?: number | null
+          monthly_cost_spent_usd?: number | null
+          monthly_request_count?: number | null
+          monthly_request_limit?: number | null
+          quota_exceeded?: never
+          reset_date?: string | null
+          tier?: string | null
+          usage_percent?: never
+          user_id?: string | null
+        }
+        Update: {
+          budget_exceeded?: never
+          cost_usage_percent?: never
+          daily_request_limit?: number | null
+          monthly_cost_limit_usd?: number | null
+          monthly_cost_spent_usd?: number | null
+          monthly_request_count?: number | null
+          monthly_request_limit?: number | null
+          quota_exceeded?: never
+          reset_date?: string | null
+          tier?: string | null
+          usage_percent?: never
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_password_strength: { Args: { password: string }; Returns: boolean }
@@ -4829,6 +4943,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      reset_monthly_quotas: { Args: never; Returns: undefined }
       search_vault_items: {
         Args: {
           p_category?: string
