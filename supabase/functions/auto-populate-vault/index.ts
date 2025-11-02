@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,9 +28,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -223,337 +222,37 @@ Return VALID JSON only with this structure:
       try {
         console.log(`[AUTO-POPULATE-VAULT] Attempt ${attempt}/3`);
 
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+        const { response, metrics } = await callPerplexity(
+          {
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            tools: [{
-              type: "function",
-              function: {
-                name: "extract_vault_intelligence",
-                description: "Extract comprehensive career intelligence across all 20 categories",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    powerPhrases: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          phrase: { type: "string" },
-                          context: { type: "string" },
-                          category: { type: "string" },
-                          metrics: {
-                            type: "object",
-                            description: "Quantified metrics like {amount: '$2.3M', percentage: '45%', timeframe: '18 months'}"
-                          },
-                          keywords: {
-                            type: "array",
-                            items: { type: "string" },
-                            description: "Key terms from the phrase including tech/business keywords"
-                          }
-                        },
-                        required: ["phrase", "context", "metrics", "keywords"]
-                      }
-                    },
-                    transferableSkills: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          skill: { type: "string" },
-                          level: { type: "string" },
-                          evidence: { type: "string" },
-                          equivalentSkills: { type: "array", items: { type: "string" } },
-                          yearsUsed: { type: "number" }
-                        },
-                        required: ["skill", "level", "evidence"]
-                      }
-                    },
-                    hiddenCompetencies: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          competency: { type: "string" },
-                          description: { type: "string" },
-                          evidence: { type: "array", items: { type: "string" } },
-                          marketValue: { type: "string" },
-                          certificationEquivalent: { type: "string" }
-                        },
-                        required: ["competency", "description"]
-                      }
-                    },
-                    businessImpacts: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          impact: { type: "string" },
-                          metrics: { type: "object" },
-                          businessArea: { type: "string" },
-                          executiveVisibility: { type: "string" }
-                        },
-                        required: ["impact"]
-                      }
-                    },
-                    leadershipEvidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          evidence: { type: "string" },
-                          teamSize: { type: "string" },
-                          scope: { type: "string" },
-                          outcome: { type: "string" }
-                        },
-                        required: ["evidence"]
-                      }
-                    },
-                    technicalDepth: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          technology: { type: "string" },
-                          proficiencyLevel: { type: "string" },
-                          yearsExperience: { type: "number" },
-                          applications: { type: "array", items: { type: "string" } }
-                        },
-                        required: ["technology"]
-                      }
-                    },
-                    projects: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          projectName: { type: "string" },
-                          description: { type: "string" },
-                          role: { type: "string" },
-                          outcome: { type: "string" },
-                          skills: { type: "array", items: { type: "string" } }
-                        },
-                        required: ["projectName", "description"]
-                      }
-                    },
-                    industryExpertise: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          industry: { type: "string" },
-                          yearsExperience: { type: "number" },
-                          specificKnowledge: { type: "array", items: { type: "string" } },
-                          regulatoryFamiliarity: { type: "array", items: { type: "string" } }
-                        },
-                        required: ["industry"]
-                      }
-                    },
-                    problemSolving: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          problemDescription: { type: "string" },
-                          approach: { type: "string" },
-                          result: { type: "string" },
-                          complexity: { type: "string" }
-                        },
-                        required: ["problemDescription"]
-                      }
-                    },
-                    stakeholderMgmt: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          stakeholderType: { type: "string" },
-                          relationship: { type: "string" },
-                          evidence: { type: "string" }
-                        },
-                        required: ["stakeholderType", "evidence"]
-                      }
-                    },
-                    careerNarrative: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          milestone: { type: "string" },
-                          significance: { type: "string" },
-                          growthDemonstrated: { type: "string" }
-                        },
-                        required: ["milestone"]
-                      }
-                    },
-                    competitiveAdvantages: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          advantage: { type: "string" },
-                          uniqueness: { type: "string" },
-                          marketRelevance: { type: "string" }
-                        },
-                        required: ["advantage"]
-                      }
-                    },
-                    communication: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          communicationType: { type: "string" },
-                          audience: { type: "string" },
-                          evidence: { type: "string" }
-                        },
-                        required: ["communicationType", "evidence"]
-                      }
-                    },
-                    softSkills: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          skill: { type: "string" },
-                          evidence: { type: "string" },
-                          context: { type: "string" }
-                        },
-                        required: ["skill", "evidence"]
-                      }
-                    },
-                    leadershipPhilosophy: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          principle: { type: "string" },
-                          howItManifests: { type: "string" },
-                          evidence: { type: "string" }
-                        },
-                        required: ["principle"]
-                      }
-                    },
-                    executivePresence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          indicator: { type: "string" },
-                          manifestation: { type: "string" },
-                          context: { type: "string" }
-                        },
-                        required: ["indicator"]
-                      }
-                    },
-                    personalityTraits: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          trait: { type: "string" },
-                          evidence: { type: "string" },
-                          professionalValue: { type: "string" }
-                        },
-                        required: ["trait"]
-                      }
-                    },
-                    workStyle: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          styleElement: { type: "string" },
-                          description: { type: "string" },
-                          whenEffective: { type: "string" }
-                        },
-                        required: ["styleElement"]
-                      }
-                    },
-                    values: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          valueName: { type: "string" },
-                          howDemonstrated: { type: "string" }
-                        },
-                        required: ["valueName"]
-                      }
-                    },
-                    behavioralIndicators: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          indicatorType: { type: "string" },
-                          specificBehavior: { type: "string" },
-                          context: { type: "string" }
-                        },
-                        required: ["indicatorType", "specificBehavior"]
-                      }
-                    },
-                    summary: {
-                      type: "object",
-                      properties: {
-                        totalItemsExtracted: { type: "number" },
-                        strengthAreas: { type: "array", items: { type: "string" } },
-                        uniqueDifferentiators: { type: "array", items: { type: "string" } },
-                        targetFit: { type: "string" },
-                        confidence: { type: "string" },
-                        completenessScore: { type: "number" }
-                      },
-                      required: ["totalItemsExtracted", "completenessScore"]
-                    }
-                  },
-                  required: ["powerPhrases", "transferableSkills", "hiddenCompetencies", "softSkills", "summary"]
-                }
-              }
-            }],
-            tool_choice: { type: "function", function: { name: "extract_vault_intelligence" } },
-          }),
-        });
+            model: PERPLEXITY_MODELS.DEFAULT,
+            temperature: 0.3,
+            max_tokens: 4000,
+            return_citations: false,
+          },
+          'auto-populate-vault',
+          user.id
+        );
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`[AUTO-POPULATE-VAULT] Attempt ${attempt} - AI error:`, response.status, errorText);
-          throw new Error(`AI extraction failed: ${response.status} - ${errorText}`);
-        }
-
-        const aiData = await response.json();
+        await logAIUsage(metrics);
         
+        const content = response.choices[0].message.content;
         console.log('[AUTO-POPULATE-VAULT] Response structure:', {
-          hasChoices: !!aiData.choices,
-          choicesLength: aiData.choices?.length,
-          hasMessage: !!aiData.choices?.[0]?.message,
-          hasToolCalls: !!aiData.choices?.[0]?.message?.tool_calls,
-          toolCallsCount: aiData.choices?.[0]?.message?.tool_calls?.length
+          hasContent: !!content,
+          contentLength: content?.length
         });
 
-        // Check if response has expected structure
-        if (!aiData.choices || !Array.isArray(aiData.choices) || aiData.choices.length === 0) {
-          console.error('[AUTO-POPULATE-VAULT] Invalid AI response - missing choices:', aiData);
-          throw new Error('AI response missing choices array');
+        // Extract JSON from response (Perplexity returns JSON in content, not tool_calls)
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          console.error('[AUTO-POPULATE-VAULT] No JSON found in response');
+          throw new Error('No valid JSON found in AI response');
         }
 
-        const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
-        if (!toolCall) {
-          console.error('[AUTO-POPULATE-VAULT] No tool call in message:', aiData.choices[0]?.message);
-          throw new Error('No tool call in response - AI may have returned text instead');
-        }
-
-        // Parse the tool call arguments
-        const args = toolCall.function.arguments;
-        intelligence = typeof args === 'string' ? JSON.parse(args) : args;
+        intelligence = JSON.parse(jsonMatch[0]);
         
         console.log('[AUTO-POPULATE-VAULT] Successfully parsed intelligence');
         console.log('[AUTO-POPULATE-VAULT] Summary:', intelligence.summary);

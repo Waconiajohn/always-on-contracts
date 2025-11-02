@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,7 +52,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -285,34 +286,24 @@ Analyze this match and respond with ONLY valid JSON in this exact format:
   "gap_analysis": ["missing requirement 1", "missing requirement 2"]
 }`;
 
-          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${lovableApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
+          const { response, metrics } = await callPerplexity(
+            {
               messages: [
                 { role: 'system', content: 'You are a career matching expert. Always respond with valid JSON.' },
                 { role: 'user', content: prompt }
               ],
+              model: PERPLEXITY_MODELS.DEFAULT,
               temperature: 0.7,
-              max_tokens: 1000
-            })
-          });
+              max_tokens: 1000,
+              return_citations: false,
+            },
+            'ai-job-matcher',
+            user.id
+          );
 
-          if (!aiResponse.ok) {
-            if (aiResponse.status === 429) {
-              console.error('[AI-JOB-MATCHER] Rate limit hit, pausing...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              continue;
-            }
-            throw new Error(`AI API error: ${aiResponse.status}`);
-          }
+          await logAIUsage(metrics);
 
-          const aiData = await aiResponse.json();
-          const content = aiData.choices[0].message.content;
+          const content = response.choices[0].message.content;
           
           // Parse JSON response
           const jsonMatch = content.match(/\{[\s\S]*\}/);
