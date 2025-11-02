@@ -70,16 +70,7 @@ export default function CareerVaultOnboarding() {
         .single();
 
       if (existingVault && existingVault.onboarding_step !== 'onboarding_complete') {
-        // Resume from where they left off
-        setOnboardingData({
-          vaultId: existingVault.id,
-          resumeText: existingVault.resume_raw_text || undefined,
-          initialAnalysis: existingVault.initial_analysis as any, // JSON type from DB
-          careerDirection: existingVault.career_direction as 'stay' | 'pivot' | 'explore' | undefined,
-          targetRoles: existingVault.target_roles || undefined,
-          targetIndustries: existingVault.target_industries || undefined,
-          vaultStrength: existingVault.vault_strength_after_qa || existingVault.vault_strength_before_qa || undefined
-        });
+        const dbStep = existingVault.onboarding_step;
 
         // Map onboarding step to UI step
         const stepMap: Record<string, UIStep> = {
@@ -92,13 +83,34 @@ export default function CareerVaultOnboarding() {
           'review_complete': 'gaps',
         };
 
-        const dbStep = existingVault.onboarding_step;
-        setCurrentStep((dbStep && stepMap[dbStep]) || 'upload');
+        const mappedStep = (dbStep && stepMap[dbStep]) || 'upload';
 
-        toast({
-          title: '🔄 Welcome Back!',
-          description: 'We saved your progress. Continuing from where you left off...',
-        });
+        // Only restore data and show "Welcome Back" if there's actual progress
+        // (not_started means they haven't uploaded a resume yet)
+        if (dbStep && dbStep !== 'not_started') {
+          setOnboardingData({
+            vaultId: existingVault.id,
+            resumeText: existingVault.resume_raw_text || undefined,
+            initialAnalysis: existingVault.initial_analysis as any, // JSON type from DB
+            careerDirection: existingVault.career_direction as 'stay' | 'pivot' | 'explore' | undefined,
+            targetRoles: existingVault.target_roles || undefined,
+            targetIndustries: existingVault.target_industries || undefined,
+            vaultStrength: existingVault.vault_strength_after_qa || existingVault.vault_strength_before_qa || undefined
+          });
+
+          setCurrentStep(mappedStep);
+
+          toast({
+            title: '🔄 Welcome Back!',
+            description: 'We saved your progress. Continuing from where you left off...',
+          });
+        } else {
+          // Just set the vaultId for reuse, but start fresh at upload step
+          setOnboardingData({
+            vaultId: existingVault.id,
+          });
+          setCurrentStep('upload');
+        }
       }
     };
 
