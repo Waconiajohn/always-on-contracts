@@ -216,7 +216,7 @@ function detectSections(text: string): Record<string, string> {
 }
 
 // Phase 1.2: File Validation
-function validateFile(file: File, fileSize: number): { valid: boolean; error?: string } {
+function validateFile(file: any, fileSize: number): { valid: boolean; error?: string } {
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   const ALLOWED_MIME_TYPES = [
     'application/pdf',
@@ -233,8 +233,9 @@ function validateFile(file: File, fileSize: number): { valid: boolean; error?: s
     };
   }
 
-  // Check MIME type
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+  // Check MIME type if available
+  const fileType = file.type || file.mime_type || '';
+  if (fileType && !ALLOWED_MIME_TYPES.includes(fileType)) {
     return {
       valid: false,
       error: ERROR_MESSAGES['unsupported_format']
@@ -242,12 +243,14 @@ function validateFile(file: File, fileSize: number): { valid: boolean; error?: s
   }
 
   // Check file extension matches MIME type
-  const fileName = file.name.toLowerCase();
-  if (file.type.includes('pdf') && !fileName.endsWith('.pdf')) {
-    return { valid: false, error: 'File extension does not match content type' };
-  }
-  if (file.type.includes('word') && !fileName.endsWith('.docx') && !fileName.endsWith('.doc')) {
-    return { valid: false, error: 'File extension does not match content type' };
+  const fileName = (file.name || '').toLowerCase();
+  if (fileName) {
+    if (fileType.includes('pdf') && !fileName.endsWith('.pdf')) {
+      return { valid: false, error: 'File extension does not match content type' };
+    }
+    if (fileType.includes('word') && !fileName.endsWith('.docx') && !fileName.endsWith('.doc')) {
+      return { valid: false, error: 'File extension does not match content type' };
+    }
   }
 
   return { valid: true };
