@@ -13,9 +13,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const LOVABLE_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface InitialAnalysisRequest {
   resumeText: string;
@@ -44,13 +43,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Missing authorization header');
@@ -67,7 +64,6 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Parse request body
     const { resumeText, vaultId }: InitialAnalysisRequest = await req.json();
 
     if (!resumeText || resumeText.trim().length < 100) {
@@ -76,19 +72,12 @@ serve(async (req) => {
 
     console.log('🔍 Starting initial resume analysis for user:', user.id);
 
-    // Call Lovable AI for analysis
-    const aiResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
-            content: `You are an elite executive career analyst with deep expertise across all industries.
+            content: `You are an elite executive career analyst with deep expertise across all industries. Return valid JSON only.
 
 Your task is to perform INSTANT, INTELLIGENT analysis of resumes to extract:
 1. Current/most recent role and industry
@@ -138,32 +127,28 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
             content: `Analyze this resume and extract the key information:\n\n${resumeText}`,
           },
         ],
-        temperature: 0.3, // Low temperature for consistent extraction
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.3,
         max_tokens: 2000,
-      }),
-    });
+        return_citations: false,
+      },
+      'analyze-resume-initial',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Lovable AI error:', errorText);
-      throw new Error(`AI analysis failed: ${aiResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
-
-    // Parse JSON response
+    const rawContent = cleanCitations(response.choices[0].message.content);
+    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
     let analysisResult: InitialAnalysisResponse;
     try {
-      // Remove markdown code blocks if present
-      const cleanedContent = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       analysisResult = JSON.parse(cleanedContent);
     } catch (parseError) {
-      console.error('Failed to parse AI response:', aiContent);
+      console.error('Failed to parse AI response:', cleanedContent);
       throw new Error('AI returned invalid JSON format');
     }
 
-    // Validate required fields
     if (!analysisResult.detectedRole || !analysisResult.detectedIndustry) {
       throw new Error('AI failed to detect role or industry');
     }
@@ -175,7 +160,6 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
       achievements: analysisResult.keyAchievements.length,
     });
 
-    // If vaultId provided, update the vault record
     if (vaultId) {
       const { error: updateError } = await supabaseClient
         .from('career_vault')
@@ -188,11 +172,9 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
 
       if (updateError) {
         console.error('Failed to update vault:', updateError);
-        // Don't throw - analysis succeeded, just log the error
       }
     }
 
-    // Return analysis with marketing message
     return new Response(
       JSON.stringify({
         success: true,

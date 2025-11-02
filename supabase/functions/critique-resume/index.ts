@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,12 +22,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user context
@@ -88,39 +84,33 @@ Format as JSON with this structure:
   }
 }`;
 
-    // Call Lovable AI
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    // Call Perplexity
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert executive resume reviewer with 20+ years of experience in talent acquisition and career coaching. You provide detailed, actionable feedback to help executives land their dream roles.'
+            content: 'You are an expert executive resume reviewer with 20+ years of experience in talent acquisition and career coaching. You provide detailed, actionable feedback to help executives land their dream roles. Return valid JSON only.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.7,
-        response_format: { type: "json_object" }
-      }),
-    });
+        max_tokens: 3000,
+        return_citations: false,
+      },
+      'critique-resume',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
-      throw new Error(`AI service error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const critiqueText = aiResponse.choices[0].message.content;
-    const critique = JSON.parse(critiqueText);
+    const rawContent = cleanCitations(response.choices[0].message.content);
+    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const critique = JSON.parse(cleanedContent);
 
     console.log('Resume critique generated successfully');
 

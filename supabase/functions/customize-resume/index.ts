@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,7 +54,6 @@ serve(async (req) => {
       console.log('[CUSTOMIZE-RESUME] No Career Vault intelligence available, using fallback mode');
     }
 
-    // Fetch opportunity details
     const { data: opportunity, error: oppError } = await supabase
       .from("job_opportunities")
       .select("*, staffing_agencies(*)")
@@ -65,7 +64,6 @@ serve(async (req) => {
       throw new Error("Opportunity not found");
     }
 
-    // Fetch user's resume analysis and profile
     const { data: analysis, error: analysisError } = await supabase
       .from("resume_analysis")
       .select("*")
@@ -193,38 +191,38 @@ Return ONLY a JSON object with this structure:
   "customization_notes": "Brief notes on why this is a strong match and what was emphasized..."
 }`;
 
-    console.log("[CUSTOMIZE-RESUME] Calling Lovable AI...");
+    console.log("[CUSTOMIZE-RESUME] Calling Perplexity...");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
-            role: "user",
-            content: prompt,
+            role: 'system',
+            content: 'You are an expert executive resume writer. Return valid JSON only.'
           },
+          {
+            role: 'user',
+            content: prompt
+          }
         ],
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 3000,
+        return_citations: false,
+      },
+      'customize-resume',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Lovable AI API error:", response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    const rawContent = cleanCitations(response.choices[0].message.content);
+    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     console.log("[CUSTOMIZE-RESUME] AI response received");
 
     // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
     const customizedResume = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
 
     if (!customizedResume) {

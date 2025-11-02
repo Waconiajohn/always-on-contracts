@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,11 +20,6 @@ serve(async (req) => {
         JSON.stringify({ error: 'Resume content and job description are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const systemPrompt = `You are an ATS (Applicant Tracking System) analyzer. Analyze the resume against the job description and provide detailed scoring.
@@ -51,14 +48,8 @@ Return ONLY valid JSON in this exact format:
   "recommendations": ["Add keyword Y 2-3 more times", "Quantify project Z impact"]
 }`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           {
@@ -66,36 +57,21 @@ Return ONLY valid JSON in this exact format:
             content: `Job Description:\n${jobDescription}\n\nResume Content:\n${resumeContent}\n\nAnalyze and score this resume for ATS compatibility.`
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.3,
-      }),
-    });
+        max_tokens: 2000,
+        return_citations: false,
+      },
+      'analyze-ats-score'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    await logAIUsage(metrics);
 
-      throw new Error(`AI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-
+    const rawContent = cleanCitations(response.choices[0].message.content);
+    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
     // Parse JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Failed to parse JSON from AI response');
     }

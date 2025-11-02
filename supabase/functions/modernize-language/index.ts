@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,56 +48,32 @@ Return your response in this JSON format:
 
 Be authentic - only add terms that genuinely fit the achievement. Don't force modern buzzwords where they don't belong.`;
 
-    // Use OpenAI-compatible API with either Anthropic or Gemini
-    const useAnthropic = Deno.env.get('ANTHROPIC_API_KEY');
-
-    let suggestion = null;
-
-    if (useAnthropic) {
-      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey!,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          messages: [{
+    const { response, metrics } = await callPerplexity(
+      {
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert career coach specializing in modernizing professional language. Return valid JSON only.'
+          },
+          {
             role: 'user',
             content: prompt
-          }]
-        })
-      });
+          }
+        ],
+        model: PERPLEXITY_MODELS.SMALL,
+        temperature: 0.7,
+        max_tokens: 800,
+        return_citations: false,
+      },
+      'modernize-language'
+    );
 
-      const data = await response.json();
-      const content = data.content[0].text;
-      const parsed = JSON.parse(content);
-      suggestion = parsed.suggestion;
-    } else {
-      // Fallback to Gemini
-      const geminiKey = Deno.env.get('GEMINI_API_KEY');
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              response_mime_type: 'application/json'
-            }
-          })
-        }
-      );
+    await logAIUsage(metrics);
 
-      const data = await response.json();
-      const content = data.candidates[0].content.parts[0].text;
-      const parsed = JSON.parse(content);
-      suggestion = parsed.suggestion;
-    }
+    const rawContent = cleanCitations(response.choices[0].message.content);
+    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const parsed = JSON.parse(cleanedContent);
+    const suggestion = parsed.suggestion;
 
     return new Response(
       JSON.stringify({ suggestion }),
