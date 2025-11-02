@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -89,7 +86,16 @@ CRITICAL RULES:
 - NO generic templates or buzzwords
 - Include ONE specific achievement from user's background
 - Mention WHY this person specifically
-- Make it easy to say yes (suggest 2-3 time options)`;
+- Make it easy to say yes (suggest 2-3 time options)
+
+Return JSON:
+{
+  "subject": "Email subject line",
+  "body": "Email body (use \\n for line breaks)",
+  "vaultItemsUsed": ["List of vault items referenced"],
+  "personalizationTips": ["Tip 1 for customizing", "Tip 2"],
+  "followUpSuggestions": ["Follow-up strategy 1", "Follow-up strategy 2"]
+}`;
 
     const userPrompt = `Generate a networking email:
 
@@ -106,41 +112,26 @@ USER'S EXPERTISE:
 ${topSkills.map((s: any) => `- ${s.stated_skill}: ${s.evidence}`).join('\n')}
 
 USER'S DIFFERENTIATORS:
-${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capability}`).join('\n')}
+${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capability}`).join('\n')}`;
 
-Return JSON:
-{
-  "subject": "Email subject line",
-  "body": "Email body (use \\n for line breaks)",
-  "vaultItemsUsed": ["List of vault items referenced"],
-  "personalizationTips": ["Tip 1 for customizing", "Tip 2"],
-  "followUpSuggestions": ["Follow-up strategy 1", "Follow-up strategy 2"]
-}`;
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.7,
-      }),
-    });
+        max_tokens: 1000,
+        return_citations: false,
+      },
+      'generate-networking-email',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI generation failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const generatedContent = data.choices[0].message.content;
+    const generatedContent = cleanCitations(response.choices[0].message.content);
 
     // Parse JSON from response
     let parsedEmail;

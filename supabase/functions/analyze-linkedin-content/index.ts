@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +15,6 @@ serve(async (req) => {
 
   try {
     const { content } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
 
     // LinkedIn algorithm expert persona
     const systemPrompt = `You are a LinkedIn algorithm expert and viral content analyst with deep understanding of 2025 engagement mechanics.
@@ -88,30 +85,23 @@ ${content}
 
 Provide comprehensive scoring across all dimensions with specific, actionable feedback.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.3,
-      }),
-    });
+        max_tokens: 1500,
+        return_citations: false,
+      },
+      'analyze-linkedin-content'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI analysis failed: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const analysisResult = data.choices[0].message.content;
+    const analysisResult = cleanCitations(response.choices[0].message.content);
 
     // Parse JSON from response
     let parsedAnalysis;

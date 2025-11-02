@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -89,14 +91,8 @@ Deno.serve(async (req) => {
 
 Cite all sources with URLs.`;
 
-      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${perplexityKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-large-128k-online',
+      const { response: perplexityResponse, metrics: perplexityMetrics } = await callPerplexity(
+        {
           messages: [
             {
               role: 'system',
@@ -107,74 +103,71 @@ Cite all sources with URLs.`;
               content: perplexityQuery
             }
           ],
+          model: PERPLEXITY_MODELS.DEFAULT,
           temperature: 0.2,
           max_tokens: 2000,
-          return_related_questions: false,
+          return_citations: true,
           search_recency_filter: 'month',
-        }),
-      });
-
-      if (!perplexityResponse.ok) {
-        throw new Error('Perplexity API request failed');
-      }
-
-      const perplexityData = await perplexityResponse.json();
-      const researchResults = perplexityData.choices[0]?.message?.content || '';
-      const citations = perplexityData.citations || [];
-
-      // Step 5: Use Lovable AI to extract structured salary data
-      const extractionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableKey}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+        'generate-salary-report',
+        user.id
+      );
+
+      await logAIUsage(perplexityMetrics);
+
+      const researchResults = perplexityResponse.choices[0].message.content;
+      const citations = perplexityResponse.citations || [];
+
+      // Step 5: Use Perplexity to extract structured salary data
+      const extractionPrompt = `Extract from this research:
+
+${researchResults}
+
+Internal data: ${JSON.stringify({ rateHistory, jobOpps })}
+
+Return JSON with:
+{
+  "percentile_25": number,
+  "percentile_50": number,
+  "percentile_75": number,
+  "percentile_90": number,
+  "average_total_comp": number,
+  "skill_premiums": { "skill_name": premium_dollars },
+  "regional_adjustment": number,
+  "data_sources": ["source1", "source2"]
+}`;
+
+      const { response: extractionResponse, metrics: extractionMetrics } = await callPerplexity(
+        {
           messages: [
             {
               role: 'system',
-              content: 'Extract salary data into structured JSON format. Return percentile data, skill premiums, and sources.'
+              content: 'You are a data extraction specialist. Return only valid JSON with salary data.'
             },
             {
               role: 'user',
-              content: `Extract from this research:\n\n${researchResults}\n\nInternal data: ${JSON.stringify({ rateHistory, jobOpps })}`
+              content: extractionPrompt
             }
           ],
-          tools: [{
-            type: 'function',
-            function: {
-              name: 'extract_salary_data',
-              description: 'Extract structured salary data',
-              parameters: {
-                type: 'object',
-                properties: {
-                  percentile_25: { type: 'number' },
-                  percentile_50: { type: 'number' },
-                  percentile_75: { type: 'number' },
-                  percentile_90: { type: 'number' },
-                  average_total_comp: { type: 'number' },
-                  skill_premiums: { 
-                    type: 'object',
-                    additionalProperties: { type: 'number' }
-                  },
-                  regional_adjustment: { type: 'number' },
-                  data_sources: {
-                    type: 'array',
-                    items: { type: 'string' }
-                  }
-                },
-                required: ['percentile_25', 'percentile_50', 'percentile_75', 'percentile_90']
-              }
-            }
-          }],
-          tool_choice: { type: 'function', function: { name: 'extract_salary_data' } }
-        }),
-      });
+          model: PERPLEXITY_MODELS.SMALL,
+          temperature: 0.1,
+          max_tokens: 1000,
+          return_citations: false,
+        },
+        'generate-salary-report-extraction',
+        user.id
+      );
 
-      const extractionData = await extractionResponse.json();
-      const toolCall = extractionData.choices[0]?.message?.tool_calls?.[0];
-      const extractedData = JSON.parse(toolCall?.function?.arguments || '{}');
+      await logAIUsage(extractionMetrics);
+
+      const extractedText = extractionResponse.choices[0].message.content;
+      const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
+      const extractedData = jsonMatch ? JSON.parse(jsonMatch[0]) : {
+        percentile_25: 0,
+        percentile_50: 0,
+        percentile_75: 0,
+        percentile_90: 0,
+      };
 
       // Step 6: Store market data
       const { data: newMarketData, error: insertError } = await supabase
@@ -222,15 +215,18 @@ Cite all sources with URLs.`;
 
     const competitiveAnalysis = competitiveResponse.data || {};
 
-    // Step 8: Generate negotiation script with Lovable AI
-    const scriptResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    // Step 8: Generate negotiation script with Perplexity
+    const scriptPrompt = `Create a negotiation script for:
+Job: ${job_title}
+Location: ${location}
+Current Offer: $${offer_details?.base_salary || 'TBD'}
+Market Median: $${marketData?.extracted_data?.percentile_50 || 'N/A'}
+Competitive Score: ${competitiveAnalysis.competitive_score || 'N/A'}/100
+
+Include: Opening statement, market data reference, value proposition from achievements, counter-offer recommendation, alternative compensation discussion.`;
+
+    const { response: scriptResponse, metrics: scriptMetrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -238,21 +234,21 @@ Cite all sources with URLs.`;
           },
           {
             role: 'user',
-            content: `Create a negotiation script for:
-Job: ${job_title}
-Location: ${location}
-Current Offer: $${offer_details?.base_salary || 'TBD'}
-Market Median: $${marketData?.extracted_data?.percentile_50 || 'N/A'}
-Competitive Score: ${competitiveAnalysis.competitive_score || 'N/A'}/100
-
-Include: Opening statement, market data reference, value proposition from achievements, counter-offer recommendation, alternative compensation discussion.`
+            content: scriptPrompt
           }
-        ]
-      }),
-    });
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 1500,
+        return_citations: false,
+      },
+      'generate-salary-report-script',
+      user.id
+    );
 
-    const scriptData = await scriptResponse.json();
-    const negotiationScript = scriptData.choices[0]?.message?.content || '';
+    await logAIUsage(scriptMetrics);
+
+    const negotiationScript = scriptResponse.choices[0].message.content;
 
     // Step 9: Store salary negotiation record
     const { data: negotiation, error: negError } = await supabase

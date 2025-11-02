@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,12 +22,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user context
@@ -114,40 +110,32 @@ Return as JSON array with this structure:
   }
 ]`;
 
-    // Call Lovable AI
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert executive interview coach with 20+ years of experience preparing senior leaders for high-stakes interviews. You understand what hiring committees look for and how to position candidates effectively.'
+            content: 'You are an expert executive interview coach with 20+ years of experience preparing senior leaders for high-stakes interviews. You understand what hiring committees look for and how to position candidates effectively. Return valid JSON only.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.8,
-        response_format: { type: "json_object" }
-      }),
-    });
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 2000,
+        return_citations: false,
+      },
+      'generate-interview-prep',
+      user.id
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
-      throw new Error(`AI service error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiResponse = await response.json();
-    const questionsText = aiResponse.choices[0].message.content;
-    const parsedResponse = JSON.parse(questionsText);
-    const questions = parsedResponse.questions || parsedResponse;
+    const questionsText = cleanCitations(response.choices[0].message.content);
+    const jsonMatch = questionsText.match(/\[[\s\S]*\]/);
+    const questions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
     console.log('Interview questions generated successfully');
 

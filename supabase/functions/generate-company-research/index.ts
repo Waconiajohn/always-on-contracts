@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,21 +19,10 @@ serve(async (req) => {
       throw new Error('Company name is required');
     }
 
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error('PERPLEXITY_API_KEY not configured');
-    }
-
     console.log(`[COMPANY-RESEARCH] Researching: ${companyName}`);
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+    const { response, metrics } = await callPerplexity(
+      {
         messages: [
           {
             role: 'system',
@@ -51,20 +42,17 @@ ${jobDescription ? `Context: The user is interviewing for this role: ${jobDescri
 Format your response with clear section headers.`
           }
         ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.3,
-        return_related_questions: false,
-        search_recency_filter: 'month'
-      })
-    });
+        return_citations: false,
+        search_recency_filter: 'month',
+      },
+      'generate-company-research'
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[COMPANY-RESEARCH] Perplexity API error:', response.status, errorText);
-      throw new Error(`Perplexity API error: ${response.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const data = await response.json();
-    const researchContent = data.choices?.[0]?.message?.content || '';
+    const researchContent = response.choices[0].message.content;
 
     // Parse sections
     const sections = {

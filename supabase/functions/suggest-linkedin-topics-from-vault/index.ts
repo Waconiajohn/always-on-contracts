@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,12 +30,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-
-    if (!lovableKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user from auth header
@@ -69,54 +65,43 @@ serve(async (req) => {
       throw new Error('Could not fetch vault data');
     }
 
-    // Filter and sort power phrases (prioritize Gold/Silver, high confidence, with metrics)
+    // Filter and sort power phrases
     const topPowerPhrases = (vault.vault_power_phrases || [])
       .filter((p: any) => {
-        // Must have actual content
         if (!p.power_phrase || p.power_phrase.trim().length < 10) return false;
-
-        // Prioritize items with metrics or high quality
         const hasMetrics = p.impact_metrics && Object.keys(p.impact_metrics).length > 0;
         const isHighQuality = p.quality_tier === 'gold' || p.quality_tier === 'silver';
         const isHighConfidence = (p.confidence_score || 0) >= 0.7;
-
         return hasMetrics || isHighQuality || isHighConfidence;
       })
       .sort((a: any, b: any) => {
-        // Sort by quality tier, then confidence
         const tierPriority: any = { gold: 4, silver: 3, bronze: 2, assumed: 1 };
         const aTier = tierPriority[a.quality_tier] || 0;
         const bTier = tierPriority[b.quality_tier] || 0;
-
         if (aTier !== bTier) return bTier - aTier;
         return (b.confidence_score || 0) - (a.confidence_score || 0);
       })
-      .slice(0, 10); // Top 10 power phrases
+      .slice(0, 10);
 
-    // Get top transferable skills
     const topSkills = (vault.vault_transferable_skills || [])
       .filter((s: any) => s.stated_skill && s.evidence)
       .sort((a: any, b: any) => (b.confidence_score || 0) - (a.confidence_score || 0))
       .slice(0, 5);
 
-    // Get top hidden competencies (differentiators)
     const topCompetencies = (vault.vault_hidden_competencies || [])
       .filter((c: any) => c.competency_area && c.inferred_capability)
       .sort((a: any, b: any) => (b.confidence_score || 0) - (a.confidence_score || 0))
       .slice(0, 5);
 
-    // Get soft skills
     const topSoftSkills = (vault.vault_soft_skills || [])
       .filter((s: any) => s.skill_category && s.specific_skill)
       .sort((a: any, b: any) => (b.confidence_score || 0) - (a.confidence_score || 0))
       .slice(0, 5);
 
-    // Get leadership insights
     const leadershipInsights = (vault.vault_leadership_philosophy || [])
       .filter((l: any) => l.philosophy_statement)
       .slice(0, 2);
 
-    // Get executive presence indicators
     const executivePresence = (vault.vault_executive_presence || [])
       .filter((e: any) => e.indicator_type && e.specific_behavior)
       .slice(0, 3);
@@ -167,7 +152,6 @@ serve(async (req) => {
       }))
     };
 
-    // Generate topic suggestions using AI
     const prompt = `You are a LinkedIn content strategist. Based on this professional's career achievements, suggest 5 engaging LinkedIn post topics.
 
 CAREER ACHIEVEMENTS:
@@ -229,36 +213,27 @@ EXAMPLES OF BAD TOPICS:
 ❌ "My thoughts on remote work" (no achievement, opinion piece)
 ❌ "10 productivity hacks" (not tied to their experience)`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [{ role: 'user', content: prompt }],
+    const { response, metrics } = await callPerplexity(
+      {
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.7,
-        response_format: { type: "json_object" }
-      })
-    });
+        max_tokens: 1500,
+        return_citations: false,
+      },
+      'suggest-linkedin-topics-from-vault',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      throw new Error(`AI API failed: ${aiResponse.status}`);
-    }
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content;
-
-    if (!aiContent) {
-      throw new Error('No response from AI');
-    }
+    const aiContent = cleanCitations(response.choices[0].message.content);
 
     // Parse AI response
-    const parsedResponse = JSON.parse(aiContent);
-    const topics: TopicSuggestion[] = Array.isArray(parsedResponse)
-      ? parsedResponse
-      : parsedResponse.topics || [];
+    const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
+    const topics: TopicSuggestion[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
     console.log(`✅ Generated ${topics.length} topic suggestions`);
 
