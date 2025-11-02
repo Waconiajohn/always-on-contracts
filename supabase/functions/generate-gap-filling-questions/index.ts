@@ -20,215 +20,187 @@
 // vault strength."
 // =====================================================
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const LOVABLE_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-
-interface GapFillingRequest {
-  vaultId: string;
-  currentVaultData: {
-    powerPhrases: any[];
-    transferableSkills: any[];
-    hiddenCompetencies: any[];
-    softSkills: any[];
-  };
-  industryResearch: any;
-  targetRoles: string[];
-  targetIndustries: string[];
-}
-
-interface Question {
-  id: string;
-  text: string;
-  type: 'multiple_choice' | 'yes_no' | 'number' | 'text' | 'checkbox';
-  category: string;
-  gapType: string;
-  impactScore: number; // 1-10, how much this boosts vault strength
-  whyItMatters: string;
-  options?: string[];
-  placeholder?: string;
-  validationRules?: {
-    min?: number;
-    max?: number;
-    required?: boolean;
-  };
-}
-
-interface QuestionBatch {
-  batchId: string;
-  title: string;
-  description: string;
-  questions: Question[];
-  totalImpact: number;
-  estimatedTime: string;
-}
+import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Question type interfaces
+interface Question {
+  text: string;
+  type: 'multiple_choice' | 'yes_no' | 'text' | 'scale';
+  category: string;
+  impactScore: number;
+  options?: string[];
+  validation?: {
+    minLength?: number;
+    maxLength?: number;
+    required: boolean;
+  };
+}
+
+interface QuestionBatch {
+  batchTitle: string;
+  batchDescription: string;
+  questions: Question[];
+  estimatedTime: string;
+  impactExplanation: string;
+}
+
+interface GapFillingRequest {
+  vaultData: any;
+  industryResearch?: any;
+  targetRoles?: string[];
+}
+
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
+    // Auth check
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: { Authorization: req.headers.get('Authorization')! },
+      },
+    });
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       throw new Error('Unauthorized');
     }
 
-    const {
-      vaultId,
-      currentVaultData,
-      industryResearch,
-      targetRoles,
-      targetIndustries,
-    }: GapFillingRequest = await req.json();
+    console.log(`[generate-gap-filling-questions] User: ${user.id}`);
 
-    console.log('🎯 GENERATING GAP-FILLING QUESTIONS:', {
-      vaultId,
-      itemCounts: {
-        powerPhrases: currentVaultData.powerPhrases?.length || 0,
-        skills: currentVaultData.transferableSkills?.length || 0,
-        competencies: currentVaultData.hiddenCompetencies?.length || 0,
-        softSkills: currentVaultData.softSkills?.length || 0,
-      },
-      targetRoles,
-      targetIndustries,
-    });
+    // Parse request
+    const requestBody: GapFillingRequest = await req.json();
+    const { vaultData, industryResearch, targetRoles } = requestBody;
 
-    // Build gap analysis prompt
-    const gapAnalysisPrompt = `You are an expert career analyst identifying gaps in an executive's career profile.
+    if (!vaultData) {
+      throw new Error('vaultData is required');
+    }
 
-TARGET ROLES: ${targetRoles.join(', ')}
-TARGET INDUSTRIES: ${targetIndustries.join(', ')}
+    // Build comprehensive gap analysis prompt
+    const gapAnalysisPrompt = `
+You are an expert career strategist analyzing a professional's career vault against industry standards.
 
-INDUSTRY RESEARCH (WHAT'S EXPECTED):
-${JSON.stringify(industryResearch, null, 2)}
+## Current Vault Data:
+${JSON.stringify(vaultData, null, 2)}
 
-CURRENT VAULT CONTENTS:
-Power Phrases: ${currentVaultData.powerPhrases?.length || 0} items
-${currentVaultData.powerPhrases?.slice(0, 5).map((p: any) => `- ${p.power_phrase || p.phrase}`).join('\n') || 'None'}
+${industryResearch ? `## Industry Context:\n${JSON.stringify(industryResearch, null, 2)}` : ''}
+${targetRoles ? `## Target Roles:\n${targetRoles.join(', ')}` : ''}
 
-Transferable Skills: ${currentVaultData.transferableSkills?.length || 0} items
-${currentVaultData.transferableSkills?.slice(0, 10).map((s: any) => `- ${s.stated_skill || s.skill}`).join('\n') || 'None'}
+## Your Task:
+Analyze the vault data and identify CRITICAL gaps that, if filled, would significantly strengthen this professional's profile.
 
-Hidden Competencies: ${currentVaultData.hiddenCompetencies?.length || 0} items
-${currentVaultData.hiddenCompetencies?.slice(0, 5).map((c: any) => `- ${c.competency_area || c.area}`).join('\n') || 'None'}
+Generate 5-15 highly targeted questions organized into logical batches. Each question should:
+1. Address a SPECIFIC gap that executives/leaders typically have documented
+2. Have measurable impact on vault strength (rate 1-10)
+3. Be answerable in <2 minutes
+4. Use the most appropriate question format (multiple choice, yes/no, text, scale)
 
-Soft Skills: ${currentVaultData.softSkills?.length || 0} items
-${currentVaultData.softSkills?.slice(0, 5).map((s: any) => `- ${s.skill_name || s.skill}`).join('\n') || 'None'}
-
-TASK: Identify 3-5 CRITICAL GAPS and generate 10-15 targeted questions to fill them.
-
-GAP TYPES TO LOOK FOR:
-1. **Quantification Gaps**: Achievements mentioned but not quantified
-2. **Leadership Scope Gaps**: No team size, budget, or P&L mentioned
-3. **Industry Knowledge Gaps**: Missing certifications, compliance, or domain expertise expected in the industry
-4. **Executive Presence Gaps**: No board experience, speaking engagements, or thought leadership
-5. **Competitive Advantage Gaps**: Missing skills/experiences that separate top 10% from average
-
-QUESTION GENERATION RULES:
-- Each question must TARGET a specific gap
-- Prioritize questions with HIGHEST IMPACT on vault completeness
-- Use appropriate question types:
-  * multiple_choice: For selecting from options (team size, budget ranges)
-  * yes_no: For binary probes (board experience? speaking engagements?)
-  * number: For specific quantities (How many direct reports?)
-  * text: For open-ended details (Describe your leadership philosophy)
-  * checkbox: For multi-select (Which technologies have you used?)
-- Include "whyItMatters" explanation for each question
-- Group into 2-3 batches by category
-
-RETURN VALID JSON ONLY:
+## Output Format (strict JSON):
 {
+  "criticalGapsIdentified": ["gap 1", "gap 2", "gap 3"],
+  "totalQuestions": 10,
+  "estimatedVaultStrengthBoost": 15,
   "batches": [
     {
-      "batchId": "batch_1",
-      "title": "Leadership Scope Quantification",
-      "description": "Let's quantify your leadership experience",
+      "batchTitle": "Strategic Leadership Impact",
+      "batchDescription": "Questions about your transformational leadership achievements",
+      "estimatedTime": "3-5 minutes",
+      "impactExplanation": "These answers differentiate executive leaders from managers",
       "questions": [
         {
-          "id": "q1",
-          "text": "What was your largest team size managed?",
-          "type": "multiple_choice",
-          "category": "leadership_scope",
-          "gapType": "quantification",
-          "impactScore": 8,
-          "whyItMatters": "Team size is a key indicator of leadership scope for VP-level roles. This helps position you accurately.",
-          "options": ["1-5", "6-15", "16-30", "31-50", "51-100", "100+", "Not applicable"]
+          "text": "Have you led a digital transformation initiative?",
+          "type": "yes_no",
+          "category": "strategic_leadership",
+          "impactScore": 9,
+          "validation": {
+            "required": true
+          }
         },
         {
-          "id": "q2",
-          "text": "Have you managed a P&L (profit and loss)?",
-          "type": "yes_no",
-          "category": "leadership_scope",
-          "gapType": "executive_responsibility",
-          "impactScore": 9,
-          "whyItMatters": "P&L responsibility is often expected at the VP level and demonstrates business ownership."
+          "text": "What was the largest team you've built from scratch?",
+          "type": "multiple_choice",
+          "category": "team_building",
+          "impactScore": 8,
+          "options": ["1-5 people", "6-15 people", "16-50 people", "50+ people", "I haven't built a team from scratch"],
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "text": "Describe your most significant turnaround achievement",
+          "type": "text",
+          "category": "turnaround_leadership",
+          "impactScore": 10,
+          "validation": {
+            "minLength": 50,
+            "maxLength": 500,
+            "required": false
+          }
         }
-      ],
-      "totalImpact": 17,
-      "estimatedTime": "2-3 minutes"
+      ]
     }
-  ],
-  "totalQuestions": 12,
-  "estimatedVaultStrengthBoost": 12,
-  "criticalGapsIdentified": [
-    "Leadership scope not quantified",
-    "No board experience mentioned",
-    "Missing PCI-DSS compliance (critical for FinTech)"
   ]
 }
 
-NO MARKDOWN. ONLY JSON.`;
+IMPORTANT:
+- Only ask questions where the answer is clearly MISSING or WEAK in the vault
+- Prioritize questions with impactScore 7-10 (game-changers for executive profiles)
+- Mix question types for better user experience
+- Keep batches to 3-5 questions each for psychological momentum
+- NO generic questions - every question must tie to executive-level competencies
+`;
 
-    // Call AI to generate questions
-    const aiResponse = await fetch(LOVABLE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [{ role: 'user', content: gapAnalysisPrompt }],
+    console.log('[generate-gap-filling-questions] Calling Perplexity...');
+
+    // Call Perplexity via centralized config
+    const { response, metrics } = await callPerplexity(
+      {
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert career advisor analyzing professional profiles to identify growth opportunities. Always return valid JSON.'
+          },
+          {
+            role: 'user',
+            content: gapAnalysisPrompt
+          }
+        ],
+        model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.5,
         max_tokens: 3000,
-      }),
-    });
+        return_citations: false,
+      },
+      'generate-gap-filling-questions',
+      user.id
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI error:', errorText);
-      throw new Error(`AI generation failed: ${aiResponse.status}`);
-    }
+    // Log usage for cost tracking
+    await logAIUsage(metrics);
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
+    console.log('[generate-gap-filling-questions] Perplexity response received');
 
-    // Parse JSON response
+    // Clean and parse response
+    const rawContent = cleanCitations(response.choices[0].message.content);
+    
     let questionData;
     try {
-      const cleanedContent = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       questionData = JSON.parse(cleanedContent);
     } catch (parseError) {
-      console.error('Failed to parse AI response:', aiContent);
+      console.error('Failed to parse Perplexity response:', rawContent);
       throw new Error('AI returned invalid JSON format');
     }
 

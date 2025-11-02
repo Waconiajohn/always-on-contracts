@@ -344,6 +344,45 @@ export type Database = {
           },
         ]
       }
+      ai_usage_metrics: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          function_name: string
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          provider: string
+          request_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cost_usd: number
+          created_at?: string
+          function_name: string
+          id?: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          provider?: string
+          request_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          function_name?: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          provider?: string
+          request_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       application_queue: {
         Row: {
           ai_customization_notes: string | null
