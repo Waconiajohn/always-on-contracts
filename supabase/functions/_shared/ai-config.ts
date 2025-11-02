@@ -5,6 +5,9 @@
  * Using any other provider (Lovable AI, Gemini, OpenAI direct) is prohibited.
  */
 
+import { AIError, handlePerplexityError, retryWithBackoff } from './error-handling.ts';
+import { perplexityCircuitBreaker } from './circuit-breaker.ts';
+
 export const PERPLEXITY_MODELS = {
   // Production default - best balance of cost and quality
   DEFAULT: 'llama-3.1-sonar-large-128k-online',
@@ -71,6 +74,9 @@ export interface AIUsageMetrics {
   request_id: string;
   user_id?: string;
   created_at: string;
+  execution_time_ms?: number;
+  error_code?: string;
+  retry_count?: number;
 }
 
 /**
@@ -105,92 +111,127 @@ export function calculateCost(
 }
 
 /**
- * Call Perplexity API with automatic retry logic and cost tracking
+ * Call Perplexity API with automatic retry logic, circuit breaker, timeout, and cost tracking
  * 
  * This is the ONLY way to make AI calls in this project.
  */
 export async function callPerplexity(
   request: PerplexityRequest,
   functionName: string,
-  userId?: string
+  userId?: string,
+  timeoutMs: number = 45000 // 45 second default timeout
 ): Promise<{ response: PerplexityResponse; metrics: AIUsageMetrics }> {
   const apiKey = Deno.env.get('PERPLEXITY_API_KEY');
   if (!apiKey) {
-    throw new Error('PERPLEXITY_API_KEY not configured');
+    throw new AIError('PERPLEXITY_API_KEY not configured', 'API_ERROR', 500, false);
   }
 
   const model = request.model || PERPLEXITY_MODELS.DEFAULT;
   validateModel(model);
 
-  let lastError: Error | null = null;
-  let retryDelay = PERPLEXITY_CONFIG.RETRY_DELAY_MS;
+  const startTime = Date.now();
+  let retryCount = 0;
 
-  for (let attempt = 0; attempt < PERPLEXITY_CONFIG.MAX_RETRIES; attempt++) {
-    try {
-      console.log(`[${functionName}] Calling Perplexity (attempt ${attempt + 1}/${PERPLEXITY_CONFIG.MAX_RETRIES})`);
-      
-      const response = await fetch(PERPLEXITY_CONFIG.API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+  try {
+    // Wrap in circuit breaker
+    const result = await perplexityCircuitBreaker.execute(async () => {
+      // Wrap in retry logic
+      return await retryWithBackoff(
+        async () => {
+          // Create abort controller for timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+          try {
+            console.log(`[${functionName}] Calling Perplexity with model: ${model}, timeout: ${timeoutMs}ms`);
+
+            const response = await fetch(PERPLEXITY_CONFIG.API_URL, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                ...request,
+                model,
+                temperature: request.temperature ?? PERPLEXITY_CONFIG.DEFAULT_TEMPERATURE,
+                max_tokens: request.max_tokens ?? PERPLEXITY_CONFIG.DEFAULT_MAX_TOKENS,
+                top_p: PERPLEXITY_CONFIG.DEFAULT_TOP_P,
+              }),
+              signal: controller.signal,
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Perplexity API error (${response.status}): ${errorText}`);
+            }
+
+            const data: PerplexityResponse = await response.json();
+            return data;
+
+          } catch (error) {
+            // Handle abort/timeout
+            if (error instanceof Error && error.name === 'AbortError') {
+              throw new AIError(
+                `Request timed out after ${timeoutMs}ms`,
+                'TIMEOUT',
+                408,
+                true,
+                `AI request took longer than ${timeoutMs}ms`
+              );
+            }
+            throw handlePerplexityError(error);
+          } finally {
+            clearTimeout(timeoutId);
+          }
         },
-        body: JSON.stringify({
-          ...request,
-          model,
-          temperature: request.temperature ?? PERPLEXITY_CONFIG.DEFAULT_TEMPERATURE,
-          max_tokens: request.max_tokens ?? PERPLEXITY_CONFIG.DEFAULT_MAX_TOKENS,
-          top_p: PERPLEXITY_CONFIG.DEFAULT_TOP_P,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Perplexity API error (${response.status}): ${errorText}`);
-      }
-
-      const data: PerplexityResponse = await response.json();
-      
-      // Calculate cost and create metrics
-      const cost = calculateCost(
-        model,
-        data.usage.prompt_tokens,
-        data.usage.completion_tokens
+        PERPLEXITY_CONFIG.MAX_RETRIES,
+        (attempt, error) => {
+          retryCount = attempt;
+          console.warn(`[${functionName}] Retry ${attempt}/${PERPLEXITY_CONFIG.MAX_RETRIES}:`, error.message);
+        }
       );
+    });
 
-      const metrics: AIUsageMetrics = {
-        function_name: functionName,
-        model,
-        input_tokens: data.usage.prompt_tokens,
-        output_tokens: data.usage.completion_tokens,
-        cost_usd: cost,
-        request_id: data.id,
-        user_id: userId,
-        created_at: new Date().toISOString(),
-      };
+    const executionTime = Date.now() - startTime;
 
-      console.log(`[${functionName}] Perplexity call successful:`, {
-        tokens: data.usage.total_tokens,
-        cost: `$${cost.toFixed(6)}`,
-      });
+    // Calculate cost and create metrics
+    const cost = calculateCost(
+      model,
+      result.usage.prompt_tokens,
+      result.usage.completion_tokens
+    );
 
-      return { response: data, metrics };
+    const metrics: AIUsageMetrics = {
+      function_name: functionName,
+      model,
+      input_tokens: result.usage.prompt_tokens,
+      output_tokens: result.usage.completion_tokens,
+      cost_usd: cost,
+      request_id: result.id,
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      execution_time_ms: executionTime,
+      retry_count: retryCount,
+    };
 
-    } catch (error) {
-      lastError = error as Error;
-      console.error(`[${functionName}] Perplexity call failed (attempt ${attempt + 1}):`, error);
+    console.log(`[${functionName}] Success - Tokens: ${result.usage.total_tokens}, Cost: $${cost.toFixed(6)}, Time: ${executionTime}ms`);
 
-      if (attempt < PERPLEXITY_CONFIG.MAX_RETRIES - 1) {
-        console.log(`[${functionName}] Retrying in ${retryDelay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-        retryDelay *= PERPLEXITY_CONFIG.RETRY_MULTIPLIER;
-      }
-    }
+    return { response: result, metrics };
+
+  } catch (error) {
+    const executionTime = Date.now() - startTime;
+    const aiError = error instanceof AIError ? error : handlePerplexityError(error);
+    
+    // Log failed metrics
+    console.error(`[${functionName}] Failed after ${executionTime}ms:`, {
+      error: aiError.code,
+      message: aiError.message,
+      retries: retryCount
+    });
+
+    throw aiError;
   }
-
-  throw new Error(
-    `Failed after ${PERPLEXITY_CONFIG.MAX_RETRIES} attempts: ${lastError?.message || 'Unknown error'}`
-  );
 }
 
 /**
