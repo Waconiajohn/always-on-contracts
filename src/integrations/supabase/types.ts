@@ -348,37 +348,49 @@ export type Database = {
         Row: {
           cost_usd: number
           created_at: string
+          error_code: string | null
+          execution_time_ms: number | null
           function_name: string
           id: string
           input_tokens: number
           model: string
           output_tokens: number
+          prompt_tokens_cached: number | null
           provider: string
           request_id: string | null
+          retry_count: number | null
           user_id: string | null
         }
         Insert: {
           cost_usd: number
           created_at?: string
+          error_code?: string | null
+          execution_time_ms?: number | null
           function_name: string
           id?: string
           input_tokens: number
           model: string
           output_tokens: number
+          prompt_tokens_cached?: number | null
           provider?: string
           request_id?: string | null
+          retry_count?: number | null
           user_id?: string | null
         }
         Update: {
           cost_usd?: number
           created_at?: string
+          error_code?: string | null
+          execution_time_ms?: number | null
           function_name?: string
           id?: string
           input_tokens?: number
           model?: string
           output_tokens?: number
+          prompt_tokens_cached?: number | null
           provider?: string
           request_id?: string | null
+          retry_count?: number | null
           user_id?: string | null
         }
         Relationships: []
@@ -4751,7 +4763,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ai_health_metrics: {
+        Row: {
+          active_functions: number | null
+          active_users: number | null
+          avg_latency_ms: number | null
+          error_rate_percent: number | null
+          errors_last_hour: number | null
+          total_cost_last_hour: number | null
+          total_requests_last_hour: number | null
+        }
+        Relationships: []
+      }
+      function_performance_metrics: {
+        Row: {
+          avg_latency_ms: number | null
+          avg_retries: number | null
+          day: string | null
+          error_count: number | null
+          error_rate_percent: number | null
+          function_name: string | null
+          p50_latency_ms: number | null
+          p95_latency_ms: number | null
+          p99_latency_ms: number | null
+          request_count: number | null
+          total_cost_usd: number | null
+        }
+        Relationships: []
+      }
+      user_ai_costs_monthly: {
+        Row: {
+          avg_execution_time_ms: number | null
+          error_count: number | null
+          month: string | null
+          request_count: number | null
+          total_cost_usd: number | null
+          total_input_tokens: number | null
+          total_output_tokens: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_password_strength: { Args: { password: string }; Returns: boolean }
