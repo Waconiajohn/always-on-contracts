@@ -161,7 +161,7 @@ export async function callPerplexity(
                 model,
                 temperature: request.temperature ?? PERPLEXITY_CONFIG.DEFAULT_TEMPERATURE,
                 max_tokens: request.max_tokens ?? PERPLEXITY_CONFIG.DEFAULT_MAX_TOKENS,
-                top_p: PERPLEXITY_CONFIG.DEFAULT_TOP_P,
+                // Note: top_p is not supported by newer Sonar models
               }),
               signal: controller.signal,
             });
