@@ -227,11 +227,11 @@ NO MARKDOWN. ONLY JSON.`;
       
       await logAIUsage(aiMetrics);
     } catch (aiError) {
-      // Log detailed Perplexity error
-      logger.error('Perplexity API call failed', {
+      // Log detailed Perplexity error immediately with console.error
+      console.error('🚨 PERPLEXITY API CALL FAILED - DETAILED ERROR:', {
         error: aiError instanceof Error ? aiError.message : String(aiError),
         errorName: aiError instanceof Error ? aiError.name : 'Unknown',
-        errorStack: aiError instanceof Error ? aiError.stack : undefined,
+        errorStack: aiError instanceof Error ? aiError.stack?.substring(0, 500) : undefined,
         promptLength: processingPrompt.length,
         promptPreview: processingPrompt.substring(0, 500),
         responseCount: responses.length,
@@ -241,6 +241,12 @@ NO MARKDOWN. ONLY JSON.`;
           category: responses[0].category
         } : null
       });
+      
+      logger.error('Perplexity API call failed', {
+        error: aiError instanceof Error ? aiError.message : String(aiError),
+        errorName: aiError instanceof Error ? aiError.name : 'Unknown',
+      });
+      
       throw new Error(`AI processing failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`);
     }
 
