@@ -167,11 +167,11 @@ export default function GapFillingQuestionsFlow({
 
   if (isLoading) {
     return (
-      <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-xl">
+      <Card className="bg-card backdrop-blur-sm border-border shadow-xl">
         <CardContent className="py-12">
           <div className="text-center space-y-3">
-            <Loader2 className="w-12 h-12 text-purple-600 mx-auto animate-spin" />
-            <p className="text-slate-600">Analyzing gaps and generating questions...</p>
+            <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
+            <p className="text-muted-foreground">Analyzing gaps and generating questions...</p>
           </div>
         </CardContent>
       </Card>
@@ -180,7 +180,7 @@ export default function GapFillingQuestionsFlow({
 
   if (error || questionBatches.length === 0) {
     return (
-      <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-xl">
+      <Card className="bg-card backdrop-blur-sm border-border shadow-xl">
         <CardHeader>
           <CardTitle>Gap-Filling Questions</CardTitle>
         </CardHeader>
@@ -191,7 +191,7 @@ export default function GapFillingQuestionsFlow({
             </Alert>
           )}
           <div className="text-center py-6">
-            <p className="text-slate-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               {error ? 'Unable to generate questions. ' : 'No gaps identified! '}
               Your vault is at {currentVaultStrength}%.
             </p>
@@ -208,10 +208,10 @@ export default function GapFillingQuestionsFlow({
   const progressPercentage = (answeredQuestions / totalQuestions) * 100;
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-xl">
+    <Card className="bg-card backdrop-blur-sm border-border shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Target className="w-6 h-6 text-purple-600" />
+          <Target className="w-6 h-6 text-primary" />
           Gap-Filling Questions
         </CardTitle>
         <CardDescription>
@@ -220,23 +220,23 @@ export default function GapFillingQuestionsFlow({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Marketing message */}
-        <Alert className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
-          <Sparkles className="w-4 h-4 text-purple-600" />
-          <AlertDescription className="text-sm text-slate-700">
-            <strong className="text-purple-700">Intelligent Questions:</strong> Each question fills
+        <Alert className="border-primary/20 bg-primary/5">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <AlertDescription className="text-sm text-foreground">
+            <strong className="text-primary">Intelligent Questions:</strong> Each question fills
             a specific gap identified by comparing your profile against industry standards. Answer
-            what you can—skip what doesn't apply. <strong className="text-pink-700">5-15 minutes
+            what you can—skip what doesn't apply. <strong className="text-primary">5-15 minutes
             to reach 85%+ vault strength.</strong>
           </AlertDescription>
         </Alert>
 
         {/* Progress */}
-        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-700">Overall Progress</span>
+            <span className="text-sm font-medium text-foreground">Overall Progress</span>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{answeredQuestions}/{totalQuestions} answered</Badge>
-              <Badge className="bg-purple-600">
+              <Badge className="bg-primary">
                 <TrendingUp className="w-3 h-3 mr-1" />
                 +{currentBatch.totalImpact}%
               </Badge>
@@ -246,8 +246,8 @@ export default function GapFillingQuestionsFlow({
         </div>
 
         {/* Batch description */}
-        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-          <p className="text-sm text-amber-900">
+        <div className="bg-warning/10 rounded-lg p-4 border border-warning/20">
+          <p className="text-sm text-foreground">
             <strong>{currentBatch.description}</strong> (Est. time: {currentBatch.estimatedTime})
           </p>
         </div>
@@ -323,15 +323,15 @@ function QuestionCard({
   onChange: (value: any) => void;
 }) {
   return (
-    <div className="border border-slate-200 rounded-lg p-5 bg-white hover:shadow-md transition-shadow">
+    <div className="border border-border rounded-lg p-5 bg-card hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3 mb-4">
         <Badge variant="outline" className="mt-1">Q{index + 1}</Badge>
         <div className="flex-1">
-          <h4 className="font-medium text-slate-900 mb-2">{question.text}</h4>
+          <h4 className="font-medium text-foreground mb-2">{question.text}</h4>
           {question.whyItMatters && (
-            <div className="flex items-start gap-2 bg-blue-50 rounded p-2 mb-3">
-              <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-800">{question.whyItMatters}</p>
+            <div className="flex items-start gap-2 bg-primary/10 rounded p-2 mb-3">
+              <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-foreground">{question.whyItMatters}</p>
             </div>
           )}
 
@@ -340,9 +340,9 @@ function QuestionCard({
             <RadioGroup value={value} onValueChange={onChange}>
               <div className="space-y-2">
                 {question.options?.map((option: string) => (
-                  <div key={option} className="flex items-center space-x-2">
+                  <div key={option} className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors cursor-pointer">
                     <RadioGroupItem value={option} id={`${question.id}-${option}`} />
-                    <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer">
+                    <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer text-foreground flex-1">
                       {option}
                     </Label>
                   </div>
@@ -353,14 +353,14 @@ function QuestionCard({
 
           {question.type === 'yes_no' && (
             <RadioGroup value={value} onValueChange={onChange}>
-              <div className="flex gap-4">
-                <div className="flex items-center space-x-2">
+              <div className="flex gap-3">
+                <div className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors cursor-pointer flex-1">
                   <RadioGroupItem value="yes" id={`${question.id}-yes`} />
-                  <Label htmlFor={`${question.id}-yes`}>Yes</Label>
+                  <Label htmlFor={`${question.id}-yes`} className="cursor-pointer text-foreground flex-1">Yes</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors cursor-pointer flex-1">
                   <RadioGroupItem value="no" id={`${question.id}-no`} />
-                  <Label htmlFor={`${question.id}-no`}>No</Label>
+                  <Label htmlFor={`${question.id}-no`} className="cursor-pointer text-foreground flex-1">No</Label>
                 </div>
               </div>
             </RadioGroup>
@@ -388,7 +388,7 @@ function QuestionCard({
           {question.type === 'checkbox' && (
             <div className="space-y-2">
               {question.options?.map((option: string) => (
-                <div key={option} className="flex items-center space-x-2">
+                <div key={option} className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors">
                   <Checkbox
                     id={`${question.id}-${option}`}
                     checked={(value || []).includes(option)}
@@ -399,7 +399,7 @@ function QuestionCard({
                       onChange(newValue);
                     }}
                   />
-                  <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer">
+                  <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer text-foreground flex-1">
                     {option}
                   </Label>
                 </div>
@@ -409,8 +409,8 @@ function QuestionCard({
 
           {/* Impact indicator */}
           <div className="flex items-center gap-2 mt-3">
-            <Zap className="w-4 h-4 text-amber-600" />
-            <span className="text-xs text-slate-600">
+            <Zap className="w-4 h-4 text-warning" />
+            <span className="text-xs text-muted-foreground">
               Impact: +{question.impactScore} vault strength points
             </span>
           </div>
