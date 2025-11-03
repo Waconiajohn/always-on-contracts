@@ -210,18 +210,39 @@ RETURN VALID JSON ONLY:
 NO MARKDOWN. ONLY JSON.`;
 
     // Call AI to process responses
-    const { response: aiData, metrics: aiMetrics } = await callPerplexity(
-      {
-        messages: [{ role: 'user', content: processingPrompt }],
-        model: PERPLEXITY_MODELS.DEFAULT,
-        temperature: 0.3,
-        max_tokens: 2500,
-      },
-      'process-gap-filling-responses',
-      user.id
-    );
-
-    await logAIUsage(aiMetrics);
+    let aiData, aiMetrics;
+    try {
+      const result = await callPerplexity(
+        {
+          messages: [{ role: 'user', content: processingPrompt }],
+          model: PERPLEXITY_MODELS.DEFAULT,
+          temperature: 0.3,
+          max_tokens: 2500,
+        },
+        'process-gap-filling-responses',
+        user.id
+      );
+      aiData = result.response;
+      aiMetrics = result.metrics;
+      
+      await logAIUsage(aiMetrics);
+    } catch (aiError) {
+      // Log detailed Perplexity error
+      logger.error('Perplexity API call failed', {
+        error: aiError instanceof Error ? aiError.message : String(aiError),
+        errorName: aiError instanceof Error ? aiError.name : 'Unknown',
+        errorStack: aiError instanceof Error ? aiError.stack : undefined,
+        promptLength: processingPrompt.length,
+        promptPreview: processingPrompt.substring(0, 500),
+        responseCount: responses.length,
+        firstResponse: responses[0] ? {
+          questionText: String(responses[0].questionText),
+          answerLength: String(responses[0].answer).length,
+          category: responses[0].category
+        } : null
+      });
+      throw new Error(`AI processing failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`);
+    }
 
     const aiContent = cleanCitations(aiData.choices[0].message.content);
 
