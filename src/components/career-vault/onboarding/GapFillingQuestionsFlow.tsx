@@ -107,9 +107,12 @@ export default function GapFillingQuestionsFlow({
     }
   };
 
-  const handleResponseChange = (questionId: string, value: any) => {
-    console.log('Response changed:', { questionId, value, currentResponses: responses });
-    setResponses(prev => ({ ...prev, [questionId]: value }));
+  const handleResponseChange = (questionId: string, value: any, question: any) => {
+    console.log('Response changed:', { questionId, value, questionData: question });
+    setResponses(prev => ({ 
+      ...prev, 
+      [questionId]: { answer: value, question } 
+    }));
   };
 
   const handleNextBatch = () => {
@@ -123,10 +126,8 @@ export default function GapFillingQuestionsFlow({
 
     try {
       // Convert responses to format expected by backend
-      const formattedResponses = Object.entries(responses).map(([questionId, answer]) => {
-        const question = questionBatches
-          .flatMap(b => b.questions)
-          .find(q => q.id === questionId);
+      const formattedResponses = Object.entries(responses).map(([questionId, responseData]: [string, any]) => {
+        const { answer, question } = responseData;
 
         return {
           questionId,
@@ -205,7 +206,7 @@ export default function GapFillingQuestionsFlow({
 
   const currentBatch = questionBatches[currentBatchIndex];
   const totalQuestions = questionBatches.reduce((sum, b) => sum + b.questions.length, 0);
-  const answeredQuestions = Object.keys(responses).length;
+  const answeredQuestions = Object.values(responses).filter((r: any) => r?.answer !== undefined && r?.answer !== '').length;
   const progressPercentage = (answeredQuestions / totalQuestions) * 100;
 
   return (
@@ -257,21 +258,24 @@ export default function GapFillingQuestionsFlow({
         <div className="space-y-6">
           {currentBatch.questions.map((question: any, index: number) => {
             // Ensure unique question ID by combining batch index and question index
-            const uniqueQuestionId = `${currentBatchIndex}-${question.id || index}`;
+            const uniqueQuestionId = `${currentBatchIndex}-${index}`;
+            const responseData = responses[uniqueQuestionId];
+            const currentValue = responseData?.answer;
+            
             console.log('Rendering question:', { 
-              originalId: question.id, 
               uniqueId: uniqueQuestionId, 
               type: question.type,
-              currentValue: responses[uniqueQuestionId]
+              currentValue,
+              questionText: question.text
             });
             
             return (
               <QuestionCard
                 key={uniqueQuestionId}
-                question={{ ...question, id: uniqueQuestionId }}
+                question={question}
                 index={index}
-                value={responses[uniqueQuestionId]}
-                onChange={(value) => handleResponseChange(uniqueQuestionId, value)}
+                value={currentValue}
+                onChange={(value) => handleResponseChange(uniqueQuestionId, value, question)}
               />
             );
           })}
