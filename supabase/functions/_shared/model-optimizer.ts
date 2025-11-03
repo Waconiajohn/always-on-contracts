@@ -111,7 +111,7 @@ export function selectOptimalModel(hints: OptimizationHints): string {
  *   estimatedOutputTokens: 1000
  * });
  *
- * console.log(recommendation.model);      // 'llama-3.1-sonar-large-128k-online'
+ * console.log(recommendation.model);      // 'sonar-pro'
  * console.log(recommendation.reasoning);  // 'Balanced model for medium complexity analysis'
  * console.log(recommendation.estimatedCost); // 0.003
  */

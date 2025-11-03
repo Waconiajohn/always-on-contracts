@@ -41,7 +41,7 @@ export const PROMPT_REGISTRY = {
       successRate: 0.95,
       lastUpdated: '2025-01-01'
     },
-    model: 'llama-3.1-sonar-large-128k-online',
+    model: 'sonar-pro',
     temperature: 0.3
   } as ManagedPrompt,
 
@@ -59,7 +59,7 @@ export const PROMPT_REGISTRY = {
       successRate: 0.98,
       lastUpdated: '2025-01-01'
     },
-    model: 'llama-3.1-sonar-large-128k-online',
+    model: 'sonar-pro',
     temperature: 0.2
   } as ManagedPrompt,
 
@@ -77,7 +77,7 @@ export const PROMPT_REGISTRY = {
       successRate: 0.93,
       lastUpdated: '2025-01-01'
     },
-    model: 'llama-3.1-sonar-large-128k-online',
+    model: 'sonar-pro',
     temperature: 0.4
   } as ManagedPrompt,
 
@@ -95,7 +95,7 @@ export const PROMPT_REGISTRY = {
       successRate: 0.96,
       lastUpdated: '2025-01-01'
     },
-    model: 'llama-3.1-sonar-small-128k-online',
+    model: 'sonar',
     temperature: 0.6
   } as ManagedPrompt,
 
@@ -113,7 +113,7 @@ export const PROMPT_REGISTRY = {
       successRate: 0.94,
       lastUpdated: '2025-01-01'
     },
-    model: 'llama-3.1-sonar-large-128k-online',
+    model: 'sonar-pro',
     temperature: 0.4
   } as ManagedPrompt
 };
