@@ -180,19 +180,6 @@
     font-size: inherit;
   }
 
-  /* Fix for question answer visibility */
-  .question-option-text {
-    color: rgb(17 24 39) !important; /* gray-900 for light mode */
-  }
-
-  .dark .question-option-text {
-    color: rgb(243 244 246) !important; /* gray-100 for dark mode */
-  }
-
-  /* Only apply white text when the accent background is actively being hovered */
-  .hover\:bg-accent:hover .question-option-text {
-    color: rgb(255 255 255) !important;
-  }
 }
 
 @layer utilities {
