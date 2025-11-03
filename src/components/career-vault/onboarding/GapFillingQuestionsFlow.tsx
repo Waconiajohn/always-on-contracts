@@ -366,10 +366,10 @@ function QuestionCard({
               <div className="space-y-2">
                 {question.options?.map((option: string) => (
                   <div key={option} className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors cursor-pointer">
-                    <RadioGroupItem value={option} id={`${question.id}-${option}`} />
-                    <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer text-foreground flex-1">
-                      {option}
-                    </Label>
+            <RadioGroupItem value={option} id={`${question.uniqueId}-${option}`} />
+            <Label htmlFor={`${question.uniqueId}-${option}`} className="cursor-pointer text-foreground flex-1">
+              {option}
+            </Label>
                   </div>
                 ))}
               </div>
@@ -380,12 +380,12 @@ function QuestionCard({
             <RadioGroup value={value} onValueChange={onChange}>
               <div className="flex gap-3">
                 <div className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors cursor-pointer flex-1">
-                  <RadioGroupItem value="yes" id={`${question.id}-yes`} />
-                  <Label htmlFor={`${question.id}-yes`} className="cursor-pointer text-foreground flex-1">Yes</Label>
+                  <RadioGroupItem value="yes" id={`${question.uniqueId}-yes`} />
+                  <Label htmlFor={`${question.uniqueId}-yes`} className="cursor-pointer text-foreground flex-1">Yes</Label>
                 </div>
                 <div className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors cursor-pointer flex-1">
-                  <RadioGroupItem value="no" id={`${question.id}-no`} />
-                  <Label htmlFor={`${question.id}-no`} className="cursor-pointer text-foreground flex-1">No</Label>
+                  <RadioGroupItem value="no" id={`${question.uniqueId}-no`} />
+                  <Label htmlFor={`${question.uniqueId}-no`} className="cursor-pointer text-foreground flex-1">No</Label>
                 </div>
               </div>
             </RadioGroup>
@@ -411,24 +411,29 @@ function QuestionCard({
           )}
 
           {question.type === 'checkbox' && (
-            <div className="space-y-2">
-              {question.options?.map((option: string) => (
-                <div key={option} className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors">
-                  <Checkbox
-                    id={`${question.id}-${option}`}
-                    checked={(value || []).includes(option)}
-                    onCheckedChange={(checked) => {
-                      const newValue = checked
-                        ? [...(value || []), option]
-                        : (value || []).filter((v: string) => v !== option);
-                      onChange(newValue);
-                    }}
-                  />
-                  <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer text-foreground flex-1">
-                    {option}
-                  </Label>
-                </div>
-              ))}
+            <div className="space-y-3">
+              <Badge variant="secondary" className="text-xs">
+                Select all that apply
+              </Badge>
+              <div className="space-y-2">
+                {question.options?.map((option: string) => (
+                  <div key={option} className="flex items-center space-x-2 p-3 border border-border rounded bg-secondary dark:bg-muted hover:bg-accent transition-colors">
+                    <Checkbox
+                      id={`${question.uniqueId}-${option}`}
+                      checked={(value || []).includes(option)}
+                      onCheckedChange={(checked) => {
+                        const newValue = checked
+                          ? [...(value || []), option]
+                          : (value || []).filter((v: string) => v !== option);
+                        onChange(newValue);
+                      }}
+                    />
+                    <Label htmlFor={`${question.uniqueId}-${option}`} className="cursor-pointer text-foreground flex-1">
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

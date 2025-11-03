@@ -33,7 +33,7 @@ const corsHeaders = {
 // Question type interfaces
 interface Question {
   text: string;
-  type: 'multiple_choice' | 'yes_no' | 'text' | 'scale';
+  type: 'multiple_choice' | 'checkbox' | 'yes_no' | 'text' | 'scale';
   category: string;
   impactScore: number;
   options?: string[];
@@ -140,6 +140,16 @@ Generate 5-15 highly targeted questions organized into logical batches. Each que
           }
         },
         {
+          "text": "Which of these strategic initiatives have you led? (Select all that apply)",
+          "type": "checkbox",
+          "category": "strategic_leadership",
+          "impactScore": 9,
+          "options": ["Digital transformation", "M&A integration", "Market expansion", "Product pivots", "Cost optimization"],
+          "validation": {
+            "required": false
+          }
+        },
+        {
           "text": "Describe your most significant turnaround achievement",
           "type": "text",
           "category": "turnaround_leadership",
@@ -161,6 +171,13 @@ IMPORTANT:
 - Mix question types for better user experience
 - Keep batches to 3-5 questions each for psychological momentum
 - NO generic questions - every question must tie to executive-level competencies
+
+QUESTION TYPE GUIDELINES:
+- Use "multiple_choice" for single-selection questions (e.g., "What was the size of...")
+- Use "checkbox" for multi-selection questions - ALWAYS include "(Select all that apply)" in the question text
+- Use "yes_no" for binary questions
+- Use "text" for open-ended narrative questions
+- Use "scale" for rating/scoring questions
 `;
 
     console.log('[generate-gap-filling-questions] Calling Perplexity...');
