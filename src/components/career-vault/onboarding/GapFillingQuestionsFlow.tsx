@@ -108,6 +108,7 @@ export default function GapFillingQuestionsFlow({
   };
 
   const handleResponseChange = (questionId: string, value: any) => {
+    console.log('Response changed:', { questionId, value, currentResponses: responses });
     setResponses(prev => ({ ...prev, [questionId]: value }));
   };
 
@@ -254,15 +255,26 @@ export default function GapFillingQuestionsFlow({
 
         {/* Questions */}
         <div className="space-y-6">
-          {currentBatch.questions.map((question: any, index: number) => (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              index={index}
-              value={responses[question.id]}
-              onChange={(value) => handleResponseChange(question.id, value)}
-            />
-          ))}
+          {currentBatch.questions.map((question: any, index: number) => {
+            // Ensure unique question ID by combining batch index and question index
+            const uniqueQuestionId = `${currentBatchIndex}-${question.id || index}`;
+            console.log('Rendering question:', { 
+              originalId: question.id, 
+              uniqueId: uniqueQuestionId, 
+              type: question.type,
+              currentValue: responses[uniqueQuestionId]
+            });
+            
+            return (
+              <QuestionCard
+                key={uniqueQuestionId}
+                question={{ ...question, id: uniqueQuestionId }}
+                index={index}
+                value={responses[uniqueQuestionId]}
+                onChange={(value) => handleResponseChange(uniqueQuestionId, value)}
+              />
+            );
+          })}
         </div>
 
         {/* Navigation */}
