@@ -83,6 +83,25 @@ serve(async (req) => {
       userId: user.id,
     });
 
+    // Sanitize and format responses for AI prompt
+    const sanitizeForPrompt = (value: any): string => {
+      if (value === null || value === undefined) return 'Not provided';
+      
+      let sanitized = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      
+      // Remove any potentially problematic characters
+      sanitized = sanitized
+        .replace(/[^\w\s\d.,!?;:()\-\[\]{}@#$%&*+=<>\/\\'"]/g, '')
+        .trim();
+      
+      // Truncate if too long (max 500 chars per response)
+      if (sanitized.length > 500) {
+        sanitized = sanitized.substring(0, 497) + '...';
+      }
+      
+      return sanitized;
+    };
+
     // Build AI prompt to convert responses into vault items
     const processingPrompt = `You are a career intelligence processor converting user responses into structured vault items.
 
@@ -93,9 +112,9 @@ ${industryResearch ? JSON.stringify(industryResearch.mustHaveSkills?.slice(0, 10
 
 USER RESPONSES:
 ${responses.map((r: any) => `
-Q: ${r.questionText}
-A: ${typeof r.answer === 'object' ? JSON.stringify(r.answer) : r.answer}
-Category: ${r.category}
+Q: ${sanitizeForPrompt(r.questionText)}
+A: ${sanitizeForPrompt(r.answer)}
+Category: ${r.category || 'general'}
 `).join('\n')}
 
 TASK: Convert each response into properly formatted vault items.
@@ -359,6 +378,16 @@ NO MARKDOWN. ONLY JSON.`;
 
   } catch (error) {
     console.error('Error in process-gap-filling-responses:', error);
+    
+    // Log detailed error for debugging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,
