@@ -42,18 +42,18 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Missing authorization header');
+      throw new Error('No authorization header');
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
       throw new Error('Unauthorized');
     }
@@ -72,7 +72,7 @@ serve(async (req) => {
     });
 
     // Fetch vault statistics
-    const { data: vaultStats } = await supabaseClient
+    const { data: vaultStats } = await supabase
       .rpc('get_vault_statistics', { p_vault_id: vaultId });
 
     if (!vaultStats) {
@@ -80,7 +80,7 @@ serve(async (req) => {
     }
 
     // Fetch industry research for benchmarks
-    const { data: industryResearch } = await supabaseClient
+    const { data: industryResearch } = await supabase
       .from('vault_industry_research')
       .select('*')
       .eq('vault_id', vaultId)
@@ -91,12 +91,12 @@ serve(async (req) => {
 
     // Fetch actual vault items for detailed analysis
     const [powerPhrases, skills, competencies, softSkills, leadershipPhilosophy, executivePresence] = await Promise.all([
-      supabaseClient.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
-      supabaseClient.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
-      supabaseClient.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId),
-      supabaseClient.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
-      supabaseClient.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId),
-      supabaseClient.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
     ]);
 
     // Build AI prompt for benchmark analysis
@@ -234,7 +234,7 @@ NO MARKDOWN. ONLY JSON.`;
     }
 
     // Store benchmark analysis in database
-    const { error: insertError } = await supabaseClient
+    const { error: insertError } = await supabase
       .from('vault_gap_analysis')
       .insert({
         vault_id: vaultId,
@@ -253,7 +253,7 @@ NO MARKDOWN. ONLY JSON.`;
     }
 
     // Log activity
-    await supabaseClient.from('vault_activity_log').insert({
+    await supabase.from('vault_activity_log').insert({
       vault_id: vaultId,
       user_id: user.id,
       activity_type: 'benchmark_generated',
