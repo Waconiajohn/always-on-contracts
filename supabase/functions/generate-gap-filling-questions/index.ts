@@ -140,11 +140,11 @@ Generate 5-15 highly targeted questions organized into logical batches. Each que
           }
         },
         {
-          "text": "Which of these strategic initiatives have you led? (Select all that apply)",
+          "text": "Which of the following domains have you worked in? (Select all that apply)",
           "type": "checkbox",
-          "category": "strategic_leadership",
-          "impactScore": 9,
-          "options": ["Digital transformation", "M&A integration", "Market expansion", "Product pivots", "Cost optimization"],
+          "category": "domain_expertise",
+          "impactScore": 8,
+          "options": ["Banking/FinTech", "E-commerce", "Healthcare", "Cloud/SaaS products", "Industrial IoT"],
           "validation": {
             "required": false
           }
@@ -164,6 +164,13 @@ Generate 5-15 highly targeted questions organized into logical batches. Each que
     }
   ]
 }
+
+CRITICAL TYPE SELECTION RULES:
+- If the question text includes "Select all that apply" OR "Which of the following" (plural) → MUST use "type": "checkbox"
+- If asking for a single choice from options → use "type": "multiple_choice"
+- If asking yes/no → use "type": "yes_no"
+- If asking for free text → use "type": "text"
+- If asking for a number → use "type": "number"
 
 IMPORTANT:
 - Only ask questions where the answer is clearly MISSING or WEAK in the vault
@@ -219,6 +226,24 @@ QUESTION TYPE GUIDELINES:
     } catch (parseError) {
       console.error('Failed to parse Perplexity response:', rawContent);
       throw new Error('AI returned invalid JSON format');
+    }
+
+    // Auto-fix type mismatches (post-processing validation)
+    if (questionData.batches) {
+      questionData.batches = questionData.batches.map((batch: any) => ({
+        ...batch,
+        questions: batch.questions.map((q: any) => {
+          // If question text indicates multi-select but type is wrong, fix it
+          const textLower = q.text.toLowerCase();
+          if ((textLower.includes('select all that apply') || 
+               textLower.includes('which of the following')) && 
+              q.type === 'multiple_choice') {
+            console.log(`[AUTO-FIX] Changed question type from multiple_choice to checkbox: "${q.text}"`);
+            return { ...q, type: 'checkbox' };
+          }
+          return q;
+        })
+      }));
     }
 
     console.log('✅ Generated gap-filling questions:', {

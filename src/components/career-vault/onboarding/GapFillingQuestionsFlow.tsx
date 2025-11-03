@@ -27,6 +27,18 @@ import { Sparkles, ChevronRight, Target, Zap, Loader2, Info, CheckCircle2, Trend
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
+// Auto-detect correct question type based on text (runtime fallback)
+function normalizeQuestionType(question: any): any {
+  const textLower = question.text.toLowerCase();
+  if ((textLower.includes('select all that apply') || 
+       (textLower.includes('which of the following') && question.options?.length > 2)) && 
+      question.type !== 'checkbox') {
+    console.log(`[RUNTIME-FIX] Changed question type to checkbox: "${question.text}"`);
+    return { ...question, type: 'checkbox' };
+  }
+  return question;
+}
+
 interface GapFillingQuestionsFlowProps {
   vaultId: string;
   currentVaultStrength: number;
@@ -93,16 +105,28 @@ export default function GapFillingQuestionsFlow({
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
-      // Add unique IDs to each question in each batch
+      // Add unique IDs to each question in each batch and normalize types
       const batchesWithIds = (data.data.batches || []).map((batch: any, batchIdx: number) => ({
         ...batch,
-        questions: batch.questions.map((q: any, qIdx: number) => ({
-          ...q,
-          uniqueId: `batch-${batchIdx}-q-${qIdx}` // Stable unique ID
-        }))
+        questions: batch.questions.map((q: any, qIdx: number) => 
+          normalizeQuestionType({
+            ...q,
+            uniqueId: `batch-${batchIdx}-q-${qIdx}` // Stable unique ID
+          })
+        )
       }));
 
-      console.log('Gap-filling questions loaded with unique IDs:', batchesWithIds);
+      console.log('Gap-filling questions loaded:', 
+        batchesWithIds.map(b => ({
+          title: b.title,
+          questions: b.questions.map(q => ({ 
+            text: q.text.substring(0, 50) + '...', 
+            type: q.type, 
+            hasOptions: !!q.options,
+            optionsCount: q.options?.length 
+          }))
+        }))
+      );
       setQuestionBatches(batchesWithIds);
       setIsLoading(false);
 
