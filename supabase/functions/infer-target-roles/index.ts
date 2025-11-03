@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     // Build achievements context (first 3 for brevity)
     const achievementsContext = analysis.key_achievements?.slice(0, 3).join('\n• ') || 'Not specified';
 
-    // Use Lovable AI with tool calling for structured output
+    // Use Perplexity AI with tool calling for structured output
     const systemPrompt = `You are an expert career advisor specializing in role targeting for experienced professionals. 
 Your task is to suggest highly relevant, industry-specific job titles based on detailed career information.
 

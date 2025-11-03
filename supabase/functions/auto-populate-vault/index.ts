@@ -206,7 +206,7 @@ Return VALID JSON only with this structure:
   }
 }`;
 
-    console.log('[AUTO-POPULATE-VAULT] Calling Lovable AI for deep extraction...');
+    console.log('[AUTO-POPULATE-VAULT] Calling Perplexity AI for deep extraction...');
     console.log('[AUTO-POPULATE-VAULT] Request details:', {
       model: 'google/gemini-2.5-flash',
       resumeLength: resumeText.length,

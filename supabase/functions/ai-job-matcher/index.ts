@@ -245,7 +245,7 @@ serve(async (req) => {
       ? `\nUser feedback history: ${JSON.stringify(recentFeedback)}`
       : '';
 
-    // 8. Process jobs in batches with Lovable AI
+    // 8. Process jobs in batches with Perplexity AI
     const batchSize = 10;
     const matches: any[] = [];
     let totalAnalyzed = 0;

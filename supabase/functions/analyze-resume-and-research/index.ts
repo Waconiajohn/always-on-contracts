@@ -77,7 +77,7 @@ ${achievementContext}
 `;
     }
 
-    // Use Lovable AI to analyze resume and generate hierarchical skill taxonomy
+    // Use Perplexity AI to analyze resume and generate hierarchical skill taxonomy
     const prompt = `Analyze this resume and generate a comprehensive hierarchical skill taxonomy.
 
 RESUME:

@@ -38,7 +38,7 @@ They selected these enhancement areas: ${selected_guided_options.join(', ')}
 CRITICAL: If they added ANY additional detail after selecting improvement areas, increase the score by 10-20 points minimum to acknowledge their effort. Be encouraging!`
       : '';
 
-    // Use Lovable AI to validate the response quality with guided enhancement options
+    // Use Perplexity AI to validate the response quality with guided enhancement options
     const validationPrompt = `You are validating an interview response for completeness and quality.
 
 QUESTION ASKED:

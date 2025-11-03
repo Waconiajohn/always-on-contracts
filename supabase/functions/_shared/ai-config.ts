@@ -46,6 +46,7 @@ interface PerplexityRequest {
   return_citations?: boolean;
   return_related_questions?: boolean;
   search_recency_filter?: 'month' | 'week' | 'day';
+  prompt_tokens_cached?: boolean;  // Enable prompt caching for 50% cost reduction
 }
 
 interface PerplexityResponse {
