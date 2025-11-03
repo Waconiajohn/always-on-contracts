@@ -242,11 +242,6 @@ NO MARKDOWN. ONLY JSON.`;
         } : null
       });
       
-      logger.error('Perplexity API call failed', {
-        error: aiError instanceof Error ? aiError.message : String(aiError),
-        errorName: aiError instanceof Error ? aiError.name : 'Unknown',
-      });
-      
       throw new Error(`AI processing failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`);
     }
 
@@ -442,11 +437,11 @@ NO MARKDOWN. ONLY JSON.`;
     );
 
   } catch (error) {
-    logger.error('Error in process-gap-filling-responses', error);
+    console.error('Error in process-gap-filling-responses:', error);
     
     // Enhanced error analysis
     if (error instanceof Error) {
-      logger.error('Detailed error information', {
+      console.error('Detailed error information:', {
         name: error.name,
         message: error.message,
         stack: error.stack,
@@ -454,7 +449,7 @@ NO MARKDOWN. ONLY JSON.`;
       
       // Specific diagnosis for Perplexity 400 errors
       if (error.message.includes('400')) {
-        logger.error('Perplexity API 400 Error - Diagnostic Info', {
+        console.error('Perplexity API 400 Error - Diagnostic Info:', {
           possibleCauses: [
             'Malformed JSON in prompt construction',
             'Invalid escape sequences in user responses',
