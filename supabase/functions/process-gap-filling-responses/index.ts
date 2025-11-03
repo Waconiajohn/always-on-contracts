@@ -83,24 +83,62 @@ serve(async (req) => {
       userId: user.id,
     });
 
-    // Sanitize and format responses for AI prompt
+    // Professional sanitization: Only escape characters that break JSON/API parsing
     const sanitizeForPrompt = (value: any): string => {
       if (value === null || value === undefined) return 'Not provided';
       
+      // Convert to string safely
       let sanitized = typeof value === 'object' ? JSON.stringify(value) : String(value);
       
-      // Remove any potentially problematic characters
+      // Only escape characters that break JSON/API parsing
       sanitized = sanitized
-        .replace(/[^\w\s\d.,!?;:()\-\[\]{}@#$%&*+=<>\/\\'"]/g, '')
+        .replace(/\\/g, '\\\\')      // Escape backslashes
+        .replace(/"/g, '\\"')         // Escape quotes
+        .replace(/\n/g, '\\n')        // Escape newlines
+        .replace(/\r/g, '\\r')        // Escape carriage returns
+        .replace(/\t/g, '\\t')        // Escape tabs
         .trim();
       
-      // Truncate if too long (max 500 chars per response)
-      if (sanitized.length > 500) {
-        sanitized = sanitized.substring(0, 497) + '...';
+      // Smart length management: Only truncate if truly excessive (10K chars per response)
+      // This is very generous - most responses will be under this
+      if (sanitized.length > 10000) {
+        // Truncate at sentence boundary for better context preservation
+        const truncated = sanitized.substring(0, 10000);
+        const lastSentence = truncated.lastIndexOf('.');
+        sanitized = (lastSentence > 9000 ? truncated.substring(0, lastSentence + 1) : truncated) + 
+                    ' [Response truncated - very detailed answer provided]';
+        
+        logger.warn('Response truncated', { 
+          originalLength: sanitized.length,
+          note: 'User provided essay-length answer'
+        });
       }
       
       return sanitized;
     };
+
+    // Token estimation for monitoring (rough: 1 token ≈ 4 characters)
+    const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+    
+    const totalResponseLength = responses.reduce((sum, r) => 
+      sum + String(r.questionText || '').length + String(r.answer || '').length, 0
+    );
+    
+    const estimatedTokens = estimateTokens(totalResponseLength);
+    
+    logger.info('Processing responses', {
+      responseCount: responses.length,
+      totalCharacters: totalResponseLength,
+      estimatedInputTokens: estimatedTokens,
+      percentOfContextWindow: ((estimatedTokens / 200000) * 100).toFixed(2) + '%'
+    });
+    
+    // Warn if approaching 50% of context window (very rare with normal usage)
+    if (totalResponseLength > 400000) {
+      logger.warn('Large response set detected', {
+        note: 'Consider batch processing for very detailed responses'
+      });
+    }
 
     // Build AI prompt to convert responses into vault items
     const processingPrompt = `You are a career intelligence processor converting user responses into structured vault items.
@@ -377,22 +415,45 @@ NO MARKDOWN. ONLY JSON.`;
     );
 
   } catch (error) {
-    console.error('Error in process-gap-filling-responses:', error);
+    logger.error('Error in process-gap-filling-responses', error);
     
-    // Log detailed error for debugging
+    // Enhanced error analysis
     if (error instanceof Error) {
-      console.error('Error details:', {
+      logger.error('Detailed error information', {
         name: error.name,
         message: error.message,
         stack: error.stack,
       });
+      
+      // Specific diagnosis for Perplexity 400 errors
+      if (error.message.includes('400')) {
+        logger.error('Perplexity API 400 Error - Diagnostic Info', {
+          possibleCauses: [
+            'Malformed JSON in prompt construction',
+            'Invalid escape sequences in user responses',
+            'Unsupported characters in API request',
+            'Model parameter mismatch'
+          ],
+          debugData: {
+            responseCount: responses?.length || 0,
+            firstResponseSample: responses?.[0] ? {
+              questionText: String(responses[0].questionText).substring(0, 100),
+              answerPreview: String(responses[0].answer).substring(0, 100),
+              answerType: typeof responses[0].answer,
+              category: responses[0].category
+            } : 'No response data available'
+          },
+          recommendation: 'Check sanitization function and prompt structure'
+        });
+      }
     }
     
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
-        userMessage: 'We encountered an issue processing your responses. Please try again.',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error && error.message.includes('400') ? 'AI_API_ERROR' : 'PROCESSING_ERROR',
+        userMessage: 'We encountered an issue processing your responses. Our team has been notified. Please try again, or contact support if this persists.',
       }),
       {
         status: 500,
