@@ -174,15 +174,15 @@ async function sendAlert(
     },
     warning_90: {
       subject: '🚨 You have used 90% of your AI quota',
-      body: `You're approaching your limit! You have used ${config.requestsUsed} of ${config.requestsLimit} monthly requests. Only ${config.requestsLimit - config.requestsUsed} requests remaining. Upgrade now to continue.`
+      body: `You are approaching your limit! You have used ${config.requestsUsed} of ${config.requestsLimit} monthly requests. Only ${config.requestsLimit - config.requestsUsed} requests remaining. Upgrade now to continue.`
     },
     critical_100: {
       subject: '🛑 AI Quota Exceeded - Upgrade Required',
-      body: `You've exceeded your ${config.tier} tier limit of ${config.requestsLimit} monthly requests. AI features are now disabled. Upgrade to continue using AI-powered features.`
+      body: `You have exceeded your ${config.tier} tier limit of ${config.requestsLimit} monthly requests. AI features are now disabled. Upgrade to continue using AI-powered features.`
     },
     budget_exceeded: {
       subject: '💰 AI Budget Alert - 90% Spent',
-      body: `You've spent $${config.costSpent.toFixed(2)} of your $${config.costBudget.toFixed(2)} monthly budget (${((config.costSpent/config.costBudget)*100).toFixed(0)}%). Consider upgrading for higher limits.`
+      body: `You have spent $${config.costSpent.toFixed(2)} of your $${config.costBudget.toFixed(2)} monthly budget (${((config.costSpent/config.costBudget)*100).toFixed(0)}%). Consider upgrading for higher limits.`
     }
   };
 
