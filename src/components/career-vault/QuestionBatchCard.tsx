@@ -127,7 +127,7 @@ export const QuestionBatchCard = ({ batch, onComplete, onSkip }: QuestionBatchPr
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {question.options.map((option) => (
-                        <div key={option.value} className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent transition-colors cursor-pointer group">
+                        <div key={option.value} className="flex items-center space-x-2 p-3 border rounded bg-gray-50 dark:bg-gray-800 hover:bg-accent transition-colors cursor-pointer group">
                           <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
                           <Label htmlFor={`${question.id}-${option.value}`} className="cursor-pointer flex items-center gap-2 flex-1 question-option-text">
                             {option.icon && <span>{option.icon}</span>}
@@ -142,7 +142,7 @@ export const QuestionBatchCard = ({ batch, onComplete, onSkip }: QuestionBatchPr
                 {question.inputType === 'checkbox_grid' && question.options && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {question.options.map((option) => (
-                      <div key={option.value} className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent transition-colors group">
+                      <div key={option.value} className="flex items-center space-x-2 p-3 border rounded bg-gray-50 dark:bg-gray-800 hover:bg-accent transition-colors group">
                         <Checkbox
                           id={`${question.id}-${option.value}`}
                           checked={answers[question.id]?.includes(option.value)}
@@ -179,11 +179,11 @@ export const QuestionBatchCard = ({ batch, onComplete, onSkip }: QuestionBatchPr
                       onValueChange={(value) => handleAnswer(question.id, { ...answers[question.id], response: value })}
                     >
                       <div className="flex gap-3">
-                        <div className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent transition-colors cursor-pointer flex-1 group">
+                        <div className="flex items-center space-x-2 p-3 border rounded bg-gray-50 dark:bg-gray-800 hover:bg-accent transition-colors cursor-pointer flex-1 group">
                           <RadioGroupItem value="yes" id={`${question.id}-yes`} />
                           <Label htmlFor={`${question.id}-yes`} className="cursor-pointer flex-1 question-option-text">Yes</Label>
                         </div>
-                        <div className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent transition-colors cursor-pointer flex-1 group">
+                        <div className="flex items-center space-x-2 p-3 border rounded bg-gray-50 dark:bg-gray-800 hover:bg-accent transition-colors cursor-pointer flex-1 group">
                           <RadioGroupItem value="no" id={`${question.id}-no`} />
                           <Label htmlFor={`${question.id}-no`} className="cursor-pointer flex-1 question-option-text">No</Label>
                         </div>
