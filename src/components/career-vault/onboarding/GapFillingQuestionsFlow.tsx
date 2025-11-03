@@ -77,15 +77,16 @@ export default function GapFillingQuestionsFlow({
       const { data, error } = await supabase.functions.invoke('generate-gap-filling-questions', {
         body: {
           vaultId,
-          currentVaultData: {
+          vaultData: {
             powerPhrases: powerPhrases.data || [],
             transferableSkills: skills.data || [],
             hiddenCompetencies: competencies.data || [],
             softSkills: softSkills.data || [],
+            targetRoles: vaultData?.target_roles || [],
+            targetIndustries: vaultData?.target_industries || [],
           },
           industryResearch: industryResearch?.[0]?.results,
           targetRoles: vaultData?.target_roles || [],
-          targetIndustries: vaultData?.target_industries || [],
         },
       });
 

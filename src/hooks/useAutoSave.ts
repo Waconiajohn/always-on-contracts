@@ -58,7 +58,7 @@ export function useAutoSave(options: AutoSaveOptions) {
         .from('career_vault')
         .update({
           ...data,
-          updated_at: new Date().toISOString(),
+          last_updated_at: new Date().toISOString(),
         })
         .eq('id', vaultId);
 
@@ -172,7 +172,7 @@ export function useOnboardingAutoSave(
           .from('career_vault')
           .update({
             onboarding_step: mapUIStepToDBStep(currentStep),
-            updated_at: new Date().toISOString(),
+            last_updated_at: new Date().toISOString(),
           })
           .eq('id', vaultId);
 
