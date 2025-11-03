@@ -268,11 +268,11 @@ NO MARKDOWN. ONLY JSON.`;
         power_phrase: pp.phrase,
         category: pp.category || 'general',
         impact_metrics: pp.impactMetrics || {},
-        confidence_score: 1.0, // User-provided = 100% confidence
+        confidence_score: 100, // Integer 0-100, not decimal
         quality_tier: 'gold',
         inferred_from: pp.evidence || 'Gap-filling questionnaire',
         keywords: pp.keywords || [],
-        source: 'gap_filling_questions',
+        source: 'interview', // Valid enum value
         needs_user_review: false,
       }));
 
@@ -295,10 +295,10 @@ NO MARKDOWN. ONLY JSON.`;
         stated_skill: skill.skill,
         equivalent_skills: skill.equivalentSkills || [],
         evidence: skill.evidence || 'Gap-filling questionnaire',
-        confidence_score: 1.0,
+        confidence_score: 100, // Integer 0-100, not decimal
         quality_tier: 'gold',
-        source: 'gap_filling_questions',
         needs_user_review: false,
+        inferred_from: 'Gap-filling questionnaire',
       }));
 
       const { error: skillsError } = await supabaseClient
@@ -319,11 +319,11 @@ NO MARKDOWN. ONLY JSON.`;
         user_id: user.id,
         competency_area: comp.competencyArea,
         inferred_capability: comp.capability,
-        evidence_from_resume: comp.evidence || 'Gap-filling questionnaire',
-        confidence_score: 1.0,
+        supporting_evidence: [comp.evidence || 'Gap-filling questionnaire'], // Array type
+        confidence_score: 100, // Integer 0-100, not decimal
         quality_tier: 'gold',
-        source: 'gap_filling_questions',
         needs_user_review: false,
+        inferred_from: 'Gap-filling questionnaire',
       }));
 
       const { error: compError } = await supabaseClient
@@ -345,10 +345,10 @@ NO MARKDOWN. ONLY JSON.`;
         skill_name: skill.skillName,
         examples: skill.examples || 'Confirmed in gap-filling questionnaire',
         proficiency_level: skill.proficiencyLevel || 'advanced',
-        confidence_score: 1.0,
+        ai_confidence: 1.0, // Correct column name (numeric 0.00-1.00)
         quality_tier: 'gold',
-        source: 'gap_filling_questions',
         needs_user_review: false,
+        inferred_from: 'Gap-filling questionnaire',
       }));
 
       const { error: softError } = await supabaseClient
