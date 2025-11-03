@@ -127,9 +127,9 @@ export const QuestionBatchCard = ({ batch, onComplete, onSkip }: QuestionBatchPr
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {question.options.map((option) => (
-                        <div key={option.value} className="flex items-center space-x-2 p-3 border rounded hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer group">
+                        <div key={option.value} className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer group">
                           <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
-                          <Label htmlFor={`${question.id}-${option.value}`} className="cursor-pointer flex items-center gap-2 flex-1 text-foreground group-hover:text-accent-foreground">
+                          <Label htmlFor={`${question.id}-${option.value}`} className="cursor-pointer flex items-center gap-2 flex-1 text-gray-900 dark:text-gray-100 group-hover:text-accent-foreground">
                             {option.icon && <span>{option.icon}</span>}
                             <span>{option.label}</span>
                           </Label>
@@ -142,7 +142,7 @@ export const QuestionBatchCard = ({ batch, onComplete, onSkip }: QuestionBatchPr
                 {question.inputType === 'checkbox_grid' && question.options && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {question.options.map((option) => (
-                      <div key={option.value} className="flex items-center space-x-2 p-3 border rounded hover:bg-accent hover:text-accent-foreground transition-colors group">
+                      <div key={option.value} className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent hover:text-accent-foreground transition-colors group">
                         <Checkbox
                           id={`${question.id}-${option.value}`}
                           checked={answers[question.id]?.includes(option.value)}
@@ -154,7 +154,7 @@ export const QuestionBatchCard = ({ batch, onComplete, onSkip }: QuestionBatchPr
                             handleAnswer(question.id, updated);
                           }}
                         />
-                        <Label htmlFor={`${question.id}-${option.value}`} className="cursor-pointer flex items-center gap-2 flex-1 text-foreground group-hover:text-accent-foreground">
+                        <Label htmlFor={`${question.id}-${option.value}`} className="cursor-pointer flex items-center gap-2 flex-1 text-gray-900 dark:text-gray-100 group-hover:text-accent-foreground">
                           {option.icon && <span>{option.icon}</span>}
                           <span className="text-sm">{option.label}</span>
                         </Label>
@@ -179,13 +179,13 @@ export const QuestionBatchCard = ({ batch, onComplete, onSkip }: QuestionBatchPr
                       onValueChange={(value) => handleAnswer(question.id, { ...answers[question.id], response: value })}
                     >
                       <div className="flex gap-3">
-                        <div className="flex items-center space-x-2 p-3 border rounded hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer flex-1 group">
+                        <div className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer flex-1 group">
                           <RadioGroupItem value="yes" id={`${question.id}-yes`} />
-                          <Label htmlFor={`${question.id}-yes`} className="cursor-pointer flex-1 text-foreground group-hover:text-accent-foreground">Yes</Label>
+                          <Label htmlFor={`${question.id}-yes`} className="cursor-pointer flex-1 text-gray-900 dark:text-gray-100 group-hover:text-accent-foreground">Yes</Label>
                         </div>
-                        <div className="flex items-center space-x-2 p-3 border rounded hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer flex-1 group">
+                        <div className="flex items-center space-x-2 p-3 border rounded bg-white dark:bg-gray-800 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer flex-1 group">
                           <RadioGroupItem value="no" id={`${question.id}-no`} />
-                          <Label htmlFor={`${question.id}-no`} className="cursor-pointer flex-1 text-foreground group-hover:text-accent-foreground">No</Label>
+                          <Label htmlFor={`${question.id}-no`} className="cursor-pointer flex-1 text-gray-900 dark:text-gray-100 group-hover:text-accent-foreground">No</Label>
                         </div>
                       </div>
                     </RadioGroup>
