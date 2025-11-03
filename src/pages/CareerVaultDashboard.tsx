@@ -741,11 +741,16 @@ const VaultDashboardContent = () => {
                 </Badge>
               )}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              {vault?.auto_populated
-                ? `Onboarding: Complete • ${totalIntelligenceItems} items extracted • Vault Quality: ${strengthScore?.total || 0}/100`
-                : `Review: ${stats.review_completion_percentage}% complete • ${totalIntelligenceItems} items extracted`
-              }
+            <p className="text-sm text-muted-foreground break-words">
+              {vault?.auto_populated ? (
+                <span className="block">
+                  Onboarding: Complete • {totalIntelligenceItems} items extracted • Vault Quality: {strengthScore?.total || 0}/100
+                </span>
+              ) : (
+                <span className="block">
+                  Review: {stats.review_completion_percentage}% complete • {totalIntelligenceItems} items extracted
+                </span>
+              )}
             </p>
           </div>
           
