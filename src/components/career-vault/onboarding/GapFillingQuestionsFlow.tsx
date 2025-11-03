@@ -93,7 +93,17 @@ export default function GapFillingQuestionsFlow({
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
-      setQuestionBatches(data.data.batches || []);
+      // Add unique IDs to each question in each batch
+      const batchesWithIds = (data.data.batches || []).map((batch: any, batchIdx: number) => ({
+        ...batch,
+        questions: batch.questions.map((q: any, qIdx: number) => ({
+          ...q,
+          uniqueId: `batch-${batchIdx}-q-${qIdx}` // Stable unique ID
+        }))
+      }));
+
+      console.log('Gap-filling questions loaded with unique IDs:', batchesWithIds);
+      setQuestionBatches(batchesWithIds);
       setIsLoading(false);
 
       toast({
@@ -108,10 +118,17 @@ export default function GapFillingQuestionsFlow({
   };
 
   const handleResponseChange = (questionId: string, value: any, question: any) => {
-    console.log('Response changed:', { questionId, value, questionData: question });
     setResponses(prev => ({ 
       ...prev, 
-      [questionId]: { answer: value, question } 
+      [questionId]: { 
+        answer: value, 
+        question: {
+          text: question.text,
+          type: question.type,
+          category: question.category,
+          uniqueId: questionId
+        }
+      } 
     }));
   };
 
@@ -257,25 +274,17 @@ export default function GapFillingQuestionsFlow({
         {/* Questions */}
         <div className="space-y-6">
           {currentBatch.questions.map((question: any, index: number) => {
-            // Ensure unique question ID by combining batch index and question index
-            const uniqueQuestionId = `${currentBatchIndex}-${index}`;
-            const responseData = responses[uniqueQuestionId];
+            const questionId = question.uniqueId;
+            const responseData = responses[questionId];
             const currentValue = responseData?.answer;
-            
-            console.log('Rendering question:', { 
-              uniqueId: uniqueQuestionId, 
-              type: question.type,
-              currentValue,
-              questionText: question.text
-            });
             
             return (
               <QuestionCard
-                key={uniqueQuestionId}
+                key={questionId}
                 question={question}
                 index={index}
                 value={currentValue}
-                onChange={(value) => handleResponseChange(uniqueQuestionId, value, question)}
+                onChange={(value) => handleResponseChange(questionId, value, question)}
               />
             );
           })}
