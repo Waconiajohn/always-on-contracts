@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { Sparkles, ChevronRight, Target, Zap, Loader2, Info, CheckCircle2, TrendingUp } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -117,9 +118,9 @@ export default function GapFillingQuestionsFlow({
       }));
 
       console.log('Gap-filling questions loaded:', 
-        batchesWithIds.map(b => ({
+        batchesWithIds.map((b: any) => ({
           title: b.title,
-          questions: b.questions.map(q => ({ 
+          questions: b.questions.map((q: any) => ({ 
             text: q.text.substring(0, 50) + '...', 
             type: q.type, 
             hasOptions: !!q.options,
@@ -456,6 +457,31 @@ function QuestionCard({
                       {option}
                     </Label>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {question.type === 'scale' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">1 (Low)</span>
+                <Badge variant="outline" className="text-lg font-bold">
+                  {value || 5}
+                </Badge>
+                <span className="text-sm text-muted-foreground">10 (High)</span>
+              </div>
+              <Slider
+                value={[value || 5]}
+                onValueChange={(vals) => onChange(vals[0])}
+                min={1}
+                max={10}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                  <span key={num} className="w-6 text-center">{num}</span>
                 ))}
               </div>
             </div>
