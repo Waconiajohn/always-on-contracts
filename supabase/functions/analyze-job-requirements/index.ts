@@ -204,10 +204,8 @@ Return ONLY valid JSON:
       const cleanedContent = cleanCitations(content).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(cleanedContent);
       industryStandards = parsed.industryStandards || [];
-    } catch (parseError) {
-      console.error('Failed to parse industry standards JSON:', parseError);
     } catch (error) {
-      console.error('Perplexity error:', error);
+      console.error('Error fetching industry standards:', error);
     }
 
     // PHASE 3: Get profession benchmarks using Gemini
