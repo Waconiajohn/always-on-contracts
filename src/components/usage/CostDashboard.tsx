@@ -15,7 +15,6 @@ import {
   DollarSign,
   Zap,
   AlertTriangle,
-  CheckCircle2,
   Clock,
   BarChart3
 } from 'lucide-react';
@@ -23,17 +22,21 @@ import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface QuotaStatus {
-  tier: string;
-  monthly_request_count: number;
-  monthly_request_limit: number;
-  daily_request_count: number;
-  daily_request_limit: number;
-  monthly_cost_spent_usd: number;
-  monthly_cost_budget_usd: number;
-  daily_cost_spent_usd: number;
-  percent_used: number;
-  is_over_limit: boolean;
-  days_until_reset: number;
+  tier: string | null;
+  monthly_request_count: number | null;
+  monthly_request_limit: number | null;
+  daily_request_count: number | null;
+  daily_request_limit: number | null;
+  monthly_cost_spent_usd: number | null;
+  monthly_cost_budget_usd: number | null;
+  daily_cost_spent_usd: number | null;
+  percent_used: number | null;
+  is_over_limit: boolean | null;
+  days_until_reset: number | null;
+  cost_usage_percent: number | null;
+  budget_exceeded: boolean | null;
+  reset_date: string | null;
+  user_id: string | null;
 }
 
 interface TopFunction {
@@ -136,7 +139,7 @@ export default function CostDashboard() {
 
   const percentUsed = quotaStatus.percent_used || 0;
   const isNearLimit = percentUsed >= 80;
-  const isOverLimit = quotaStatus.is_over_limit;
+  const isOverLimit = quotaStatus.is_over_limit || false;
 
   return (
     <div className="space-y-6">
@@ -149,7 +152,7 @@ export default function CostDashboard() {
           </p>
         </div>
         <Badge variant={quotaStatus.tier === 'free' ? 'secondary' : 'default'} className="text-lg px-4 py-2">
-          {quotaStatus.tier.toUpperCase()} TIER
+          {(quotaStatus.tier || 'free').toUpperCase()} TIER
         </Badge>
       </div>
 
@@ -188,7 +191,7 @@ export default function CostDashboard() {
                 Monthly Usage
               </CardTitle>
               <CardDescription>
-                Resets in {quotaStatus.days_until_reset} days
+                Resets in {quotaStatus.days_until_reset || 0} days
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -196,7 +199,7 @@ export default function CostDashboard() {
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">Requests</span>
                   <span className="text-sm font-semibold">
-                    {quotaStatus.monthly_request_count} / {quotaStatus.monthly_request_limit}
+                    {quotaStatus.monthly_request_count || 0} / {quotaStatus.monthly_request_limit || 0}
                   </span>
                 </div>
                 <Progress value={percentUsed} className="h-3" />
@@ -212,10 +215,10 @@ export default function CostDashboard() {
                     <span className="text-xs text-slate-600 font-medium">TODAY</span>
                   </div>
                   <p className="text-2xl font-bold">
-                    {quotaStatus.daily_request_count}
+                    {quotaStatus.daily_request_count || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    of {quotaStatus.daily_request_limit} daily limit
+                    of {quotaStatus.daily_request_limit || 0} daily limit
                   </p>
                 </div>
 
@@ -225,7 +228,7 @@ export default function CostDashboard() {
                     <span className="text-xs text-blue-600 font-medium">THIS MONTH</span>
                   </div>
                   <p className="text-2xl font-bold">
-                    {quotaStatus.monthly_request_count}
+                    {quotaStatus.monthly_request_count || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     total requests
@@ -249,24 +252,24 @@ export default function CostDashboard() {
                   <div className="flex justify-between mb-2">
                     <span className="text-sm font-medium">Monthly Spend</span>
                     <span className="text-sm font-semibold">
-                      ${quotaStatus.monthly_cost_spent_usd.toFixed(2)} / ${quotaStatus.monthly_cost_budget_usd.toFixed(2)}
+                      ${(quotaStatus.monthly_cost_spent_usd || 0).toFixed(2)} / ${(quotaStatus.monthly_cost_budget_usd || 0).toFixed(2)}
                     </span>
                   </div>
                   <Progress
-                    value={(quotaStatus.monthly_cost_spent_usd / quotaStatus.monthly_cost_budget_usd) * 100}
+                    value={((quotaStatus.monthly_cost_spent_usd || 0) / (quotaStatus.monthly_cost_budget_usd || 1)) * 100}
                     className="h-3"
                   />
                 </div>
 
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Today's spend:</span>
-                  <span className="font-semibold">${quotaStatus.daily_cost_spent_usd.toFixed(4)}</span>
+                  <span className="font-semibold">${(quotaStatus.daily_cost_spent_usd || 0).toFixed(4)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Remaining budget:</span>
                   <span className="font-semibold text-green-600">
-                    ${(quotaStatus.monthly_cost_budget_usd - quotaStatus.monthly_cost_spent_usd).toFixed(2)}
+                    ${((quotaStatus.monthly_cost_budget_usd || 0) - (quotaStatus.monthly_cost_spent_usd || 0)).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -286,7 +289,7 @@ export default function CostDashboard() {
                   <div>
                     <p className="text-sm text-muted-foreground">Average Cost per Request</p>
                     <p className="text-2xl font-bold">
-                      ${(quotaStatus.monthly_cost_spent_usd / Math.max(quotaStatus.monthly_request_count, 1)).toFixed(4)}
+                      ${((quotaStatus.monthly_cost_spent_usd || 0) / Math.max((quotaStatus.monthly_request_count || 1), 1)).toFixed(4)}
                     </p>
                   </div>
                   <BarChart3 className="w-12 h-12 text-slate-400" />
@@ -296,19 +299,19 @@ export default function CostDashboard() {
                   <div className="p-3 border rounded-lg">
                     <p className="text-xs text-muted-foreground">Daily Avg</p>
                     <p className="text-lg font-semibold">
-                      ${(quotaStatus.monthly_cost_spent_usd / 30).toFixed(2)}
+                      ${((quotaStatus.monthly_cost_spent_usd || 0) / 30).toFixed(2)}
                     </p>
                   </div>
                   <div className="p-3 border rounded-lg">
                     <p className="text-xs text-muted-foreground">Projected</p>
                     <p className="text-lg font-semibold">
-                      ${((quotaStatus.monthly_cost_spent_usd / new Date().getDate()) * 30).toFixed(2)}
+                      ${(((quotaStatus.monthly_cost_spent_usd || 0) / new Date().getDate()) * 30).toFixed(2)}
                     </p>
                   </div>
                   <div className="p-3 border rounded-lg">
                     <p className="text-xs text-muted-foreground">Budget Left</p>
                     <p className="text-lg font-semibold">
-                      ${(quotaStatus.monthly_cost_budget_usd - quotaStatus.monthly_cost_spent_usd).toFixed(2)}
+                      ${((quotaStatus.monthly_cost_budget_usd || 0) - (quotaStatus.monthly_cost_spent_usd || 0)).toFixed(2)}
                     </p>
                   </div>
                 </div>

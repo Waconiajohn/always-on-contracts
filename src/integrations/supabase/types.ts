@@ -4877,43 +4877,52 @@ export type Database = {
         Row: {
           budget_exceeded: boolean | null
           cost_usage_percent: number | null
+          daily_cost_spent_usd: number | null
+          daily_request_count: number | null
           daily_request_limit: number | null
-          monthly_cost_limit_usd: number | null
+          days_until_reset: number | null
+          is_over_limit: boolean | null
+          monthly_cost_budget_usd: number | null
           monthly_cost_spent_usd: number | null
           monthly_request_count: number | null
           monthly_request_limit: number | null
-          quota_exceeded: boolean | null
+          percent_used: number | null
           reset_date: string | null
           tier: string | null
-          usage_percent: number | null
           user_id: string | null
         }
         Insert: {
           budget_exceeded?: never
           cost_usage_percent?: never
+          daily_cost_spent_usd?: never
+          daily_request_count?: never
           daily_request_limit?: number | null
-          monthly_cost_limit_usd?: number | null
+          days_until_reset?: never
+          is_over_limit?: never
+          monthly_cost_budget_usd?: number | null
           monthly_cost_spent_usd?: number | null
           monthly_request_count?: number | null
           monthly_request_limit?: number | null
-          quota_exceeded?: never
+          percent_used?: never
           reset_date?: string | null
           tier?: string | null
-          usage_percent?: never
           user_id?: string | null
         }
         Update: {
           budget_exceeded?: never
           cost_usage_percent?: never
+          daily_cost_spent_usd?: never
+          daily_request_count?: never
           daily_request_limit?: number | null
-          monthly_cost_limit_usd?: number | null
+          days_until_reset?: never
+          is_over_limit?: never
+          monthly_cost_budget_usd?: number | null
           monthly_cost_spent_usd?: number | null
           monthly_request_count?: number | null
           monthly_request_limit?: number | null
-          quota_exceeded?: never
+          percent_used?: never
           reset_date?: string | null
           tier?: string | null
-          usage_percent?: never
           user_id?: string | null
         }
         Relationships: []

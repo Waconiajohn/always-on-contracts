@@ -169,12 +169,12 @@ async function sendAlert(
 ) {
   const messages = {
     warning_80: {
-      subject: '⚠️ You've used 80% of your AI quota',
-      body: `You've used ${config.percentUsed.toFixed(0)}% of your monthly AI requests (${config.requestsUsed}/${config.requestsLimit}). Your quota resets in ${config.daysUntilReset} days. Consider upgrading to avoid interruptions.`
+      subject: '⚠️ You have used 80% of your AI quota',
+      body: `You have used ${config.percentUsed.toFixed(0)}% of your monthly AI requests (${config.requestsUsed}/${config.requestsLimit}). Your quota resets in ${config.daysUntilReset} days. Consider upgrading to avoid interruptions.`
     },
     warning_90: {
-      subject: '🚨 You've used 90% of your AI quota',
-      body: `You're approaching your limit! You've used ${config.requestsUsed} of ${config.requestsLimit} monthly requests. Only ${config.requestsLimit - config.requestsUsed} requests remaining. Upgrade now to continue.`
+      subject: '🚨 You have used 90% of your AI quota',
+      body: `You're approaching your limit! You have used ${config.requestsUsed} of ${config.requestsLimit} monthly requests. Only ${config.requestsLimit - config.requestsUsed} requests remaining. Upgrade now to continue.`
     },
     critical_100: {
       subject: '🛑 AI Quota Exceeded - Upgrade Required',
