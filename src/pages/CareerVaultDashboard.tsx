@@ -757,7 +757,7 @@ const VaultDashboardContent = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <Button
               variant="outline"
-              className="justify-start"
+              className="justify-start text-sm"
               onClick={() => setResumeModalOpen(true)}
             >
               <Upload className="h-4 w-4 mr-2" />
@@ -766,7 +766,7 @@ const VaultDashboardContent = () => {
 
             <Button
               variant="outline"
-              className="justify-start"
+              className="justify-start text-sm"
               onClick={() => setResumeModalOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -775,7 +775,7 @@ const VaultDashboardContent = () => {
 
             <Button
               variant="outline"
-              className="justify-start"
+              className="justify-start text-sm"
               onClick={handleReanalyze}
               disabled={isReanalyzing || !vault?.resume_raw_text}
             >
@@ -789,7 +789,7 @@ const VaultDashboardContent = () => {
             
             {stats.review_completion_percentage < 100 ? (
               <Button 
-                className="justify-start"
+                className="justify-start text-sm"
                 onClick={() => navigate('/career-vault-onboarding')}
               >
                 <PlayCircle className="h-4 w-4 mr-2" />
@@ -798,7 +798,7 @@ const VaultDashboardContent = () => {
             ) : (
               <Button
                 variant="destructive"
-                className="justify-start whitespace-nowrap"
+                className="justify-start whitespace-nowrap text-sm"
                 onClick={() => setRestartDialogOpen(true)}
               >
                 <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -808,7 +808,7 @@ const VaultDashboardContent = () => {
             
             <Button 
               variant="secondary"
-              className="justify-start"
+              className="justify-start text-sm"
               onClick={() => navigate('/agents/resume-builder')}
             >
               <Rocket className="h-4 w-4 mr-2" />
