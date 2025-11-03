@@ -9,14 +9,17 @@ import { AIError, handlePerplexityError, retryWithBackoff } from './error-handli
 import { perplexityCircuitBreaker } from './circuit-breaker.ts';
 
 export const PERPLEXITY_MODELS = {
-  // Production default - best balance of cost and quality
-  DEFAULT: 'llama-3.1-sonar-large-128k-online',
+  // Production default - best balance of cost and quality  
+  DEFAULT: 'sonar-pro',
   
   // Fast and cheap for simple tasks
-  SMALL: 'llama-3.1-sonar-small-128k-online',
+  SMALL: 'sonar',
   
-  // Most powerful for complex reasoning
-  HUGE: 'llama-3.1-sonar-huge-128k-online',
+  // Most powerful for complex reasoning (with Chain of Thought)
+  HUGE: 'sonar-reasoning-pro',
+  
+  // For comprehensive research reports
+  RESEARCH: 'sonar-deep-research',
 } as const;
 
 export const PERPLEXITY_CONFIG = {
@@ -25,11 +28,12 @@ export const PERPLEXITY_CONFIG = {
   DEFAULT_MAX_TOKENS: 4000,
   DEFAULT_TOP_P: 0.9,
   
-  // Pricing per 1M tokens (as of 2025)
+  // Pricing per 1M tokens (as of 2025) - updated for new Sonar models
   PRICING: {
-    [PERPLEXITY_MODELS.SMALL]: { input: 0.2, output: 0.2 },
-    [PERPLEXITY_MODELS.DEFAULT]: { input: 1.0, output: 1.0 },
-    [PERPLEXITY_MODELS.HUGE]: { input: 5.0, output: 5.0 },
+    'sonar': { input: 0.2, output: 0.2 },
+    'sonar-pro': { input: 1.0, output: 1.0 },
+    'sonar-reasoning-pro': { input: 5.0, output: 5.0 },
+    'sonar-deep-research': { input: 10.0, output: 10.0 },
   },
   
   // Retry configuration
