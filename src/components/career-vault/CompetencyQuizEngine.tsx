@@ -460,9 +460,9 @@ const QuestionInput = ({
       return (
         <RadioGroup value={localValue} onValueChange={setLocalValue}>
           {options.map((option: any, index: number) => (
-            <div key={index} className="flex items-center space-x-2 p-3 rounded-md hover:bg-muted">
+            <div key={index} className="flex items-center space-x-2 p-3 rounded-md hover:bg-muted border border-border bg-secondary dark:bg-muted">
               <RadioGroupItem value={option.value} id={`option-${index}`} />
-              <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+              <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer text-foreground">
                 {option.label}
                 {option.score && (
                   <span className="text-xs text-muted-foreground ml-2">

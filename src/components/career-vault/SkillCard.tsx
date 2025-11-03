@@ -131,25 +131,25 @@ export const SkillCard = ({ skill, onConfirm, onSkip }: SkillCardProps) => {
           <div className="mt-4 space-y-4 pt-4 border-t">
             {/* Proficiency Selection */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Your experience level:</Label>
+              <Label className="text-sm font-medium text-foreground">Your experience level:</Label>
               <RadioGroup value={proficiency} onValueChange={setProficiency}>
                 {skill.source === 'growth' ? (
                   <>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="none" id={`${skill.id}-none`} />
-                      <Label htmlFor={`${skill.id}-none`} className="cursor-pointer">
+                      <Label htmlFor={`${skill.id}-none`} className="cursor-pointer text-foreground">
                         No knowledge
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="working" id={`${skill.id}-working`} />
-                      <Label htmlFor={`${skill.id}-working`} className="cursor-pointer">
+                      <Label htmlFor={`${skill.id}-working`} className="cursor-pointer text-foreground">
                         Working knowledge (understand basics)
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="strong_working" id={`${skill.id}-strong`} />
-                      <Label htmlFor={`${skill.id}-strong`} className="cursor-pointer">
+                      <Label htmlFor={`${skill.id}-strong`} className="cursor-pointer text-foreground">
                         Strong working knowledge (can discuss/apply)
                       </Label>
                     </div>
@@ -158,13 +158,13 @@ export const SkillCard = ({ skill, onConfirm, onSkip }: SkillCardProps) => {
                   <>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="proficient" id={`${skill.id}-proficient`} />
-                      <Label htmlFor={`${skill.id}-proficient`} className="cursor-pointer">
+                      <Label htmlFor={`${skill.id}-proficient`} className="cursor-pointer text-foreground">
                         Proficient (3+ years)
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="expert" id={`${skill.id}-expert`} />
-                      <Label htmlFor={`${skill.id}-expert`} className="cursor-pointer">
+                      <Label htmlFor={`${skill.id}-expert`} className="cursor-pointer text-foreground">
                         Expert (led major initiatives)
                       </Label>
                     </div>
@@ -176,7 +176,7 @@ export const SkillCard = ({ skill, onConfirm, onSkip }: SkillCardProps) => {
             {/* Sub-attributes */}
             {skill.sub_attributes.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
+                <Label className="text-sm font-medium text-foreground">
                   {skill.source === 'growth'
                     ? 'Related areas (if any):'
                     : 'Which of these apply to you?'}
@@ -194,7 +194,7 @@ export const SkillCard = ({ skill, onConfirm, onSkip }: SkillCardProps) => {
                       />
                       <Label 
                         htmlFor={`${skill.id}-attr-${idx}`}
-                        className="flex-1 cursor-pointer text-sm"
+                        className="flex-1 cursor-pointer text-sm text-foreground"
                       >
                         {attr}
                       </Label>
@@ -213,7 +213,7 @@ export const SkillCard = ({ skill, onConfirm, onSkip }: SkillCardProps) => {
               />
               <Label
                 htmlFor={`${skill.id}-develop`}
-                className="cursor-pointer text-sm"
+                className="cursor-pointer text-sm text-foreground"
               >
                 Mark as "Want to Develop"
               </Label>

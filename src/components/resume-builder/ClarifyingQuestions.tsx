@@ -70,12 +70,12 @@ export const ClarifyingQuestions = ({
                 {question.options.map(option => (
                   <div 
                     key={option.value} 
-                    className="flex items-center space-x-3 p-3 rounded-md hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all cursor-pointer"
+                    className="flex items-center space-x-3 p-3 rounded-md hover:bg-primary/5 border border-border hover:border-primary/20 transition-all cursor-pointer bg-secondary dark:bg-muted"
                   >
                     <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
                     <Label 
                       htmlFor={`${question.id}-${option.value}`} 
-                      className="flex-1 cursor-pointer font-normal"
+                      className="flex-1 cursor-pointer font-normal text-foreground"
                     >
                       {option.label}
                     </Label>

@@ -153,7 +153,7 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-slate-200">
+    <Card className="bg-card/80 backdrop-blur-sm border-border">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -207,9 +207,9 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
 
         {/* Filters */}
         {showFilters && (
-          <div className="grid md:grid-cols-2 gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="grid md:grid-cols-2 gap-3 p-4 bg-secondary/50 rounded-lg border border-border">
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Category</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">Category</label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
                   <SelectValue />
@@ -230,7 +230,7 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Quality Tier</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">Quality Tier</label>
               <Select value={qualityFilter} onValueChange={setQualityFilter}>
                 <SelectTrigger>
                   <SelectValue />
@@ -294,7 +294,7 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
               const Icon = CATEGORY_ICONS[category] || Search;
               return (
                 <div key={category} className="space-y-2">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
                     <Icon className="w-4 h-4 text-purple-600" />
                     {category.replace(/_/g, ' ').toUpperCase()} ({items.length})
                   </h3>
@@ -307,7 +307,7 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-slate-900 line-clamp-2 mb-2">
+                            <p className="text-sm text-foreground line-clamp-2 mb-2">
                               {result.content}
                             </p>
                             <div className="flex flex-wrap items-center gap-2">

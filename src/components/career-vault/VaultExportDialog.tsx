@@ -258,7 +258,7 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
                 {selectedCategories.length === CATEGORIES.length ? 'Deselect All' : 'Select All'}
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-2 bg-slate-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-2 bg-secondary/50 rounded-lg">
               {CATEGORIES.map((category) => (
                 <div key={category.key} className="flex items-center space-x-2">
                   <Checkbox
@@ -266,7 +266,7 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
                     checked={selectedCategories.includes(category.key)}
                     onCheckedChange={() => toggleCategory(category.key)}
                   />
-                  <Label htmlFor={category.key} className="text-sm cursor-pointer">
+                  <Label htmlFor={category.key} className="text-sm cursor-pointer text-foreground">
                     {category.icon} {category.label}
                   </Label>
                 </div>
@@ -280,7 +280,7 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
           {/* Quality Tiers Selection */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Quality Tiers to Export</Label>
-            <div className="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-2 p-2 bg-secondary/50 rounded-lg">
               {QUALITY_TIERS.map((tier) => (
                 <div key={tier.key} className="flex items-center space-x-2">
                   <Checkbox
@@ -288,7 +288,7 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
                     checked={selectedQualityTiers.includes(tier.key)}
                     onCheckedChange={() => toggleQualityTier(tier.key)}
                   />
-                  <Label htmlFor={tier.key} className="text-sm cursor-pointer">
+                  <Label htmlFor={tier.key} className="text-sm cursor-pointer text-foreground">
                     <Badge variant="outline" className={tier.color}>
                       {tier.label}
                     </Badge>
