@@ -108,7 +108,7 @@ serve(async (req) => {
         sanitized = (lastSentence > 9000 ? truncated.substring(0, lastSentence + 1) : truncated) + 
                     ' [Response truncated - very detailed answer provided]';
         
-        logger.warn('Response truncated', { 
+        console.warn('Response truncated:', { 
           originalLength: sanitized.length,
           note: 'User provided essay-length answer'
         });
@@ -126,7 +126,7 @@ serve(async (req) => {
     
     const estimatedTokens = estimateTokens(totalResponseLength);
     
-    logger.info('Processing responses', {
+    console.log('Processing responses:', {
       responseCount: responses.length,
       totalCharacters: totalResponseLength,
       estimatedInputTokens: estimatedTokens,
@@ -135,7 +135,7 @@ serve(async (req) => {
     
     // Warn if approaching 50% of context window (very rare with normal usage)
     if (totalResponseLength > 400000) {
-      logger.warn('Large response set detected', {
+      console.warn('Large response set detected:', {
         note: 'Consider batch processing for very detailed responses'
       });
     }
