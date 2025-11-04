@@ -51,13 +51,25 @@ export function analyzeCareerContext(vaultData: VaultData): CareerContext {
 
   // ===== MANAGEMENT EXPERIENCE DETECTION =====
   const managementPhrases = vaultData.powerPhrases.filter(pp =>
-    /led\s+team|managed?\s+\d+|built\s+team|hired|recruited|coached|mentored\s+\d+/i.test(pp.power_phrase)
+    /led|managed?|directed|guided|supervised|oversaw|coordinated|built\s+team|hired|recruited|coached|mentored|spearheaded|headed|commanded|governed/i.test(pp.power_phrase)
   );
 
   const teamSizes = managementPhrases
     .map(pp => {
-      const match = pp.power_phrase.match(/(?:team|engineers?|people|reports?)\s+of\s+(\d+)/i);
-      return match ? parseInt(match[1]) : null;
+      // Match various team size patterns:
+      // "team of 5", "5 engineers", "3-4 rigs", "managed 12 people"
+      const patterns = [
+        /(?:team|group|crew|staff)\s+of\s+(\d+)/i,
+        /(\d+)\s+(?:engineers?|people|reports?|employees|staff|members)/i,
+        /(?:over|managed?|supervised|led)\s+(\d+)/i,
+        /(\d+)[-–]\d+\s+(?:rigs|teams|groups|people)/i, // "3-4 rigs" -> extract first number
+      ];
+
+      for (const pattern of patterns) {
+        const match = pp.power_phrase.match(pattern);
+        if (match) return parseInt(match[1]);
+      }
+      return null;
     })
     .filter((n): n is number => n !== null);
 
@@ -73,18 +85,32 @@ export function analyzeCareerContext(vaultData: VaultData): CareerContext {
 
   // ===== BUDGET OWNERSHIP DETECTION =====
   const budgetPhrases = vaultData.powerPhrases.filter(pp =>
-    /\$\d+[kmb]|budget|p&l|revenue|cost\s+sav/i.test(pp.power_phrase)
+    /\$\d+|budget|p&l|revenue|cost\s+sav/i.test(pp.power_phrase)
   );
 
   const budgetSizes = budgetPhrases
     .map(pp => {
-      const match = pp.power_phrase.match(/\$(\d+(?:\.\d+)?)\s*([kmb])?/i);
-      if (!match) return null;
-      const value = parseFloat(match[1]);
-      const multiplier = match[2]?.toLowerCase() === 'k' ? 1000 :
-                        match[2]?.toLowerCase() === 'm' ? 1000000 :
-                        match[2]?.toLowerCase() === 'b' ? 1000000000 : 1;
-      return value * multiplier;
+      // Match patterns like: "$350MM", "$1.5M", "$100K", "350 million"
+      const patterns = [
+        /\$(\d+(?:\.\d+)?)\s*(mm|m|k|b)?/i,
+        /(\d+(?:\.\d+)?)\s+(million|billion|thousand)/i,
+      ];
+
+      for (const pattern of patterns) {
+        const match = pp.power_phrase.match(pattern);
+        if (!match) continue;
+
+        const value = parseFloat(match[1]);
+        const unit = match[2]?.toLowerCase();
+
+        const multiplier =
+          unit === 'k' || unit === 'thousand' ? 1000 :
+          unit === 'm' || unit === 'mm' || unit === 'million' ? 1000000 :
+          unit === 'b' || unit === 'billion' ? 1000000000 : 1;
+
+        return value * multiplier;
+      }
+      return null;
     })
     .filter((n): n is number => n !== null);
 
