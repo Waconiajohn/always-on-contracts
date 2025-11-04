@@ -16,13 +16,38 @@ const corsHeaders = {
 };
 
 // Phase 1.3: Robust Text Cleanup
+// Enhanced to fix PDF extraction artifacts (excessive spacing) without breaking valid content
 function robustTextCleanup(text: string): string {
   return text
     .normalize('NFKC')
+
+    // Fix encoding issues
     .replace(/â€™/g, "'")
     .replace(/â€"/g, "—")
     .replace(/â€œ/g, '"')
     .replace(/â€/g, '"')
+
+    // Fix excessive spacing in specific patterns (NOT all characters)
+    // Phone numbers: "( 713 ) 397 . 3368" → "(713) 397-3368"
+    .replace(/\(\s+/g, '(')                                    // "( 713" → "(713"
+    .replace(/\s+\)/g, ')')                                    // "713 )" → "713)"
+    .replace(/\(\s*(\d{3})\s*\)\s*(\d{3})\s*[.-]?\s*(\d{4})/g, '($1) $2-$3')
+
+    // Email addresses: "name@ gmail .com" → "name@gmail.com"
+    .replace(/([a-z0-9])@\s+([a-z])/gi, '$1@$2')              // Fix @ spacing
+    .replace(/\.\s+(com|org|net|edu|gov)\b/gi, '.$1')         // Fix .com spacing
+    .replace(/([a-z0-9])\s+\.([a-z])/gi, '$1.$2')             // "gmail .com" → "gmail.com"
+
+    // Numbers with decimals: "3 . 14" → "3.14"
+    .replace(/(\d)\s+\.\s+(\d)/g, '$1.$2')
+
+    // Plus signs in numbers: "1 7 +" → "17+"
+    .replace(/(\d)\s+\+/g, '$1+')
+
+    // Hyphens in words: "luke - bibler" → "luke-bibler"
+    .replace(/([a-z])\s+-\s+([a-z])/gi, '$1-$2')
+
+    // Normalize whitespace
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/\s+/g, ' ')
@@ -457,12 +482,23 @@ async function validateIsResume(text: string, userId?: string): Promise<{
           },
           {
             role: "user",
-            content: `Analyze if this is a professional resume/CV. Look for: contact info, work history, education, skills.
+            content: `Analyze if this is a professional resume/CV.
+
+IMPORTANT: The text may have formatting artifacts (extra spaces, broken words, poor OCR). Focus on CONTENT, not format quality.
+
+Look for these key resume indicators:
+- Contact information (name, phone, email, location)
+- Work experience with job titles and dates
+- Education with degrees/institutions
+- Skills or competencies
+- Professional achievements or responsibilities
 
 TEXT (first 5000 chars):
 ${text.substring(0, 5000)}
 
-Respond with confidence 0.0-1.0 and brief reason.`
+Respond with JSON: { "isResume": boolean, "confidence": 0.0-1.0, "reason": "brief explanation" }
+
+Be lenient - if you see resume content despite poor formatting, mark as true.`
           }
         ],
         model: PERPLEXITY_MODELS.SMALL,
@@ -489,20 +525,46 @@ Respond with confidence 0.0-1.0 and brief reason.`
     }
     return result;
   } catch (error) {
-    // Fallback to keyword-based validation
+    console.log('[PROCESS-RESUME] AI validation failed, using regex fallback:', error.message);
+
+    // Fallback to keyword-based validation with improved patterns
     const resumeIndicators = [
-      /experience|employment|work history|professional background|career/i,
-      /education|degree|university|college|academic/i,
-      /skills|proficiencies|expertise|competencies/i,
-      /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}/i,
-      /\b(manager|engineer|developer|analyst|specialist|coordinator|director|consultant)/i
+      // Work experience patterns (more flexible with spacing)
+      /\b(experience|employment|work\s*history|professional|career|positions?)\b/i,
+
+      // Education patterns
+      /\b(education|degree|university|college|academic|bachelor|master|phd|mba)\b/i,
+
+      // Skills patterns (more variations)
+      /\b(skills|proficiencies|expertise|competencies|technologies|tools)\b/i,
+
+      // Date patterns (more flexible with spacing)
+      /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4}\b/i,
+
+      // Job titles (expanded list with word boundaries)
+      /\b(manager|engineer|developer|analyst|specialist|coordinator|director|consultant|lead|senior|architect)\b/i,
+
+      // Contact info patterns
+      /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.(com|org|net|edu|gov)\b/i,
+
+      // Phone number patterns
+      /\b\d{3}[-.\s()]*\d{3}[-.\s]*\d{4}\b/,
+
+      // Location patterns
+      /\b[A-Z][a-z]+,\s*[A-Z]{2}\b/  // "Denver, CO"
     ];
-    
+
     const matches = resumeIndicators.filter(r => r.test(text)).length;
+    const isValid = matches >= 3; // Require at least 3 indicators
+
+    console.log('[PROCESS-RESUME] Regex fallback matched', matches, 'of', resumeIndicators.length, 'indicators');
+
     return {
-      isResume: matches >= 2,
-      confidence: matches / resumeIndicators.length,
-      reason: matches >= 2 ? 'Contains resume indicators' : 'Missing key resume sections'
+      isResume: isValid,
+      confidence: Math.min(0.95, matches / resumeIndicators.length),
+      reason: isValid
+        ? `Matched ${matches}/${resumeIndicators.length} resume indicators`
+        : 'Insufficient resume indicators found'
     };
   }
 }
@@ -881,8 +943,6 @@ serve(async (req) => {
       throw new Error("Missing required fields: either fileText or fileData must be provided");
     }
 
-    let extractedText = '';
-
     // Phase 3.3: Check rate limit
     const rateLimit = await checkRateLimit(supabase, userId);
     if (!rateLimit.allowed) {
@@ -920,8 +980,8 @@ serve(async (req) => {
     console.log('[PROCESS-RESUME] Queue entry created:', queueId);
 
     // Phase 1: Handle file parsing based on what was provided
-    // extractedText already declared on line 884
-    
+    let extractedText = '';
+
     if (fileData) {
       // New method: Parse file from base64 data
       await supabase.from('resume_processing_queue')
@@ -1017,12 +1077,30 @@ serve(async (req) => {
       .update({ progress: 40 })
       .eq('id', queueId);
 
-    // Phase 1.4: Validate document (with lenient threshold)
+    // Phase 1.4: Validate document
     const validation = await validateIsResume(cleanedText, userId);
 
-    if (!validation.isResume || validation.confidence < 0.3) {
+    // Detailed validation logging for debugging
+    console.log('[PROCESS-RESUME] ========== VALIDATION RESULT ==========');
+    console.log('[PROCESS-RESUME] isResume:', validation.isResume);
+    console.log('[PROCESS-RESUME] confidence:', validation.confidence);
+    console.log('[PROCESS-RESUME] reason:', validation.reason);
+    console.log('[PROCESS-RESUME] Text quality check:', {
+      length: cleanedText.length,
+      hasEmail: /@/.test(cleanedText),
+      hasPhone: /\d{3}[-.\s()]*\d{3}[-.\s]*\d{4}/.test(cleanedText),
+      hasDates: /\d{4}/.test(cleanedText),
+      hasWorkKeywords: /\b(experience|employment|work)\b/i.test(cleanedText),
+      hasEducationKeywords: /\b(education|degree|university)\b/i.test(cleanedText)
+    });
+
+    if (!validation.isResume || validation.confidence < 0.5) {
+      console.error('[PROCESS-RESUME] Validation failed - dumping text sample (first 1000 chars):');
+      console.error(cleanedText.substring(0, 1000));
       throw new Error(ERROR_MESSAGES['not_a_resume']);
     }
+
+    console.log('[PROCESS-RESUME] ✓ Validation passed');
 
     await supabase.from('resume_processing_queue')
       .update({ progress: 60 })
