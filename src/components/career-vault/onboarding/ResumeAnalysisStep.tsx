@@ -181,7 +181,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
           .eq('user_id', currentUser.id)
           .maybeSingle();
 
-        if (existingVault) {
+        if (existingVault?.id) {
           // Use existing vault and update the resume text
           currentVaultId = existingVault.id;
           await supabase
@@ -206,6 +206,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
             .single();
 
           if (vaultError) throw vaultError;
+          if (!vaultData?.id) throw new Error('Failed to create vault record');
           currentVaultId = vaultData.id;
         }
       }
