@@ -172,6 +172,17 @@ CRITICAL: Extract ONLY what is explicitly stated. Do NOT invent achievements. If
 
     console.log(`✅ Extracted ${powerPhrases.length} power phrases`);
 
+    // Validate AI response
+    if (!powerPhrases || !Array.isArray(powerPhrases) || powerPhrases.length === 0) {
+      throw new Error('AI returned invalid or empty power phrases array');
+    }
+
+    console.log('[AUTO-POPULATE] Preparing to insert power phrases:', {
+      count: powerPhrases.length,
+      sampleConfidence: powerPhrases[0]?.confidenceScore,
+      samplePhrase: powerPhrases[0]?.phrase?.substring(0, 50)
+    });
+
     // Insert power phrases to database
     const powerPhrasesInserts = powerPhrases.map((pp: any) => ({
       vault_id: vaultId,
@@ -179,11 +190,10 @@ CRITICAL: Extract ONLY what is explicitly stated. Do NOT invent achievements. If
       power_phrase: pp.phrase,
       category: pp.category,
       impact_metrics: pp.impactMetrics || {},
-      confidence_score: pp.confidenceScore,
+      confidence_score: Math.round(pp.confidenceScore * 100), // Convert 0.0-1.0 to 0-100 integer
       quality_tier: pp.confidenceScore >= 0.9 ? 'gold' : pp.confidenceScore >= 0.75 ? 'silver' : pp.confidenceScore >= 0.6 ? 'bronze' : 'assumed',
       inferred_from: pp.inferredFrom,
       keywords: pp.keywords || [],
-      source: 'auto_populated_v2',
       needs_user_review: pp.confidenceScore < 0.75
     }));
 
@@ -192,8 +202,11 @@ CRITICAL: Extract ONLY what is explicitly stated. Do NOT invent achievements. If
       .insert(powerPhrasesInserts);
 
     if (powerPhrasesError) {
-      console.error('Power phrases insertion error:', powerPhrasesError);
+      console.error('[AUTO-POPULATE] Power phrases insertion error:', powerPhrasesError);
+      throw new Error(`Failed to insert power phrases: ${powerPhrasesError.message}`);
     }
+
+    console.log(`✅ Successfully inserted ${powerPhrasesInserts.length} power phrases`);
 
     // =================================================
     // EXTRACTION PASS 2: TRANSFERABLE SKILLS
@@ -257,6 +270,17 @@ RETURN VALID JSON ONLY:
 
     console.log(`✅ Extracted ${transferableSkills.length} transferable skills`);
 
+    // Validate AI response
+    if (!transferableSkills || !Array.isArray(transferableSkills) || transferableSkills.length === 0) {
+      throw new Error('AI returned invalid or empty transferable skills array');
+    }
+
+    console.log('[AUTO-POPULATE] Preparing to insert transferable skills:', {
+      count: transferableSkills.length,
+      sampleConfidence: transferableSkills[0]?.confidenceScore,
+      sampleSkill: transferableSkills[0]?.statedSkill?.substring(0, 50)
+    });
+
     // Insert skills to database
     const skillsInserts = transferableSkills.map((skill: any) => ({
       vault_id: vaultId,
@@ -264,9 +288,8 @@ RETURN VALID JSON ONLY:
       stated_skill: skill.statedSkill,
       equivalent_skills: skill.equivalentSkills || [],
       evidence: skill.evidence,
-      confidence_score: skill.confidenceScore,
+      confidence_score: Math.round(skill.confidenceScore * 100), // Convert 0.0-1.0 to 0-100 integer
       quality_tier: skill.confidenceScore >= 0.9 ? 'gold' : skill.confidenceScore >= 0.75 ? 'silver' : 'bronze',
-      source: 'auto_populated_v2',
       needs_user_review: skill.confidenceScore < 0.75
     }));
 
@@ -275,8 +298,11 @@ RETURN VALID JSON ONLY:
       .insert(skillsInserts);
 
     if (skillsError) {
-      console.error('Skills insertion error:', skillsError);
+      console.error('[AUTO-POPULATE] Skills insertion error:', skillsError);
+      throw new Error(`Failed to insert transferable skills: ${skillsError.message}`);
     }
+
+    console.log(`✅ Successfully inserted ${skillsInserts.length} transferable skills`);
 
     // =================================================
     // EXTRACTION PASS 3: HIDDEN COMPETENCIES
@@ -335,6 +361,17 @@ RETURN VALID JSON ONLY:
 
     console.log(`✅ Extracted ${hiddenCompetencies.length} hidden competencies`);
 
+    // Validate AI response
+    if (!hiddenCompetencies || !Array.isArray(hiddenCompetencies) || hiddenCompetencies.length === 0) {
+      throw new Error('AI returned invalid or empty hidden competencies array');
+    }
+
+    console.log('[AUTO-POPULATE] Preparing to insert hidden competencies:', {
+      count: hiddenCompetencies.length,
+      sampleConfidence: hiddenCompetencies[0]?.confidenceScore,
+      sampleCompetency: hiddenCompetencies[0]?.competencyArea?.substring(0, 50)
+    });
+
     // Insert competencies to database
     const competenciesInserts = hiddenCompetencies.map((comp: any) => ({
       vault_id: vaultId,
@@ -343,10 +380,9 @@ RETURN VALID JSON ONLY:
       inferred_capability: comp.inferredCapability,
       supporting_evidence: comp.supportingEvidence || [],
       certification_equivalent: comp.certificationEquivalent,
-      confidence_score: comp.confidenceScore,
+      confidence_score: Math.round(comp.confidenceScore * 100), // Convert 0.0-1.0 to 0-100 integer
       quality_tier: comp.confidenceScore >= 0.85 ? 'silver' : 'bronze',
-      evidence_from_resume: comp.inferredFrom,
-      source: 'auto_populated_v2',
+      inferred_from: comp.inferredFrom, // FIXED: was evidence_from_resume
       needs_user_review: comp.confidenceScore < 0.75
     }));
 
@@ -355,8 +391,11 @@ RETURN VALID JSON ONLY:
       .insert(competenciesInserts);
 
     if (competenciesError) {
-      console.error('Competencies insertion error:', competenciesError);
+      console.error('[AUTO-POPULATE] Competencies insertion error:', competenciesError);
+      throw new Error(`Failed to insert hidden competencies: ${competenciesError.message}`);
     }
+
+    console.log(`✅ Successfully inserted ${competenciesInserts.length} hidden competencies`);
 
     // =================================================
     // EXTRACTION PASS 4: SOFT SKILLS
@@ -414,6 +453,17 @@ RETURN VALID JSON ONLY:
 
     console.log(`✅ Extracted ${softSkills.length} soft skills`);
 
+    // Validate AI response
+    if (!softSkills || !Array.isArray(softSkills) || softSkills.length === 0) {
+      throw new Error('AI returned invalid or empty soft skills array');
+    }
+
+    console.log('[AUTO-POPULATE] Preparing to insert soft skills:', {
+      count: softSkills.length,
+      sampleConfidence: softSkills[0]?.confidenceScore,
+      sampleSkill: softSkills[0]?.skillName?.substring(0, 50)
+    });
+
     // Insert soft skills to database
     const softSkillsInserts = softSkills.map((skill: any) => ({
       vault_id: vaultId,
@@ -422,9 +472,8 @@ RETURN VALID JSON ONLY:
       examples: skill.examples,
       impact: skill.impact,
       proficiency_level: skill.proficiencyLevel || 'advanced',
-      confidence_score: skill.confidenceScore,
+      ai_confidence: skill.confidenceScore, // FIXED: use ai_confidence (not confidence_score) - this table uses DECIMAL
       quality_tier: skill.confidenceScore >= 0.85 ? 'silver' : 'bronze',
-      source: 'auto_populated_v2',
       needs_user_review: skill.confidenceScore < 0.75
     }));
 
@@ -433,8 +482,11 @@ RETURN VALID JSON ONLY:
       .insert(softSkillsInserts);
 
     if (softSkillsError) {
-      console.error('Soft skills insertion error:', softSkillsError);
+      console.error('[AUTO-POPULATE] Soft skills insertion error:', softSkillsError);
+      throw new Error(`Failed to insert soft skills: ${softSkillsError.message}`);
     }
+
+    console.log(`✅ Successfully inserted ${softSkillsInserts.length} soft skills`);
 
     // =================================================
     // CALCULATE TOTAL ITEMS & VAULT STRENGTH
