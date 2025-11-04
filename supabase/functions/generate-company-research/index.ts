@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,7 +43,13 @@ ${jobDescription ? `Context: The user is interviewing for this role: ${jobDescri
 Format your response with clear section headers.`
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'research',
+          complexity: 'medium',
+          requiresWebSearch: true,
+          estimatedInputTokens: 600,
+          estimatedOutputTokens: 800
+        }),
         temperature: 0.3,
         return_citations: false,
         search_recency_filter: 'month',
