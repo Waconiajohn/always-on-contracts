@@ -100,10 +100,21 @@ ${industryResearch ? `## Industry Context:\n${JSON.stringify(industryResearch, n
 ${targetRoles ? `## Target Roles:\n${targetRoles.join(', ')}` : ''}
 
 ## Your Task:
-Analyze the vault data and identify CRITICAL gaps that, if filled, would significantly strengthen this professional's profile.
+FIRST: Analyze the vault data to understand this professional's ACTUAL role, industry, and career level by examining their power phrases, skills, and competencies.
+
+THEN: Identify CRITICAL gaps that, if filled, would significantly strengthen their profile FOR THEIR SPECIFIC FIELD.
+
+CRITICAL - Role-Appropriate Questions:
+- If technical/operations role (engineer, technician, operator, specialist) → Ask about: technical skills, certifications, safety records, equipment expertise, process improvements, project outcomes
+- If business/management role (manager, director, executive) → Ask about: leadership, strategy, team building, transformation, P&L responsibility
+- If creative role (designer, writer, artist) → Ask about: portfolio pieces, creative tools, style evolution, client work
+- If healthcare role (nurse, doctor, therapist) → Ask about: patient care, specializations, certifications, protocols
+- If trades/skilled labor → Ask about: certifications, safety, equipment, techniques, project scale
+
+Match the question sophistication, terminology, and domain to THEIR actual work - NOT a generic executive template.
 
 Generate 5-15 highly targeted questions organized into logical batches. Each question should:
-1. Address a SPECIFIC gap that executives/leaders typically have documented
+1. Address a SPECIFIC gap relevant to THEIR field and career level (analyze their actual role first!)
 2. Have measurable impact on vault strength (rate 1-10)
 3. Be answerable in <2 minutes
 4. Use the most appropriate question format (multiple choice, yes/no, text, scale)
@@ -115,44 +126,44 @@ Generate 5-15 highly targeted questions organized into logical batches. Each que
   "estimatedVaultStrengthBoost": 15,
   "batches": [
     {
-      "batchTitle": "Strategic Leadership Impact",
-      "batchDescription": "Questions about your transformational leadership achievements",
+      "batchTitle": "[Role-Appropriate Title]",
+      "batchDescription": "[Description matching their field]",
       "estimatedTime": "3-5 minutes",
-      "impactExplanation": "These answers differentiate executive leaders from managers",
+      "impactExplanation": "[Explanation relevant to their career level and industry]",
       "questions": [
         {
-          "text": "Have you led a digital transformation initiative?",
+          "text": "[Question text tailored to their actual role]",
           "type": "yes_no",
-          "category": "strategic_leadership",
+          "category": "[category]",
           "impactScore": 9,
           "validation": {
             "required": true
           }
         },
         {
-          "text": "What was the largest team you've built from scratch?",
+          "text": "[Another role-appropriate question]",
           "type": "multiple_choice",
-          "category": "team_building",
+          "category": "[category]",
           "impactScore": 8,
-          "options": ["1-5 people", "6-15 people", "16-50 people", "50+ people", "I haven't built a team from scratch"],
+          "options": ["[Option 1]", "[Option 2]", "[Option 3]", "[Option 4]"],
           "validation": {
             "required": true
           }
         },
         {
-          "text": "Which of the following domains have you worked in? (Select all that apply)",
+          "text": "[Multi-select question] (Select all that apply)",
           "type": "checkbox",
-          "category": "domain_expertise",
+          "category": "[category]",
           "impactScore": 8,
-          "options": ["Banking/FinTech", "E-commerce", "Healthcare", "Cloud/SaaS products", "Industrial IoT"],
+          "options": ["[Option 1]", "[Option 2]", "[Option 3]", "[Option 4]"],
           "validation": {
             "required": false
           }
         },
         {
-          "text": "Describe your most significant turnaround achievement",
+          "text": "[Open-ended question for narrative]",
           "type": "text",
-          "category": "turnaround_leadership",
+          "category": "[category]",
           "impactScore": 10,
           "validation": {
             "minLength": 50,
@@ -174,10 +185,10 @@ CRITICAL TYPE SELECTION RULES:
 
 IMPORTANT:
 - Only ask questions where the answer is clearly MISSING or WEAK in the vault
-- Prioritize questions with impactScore 7-10 (game-changers for executive profiles)
+- Prioritize questions with impactScore 7-10 (game-changers for THIS PERSON'S career level and field)
 - Mix question types for better user experience
 - Keep batches to 3-5 questions each for psychological momentum
-- NO generic questions - every question must tie to executive-level competencies
+- NO generic questions - every question must tie to competencies relevant to THEIR specific role and industry
 
 QUESTION TYPE GUIDELINES:
 - Use "multiple_choice" for single-selection questions (e.g., "What was the size of...")
