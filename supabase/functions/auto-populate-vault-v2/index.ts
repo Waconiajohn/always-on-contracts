@@ -112,22 +112,30 @@ Use this to contextualize extraction - highlight achievements that align with in
     // =================================================
     console.log('📊 Extracting power phrases (quantified achievements)...');
 
-    const powerPhrasesPrompt = `You are an elite executive resume analyst extracting QUANTIFIED ACHIEVEMENTS.
+    const powerPhrasesPrompt = `You are an elite executive resume analyst extracting QUANTIFIED ACHIEVEMENTS and MANAGEMENT SCOPE.
 
 ${researchContext}
 
 RESUME TEXT:
 ${resumeText}
 
-TASK: Extract 20-50 power phrases (quantified achievements) from this resume.
+TASK: Extract 20-50 power phrases (quantified achievements AND management/leadership scope) from this resume.
 
 REQUIREMENTS:
-1. Each power phrase MUST have metrics (numbers, percentages, timeframes, amounts)
-2. Focus on IMPACT and RESULTS, not responsibilities
-3. Prioritize achievements relevant to: ${targetRoles.join(', ')}
-4. Categorize each achievement (cost_reduction, revenue_growth, efficiency, innovation, leadership, team_building, other)
-5. Extract impact metrics when possible
-6. Assign confidence score based on clarity and specificity
+1. EXTRACT TWO TYPES OF PHRASES:
+
+   TYPE A - Impact Achievements: Must have outcome metrics (%, $, time saved, efficiency gains)
+   Examples: "Reduced costs by 40% ($2M)", "Improved efficiency by 25%", "Delivered $500K in savings"
+
+   TYPE B - Management/Leadership Scope: Must have scope metrics (team sizes, budget amounts, operational scale)
+   Examples: "Managed team of 12 engineers", "Oversaw $350MM budget", "Supervised 3-4 drilling rigs", "Guided cross-functional team"
+
+2. DO NOT SKIP Type B phrases - they are CRITICAL for career level assessment
+3. For Type B phrases: Team sizes, budget amounts, and operational scale counts ARE metrics
+4. Focus on IMPACT and SCOPE, not generic responsibilities like "responsible for" or "duties included"
+5. Prioritize achievements relevant to: ${targetRoles.join(', ')}
+6. Categorize: cost_reduction, revenue_growth, efficiency, innovation, leadership, team_building, budget_management, operational_scope, other
+7. Assign confidence score based on clarity and specificity
 
 RETURN VALID JSON ONLY (no markdown, no explanations):
 {
@@ -145,11 +153,24 @@ RETURN VALID JSON ONLY (no markdown, no explanations):
       "confidenceScore": 0.95,
       "inferredFrom": "Experience section under VP Engineering role",
       "keywords": ["cost reduction", "cloud optimization", "financial impact", "infrastructure"]
+    },
+    {
+      "phrase": "Managed engineering team of 12 across 3 product lines",
+      "category": "team_building",
+      "impactMetrics": {
+        "teamSize": 12,
+        "scope": "3 product lines"
+      },
+      "relevanceToTarget": "Demonstrates people management experience required for Director roles",
+      "confidenceScore": 0.90,
+      "inferredFrom": "Experience section job title and responsibilities",
+      "keywords": ["team management", "people leadership", "cross-functional"]
     }
   ]
 }
 
-CRITICAL: Extract ONLY what is explicitly stated. Do NOT invent achievements. If metrics are vague, mark confidence lower.`;
+CRITICAL: Extract ONLY what is explicitly stated. Do NOT invent achievements. If metrics are vague, mark confidence lower.
+REMEMBER: "Managed 5 people" IS a quantified achievement (teamSize=5) - DO NOT SKIP management scope phrases.`;
 
     const { response: powerPhrasesResponse, metrics: powerMetrics } = await withRetry(() =>
       callPerplexity(
