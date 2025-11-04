@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AIProcessingIndicator } from "@/components/ui/ai-processing-indicator";
 
 interface AnalysisResult {
   sentenceLengthIssues: { sentence: string; wordCount: number }[];
@@ -16,6 +17,7 @@ interface AnalysisResult {
 
 export function HumanWritingAnalyzer({ content }: { content: string }) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     if (!content) {
@@ -23,6 +25,8 @@ export function HumanWritingAnalyzer({ content }: { content: string }) {
       return;
     }
 
+    setIsAnalyzing(true);
+    
     const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const words = content.split(/\s+/);
     const wordCount = words.length;
@@ -66,17 +70,39 @@ export function HumanWritingAnalyzer({ content }: { content: string }) {
       forbiddenWords,
       hasCTA
     });
+    
+    setIsAnalyzing(false);
   }, [content]);
 
-  if (!analysis) {
+  if (!analysis && !isAnalyzing) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Human Writing Analyzer</CardTitle>
-          <CardDescription>Paste or write content to see live analysis</CardDescription>
+          <CardDescription>Paste or write content to see live AI analysis</CardDescription>
         </CardHeader>
       </Card>
     );
+  }
+
+  if (isAnalyzing) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Human Writing Analyzer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AIProcessingIndicator 
+            message="AI is analyzing your writing quality..." 
+            size="md"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!analysis) {
+    return null;
   }
 
   const getWordCountStatus = () => {

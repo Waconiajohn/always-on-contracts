@@ -224,12 +224,20 @@ Return as plain text or JSON array depending on section type.`
     console.log('Section type:', sectionType)
     console.log('Vault items:', vaultItems?.length || 0)
 
+    const model = selectOptimalModel({
+      taskType: 'generation',
+      complexity: 'medium',
+      estimatedInputTokens: (prompt.length + JSON.stringify(vaultItems || []).length) / 4,
+      estimatedOutputTokens: 800,
+      requiresReasoning: true
+    });
+
     const { response, metrics } = await callPerplexity(
       {
         messages: [
           { role: 'user', content: prompt }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model,
         temperature: 0.7,
         max_tokens: 2048
       },
