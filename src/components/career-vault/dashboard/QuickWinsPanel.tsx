@@ -48,13 +48,6 @@ export function QuickWinsPanel({ quickWins, maxVisible = 3 }: QuickWinsPanelProp
     );
   }
 
-  const getPriorityIcon = (priority: QuickWin['priority']) => {
-    if (priority === 'critical' || priority === 'high') {
-      return <AlertCircle className="h-4 w-4" />;
-    }
-    return <Target className="h-4 w-4" />;
-  };
-
   const getPriorityColor = (priority: QuickWin['priority']) => {
     if (priority === 'critical') return 'bg-rose-600 text-white';
     if (priority === 'high') return 'bg-amber-600 text-white';

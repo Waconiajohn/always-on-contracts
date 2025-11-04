@@ -21,9 +21,10 @@ interface EnhancementItem {
 
 interface EnhancementQueueProps {
   vaultId: string;
+  onEnhancementComplete?: () => Promise<void>;
 }
 
-export function EnhancementQueue({ vaultId }: EnhancementQueueProps) {
+export function EnhancementQueue({ vaultId, onEnhancementComplete }: EnhancementQueueProps) {
   const [queue, setQueue] = useState<EnhancementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<EnhancementItem | null>(null);
@@ -39,6 +40,13 @@ export function EnhancementQueue({ vaultId }: EnhancementQueueProps) {
 
     if (data) setQueue(data as any);
     setLoading(false);
+  };
+
+  const handleEnhancementSuccess = async () => {
+    await fetchQueue();
+    if (onEnhancementComplete) {
+      await onEnhancementComplete();
+    }
   };
 
   useEffect(() => {
@@ -153,7 +161,7 @@ export function EnhancementQueue({ vaultId }: EnhancementQueueProps) {
           question={selectedItem.question}
           currentAnswer={selectedItem.response}
           currentScore={selectedItem.quality_score}
-          onSuccess={fetchQueue}
+          onSuccess={handleEnhancementSuccess}
         />
       )}
     </>
