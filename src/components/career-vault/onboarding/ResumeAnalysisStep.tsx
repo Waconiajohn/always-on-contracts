@@ -172,21 +172,42 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
 
       let currentVaultId = vaultId;
 
-      // Create vault record if not exists
+      // Get or create vault record
       if (!currentVaultId) {
-        const { data: vaultData, error: vaultError } = await supabase
+        // First check if vault exists for this user
+        const { data: existingVault } = await supabase
           .from('career_vault')
-          .insert({
-            user_id: currentUser.id,
-            resume_raw_text: text,
-            onboarding_step: 'resume_uploaded',
-            vault_version: '2.0',
-          } as any)
-          .select()
-          .single();
+          .select('id')
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
 
-        if (vaultError) throw vaultError;
-        currentVaultId = vaultData.id;
+        if (existingVault) {
+          // Use existing vault and update the resume text
+          currentVaultId = existingVault.id;
+          await supabase
+            .from('career_vault')
+            .update({
+              resume_raw_text: text,
+              onboarding_step: 'resume_uploaded',
+              vault_version: '2.0',
+            })
+            .eq('id', currentVaultId);
+        } else {
+          // Create new vault
+          const { data: vaultData, error: vaultError } = await supabase
+            .from('career_vault')
+            .insert({
+              user_id: currentUser.id,
+              resume_raw_text: text,
+              onboarding_step: 'resume_uploaded',
+              vault_version: '2.0',
+            } as any)
+            .select()
+            .single();
+
+          if (vaultError) throw vaultError;
+          currentVaultId = vaultData.id;
+        }
       }
 
       // Call analyze-resume-initial function
