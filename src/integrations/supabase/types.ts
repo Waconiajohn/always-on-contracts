@@ -691,6 +691,7 @@ export type Database = {
           intelligent_qa_completed: boolean | null
           interview_completion_percentage: number | null
           last_gap_analysis_at: string | null
+          last_refreshed_at: string | null
           last_updated_at: string
           onboarding_step: string | null
           overall_strength_score: number | null
@@ -732,6 +733,7 @@ export type Database = {
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_gap_analysis_at?: string | null
+          last_refreshed_at?: string | null
           last_updated_at?: string
           onboarding_step?: string | null
           overall_strength_score?: number | null
@@ -773,6 +775,7 @@ export type Database = {
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_gap_analysis_at?: string | null
+          last_refreshed_at?: string | null
           last_updated_at?: string
           onboarding_step?: string | null
           overall_strength_score?: number | null
@@ -3739,6 +3742,7 @@ export type Database = {
       vault_behavioral_indicators: {
         Row: {
           ai_confidence: number | null
+          confidence_score: number | null
           context: string | null
           created_at: string | null
           id: string
@@ -3754,6 +3758,7 @@ export type Database = {
         }
         Insert: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           context?: string | null
           created_at?: string | null
           id?: string
@@ -3769,6 +3774,7 @@ export type Database = {
         }
         Update: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           context?: string | null
           created_at?: string | null
           id?: string
@@ -3835,6 +3841,7 @@ export type Database = {
         Row: {
           ai_confidence: number | null
           brand_alignment: string | null
+          confidence_score: number | null
           created_at: string | null
           id: string
           inferred_from: string | null
@@ -3850,6 +3857,7 @@ export type Database = {
         Insert: {
           ai_confidence?: number | null
           brand_alignment?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           id?: string
           inferred_from?: string | null
@@ -3865,6 +3873,7 @@ export type Database = {
         Update: {
           ai_confidence?: number | null
           brand_alignment?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           id?: string
           inferred_from?: string | null
@@ -4146,6 +4155,7 @@ export type Database = {
       vault_leadership_philosophy: {
         Row: {
           ai_confidence: number | null
+          confidence_score: number | null
           core_principles: string[] | null
           created_at: string | null
           id: string
@@ -4161,6 +4171,7 @@ export type Database = {
         }
         Insert: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           core_principles?: string[] | null
           created_at?: string | null
           id?: string
@@ -4176,6 +4187,7 @@ export type Database = {
         }
         Update: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           core_principles?: string[] | null
           created_at?: string | null
           id?: string
@@ -4203,6 +4215,7 @@ export type Database = {
         Row: {
           ai_confidence: number | null
           behavioral_evidence: string
+          confidence_score: number | null
           created_at: string | null
           id: string
           inferred_from: string | null
@@ -4218,6 +4231,7 @@ export type Database = {
         Insert: {
           ai_confidence?: number | null
           behavioral_evidence: string
+          confidence_score?: number | null
           created_at?: string | null
           id?: string
           inferred_from?: string | null
@@ -4233,6 +4247,7 @@ export type Database = {
         Update: {
           ai_confidence?: number | null
           behavioral_evidence?: string
+          confidence_score?: number | null
           created_at?: string | null
           id?: string
           inferred_from?: string | null
@@ -4475,6 +4490,7 @@ export type Database = {
       vault_soft_skills: {
         Row: {
           ai_confidence: number | null
+          confidence_score: number | null
           created_at: string | null
           examples: string
           id: string
@@ -4490,6 +4506,7 @@ export type Database = {
         }
         Insert: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           created_at?: string | null
           examples: string
           id?: string
@@ -4505,6 +4522,7 @@ export type Database = {
         }
         Update: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           created_at?: string | null
           examples?: string
           id?: string
@@ -4588,6 +4606,7 @@ export type Database = {
         Row: {
           ai_confidence: number | null
           career_decisions_influenced: string | null
+          confidence_score: number | null
           created_at: string | null
           id: string
           importance_level: string | null
@@ -4603,6 +4622,7 @@ export type Database = {
         Insert: {
           ai_confidence?: number | null
           career_decisions_influenced?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           id?: string
           importance_level?: string | null
@@ -4618,6 +4638,7 @@ export type Database = {
         Update: {
           ai_confidence?: number | null
           career_decisions_influenced?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           id?: string
           importance_level?: string | null
@@ -4676,6 +4697,7 @@ export type Database = {
       vault_work_style: {
         Row: {
           ai_confidence: number | null
+          confidence_score: number | null
           created_at: string | null
           examples: string | null
           id: string
@@ -4691,6 +4713,7 @@ export type Database = {
         }
         Insert: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           created_at?: string | null
           examples?: string | null
           id?: string
@@ -4706,6 +4729,7 @@ export type Database = {
         }
         Update: {
           ai_confidence?: number | null
+          confidence_score?: number | null
           created_at?: string | null
           examples?: string | null
           id?: string
