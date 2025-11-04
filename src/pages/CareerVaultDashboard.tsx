@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Target, Info, Rocket, Upload, PlayCircle, RotateCcw, Plus, Sparkles, Loader2, Shield } from "lucide-react";
+import { Target, Info, Shield } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AddMetricsModal } from "@/components/career-vault/AddMetricsModal";
 import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLanguageModal";
@@ -19,22 +19,17 @@ import { EnhancementQueue } from '@/components/EnhancementQueue';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
-import { VaultQuickStats } from '@/components/career-vault/VaultQuickStats';
-import { RecentActivityFeed } from '@/components/career-vault/RecentActivityFeed';
 import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
-import { VaultStatusHero } from '@/components/career-vault/VaultStatusHero';
-import { VaultContents } from '@/components/career-vault/VaultContents';
-import { QualityBoosters } from '@/components/career-vault/QualityBoosters';
 import { MilestoneManager } from '@/components/career-vault/MilestoneManager';
 import { VaultContentsTable } from '@/components/career-vault/VaultContentsTable';
-import { QualityTierExplainer } from '@/components/career-vault/QualityTierExplainer';
 import { VaultActivityFeed } from '@/components/career-vault/VaultActivityFeed';
-import { VaultSuggestionsWidget } from '@/components/career-vault/VaultSuggestionsWidget';
-import { VaultQualityScore } from '@/components/career-vault/VaultQualityScore';
-import { CategoryOrganizer } from '@/components/career-vault/CategoryOrganizer';
 import { FreshnessManager } from '@/components/career-vault/FreshnessManager';
 import { DuplicateDetector } from '@/components/career-vault/DuplicateDetector';
 import { VerificationWorkflow } from '@/components/career-vault/VerificationWorkflow';
+// NEW: Redesigned dashboard components
+import { SimplifiedVaultHero } from '@/components/career-vault/dashboard/SimplifiedVaultHero';
+import { QuickWinsPanel, useQuickWins } from '@/components/career-vault/dashboard/QuickWinsPanel';
+import { MissionControl } from '@/components/career-vault/dashboard/MissionControl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -729,94 +724,27 @@ const VaultDashboardContent = () => {
       <InferredItemsReview />
 
       {/* Master Controls Section */}
-      <Card className="mb-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-        <div className="flex flex-col space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
-              <Rocket className="h-5 w-5" />
-              Mission Control
-              {vault?.auto_populated && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  AI Auto-Populated
-                </Badge>
-              )}
-            </h2>
-            <p className="text-sm text-muted-foreground break-words">
-              {vault?.auto_populated ? (
-                <span className="block">
-                  Onboarding: Complete • {totalIntelligenceItems} items extracted • Vault Quality: {strengthScore?.total || 0}/100
-                </span>
-              ) : (
-                <span className="block">
-                  Review: {stats.review_completion_percentage}% complete • {totalIntelligenceItems} items extracted
-                </span>
-              )}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <Button
-              variant="outline"
-              className="justify-start text-xs"
-              onClick={() => setResumeModalOpen(true)}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Manage Resume
-            </Button>
-
-            <Button
-              variant="outline"
-              className="justify-start text-xs"
-              onClick={() => setResumeModalOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Document
-            </Button>
-
-            <Button
-              variant="outline"
-              className="justify-start text-xs"
-              onClick={handleReanalyze}
-              disabled={isReanalyzing || !vault?.resume_raw_text}
-            >
-              {isReanalyzing ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              {isReanalyzing ? 'Re-Analyzing...' : 'Re-Analyze All'}
-            </Button>
-            
-            {stats.review_completion_percentage < 100 ? (
-              <Button 
-                className="justify-start text-xs"
-                onClick={() => navigate('/career-vault-onboarding')}
-              >
-                <PlayCircle className="h-4 w-4 mr-2" />
-                Continue Review
-              </Button>
-            ) : (
-              <Button
-                variant="destructive"
-                className="justify-start whitespace-nowrap text-xs"
-                onClick={() => setRestartDialogOpen(true)}
-              >
-                <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="truncate">Reset Vault</span>
-              </Button>
-            )}
-            
-            <Button 
-              variant="secondary"
-              className="justify-start text-xs"
-              onClick={() => navigate('/agents/resume-builder')}
-            >
-              <Rocket className="h-4 w-4 mr-2" />
-              Deploy Vault
-            </Button>
-          </div>
-        </div>
-      </Card>
+      {/* Mission Control - NEW: Redesigned with clear hierarchy */}
+      <MissionControl
+        onboardingComplete={vault?.auto_populated || stats.review_completion_percentage === 100}
+        totalItems={totalIntelligenceItems}
+        strengthScore={strengthScore?.total || 0}
+        reviewProgress={stats.review_completion_percentage}
+        autoPopulated={vault?.auto_populated}
+        onPrimaryAction={() => {
+          if (stats.review_completion_percentage === 100 || vault?.auto_populated) {
+            navigate('/agents/resume-builder');
+          } else {
+            navigate('/career-vault-onboarding');
+          }
+        }}
+        onManageResume={() => setResumeModalOpen(true)}
+        onAddDocument={() => setResumeModalOpen(true)}
+        onReanalyze={handleReanalyze}
+        isReanalyzing={isReanalyzing}
+        hasResumeData={!!vault?.resume_raw_text}
+        onResetVault={() => setRestartDialogOpen(true)}
+      />
 
       <ResumeManagementModal
         open={resumeModalOpen}
@@ -864,17 +792,85 @@ const VaultDashboardContent = () => {
         </Alert>
       )}
 
-      {/* Quick Stats Cards */}
-      <VaultQuickStats
-        totalItems={totalIntelligenceItems}
-        interviewProgress={stats.review_completion_percentage}
-        strengthScore={strengthScore?.total || 0}
-        lastUpdated={null}
-      />
+      {/* TIER 1: Critical Dashboard - Simplified Vault Hero */}
+      {strengthScore && (
+        <div className="mb-6">
+          <SimplifiedVaultHero
+            strengthScore={strengthScore.total}
+            level={strengthScore.level}
+            totalItems={totalIntelligenceItems}
+            verifiedPercentage={Math.round(
+              ((qualityDistribution.gold + qualityDistribution.silver) / totalIntelligenceItems) * 100
+            )}
+            quickWinsCount={
+              (qualityDistribution.assumed > 0 ? 1 : 0) +
+              (powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0 ? 1 : 0) +
+              ([...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
+                const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
+                if (!lastUpdated) return true;
+                const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+                return daysSince > 180;
+              }).length > 0 ? 1 : 0)
+            }
+            hasQuickWins={
+              qualityDistribution.assumed > 0 ||
+              powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0 ||
+              [...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
+                const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
+                if (!lastUpdated) return true;
+                const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+                return daysSince > 180;
+              }).length > 0
+            }
+            onPrimaryCTA={() => {
+              const hasQuickWins = qualityDistribution.assumed > 0 ||
+                powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0;
 
-      {/* Two Column Layout for Activity and Next Steps */}
+              if (hasQuickWins) {
+                // Scroll to quick wins panel
+                document.querySelector('[data-quick-wins]')?.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                navigate('/agents/resume-builder');
+              }
+            }}
+            coreScores={{
+              powerPhrases: strengthScore.powerPhrasesScore,
+              skills: strengthScore.transferableSkillsScore,
+              competencies: strengthScore.hiddenCompetenciesScore,
+              intangibles: strengthScore.intangiblesScore,
+              quantification: strengthScore.quantificationScore,
+              modernTerms: strengthScore.modernTerminologyScore,
+            }}
+          />
+        </div>
+      )}
+
+      {/* TIER 1: Quick Wins Panel - Consolidated Suggestions */}
+      {strengthScore && (
+        <div className="mb-6" data-quick-wins>
+          <QuickWinsPanel
+            quickWins={useQuickWins({
+              assumedCount: qualityDistribution.assumed,
+              weakPhrasesCount: powerPhrases.filter(p =>
+                !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
+              ).length,
+              staleItemsCount: [...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
+                const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
+                if (!lastUpdated) return true;
+                const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+                return daysSince > 180;
+              }).length,
+              onVerifyAssumed: () => navigate('/career-vault-onboarding'),
+              onAddMetrics: () => setAddMetricsModalOpen(true),
+              onRefreshStale: handleRefreshVault,
+            })}
+          />
+        </div>
+      )}
+
+      {/* TIER 1: Activity and Next Steps - Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <RecentActivityFeed vaultId={vaultId} />
+        <VaultActivityFeed vaultId={vaultId} limit={10} />
         <SmartNextSteps
           interviewProgress={stats.review_completion_percentage}
           strengthScore={strengthScore?.total || 0}
@@ -915,134 +911,42 @@ const VaultDashboardContent = () => {
         </Card>
       )}
 
-      {/* Career Vault Status Hero */}
+      {/* TIER 2: Quality Distribution - Visual & Compact */}
       {strengthScore && (
-        <div className="mb-6">
-          <VaultStatusHero
-            strengthScore={strengthScore.total}
-            level={strengthScore.level}
-            totalItems={totalIntelligenceItems}
-            quickWinsAvailable={
-              (strengthScore.quantificationScore < 10 ? 1 : 0) +
-              (strengthScore.modernTerminologyScore < 10 ? 1 : 0)
-            }
-            onTakeQuickWins={() => {
-              // Open the first quick win modal
-              if (strengthScore.quantificationScore < 10) {
-                setAddMetricsModalOpen(true);
-              } else if (strengthScore.modernTerminologyScore < 10) {
-                setModernizeModalOpen(true);
-              }
-            }}
-            onRefresh={handleRefreshVault}
-            qualityDistribution={qualityDistribution}
-            coreScores={{
-              powerPhrases: strengthScore.powerPhrasesScore,
-              skills: strengthScore.transferableSkillsScore,
-              competencies: strengthScore.hiddenCompetenciesScore,
-              intangibles: strengthScore.intangiblesScore,
-              quantification: strengthScore.quantificationScore,
-              modernTerms: strengthScore.modernTerminologyScore
-            }}
+        <Card className="mb-6 p-6">
+          <h3 className="font-semibold text-slate-900 mb-3">Quality Distribution</h3>
+          <div className="flex items-center gap-4 mb-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-yellow-400"></span>
+              <span className="font-medium">{qualityDistribution.gold}</span>
+              <span className="text-slate-600">Gold</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-gray-300"></span>
+              <span className="font-medium">{qualityDistribution.silver}</span>
+              <span className="text-slate-600">Silver</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-orange-400"></span>
+              <span className="font-medium">{qualityDistribution.bronze}</span>
+              <span className="text-slate-600">Bronze</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-slate-300"></span>
+              <span className="font-medium">{qualityDistribution.assumed}</span>
+              <span className="text-slate-600">Assumed</span>
+            </div>
+          </div>
+          <Progress
+            value={((qualityDistribution.gold + qualityDistribution.silver) / totalIntelligenceItems) * 100}
+            className="h-2"
           />
-        </div>
+          <p className="text-xs text-slate-500 mt-2">
+            {Math.round(((qualityDistribution.gold + qualityDistribution.silver) / totalIntelligenceItems) * 100)}% verified
+            • Gold = User-verified • Silver = High AI confidence
+          </p>
+        </Card>
       )}
-
-      {/* Quality Tier Explainer - NEW: Phase 0 */}
-      {strengthScore && (
-        <div className="mb-6">
-          <QualityTierExplainer
-            goldCount={qualityDistribution.gold}
-            silverCount={qualityDistribution.silver}
-            bronzeCount={qualityDistribution.bronze}
-            assumedCount={qualityDistribution.assumed}
-            totalItems={totalIntelligenceItems}
-            onVerifyAssumed={() => navigate('/career-vault-onboarding')}
-          />
-        </div>
-      )}
-
-      {/* Vault Improvement Suggestions - NEW: Phase 0 */}
-      {strengthScore && (
-        <div className="mb-6">
-          <VaultSuggestionsWidget
-            assumedCount={qualityDistribution.assumed}
-            weakPhrasesCount={powerPhrases.filter(p =>
-              !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
-            ).length}
-            staleItemsCount={[
-              ...powerPhrases,
-              ...transferableSkills,
-              ...hiddenCompetencies,
-              ...softSkills
-            ].filter(item => {
-              const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
-              if (!lastUpdated) return true;
-              const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
-              return daysSince > 180; // 6 months
-            }).length}
-            onVerifyAssumed={() => navigate('/career-vault-onboarding')}
-            onAddMetrics={() => setAddMetricsModalOpen(true)}
-            onUpdateStale={() => setModernizeModalOpen(true)}
-          />
-        </div>
-      )}
-
-      {/* Phase 3: Quality Score & Organization */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <VaultQualityScore
-          currentScore={strengthScore?.total || 0}
-          maxScore={150}
-          level={strengthScore?.level || 'Developing'}
-          nextLevel={strengthScore?.level === 'Developing' ? 'Solid' : 
-                    strengthScore?.level === 'Solid' ? 'Strong' :
-                    strengthScore?.level === 'Strong' ? 'Elite' : 'Exceptional'}
-          pointsToNextLevel={
-            strengthScore?.level === 'Developing' ? 50 - (strengthScore?.total || 0) :
-            strengthScore?.level === 'Solid' ? 75 - (strengthScore?.total || 0) :
-            strengthScore?.level === 'Strong' ? 100 - (strengthScore?.total || 0) :
-            strengthScore?.level === 'Elite' ? 125 - (strengthScore?.total || 0) : 0
-          }
-          weeklyImprovement={5}
-          percentile={Math.min(95, Math.floor((strengthScore?.total || 0) / 1.5))}
-        />
-        
-        <CategoryOrganizer
-          stats={{
-            resumeContent: {
-              achievements: powerPhrases.length,
-              powerPhrases: powerPhrases.length,
-              skills: transferableSkills.length,
-              education: 0
-            },
-            interviewPrep: {
-              leadershipStories: leadershipPhilosophy.length,
-              softSkills: softSkills.length,
-              problemSolving: 0,
-              competencies: hiddenCompetencies.length
-            },
-            targeting: {
-              differentiators: executivePresence.length,
-              cultureFit: values.length,
-              personalityTraits: personalityTraits.length,
-              workStyle: workStyle.length
-            }
-          }}
-          onCategoryClick={(category) => console.log('Category clicked:', category)}
-        />
-      </div>
-
-      {/* Vault Activity Feed - Phase 0 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <VaultActivityFeed vaultId={vaultId} limit={7} />
-        <SmartNextSteps
-          interviewProgress={stats.review_completion_percentage}
-          strengthScore={strengthScore?.total || 0}
-          totalItems={totalIntelligenceItems}
-          hasLeadership={stats.total_leadership_philosophy > 0}
-          hasExecutivePresence={stats.total_executive_presence > 0}
-        />
-      </div>
       
       {/* Phase 4: Maintenance & Verification */}
       <div data-verification-workflow className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -1094,129 +998,6 @@ const VaultDashboardContent = () => {
         }}
       />
 
-      {/* Vault Contents (OLD - replaced by table above) */}
-      {stats && false && (
-        <div className="mb-6">
-          <VaultContents
-            categories={{
-              core: [
-                {
-                  name: 'Power Phrases',
-                  description: 'Achievement statements like "Increased revenue by 40%"',
-                  icon: '💪',
-                  count: stats?.total_power_phrases || 0,
-                  isEmpty: (stats?.total_power_phrases || 0) === 0
-                },
-                {
-                  name: 'Skills',
-                  description: 'Technical and soft skills extracted from your experience',
-                  icon: '🛠️',
-                  count: stats?.total_transferable_skills || 0,
-                  isEmpty: (stats?.total_transferable_skills || 0) === 0
-                },
-                {
-                  name: 'Competencies',
-                  description: 'High-level capabilities like "Strategic Planning"',
-                  icon: '💡',
-                  count: stats?.total_hidden_competencies || 0,
-                  isEmpty: (stats?.total_hidden_competencies || 0) === 0
-                }
-              ],
-              leadership: [
-                {
-                  name: 'Leadership Philosophy',
-                  description: 'Your approach to leading teams',
-                  icon: '🎯',
-                  count: stats?.total_leadership_philosophy || 0,
-                  isEmpty: (stats?.total_leadership_philosophy || 0) === 0
-                },
-                {
-                  name: 'Executive Presence',
-                  description: 'How you show up in professional settings',
-                  icon: '👔',
-                  count: stats?.total_executive_presence || 0,
-                  isEmpty: (stats?.total_executive_presence || 0) === 0
-                }
-              ],
-              culture: [
-                {
-                  name: 'Soft Skills',
-                  description: 'Communication, teamwork, problem-solving abilities',
-                  icon: '🧠',
-                  count: stats?.total_soft_skills || 0,
-                  isEmpty: (stats?.total_soft_skills || 0) === 0
-                },
-                {
-                  name: 'Personality Traits',
-                  description: 'Your natural work tendencies and characteristics',
-                  icon: '🎭',
-                  count: stats?.total_personality_traits || 0,
-                  isEmpty: (stats?.total_personality_traits || 0) === 0
-                },
-                {
-                  name: 'Work Style',
-                  description: 'Your preferences for how you work best',
-                  icon: '⚙️',
-                  count: stats?.total_work_style || 0,
-                  isEmpty: (stats?.total_work_style || 0) === 0
-                },
-                {
-                  name: 'Values',
-                  description: 'What matters most to you in your career',
-                  icon: '💎',
-                  count: stats?.total_values || 0,
-                  isEmpty: (stats?.total_values || 0) === 0
-                },
-                {
-                  name: 'Behavioral Indicators',
-                  description: 'Observable patterns in how you work',
-                  icon: '🔍',
-                  count: stats?.total_behavioral_indicators || 0,
-                  isEmpty: (stats?.total_behavioral_indicators || 0) === 0
-                }
-              ]
-            }}
-            onAddItem={() => {
-              // Navigate to onboarding to add items
-              navigate('/career-vault-onboarding');
-            }}
-            onViewCategory={(categoryName) => {
-              // Switch to the appropriate tab in the dashboard
-              const tabMap: Record<string, string> = {
-                'Power Phrases': 'power-phrases',
-                'Skills': 'transferable-skills',
-                'Competencies': 'hidden-competencies',
-                'Soft Skills': 'soft-skills',
-                'Leadership Philosophy': 'leadership',
-                'Executive Presence': 'presence',
-                'Personality Traits': 'traits',
-                'Work Style': 'work-style',
-                'Values': 'values',
-                'Behavioral Indicators': 'behavioral'
-              };
-              // This would require adding state to control the active tab
-              // For now, it scrolls to the tabs section
-              const tabValue = tabMap[categoryName];
-              if (tabValue) {
-                document.querySelector(`[value="${tabValue}"]`)?.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
-          />
-        </div>
-      )}
-
-      {/* Quality Boosters */}
-      {strengthScore && stats && (
-        <div className="mb-6">
-          <QualityBoosters
-            quantificationScore={strengthScore.quantificationScore}
-            modernTermsScore={strengthScore.modernTerminologyScore}
-            totalPhrases={stats.total_power_phrases}
-            onAddMetrics={() => setAddMetricsModalOpen(true)}
-            onModernizeLanguage={() => setModernizeModalOpen(true)}
-          />
-        </div>
-      )}
 
       {/* Review Progress */}
       <Card className="p-6 mb-8">
