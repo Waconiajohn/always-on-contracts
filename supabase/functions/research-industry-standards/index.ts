@@ -129,7 +129,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
               content: researchQuery
             }
           ],
-          model: PERPLEXITY_MODELS.HUGE,
+          model: PERPLEXITY_MODELS.DEFAULT,
           temperature: 0.2,
           max_tokens: 4000,
         },
@@ -144,7 +144,12 @@ Focus on 2025 market data. Be specific and quantitative where possible.
     // Extract JSON from markdown code blocks if present
     let researchResults;
     try {
-      const cleanedContent = cleanCitations(researchContent);
+      let cleanedContent = cleanCitations(researchContent);
+      
+      // Remove <think> tags from reasoning models
+      cleanedContent = cleanedContent.replace(/<think>[\s\S]*?<\/think>/g, '');
+      cleanedContent = cleanedContent.trim();
+      
       const jsonMatch = cleanedContent.match(/```json\n([\s\S]*?)\n```/) || 
                        cleanedContent.match(/```\n([\s\S]*?)\n```/);
       const jsonStr = jsonMatch ? jsonMatch[1] : cleanedContent;
@@ -180,8 +185,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
         target_role: targetRole,
         target_industry: targetIndustry,
         research_results: researchResults,
-        perplexity_citations: citations,
-        confidence_score: 85
+        perplexity_citations: citations
       })
     });
 
