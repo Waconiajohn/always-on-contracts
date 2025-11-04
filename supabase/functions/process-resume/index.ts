@@ -1017,10 +1017,10 @@ serve(async (req) => {
       .update({ progress: 40 })
       .eq('id', queueId);
 
-    // Phase 1.4: Validate document
+    // Phase 1.4: Validate document (with lenient threshold)
     const validation = await validateIsResume(cleanedText, userId);
 
-    if (!validation.isResume || validation.confidence < 0.5) {
+    if (!validation.isResume || validation.confidence < 0.3) {
       throw new Error(ERROR_MESSAGES['not_a_resume']);
     }
 
