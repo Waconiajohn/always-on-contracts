@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -243,7 +244,12 @@ ANALYSIS REQUIREMENTS:
 FORMAT: Return detailed JSON with complete scoring, gap classification, hidden strengths, transferable skill bridges, and strategic recommendations matching the schema (overallFit number, strengths array, gaps array, keywordAnalysis object, recommendations array, hiddenStrengths array, transferableSkillBridges array).`
           }
         ],
-        model: PERPLEXITY_MODELS.HUGE,
+        model: selectOptimalModel({
+          taskType: 'analysis',
+          complexityLevel: 'high',
+          requiresReasoning: true,
+          contextSize: 'large'
+        }),
         temperature: 0.5,
         max_tokens: 2000,
       },

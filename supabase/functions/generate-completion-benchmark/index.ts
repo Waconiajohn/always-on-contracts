@@ -18,6 +18,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { analyzeCareerContextAI, getCareerLevelGuidance, type CareerContext } from '../_shared/career-context-analyzer-ai.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 interface BenchmarkRequest {
   vaultId: string;
@@ -335,7 +336,12 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
     const { response, metrics } = await callPerplexity(
       {
         messages: [{ role: 'user', content: benchmarkPrompt }],
-        model: PERPLEXITY_MODELS.HUGE, // sonar-reasoning-pro
+        model: selectOptimalModel({
+          taskType: 'analysis',
+          complexityLevel: 'high',
+          requiresReasoning: true,
+          contextSize: 'large'
+        }),
         temperature: 0.3,
         max_tokens: 4500,
       },
