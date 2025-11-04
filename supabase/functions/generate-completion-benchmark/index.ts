@@ -353,7 +353,12 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
     let benchmarkAnalysis;
 
     try {
-      const cleanedContent = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      // Remove <think>...</think> tags, markdown code blocks, and trim
+      const cleanedContent = aiContent
+        .replace(/<think>[\s\S]*?<\/think>/gi, '') // Remove thinking tags
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
       benchmarkAnalysis = JSON.parse(cleanedContent);
 
       // Validation
