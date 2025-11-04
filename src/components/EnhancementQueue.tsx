@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { ResponseReviewModal } from './ResponseReviewModal';
 import { Sparkles, TrendingUp, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface EnhancementItem {
   id: string;
@@ -43,9 +44,24 @@ export function EnhancementQueue({ vaultId, onEnhancementComplete }: Enhancement
   };
 
   const handleEnhancementSuccess = async () => {
-    await fetchQueue();
-    if (onEnhancementComplete) {
-      await onEnhancementComplete();
+    try {
+      // Always refresh the local queue first
+      await fetchQueue();
+      
+      // Try to refresh the parent dashboard (optional callback)
+      if (onEnhancementComplete) {
+        try {
+          await onEnhancementComplete();
+        } catch (error) {
+          // Log but don't throw - parent refresh is non-critical
+          console.error('Failed to refresh parent dashboard:', error);
+          toast.error('Dashboard stats will refresh on next page load');
+        }
+      }
+    } catch (error) {
+      // Log queue refresh failure
+      console.error('Failed to refresh enhancement queue:', error);
+      toast.error('Queue refresh failed, please reload the page');
     }
   };
 
