@@ -17,7 +17,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { analyzeCareerContext, getCareerLevelGuidance, type CareerContext } from '../_shared/career-context-analyzer.ts';
+import { analyzeCareerContextAI, getCareerLevelGuidance, type CareerContext } from '../_shared/career-context-analyzer-ai.ts';
 
 interface BenchmarkRequest {
   vaultId: string;
@@ -138,8 +138,8 @@ serve(async (req) => {
       supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
     ]);
 
-    // ===== STEP 3: ANALYZE CAREER CONTEXT =====
-    const careerContext: CareerContext = analyzeCareerContext({
+    // ===== STEP 3: ANALYZE CAREER CONTEXT (AI-POWERED) =====
+    const careerContext: CareerContext = await analyzeCareerContextAI({
       powerPhrases: powerPhrases.data || [],
       skills: skills.data || [],
       competencies: competencies.data || [],
@@ -147,16 +147,19 @@ serve(async (req) => {
       leadership: leadershipPhilosophy.data || [],
       executivePresence: executivePresence.data || [],
       certifications: [],
-    });
+    }, user.id);
 
-    console.log('📊 CAREER CONTEXT DETECTED:', {
+    console.log('📊 CAREER CONTEXT DETECTED (AI-POWERED):', {
       seniority: careerContext.inferredSeniority,
       confidence: careerContext.seniorityConfidence,
       years: careerContext.yearsOfExperience,
       nextRole: careerContext.nextLikelyRole,
       archetype: careerContext.careerArchetype,
       management: careerContext.hasManagementExperience,
+      managementDetails: careerContext.managementDetails,
       executive: careerContext.hasExecutiveExposure,
+      budgetOwnership: careerContext.hasBudgetOwnership,
+      aiReasoning: careerContext.aiReasoning,
     });
 
     // ===== STEP 4: BUILD EXPERT-LEVEL AI PROMPT =====
@@ -173,9 +176,12 @@ TARGET INDUSTRIES: ${targetIndustries.join(', ')}
 CAREER PROFILE (AI-INFERRED FROM VAULT CONTENT):
 ├─ Seniority Level: ${careerContext.inferredSeniority} (${careerContext.seniorityConfidence}% confidence)
 ├─ Years of Experience: ${careerContext.yearsOfExperience}
-├─ Management Experience: ${careerContext.hasManagementExperience ? `Yes (managed teams of ${careerContext.teamSizesManaged.join(', ')})` : 'No (Individual Contributor)'}
-├─ Executive Exposure: ${careerContext.hasExecutiveExposure ? 'Yes (worked with C-suite/board)' : 'No'}
-├─ Budget Ownership: ${careerContext.hasBudgetOwnership ? `Yes ($${careerContext.budgetSizesManaged.map(b => (b/1000000).toFixed(1)).join(', ')}M)` : 'No'}
+├─ Management Experience: ${careerContext.hasManagementExperience ? 'YES' : 'NO'}
+   ${careerContext.managementDetails}
+├─ Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES' : 'NO'}
+   ${careerContext.executiveDetails}
+├─ Budget Ownership: ${careerContext.hasBudgetOwnership ? 'YES' : 'NO'}
+   ${careerContext.budgetDetails}
 ├─ Company Types: ${careerContext.companySizes.join(', ')}
 ├─ Technical Depth: ${careerContext.technicalDepth}/100
 ├─ Leadership Depth: ${careerContext.leadershipDepth}/100
