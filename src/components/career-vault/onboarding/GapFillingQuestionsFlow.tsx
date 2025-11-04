@@ -71,10 +71,10 @@ export default function GapFillingQuestionsFlow({
 
   const loadGapFillingQuestions = async () => {
     try {
-      // Fetch current vault data
+      // Fetch current vault data INCLUDING resume text
       const { data: vaultData } = await supabase
         .from('career_vault')
-        .select('target_roles, target_industries')
+        .select('target_roles, target_industries, resume_raw_text')
         .eq('id', vaultId)
         .single();
 
@@ -86,10 +86,11 @@ export default function GapFillingQuestionsFlow({
         supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
       ]);
 
-      // Generate gap-filling questions
+      // Generate gap-filling questions with ACTUAL resume content
       const { data, error } = await supabase.functions.invoke('generate-gap-filling-questions', {
         body: {
           vaultId,
+          resumeText: vaultData?.resume_raw_text || '',  // PASS THE ACTUAL RESUME
           vaultData: {
             powerPhrases: powerPhrases.data || [],
             transferableSkills: skills.data || [],

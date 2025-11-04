@@ -56,6 +56,7 @@ interface GapFillingRequest {
   vaultData: any;
   industryResearch?: any;
   targetRoles?: string[];
+  resumeText?: string;
 }
 
 serve(async (req) => {
@@ -83,38 +84,55 @@ serve(async (req) => {
 
     // Parse request
     const requestBody: GapFillingRequest = await req.json();
-    const { vaultData, industryResearch, targetRoles } = requestBody;
+    const { vaultData, industryResearch, targetRoles, resumeText } = requestBody;
 
     if (!vaultData) {
       throw new Error('vaultData is required');
     }
 
-    // Build comprehensive gap analysis prompt
+    // Build comprehensive gap analysis prompt with ACTUAL resume content
     const gapAnalysisPrompt = `
-You are an expert career strategist analyzing a professional's career vault against industry standards.
+You are an expert career strategist analyzing a professional's resume and career vault to generate targeted questions.
 
-## Current Vault Data:
+## RESUME CONTENT (Primary Source - Analyze This First):
+${resumeText ? resumeText.substring(0, 8000) : 'No resume text available - use vault data instead'}
+
+## Current Vault Data (Already Extracted):
 ${JSON.stringify(vaultData, null, 2)}
 
 ${industryResearch ? `## Industry Context:\n${JSON.stringify(industryResearch, null, 2)}` : ''}
 ${targetRoles ? `## Target Roles:\n${targetRoles.join(', ')}` : ''}
 
 ## Your Task:
-FIRST: Analyze the vault data to understand this professional's ACTUAL role, industry, and career level by examining their power phrases, skills, and competencies.
 
-THEN: Identify CRITICAL gaps that, if filled, would significantly strengthen their profile FOR THEIR SPECIFIC FIELD.
+STEP 1 - ANALYZE THE RESUME:
+Read the resume carefully and determine:
+- What is their ACTUAL job title(s) and role(s)? (e.g., "Drilling Engineer", "Software Architect", "Registered Nurse")
+- What industry/field do they work in? (e.g., "Oil & Gas", "Healthcare", "Technology")
+- What is their career level? (entry-level, mid-level, senior, leadership, executive)
+- What are their core technical skills and domain expertise?
+- What projects, achievements, or experiences do they mention?
 
-CRITICAL - Role-Appropriate Questions:
-- If technical/operations role (engineer, technician, operator, specialist) → Ask about: technical skills, certifications, safety records, equipment expertise, process improvements, project outcomes
-- If business/management role (manager, director, executive) → Ask about: leadership, strategy, team building, transformation, P&L responsibility
-- If creative role (designer, writer, artist) → Ask about: portfolio pieces, creative tools, style evolution, client work
-- If healthcare role (nurse, doctor, therapist) → Ask about: patient care, specializations, certifications, protocols
-- If trades/skilled labor → Ask about: certifications, safety, equipment, techniques, project scale
+STEP 2 - IDENTIFY GAPS:
+Based on their ACTUAL role and industry (not a generic template), identify what's MISSING that would strengthen their profile:
+- What certifications or qualifications are standard in their field but not mentioned?
+- What types of projects or achievements might they have done but haven't documented?
+- What technical skills or tools are common in their role but not listed?
+- What leadership or team experiences might be relevant to their level?
+- What industry-specific accomplishments would be valuable to document?
 
-Match the question sophistication, terminology, and domain to THEIR actual work - NOT a generic executive template.
+STEP 3 - GENERATE ROLE-SPECIFIC QUESTIONS:
+Create 5-15 questions that are HIGHLY SPECIFIC to their actual job, industry, and career level.
+
+CRITICAL RULES:
+- Questions MUST match their actual job (if they're a drilling engineer, ask about drilling operations, NOT digital transformation)
+- Use terminology and concepts from THEIR industry (e.g., oil & gas professionals: "wellbore", "completions", "BOP"; not "SaaS", "API", "CI/CD")
+- Match sophistication to their career level (senior engineer vs. entry-level technician)
+- Ask about gaps that are REALISTIC for someone in their specific role
+- NO generic business/executive questions unless they're actually in executive roles
 
 Generate 5-15 highly targeted questions organized into logical batches. Each question should:
-1. Address a SPECIFIC gap relevant to THEIR field and career level (analyze their actual role first!)
+1. Address a SPECIFIC gap that someone in THEIR EXACT role would realistically have
 2. Have measurable impact on vault strength (rate 1-10)
 3. Be answerable in <2 minutes
 4. Use the most appropriate question format (multiple choice, yes/no, text, scale)
