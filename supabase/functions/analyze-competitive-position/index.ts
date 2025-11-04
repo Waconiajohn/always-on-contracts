@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,6 +69,15 @@ Deno.serve(async (req) => {
       .single();
 
     // Step 4: Use Perplexity to analyze competitive position
+    const model = selectOptimalModel({
+      taskType: 'analysis',
+      complexity: 'medium',
+      estimatedInputTokens: 2000,
+      estimatedOutputTokens: 600,
+      requiresReasoning: true,
+      requiresLatestData: false
+    });
+
     const { response, metrics } = await callPerplexity(
       {
         messages: [
@@ -110,7 +120,7 @@ Return JSON with:
 }`
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model,
       },
       'analyze-competitive-position',
       user.id

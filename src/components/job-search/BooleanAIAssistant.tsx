@@ -57,7 +57,29 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
 
       if (data?.reply) {
         console.log('[BooleanAI] Raw AI response:', data.reply);
-        const parsedMessage = parseAIResponse(data.reply);
+        
+        // Try parsing as structured JSON first
+        let parsedMessage: Message;
+        try {
+          const structuredData = JSON.parse(data.reply);
+          if (structuredData.titles && Array.isArray(structuredData.titles)) {
+            parsedMessage = {
+              role: 'assistant',
+              content: `Here are some job title variations you can use:\n\n${structuredData.titles.join(', ')}`,
+              suggestions: {
+                type: 'titles',
+                options: structuredData.titles
+              }
+            };
+          } else {
+            // Fallback to regex parsing for backwards compatibility
+            parsedMessage = parseAIResponse(data.reply);
+          }
+        } catch {
+          // Not JSON, use regex parsing
+          parsedMessage = parseAIResponse(data.reply);
+        }
+        
         console.log('[BooleanAI] Parsed message:', parsedMessage);
         setMessages(prev => [...prev, parsedMessage]);
       }

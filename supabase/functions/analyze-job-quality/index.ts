@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -148,6 +149,15 @@ OUTPUT FORMAT (Strict JSON matching schema):
   "reasoning": "detailed explanation with evidence"
 }`;
 
+    const model = selectOptimalModel({
+      taskType: 'analysis',
+      complexity: 'medium',
+      estimatedInputTokens: jobDescription.length / 4,
+      estimatedOutputTokens: 600,
+      requiresReasoning: true,
+      requiresLatestData: false
+    });
+
     const { response, metrics } = await callPerplexity(
       {
         messages: [
@@ -160,7 +170,7 @@ OUTPUT FORMAT (Strict JSON matching schema):
             content: prompt
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model,
         temperature: 0.3,
         max_tokens: 1500,
         return_citations: false,

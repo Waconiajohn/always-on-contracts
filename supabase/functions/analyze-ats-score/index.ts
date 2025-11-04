@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,6 +49,15 @@ Return ONLY valid JSON in this exact format:
   "recommendations": ["Add keyword Y 2-3 more times", "Quantify project Z impact"]
 }`;
 
+    const model = selectOptimalModel({
+      taskType: 'analysis',
+      complexity: 'low',
+      estimatedInputTokens: (resumeContent.length + jobDescription.length) / 4,
+      estimatedOutputTokens: 800,
+      requiresReasoning: false,
+      requiresLatestData: false
+    });
+
     const { response, metrics } = await callPerplexity(
       {
         messages: [
@@ -57,7 +67,7 @@ Return ONLY valid JSON in this exact format:
             content: `Job Description:\n${jobDescription}\n\nResume Content:\n${resumeContent}\n\nAnalyze and score this resume for ATS compatibility.`
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model,
         temperature: 0.3,
         max_tokens: 2000,
         return_citations: false,

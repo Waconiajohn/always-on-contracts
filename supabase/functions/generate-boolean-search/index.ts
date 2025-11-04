@@ -24,28 +24,31 @@ CRITICAL RULES:
 2. Include seniority variations (Junior, Mid, Senior, Lead, Principal, Staff, Director)
 3. Include alternative names for the same role
 4. Include industry-specific variations
-5. ALWAYS use the format: [TITLES: title1, title2, title3, ...]
 
 Common Patterns:
 - Product Manager → Program Manager, Product Owner, Technical Product Manager, Senior Product Manager, Lead Product Manager, Associate Product Manager, Digital Product Manager, Platform Product Manager
 - Software Engineer → Software Developer, Full Stack Developer, Backend Engineer, Frontend Engineer, Web Developer, Application Developer, Senior Software Engineer, Staff Engineer
-- Data Scientist → Machine Learning Engineer, Senior Data Scientist, Lead Data Scientist, AI Engineer, Applied Scientist, Research Scientist, Data Science Manager, ML Engineer
-- UX Designer → Product Designer, UI/UX Designer, User Experience Designer, Interaction Designer, Visual Designer, Design Lead, Senior UX Designer, UX Researcher
-- Marketing Manager → Digital Marketing Manager, Brand Manager, Growth Marketing Manager, Product Marketing Manager, Marketing Lead, Senior Marketing Manager, Marketing Director
-- Sales Representative → Account Executive, Business Development Representative, Sales Executive, Account Manager, Sales Engineer, Customer Success Manager, Senior Sales Representative
+- Data Scientist → Machine Learning Engineer, Senior Data Scientist, Lead Data Scientist, AI Engineer, Applied Scientist, Research Scientist, Data Science Manager, ML Engineer`;
 
-Examples:
-Input: "Product Manager"
-Output: [TITLES: Product Manager, Program Manager, Product Owner, Technical Product Manager, Senior Product Manager, Lead Product Manager, Associate Product Manager, Digital Product Manager]
-
-Input: "Data Scientist"  
-Output: [TITLES: Data Scientist, Machine Learning Engineer, Senior Data Scientist, Lead Data Scientist, AI Engineer, Applied Scientist, Research Scientist, ML Engineer]
-
-Input: "Software Engineer"
-Output: [TITLES: Software Engineer, Software Developer, Full Stack Developer, Backend Engineer, Frontend Engineer, Web Developer, Senior Software Engineer, Staff Engineer]
-
-RESPONSE FORMAT:
-Always respond with ONLY the [TITLES: ...] format. Be helpful and encouraging, but keep it simple and focused on job title variations.`;
+    const tools = [{
+      type: "function" as const,
+      function: {
+        name: "suggest_job_titles",
+        description: "Return 5-8 job title variations for boolean search",
+        parameters: {
+          type: "object",
+          properties: {
+            titles: {
+              type: "array",
+              items: { type: "string" },
+              description: "Array of job title variations including seniority levels and alternatives"
+            }
+          },
+          required: ["titles"],
+          additionalProperties: false
+        }
+      }
+    }];
 
     const { response, metrics } = await callPerplexity(
       {
@@ -57,21 +60,33 @@ Always respond with ONLY the [TITLES: ...] format. Be helpful and encouraging, b
         temperature: 0.5,
         max_tokens: 500,
         return_citations: false,
+        tools,
+        tool_choice: { type: "function", function: { name: "suggest_job_titles" } }
       },
       'generate-boolean-search'
     );
 
     await logAIUsage(metrics);
 
-    const reply = cleanCitations(response.choices[0].message.content) || 'I apologize, I could not generate a response.';
-
-    console.log('[Boolean AI] Generated response:', reply);
-    console.log('[Boolean AI] Checking for structured markers...');
-    console.log('[Boolean AI] Has TITLES?', reply.includes('[TITLES:'));
-    console.log('[Boolean AI] Has SKILLS?', reply.includes('[SKILLS:'));
-    console.log('[Boolean AI] Has EXCLUDE?', reply.includes('[EXCLUDE:'));
-    console.log('[Boolean AI] Has LEVELS?', reply.includes('[LEVELS:'));
-    console.log('[Boolean AI] Has BOOLEAN?', reply.includes('[BOOLEAN:'));
+    // Parse structured output from tool call
+    const toolCall = response.choices[0].message.tool_calls?.[0];
+    let reply: string;
+    
+    if (toolCall?.function?.arguments) {
+      try {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        const titles = parsed.titles || [];
+        reply = JSON.stringify({ titles });
+        console.log('[Boolean AI] Structured output:', { titles });
+      } catch (e) {
+        console.error('[Boolean AI] Failed to parse tool call:', e);
+        reply = 'I apologize, I could not generate a response.';
+      }
+    } else {
+      // Fallback to text response
+      reply = cleanCitations(response.choices[0].message.content) || 'I apologize, I could not generate a response.';
+      console.log('[Boolean AI] Fallback text response:', reply);
+    }
     
     return new Response(
       JSON.stringify({ reply }),
