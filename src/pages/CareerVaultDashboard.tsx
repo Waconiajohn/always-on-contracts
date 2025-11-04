@@ -712,14 +712,6 @@ const VaultDashboardContent = () => {
       maxWidth="full"
     >
       <div className="px-6 py-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Career Vault Control Panel</h1>
-        <p className="text-muted-foreground">
-          Your career intelligence command center - manage documents, track progress, and deploy your vault
-        </p>
-      </div>
-
       {/* AI Inference Review Alert */}
       <InferredItemsReview />
 
