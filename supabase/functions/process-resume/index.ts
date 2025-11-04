@@ -920,7 +920,7 @@ serve(async (req) => {
     console.log('[PROCESS-RESUME] Queue entry created:', queueId);
 
     // Phase 1: Handle file parsing based on what was provided
-    let extractedText = '';
+    // extractedText already declared on line 884
     
     if (fileData) {
       // New method: Parse file from base64 data
