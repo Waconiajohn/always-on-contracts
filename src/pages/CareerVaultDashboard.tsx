@@ -1011,30 +1011,62 @@ const VaultDashboardContent = () => {
         </p>
       </Card>
 
-      {/* Detailed Tabs */}
-      <Tabs defaultValue="enhancement-queue" className="w-full">
-        <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-max min-w-full">
-            <TabsTrigger value="enhancement-queue">🎯 Queue</TabsTrigger>
-            <TabsTrigger value="power-phrases">Phrases</TabsTrigger>
-            <TabsTrigger value="transferable-skills">Skills</TabsTrigger>
-            <TabsTrigger value="hidden-competencies">Competencies</TabsTrigger>
-            <TabsTrigger value="soft-skills">🧠 Soft Skills</TabsTrigger>
-            <TabsTrigger value="leadership">🎯 Leadership</TabsTrigger>
-            <TabsTrigger value="presence">👔 Presence</TabsTrigger>
-            <TabsTrigger value="traits">🎭 Traits</TabsTrigger>
-            <TabsTrigger value="work-style">⚙️ Style</TabsTrigger>
-            <TabsTrigger value="values">💎 Values</TabsTrigger>
-            <TabsTrigger value="behavioral">🔍 Behavioral</TabsTrigger>
-            <TabsTrigger value="responses">All</TabsTrigger>
-          </TabsList>
-        </div>
+      {/* TIER 3: Simplified Tabs (12 → 5 logical groups) */}
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="all">
+            All ({totalIntelligenceItems})
+          </TabsTrigger>
+          <TabsTrigger value="core">
+            Core ({stats.total_power_phrases + stats.total_transferable_skills + stats.total_hidden_competencies})
+          </TabsTrigger>
+          <TabsTrigger value="leadership">
+            Leadership ({stats.total_leadership_philosophy + stats.total_executive_presence})
+          </TabsTrigger>
+          <TabsTrigger value="culture">
+            Culture ({stats.total_soft_skills + stats.total_personality_traits + stats.total_work_style + stats.total_values + stats.total_behavioral_indicators})
+          </TabsTrigger>
+          <TabsTrigger value="maintenance">
+            Maintenance
+          </TabsTrigger>
+        </TabsList>
 
-        <TabsContent value="enhancement-queue">
-          <EnhancementQueue vaultId={vaultId} />
+        {/* ALL Tab - Shows everything with VaultContentsTable */}
+        <TabsContent value="all" className="space-y-4">
+          <Card className="p-6">
+            <p className="text-sm text-slate-600 mb-4">
+              View and manage all {totalIntelligenceItems} items across all categories. Use the search and filters in the table below.
+            </p>
+            {/* VaultContentsTable is already rendered below this tabs section */}
+            <p className="text-sm text-slate-500">
+              Scroll down to see the unified vault contents table.
+            </p>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="power-phrases" className="space-y-4">
+        {/* CORE Tab - Power Phrases, Skills, Competencies */}
+        <TabsContent value="core" className="space-y-4">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Core Resume Content</h3>
+            <p className="text-sm text-slate-600">
+              Essential items for resume building: Power Phrases, Transferable Skills, and Hidden Competencies
+            </p>
+          </div>
+
+          <Tabs defaultValue="power-phrases">
+            <TabsList>
+              <TabsTrigger value="power-phrases">
+                Power Phrases ({stats.total_power_phrases})
+              </TabsTrigger>
+              <TabsTrigger value="transferable-skills">
+                Skills ({stats.total_transferable_skills})
+              </TabsTrigger>
+              <TabsTrigger value="hidden-competencies">
+                Competencies ({stats.total_hidden_competencies})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="power-phrases" className="space-y-4">
           {powerPhrases.length > 0 ? (
             powerPhrases.map((phrase) => (
               <Card key={phrase.id} className="p-6">
@@ -1111,31 +1143,29 @@ const VaultDashboardContent = () => {
             </Card>
           )}
         </TabsContent>
-
-        <TabsContent value="soft-skills" className="space-y-4">
-          {softSkills.length > 0 ? (
-            softSkills.map((skill) => (
-              <Card key={skill.id} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="text-lg font-semibold">{skill.skill_name}</h4>
-                  <Badge variant={skill.proficiency_level === 'expert' ? 'default' : 'secondary'}>
-                    {skill.proficiency_level || 'Proficient'}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">{skill.examples}</p>
-                {skill.impact && (
-                  <p className="text-sm text-primary">Impact: {skill.impact}</p>
-                )}
-              </Card>
-            ))
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No soft skills documented yet. Continue your interview to reveal them.</p>
-            </Card>
-          )}
+          </Tabs>
         </TabsContent>
 
+        {/* LEADERSHIP Tab - Leadership Philosophy & Executive Presence */}
         <TabsContent value="leadership" className="space-y-4">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Leadership Content</h3>
+            <p className="text-sm text-slate-600">
+              Executive-level content: Leadership Philosophy and Executive Presence indicators
+            </p>
+          </div>
+
+          <Tabs defaultValue="leadership-philosophy">
+            <TabsList>
+              <TabsTrigger value="leadership-philosophy">
+                Philosophy ({stats.total_leadership_philosophy})
+              </TabsTrigger>
+              <TabsTrigger value="executive-presence">
+                Executive Presence ({stats.total_executive_presence})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="leadership-philosophy" className="space-y-4">
           {leadershipPhilosophy.length > 0 ? (
             leadershipPhilosophy.map((philosophy) => (
               <Card key={philosophy.id} className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
@@ -1162,7 +1192,7 @@ const VaultDashboardContent = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="presence" className="space-y-4">
+            <TabsContent value="executive-presence" className="space-y-4">
           {executivePresence.length > 0 ? (
             executivePresence.map((presence) => (
               <Card key={presence.id} className="p-6">
@@ -1184,106 +1214,175 @@ const VaultDashboardContent = () => {
             </Card>
           )}
         </TabsContent>
-
-        <TabsContent value="traits" className="space-y-4">
-          {personalityTraits.length > 0 ? (
-            personalityTraits.map((trait) => (
-              <Card key={trait.id} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="text-lg font-semibold">{trait.trait_name}</h4>
-                  {trait.strength_or_growth && (
-                    <Badge variant={trait.strength_or_growth === 'strength' ? 'default' : 'secondary'}>
-                      {trait.strength_or_growth}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">{trait.behavioral_evidence}</p>
-                {trait.work_context && (
-                  <p className="text-sm text-primary">Context: {trait.work_context}</p>
-                )}
-              </Card>
-            ))
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No personality traits documented yet. Continue your interview.</p>
-            </Card>
-          )}
+          </Tabs>
         </TabsContent>
 
-        <TabsContent value="work-style" className="space-y-4">
-          {workStyle.length > 0 ? (
-            workStyle.map((style) => (
-              <Card key={style.id} className="p-6">
-                <h4 className="text-lg font-semibold mb-3">{style.preference_area}</h4>
-                <p className="text-sm mb-2">{style.preference_description}</p>
-                {style.examples && (
-                  <p className="text-sm text-muted-foreground mb-2">Examples: {style.examples}</p>
-                )}
-                {style.ideal_environment && (
-                  <p className="text-sm text-primary">Ideal: {style.ideal_environment}</p>
-                )}
-              </Card>
-            ))
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No work style preferences documented yet. Continue your interview.</p>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="values" className="space-y-4">
-          {values.length > 0 ? (
-            values.map((value) => (
-              <Card key={value.id} className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="text-lg font-semibold">{value.value_name}</h4>
-                  {value.importance_level && (
-                    <Badge variant="default">{value.importance_level}</Badge>
-                  )}
-                </div>
-                <p className="text-sm mb-2">{value.manifestation}</p>
-                {value.career_decisions_influenced && (
-                  <p className="text-sm text-muted-foreground">Influences: {value.career_decisions_influenced}</p>
-                )}
-              </Card>
-            ))
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No core values documented yet. Continue your interview.</p>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="behavioral" className="space-y-4">
-          {behavioralIndicators.length > 0 ? (
-            behavioralIndicators.map((indicator) => (
-              <Card key={indicator.id} className="p-6">
-                <h4 className="text-lg font-semibold mb-3">{indicator.indicator_type}</h4>
-                <p className="text-sm mb-2">{indicator.specific_behavior}</p>
-                {indicator.context && (
-                  <p className="text-sm text-muted-foreground mb-2">Context: {indicator.context}</p>
-                )}
-                {indicator.outcome_pattern && (
-                  <p className="text-sm text-primary">Outcome: {indicator.outcome_pattern}</p>
-                )}
-              </Card>
-            ))
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No behavioral patterns documented yet. Continue your interview.</p>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="responses">
-          <Card className="p-8 text-center">
-            <p className="text-muted-foreground mb-4">
-              This tab shows all your Career Vault intelligence in one place.
+        {/* CULTURE Tab - Soft Skills, Traits, Style, Values, Behavioral */}
+        <TabsContent value="culture" className="space-y-4">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Culture Fit Content</h3>
+            <p className="text-sm text-slate-600">
+              Intangible qualities: Soft Skills, Personality Traits, Work Style, Values, and Behavioral Indicators
             </p>
-            <p className="text-sm text-muted-foreground">
-              Use the individual tabs above to explore specific categories of your career vault.
+          </div>
+
+          <Tabs defaultValue="soft-skills">
+            <TabsList className="flex flex-wrap">
+              <TabsTrigger value="soft-skills">Soft Skills ({stats.total_soft_skills})</TabsTrigger>
+              <TabsTrigger value="traits">Traits ({stats.total_personality_traits})</TabsTrigger>
+              <TabsTrigger value="work-style">Style ({stats.total_work_style})</TabsTrigger>
+              <TabsTrigger value="values">Values ({stats.total_values})</TabsTrigger>
+              <TabsTrigger value="behavioral">Behavioral ({stats.total_behavioral_indicators})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="soft-skills" className="space-y-4">
+              {softSkills.length > 0 ? (
+                softSkills.map((skill) => (
+                  <Card key={skill.id} className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="text-lg font-semibold">{skill.skill_name}</h4>
+                      <Badge variant={skill.proficiency_level === 'expert' ? 'default' : 'secondary'}>
+                        {skill.proficiency_level || 'Proficient'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{skill.examples}</p>
+                    {skill.impact && (
+                      <p className="text-sm text-primary">Impact: {skill.impact}</p>
+                    )}
+                  </Card>
+                ))
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No soft skills documented yet. Continue your interview to reveal them.</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="traits" className="space-y-4">
+              {personalityTraits.length > 0 ? (
+                personalityTraits.map((trait) => (
+                  <Card key={trait.id} className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="text-lg font-semibold">{trait.trait_name}</h4>
+                      {trait.strength_or_growth && (
+                        <Badge variant={trait.strength_or_growth === 'strength' ? 'default' : 'secondary'}>
+                          {trait.strength_or_growth}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{trait.behavioral_evidence}</p>
+                    {trait.work_context && (
+                      <p className="text-sm text-primary">Context: {trait.work_context}</p>
+                    )}
+                  </Card>
+                ))
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No personality traits documented yet. Continue your interview.</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="work-style" className="space-y-4">
+              {workStyle.length > 0 ? (
+                workStyle.map((style) => (
+                  <Card key={style.id} className="p-6">
+                    <h4 className="text-lg font-semibold mb-3">{style.preference_area}</h4>
+                    <p className="text-sm mb-2">{style.preference_description}</p>
+                    {style.examples && (
+                      <p className="text-sm text-muted-foreground mb-2">Examples: {style.examples}</p>
+                    )}
+                    {style.ideal_environment && (
+                      <p className="text-sm text-primary">Ideal: {style.ideal_environment}</p>
+                    )}
+                  </Card>
+                ))
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No work style preferences documented yet. Continue your interview.</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="values" className="space-y-4">
+              {values.length > 0 ? (
+                values.map((value) => (
+                  <Card key={value.id} className="p-6 bg-gradient-to-br from-primary/5 to-transparent">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="text-lg font-semibold">{value.value_name}</h4>
+                      {value.importance_level && (
+                        <Badge variant="default">{value.importance_level}</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm mb-2">{value.manifestation}</p>
+                    {value.career_decisions_influenced && (
+                      <p className="text-sm text-muted-foreground">Influences: {value.career_decisions_influenced}</p>
+                    )}
+                  </Card>
+                ))
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No core values documented yet. Continue your interview.</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="behavioral" className="space-y-4">
+              {behavioralIndicators.length > 0 ? (
+                behavioralIndicators.map((indicator) => (
+                  <Card key={indicator.id} className="p-6">
+                    <h4 className="text-lg font-semibold mb-3">{indicator.indicator_type}</h4>
+                    <p className="text-sm mb-2">{indicator.specific_behavior}</p>
+                    {indicator.context && (
+                      <p className="text-sm text-muted-foreground mb-2">Context: {indicator.context}</p>
+                    )}
+                    {indicator.outcome_pattern && (
+                      <p className="text-sm text-primary">Outcome: {indicator.outcome_pattern}</p>
+                    )}
+                  </Card>
+                ))
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No behavioral patterns documented yet. Continue your interview.</p>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
+
+        {/* MAINTENANCE Tab - Vault Health & Admin Tools */}
+        <TabsContent value="maintenance" className="space-y-4">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Vault Maintenance</h3>
+            <p className="text-sm text-slate-600">
+              Admin tools: Enhancement Queue, Verification, Freshness, and Duplicate Detection
             </p>
-          </Card>
+          </div>
+
+          <Tabs defaultValue="queue">
+            <TabsList>
+              <TabsTrigger value="queue">Enhancement Queue</TabsTrigger>
+              <TabsTrigger value="verification">Verification</TabsTrigger>
+              <TabsTrigger value="freshness">Freshness</TabsTrigger>
+              <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="queue" className="space-y-4">
+              <EnhancementQueue vaultId={vaultId} onEnhancementComplete={fetchData} />
+            </TabsContent>
+
+            <TabsContent value="verification" className="space-y-4">
+              <VerificationWorkflow vaultId={vaultId} />
+            </TabsContent>
+
+            <TabsContent value="freshness" className="space-y-4">
+              <FreshnessManager vaultId={vaultId} />
+            </TabsContent>
+
+            <TabsContent value="duplicates" className="space-y-4">
+              <DuplicateDetector vaultId={vaultId} />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
 
