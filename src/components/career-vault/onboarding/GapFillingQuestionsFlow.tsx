@@ -42,7 +42,7 @@ function normalizeQuestionType(question: any): any {
 
 interface GapFillingQuestionsFlowProps {
   vaultId: string;
-  currentVaultStrength: number;
+  currentVaultStrength: number; // Still required by parent component
   industryResearch?: any;
   onComplete: (data: { newVaultStrength: number }) => void;
   onSkip: () => void;
@@ -50,7 +50,7 @@ interface GapFillingQuestionsFlowProps {
 
 export default function GapFillingQuestionsFlow({
   vaultId,
-  currentVaultStrength,
+  currentVaultStrength: _currentVaultStrength, // Prefix with _ to mark as intentionally unused
   industryResearch,
   onComplete,
   onSkip,
@@ -232,15 +232,28 @@ export default function GapFillingQuestionsFlow({
         <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                <strong>Error loading gap-filling questions:</strong> {error}
+                <div className="mt-2 text-sm">
+                  This usually resolves on retry. You can continue without gap-filling questions or try again.
+                </div>
+              </AlertDescription>
             </Alert>
           )}
           <div className="text-center py-6">
             <p className="text-muted-foreground mb-4">
-              {error ? 'Unable to generate questions. ' : 'No gaps identified! '}
-              Your vault is at {currentVaultStrength}%.
+              {error 
+                ? 'Gap analysis temporarily unavailable. Your vault is functional and ready to use.' 
+                : 'No critical gaps identified! Your vault is strong.'}
             </p>
-            <Button onClick={onSkip}>Continue to Completion</Button>
+            <div className="flex gap-3 justify-center">
+              {error && (
+                <Button variant="outline" onClick={loadGapFillingQuestions}>
+                  Retry Gap Analysis
+                </Button>
+              )}
+              <Button onClick={onSkip}>Continue to Completion</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
