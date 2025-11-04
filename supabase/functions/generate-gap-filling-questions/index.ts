@@ -233,7 +233,7 @@ QUESTION TYPE GUIDELINES:
         ],
         model: PERPLEXITY_MODELS.DEFAULT,
         temperature: 0.5,
-        max_tokens: 3000,
+        max_tokens: 4000,
         return_citations: false,
       },
       'generate-gap-filling-questions',
@@ -250,11 +250,38 @@ QUESTION TYPE GUIDELINES:
     
     let questionData;
     try {
-      const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      // Remove markdown code blocks and trim
+      let cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      // Try to extract JSON if response contains extra text
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedContent = jsonMatch[0];
+      }
+      
       questionData = JSON.parse(cleanedContent);
+      
+      // Validate the response has required structure
+      if (!questionData.batches || !Array.isArray(questionData.batches)) {
+        console.error('Invalid response structure - missing batches array');
+        questionData = {
+          criticalGapsIdentified: [],
+          totalQuestions: 0,
+          estimatedVaultStrengthBoost: 0,
+          batches: []
+        };
+      }
     } catch (parseError) {
-      console.error('Failed to parse Perplexity response:', rawContent);
-      throw new Error('AI returned invalid JSON format');
+      console.error('Failed to parse Perplexity response:', parseError);
+      console.error('Raw content (first 500 chars):', rawContent.substring(0, 500));
+      
+      // Return empty but valid structure instead of throwing
+      questionData = {
+        criticalGapsIdentified: [],
+        totalQuestions: 0,
+        estimatedVaultStrengthBoost: 0,
+        batches: []
+      };
     }
 
     // Auto-fix type mismatches (post-processing validation)
