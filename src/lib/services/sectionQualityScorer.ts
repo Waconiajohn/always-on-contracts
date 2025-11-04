@@ -1,7 +1,9 @@
 /**
- * Section Quality Scorer
- * Calculates comprehensive quality scores for resume sections
+ * Section Quality Scorer - AI-Powered
+ * Uses AI to analyze resume section quality instead of hardcoded rules
  */
+
+import { supabase } from '@/integrations/supabase/client';
 
 interface QualityScoreResult {
   overallScore: number; // 0-100
@@ -28,138 +30,115 @@ interface ScoringInput {
   requirements?: string[];
 }
 
+// Cache for AI quality scores (cache until user updates section)
+const qualityScoreCache = new Map<string, QualityScoreResult>();
+
+function getCacheKey(input: ScoringInput): string {
+  // Create hash from content + keywords
+  return JSON.stringify({
+    contentHash: input.content.substring(0, 200),
+    criticalKW: input.atsKeywords?.critical || [],
+    reqCount: input.requirements?.length || 0
+  });
+}
+
 /**
- * Calculate comprehensive quality score for a resume section
+ * Calculate comprehensive quality score using AI analysis
  */
-export function calculateSectionQuality(input: ScoringInput): QualityScoreResult {
+export async function calculateSectionQuality(input: ScoringInput): Promise<QualityScoreResult> {
   const {
     content,
+    jobAnalysis,
     atsKeywords = { critical: [], important: [], nice_to_have: [] },
     requirements = []
   } = input;
 
-  const contentLower = content.toLowerCase();
-  const strengths: string[] = [];
-  const weaknesses: string[] = [];
+  // Check cache first (cache until user updates the section)
+  const cacheKey = getCacheKey(input);
+  const cached = qualityScoreCache.get(cacheKey);
+  if (cached) {
+    console.log('[Quality Scorer] Returning cached AI result');
+    return cached;
+  }
 
-  // 1. ATS Keyword Matching (40% of overall score)
+  try {
+    // Call AI-powered quality analysis edge function
+    const { data, error } = await supabase.functions.invoke('analyze-section-quality', {
+      body: {
+        content,
+        requirements,
+        atsKeywords,
+        seniority: jobAnalysis?.seniority || 'mid-level',
+        industry: jobAnalysis?.industry || 'General',
+        jobTitle: jobAnalysis?.title || ''
+      }
+    });
+
+    if (error) {
+      console.error('[Quality Scorer] AI analysis failed:', error);
+      throw error;
+    }
+
+    // Transform AI response to match our interface
+    const result: QualityScoreResult = {
+      overallScore: data.overallScore,
+      atsMatchPercentage: data.atsMatchPercentage,
+      requirementsCoverage: data.requirementsCoverage,
+      competitiveStrength: data.competitiveStrength,
+      strengths: data.strengths,
+      weaknesses: data.weaknesses,
+      keywords: {
+        matched: data.keywordsMatched || [],
+        missing: data.keywordsMissing || []
+      }
+    };
+
+    // Cache the result
+    qualityScoreCache.set(cacheKey, result);
+
+    console.log(`[Quality Scorer] AI analysis complete - Score: ${result.overallScore}/100`);
+    return result;
+
+  } catch (error) {
+    console.error('[Quality Scorer] Error calling AI:', error);
+    
+    // Fallback to basic validation (NOT for quality judgment)
+    return fallbackValidation(input);
+  }
+}
+
+/**
+ * Clear cache when user updates a section
+ */
+export function clearQualityCache() {
+  qualityScoreCache.clear();
+}
+
+/**
+ * Fallback validation - basic checks only (used if AI fails)
+ * This is NOT for quality judgment - just ensures content isn't empty
+ */
+function fallbackValidation(input: ScoringInput): QualityScoreResult {
+  const { content, atsKeywords = { critical: [], important: [], nice_to_have: [] } } = input;
+  const contentLower = content.toLowerCase();
+
+  // Very basic validation only - check if content exists
+  const hasContent = content.trim().length > 20;
+  
   const criticalMatched = atsKeywords.critical.filter(kw =>
     contentLower.includes(kw.toLowerCase())
   );
-  const importantMatched = atsKeywords.important.filter(kw =>
-    contentLower.includes(kw.toLowerCase())
-  );
-  const niceToHaveMatched = atsKeywords.nice_to_have.filter(kw =>
-    contentLower.includes(kw.toLowerCase())
-  );
-
-  const criticalScore = atsKeywords.critical.length > 0
-    ? (criticalMatched.length / atsKeywords.critical.length) * 100
-    : 100;
-  const importantScore = atsKeywords.important.length > 0
-    ? (importantMatched.length / atsKeywords.important.length) * 100
-    : 100;
-  const niceToHaveScore = atsKeywords.nice_to_have.length > 0
-    ? (niceToHaveMatched.length / atsKeywords.nice_to_have.length) * 100
-    : 100;
-
-  // Weighted ATS score: critical (50%), important (35%), nice-to-have (15%)
-  const atsMatchPercentage = Math.round(
-    criticalScore * 0.5 + importantScore * 0.35 + niceToHaveScore * 0.15
-  );
-
-  // ATS insights
-  if (criticalMatched.length === atsKeywords.critical.length) {
-    strengths.push(`All critical keywords included (${criticalMatched.length}/${atsKeywords.critical.length})`);
-  } else if (criticalMatched.length < atsKeywords.critical.length) {
-    weaknesses.push(`Missing ${atsKeywords.critical.length - criticalMatched.length} critical keywords`);
-  }
-
-  // 2. Requirements Coverage (30% of overall score)
-  const requirementsCovered = requirements.filter(req =>
-    contentLower.includes(req.toLowerCase()) ||
-    req.toLowerCase().split(' ').some(word => word.length > 3 && contentLower.includes(word))
-  );
-
-  const requirementsCoverage = requirements.length > 0
-    ? Math.round((requirementsCovered.length / requirements.length) * 100)
-    : 100;
-
-  if (requirementsCoverage >= 80) {
-    strengths.push(`Strong requirement coverage (${requirementsCovered.length}/${requirements.length})`);
-  } else if (requirementsCoverage < 50) {
-    weaknesses.push(`Low requirement coverage (${requirementsCovered.length}/${requirements.length})`);
-  }
-
-  // 3. Competitive Strength (30% of overall score)
-  let competitiveScore = 50; // Base score
-
-  // Check for quantified achievements
-  const hasNumbers = /\d+[%$KkMmBb+]/.test(content);
-  if (hasNumbers) {
-    competitiveScore += 20;
-    strengths.push('Contains quantified achievements');
-  } else {
-    weaknesses.push('No quantified metrics found');
-  }
-
-  // Check for action verbs
-  const actionVerbs = [
-    'led', 'managed', 'developed', 'implemented', 'achieved', 'increased', 'decreased',
-    'created', 'delivered', 'designed', 'established', 'improved', 'optimized', 'built',
-    'launched', 'scaled', 'transformed', 'drove', 'spearheaded', 'orchestrated'
-  ];
-  const hasActionVerbs = actionVerbs.some(verb => contentLower.includes(verb));
-  if (hasActionVerbs) {
-    competitiveScore += 15;
-    strengths.push('Uses strong action verbs');
-  } else {
-    weaknesses.push('Limited use of action verbs');
-  }
-
-  // Check for impact language
-  const impactWords = ['impact', 'result', 'outcome', 'success', 'growth', 'improvement', 'efficiency'];
-  const hasImpact = impactWords.some(word => contentLower.includes(word));
-  if (hasImpact) {
-    competitiveScore += 15;
-    strengths.push('Demonstrates impact and results');
-  }
-
-  // Convert competitive score to 1-5 star rating
-  const competitiveStrength = Math.min(5, Math.max(1, Math.round(competitiveScore / 20)));
-
-  // 4. Overall Score Calculation
-  const overallScore = Math.round(
-    atsMatchPercentage * 0.4 +
-    requirementsCoverage * 0.3 +
-    competitiveScore * 0.3
-  );
-
-  // Identify missing keywords
-  const allKeywords = [
-    ...atsKeywords.critical,
-    ...atsKeywords.important,
-    ...atsKeywords.nice_to_have
-  ];
-  const matchedKeywords = [
-    ...criticalMatched,
-    ...importantMatched,
-    ...niceToHaveMatched
-  ];
-  const missingKeywords = allKeywords.filter(kw =>
-    !matchedKeywords.some(mk => mk.toLowerCase() === kw.toLowerCase())
-  );
 
   return {
-    overallScore,
-    atsMatchPercentage,
-    requirementsCoverage,
-    competitiveStrength,
-    strengths,
-    weaknesses,
+    overallScore: hasContent ? 70 : 30, // Neutral score
+    atsMatchPercentage: criticalMatched.length > 0 ? 60 : 40,
+    requirementsCoverage: 60,
+    competitiveStrength: 3,
+    strengths: hasContent ? ['Content provided'] : [],
+    weaknesses: ['AI analysis unavailable - scores are estimated', 'Please try again or check your connection'],
     keywords: {
-      matched: matchedKeywords,
-      missing: missingKeywords.slice(0, 10) // Top 10 missing
+      matched: criticalMatched,
+      missing: []
     }
   };
 }

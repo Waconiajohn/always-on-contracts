@@ -48,6 +48,15 @@ verify_jwt = true
 [functions.executive-coaching]
 verify_jwt = true
 
+[functions.analyze-section-quality]
+verify_jwt = true
+
+[functions.analyze-linkedin-writing]
+verify_jwt = true
+
+[functions.semantic-match-resume]
+verify_jwt = true
+
 [functions.gap-analysis]
 verify_jwt = true
 

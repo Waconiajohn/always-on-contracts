@@ -362,7 +362,7 @@ Return ONLY the content, no explanations.`;
     const idealQuality = calculateQualityScore(idealContent);
     const personalizedQuality = calculateQualityScore(personalizedContent);
 
-    // Step 4: Generate AI-BLENDED version
+    // Step 4: Generate AI-BLENDED version using PERPLEXITY (not Lovable AI)
     console.log('Generating AI-blended version...');
     let blendContent = '';
     let blendQuality = idealQuality;
@@ -391,35 +391,24 @@ Create a cohesive section that:
 
 Generate a single, cohesive result. Do NOT simply concatenate - intelligently weave together the strongest elements.`;
 
-      const blendResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [{ role: 'user', content: blendPrompt }],
-          temperature: 0.6,
-          max_tokens: 1500
-        })
-      });
+      const { response: blendResponse, metrics: blendMetrics } = await callPerplexity({
+        messages: [{ role: 'user', content: blendPrompt }],
+        model: PERPLEXITY_MODELS.DEFAULT,
+        temperature: 0.6,
+        max_tokens: 1500,
+      }, 'generate-dual-resume-section-blend', user_id);
 
-      if (blendResponse.ok) {
-        const blendData = await blendResponse.json();
-        blendContent = blendData.choices?.[0]?.message?.content || '';
-        
-        // Clean up skills section to ensure comma-separated format
-        if (section_type === 'skills' || section_type === 'skills_list') {
-          blendContent = cleanSkillsFormat(blendContent);
-        }
-        
-        blendQuality = calculateQualityScore(blendContent);
-        console.log('Blend version generated successfully');
-      } else {
-        console.error('Blend generation failed, falling back to ideal version');
-        blendContent = idealContent;
+      await logAIUsage(blendMetrics);
+
+      blendContent = cleanCitations(blendResponse.choices?.[0]?.message?.content || '');
+      
+      // Clean up skills section to ensure comma-separated format
+      if (section_type === 'skills' || section_type === 'skills_list') {
+        blendContent = cleanSkillsFormat(blendContent);
       }
+      
+      blendQuality = calculateQualityScore(blendContent);
+      console.log('Blend version generated successfully with Perplexity');
     } else {
       console.log('Skipping blend generation - insufficient vault data');
       blendContent = idealContent;
