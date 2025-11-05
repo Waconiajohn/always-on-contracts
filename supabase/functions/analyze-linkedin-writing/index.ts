@@ -14,6 +14,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const logger = createLogger('analyze-linkedin-writing');
+  const startTime = Date.now();
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {

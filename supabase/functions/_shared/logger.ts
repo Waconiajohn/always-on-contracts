@@ -83,6 +83,24 @@ class Logger {
   }
 
   /**
+   * Log AI API call metrics
+   */
+  logAICall(params: {
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    latencyMs: number;
+    cost: number;
+    success: boolean;
+    errorCode?: string;
+  }): void {
+    this.info('AI_CALL_COMPLETED', {
+      ...params,
+      event_type: 'ai_call'
+    });
+  }
+
+  /**
    * Time a function execution
    */
   async time<T>(label: string, fn: () => Promise<T>): Promise<T> {
