@@ -20,8 +20,9 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 interface AutoPopulateRequest {
   resumeText: string;
@@ -176,7 +177,12 @@ REMEMBER: "Managed 5 people" IS a quantified achievement (teamSize=5) - DO NOT S
       callPerplexity(
         {
           messages: [{ role: 'user', content: powerPhrasesPrompt }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'extraction',
+            complexity: 'high',
+            requiresAccuracy: true,
+            outputLength: 'long'
+          }),
           temperature: 0.2,
           max_tokens: 4000,
         },
