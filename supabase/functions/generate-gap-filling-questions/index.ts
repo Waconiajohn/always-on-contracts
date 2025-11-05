@@ -139,8 +139,8 @@ serve(async (req) => {
 
     console.log('[GAP QUESTIONS] Career context loaded:', { hasManagement: careerContext.hasManagementExperience, level: careerContext.inferredSeniority, cached: !!cachedContext });
     
-    // ===== PHASE 2: GAP DETECTION (USING CAREER CONTEXT) =====
-    console.log('[generate-gap-filling-questions] Phase 2: Generating gap questions based on career context...');
+    // ===== PHASE 2: GAP DETECTION (USING CAREER CONTEXT + RESUME) =====
+    console.log('[generate-gap-filling-questions] Phase 2: Generating gap questions based on career context and existing data...');
     
     // Prepare industry context (minimal)
     const industryInsights = industryResearch ? {
@@ -149,29 +149,35 @@ serve(async (req) => {
       marketTrends: industryResearch.trends?.slice(0, 3) || []
     } : null;
     
-    // Build gap analysis prompt using AI-detected career context
+    // Build gap analysis prompt using AI-detected career context AND resume text
     const gapAnalysisPrompt = `
 You are an expert career strategist analyzing a professional's career profile to identify CRITICAL gaps.
 
-## CAREER CONTEXT (AI-DETECTED):
-Management Experience: ${careerContext.hasManagementExperience ? 'YES ✓' : 'NO'}
-${careerContext.hasManagementExperience ? `
-Evidence Found:
-${careerContext.managementEvidence.map((e: string) => `- ${e}`).join('\n')}
+## RESUME CONTENT (WHAT WE ALREADY KNOW):
+${resumeText ? `
+Resume Text (first 3000 chars):
+${resumeText.substring(0, 3000)}
 
-Team Sizes Managed: ${careerContext.teamSizesDetected.join(', ')}
-Budget Amounts: ${careerContext.budgetAmountsDetected.map((b: number) => `$${(b/1000000).toFixed(0)}MM`).join(', ')}
-Leadership Scope: ${careerContext.leadershipScope}
-` : 'No management experience detected in resume or vault.'}
+IMPORTANT: The resume above contains their background. DO NOT ask questions about information that's clearly stated in their resume.
+` : 'Resume text not provided.'}
 
-Career Level: ${careerContext.careerLevel}
-AI Confidence: ${(careerContext.confidenceScore * 100).toFixed(0)}%
+## CAREER CONTEXT (AI-DETECTED FROM RESUME):
+Inferred Career Level: ${careerContext.inferredSeniority}
+Years of Experience: ${careerContext.yearsOfExperience}
+AI Confidence: ${careerContext.seniorityConfidence || 70}%
+
+Management Experience: ${careerContext.hasManagementExperience ? 'YES ✓ - ' + careerContext.managementDetails : 'NO - ' + careerContext.managementDetails}
+${careerContext.hasManagementExperience && careerContext.teamSizesManaged?.length > 0 ? `Team Sizes Managed: ${careerContext.teamSizesManaged.join(', ')} people` : ''}
+${careerContext.hasBudgetOwnership && careerContext.budgetSizesManaged?.length > 0 ? `Budget Amounts: ${careerContext.budgetSizesManaged.map((b: number) => `$${(b/1000000).toFixed(1)}M`).join(', ')}` : ''}
+
+Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES ✓ - ' + careerContext.executiveDetails : 'NO'}
+Career Archetype: ${careerContext.careerArchetype}
 
 ## PROFESSIONAL IDENTITY:
 Current Title: ${vaultData.professional_identity?.current_title || 'Unknown'}
 Industry: ${vaultData.professional_identity?.industry || 'Unknown'}
-Years of Experience: ${vaultData.professional_identity?.years_of_experience || 0}
-Target Roles: ${vaultData.professional_identity?.target_roles?.join(', ') || 'Not specified'}
+Years of Experience: ${vaultData.professional_identity?.years_of_experience || careerContext.yearsOfExperience}
+Target Roles: ${vaultData.professional_identity?.target_roles?.join(', ') || targetRoles?.join(', ') || 'Not specified'}
 
 ## VAULT STRENGTH:
 Overall Strength: ${vaultData.overall_strength_score || 0}%
@@ -186,18 +192,19 @@ ${targetRoles && targetRoles.length > 0 ? `## TARGET ROLES: ${targetRoles.join('
 
 ## Your Task:
 
-Based on the ACTUAL career context above (AI-analyzed, not assumptions), generate gap-filling questions.
+Generate gap-filling questions that address information NOT found in the resume or career context above.
 
 CRITICAL RULES FOR QUESTION GENERATION:
 
-1. **Management Experience Questions:**
-   - If hasManagementExperience = true: Ask about ADVANCING management scope (larger teams, bigger budgets, strategic leadership)
-   - If hasManagementExperience = false: First ask if they have undocumented management experience, then ask about acquiring it
-   - DO NOT say "zero management experience" if evidence shows otherwise
+1. **NEVER ASK ABOUT INFORMATION ALREADY IN THE RESUME:**
+   - If their degree is mentioned in the resume → DO NOT ask about their degree
+   - If their job title shows management → DO NOT ask if they have management experience
+   - If certifications are listed → DO NOT ask about those certifications
+   - ONLY ask about gaps or ambiguities
 
 2. **Career Level Matching:**
-   - Questions must match their ACTUAL career level (${careerContext.careerLevel})
-   - ${careerContext.careerLevel === 'Manager' || careerContext.careerLevel === 'Director' || careerContext.careerLevel === 'VP' ? 
+   - Questions must match their ACTUAL career level (${careerContext.inferredSeniority})
+   - ${['Manager', 'Senior Manager', 'Director', 'VP', 'C-Level'].includes(careerContext.inferredSeniority) ? 
      'Focus on strategic impact, cross-functional leadership, and scaling operations' : 
      'Focus on building foundational skills and documenting technical achievements'}
 
