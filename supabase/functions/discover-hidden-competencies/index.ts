@@ -4,6 +4,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractArray } from '../_shared/json-parser.ts';
+import { HiddenCompetencySchema } from '../_shared/ai-response-schemas.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +15,9 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  const startTime = Date.now();
+  const logger = createLogger('discover-hidden-competencies');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -67,30 +74,54 @@ Return JSON array:
 
     console.log('Discovering hidden competencies for career vault:', vaultId);
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
-          { role: 'system', content: 'You are an expert career analyst specializing in discovering hidden capabilities and reframing experience. Return only valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'high',
-          requiresReasoning: true,
-          outputLength: 'medium'
-        }),
-        temperature: 0.6,
-        max_tokens: 2000,
-        return_citations: false,
-      },
-      'discover-hidden-competencies'
+    const { response, metrics } = await retryWithBackoff(
+      async () => await callPerplexity(
+        {
+          messages: [
+            { role: 'system', content: 'You are an expert career analyst specializing in discovering hidden capabilities and reframing experience. Return only valid JSON.' },
+            { role: 'user', content: prompt }
+          ],
+          model: selectOptimalModel({
+            taskType: 'analysis',
+            complexity: 'high',
+            requiresReasoning: true,
+            outputLength: 'medium'
+          }),
+          temperature: 0.6,
+          max_tokens: 2000,
+          return_citations: false,
+        },
+        'discover-hidden-competencies'
+      ),
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     const competenciesText = cleanCitations(response.choices[0].message.content.trim());
-    const jsonMatch = competenciesText.match(/\[[\s\S]*\]/);
-    const competencies = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    const result = extractArray(competenciesText, HiddenCompetencySchema);
+
+    if (!result.success) {
+      logger.error('JSON parsing failed', { 
+        error: result.error,
+        content: competenciesText.substring(0, 500)
+      });
+      throw new Error(`Invalid AI response: ${result.error}`);
+    }
+
+    const competencies = result.data;
+
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
     const insertPromises = competencies.map((comp: any) =>
       supabase.from('vault_hidden_competencies').insert({
@@ -112,10 +143,18 @@ Return JSON array:
     );
 
   } catch (error: any) {
-    console.error('Error discovering hidden competencies:', error);
+    logger.error('Request failed', {
+      error: error.message,
+      latencyMs: Date.now() - startTime
+    });
+
+    const errorResponse = handlePerplexityError(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(errorResponse),
+      {
+        status: errorResponse.statusCode,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
   }
 });

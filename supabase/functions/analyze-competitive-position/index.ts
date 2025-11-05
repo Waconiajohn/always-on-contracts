@@ -2,6 +2,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { CompetitivePositionSchema } from '../_shared/ai-response-schemas.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +13,9 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  const startTime = Date.now();
+  const logger = createLogger('analyze-competitive-position');
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -78,16 +85,17 @@ Deno.serve(async (req) => {
       requiresLatestData: false
     });
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a career positioning analyst. Analyze candidate strength vs market requirements. Return valid JSON only.'
-          },
-          {
-            role: 'user',
-            content: `Analyze competitive position:
+    const { response, metrics } = await retryWithBackoff(
+      async () => await callPerplexity(
+        {
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a career positioning analyst. Analyze candidate strength vs market requirements. Return valid JSON only.'
+            },
+            {
+              role: 'user',
+              content: `Analyze competitive position:
 
 TARGET ROLE: ${job_title}
 
@@ -118,20 +126,42 @@ Return JSON with:
   "recommended_positioning": "",
   "salary_range_recommendation": { "minimum_acceptable": 0, "target": 0, "stretch": 0 }
 }`
-          }
-        ],
-        model,
-      },
-      'analyze-competitive-position',
-      user.id
+            }
+          ],
+          model,
+        },
+        'analyze-competitive-position',
+        user.id
+      ),
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
-    // Parse JSON from response
     const content = response.choices[0].message.content;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    const result = extractJSON(content, CompetitivePositionSchema);
+
+    if (!result.success) {
+      logger.error('JSON parsing failed', { 
+        error: result.error,
+        content: content.substring(0, 500)
+      });
+      throw new Error(`Invalid AI response: ${result.error}`);
+    }
+
+    const analysis = result.data;
+
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
     // Step 5: Calculate overall percentile positioning
     const marketMedian = market_data?.extracted_data?.percentile_50 || 0;
@@ -168,14 +198,19 @@ Return JSON with:
     );
 
   } catch (error) {
-    console.error('Error in analyze-competitive-position:', error);
+    logger.error('Request failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      latencyMs: Date.now() - startTime
+    });
+
+    const errorResponse = handlePerplexityError(error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        ...errorResponse
       }),
       {
-        status: 400,
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

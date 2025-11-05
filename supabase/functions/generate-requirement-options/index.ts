@@ -3,6 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { RequirementOptionsSchema } from '../_shared/ai-response-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +14,9 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  const startTime = Date.now();
+  const logger = createLogger('generate-requirement-options');
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -96,39 +103,62 @@ Return JSON:
   ]
 }`;
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [{ role: "user", content: prompt }],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
-        }),
-      },
-      'generate-requirement-options',
-      user.id
+    const { response, metrics } = await retryWithBackoff(
+      async () => await callPerplexity(
+        {
+          messages: [{ role: "user", content: prompt }],
+          model: selectOptimalModel({
+            taskType: 'generation',
+            complexity: 'medium',
+            requiresReasoning: true,
+            outputLength: 'medium'
+          }),
+        },
+        'generate-requirement-options',
+        user.id
+      ),
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
+    const result = extractJSON(content, RequirementOptionsSchema);
 
-    console.log("AI response:", content);
+    if (!result.success) {
+      logger.error('JSON parsing failed', { 
+        error: result.error,
+        content: content.substring(0, 500)
+      });
+      throw new Error(`Invalid AI response: ${result.error}`);
+    }
 
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { options: [] };
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(result.data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in generate-requirement-options:", error);
+    logger.error('Request failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      latencyMs: Date.now() - startTime
+    });
+
+    const errorResponse = handlePerplexityError(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify(errorResponse),
       {
-        status: 500,
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
