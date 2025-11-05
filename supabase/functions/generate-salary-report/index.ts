@@ -325,19 +325,18 @@ Include: Opening statement, market data reference, value proposition from achiev
     );
 
   } catch (error) {
-    logger.error('Request failed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    logger.error('Request failed', error, {
       latencyMs: Date.now() - startTime
     });
 
-    const errorResponse = handlePerplexityError(error);
+    const aiError = handlePerplexityError(error);
     return new Response(
       JSON.stringify({
         success: false,
-        ...errorResponse
+        error: aiError.userMessage || aiError.message
       }),
       {
-        status: errorResponse.statusCode,
+        status: aiError.statusCode || 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

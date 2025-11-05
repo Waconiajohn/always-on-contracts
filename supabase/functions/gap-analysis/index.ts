@@ -325,16 +325,18 @@ FORMAT: Return detailed JSON with complete scoring, gap classification, hidden s
     );
 
   } catch (error) {
-    logger.error('Request failed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    logger.error('Request failed', error, {
       latencyMs: Date.now() - startTime
     });
 
-    const errorResponse = handlePerplexityError(error);
+    const aiError = handlePerplexityError(error);
     return new Response(
-      JSON.stringify(errorResponse),
+      JSON.stringify({
+        success: false,
+        error: aiError.userMessage || aiError.message
+      }),
       {
-        status: errorResponse.statusCode,
+        status: aiError.statusCode || 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
