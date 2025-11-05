@@ -4,11 +4,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const logger = createLogger('generate-interview-question');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -400,9 +404,10 @@ Return ONLY valid JSON in the format above.`;
     const aiResponse = cleanCitations(response.choices[0].message.content);
 
     let parsedResult;
-    try {
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+    const parseResult = extractJSON(aiResponse);
+
+    if (parseResult.success && parseResult.data) {
+      const parsed = parseResult.data;
       
       // Validate and provide fallbacks
       if (!parsed.question || typeof parsed.question !== 'object') {
@@ -439,10 +444,11 @@ Return ONLY valid JSON in the format above.`;
         questionCount: parsedResult.question.questionsToExpand?.length || 0,
         phase: parsedResult.phase
       });
-      
-    } catch (e) {
-      console.error('[GENERATE-INTERVIEW-QUESTION] Failed to parse AI response:', e);
-      console.error('[GENERATE-INTERVIEW-QUESTION] Raw AI response:', aiResponse);
+    } else {
+      logger.error('JSON parsing failed in generate-interview-question', {
+        error: parseResult.error,
+        content: aiResponse.substring(0, 500)
+      });
       parsedResult = {
         question: {
           context: "Let's continue building your Career Vault",

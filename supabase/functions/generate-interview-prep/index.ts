@@ -195,12 +195,19 @@ Return as JSON array with this structure:
       questions = extractResult.data;
       logger.info('Successfully validated interview questions', { count: questions.length });
     } else {
-      logger.warn('Schema validation failed, using fallback parsing', { 
-        error: extractResult.error 
+      logger.warn('Schema validation failed, using fallback parsing', {
+        error: extractResult.error
       });
-      // Fallback parsing
-      const jsonMatch = questionsText.match(/\[[\s\S]*\]/);
-      questions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      // Fallback parsing with safe extraction
+      const basicParseResult = extractJSON(questionsText);
+      if (basicParseResult.success && Array.isArray(basicParseResult.data)) {
+        questions = basicParseResult.data;
+      } else {
+        logger.error('Fallback parsing also failed', {
+          error: basicParseResult.error
+        });
+        questions = [];
+      }
     }
 
     logger.info('Interview prep generated successfully', {

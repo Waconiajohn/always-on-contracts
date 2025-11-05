@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 // Edge function for analyzing job requirements
 
@@ -10,6 +12,8 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const logger = createLogger('analyze-job-requirements');
 
 interface JobRequirement {
   category: 'required' | 'preferred' | 'nice-to-have';
@@ -160,9 +164,17 @@ Return ONLY valid JSON with this structure:
       await logAIUsage(metrics);
 
       const textContent = cleanCitations(response.choices?.[0]?.message?.content || '{}');
-      const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      jdAnalysis = JSON.parse(cleanedText);
-      console.log('Successfully parsed JD analysis');
+      const parseResult = extractJSON(textContent);
+
+      if (parseResult.success && parseResult.data) {
+        jdAnalysis = parseResult.data;
+        console.log('Successfully parsed JD analysis');
+      } else {
+        logger.error('JSON parsing failed for JD analysis', {
+          error: parseResult.error,
+          content: textContent.substring(0, 500)
+        });
+      }
     } catch (parseError) {
       console.error('Failed to parse JD analysis JSON:', parseError);
     }
@@ -212,9 +224,17 @@ Return ONLY valid JSON:
       await logAIUsage(metrics);
 
       const content = response.choices?.[0]?.message?.content || '{}';
-      const cleanedContent = cleanCitations(content).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const parsed = JSON.parse(cleanedContent);
-      industryStandards = parsed.industryStandards || [];
+      const cleanedContent = cleanCitations(content);
+      const parseResult = extractJSON(cleanedContent);
+
+      if (parseResult.success && parseResult.data) {
+        industryStandards = parseResult.data.industryStandards || [];
+      } else {
+        logger.error('JSON parsing failed for industry standards', {
+          error: parseResult.error,
+          content: cleanedContent.substring(0, 500)
+        });
+      }
     } catch (error) {
       console.error('Error fetching industry standards:', error);
     }
@@ -267,11 +287,19 @@ Return ONLY valid JSON:
       await logAIUsage(metrics);
 
       const textContent = cleanCitations(response.choices?.[0]?.message?.content || '{}');
-      const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const parsed = JSON.parse(cleanedText);
-      professionBenchmarks = parsed.professionBenchmarks || [];
-      differentiators = parsed.differentiators || [];
-      gapAnalysis = parsed.gapAnalysis || { commonlyMissing: [], riskAreas: [] };
+      const parseResult = extractJSON(textContent);
+
+      if (parseResult.success && parseResult.data) {
+        const parsed = parseResult.data;
+        professionBenchmarks = parsed.professionBenchmarks || [];
+        differentiators = parsed.differentiators || [];
+        gapAnalysis = parsed.gapAnalysis || { commonlyMissing: [], riskAreas: [] };
+      } else {
+        logger.error('JSON parsing failed for profession benchmarks', {
+          error: parseResult.error,
+          content: textContent.substring(0, 500)
+        });
+      }
     } catch (parseError) {
       console.error('Failed to parse benchmarks JSON:', parseError);
     }

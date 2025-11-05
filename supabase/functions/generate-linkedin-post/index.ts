@@ -5,6 +5,7 @@ import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const logger = createLogger('generate-linkedin-post');
@@ -200,31 +201,36 @@ Apply the content framework rigorously. Optimize for LinkedIn algorithm (favor a
 
     const generatedContent = cleanCitations(response.choices[0].message.content);
 
-    // Parse JSON from response
+    // Parse JSON from response with production-grade extraction
     let parsedContent;
-    try {
-      const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : generatedContent);
-      const validated = LinkedInPostSchema.safeParse(parsed);
-      
-      if (validated.success) {
-        parsedContent = validated.data;
-        logger.info('Successfully validated LinkedIn post');
+    const parseResult = extractJSON(generatedContent, LinkedInPostSchema);
+
+    if (parseResult.success && parseResult.data) {
+      parsedContent = parseResult.data;
+      logger.info('Successfully validated LinkedIn post');
+    } else {
+      logger.warn('JSON parsing or schema validation failed', {
+        error: parseResult.error
+      });
+
+      // Fallback: Try without schema validation
+      const basicParseResult = extractJSON(generatedContent);
+      if (basicParseResult.success && basicParseResult.data) {
+        parsedContent = basicParseResult.data;
+        logger.info('Used basic parsing without schema validation');
       } else {
-        logger.warn('Schema validation failed, using parsed data', { error: validated.error.message });
-        parsedContent = parsed;
+        // Final fallback
+        parsedContent = {
+          title: topic,
+          content: generatedContent,
+          hashtags: [],
+          postType: postType,
+          estimatedEngagement: 'medium',
+          hookStrength: '7',
+          improvementTips: []
+        };
+        logger.warn('Using fallback content structure');
       }
-    } catch (e) {
-      logger.warn('Failed to parse AI response as JSON', { error: e instanceof Error ? e.message : String(e) });
-      parsedContent = {
-        title: topic,
-        content: generatedContent,
-        hashtags: [],
-        postType: postType,
-        estimatedEngagement: 'medium',
-        hookStrength: '7',
-        improvementTips: []
-      };
     }
 
     logger.info('LinkedIn post generated successfully', { 

@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,14 +81,20 @@ Return ONLY valid JSON in this exact format:
 
     const rawContent = cleanCitations(response.choices[0].message.content);
     const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
-    // Parse JSON from response
-    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+
+    // Parse JSON from response with production-grade extraction
+    const parseResult = extractJSON(cleanedContent);
+
+    if (!parseResult.success || !parseResult.data) {
+      const logger = createLogger('analyze-ats-score');
+      logger.error('JSON parsing failed', {
+        error: parseResult.error,
+        content: cleanedContent.substring(0, 500)
+      });
       throw new Error('Failed to parse JSON from AI response');
     }
 
-    const scoreData = JSON.parse(jsonMatch[0]);
+    const scoreData = parseResult.data;
 
     // Validate and ensure all required fields exist
     const validatedData = {

@@ -3,11 +3,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const logger = createLogger('ai-job-matcher');
 
 interface VaultData {
   power_phrases: any[];
@@ -310,15 +314,19 @@ Analyze this match and respond with ONLY valid JSON in this exact format:
           await logAIUsage(metrics);
 
           const content = response.choices[0].message.content;
-          
-          // Parse JSON response
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (!jsonMatch) {
-            console.error('[AI-JOB-MATCHER] Invalid JSON response from AI');
+
+          // Parse JSON response with production-grade extraction
+          const parseResult = extractJSON(content);
+          if (!parseResult.success || !parseResult.data) {
+            logger.error('JSON parsing failed for job match', {
+              error: parseResult.error,
+              jobId: job.id,
+              content: content.substring(0, 500)
+            });
             continue;
           }
 
-          const matchData = JSON.parse(jsonMatch[0]);
+          const matchData = parseResult.data;
           totalAnalyzed++;
 
           // Only save matches with score >= 70%

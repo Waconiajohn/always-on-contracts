@@ -5,6 +5,8 @@ import { getDocumentProxy } from "https://esm.sh/unpdf@0.11.0";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 // Phase 1.3: Security Headers
 const corsHeaders = {
@@ -88,6 +90,7 @@ class AICircuitBreaker {
 }
 
 const circuitBreaker = new AICircuitBreaker();
+const logger = createLogger('process-resume');
 
 // Phase 3.1: Expanded Error Messages
 const ERROR_MESSAGES: Record<string, string> = {
@@ -510,19 +513,26 @@ Be lenient - if you see resume content despite poor formatting, mark as true.`
     
     // Parse structured output from tool call
     const content = data.choices?.[0]?.message?.content;
-    let result;
-    try {
-      result = JSON.parse(content);
-    } catch {
-      // If not JSON, try to extract from text
-      const isResumeMatch = /isResume["\s:]+(?:true|false)/i.exec(content);
-      const confidenceMatch = /confidence["\s:]+([0-9.]+)/i.exec(content);
-      result = {
-        isResume: isResumeMatch ? isResumeMatch[0].includes('true') : false,
-        confidence: confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.5,
-        reason: 'Parsed from text response'
-      };
+    const parseResult = extractJSON(content);
+
+    if (parseResult.success && parseResult.data) {
+      return parseResult.data;
     }
+
+    // Fallback: If JSON parsing failed, try to extract from text
+    logger.warn('JSON parsing failed in validateIsResume, using regex fallback', {
+      error: parseResult.error,
+      content: content?.substring(0, 500)
+    });
+
+    const isResumeMatch = /isResume["\s:]+(?:true|false)/i.exec(content);
+    const confidenceMatch = /confidence["\s:]+([0-9.]+)/i.exec(content);
+    const result = {
+      isResume: isResumeMatch ? isResumeMatch[0].includes('true') : false,
+      confidence: confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.5,
+      reason: 'Parsed from text response (fallback)'
+    };
+
     return result;
   } catch (error) {
     console.log('[PROCESS-RESUME] AI validation failed, using regex fallback:', error.message);
@@ -677,62 +687,30 @@ Return ONLY valid JSON in this exact structure:
       // Log what we received from AI for debugging
       console.log('[multiPassAnalysis] Response received, length:', content.length);
 
-      let analysis;
-      
-      try {
-        // Try to parse as-is
-        analysis = JSON.parse(content);
-        console.log('[multiPassAnalysis] Successfully parsed JSON on first attempt');
-      } catch (parseError: any) {
-        console.error('[multiPassAnalysis] Initial parse failed:', parseError.message);
-        
-        // Aggressive cleanup for malformed JSON
-        try {
-          let cleaned = content;
-          
-          // Remove markdown code blocks if present
-          cleaned = cleaned.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-          
-          // Remove any leading garbage (anything before first {)
-          const firstBrace = cleaned.indexOf('{');
-          if (firstBrace > 0) {
-            console.log(`[multiPassAnalysis] Removing ${firstBrace} leading chars`);
-            cleaned = cleaned.substring(firstBrace);
-          }
-          
-          // Remove any trailing garbage (anything after last })
-          const lastBrace = cleaned.lastIndexOf('}');
-          if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
-            console.log(`[multiPassAnalysis] Removing ${cleaned.length - lastBrace - 1} trailing chars`);
-            cleaned = cleaned.substring(0, lastBrace + 1);
-          }
-          
-          // Fix common JSON issues
-          cleaned = cleaned
-            .replace(/,(\s*[}\]])/g, '$1')    // Remove trailing commas
-            .replace(/\n/g, ' ')               // Remove newlines
-            .replace(/\r/g, '')                // Remove carriage returns
-            .replace(/\t/g, ' ')               // Replace tabs with spaces
-            .replace(/\s+/g, ' ')              // Collapse multiple spaces
-            .trim();
-          
-          analysis = JSON.parse(cleaned);
-          console.log('[multiPassAnalysis] Successfully parsed after cleanup');
-        } catch (cleanError: any) {
-          console.error('[multiPassAnalysis] Cleanup also failed:', cleanError.message);
-          
-          // If not last attempt, retry
-          if (attempt < maxRetries) {
-            const delay = attempt * 2000;
-            console.log(`[multiPassAnalysis] Waiting ${delay}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            throw new Error(`Retrying after JSON parse failure (attempt ${attempt}/${maxRetries})`);
-          }
-          
-          // Last attempt failed
-          throw new Error('Unable to process resume format. Please try converting to PDF or pasting text directly.');
+      // Use production-grade JSON extraction
+      const parseResult = extractJSON(content);
+
+      if (!parseResult.success) {
+        logger.error('JSON parsing failed in multiPassAnalysis', {
+          error: parseResult.error,
+          content: content.substring(0, 500),
+          attempt: attempt + 1
+        });
+
+        // If not last attempt, retry
+        if (attempt < maxRetries) {
+          const delay = attempt * 2000;
+          console.log(`[multiPassAnalysis] Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          throw new Error(`Retrying after JSON parse failure (attempt ${attempt}/${maxRetries})`);
         }
+
+        // Last attempt failed
+        throw new Error('Unable to process resume format. Please try converting to PDF or pasting text directly.');
       }
+
+      const analysis = parseResult.data;
+      console.log('[multiPassAnalysis] Successfully parsed JSON');
       
       // Phase 5.3: Apply smart defaults for missing data
       const yearsEstimate = estimateYearsFromText(text);

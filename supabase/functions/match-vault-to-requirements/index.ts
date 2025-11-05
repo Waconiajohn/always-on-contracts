@@ -3,11 +3,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const logger = createLogger('match-vault-to-requirements');
 
 interface VaultMatch {
   vaultItemId: string;
@@ -129,15 +133,17 @@ serve(async (req) => {
       { name: 'interview_responses', data: vaultData.vault_interview_responses, type: 'expanded' }
     ];
 
-    // Helper: Safe JSON parse with fallback
+    // Helper: Production-grade JSON extraction
     const safeJSONParse = (text: string) => {
-      try {
-        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        return JSON.parse(cleaned);
-      } catch (e) {
-        console.error('JSON parse error:', e);
+      const result = extractJSON(text);
+      if (!result.success) {
+        logger.error('JSON parsing failed', {
+          error: result.error,
+          content: text.substring(0, 500)
+        });
         return null;
       }
+      return result.data;
     };
 
     // Use Perplexity AI to intelligently match vault items to requirements

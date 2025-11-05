@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,7 +64,18 @@ Generate vault items as JSON:
     await logAIUsage(metrics);
 
     const content = cleanCitations(response.choices[0].message.content);
-    const parsedItems = JSON.parse(content);
+    const parseResult = extractJSON(content);
+
+    if (!parseResult.success || !parseResult.data) {
+      const logger = createLogger('process-intelligent-responses');
+      logger.error('JSON parsing failed', {
+        error: parseResult.error,
+        content: content.substring(0, 500)
+      });
+      throw new Error('Failed to parse AI response');
+    }
+
+    const parsedItems = parseResult.data;
 
     let newItemsCreated = 0;
 

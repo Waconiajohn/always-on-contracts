@@ -16,6 +16,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 interface InitialAnalysisRequest {
   resumeText: string;
@@ -145,15 +147,18 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
     await logAIUsage(metrics);
 
     const rawContent = cleanCitations(response.choices[0].message.content);
-    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
-    let analysisResult: InitialAnalysisResponse;
-    try {
-      analysisResult = JSON.parse(cleanedContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', cleanedContent);
+    const parseResult = extractJSON(rawContent);
+
+    if (!parseResult.success || !parseResult.data) {
+      const logger = createLogger('analyze-resume-initial');
+      logger.error('JSON parsing failed', {
+        error: parseResult.error,
+        content: rawContent.substring(0, 500)
+      });
       throw new Error('AI returned invalid JSON format');
     }
+
+    const analysisResult: InitialAnalysisResponse = parseResult.data;
 
     if (!analysisResult.detectedRole || !analysisResult.detectedIndustry) {
       throw new Error('AI failed to detect role or industry');

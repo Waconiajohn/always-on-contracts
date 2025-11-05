@@ -3,11 +3,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const logger = createLogger('generate-gap-analysis');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -121,7 +125,18 @@ Generate a gap analysis as JSON:
 
     await logAIUsage(metrics);
 
-    const gapAnalysis = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
+    const parseResult = extractJSON(content);
+
+    if (!parseResult.success || !parseResult.data) {
+      logger.error('JSON parsing failed for gap analysis', {
+        error: parseResult.error,
+        content: content.substring(0, 500)
+      });
+      throw new Error('Failed to parse gap analysis response');
+    }
+
+    const gapAnalysis = parseResult.data;
 
     console.log('[GAP ANALYSIS] Analysis complete:', {
       strengths: gapAnalysis.strengths?.length || 0,

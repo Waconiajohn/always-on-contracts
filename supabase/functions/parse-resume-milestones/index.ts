@@ -3,11 +3,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const logger = createLogger('parse-resume-milestones');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -129,14 +133,16 @@ OUTPUT REQUIREMENTS:
 
     const aiResponse = response.choices[0].message.content;
 
-    let parsed;
-    try {
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
-    } catch (e) {
-      console.error('[PARSE-RESUME-MILESTONES] Failed to parse:', e);
+    const parseResult = extractJSON(aiResponse);
+    if (!parseResult.success || !parseResult.data) {
+      logger.error('JSON parsing failed for resume milestones', {
+        error: parseResult.error,
+        content: aiResponse.substring(0, 500)
+      });
       throw new Error('Failed to parse AI response');
     }
+
+    const parsed = parseResult.data;
 
     console.log('[PARSE-RESUME-MILESTONES] Parsed milestones:', parsed.milestones.length);
 
