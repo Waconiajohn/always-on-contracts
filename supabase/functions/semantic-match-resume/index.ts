@@ -1,55 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { SemanticMatchSchema } from '../_shared/ai-response-schemas.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 /**
  * Semantic Matching: Find hidden qualifications using AI context understanding
- * 
+ *
  * Goes beyond keyword matching to find:
  * - Similar concepts expressed differently
  * - Transferable skills from other industries
  * - Hidden qualifications user doesn't realize they have
  */
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+serve(createAIHandler({
+  functionName: 'semantic-match-resume',
+  schema: SemanticMatchSchema,
+  requireAuth: true,
+  rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+  inputValidation: (body) => {
+    if (!body.resumeContent || body.resumeContent.length < 100) {
+      throw new Error('Resume content must be at least 100 characters');
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error("Unauthorized");
+    if (!body.jobRequirements || !Array.isArray(body.jobRequirements)) {
+      throw new Error('Job requirements must be an array');
     }
+    if (body.jobRequirements.length === 0) {
+      throw new Error('At least one job requirement is required');
+    }
+  },
 
+  handler: async ({ user, body, logger }) => {
     const {
       resumeContent,
       jobRequirements,
       jobDescription,
       industry = 'General',
       targetIndustry = 'General'
-    } = await req.json();
+    } = body;
 
-    if (!resumeContent || !jobRequirements) {
-      throw new Error("Missing required parameters");
-    }
+    logger.info('Starting semantic matching', {
+      resumeLength: resumeContent.length,
+      requirementsCount: jobRequirements.length,
+      industryTransition: `${industry} → ${targetIndustry}`
+    });
 
     const prompt = `You are an expert career transition analyst. Perform SEMANTIC MATCHING between resume and job requirements.
 
@@ -62,7 +58,7 @@ RESUME CONTENT:
 ${resumeContent}
 
 JOB REQUIREMENTS:
-${jobRequirements.map((req: any, idx: number) => `${idx + 1}. ${req}`).join('\n')}
+${jobRequirements.map((req: string, idx: number) => `${idx + 1}. ${req}`).join('\n')}
 
 JOB DESCRIPTION CONTEXT:
 ${jobDescription?.substring(0, 1000) || 'Not provided'}
@@ -80,48 +76,43 @@ EXAMPLES OF SEMANTIC MATCHING:
   Resume says: "Guided organization through digital transformation affecting 500+ employees"
   Match: ✅ This is change management at scale
 
-ANALYZE AND RETURN JSON:
+ANALYZE AND RETURN ONLY VALID JSON:
 {
-  "semanticMatches": [
+  "overallFit": 85,
+  "requirementMatches": [
     {
-      "requirement": "The exact job requirement",
-      "resumeEvidence": "Where/how the resume demonstrates this",
-      "matchConfidence": 0.95,
-      "matchReasoning": "Why this is a semantic match",
-      "isHiddenQualification": true,
-      "suggestionForResume": "How to make this match more explicit in resume"
+      "requirement": "Stakeholder management",
+      "matchStrength": "strong",
+      "evidence": ["Coordinated with C-suite executives", "Board member relationships"],
+      "reasoning": "Demonstrates stakeholder management through executive coordination"
     }
   ],
-  "transferableSkills": [
-    {
-      "skillFromResume": "Skill demonstrated in ${industry}",
-      "applicableToRole": "How it transfers to ${targetIndustry}",
-      "strengthOfTransfer": "high",
-      "evidenceStatement": "Specific example from resume"
-    }
+  "hiddenStrengths": [
+    "Change leadership (not explicitly stated but evident in transformation work)",
+    "Cross-functional collaboration (shown through multi-team coordination)"
   ],
-  "missingRequirements": [
-    {
-      "requirement": "Requirement truly missing from resume",
-      "severity": "critical",
-      "canDevelop": true,
-      "developmentSuggestion": "How candidate could develop this skill"
-    }
+  "criticalGaps": [
+    "Requirement: Technical skill X - Not found in resume",
+    "Requirement: Certification Y - Missing but could be obtained"
   ],
-  "overallMatchScore": 85,
-  "matchSummary": "High-level summary of candidate fit based on semantic analysis"
+  "recommendation": "Strong candidate - 7/10 requirements matched semantically",
+  "nextSteps": [
+    "Highlight stakeholder management more explicitly",
+    "Add specific metrics to transformation examples"
+  ]
 }`;
 
-    // Use smart model selection - complex reasoning task
+    const startTime = Date.now();
+
     const model = selectOptimalModel({
       taskType: 'analysis',
       complexity: 'high',
       requiresReasoning: true,
-      estimatedInputTokens: Math.ceil((resumeContent.length + jobDescription.length) / 4) + 400,
+      estimatedInputTokens: Math.ceil((resumeContent.length + (jobDescription?.length || 0)) / 4) + 400,
       estimatedOutputTokens: 1200
     });
 
-    console.log(`[semantic-match-resume] Using model: ${model}`);
+    logger.info('Selected model', { model });
 
     const { response, metrics } = await callPerplexity(
       {
@@ -146,29 +137,35 @@ ANALYZE AND RETURN JSON:
 
     await logAIUsage(metrics);
 
+    const latencyMs = Date.now() - startTime;
+
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const content_text = cleanCitations(response.choices[0].message.content);
 
-    console.log("AI semantic matching response:", content_text.substring(0, 500));
+    const result = extractJSON(content_text, SemanticMatchSchema);
 
-    // Extract JSON from response
-    const jsonMatch = content_text.match(/\{[\s\S]*\}/);
-    const semanticAnalysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-    if (!semanticAnalysis) {
-      throw new Error("Failed to parse AI response");
+    if (!result.success) {
+      logger.error('JSON parsing failed', {
+        error: result.error,
+        response: content_text.substring(0, 500)
+      });
+      throw new Error(`AI returned invalid response: ${result.error}`);
     }
 
-    return new Response(JSON.stringify(semanticAnalysis), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    logger.info('Semantic matching complete', {
+      overallFit: result.data.overallFit,
+      matchesFound: result.data.requirementMatches.length,
+      hiddenStrengths: result.data.hiddenStrengths.length
     });
-  } catch (error) {
-    console.error("Error in semantic-match-resume:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+
+    return result.data;
   }
-});
+}));

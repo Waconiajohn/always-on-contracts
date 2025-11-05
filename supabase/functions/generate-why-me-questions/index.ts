@@ -2,19 +2,22 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { extractArray } from '../_shared/json-parser.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+serve(createAIHandler({
+  functionName: 'generate-why-me-questions',
+  requireAuth: false,
+  parseResponse: false,
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  inputValidation: (body) => {
+    if (!body.category) {
+      throw new Error('category is required');
+    }
+  },
 
-  try {
-    const { category } = await req.json();
+  handler: async ({ body, logger }) => {
+    const { category } = body;
 
     const prompt = `Generate 3-5 specific, thoughtful questions to help an executive articulate their achievements in the category of "${category}".
 
@@ -26,6 +29,17 @@ The questions should:
 
 Return ONLY a JSON array of questions:
 ["Question 1?", "Question 2?", "Question 3?"]`;
+
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'generation',
+      complexity: 'low',
+      requiresReasoning: false,
+      estimatedOutputTokens: 300
+    });
+
+    logger.info('Selected model', { model, category });
 
     const { response, metrics } = await callPerplexity(
       {
@@ -39,12 +53,7 @@ Return ONLY a JSON array of questions:
             content: prompt,
           },
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'short'
-        }),
+        model,
         temperature: 0.7,
         max_tokens: 600,
         return_citations: false,
@@ -54,23 +63,29 @@ Return ONLY a JSON array of questions:
 
     await logAIUsage(metrics);
 
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const content = cleanCitations(response.choices[0].message.content);
 
-    // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    const questions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    const result = extractArray<string>(content);
 
-    return new Response(JSON.stringify({ questions }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error in generate-why-me-questions:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    if (!result.success || !result.data) {
+      logger.error('Questions extraction failed', {
+        error: result.error,
+        response: content.substring(0, 300)
+      });
+      throw new Error(`Invalid questions array: ${result.error}`);
+    }
+
+    logger.info('Questions generated', { count: result.data.length });
+
+    return { questions: result.data };
   }
-});
+}));

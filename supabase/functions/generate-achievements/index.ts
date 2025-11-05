@@ -2,19 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { extractArray } from '../_shared/json-parser.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+serve(createAIHandler({
+  functionName: 'generate-achievements',
+  requireAuth: false,
+  parseResponse: false,
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { resumeAnalysis, currentAchievements } = await req.json();
+  handler: async ({ body, logger }) => {
+    const { resumeAnalysis, currentAchievements } = body;
 
     const prompt = `Based on this resume analysis, suggest 3-5 additional key achievements that would be compelling for contract/interim executive positions.
 
@@ -35,7 +32,16 @@ Requirements:
 Return ONLY a JSON array of achievement strings, nothing else. Example format:
 ["Led $50M digital transformation resulting in 40% efficiency gain", "Restructured global operations across 12 countries, reducing costs by $15M annually"]`;
 
-    console.log("Calling Perplexity for achievement suggestions...");
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'generation',
+      complexity: 'low',
+      requiresReasoning: false,
+      estimatedOutputTokens: 300
+    });
+
+    logger.info('Selected model', { model });
 
     const { response, metrics } = await callPerplexity(
       {
@@ -49,12 +55,7 @@ Return ONLY a JSON array of achievement strings, nothing else. Example format:
             content: prompt,
           },
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'short'
-        }),
+        model,
         temperature: 0.7,
         max_tokens: 600,
         return_citations: false,
@@ -64,25 +65,26 @@ Return ONLY a JSON array of achievement strings, nothing else. Example format:
 
     await logAIUsage(metrics);
 
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const content = cleanCitations(response.choices[0].message.content);
 
-    console.log("AI response:", content);
+    const result = extractArray<string>(content);
 
-    // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    const achievements = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    if (!result.success) {
+      logger.error('Array extraction failed', { error: result.error });
+      throw new Error(`Invalid achievements array: ${result.error}`);
+    }
 
-    return new Response(JSON.stringify({ achievements }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error in generate-achievements:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    logger.info('Achievements generated', { count: result.data?.length });
+
+    return { achievements: result.data };
   }
-});
+}));

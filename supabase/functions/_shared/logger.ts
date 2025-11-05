@@ -116,6 +116,31 @@ class Logger {
       throw error;
     }
   }
+
+  /**
+   * Log AI API call metrics for cost tracking and performance monitoring
+   */
+  logAICall(params: {
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    latencyMs: number;
+    cost: number;
+    success: boolean;
+    errorCode?: string;
+  }): void {
+    this.info('AI_CALL_COMPLETED', {
+      event_type: 'ai_call',
+      model: params.model,
+      input_tokens: params.inputTokens,
+      output_tokens: params.outputTokens,
+      total_tokens: params.inputTokens + params.outputTokens,
+      latency_ms: params.latencyMs,
+      cost_usd: params.cost,
+      success: params.success,
+      error_code: params.errorCode
+    });
+  }
 }
 
 /**

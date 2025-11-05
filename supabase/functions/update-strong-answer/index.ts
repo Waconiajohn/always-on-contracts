@@ -4,40 +4,30 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { QuestionResponseSchema } from '../_shared/ai-response-schemas.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+serve(createAIHandler({
+  functionName: 'update-strong-answer',
+  schema: QuestionResponseSchema,
+  requireAuth: true,
+  rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  inputValidation: (body) => {
+    if (!body.question || !body.currentAnswer) {
+      throw new Error('question and currentAnswer are required');
+    }
+  },
 
-  try {
+  handler: async ({ user, body, logger }) => {
+    const { question, currentAnswer, validationFeedback } = body;
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    const { question, currentAnswer, validationFeedback } = await req.json();
-
-    if (!question || !currentAnswer) {
-      throw new Error('Question and current answer are required');
-    }
+    logger.info('Fetching vault data for answer enhancement');
 
     // Get Career Vault data for resume context
     const { data: vault } = await supabase
@@ -76,23 +66,27 @@ Return JSON with:
 
 Keep the enhanced answer realistic and grounded in their actual experience. Don't fabricate - enhance.`;
 
-    console.log('Generating enhanced answer example');
-    
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'generation',
+      complexity: 'medium',
+      requiresReasoning: false,
+      estimatedOutputTokens: 600
+    });
+
+    logger.info('Selected model', { model });
+
     const { response, metrics } = await callPerplexity(
       {
         messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert interview coach creating enhanced answer examples. Return only valid JSON.' 
+          {
+            role: 'system',
+            content: 'You are an expert interview coach creating enhanced answer examples. Return only valid JSON.'
           },
           { role: 'user', content: enhancementPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: false,
-          outputLength: 'medium'
-        }),
+        model,
         temperature: 0.5,
         max_tokens: 2000,
         return_citations: false,
@@ -103,31 +97,29 @@ Keep the enhanced answer realistic and grounded in their actual experience. Don'
 
     await logAIUsage(metrics);
 
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const enhancedText = response.choices[0].message.content.trim();
-    
-    // Extract JSON from response
-    const jsonMatch = enhancedText.match(/\{[\s\S]*\}/);
-    const enhancement = jsonMatch ? JSON.parse(jsonMatch[0]) : {
-      enhanced_answer: currentAnswer,
-      what_was_added: "Could not generate enhancement",
-      resume_details_used: []
-    };
 
-    return new Response(
-      JSON.stringify(enhancement),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const result = extractJSON(enhancedText, QuestionResponseSchema);
 
-  } catch (error: any) {
-    console.error('Error generating enhanced answer:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        enhanced_answer: "",
-        what_was_added: "",
-        resume_details_used: []
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    if (!result.success) {
+      logger.error('JSON extraction failed', {
+        error: result.error,
+        response: enhancedText.substring(0, 300)
+      });
+      throw new Error(`Invalid enhancement response: ${result.error}`);
+    }
+
+    logger.info('Answer enhancement complete');
+
+    return result.data;
   }
-});
+}));

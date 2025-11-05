@@ -3,23 +3,24 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { InterviewValidationSchema } from '../_shared/ai-response-schemas.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+serve(createAIHandler({
+  functionName: 'validate-interview-response',
+  schema: InterviewValidationSchema,
+  requireAuth: false, // Can be called without auth for demo purposes
+  rateLimit: { maxPerMinute: 20, maxPerHour: 200 },
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { question, answer, selected_guided_options } = await req.json();
-
-    if (!question || !answer) {
-      throw new Error('Question and answer are required');
+  inputValidation: (body) => {
+    if (!body.question || !body.answer) {
+      throw new Error('question and answer are required');
     }
+  },
+
+  handler: async ({ body, logger }) => {
+    const { question, answer, selected_guided_options } = body;
 
     // Handle both formats: checkbox selections + custom text, or plain text
     let combinedAnswer = '';
@@ -130,57 +131,59 @@ CRITICAL VALIDATION RULES:
 - If many checkboxes were selected, acknowledge breadth of experience in strengths
 - When score >= 70, celebrate the quality and mention they can continue`;
 
-    console.log('Validating interview response');
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'analysis',
+      complexity: 'medium',
+      requiresReasoning: true,
+      estimatedOutputTokens: 800
+    });
+
+    logger.info('Selected model', { model });
+
     const { response: aiResponse, metrics } = await callPerplexity(
       {
         messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert interview coach validating response quality. Return only valid JSON.' 
+          {
+            role: 'system',
+            content: 'You are an expert interview coach validating response quality. Return only valid JSON.'
           },
           { role: 'user', content: validationPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
-        }),
+        model,
       },
       'validate-interview-response'
     );
 
     await logAIUsage(metrics);
 
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const validationText = cleanCitations(aiResponse.choices[0].message.content).trim();
-    
-    // Extract JSON from response
-    const jsonMatch = validationText.match(/\{[\s\S]*\}/);
-    const validation = jsonMatch ? JSON.parse(jsonMatch[0]) : {
-      is_sufficient: true,
-      quality_score: 70,
-      missing_elements: [],
-      follow_up_prompt: "",
-      strengths: []
-    };
 
-    return new Response(
-      JSON.stringify(validation),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const result = extractJSON(validationText, InterviewValidationSchema);
 
-  } catch (error: any) {
-    console.error('Error validating interview response:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        is_sufficient: true, // Default to accepting the answer on error
-        quality_score: 70,
-        missing_elements: [],
-        follow_up_prompt: "",
-        strengths: []
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    if (!result.success) {
+      logger.error('Validation parsing failed', {
+        error: result.error,
+        response: validationText.substring(0, 300)
+      });
+      throw new Error(`Invalid validation response: ${result.error}`);
+    }
+
+    logger.info('Interview response validation complete', {
+      qualityScore: result.data.quality_score,
+      isSufficient: result.data.is_sufficient
+    });
+
+    return result.data;
   }
-});
+}));

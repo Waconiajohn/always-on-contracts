@@ -3,11 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { LinkedInTopicSchema } from '../_shared/ai-response-schemas.ts';
+import { extractArray } from '../_shared/json-parser.ts';
 
 interface TopicSuggestion {
   topic: string;
@@ -18,30 +16,18 @@ interface TopicSuggestion {
   reasoning: string;
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+serve(createAIHandler({
+  functionName: 'suggest-linkedin-topics-from-vault',
+  schema: LinkedInTopicSchema,
+  requireAuth: true,
+  rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
-  try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
+  handler: async ({ user, logger }) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from auth header
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-
-    if (!user) {
-      throw new Error('Unauthorized');
-    }
-
-    console.log('Generating LinkedIn topic suggestions from vault for user:', user.id);
+    logger.info('Fetching vault data for LinkedIn topics');
 
     // Fetch ALL vault items (all 10 intelligence categories)
     const { data: vault, error: vaultError } = await supabase
@@ -214,17 +200,23 @@ EXAMPLES OF BAD TOPICS:
 ❌ "My thoughts on remote work" (no achievement, opinion piece)
 ❌ "10 productivity hacks" (not tied to their experience)`;
 
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'generation',
+      complexity: 'medium',
+      requiresReasoning: true,
+      estimatedOutputTokens: 800
+    });
+
+    logger.info('Selected model', { model });
+
     const { response, metrics } = await callPerplexity(
       {
         messages: [
           { role: 'user', content: prompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
-        }),
+        model,
         temperature: 0.7,
         max_tokens: 1500,
         return_citations: false,
@@ -235,43 +227,47 @@ EXAMPLES OF BAD TOPICS:
 
     await logAIUsage(metrics);
 
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const aiContent = cleanCitations(response.choices[0].message.content);
 
-    // Parse AI response
-    const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
-    const topics: TopicSuggestion[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    const result = extractArray<TopicSuggestion>(aiContent);
 
-    console.log(`✅ Generated ${topics.length} topic suggestions`);
+    if (!result.success || !result.data) {
+      logger.error('Failed to extract topics array', {
+        error: result.error,
+        response: aiContent.substring(0, 300)
+      });
+      throw new Error(`Invalid topics array: ${result.error}`);
+    }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        topics,
-        totalVaultItems: {
-          powerPhrases: vaultContext.powerPhrases.length,
-          skills: vaultContext.skills.length,
-          competencies: vaultContext.competencies.length,
-          softSkills: vaultContext.softSkills.length,
-          leadership: vaultContext.leadership.length,
-          executivePresence: vaultContext.executivePresence.length
-        }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    logger.info('Topics generated', {
+      count: result.data.length,
+      vaultItemsUsed: {
+        powerPhrases: vaultContext.powerPhrases.length,
+        skills: vaultContext.skills.length,
+        competencies: vaultContext.competencies.length
       }
-    );
+    });
 
-  } catch (error) {
-    console.error('Error generating topic suggestions:', error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    return {
+      success: true,
+      topics: result.data,
+      totalVaultItems: {
+        powerPhrases: vaultContext.powerPhrases.length,
+        skills: vaultContext.skills.length,
+        competencies: vaultContext.competencies.length,
+        softSkills: vaultContext.softSkills.length,
+        leadership: vaultContext.leadership.length,
+        executivePresence: vaultContext.executivePresence.length
       }
-    );
+    };
   }
-});
+}));

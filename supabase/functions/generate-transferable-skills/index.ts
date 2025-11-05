@@ -4,19 +4,24 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { TransferableSkillSchema } from '../_shared/ai-response-schemas.ts';
+import { extractArray } from '../_shared/json-parser.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+serve(createAIHandler({
+  functionName: 'generate-transferable-skills',
+  schema: TransferableSkillSchema,
+  requireAuth: false,  // Called internally
+  parseResponse: false,  // Custom handling with database
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  inputValidation: (body) => {
+    if (!body.vaultId) {
+      throw new Error('vaultId is required');
+    }
+  },
 
-  try {
-    const { vaultId } = await req.json();
+  handler: async ({ body, logger }) => {
+    const { vaultId } = body;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -63,28 +68,56 @@ Return JSON array:
   "confidence_score": 95
 }]`;
 
-    console.log('Generating transferable skills for Career Vault:', vaultId);
-    
+    logger.info('Generating transferable skills', { vaultId });
+
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'extraction',
+      complexity: 'medium',
+      requiresReasoning: true,
+      estimatedOutputTokens: 1000
+    });
+
+    logger.info('Selected model', { model });
+
     const { response, metrics } = await callPerplexity({
       messages: [
         { role: 'system', content: 'You are a career strategist specializing in skills translation and career pivoting. Return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
-      model: selectOptimalModel({
-        taskType: 'extraction',
-        complexity: 'medium',
-        requiresReasoning: true,
-        outputLength: 'medium'
-      }),
+      model,
       temperature: 0.2,
     }, 'generate-transferable-skills', vault.user_id);
 
     await logAIUsage(metrics);
 
-    const skillsText = cleanCitations(response.choices[0].message.content).trim();
-    const jsonMatch = skillsText.match(/\[[\s\S]*\]/);
-    const skills = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
+    const skillsText = cleanCitations(response.choices[0].message.content).trim();
+
+    const result = extractArray(skillsText);
+
+    if (!result.success || !result.data) {
+      logger.error('Skills extraction failed', {
+        error: result.error,
+        response: skillsText.substring(0, 300)
+      });
+      throw new Error(`Invalid skills array: ${result.error}`);
+    }
+
+    const skills = result.data;
+
+    logger.info('Transferable skills extracted', { count: skills.length });
+
+    // Insert skills into database
     const insertPromises = skills.map((skill: any) =>
       supabase.from('vault_transferable_skills').insert({
         vault_id: vaultId,
@@ -98,16 +131,8 @@ Return JSON array:
 
     await Promise.all(insertPromises);
 
-    return new Response(
-      JSON.stringify({ success: true, count: skills.length }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    logger.info('Skills inserted into database', { count: skills.length });
 
-  } catch (error: any) {
-    console.error('Error generating transferable skills:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return { success: true, count: skills.length };
   }
-});
+}));

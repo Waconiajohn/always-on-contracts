@@ -1,41 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { ResumeMatchScoreSchema } from '../_shared/ai-response-schemas.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+serve(createAIHandler({
+  functionName: 'score-resume-match',
+  schema: ResumeMatchScoreSchema,
+  requireAuth: true,
+  rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+  inputValidation: (body) => {
+    if (!body.keywords || !Array.isArray(body.keywords)) {
+      throw new Error('keywords must be an array');
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error("Unauthorized");
+    if (!body.resumeContent) {
+      throw new Error('resumeContent is required');
     }
+  },
 
-    const { keywords, resumeContent } = await req.json();
+  handler: async ({ user, body, logger }) => {
+    const { keywords, resumeContent } = body;
 
-    if (!keywords || !resumeContent) {
-      throw new Error("Missing required parameters");
-    }
+    logger.info('Scoring resume match', {
+      keywordCount: keywords.length,
+      hasExecutiveSummary: !!resumeContent.executive_summary
+    });
 
     const prompt = `Analyze this resume content against the required keywords and provide a detailed scoring:
 
@@ -48,41 +40,48 @@ Core Competencies: ${resumeContent.core_competencies?.join(", ") || ""}
 
 TASK:
 1. Check which keywords appear in the resume (exact match or close variants)
-2. Calculate coverage percentage
-3. Identify missing critical keywords
-4. Provide specific suggestions for improvement
+2. Calculate overall match percentage
+3. Score different categories (technical, leadership, domain)
+4. Identify strengths and gaps
+5. Provide specific improvement recommendations
 
-Return ONLY a JSON object with this structure:
+Return ONLY valid JSON with this structure:
 {
-  "coverage_score": 85,
-  "keywords_found": ["keyword1", "keyword2"],
-  "keywords_missing": ["keyword3", "keyword4"],
-  "keyword_coverage": {
-    "keyword1": {"found": true, "context": "where it was found"},
-    "keyword2": {"found": false, "suggestion": "how to add it"}
+  "overallMatch": 85,
+  "categoryScores": {
+    "technical": 90,
+    "leadership": 80,
+    "domain": 85
   },
-  "improvement_suggestions": [
-    "Specific suggestion 1",
-    "Specific suggestion 2"
-  ]
+  "strengths": ["Strong technical background", "Proven leadership"],
+  "gaps": ["Missing cloud certifications", "Limited agile experience"],
+  "recommendation": "Strong candidate with minor gaps in cloud technologies"
 }`;
 
-    console.log("Calling Perplexity for resume scoring...");
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'analysis',
+      complexity: 'medium',
+      requiresReasoning: true,
+      estimatedOutputTokens: 600
+    });
+
+    logger.info('Selected model', { model });
 
     const { response, metrics } = await callPerplexity(
       {
         messages: [
           {
+            role: "system",
+            content: "You are an expert ATS scoring specialist. Return valid JSON only."
+          },
+          {
             role: "user",
             content: prompt,
           },
         ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'short'
-        }),
+        model,
         temperature: 0.2,
         max_tokens: 2000,
         return_citations: false,
@@ -93,29 +92,29 @@ Return ONLY a JSON object with this structure:
 
     await logAIUsage(metrics);
 
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const content = cleanCitations(response.choices[0].message.content);
 
-    console.log("AI response:", content);
+    const result = extractJSON(content, ResumeMatchScoreSchema);
 
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const scoring = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-    if (!scoring) {
-      throw new Error("Failed to parse AI response");
+    if (!result.success) {
+      logger.error('Parsing failed', { error: result.error });
+      throw new Error(`Invalid response: ${result.error}`);
     }
 
-    return new Response(JSON.stringify(scoring), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    logger.info('Scoring complete', {
+      overallMatch: result.data.overallMatch,
+      gapsCount: result.data.gaps.length
     });
-  } catch (error) {
-    console.error("Error in score-resume-match:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+
+    return result.data;
   }
-});
+}));

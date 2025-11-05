@@ -200,4 +200,21 @@ export async function enforceRateLimit(
   await rateLimiter.recordRequest(userId, functionName);
 }
 
+/**
+ * Simple rate limit check (compatible with ai-function-wrapper)
+ */
+export async function checkRateLimit(
+  userId: string,
+  functionName: string,
+  maxPerMinute: number = 10
+): Promise<{ allowed: boolean; retryAfter?: number }> {
+  const rateLimiter = new RateLimiter();
+  const check = await rateLimiter.checkLimit(userId, functionName);
+
+  return {
+    allowed: check.allowed,
+    retryAfter: check.retryAfter
+  };
+}
+
 export { TIER_LIMITS };

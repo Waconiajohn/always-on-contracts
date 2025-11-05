@@ -2,19 +2,22 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
+import { SkillExtractionSchema } from '../_shared/ai-response-schemas.ts';
+import { extractArray } from '../_shared/json-parser.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+serve(createAIHandler({
+  functionName: 'generate-skills',
+  requireAuth: false, // Called from other functions
+  parseResponse: false, // Custom parsing below
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  handler: async ({ body, logger }) => {
+    const { resumeAnalysis, currentSkills } = body;
 
-  try {
-    const { resumeAnalysis, currentSkills } = await req.json();
+    logger.info('Generating skill suggestions', {
+      yearsExperience: resumeAnalysis?.years_experience,
+      currentSkillsCount: currentSkills?.length || 0
+    });
 
     const prompt = `Based on this resume analysis, suggest 5-8 additional core skills that would strengthen this executive profile for contract/interim positions.
 
@@ -35,7 +38,16 @@ Requirements:
 Return ONLY a JSON array of skill strings, nothing else. Example format:
 ["Change Management", "P&L Leadership", "Digital Transformation", "M&A Integration"]`;
 
-    console.log("Calling Perplexity for skill suggestions...");
+    const startTime = Date.now();
+
+    const model = selectOptimalModel({
+      taskType: 'generation',
+      complexity: 'low',
+      requiresReasoning: false,
+      estimatedOutputTokens: 200
+    });
+
+    logger.info('Selected model', { model });
 
     const { response, metrics } = await callPerplexity(
       {
@@ -49,12 +61,7 @@ Return ONLY a JSON array of skill strings, nothing else. Example format:
             content: prompt,
           },
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'short'
-        }),
+        model,
         temperature: 0.7,
         max_tokens: 600,
         return_citations: false,
@@ -64,25 +71,32 @@ Return ONLY a JSON array of skill strings, nothing else. Example format:
 
     await logAIUsage(metrics);
 
+    const latencyMs = Date.now() - startTime;
+
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs,
+      cost: metrics.cost_usd,
+      success: true
+    });
+
     const content = cleanCitations(response.choices[0].message.content);
 
-    console.log("AI response:", content);
+    // Extract and validate array
+    const result = extractArray<string>(content);
 
-    // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    const skills = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    if (!result.success || !result.data) {
+      logger.error('Failed to extract skills array', {
+        error: result.error,
+        response: content.substring(0, 300)
+      });
+      throw new Error(`AI returned invalid skills array: ${result.error}`);
+    }
 
-    return new Response(JSON.stringify({ skills }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error in generate-skills:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    logger.info('Skills generated', { count: result.data.length });
+
+    return { skills: result.data };
   }
-});
+}));
