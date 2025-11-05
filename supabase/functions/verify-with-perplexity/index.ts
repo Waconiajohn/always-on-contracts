@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -110,7 +111,12 @@ Provide factual verification with current sources.`;
             content: verificationPrompt
           }
         ],
-        model: PERPLEXITY_MODELS.HUGE,
+        model: selectOptimalModel({
+          taskType: 'research',
+          complexity: 'high',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
         temperature: 0.2,
         max_tokens: 2000,
         return_related_questions: true,

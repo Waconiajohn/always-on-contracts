@@ -14,8 +14,9 @@
 // =====================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -129,7 +130,12 @@ Focus on 2025 market data. Be specific and quantitative where possible.
               content: researchQuery
             }
           ],
-          model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'research',
+          complexity: 'high',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
           temperature: 0.2,
           max_tokens: 4000,
         },

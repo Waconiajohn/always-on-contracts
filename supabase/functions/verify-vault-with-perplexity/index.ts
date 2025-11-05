@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -101,7 +102,12 @@ Provide current market data with sources.`;
             content: verificationPrompt
           }
         ],
-        model: PERPLEXITY_MODELS.HUGE,
+        model: selectOptimalModel({
+          taskType: 'research',
+          complexity: 'high',
+          requiresReasoning: true,
+          outputLength: 'medium'
+        }),
         temperature: 0.2,
         max_tokens: 1000,
         return_related_questions: false,

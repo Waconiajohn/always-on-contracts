@@ -15,7 +15,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { analyzeCareerContextAI, getCareerLevelGuidance, type CareerContext } from '../_shared/career-context-analyzer-ai.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
@@ -425,7 +425,12 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
         meta: {
           cached: false,
           cost: `$${metrics.cost_usd.toFixed(4)}`,
-          model: PERPLEXITY_MODELS.HUGE,
+          model: selectOptimalModel({
+            taskType: 'analysis',
+            complexity: 'high',
+            requiresReasoning: true,
+            outputLength: 'long'
+          }),
           executionTime: `${Math.round(executionTime / 1000)}s`,
           careerContext: {
             seniority: careerContext.inferredSeniority,

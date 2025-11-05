@@ -15,7 +15,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface CareerPathRequest {
@@ -202,7 +203,12 @@ NO MARKDOWN. ONLY JSON.`,
             content: userPrompt,
           },
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'generation',
+          complexity: 'high',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
         temperature: 0.7,
         max_tokens: 3000,
       },
