@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // Using pinned version to avoid dev environment type resolution issues
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 // Dual Resume Section Generator - generates both ideal and personalized versions
 const corsHeaders = {
@@ -129,7 +130,12 @@ Return ONLY the content, no explanations.`;
 
     const { response: idealResponse, metrics: idealMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: idealPrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'generation',
+        complexity: 'medium',
+        requiresReasoning: false,
+        outputLength: 'medium'
+      }),
       temperature: 0.6,
       max_tokens: 1500,
     }, 'generate-dual-resume-section-ideal', user_id);
@@ -296,7 +302,12 @@ Return ONLY the content, no explanations.`;
 
     const { response: personalizedResponse, metrics: personalizedMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: personalizedPrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'generation',
+        complexity: 'medium',
+        requiresReasoning: false,
+        outputLength: 'medium'
+      }),
       temperature: 0.5,
       max_tokens: 1500,
     }, 'generate-dual-resume-section-personalized', user_id);
@@ -393,7 +404,12 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
 
       const { response: blendResponse, metrics: blendMetrics } = await callPerplexity({
         messages: [{ role: 'user', content: blendPrompt }],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'generation',
+          complexity: 'medium',
+          requiresReasoning: false,
+          outputLength: 'medium'
+        }),
         temperature: 0.6,
         max_tokens: 1500,
       }, 'generate-dual-resume-section-blend', user_id);
