@@ -95,6 +95,9 @@ serve(async (req) => {
     console.log('[GAP QUESTIONS] Phase 1: Fetching cached career context...');
     
     let careerContext: any;
+    const verifiedAreas: string[] = [];
+    const gapAreas: string[] = [];
+    
     const { data: cachedContext, error: contextError } = await supabase
       .from('vault_career_context')
       .select('*')
@@ -104,20 +107,47 @@ serve(async (req) => {
     if (cachedContext && !contextError) {
       careerContext = {
         hasManagementExperience: cachedContext.has_management_experience,
-        managementDetails: cachedContext.management_details,
+        managementDetails: cachedContext.management_scope || cachedContext.management_details,
         teamSizesManaged: cachedContext.team_sizes_managed || [],
-        hasBudgetOwnership: cachedContext.has_budget_ownership,
+        hasBudgetOwnership: cachedContext.has_budget_ownership || cachedContext.budget_responsibility,
         budgetDetails: cachedContext.budget_details,
         budgetSizesManaged: cachedContext.budget_sizes_managed || [],
+        budgetAmount: cachedContext.budget_amount,
         hasExecutiveExposure: cachedContext.has_executive_exposure,
         inferredSeniority: cachedContext.inferred_seniority,
         yearsOfExperience: cachedContext.years_of_experience,
         careerArchetype: cachedContext.career_archetype,
         technicalDepth: cachedContext.technical_depth,
         leadershipDepth: cachedContext.leadership_depth,
-        strategicDepth: cachedContext.strategic_depth
+        strategicDepth: cachedContext.strategic_depth,
+        educationLevel: cachedContext.education_level,
+        educationField: cachedContext.education_field,
+        certifications: cachedContext.certifications || [],
+        identifiedGaps: cachedContext.identified_gaps || []
       };
-      console.log('[GAP QUESTIONS] ✅ Using cached career context');
+      
+      // Build verified areas list
+      if (cachedContext.has_management_experience && cachedContext.management_scope) {
+        verifiedAreas.push(`Management experience (${cachedContext.management_scope})`);
+      }
+      if (cachedContext.education_level && cachedContext.education_field) {
+        verifiedAreas.push(`Education (${cachedContext.education_level} in ${cachedContext.education_field})`);
+      }
+      if (cachedContext.budget_responsibility && cachedContext.budget_amount) {
+        verifiedAreas.push(`Budget responsibility ($${cachedContext.budget_amount?.toLocaleString()})`);
+      }
+      if (cachedContext.certifications && cachedContext.certifications.length > 0) {
+        verifiedAreas.push(`Certifications: ${cachedContext.certifications.join(', ')}`);
+      }
+      
+      // Extract gaps
+      if (cachedContext.identified_gaps && Array.isArray(cachedContext.identified_gaps)) {
+        cachedContext.identified_gaps.forEach((gap: any) => {
+          gapAreas.push(`${gap.area}: ${gap.reason}`);
+        });
+      }
+      
+      console.log('[GAP QUESTIONS] ✅ Using cached career context with', verifiedAreas.length, 'verified areas and', gapAreas.length, 'gaps');
     } else {
       console.warn('[GAP QUESTIONS] ⚠️ No cached context found, using fallback');
       careerContext = {
@@ -133,11 +163,18 @@ serve(async (req) => {
         careerArchetype: 'Unknown',
         technicalDepth: 50,
         leadershipDepth: 30,
-        strategicDepth: 40
+        strategicDepth: 40,
+        identifiedGaps: []
       };
     }
 
-    console.log('[GAP QUESTIONS] Career context loaded:', { hasManagement: careerContext.hasManagementExperience, level: careerContext.inferredSeniority, cached: !!cachedContext });
+    console.log('[GAP QUESTIONS] Career context loaded:', { 
+      hasManagement: careerContext.hasManagementExperience, 
+      level: careerContext.inferredSeniority, 
+      cached: !!cachedContext,
+      verifiedCount: verifiedAreas.length,
+      gapCount: gapAreas.length
+    });
     
     // ===== PHASE 2: GAP DETECTION (USING CAREER CONTEXT + RESUME) =====
     console.log('[generate-gap-filling-questions] Phase 2: Generating gap questions based on career context and existing data...');
@@ -153,6 +190,12 @@ serve(async (req) => {
     const gapAnalysisPrompt = `
 You are an expert career strategist analyzing a professional's career profile to identify CRITICAL gaps.
 
+## VERIFIED AREAS (DO NOT ASK ABOUT THESE):
+${verifiedAreas.length > 0 ? verifiedAreas.map(v => `✓ ${v}`).join('\n') : 'None verified yet'}
+
+## IDENTIFIED GAPS (ASK ONLY ABOUT THESE):
+${gapAreas.length > 0 ? gapAreas.map(g => `⚠ ${g}`).join('\n') : 'No specific gaps identified - use resume to find areas needing clarification'}
+
 ## RESUME CONTENT (WHAT WE ALREADY KNOW):
 ${resumeText ? `
 Resume Text (first 3000 chars):
@@ -164,13 +207,13 @@ IMPORTANT: The resume above contains their background. DO NOT ask questions abou
 ## CAREER CONTEXT (AI-DETECTED FROM RESUME):
 Inferred Career Level: ${careerContext.inferredSeniority}
 Years of Experience: ${careerContext.yearsOfExperience}
-AI Confidence: ${careerContext.seniorityConfidence || 70}%
 
-Management Experience: ${careerContext.hasManagementExperience ? 'YES ✓ - ' + careerContext.managementDetails : 'NO - ' + careerContext.managementDetails}
-${careerContext.hasManagementExperience && careerContext.teamSizesManaged?.length > 0 ? `Team Sizes Managed: ${careerContext.teamSizesManaged.join(', ')} people` : ''}
-${careerContext.hasBudgetOwnership && careerContext.budgetSizesManaged?.length > 0 ? `Budget Amounts: ${careerContext.budgetSizesManaged.map((b: number) => `$${(b/1000000).toFixed(1)}M`).join(', ')}` : ''}
+Management Experience: ${careerContext.hasManagementExperience ? 'YES ✓ - ' + careerContext.managementDetails : 'NO'}
+${careerContext.hasBudgetOwnership && careerContext.budgetAmount ? `Budget Responsibility: $${careerContext.budgetAmount?.toLocaleString()} ✓` : ''}
+${careerContext.educationLevel && careerContext.educationField ? `Education: ${careerContext.educationLevel} in ${careerContext.educationField} ✓` : ''}
+${careerContext.certifications && careerContext.certifications.length > 0 ? `Certifications: ${careerContext.certifications.join(', ')} ✓` : ''}
 
-Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES ✓ - ' + careerContext.executiveDetails : 'NO'}
+Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES ✓' : 'NO'}
 Career Archetype: ${careerContext.careerArchetype}
 
 ## PROFESSIONAL IDENTITY:
@@ -196,11 +239,12 @@ Generate gap-filling questions that address information NOT found in the resume 
 
 CRITICAL RULES FOR QUESTION GENERATION:
 
-1. **NEVER ASK ABOUT INFORMATION ALREADY IN THE RESUME:**
-   - If their degree is mentioned in the resume → DO NOT ask about their degree
-   - If their job title shows management → DO NOT ask if they have management experience
-   - If certifications are listed → DO NOT ask about those certifications
-   - ONLY ask about gaps or ambiguities
+1. **NEVER ASK ABOUT VERIFIED AREAS:**
+   - Review the "VERIFIED AREAS" section above - these are CONFIRMED, do NOT ask about them
+   - If education is verified (e.g., "Bachelor's in Mechanical Engineering") → DO NOT ask "Do you have a degree?"
+   - If management is verified (e.g., "Supervised 3-4 rigs") → DO NOT ask "Have you managed teams?"
+   - If budget responsibility is verified → DO NOT ask about budget experience
+   - ONLY ask about the "IDENTIFIED GAPS" or areas genuinely unclear from the resume
 
 2. **Career Level Matching:**
    - Questions must match their ACTUAL career level (${careerContext.inferredSeniority})

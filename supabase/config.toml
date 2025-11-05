@@ -365,3 +365,9 @@ verify_jwt = true
 
 [functions.export-vault]
 verify_jwt = true
+
+[functions.detect-role-and-industry]
+verify_jwt = true
+
+[functions.auto-populate-vault-v3]
+verify_jwt = true
