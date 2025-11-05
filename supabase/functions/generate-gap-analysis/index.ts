@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,7 +106,12 @@ Generate a gap analysis as JSON:
           { role: 'system', content: 'You are an expert career advisor. Provide detailed gap analysis in valid JSON format.' },
           { role: 'user', content: prompt }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'analysis',
+          complexity: 'medium',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
         temperature: 0.5,
         max_tokens: 2000,
       },

@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 /**
  * Generate Dynamic Skill Verification Questions
@@ -119,7 +120,12 @@ Extract up to 20 most important skills. Focus on what makes this person SPECIALI
     const { response, metrics } = await callPerplexity(
       {
         messages: [{ role: 'user', content: prompt }],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'extraction',
+          complexity: 'medium',
+          requiresReasoning: false,
+          outputLength: 'medium'
+        }),
         temperature: 0.3,
       },
       'generate-skill-verification-questions',

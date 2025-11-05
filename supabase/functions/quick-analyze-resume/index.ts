@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,7 +49,12 @@ ${resumeText.substring(0, 3000)}`;
         { role: 'system', content: 'You are a career analysis AI. Return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
-      model: PERPLEXITY_MODELS.SMALL,
+      model: selectOptimalModel({
+        taskType: 'analysis',
+        complexity: 'low',
+        requiresReasoning: false,
+        outputLength: 'short'
+      }),
       temperature: 0.2,
     }, 'quick-analyze-resume', userId);
 
