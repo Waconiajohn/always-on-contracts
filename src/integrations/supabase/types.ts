@@ -3798,6 +3798,98 @@ export type Database = {
           },
         ]
       }
+      vault_career_context: {
+        Row: {
+          ai_reasoning: string | null
+          budget_details: string | null
+          budget_sizes_managed: number[] | null
+          career_archetype: string | null
+          company_sizes: string[] | null
+          created_at: string | null
+          executive_details: string | null
+          has_budget_ownership: boolean
+          has_executive_exposure: boolean
+          has_management_experience: boolean
+          id: string
+          impact_scale: string | null
+          inferred_seniority: string
+          leadership_depth: number | null
+          management_details: string | null
+          next_likely_role: string | null
+          primary_responsibilities: string[] | null
+          seniority_confidence: number
+          strategic_depth: number | null
+          team_sizes_managed: number[] | null
+          technical_depth: number | null
+          updated_at: string | null
+          user_id: string | null
+          vault_id: string | null
+          years_of_experience: number
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          budget_details?: string | null
+          budget_sizes_managed?: number[] | null
+          career_archetype?: string | null
+          company_sizes?: string[] | null
+          created_at?: string | null
+          executive_details?: string | null
+          has_budget_ownership: boolean
+          has_executive_exposure: boolean
+          has_management_experience: boolean
+          id?: string
+          impact_scale?: string | null
+          inferred_seniority: string
+          leadership_depth?: number | null
+          management_details?: string | null
+          next_likely_role?: string | null
+          primary_responsibilities?: string[] | null
+          seniority_confidence: number
+          strategic_depth?: number | null
+          team_sizes_managed?: number[] | null
+          technical_depth?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+          years_of_experience: number
+        }
+        Update: {
+          ai_reasoning?: string | null
+          budget_details?: string | null
+          budget_sizes_managed?: number[] | null
+          career_archetype?: string | null
+          company_sizes?: string[] | null
+          created_at?: string | null
+          executive_details?: string | null
+          has_budget_ownership?: boolean
+          has_executive_exposure?: boolean
+          has_management_experience?: boolean
+          id?: string
+          impact_scale?: string | null
+          inferred_seniority?: string
+          leadership_depth?: number | null
+          management_details?: string | null
+          next_likely_role?: string | null
+          primary_responsibilities?: string[] | null
+          seniority_confidence?: number
+          strategic_depth?: number | null
+          team_sizes_managed?: number[] | null
+          technical_depth?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+          years_of_experience?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_career_context_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: true
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_confirmed_skills: {
         Row: {
           created_at: string | null

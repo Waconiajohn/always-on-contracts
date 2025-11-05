@@ -91,113 +91,53 @@ serve(async (req) => {
       throw new Error('vaultData is required');
     }
 
-    // ===== PHASE 1: CAREER CONTEXT ANALYSIS (AI-POWERED) =====
-    // Use AI to analyze FULL resume and vault data to detect management experience
+    // ===== PHASE 1: GET CACHED CAREER CONTEXT (NO AI CALL) =====
+    console.log('[GAP QUESTIONS] Phase 1: Fetching cached career context...');
     
-    console.log('[generate-gap-filling-questions] Phase 1: Analyzing career context with AI...');
-    
-    // Prepare FULL resume text (no truncation)
-    const fullResumeText = resumeText || 'No resume provided';
-    
-    // Extract ALL vault power phrases and achievements for context
-    const allPowerPhrases = vaultData.power_phrases?.map((pp: any) => pp.power_phrase || pp.phrase).filter(Boolean) || [];
-    const allAchievements = vaultData.achievements?.map((a: any) => a.description).filter(Boolean) || [];
-    
-    const careerAnalysisPrompt = `
-Analyze this professional's career to detect management and leadership experience.
+    let careerContext: any;
+    const { data: cachedContext, error: contextError } = await supabase
+      .from('vault_career_context')
+      .select('*')
+      .eq('vault_id', vaultData.vault_id)
+      .single();
 
-FULL RESUME TEXT:
-${fullResumeText}
-
-VAULT POWER PHRASES (ALL):
-${allPowerPhrases.join('\n')}
-
-VAULT ACHIEVEMENTS (ALL):
-${allAchievements.join('\n')}
-
-TASK: Return a career context analysis in this exact JSON format:
-{
-  "hasManagementExperience": boolean,
-  "managementEvidence": [
-    "Evidence item 1 (e.g., job title)",
-    "Evidence item 2 (e.g., team scope)",
-    "Evidence item 3 (e.g., budget authority)"
-  ],
-  "teamSizesDetected": [3, 4, 12],
-  "budgetAmountsDetected": [350000000],
-  "careerLevel": "Manager" | "Director" | "VP" | "Senior IC" | "Mid IC" | "Entry IC",
-  "leadershipScope": "Brief description of leadership scope",
-  "confidenceScore": 0.95
-}
-
-Look for:
-- Job titles: supervisor, manager, director, VP, head, chief, lead
-- Team indicators: "team of X", "X engineers", "guided X people", "managed X rigs", "direct reports"
-- Budget indicators: "$XM", "$XMM", "$XB", "budget", "P&L"
-- Leadership verbs: led, managed, directed, supervised, guided, oversaw, coordinated
-- Scope indicators: multi-location, regional, global, cross-functional
-
-Return ONLY the JSON object, no additional text.
-`;
-
-    // Call AI for career context analysis
-    const { response: careerResponse, metrics: careerMetrics } = await callPerplexity(
-      {
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert career analyst. Extract management and leadership indicators from resumes. Return only valid JSON.'
-          },
-          {
-            role: 'user',
-            content: careerAnalysisPrompt
-          }
-        ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'high',
-          requiresReasoning: true,
-          estimatedOutputTokens: 500
-        }),
-        temperature: 0.1,
-        max_tokens: 2000,
-        return_citations: false,
-      },
-      'generate-gap-filling-questions-phase1',
-      user.id
-    );
-
-    await logAIUsage(careerMetrics);
-
-    // Parse career context
-    let careerContext;
-    try {
-      const rawCareerContent = cleanCitations(careerResponse.choices[0].message.content);
-      let cleanedCareerContent = rawCareerContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const jsonMatch = cleanedCareerContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanedCareerContent = jsonMatch[0];
-      }
-      careerContext = JSON.parse(cleanedCareerContent);
-      
-      console.log('[generate-gap-filling-questions] Phase 1 complete:', {
-        hasManagementExperience: careerContext.hasManagementExperience,
-        careerLevel: careerContext.careerLevel,
-        confidenceScore: careerContext.confidenceScore
-      });
-    } catch (parseError) {
-      console.error('Failed to parse career context:', parseError);
-      // Fallback to empty context
+    if (cachedContext && !contextError) {
+      careerContext = {
+        hasManagementExperience: cachedContext.has_management_experience,
+        managementDetails: cachedContext.management_details,
+        teamSizesManaged: cachedContext.team_sizes_managed || [],
+        hasBudgetOwnership: cachedContext.has_budget_ownership,
+        budgetDetails: cachedContext.budget_details,
+        budgetSizesManaged: cachedContext.budget_sizes_managed || [],
+        hasExecutiveExposure: cachedContext.has_executive_exposure,
+        inferredSeniority: cachedContext.inferred_seniority,
+        yearsOfExperience: cachedContext.years_of_experience,
+        careerArchetype: cachedContext.career_archetype,
+        technicalDepth: cachedContext.technical_depth,
+        leadershipDepth: cachedContext.leadership_depth,
+        strategicDepth: cachedContext.strategic_depth
+      };
+      console.log('[GAP QUESTIONS] ✅ Using cached career context');
+    } else {
+      console.warn('[GAP QUESTIONS] ⚠️ No cached context found, using fallback');
       careerContext = {
         hasManagementExperience: false,
-        managementEvidence: [],
-        teamSizesDetected: [],
-        budgetAmountsDetected: [],
-        careerLevel: 'Mid IC',
-        leadershipScope: 'Unable to determine',
-        confidenceScore: 0.0
+        managementDetails: 'Context not yet analyzed',
+        teamSizesManaged: [],
+        hasBudgetOwnership: false,
+        budgetDetails: '',
+        budgetSizesManaged: [],
+        hasExecutiveExposure: false,
+        inferredSeniority: 'Mid-Level IC',
+        yearsOfExperience: 5,
+        careerArchetype: 'Unknown',
+        technicalDepth: 50,
+        leadershipDepth: 30,
+        strategicDepth: 40
       };
     }
+
+    console.log('[GAP QUESTIONS] Career context loaded:', { hasManagement: careerContext.hasManagementExperience, level: careerContext.inferredSeniority, cached: !!cachedContext });
     
     // ===== PHASE 2: GAP DETECTION (USING CAREER CONTEXT) =====
     console.log('[generate-gap-filling-questions] Phase 2: Generating gap questions based on career context...');

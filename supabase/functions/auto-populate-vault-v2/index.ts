@@ -23,6 +23,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { analyzeCareerContextAI } from '../_shared/career-context-analyzer-ai.ts';
 
 interface AutoPopulateRequest {
   resumeText: string;
@@ -603,6 +604,58 @@ RETURN VALID JSON ONLY:
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
+
+    // FINAL STEP: Analyze and cache career context (runs ONCE after extraction)
+    console.log('🧠 [AUTO-POPULATE V2] Analyzing and caching career context...');
+    
+    try {
+      const { data: vaultItems } = await supabaseClient.from('vault_power_phrases').select('*').eq('vault_id', vaultId);
+      const { data: skills } = await supabaseClient.from('vault_transferable_skills').select('*').eq('vault_id', vaultId);
+      const { data: softSkills } = await supabaseClient.from('vault_soft_skills').select('*').eq('vault_id', vaultId);
+      const { data: leadership } = await supabaseClient.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId);
+      const { data: executivePresence } = await supabaseClient.from('vault_executive_presence').select('*').eq('vault_id', vaultId);
+
+      const careerContext = await analyzeCareerContextAI({
+        powerPhrases: vaultItems || [],
+        skills: skills || [],
+        competencies: [],
+        softSkills: softSkills || [],
+        leadership: leadership || [],
+        executivePresence: executivePresence || [],
+      }, user.id);
+
+      await supabaseClient.from('vault_career_context').upsert({
+        vault_id: vaultId,
+        user_id: user.id,
+        inferred_seniority: careerContext.inferredSeniority,
+        seniority_confidence: careerContext.seniorityConfidence,
+        years_of_experience: careerContext.yearsOfExperience,
+        has_management_experience: careerContext.hasManagementExperience,
+        management_details: careerContext.managementDetails,
+        team_sizes_managed: careerContext.teamSizesManaged,
+        has_executive_exposure: careerContext.hasExecutiveExposure,
+        executive_details: careerContext.executiveDetails,
+        has_budget_ownership: careerContext.hasBudgetOwnership,
+        budget_details: careerContext.budgetDetails,
+        budget_sizes_managed: careerContext.budgetSizesManaged,
+        company_sizes: careerContext.companySizes,
+        technical_depth: careerContext.technicalDepth,
+        leadership_depth: careerContext.leadershipDepth,
+        strategic_depth: careerContext.strategicDepth,
+        primary_responsibilities: careerContext.primaryResponsibilities,
+        impact_scale: careerContext.impactScale,
+        next_likely_role: careerContext.nextLikelyRole,
+        career_archetype: careerContext.careerArchetype,
+        ai_reasoning: careerContext.aiReasoning,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('✅ Career context cached:', { hasManagement: careerContext.hasManagementExperience, level: careerContext.inferredSeniority });
+    } catch (cacheError) {
+      console.error('⚠️ Failed to cache career context (non-critical):', cacheError);
+    }
+
+    return response;
 
   } catch (error) {
     console.error('Error in auto-populate-vault-v2:', error);

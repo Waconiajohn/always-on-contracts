@@ -76,61 +76,56 @@ Deno.serve(async (req) => {
       .eq('user_id', user_id)
       .single();
 
-    // Step 3.5: Get ALL vault data for AI career analysis
-    const { data: powerPhrases } = await supabase
-      .from('vault_power_phrases')
+    // Step 3.5: Get cached career context (NO AI CALL)
+    console.log('[analyze-competitive-position] Fetching cached career context...');
+    
+    let careerContext: any;
+    const { data: cachedContext } = await supabase
+      .from('vault_career_context')
       .select('*')
-      .eq('vault_id', vaultData.vault_id);
+      .eq('vault_id', vaultData.vault_id)
+      .single();
 
-    const { data: skills } = await supabase
-      .from('vault_transferable_skills')
-      .select('*')
-      .eq('vault_id', vaultData.vault_id);
-
-    const { data: softSkills } = await supabase
-      .from('vault_soft_skills')
-      .select('*')
-      .eq('vault_id', vaultData.vault_id);
-
-    const { data: leadership } = await supabase
-      .from('vault_leadership_philosophy')
-      .select('*')
-      .eq('vault_id', vaultData.vault_id);
-
-    const { data: executivePresence } = await supabase
-      .from('vault_executive_presence')
-      .select('*')
-      .eq('vault_id', vaultData.vault_id);
-
-    // Step 3.6: Run AI-powered career context analysis
-    console.log('[analyze-competitive-position] Running AI career context analysis...');
-    const careerContext = await analyzeCareerContextAI(
-      {
-        powerPhrases: powerPhrases || [],
-        skills: skills || [],
-        competencies: [],
-        softSkills: softSkills || [],
-        leadership: leadership || [],
-        executivePresence: executivePresence || [],
-      },
-      user_id
-    );
-
-    console.log('[analyze-competitive-position] Career context:', {
-      hasManagementExperience: careerContext.hasManagementExperience,
-      managementDetails: careerContext.managementDetails,
-      careerLevel: careerContext.inferredSeniority,
-      hasBudgetOwnership: careerContext.hasBudgetOwnership
-    });
+    if (cachedContext) {
+      careerContext = {
+        hasManagementExperience: cachedContext.has_management_experience,
+        managementDetails: cachedContext.management_details,
+        teamSizesManaged: cachedContext.team_sizes_managed || [],
+        hasBudgetOwnership: cachedContext.has_budget_ownership,
+        budgetDetails: cachedContext.budget_details,
+        budgetSizesManaged: cachedContext.budget_sizes_managed || [],
+        hasExecutiveExposure: cachedContext.has_executive_exposure,
+        inferredSeniority: cachedContext.inferred_seniority,
+        yearsOfExperience: cachedContext.years_of_experience,
+        technicalDepth: cachedContext.technical_depth,
+        leadershipDepth: cachedContext.leadership_depth,
+        strategicDepth: cachedContext.strategic_depth
+      };
+      console.log('[analyze-competitive-position] ✅ Using cached career context');
+    } else {
+      console.warn('[analyze-competitive-position] ⚠️ No cached context, using fallback');
+      careerContext = {
+        hasManagementExperience: false,
+        managementDetails: 'Not analyzed',
+        teamSizesManaged: [],
+        hasBudgetOwnership: false,
+        budgetDetails: '',
+        budgetSizesManaged: [],
+        hasExecutiveExposure: false,
+        inferredSeniority: 'Mid-Level',
+        yearsOfExperience: 5,
+        technicalDepth: 50,
+        leadershipDepth: 30,
+        strategicDepth: 40
+      };
+    }
 
     // Step 4: Use Perplexity to analyze competitive position WITH AI career context
     const model = selectOptimalModel({
       taskType: 'analysis',
-      complexity: 'medium',
-      estimatedInputTokens: 2000,
-      estimatedOutputTokens: 600,
-      requiresReasoning: true,
-      requiresLatestData: false
+      complexityLevel: 'medium',
+      estimatedOutputTokens: 1500,
+      requiresReasoning: true
     });
 
     const { response, metrics } = await retryWithBackoff(

@@ -139,16 +139,47 @@ serve(async (req) => {
       supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
     ]);
 
-    // ===== STEP 3: ANALYZE CAREER CONTEXT (AI-POWERED) =====
-    const careerContext: CareerContext = await analyzeCareerContextAI({
-      powerPhrases: powerPhrases.data || [],
-      skills: skills.data || [],
-      competencies: competencies.data || [],
-      softSkills: softSkills.data || [],
-      leadership: leadershipPhilosophy.data || [],
-      executivePresence: executivePresence.data || [],
-      certifications: [],
-    }, user.id);
+    // ===== STEP 3: GET CACHED CAREER CONTEXT (NO AI CALL) =====
+    console.log('📊 Fetching cached career context...');
+    
+    let careerContext: any;
+    const { data: cachedContext } = await supabase
+      .from('vault_career_context')
+      .select('*')
+      .eq('vault_id', vaultId)
+      .single();
+
+    if (cachedContext) {
+      careerContext = {
+        hasManagementExperience: cachedContext.has_management_experience,
+        managementDetails: cachedContext.management_details,
+        teamSizesManaged: cachedContext.team_sizes_managed || [],
+        hasBudgetOwnership: cachedContext.has_budget_ownership,
+        budgetDetails: cachedContext.budget_details,
+        budgetSizesManaged: cachedContext.budget_sizes_managed || [],
+        hasExecutiveExposure: cachedContext.has_executive_exposure,
+        inferredSeniority: cachedContext.inferred_seniority,
+        seniorityConfidence: cachedContext.seniority_confidence,
+        yearsOfExperience: cachedContext.years_of_experience,
+        technicalDepth: cachedContext.technical_depth,
+        leadershipDepth: cachedContext.leadership_depth,
+        strategicDepth: cachedContext.strategic_depth,
+        careerArchetype: cachedContext.career_archetype,
+        impactScale: cachedContext.impact_scale
+      };
+      console.log('✅ Using cached career context');
+    } else {
+      console.warn('⚠️ No cached context, using fallback');
+      careerContext = {
+        hasManagementExperience: false,
+        inferredSeniority: 'Mid-Level',
+        seniorityConfidence: 50,
+        yearsOfExperience: 5,
+        technicalDepth: 50,
+        leadershipDepth: 30,
+        strategicDepth: 40
+      };
+    }
 
     console.log('📊 CAREER CONTEXT DETECTED (AI-POWERED):', {
       seniority: careerContext.inferredSeniority,
