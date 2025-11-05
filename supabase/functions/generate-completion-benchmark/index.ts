@@ -208,12 +208,12 @@ TARGET INDUSTRIES: ${targetIndustries.join(', ')}
 CAREER PROFILE (AI-INFERRED FROM VAULT CONTENT):
 ├─ Seniority Level: ${careerContext.inferredSeniority} (${careerContext.seniorityConfidence}% confidence)
 ├─ Years of Experience: ${careerContext.yearsOfExperience}
-├─ Management Experience: ${careerContext.hasManagementExperience ? 'YES' : 'NO'}
-   ${careerContext.managementDetails}
+├─ Management Experience: ${careerContext.hasManagementExperience ? '✅ CONFIRMED - ' + careerContext.managementDetails : 'NOT FOUND'}
+   ${careerContext.hasManagementExperience ? '**CRITICAL: Management experience IS DOCUMENTED. Do NOT suggest management/supervision gaps.**' : ''}
 ├─ Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES' : 'NO'}
-   ${careerContext.executiveDetails}
-├─ Budget Ownership: ${careerContext.hasBudgetOwnership ? 'YES' : 'NO'}
-   ${careerContext.budgetDetails}
+   ${careerContext.executiveDetails || ''}
+├─ Budget Ownership: ${careerContext.hasBudgetOwnership ? '✅ CONFIRMED - ' + (careerContext.budgetDetails || 'Budget responsibility documented') : 'NOT FOUND'}
+   ${careerContext.hasBudgetOwnership ? '**Do NOT suggest budget ownership gaps.**' : ''}
 ├─ Company Types: ${careerContext.companySizes.join(', ')}
 ├─ Technical Depth: ${careerContext.technicalDepth}/100
 ├─ Leadership Depth: ${careerContext.leadershipDepth}/100
@@ -256,8 +256,12 @@ ${getCareerLevelGuidance(careerContext.inferredSeniority)}
 **CRITICAL RULE #2: ACHIEVABLE & HIGH-IMPACT**
 Only suggest gaps they can REALISTICALLY fill in 3-6 months that will SIGNIFICANTLY impact their competitiveness for ${careerContext.nextLikelyRole}.
 
-**CRITICAL RULE #3: EVIDENCE-BASED**
-Base ALL assessments on actual vault content, not assumptions. If they have 45 power phrases, don't say they need more - focus on QUALITY gaps or MISSING CATEGORIES.
+**CRITICAL RULE #3: EVIDENCE-BASED & RESPECT CAREER CONTEXT**
+Base ALL assessments on actual vault content AND career context cache:
+- If career context shows has_management_experience=true, NEVER suggest management/supervision gaps
+- If career context shows has_budget_ownership=true, NEVER suggest budget responsibility gaps
+- If they have 45 power phrases, don't say they need more - focus on QUALITY gaps or MISSING CATEGORIES
+- Career context represents AI-verified facts from their resume - treat as ground truth
 
 **CRITICAL RULE #4: INDUSTRY-SPECIFIC**
 For ${targetIndustries[0]}, prioritize domain-relevant gaps over generic advice.
