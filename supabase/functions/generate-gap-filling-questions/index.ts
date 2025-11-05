@@ -91,78 +91,165 @@ serve(async (req) => {
       throw new Error('vaultData is required');
     }
 
-    // ===== PRODUCTION-GRADE: INTELLIGENT DATA SUMMARIZATION =====
-    // Problem: Full vault data can be 130K+ tokens, exceeding Perplexity's 128K limit
-    // Solution: Extract only the CRITICAL information needed for gap analysis
+    // ===== PRODUCTION-GRADE: COMPREHENSIVE GAP DETECTION =====
+    // Problem: Full vault (130K tokens) exceeds Perplexity's 128K limit
+    // Solution: Smart compression that PRESERVES gap detection capability
     
-    // Step 1: Extract key resume insights (limit to 2K chars max)
+    // Helper: Extract titles/keywords without full descriptions
+    const extractCompact = (items: any[], limit = 10) => {
+      if (!items || !Array.isArray(items)) return [];
+      return items.slice(0, limit).map(item => {
+        if (typeof item === 'string') return item;
+        return item.title || item.name || item.skill_name || 
+               (item.description ? item.description.substring(0, 80) : 'Unlabeled');
+      });
+    };
+
+    // Step 1: Resume - extract key professional facts (2K chars)
     const resumeSummary = resumeText ? resumeText.substring(0, 2000) : 'No resume provided';
     
-    // Step 2: Intelligently summarize vault data (keep only gap-relevant info)
+    // Step 2: Vault - COMPREHENSIVE structure for gap detection
     const vaultSummary = {
-      // Professional Identity
-      currentTitle: vaultData.professional_identity?.current_title || 'Unknown',
-      industry: vaultData.professional_identity?.industry || 'Unknown',
-      yearsExperience: vaultData.professional_identity?.years_of_experience || 0,
+      // Identity
+      professionalIdentity: {
+        currentTitle: vaultData.professional_identity?.current_title || 'Unknown',
+        industry: vaultData.professional_identity?.industry || 'Unknown',
+        yearsExperience: vaultData.professional_identity?.years_of_experience || 0,
+        targetRoles: vaultData.professional_identity?.target_roles || [],
+        careerLevel: vaultData.professional_identity?.career_level || 'Unknown'
+      },
       
-      // Count what EXISTS (to identify what's MISSING)
+      // CRITICAL: Track what EXISTS and what's MISSING
+      categories: {
+        // Leadership & Management (CRITICAL for executive gaps)
+        leadership: {
+          count: vaultData.leadership_experiences?.length || 0,
+          hasDirectReports: vaultData.leadership_experiences?.some((l: any) => 
+            l.team_size > 0 || l.direct_reports > 0 || 
+            l.title?.toLowerCase().includes('manager') ||
+            l.title?.toLowerCase().includes('director') ||
+            l.title?.toLowerCase().includes('supervisor')
+          ) || false,
+          hasBudgetAuthority: vaultData.leadership_experiences?.some((l: any) => 
+            l.budget_managed > 0 || l.description?.toLowerCase().includes('budget')
+          ) || false,
+          items: extractCompact(vaultData.leadership_experiences, 5)
+        },
+        
+        // Achievements
+        achievements: {
+          count: vaultData.achievements?.length || 0,
+          hasQuantified: vaultData.achievements?.some((a: any) => 
+            /\d+%|\$\d+|saved|increased|reduced/i.test(a.description || '')
+          ) || false,
+          items: extractCompact(vaultData.achievements, 5)
+        },
+        
+        // Skills
+        skills: {
+          count: vaultData.skills?.length || 0,
+          hasTechnical: vaultData.skills?.some((s: any) => 
+            s.category === 'technical' || s.type === 'technical'
+          ) || false,
+          hasLeadership: vaultData.skills?.some((s: any) => 
+            s.category === 'leadership' || /leadership|management/i.test(s.name || s)
+          ) || false,
+          items: extractCompact(vaultData.skills, 10)
+        },
+        
+        // Certifications
+        certifications: {
+          count: vaultData.certifications?.length || 0,
+          items: extractCompact(vaultData.certifications, 5)
+        },
+        
+        // Projects
+        projects: {
+          count: vaultData.projects?.length || 0,
+          items: extractCompact(vaultData.projects, 5)
+        },
+        
+        // Education
+        education: {
+          count: vaultData.education?.length || 0,
+          hasAdvancedDegree: vaultData.education?.some((e: any) => 
+            /master|mba|phd|doctorate/i.test(e.degree || '')
+          ) || false,
+          items: extractCompact(vaultData.education, 3)
+        }
+      },
+      
+      // Overall metrics
       metrics: {
-        achievementsCount: vaultData.achievements?.length || 0,
-        skillsCount: vaultData.skills?.length || 0,
-        certificationsCount: vaultData.certifications?.length || 0,
-        projectsCount: vaultData.projects?.length || 0,
-        leadershipCount: vaultData.leadership_experiences?.length || 0,
-      },
-      
-      // Sample existing data (first 3 of each to understand quality)
-      samples: {
-        achievements: vaultData.achievements?.slice(0, 3)?.map((a: any) => a.title || a.description?.substring(0, 100)) || [],
-        skills: vaultData.skills?.slice(0, 5)?.map((s: any) => s.name || s) || [],
-        certifications: vaultData.certifications?.slice(0, 3)?.map((c: any) => c.name || c) || [],
-      },
-      
-      // Strength indicators
-      completionPercentage: vaultData.review_completion_percentage || 0,
-      overallStrength: vaultData.overall_strength_score || 0,
+        completionPercentage: vaultData.review_completion_percentage || 0,
+        overallStrength: vaultData.overall_strength_score || 0,
+        lastUpdated: vaultData.updated_at || 'Unknown'
+      }
     };
     
-    // Step 3: Summarize industry research (extract only key insights)
+    // Step 3: Industry context (minimal but targeted)
     const industryInsights = industryResearch ? {
       keyCompetencies: industryResearch.required_competencies?.slice(0, 5) || [],
       commonCertifications: industryResearch.certifications?.slice(0, 3) || [],
-      marketTrends: industryResearch.trends?.slice(0, 3) || [],
+      marketTrends: industryResearch.trends?.slice(0, 3) || []
     } : null;
     
-    // Build OPTIMIZED prompt (target: <10K tokens)
+    // Build COMPREHENSIVE prompt for precise gap detection
     const gapAnalysisPrompt = `
-You are an expert career strategist analyzing a professional's career profile to generate targeted questions.
+You are an expert career strategist analyzing a professional's career profile to identify CRITICAL gaps.
 
 ## RESUME SUMMARY:
 ${resumeSummary}
 
-## VAULT STATUS:
-Current Role: ${vaultSummary.currentTitle} in ${vaultSummary.industry} (${vaultSummary.yearsExperience} years)
+## CURRENT PROFESSIONAL PROFILE:
+Role: ${vaultSummary.professionalIdentity.currentTitle}
+Industry: ${vaultSummary.professionalIdentity.industry}
+Experience: ${vaultSummary.professionalIdentity.yearsExperience} years
+Career Level: ${vaultSummary.professionalIdentity.careerLevel}
+Target Roles: ${vaultSummary.professionalIdentity.targetRoles.join(', ') || 'Not specified'}
 
-Current Vault Contents:
-- Achievements documented: ${vaultSummary.metrics.achievementsCount}
-- Skills listed: ${vaultSummary.metrics.skillsCount}
-- Certifications: ${vaultSummary.metrics.certificationsCount}
-- Projects: ${vaultSummary.metrics.projectsCount}
-- Leadership experiences: ${vaultSummary.metrics.leadershipCount}
+## VAULT ANALYSIS - WHAT EXISTS vs. WHAT'S MISSING:
 
-Sample existing data:
-- Top achievements: ${vaultSummary.samples.achievements.join('; ')}
-- Skills: ${vaultSummary.samples.skills.join(', ')}
-- Certifications: ${vaultSummary.samples.certifications.join(', ')}
+### Leadership & Management (CRITICAL for advancement):
+- Count: ${vaultSummary.categories.leadership.count} items
+- Has Direct Reports: ${vaultSummary.categories.leadership.hasDirectReports ? 'YES' : 'NO ⚠️'}
+- Has Budget Authority: ${vaultSummary.categories.leadership.hasBudgetAuthority ? 'YES' : 'NO ⚠️'}
+${vaultSummary.categories.leadership.count > 0 ? `- Examples: ${vaultSummary.categories.leadership.items.join('; ')}` : '- NO LEADERSHIP EXPERIENCE DOCUMENTED ⚠️'}
 
-Vault Strength: ${vaultSummary.overallStrength}% (${vaultSummary.completionPercentage}% complete)
+### Achievements:
+- Count: ${vaultSummary.categories.achievements.count}
+- Has Quantified Results: ${vaultSummary.categories.achievements.hasQuantified ? 'YES' : 'NO ⚠️'}
+${vaultSummary.categories.achievements.count > 0 ? `- Examples: ${vaultSummary.categories.achievements.items.join('; ')}` : '- NO ACHIEVEMENTS DOCUMENTED ⚠️'}
 
-${industryInsights ? `## Industry Benchmarks:
-Key competencies for ${vaultSummary.industry}: ${industryInsights.keyCompetencies.join(', ')}
-Common certifications: ${industryInsights.commonCertifications.join(', ')}
-Market trends: ${industryInsights.marketTrends.join(', ')}` : ''}
+### Skills:
+- Count: ${vaultSummary.categories.skills.count}
+- Has Technical Skills: ${vaultSummary.categories.skills.hasTechnical ? 'YES' : 'NO ⚠️'}
+- Has Leadership Skills: ${vaultSummary.categories.skills.hasLeadership ? 'YES' : 'NO ⚠️'}
+- Examples: ${vaultSummary.categories.skills.items.join(', ')}
 
-${targetRoles ? `## Target Roles: ${targetRoles.join(', ')}` : ''}
+### Certifications:
+- Count: ${vaultSummary.categories.certifications.count}
+${vaultSummary.categories.certifications.count > 0 ? `- Examples: ${vaultSummary.categories.certifications.items.join(', ')}` : '- NO CERTIFICATIONS DOCUMENTED ⚠️'}
+
+### Projects:
+- Count: ${vaultSummary.categories.projects.count}
+${vaultSummary.categories.projects.count > 0 ? `- Examples: ${vaultSummary.categories.projects.items.join('; ')}` : '- NO PROJECTS DOCUMENTED ⚠️'}
+
+### Education:
+- Count: ${vaultSummary.categories.education.count}
+- Has Advanced Degree: ${vaultSummary.categories.education.hasAdvancedDegree ? 'YES' : 'NO'}
+${vaultSummary.categories.education.count > 0 ? `- Degrees: ${vaultSummary.categories.education.items.join(', ')}` : ''}
+
+## OVERALL METRICS:
+- Vault Strength: ${vaultSummary.metrics.overallStrength}%
+- Completion: ${vaultSummary.metrics.completionPercentage}%
+
+${industryInsights ? `## INDUSTRY CONTEXT (${vaultSummary.professionalIdentity.industry}):
+Expected Competencies: ${industryInsights.keyCompetencies.join(', ')}
+Standard Certifications: ${industryInsights.commonCertifications.join(', ')}
+Market Trends: ${industryInsights.marketTrends.join(', ')}` : ''}
+
+${targetRoles && targetRoles.length > 0 ? `## TARGET ROLES: ${targetRoles.join(', ')}` : ''}
 
 ## Your Task:
 
