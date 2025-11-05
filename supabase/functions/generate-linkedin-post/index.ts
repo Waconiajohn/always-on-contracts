@@ -3,6 +3,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const logger = createLogger('generate-linkedin-post');
+
+const LinkedInPostSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+  hashtags: z.array(z.string()),
+  postType: z.string(),
+  estimatedEngagement: z.string(),
+  hookStrength: z.string(),
+  improvementTips: z.array(z.string())
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +30,8 @@ serve(async (req) => {
   }
 
   try {
-    const { 
+    const startTime = Date.now();
+    const {
       topic, 
       tone, 
       postType, 
@@ -28,6 +44,13 @@ serve(async (req) => {
       focusStatement,
       seriesTitle 
     } = await req.json();
+
+    logger.info('Starting LinkedIn post generation', { 
+      topic, 
+      tone, 
+      postType,
+      hasSeries: !!seriesId 
+    });
 
     // Build series context if applicable
     let seriesContext = '';
@@ -134,23 +157,43 @@ ${userProfile ? `\nUSER PROFILE: ${JSON.stringify(userProfile)}` : ''}
 
 Apply the content framework rigorously. Optimize for LinkedIn algorithm (favor authentic engagement over vanity metrics).`;
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexityLevel: 'medium',
-          requiresCreativity: true,
-          outputLength: 'long'
-        }),
-        temperature: 0.8,
-        max_tokens: 2000,
-        return_citations: false,
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
+          {
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            model: selectOptimalModel({
+              taskType: 'generation',
+              complexityLevel: 'medium',
+              requiresCreativity: true,
+              outputLength: 'long'
+            }),
+            temperature: 0.8,
+            max_tokens: 2000,
+            return_citations: false,
+          },
+          'generate-linkedin-post'
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'generate-linkedin-post'
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
@@ -161,9 +204,18 @@ Apply the content framework rigorously. Optimize for LinkedIn algorithm (favor a
     let parsedContent;
     try {
       const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
-      parsedContent = JSON.parse(jsonMatch ? jsonMatch[0] : generatedContent);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : generatedContent);
+      const validated = LinkedInPostSchema.safeParse(parsed);
+      
+      if (validated.success) {
+        parsedContent = validated.data;
+        logger.info('Successfully validated LinkedIn post');
+      } else {
+        logger.warn('Schema validation failed, using parsed data', { error: validated.error.message });
+        parsedContent = parsed;
+      }
     } catch (e) {
-      console.error('Failed to parse AI response as JSON:', e);
+      logger.warn('Failed to parse AI response as JSON', { error: e instanceof Error ? e.message : String(e) });
       parsedContent = {
         title: topic,
         content: generatedContent,
@@ -175,15 +227,31 @@ Apply the content framework rigorously. Optimize for LinkedIn algorithm (favor a
       };
     }
 
+    logger.info('LinkedIn post generated successfully', { 
+      latencyMs: Date.now() - startTime,
+      contentLength: parsedContent.content.length 
+    });
+
     return new Response(JSON.stringify(parsedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-linkedin-post:', error);
+    const aiError = handlePerplexityError(error);
+    logger.error('LinkedIn post generation failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: aiError.userMessage,
+        retryable: aiError.retryable
+      }),
+      { 
+        status: aiError.statusCode, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });

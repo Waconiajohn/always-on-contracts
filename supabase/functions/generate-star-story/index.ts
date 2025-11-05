@@ -4,6 +4,28 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const logger = createLogger('generate-star-story');
+
+const StarStorySchema = z.object({
+  title: z.string(),
+  situation: z.string(),
+  task: z.string(),
+  action: z.string(),
+  result: z.string(),
+  skills: z.array(z.string()),
+  metrics: z.object({
+    primaryMetric: z.string(),
+    secondaryMetrics: z.array(z.string())
+  }),
+  industry: z.string(),
+  timeframe: z.string(),
+  vaultSourced: z.string().optional()
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +38,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -35,7 +58,11 @@ serve(async (req) => {
 
     const { rawStory, action = 'generate' } = await req.json();
 
-    console.log('[GENERATE-STAR-STORY] Starting:', { action, hasRawStory: !!rawStory, user: user.id });
+    logger.info('Starting STAR story generation', { 
+      userId: user.id, 
+      action, 
+      hasRawStory: !!rawStory 
+    });
 
     // Fetch Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
@@ -46,7 +73,7 @@ serve(async (req) => {
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
     if (intelligence) {
-      console.log('[GENERATE-STAR-STORY] Career Vault loaded:', {
+      logger.info('Career Vault loaded', {
         projects: intelligence.counts.projects,
         businessImpacts: intelligence.counts.businessImpacts,
         leadershipEvidence: intelligence.counts.leadershipExamples
@@ -232,44 +259,68 @@ ${intelligence ? '✅ Uses Career Vault verified data where available' : ''}
 Return the same JSON structure with refined content.`;
     }
 
-    console.log(`[GENERATE-STAR-STORY] Using Perplexity`);
-
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
-          { 
-            role: 'system', 
-            content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Career Vault intelligence to ground stories in verified achievements.' : ''} Always respond with valid JSON matching the requested schema.` 
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
+          {
+            messages: [
+              { 
+                role: 'system', 
+                content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Career Vault intelligence to ground stories in verified achievements.' : ''} Always respond with valid JSON matching the requested schema.` 
+              },
+              { role: 'user', content: prompt }
+            ],
+            model: selectOptimalModel({
+              taskType: 'generation',
+              complexity: 'medium',
+              estimatedInputTokens: 1500,
+              estimatedOutputTokens: 1500
+            }),
+            temperature: 0.7,
+            max_tokens: 1500,
+            return_citations: false,
           },
-          { role: 'user', content: prompt }
-        ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          estimatedInputTokens: 1500,
-          estimatedOutputTokens: 1500
-        }),
-        temperature: 0.7,
-        max_tokens: 1500,
-        return_citations: false,
+          'generate-star-story',
+          user.id
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'generate-star-story',
-      user.id
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     const content = cleanCitations(response.choices[0].message.content);
 
-    // Parse the JSON response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Parse and validate JSON response
+    const extractResult = extractJSON(content, StarStorySchema);
+    
+    if (!extractResult.success || !extractResult.data) {
+      logger.error('Failed to extract STAR story JSON', { error: extractResult.error });
       throw new Error('No valid JSON found in response');
     }
 
-    const starStory = JSON.parse(jsonMatch[0]);
+    const starStory = extractResult.data;
 
-    console.log('[GENERATE-STAR-STORY] Story generated successfully');
+    logger.info('STAR story generated successfully', {
+      latencyMs: Date.now() - startTime,
+      action,
+      hasVaultData: !!intelligence
+    });
 
     return new Response(
       JSON.stringify({ 
@@ -282,11 +333,19 @@ Return the same JSON structure with refined content.`;
     );
 
   } catch (error) {
-    console.error('Error in generate-star-story function:', error);
+    const aiError = handlePerplexityError(error);
+    logger.error('STAR story generation failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: aiError.userMessage,
+        retryable: aiError.retryable
+      }),
       {
-        status: 500,
+        status: aiError.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

@@ -4,6 +4,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const logger = createLogger('generate-networking-email');
+
+const NetworkingEmailSchema = z.object({
+  subject: z.string(),
+  body: z.string(),
+  vaultItemsUsed: z.array(z.string()),
+  personalizationTips: z.array(z.string()),
+  followUpSuggestions: z.array(z.string())
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +29,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -34,6 +48,12 @@ serve(async (req) => {
     }
 
     const { context, persona, purpose, targetPerson, companyName, jobTitle } = await req.json();
+
+    logger.info('Starting networking email generation', { 
+      userId: user.id, 
+      purpose, 
+      hasTargetPerson: !!targetPerson 
+    });
 
     // Fetch Career Vault data
     const { data: vault } = await supabase
@@ -115,37 +135,66 @@ ${topSkills.map((s: any) => `- ${s.stated_skill}: ${s.evidence}`).join('\n')}
 USER'S DIFFERENTIATORS:
 ${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capability}`).join('\n')}`;
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          estimatedInputTokens: 800,
-          estimatedOutputTokens: 1000
-        }),
-        temperature: 0.7,
-        max_tokens: 1000,
-        return_citations: false,
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
+          {
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            model: selectOptimalModel({
+              taskType: 'generation',
+              complexity: 'medium',
+              estimatedInputTokens: 800,
+              estimatedOutputTokens: 1000
+            }),
+            temperature: 0.7,
+            max_tokens: 1000,
+            return_citations: false,
+          },
+          'generate-networking-email',
+          user.id
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'generate-networking-email',
-      user.id
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     const generatedContent = cleanCitations(response.choices[0].message.content);
 
-    // Parse JSON from response
+    // Parse and validate JSON
     let parsedEmail;
     try {
       const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
-      parsedEmail = JSON.parse(jsonMatch ? jsonMatch[0] : generatedContent);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : generatedContent);
+      const validated = NetworkingEmailSchema.safeParse(parsed);
+      
+      if (validated.success) {
+        parsedEmail = validated.data;
+        logger.info('Successfully validated networking email');
+      } else {
+        logger.warn('Schema validation failed, using parsed data', { error: validated.error.message });
+        parsedEmail = parsed;
+      }
     } catch (e) {
-      console.error('Failed to parse AI response:', e);
+      logger.warn('Failed to parse AI response', { error: e instanceof Error ? e.message : String(e) });
       parsedEmail = {
         subject: 'Networking Connection Request',
         body: generatedContent,
@@ -155,16 +204,32 @@ ${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capabili
       };
     }
 
+    logger.info('Networking email generated successfully', { 
+      latencyMs: Date.now() - startTime,
+      subjectLength: parsedEmail.subject.length 
+    });
+
     return new Response(
       JSON.stringify(parsedEmail),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('Error generating networking email:', error);
+    const aiError = handlePerplexityError(error);
+    logger.error('Networking email generation failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: aiError.userMessage,
+        retryable: aiError.retryable
+      }),
+      { 
+        status: aiError.statusCode, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });

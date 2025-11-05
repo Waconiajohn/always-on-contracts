@@ -3,6 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+
+const logger = createLogger('analyze-resume');
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +20,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const { resumeText, userId } = await req.json();
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -23,6 +29,8 @@ serve(async (req) => {
     if (!userId) throw new Error("User ID is required");
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    logger.info('Starting resume analysis', { userId });
 
     const prompt = `ROLE: You are an elite resume analysis AI specializing in executive career positioning and contract/freelance work optimization.
 
@@ -80,43 +88,64 @@ Return ONLY valid JSON matching this structure exactly:
 
 Focus on positioning experience as premium value for executive and strategic opportunities.`;
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
           {
-            role: 'system',
-            content: 'You are an expert resume analyzer who returns structured JSON. Always respond with valid JSON matching the tool schema exactly.'
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert resume analyzer who returns structured JSON. Always respond with valid JSON matching the tool schema exactly.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            model: selectOptimalModel({
+              taskType: 'extraction',
+              complexity: 'high',
+              requiresAccuracy: true,
+              outputLength: 'long'
+            }),
+            temperature: 0.3,
+            max_tokens: 4000,
+            return_citations: false,
           },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        model: selectOptimalModel({
-          taskType: 'extraction',
-          complexity: 'high',
-          requiresAccuracy: true,
-          outputLength: 'long'
-        }),
-        temperature: 0.3,
-        max_tokens: 4000,
-        return_citations: false,
+          'analyze-resume',
+          userId
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'analyze-resume',
-      userId
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     // Extract JSON from response
     const content = response.choices[0].message.content;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const extractResult = extractJSON(content);
     
-    if (!jsonMatch) {
+    if (!extractResult.success || !extractResult.data) {
+      logger.error('Failed to extract analysis JSON', { error: extractResult.error });
       throw new Error("No analysis returned from AI");
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    const analysis = extractResult.data;
 
     // Extract work_history separately and exclude from database insert
     const { work_history, ...analysisForDb } = analysis;
@@ -146,15 +175,29 @@ Focus on positioning experience as premium value for executive and strategic opp
 
     if (insertError) throw insertError;
 
+    logger.info('Resume analysis completed', { 
+      userId,
+      latencyMs: Date.now() - startTime,
+      yearsExperience: analysis.years_experience
+    });
+
     return new Response(JSON.stringify({ success: true, analysis }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in analyze-resume function:", error);
+    const aiError = handlePerplexityError(error);
+    logger.error('Resume analysis failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: aiError.userMessage,
+        retryable: aiError.retryable
+      }),
       {
-        status: 500,
+        status: aiError.statusCode,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );

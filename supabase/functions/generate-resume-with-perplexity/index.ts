@@ -3,6 +3,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+
+const logger = createLogger('generate-resume-with-perplexity');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,7 +50,13 @@ serve(async (req) => {
       throw new Error('generation_type and section_type are required');
     }
 
-    console.log(`Generating ${generation_type} ${section_type} with Perplexity`);
+    const startTime = Date.now();
+    logger.info('Starting resume section generation', { 
+      userId: user.id, 
+      generationType: generation_type, 
+      sectionType: section_type,
+      hasVault: !!vault_items
+    });
 
     // Build vault context for personalized generation
     let vaultContext = '';
@@ -201,38 +212,56 @@ ${generation_type === 'personalized' ? 'Use candidate\'s actual Career Vault dat
 Output clean resume content only. No citations, no sources.`;
     }
 
-    // Call Perplexity API
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
+    // Call Perplexity API with retry logic
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
           {
-            role: 'system',
-            content: systemPrompt
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            model: selectOptimalModel({
+              taskType: 'generation',
+              complexity: 'high',
+              requiresReasoning: true,
+              outputLength: 'medium'
+            }),
+            temperature: 0.3,
+            max_tokens: 2000,
+            return_citations: false,
+            search_recency_filter: null,
           },
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'high',
-          requiresReasoning: true,
-          outputLength: 'medium'
-        }),
-        temperature: 0.3, // Lower for more consistent output
-        max_tokens: 2000,
-        return_citations: false, // We don't want citations
-        search_recency_filter: null, // Don't trigger web search for generation
+          'generate-resume-with-perplexity',
+          user.id
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'generate-resume-with-perplexity'
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     let generatedContent = response.choices[0]?.message?.content || '';
 
-    console.log('Raw Perplexity output (first 200 chars):', generatedContent.substring(0, 200));
+    logger.debug('AI response received', { 
+      contentLength: generatedContent.length,
+      preview: generatedContent.substring(0, 200)
+    });
 
     // Clean up citations if any leaked through
     generatedContent = cleanCitations(generatedContent);
@@ -269,11 +298,13 @@ Output clean resume content only. No citations, no sources.`;
           }
         }
 
-        console.log(`Successfully parsed JSON for ${section_type}`);
+        logger.info('Successfully parsed JSON', { sectionType: section_type });
 
       } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.error('Failed to parse content:', generatedContent.substring(0, 500));
+        logger.warn('JSON parse failed, attempting fallback extraction', { 
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+          contentPreview: generatedContent.substring(0, 500)
+        });
 
         // Fallback for skills: try line-by-line extraction
         if (['skills_list', 'core_competencies', 'key_skills', 'technical_skills'].includes(section_type)) {
@@ -287,8 +318,9 @@ Output clean resume content only. No citations, no sources.`;
           }
           if (skills.length > 0) {
             parsed = skills;
-            console.log('Extracted skills from lines:', skills.length);
+            logger.info('Extracted skills via fallback', { count: skills.length });
           } else {
+            logger.error('Could not extract skills from response');
             throw new Error('Could not extract skills from response');
           }
         } else {
@@ -300,6 +332,11 @@ Output clean resume content only. No citations, no sources.`;
       // For paragraph sections (summary, etc.), keep as text
       parsed = generatedContent;
     }
+
+    logger.info('Resume section generated successfully', {
+      latencyMs: Date.now() - startTime,
+      contentLength: typeof parsed === 'string' ? parsed.length : JSON.stringify(parsed).length
+    });
 
     return new Response(
       JSON.stringify({
@@ -316,14 +353,20 @@ Output clean resume content only. No citations, no sources.`;
     );
 
   } catch (error) {
-    console.error('Error in generate-resume-with-perplexity:', error);
+    const aiError = handlePerplexityError(error);
+    logger.error('Resume section generation failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: aiError.userMessage,
+        retryable: aiError.retryable
       }),
       {
-        status: 400,
+        status: aiError.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
