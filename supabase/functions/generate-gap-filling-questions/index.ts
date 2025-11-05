@@ -91,18 +91,78 @@ serve(async (req) => {
       throw new Error('vaultData is required');
     }
 
-    // Build comprehensive gap analysis prompt with ACTUAL resume content
+    // ===== PRODUCTION-GRADE: INTELLIGENT DATA SUMMARIZATION =====
+    // Problem: Full vault data can be 130K+ tokens, exceeding Perplexity's 128K limit
+    // Solution: Extract only the CRITICAL information needed for gap analysis
+    
+    // Step 1: Extract key resume insights (limit to 2K chars max)
+    const resumeSummary = resumeText ? resumeText.substring(0, 2000) : 'No resume provided';
+    
+    // Step 2: Intelligently summarize vault data (keep only gap-relevant info)
+    const vaultSummary = {
+      // Professional Identity
+      currentTitle: vaultData.professional_identity?.current_title || 'Unknown',
+      industry: vaultData.professional_identity?.industry || 'Unknown',
+      yearsExperience: vaultData.professional_identity?.years_of_experience || 0,
+      
+      // Count what EXISTS (to identify what's MISSING)
+      metrics: {
+        achievementsCount: vaultData.achievements?.length || 0,
+        skillsCount: vaultData.skills?.length || 0,
+        certificationsCount: vaultData.certifications?.length || 0,
+        projectsCount: vaultData.projects?.length || 0,
+        leadershipCount: vaultData.leadership_experiences?.length || 0,
+      },
+      
+      // Sample existing data (first 3 of each to understand quality)
+      samples: {
+        achievements: vaultData.achievements?.slice(0, 3)?.map((a: any) => a.title || a.description?.substring(0, 100)) || [],
+        skills: vaultData.skills?.slice(0, 5)?.map((s: any) => s.name || s) || [],
+        certifications: vaultData.certifications?.slice(0, 3)?.map((c: any) => c.name || c) || [],
+      },
+      
+      // Strength indicators
+      completionPercentage: vaultData.review_completion_percentage || 0,
+      overallStrength: vaultData.overall_strength_score || 0,
+    };
+    
+    // Step 3: Summarize industry research (extract only key insights)
+    const industryInsights = industryResearch ? {
+      keyCompetencies: industryResearch.required_competencies?.slice(0, 5) || [],
+      commonCertifications: industryResearch.certifications?.slice(0, 3) || [],
+      marketTrends: industryResearch.trends?.slice(0, 3) || [],
+    } : null;
+    
+    // Build OPTIMIZED prompt (target: <10K tokens)
     const gapAnalysisPrompt = `
-You are an expert career strategist analyzing a professional's resume and career vault to generate targeted questions.
+You are an expert career strategist analyzing a professional's career profile to generate targeted questions.
 
-## RESUME CONTENT (Primary Source - Analyze This First):
-${resumeText ? resumeText.substring(0, 8000) : 'No resume text available - use vault data instead'}
+## RESUME SUMMARY:
+${resumeSummary}
 
-## Current Vault Data (Already Extracted):
-${JSON.stringify(vaultData, null, 2)}
+## VAULT STATUS:
+Current Role: ${vaultSummary.currentTitle} in ${vaultSummary.industry} (${vaultSummary.yearsExperience} years)
 
-${industryResearch ? `## Industry Context:\n${JSON.stringify(industryResearch, null, 2)}` : ''}
-${targetRoles ? `## Target Roles:\n${targetRoles.join(', ')}` : ''}
+Current Vault Contents:
+- Achievements documented: ${vaultSummary.metrics.achievementsCount}
+- Skills listed: ${vaultSummary.metrics.skillsCount}
+- Certifications: ${vaultSummary.metrics.certificationsCount}
+- Projects: ${vaultSummary.metrics.projectsCount}
+- Leadership experiences: ${vaultSummary.metrics.leadershipCount}
+
+Sample existing data:
+- Top achievements: ${vaultSummary.samples.achievements.join('; ')}
+- Skills: ${vaultSummary.samples.skills.join(', ')}
+- Certifications: ${vaultSummary.samples.certifications.join(', ')}
+
+Vault Strength: ${vaultSummary.overallStrength}% (${vaultSummary.completionPercentage}% complete)
+
+${industryInsights ? `## Industry Benchmarks:
+Key competencies for ${vaultSummary.industry}: ${industryInsights.keyCompetencies.join(', ')}
+Common certifications: ${industryInsights.commonCertifications.join(', ')}
+Market trends: ${industryInsights.marketTrends.join(', ')}` : ''}
+
+${targetRoles ? `## Target Roles: ${targetRoles.join(', ')}` : ''}
 
 ## Your Task:
 
