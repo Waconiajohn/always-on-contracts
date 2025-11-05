@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -101,7 +102,13 @@ Cite all sources with URLs.`;
               content: perplexityQuery
             }
           ],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'research',
+            complexity: 'medium',
+            requiresWebSearch: true,
+            estimatedInputTokens: 400,
+            estimatedOutputTokens: 2000
+          }),
           temperature: 0.2,
           max_tokens: 2000,
           return_citations: true,
@@ -147,7 +154,12 @@ Return JSON with:
               content: extractionPrompt
             }
           ],
-          model: PERPLEXITY_MODELS.SMALL,
+          model: selectOptimalModel({
+            taskType: 'extraction',
+            complexity: 'simple',
+            estimatedInputTokens: 1500,
+            estimatedOutputTokens: 1000
+          }),
           temperature: 0.1,
           max_tokens: 1000,
           return_citations: false,
@@ -235,7 +247,12 @@ Include: Opening statement, market data reference, value proposition from achiev
             content: scriptPrompt
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'generation',
+          complexity: 'medium',
+          estimatedInputTokens: 600,
+          estimatedOutputTokens: 1500
+        }),
         temperature: 0.7,
         max_tokens: 1500,
         return_citations: false,

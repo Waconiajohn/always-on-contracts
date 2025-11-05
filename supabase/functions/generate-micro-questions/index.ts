@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -175,7 +176,12 @@ OR for multiple choice:
         const { response, metrics } = await callPerplexity(
           {
             messages: [{ role: 'user', content: prompt }],
-            model: PERPLEXITY_MODELS.DEFAULT,
+            model: selectOptimalModel({
+              taskType: 'generation',
+              complexity: 'simple',
+              estimatedInputTokens: 600,
+              estimatedOutputTokens: 200
+            }),
             temperature: 0.3,
           },
           'generate-micro-questions',
