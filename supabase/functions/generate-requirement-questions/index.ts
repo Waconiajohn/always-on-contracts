@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,7 +90,12 @@ Return ONLY a JSON object with this structure:
             content: prompt,
           },
         ],
-        model: PERPLEXITY_MODELS.SMALL,
+        model: selectOptimalModel({
+          taskType: 'generation',
+          complexity: 'low',
+          requiresReasoning: false,
+          outputLength: 'short'
+        }),
         temperature: 0.7,
         max_tokens: 800,
         return_citations: false,

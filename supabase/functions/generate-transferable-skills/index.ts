@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +70,12 @@ Return JSON array:
         { role: 'system', content: 'You are a career strategist specializing in skills translation and career pivoting. Return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
-      model: PERPLEXITY_MODELS.SMALL,
+      model: selectOptimalModel({
+        taskType: 'extraction',
+        complexity: 'medium',
+        requiresReasoning: true,
+        outputLength: 'medium'
+      }),
       temperature: 0.2,
     }, 'generate-transferable-skills', vault.user_id);
 
