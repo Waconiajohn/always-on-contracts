@@ -107,12 +107,11 @@ serve(async (req) => {
     if (cachedContext && !contextError) {
       careerContext = {
         hasManagementExperience: cachedContext.has_management_experience,
-        managementDetails: cachedContext.management_scope || cachedContext.management_details,
+        managementDetails: cachedContext.management_details,
         teamSizesManaged: cachedContext.team_sizes_managed || [],
-        hasBudgetOwnership: cachedContext.has_budget_ownership || cachedContext.budget_responsibility,
+        hasBudgetOwnership: cachedContext.has_budget_ownership,
         budgetDetails: cachedContext.budget_details,
         budgetSizesManaged: cachedContext.budget_sizes_managed || [],
-        budgetAmount: cachedContext.budget_amount,
         hasExecutiveExposure: cachedContext.has_executive_exposure,
         inferredSeniority: cachedContext.inferred_seniority,
         yearsOfExperience: cachedContext.years_of_experience,
@@ -120,24 +119,18 @@ serve(async (req) => {
         technicalDepth: cachedContext.technical_depth,
         leadershipDepth: cachedContext.leadership_depth,
         strategicDepth: cachedContext.strategic_depth,
-        educationLevel: cachedContext.education_level,
-        educationField: cachedContext.education_field,
-        certifications: cachedContext.certifications || [],
         identifiedGaps: cachedContext.identified_gaps || []
       };
       
       // Build verified areas list
-      if (cachedContext.has_management_experience && cachedContext.management_scope) {
-        verifiedAreas.push(`Management experience (${cachedContext.management_scope})`);
+      if (cachedContext.has_management_experience && cachedContext.management_details) {
+        verifiedAreas.push(`Management experience: ${cachedContext.management_details}`);
       }
-      if (cachedContext.education_level && cachedContext.education_field) {
-        verifiedAreas.push(`Education (${cachedContext.education_level} in ${cachedContext.education_field})`);
+      if (cachedContext.has_budget_ownership && cachedContext.budget_details) {
+        verifiedAreas.push(`Budget ownership: ${cachedContext.budget_details}`);
       }
-      if (cachedContext.budget_responsibility && cachedContext.budget_amount) {
-        verifiedAreas.push(`Budget responsibility ($${cachedContext.budget_amount?.toLocaleString()})`);
-      }
-      if (cachedContext.certifications && cachedContext.certifications.length > 0) {
-        verifiedAreas.push(`Certifications: ${cachedContext.certifications.join(', ')}`);
+      if (cachedContext.has_executive_exposure && cachedContext.executive_details) {
+        verifiedAreas.push(`Executive exposure: ${cachedContext.executive_details}`);
       }
       
       // Extract gaps

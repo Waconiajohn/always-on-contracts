@@ -565,6 +565,12 @@ RETURN VALID JSON ONLY:
 
     // ANALYZE AND CACHE CAREER CONTEXT (BEFORE returning response)
     console.log('🧠 [AUTO-POPULATE V2] Analyzing and caching career context...');
+    console.log('🧠 [AUTO-POPULATE V2] Vault data being sent to career analyzer:', {
+      powerPhrasesCount: powerPhrases?.length || 0,
+      skillsCount: transferableSkills?.length || 0,
+      competenciesCount: hiddenCompetencies?.length || 0,
+      softSkillsCount: softSkills?.length || 0,
+    });
     
     try {
       const careerContext = await analyzeCareerContextAI({
@@ -575,6 +581,13 @@ RETURN VALID JSON ONLY:
         leadership: [],
         executivePresence: [],
       }, user.id);
+
+      console.log('🧠 [AUTO-POPULATE V2] Career context analyzed:', {
+        hasManagement: careerContext.hasManagementExperience,
+        hasBudget: careerContext.hasBudgetOwnership,
+        seniority: careerContext.inferredSeniority,
+        confidence: careerContext.seniorityConfidence,
+      });
 
       await supabaseClient.from('vault_career_context').upsert({
         vault_id: vaultId,

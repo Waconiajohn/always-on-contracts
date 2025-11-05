@@ -73,20 +73,65 @@ interface VaultData {
  */
 export async function analyzeCareerContextAI(vaultData: VaultData, userId: string): Promise<CareerContext> {
 
+  // Validate vault data exists
+  console.log('[CAREER CONTEXT] Analyzing vault data:', {
+    powerPhrases: vaultData.powerPhrases?.length || 0,
+    skills: vaultData.skills?.length || 0,
+    competencies: vaultData.competencies?.length || 0,
+    softSkills: vaultData.softSkills?.length || 0,
+    leadership: vaultData.leadership?.length || 0,
+    executivePresence: vaultData.executivePresence?.length || 0,
+  });
+
+  // If vault is completely empty, return minimal context
+  const totalItems = (vaultData.powerPhrases?.length || 0) + 
+                     (vaultData.skills?.length || 0) + 
+                     (vaultData.competencies?.length || 0);
+  
+  if (totalItems === 0) {
+    console.warn('[CAREER CONTEXT] Vault is empty - returning minimal context');
+    return {
+      inferredSeniority: 'Mid-Level IC',
+      seniorityConfidence: 10,
+      yearsOfExperience: 5,
+      hasManagementExperience: false,
+      managementDetails: 'No vault data available - run extraction first',
+      teamSizesManaged: [],
+      hasExecutiveExposure: false,
+      executiveDetails: 'No vault data available',
+      hasBudgetOwnership: false,
+      budgetDetails: 'No vault data available',
+      budgetSizesManaged: [],
+      companySizes: [],
+      technicalDepth: 50,
+      leadershipDepth: 30,
+      strategicDepth: 40,
+      primaryResponsibilities: [],
+      impactScale: 'individual',
+      nextLikelyRole: 'Unknown - insufficient data',
+      careerArchetype: 'generalist',
+      aiReasoning: 'Vault is empty - no data to analyze. User needs to complete resume extraction first.',
+    };
+  }
+
   // Prepare vault data summary for AI
-  const powerPhrasesText = vaultData.powerPhrases
-    .map(pp => `- ${pp.power_phrase}`)
+  const powerPhrasesText = (vaultData.powerPhrases || [])
+    .map(pp => `- ${pp.power_phrase || pp.phrase}`)
     .join('\n');
 
-  const skillsText = vaultData.skills
+  const skillsText = (vaultData.skills || [])
     .map(s => s.stated_skill || s.skill)
     .join(', ');
 
-  const softSkillsText = vaultData.softSkills
-    .map(s => s.soft_skill || s.skill)
+  const softSkillsText = (vaultData.softSkills || [])
+    .map(s => s.skill_name || s.soft_skill || s.skill)
     .join(', ');
 
-  const leadershipText = vaultData.leadership
+  const competenciesText = (vaultData.competencies || [])
+    .map(c => `${c.competency_area}: ${c.inferred_capability}`)
+    .join('\n');
+
+  const leadershipText = (vaultData.leadership || [])
     .map(l => l.philosophy_statement || l.statement)
     .join('; ');
 
