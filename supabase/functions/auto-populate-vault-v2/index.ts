@@ -121,7 +121,13 @@ ${researchContext}
 RESUME TEXT:
 ${resumeText}
 
-TASK: Extract 20-50 power phrases (quantified achievements AND management/leadership scope) from this resume.
+TASK: Extract 12-20 HIGH-CONFIDENCE power phrases (quantified achievements AND management/leadership scope) from this resume.
+
+CRITICAL QUALITY REQUIREMENTS:
+- Extract ONLY items with >85% confidence
+- Quality over quantity - we prefer 15 excellent items over 50 mediocre items
+- Skip generic or assumed competencies without clear evidence
+- Focus on concrete, specific achievements with measurable impact
 
 REQUIREMENTS:
 1. EXTRACT TWO TYPES OF PHRASES:
@@ -248,7 +254,12 @@ ${researchContext}
 RESUME TEXT:
 ${resumeText}
 
-TASK: Extract 20-40 transferable skills with cross-domain equivalents.
+TASK: Extract 15-25 HIGH-CONFIDENCE transferable skills with cross-domain equivalents.
+
+CRITICAL QUALITY REQUIREMENTS:
+- Extract ONLY items with >85% confidence
+- Quality over quantity - focus on clearly demonstrated skills with strong evidence
+- Skip generic or assumed skills without clear proof
 
 TRANSFERABLE SKILLS are abilities that apply across industries/roles:
 - Technical skills (languages, tools, platforms)
@@ -343,6 +354,13 @@ RETURN VALID JSON ONLY:
     console.log('🔍 Extracting hidden competencies...');
 
     const competenciesPrompt = `You are an expert at identifying HIDDEN COMPETENCIES from resumes.
+
+TASK: Extract 8-15 HIGH-CONFIDENCE hidden competencies.
+
+CRITICAL QUALITY REQUIREMENTS:
+- Extract ONLY items with >85% confidence
+- Must have clear supporting evidence
+- Focus on meaningful implied capabilities, not generic assumptions
 
 HIDDEN COMPETENCIES are capabilities implied by achievements but not explicitly stated:
 - Change management (if led transformation)
@@ -545,6 +563,50 @@ RETURN VALID JSON ONLY:
       (softSkills.length * 0.2) // Soft skills weight (max 6-8)
     ));
 
+    // ANALYZE AND CACHE CAREER CONTEXT (BEFORE returning response)
+    console.log('🧠 [AUTO-POPULATE V2] Analyzing and caching career context...');
+    
+    try {
+      const careerContext = await analyzeCareerContextAI({
+        powerPhrases: powerPhrases || [],
+        skills: transferableSkills || [],
+        competencies: hiddenCompetencies || [],
+        softSkills: softSkills || [],
+        leadership: [],
+        executivePresence: [],
+      }, user.id);
+
+      await supabaseClient.from('vault_career_context').upsert({
+        vault_id: vaultId,
+        user_id: user.id,
+        inferred_seniority: careerContext.inferredSeniority,
+        seniority_confidence: careerContext.seniorityConfidence,
+        years_of_experience: careerContext.yearsOfExperience,
+        has_management_experience: careerContext.hasManagementExperience,
+        management_details: careerContext.managementDetails,
+        team_sizes_managed: careerContext.teamSizesManaged,
+        has_executive_exposure: careerContext.hasExecutiveExposure,
+        executive_details: careerContext.executiveDetails,
+        has_budget_ownership: careerContext.hasBudgetOwnership,
+        budget_details: careerContext.budgetDetails,
+        budget_sizes_managed: careerContext.budgetSizesManaged,
+        company_sizes: careerContext.companySizes,
+        technical_depth: careerContext.technicalDepth,
+        leadership_depth: careerContext.leadershipDepth,
+        strategic_depth: careerContext.strategicDepth,
+        primary_responsibilities: careerContext.primaryResponsibilities,
+        impact_scale: careerContext.impactScale,
+        next_likely_role: careerContext.nextLikelyRole,
+        career_archetype: careerContext.careerArchetype,
+        ai_reasoning: careerContext.aiReasoning,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('✅ Career context cached:', { hasManagement: careerContext.hasManagementExperience, level: careerContext.inferredSeniority });
+    } catch (cacheError) {
+      console.error('⚠️ Failed to cache career context (non-critical):', cacheError);
+    }
+
     // Update vault record
     const { error: updateError } = await supabaseClient
       .from('career_vault')
@@ -604,58 +666,6 @@ RETURN VALID JSON ONLY:
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-
-    // FINAL STEP: Analyze and cache career context (runs ONCE after extraction)
-    console.log('🧠 [AUTO-POPULATE V2] Analyzing and caching career context...');
-    
-    try {
-      const { data: vaultItems } = await supabaseClient.from('vault_power_phrases').select('*').eq('vault_id', vaultId);
-      const { data: skills } = await supabaseClient.from('vault_transferable_skills').select('*').eq('vault_id', vaultId);
-      const { data: softSkills } = await supabaseClient.from('vault_soft_skills').select('*').eq('vault_id', vaultId);
-      const { data: leadership } = await supabaseClient.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId);
-      const { data: executivePresence } = await supabaseClient.from('vault_executive_presence').select('*').eq('vault_id', vaultId);
-
-      const careerContext = await analyzeCareerContextAI({
-        powerPhrases: vaultItems || [],
-        skills: skills || [],
-        competencies: [],
-        softSkills: softSkills || [],
-        leadership: leadership || [],
-        executivePresence: executivePresence || [],
-      }, user.id);
-
-      await supabaseClient.from('vault_career_context').upsert({
-        vault_id: vaultId,
-        user_id: user.id,
-        inferred_seniority: careerContext.inferredSeniority,
-        seniority_confidence: careerContext.seniorityConfidence,
-        years_of_experience: careerContext.yearsOfExperience,
-        has_management_experience: careerContext.hasManagementExperience,
-        management_details: careerContext.managementDetails,
-        team_sizes_managed: careerContext.teamSizesManaged,
-        has_executive_exposure: careerContext.hasExecutiveExposure,
-        executive_details: careerContext.executiveDetails,
-        has_budget_ownership: careerContext.hasBudgetOwnership,
-        budget_details: careerContext.budgetDetails,
-        budget_sizes_managed: careerContext.budgetSizesManaged,
-        company_sizes: careerContext.companySizes,
-        technical_depth: careerContext.technicalDepth,
-        leadership_depth: careerContext.leadershipDepth,
-        strategic_depth: careerContext.strategicDepth,
-        primary_responsibilities: careerContext.primaryResponsibilities,
-        impact_scale: careerContext.impactScale,
-        next_likely_role: careerContext.nextLikelyRole,
-        career_archetype: careerContext.careerArchetype,
-        ai_reasoning: careerContext.aiReasoning,
-        updated_at: new Date().toISOString()
-      });
-
-      console.log('✅ Career context cached:', { hasManagement: careerContext.hasManagementExperience, level: careerContext.inferredSeniority });
-    } catch (cacheError) {
-      console.error('⚠️ Failed to cache career context (non-critical):', cacheError);
-    }
-
-    return response;
 
   } catch (error) {
     console.error('Error in auto-populate-vault-v2:', error);

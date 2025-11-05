@@ -27,12 +27,9 @@ import {
   Target,
   Users,
   Lightbulb,
-  Heart,
-  TrendingUp,
   CheckCircle2,
   Loader2,
-  Zap,
-  Star
+  Zap
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -71,14 +68,10 @@ export default function AutoPopulationProgress({
   const [overallProgress, setOverallProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState('Initializing extraction engine...');
   const [categories, setCategories] = useState<ExtractionCategory[]>([
-    { key: 'power_phrases', label: 'Power Phrases', icon: Award, color: 'amber', status: 'pending', itemCount: 0, targetCount: '20-50' },
-    { key: 'transferable_skills', label: 'Transferable Skills', icon: Target, color: 'blue', status: 'pending', itemCount: 0, targetCount: '20-40' },
-    { key: 'hidden_competencies', label: 'Hidden Competencies', icon: Lightbulb, color: 'purple', status: 'pending', itemCount: 0, targetCount: '10-25' },
-    { key: 'soft_skills', label: 'Soft Skills', icon: Users, color: 'green', status: 'pending', itemCount: 0, targetCount: '15-30' },
-    { key: 'leadership', label: 'Leadership Philosophy', icon: TrendingUp, color: 'indigo', status: 'pending', itemCount: 0, targetCount: '5-10' },
-    { key: 'executive_presence', label: 'Executive Presence', icon: Star, color: 'pink', status: 'pending', itemCount: 0, targetCount: '5-10' },
-    { key: 'personality', label: 'Personality Traits', icon: Heart, color: 'rose', status: 'pending', itemCount: 0, targetCount: '8-12' },
-    { key: 'values', label: 'Values & Motivations', icon: Sparkles, color: 'violet', status: 'pending', itemCount: 0, targetCount: '8-15' },
+    { key: 'power_phrases', label: 'Power Phrases', icon: Award, color: 'amber', status: 'pending', itemCount: 0, targetCount: '12-20' },
+    { key: 'transferable_skills', label: 'Transferable Skills', icon: Target, color: 'blue', status: 'pending', itemCount: 0, targetCount: '15-25' },
+    { key: 'hidden_competencies', label: 'Hidden Competencies', icon: Lightbulb, color: 'purple', status: 'pending', itemCount: 0, targetCount: '8-15' },
+    { key: 'soft_skills', label: 'Soft Skills', icon: Users, color: 'green', status: 'pending', itemCount: 0, targetCount: '10-18' },
   ]);
 
   const [totalItems, setTotalItems] = useState(0);
@@ -133,42 +126,11 @@ export default function AutoPopulationProgress({
       updateCategoryStatus('hidden_competencies', 'complete', coreBreakdown.hiddenCompetencies);
       updateCategoryStatus('soft_skills', 'complete', coreBreakdown.softSkills);
 
-      setOverallProgress(50);
-      setCurrentPhase('🌟 Extracting leadership intelligence and executive presence...');
-
-      // Phase 2: Extract intangibles (leadership, presence, personality, values)
-      updateCategoryStatus('leadership', 'extracting');
-      updateCategoryStatus('executive_presence', 'extracting');
-      updateCategoryStatus('personality', 'extracting');
-      updateCategoryStatus('values', 'extracting');
-
-      const { data: intangiblesData, error: intangiblesError } = await supabase.functions.invoke('extract-vault-intangibles', {
-        body: {
-          resumeText,
-          vaultId,
-          existingVaultData: {
-            powerPhrases: [], // Would be populated from DB in real scenario
-            skills: [],
-            competencies: [],
-          },
-        },
-      });
-
-      if (intangiblesError) throw intangiblesError;
-      if (!intangiblesData.success) throw new Error(intangiblesData.error || 'Intangibles extraction failed');
-
-      const intangiblesBreakdown = intangiblesData.data.breakdown;
-
-      updateCategoryStatus('leadership', 'complete', intangiblesBreakdown.leadershipPhilosophy);
-      updateCategoryStatus('executive_presence', 'complete', intangiblesBreakdown.executivePresence);
-      updateCategoryStatus('personality', 'complete', intangiblesBreakdown.personalityTraits);
-      updateCategoryStatus('values', 'complete', intangiblesBreakdown.valuesMotivations);
-
       setOverallProgress(90);
       setCurrentPhase('🎯 Calculating vault strength and quality distribution...');
 
-      // Calculate totals
-      const total = coreData.data.totalItems + intangiblesData.data.totalIntangibles;
+      // Calculate totals (only 4 categories now)
+      const total = coreData.data.totalItems;
       const strength = coreData.data.vaultStrength;
 
       setTotalItems(total);
@@ -187,10 +149,7 @@ export default function AutoPopulationProgress({
         onComplete({
           totalItems: total,
           vaultStrength: strength,
-          breakdown: {
-            ...coreBreakdown,
-            ...intangiblesBreakdown,
-          },
+          breakdown: coreBreakdown,
         });
       }, 3000);
 
