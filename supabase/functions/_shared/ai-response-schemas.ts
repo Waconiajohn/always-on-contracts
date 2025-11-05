@@ -93,3 +93,54 @@ export const GenericAIResponseSchema = z.object({
   content: z.string(),
   metadata: z.record(z.unknown()).optional()
 });
+
+// Salary Report Schema
+export const SalaryReportSchema = z.object({
+  marketRate: z.object({
+    min: z.number(),
+    max: z.number(),
+    median: z.number(),
+    currency: z.string().default('USD')
+  }),
+  factors: z.array(z.object({
+    factor: z.string(),
+    impact: z.string()
+  })),
+  recommendations: z.array(z.string()),
+  sources: z.array(z.string()).optional()
+});
+
+// Gap Analysis Schema
+export const GapAnalysisSchema = z.object({
+  overallFit: z.number().min(0).max(100),
+  strengths: z.array(z.string()),
+  gaps: z.array(z.object({
+    type: z.enum(['skill', 'experience', 'certification', 'knowledge']),
+    description: z.string(),
+    severity: z.enum(['critical', 'important', 'minor']),
+    recommendation: z.string()
+  })),
+  developmentPlan: z.array(z.string()).optional()
+});
+
+// Vault Intelligence Schema
+export const VaultIntelligenceSchema = z.object({
+  technicalSkills: z.array(z.string()).optional(),
+  softSkills: z.array(z.string()).optional(),
+  leadershipExamples: z.array(z.string()).optional(),
+  businessImpact: z.array(z.string()).optional(),
+  powerPhrases: z.array(z.string()).optional(),
+  projects: z.array(z.string()).optional(),
+  hiddenCompetencies: z.array(z.string()).optional(),
+  innovationExamples: z.array(z.string()).optional(),
+  problemSolving: z.array(z.string()).optional(),
+  stakeholderManagement: z.array(z.string()).optional()
+}).passthrough(); // Allow additional categories
+
+// LinkedIn Optimization Schema
+export const LinkedInOptimizationSchema = z.object({
+  optimizedContent: z.string(),
+  improvements: z.array(z.string()),
+  keywordsAdded: z.array(z.string()),
+  score: z.number().min(0).max(100).optional()
+});
