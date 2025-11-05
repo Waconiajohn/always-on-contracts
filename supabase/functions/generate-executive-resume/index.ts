@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -164,7 +165,12 @@ Return a JSON object with this structure:
         { role: 'system', content: 'You are an elite executive resume writer. Return only valid JSON.' },
         { role: 'user', content: pass1Prompt }
       ],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'generation',
+        complexity: 'high',
+        requiresReasoning: true,
+        outputLength: 'long'
+      }),
       temperature: 0.3,
     }, 'generate-executive-resume-pass1', user.id);
 
@@ -216,7 +222,12 @@ Return JSON:
         { role: 'system', content: 'You are a critical hiring manager. Return only valid JSON.' },
         { role: 'user', content: pass2Prompt }
       ],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'analysis',
+        complexity: 'medium',
+        requiresReasoning: true,
+        outputLength: 'medium'
+      }),
       temperature: 0.2,
     }, 'generate-executive-resume-pass2', user.id);
 
@@ -262,7 +273,12 @@ Return JSON:
         { role: 'system', content: 'You are refining a resume. Return only valid JSON.' },
         { role: 'user', content: pass3Prompt }
       ],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'generation',
+        complexity: 'medium',
+        requiresReasoning: false,
+        outputLength: 'long'
+      }),
       temperature: 0.3,
     }, 'generate-executive-resume-pass3', user.id);
 

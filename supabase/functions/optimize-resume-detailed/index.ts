@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -202,7 +203,12 @@ ${intelligence ? '6. Confirmation of which Career Vault intelligence was leverag
 FORMAT: Return detailed JSON matching the expected schema with optimizedResume, analysis (with all score fields), improvements array, missingKeywords array, and recommendations array.`
         }
       ],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'analysis',
+        complexity: 'high',
+        requiresReasoning: true,
+        outputLength: 'long'
+      }),
       temperature: 0.7,
       max_tokens: 4000,
     }, 'optimize-resume-detailed', user.id);

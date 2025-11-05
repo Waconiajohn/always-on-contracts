@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { PERPLEXITY_CONFIG, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { PERPLEXITY_CONFIG } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -80,7 +81,12 @@ Example:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: PERPLEXITY_MODELS.HUGE,
+        model: selectOptimalModel({
+          taskType: 'generation',
+          complexity: 'low',
+          requiresReasoning: false,
+          outputLength: 'short'
+        }),
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
@@ -126,7 +132,12 @@ Example:
               
               await logAIUsage({
                 function_name: 'job-search-assistant',
-                model: PERPLEXITY_MODELS.HUGE,
+                model: selectOptimalModel({
+                  taskType: 'generation',
+                  complexity: 'low',
+                  requiresReasoning: false,
+                  outputLength: 'short'
+                }),
                 input_tokens: estimatedInputTokens,
                 output_tokens: estimatedOutputTokens,
                 cost_usd: cost,

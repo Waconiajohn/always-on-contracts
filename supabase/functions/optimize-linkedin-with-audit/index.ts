@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +70,12 @@ Return JSON:
           { role: 'system', content: 'You are a LinkedIn optimization expert.' },
           { role: 'user', content: optimizationPrompt }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'generation',
+          complexity: 'medium',
+          requiresReasoning: true,
+          outputLength: 'medium'
+        }),
       },
       'optimize-linkedin-with-audit',
       user.id

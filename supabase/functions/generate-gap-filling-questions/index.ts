@@ -22,8 +22,9 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -231,7 +232,12 @@ QUESTION TYPE GUIDELINES:
             content: gapAnalysisPrompt
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'analysis',
+          complexity: 'medium',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
         temperature: 0.5,
         max_tokens: 4000,
         return_citations: false,

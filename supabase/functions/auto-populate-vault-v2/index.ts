@@ -280,7 +280,12 @@ RETURN VALID JSON ONLY:
       callPerplexity(
         {
           messages: [{ role: 'user', content: skillsPrompt }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'extraction',
+            complexity: 'medium',
+            requiresAccuracy: true,
+            outputLength: 'long'
+          }),
           temperature: 0.2,
           max_tokens: 4000,
         },
@@ -371,7 +376,12 @@ RETURN VALID JSON ONLY:
       callPerplexity(
         {
           messages: [{ role: 'user', content: competenciesPrompt }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'extraction',
+            complexity: 'medium',
+            requiresAccuracy: true,
+            outputLength: 'medium'
+          }),
           temperature: 0.3,
           max_tokens: 3000,
         },
@@ -463,7 +473,12 @@ RETURN VALID JSON ONLY:
       callPerplexity(
         {
           messages: [{ role: 'user', content: softSkillsPrompt }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'extraction',
+            complexity: 'medium',
+            requiresAccuracy: true,
+            outputLength: 'medium'
+          }),
           temperature: 0.3,
           max_tokens: 3000,
         },
