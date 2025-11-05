@@ -4,6 +4,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { GapAnalysisSchema } from '../_shared/ai-response-schemas.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,6 +42,9 @@ export interface GapAnalysisResult {
 }
 
 serve(async (req) => {
+  const startTime = Date.now();
+  const logger = createLogger('gap-analysis');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -133,14 +140,13 @@ ${intelligence.projects.slice(0, 5).map((p: any) => `- ${p.project_name}: ${p.ou
 `;
     }
 
-    console.log('[GAP-ANALYSIS] Using Perplexity AI');
-
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
-          {
-            role: 'system',
-            content: `ROLE: You are an executive recruiter with 20+ years evaluating candidates for senior roles. You conduct rigorous gap analyses that determine hiring decisions.
+    const { response, metrics } = await retryWithBackoff(
+      async () => await callPerplexity(
+        {
+          messages: [
+            {
+              role: 'system',
+              content: `ROLE: You are an executive recruiter with 20+ years evaluating candidates for senior roles. You conduct rigorous gap analyses that determine hiring decisions.
 
 ${intelligence ? `
 CRITICAL: You have access to this candidate's Career Vault intelligence - verified career data including:
@@ -219,10 +225,10 @@ OUTPUT REQUIREMENTS:
 - 5-7 prioritized recommendations including Career Vault emphasis strategy
 
 TONE: Direct, evidence-based, constructive. Flag deal-breakers clearly. Return valid JSON only.`
-          },
-          {
-            role: 'user',
-            content: `Conduct a comprehensive executive-level gap analysis.
+            },
+            {
+              role: 'user',
+              content: `Conduct a comprehensive executive-level gap analysis.
 
 CANDIDATE RESUME:
 ${resumeText}
@@ -242,47 +248,49 @@ ANALYSIS REQUIREMENTS:
 7. Deliver prioritized, actionable recommendations including Career Vault intelligence strategy
 
 FORMAT: Return detailed JSON with complete scoring, gap classification, hidden strengths, transferable skill bridges, and strategic recommendations matching the schema (overallFit number, strengths array, gaps array, keywordAnalysis object, recommendations array, hiddenStrengths array, transferableSkillBridges array).`
-          }
-        ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexityLevel: 'high',
-          requiresReasoning: true,
-          contextSize: 'large'
-        }),
-        temperature: 0.5,
-        max_tokens: 2000,
-      },
-      'gap-analysis',
-      user.id
+            }
+          ],
+          model: selectOptimalModel({
+            taskType: 'analysis',
+            complexityLevel: 'high',
+            requiresReasoning: true,
+            contextSize: 'large'
+          }),
+          temperature: 0.5,
+          max_tokens: 2000,
+        },
+        'gap-analysis',
+        user.id
+      ),
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content || '{}';
-    
-    let result;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
-    } catch (e) {
-      console.error('Failed to parse AI response:', e);
-      result = {};
+    const result = extractJSON(content, GapAnalysisSchema);
+
+    if (!result.success) {
+      logger.error('JSON parsing failed', {
+        error: result.error,
+        content: content.substring(0, 500)
+      });
+      throw new Error(`Invalid AI response: ${result.error}`);
     }
 
-    const gapAnalysisResult: GapAnalysisResult = {
-      overallFit: result.overallFit || 0,
-      strengths: result.strengths || [],
-      gaps: result.gaps || [],
-      keywordAnalysis: result.keywordAnalysis || {
-        matched: [],
-        missing: [],
-        coverage: 0
-      },
-      recommendations: result.recommendations || [],
-      hiddenStrengths: result.hiddenStrengths || [],
-      transferableSkillBridges: result.transferableSkillBridges || []
-    };
+    const gapAnalysisResult: GapAnalysisResult = result.data as any;
+
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - startTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
     console.log('[GAP-ANALYSIS] Complete:', {
       overallFit: gapAnalysisResult.overallFit,
@@ -317,13 +325,16 @@ FORMAT: Return detailed JSON with complete scoring, gap classification, hidden s
     );
 
   } catch (error) {
-    console.error('Error in gap-analysis function:', error);
+    logger.error('Request failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      latencyMs: Date.now() - startTime
+    });
+
+    const errorResponse = handlePerplexityError(error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      }),
+      JSON.stringify(errorResponse),
       {
-        status: 500,
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

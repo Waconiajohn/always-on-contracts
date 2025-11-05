@@ -2,6 +2,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { SalaryReportSchema } from '../_shared/ai-response-schemas.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +13,9 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  const startTime = Date.now();
+  const logger = createLogger('generate-salary-report');
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -142,42 +149,52 @@ Return JSON with:
   "data_sources": ["source1", "source2"]
 }`;
 
-      const { response: extractionResponse, metrics: extractionMetrics } = await callPerplexity(
-        {
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a data extraction specialist. Return only valid JSON with salary data.'
-            },
-            {
-              role: 'user',
-              content: extractionPrompt
-            }
-          ],
-          model: selectOptimalModel({
-            taskType: 'extraction',
-            complexity: 'simple',
-            estimatedInputTokens: 1500,
-            estimatedOutputTokens: 1000
-          }),
-          temperature: 0.1,
-          max_tokens: 1000,
-          return_citations: false,
-        },
-        'generate-salary-report-extraction',
-        user.id
+      const { response: extractionResponse, metrics: extractionMetrics } = await retryWithBackoff(
+        async () => await callPerplexity(
+          {
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a data extraction specialist. Return only valid JSON with salary data.'
+              },
+              {
+                role: 'user',
+                content: extractionPrompt
+              }
+            ],
+            model: selectOptimalModel({
+              taskType: 'extraction',
+              complexity: 'simple',
+              estimatedInputTokens: 1500,
+              estimatedOutputTokens: 1000
+            }),
+            temperature: 0.1,
+            max_tokens: 1000,
+            return_citations: false,
+          },
+          'generate-salary-report-extraction',
+          user.id
+        ),
+        3,
+        (attempt, error) => {
+          logger.warn(`Extraction retry attempt ${attempt}`, { error: error.message });
+        }
       );
 
       await logAIUsage(extractionMetrics);
 
       const extractedText = extractionResponse.choices[0].message.content;
-      const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
-      const extractedData = jsonMatch ? JSON.parse(jsonMatch[0]) : {
-        percentile_25: 0,
-        percentile_50: 0,
-        percentile_75: 0,
-        percentile_90: 0,
-      };
+      const extractResult = extractJSON(extractedText, SalaryReportSchema);
+
+      if (!extractResult.success) {
+        logger.error('Extraction JSON parsing failed', {
+          error: extractResult.error,
+          content: extractedText.substring(0, 500)
+        });
+        throw new Error(`Invalid extraction response: ${extractResult.error}`);
+      }
+
+      const extractedData = extractResult.data;
 
       // Step 6: Store market data
       const { data: newMarketData, error: insertError } = await supabase
@@ -284,6 +301,15 @@ Include: Opening statement, market data reference, value proposition from achiev
       console.error('Error storing negotiation:', negError);
     }
 
+    logger.logAICall({
+      model: 'multi-step',
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: Date.now() - startTime,
+      cost: 0,
+      success: true
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -299,14 +325,19 @@ Include: Opening statement, market data reference, value proposition from achiev
     );
 
   } catch (error) {
-    console.error('Error in generate-salary-report:', error);
+    logger.error('Request failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      latencyMs: Date.now() - startTime
+    });
+
+    const errorResponse = handlePerplexityError(error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        ...errorResponse
       }),
       {
-        status: 400,
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
