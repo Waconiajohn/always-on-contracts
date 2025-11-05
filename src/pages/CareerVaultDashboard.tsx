@@ -795,7 +795,7 @@ const VaultDashboardContent = () => {
               ((qualityDistribution.gold + qualityDistribution.silver) / totalIntelligenceItems) * 100
             )}
             quickWinsCount={
-              (qualityDistribution.assumed > 0 ? 1 : 0) +
+              (qualityDistribution.assumedNeedingReview > 0 ? 1 : 0) +
               (powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0 ? 1 : 0) +
               ([...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
                 const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
@@ -805,7 +805,7 @@ const VaultDashboardContent = () => {
               }).length > 0 ? 1 : 0)
             }
             hasQuickWins={
-              qualityDistribution.assumed > 0 ||
+              qualityDistribution.assumedNeedingReview > 0 ||
               powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0 ||
               [...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
                 const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
@@ -815,7 +815,7 @@ const VaultDashboardContent = () => {
               }).length > 0
             }
             onPrimaryCTA={() => {
-              const hasQuickWins = qualityDistribution.assumed > 0 ||
+              const hasQuickWins = qualityDistribution.assumedNeedingReview > 0 ||
                 powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0;
 
               if (hasQuickWins) {
@@ -842,7 +842,7 @@ const VaultDashboardContent = () => {
         <div className="mb-6" data-quick-wins>
           <QuickWinsPanel
             quickWins={useQuickWins({
-              assumedCount: qualityDistribution.assumed,
+              assumedCount: qualityDistribution.assumedNeedingReview, // Only show items that need review
               weakPhrasesCount: powerPhrases.filter(p =>
                 !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
               ).length,
