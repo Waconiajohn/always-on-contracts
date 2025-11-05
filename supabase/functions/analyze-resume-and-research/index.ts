@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -152,7 +153,12 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
             content: prompt,
           },
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'extraction',
+          complexity: 'high',
+          requiresAccuracy: true,
+          outputLength: 'long'
+        }),
         temperature: 0.6,
         max_tokens: 4000,
       },
@@ -279,7 +285,13 @@ Be concise but specific.`;
                 content: verificationPrompt
               }
             ],
-            model: PERPLEXITY_MODELS.HUGE,
+            model: selectOptimalModel({
+              taskType: 'research',
+              complexity: 'high',
+              requiresAccuracy: true,
+              needsSearch: true,
+              outputLength: 'medium'
+            }),
             temperature: 0.2,
             max_tokens: 1500,
             search_recency_filter: 'month',

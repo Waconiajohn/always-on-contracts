@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 // Edge function for analyzing job requirements
 
@@ -143,7 +144,12 @@ Return ONLY valid JSON with this structure:
       const { response, metrics } = await callPerplexity(
         {
           messages: [{ role: 'user', content: jdAnalysisPrompt }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'extraction',
+            complexity: 'moderate',
+            requiresAccuracy: true,
+            outputLength: 'long'
+          }),
           temperature: 0.3,
           max_tokens: 4096
         },
@@ -190,7 +196,12 @@ Return ONLY valid JSON:
             role: 'user',
             content: industryPrompt
           }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'research',
+            complexity: 'moderate',
+            requiresAccuracy: true,
+            outputLength: 'medium'
+          }),
           temperature: 0.3,
           max_tokens: 2000
         },
@@ -240,7 +251,12 @@ Return ONLY valid JSON:
       const { response, metrics } = await callPerplexity(
         {
           messages: [{ role: 'user', content: benchmarkPrompt }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: selectOptimalModel({
+            taskType: 'research',
+            complexity: 'high',
+            requiresAccuracy: true,
+            outputLength: 'long'
+          }),
           temperature: 0.3,
           max_tokens: 4096
         },

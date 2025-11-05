@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,7 +80,12 @@ serve(async (req) => {
             content: `Analyze this job description:\n\n${jobDescriptionText}`
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'extraction',
+          complexity: 'moderate',
+          requiresAccuracy: true,
+          outputLength: 'medium'
+        }),
       },
       'analyze-job-qualifications'
     );

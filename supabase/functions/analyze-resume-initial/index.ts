@@ -13,8 +13,9 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 interface InitialAnalysisRequest {
   resumeText: string;
@@ -127,7 +128,12 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
             content: `Analyze this resume and extract the key information:\n\n${resumeText}`,
           },
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'extraction',
+          complexity: 'moderate',
+          requiresAccuracy: true,
+          outputLength: 'medium'
+        }),
         temperature: 0.3,
         max_tokens: 2000,
         return_citations: false,
