@@ -238,13 +238,14 @@ Return ONLY valid JSON:
       if (compError) logger.error('Error inserting competencies', compError);
     }
 
-    // Insert soft skills
+    // Deduplicate and merge soft skills
     const softSkills = extracted.softSkills || [];
     if (softSkills.length > 0) {
+      const deduped = deduplicateSkills(softSkills);
       const { error: softError } = await supabase
         .from('vault_soft_skills')
         .insert(
-          softSkills.map((s: any) => ({
+          deduped.map((s: any) => ({
             vault_id: vaultId,
             skill_name: s.skill,
             skill_type: s.type,
@@ -325,6 +326,38 @@ Return ONLY valid JSON:
     );
   }
 });
+
+function deduplicateSkills(skills: any[]): any[] {
+  const grouped = new Map<string, any>();
+  
+  for (const skill of skills) {
+    const key = skill.skill.toLowerCase().trim();
+    
+    if (grouped.has(key)) {
+      const existing = grouped.get(key);
+      // Merge evidence
+      const combinedEvidence = `${existing.evidence}; ${skill.evidence}`;
+      // Take highest confidence
+      const maxConfidence = Math.max(existing.confidenceScore || 0, skill.confidenceScore || 0);
+      // Take best quality tier
+      const tierRank = { gold: 3, silver: 2, bronze: 1 };
+      const bestTier = (tierRank[existing.qualityTier] || 1) >= (tierRank[skill.qualityTier] || 1) 
+        ? existing.qualityTier 
+        : skill.qualityTier;
+      
+      grouped.set(key, {
+        ...existing,
+        evidence: combinedEvidence,
+        confidenceScore: maxConfidence,
+        qualityTier: bestTier
+      });
+    } else {
+      grouped.set(key, skill);
+    }
+  }
+  
+  return Array.from(grouped.values());
+}
 
 function calculateFrameworkMatch(extracted: any, framework: CompetencyFramework): number {
   let matchedCompetencies = 0;
