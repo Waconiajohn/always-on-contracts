@@ -3,6 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { LinkedInAnalysisSchema } from '../_shared/ai-response-schemas.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -130,16 +133,25 @@ Return ONLY a valid JSON object:
     await logAIUsage(metrics);
 
     const content_text = cleanCitations(response.choices[0].message.content);
-
-    console.log("AI LinkedIn analysis:", content_text);
-
-    // Extract JSON from response
-    const jsonMatch = content_text.match(/\{[\s\S]*\}/);
-    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-    if (!analysis) {
-      throw new Error("Failed to parse AI response");
+    const result = extractJSON(content_text, LinkedInAnalysisSchema);
+    
+    if (!result.success) {
+      logger.error('JSON parsing failed', new Error(result.error));
+      throw new Error(`Failed to parse AI response: ${result.error}`);
     }
+
+    const analysis = result.data;
+    
+    // Log metrics
+    const latencyMs = Date.now() - startTime;
+    logger.logAICall({
+      model,
+      inputTokens: metrics.input_tokens || 0,
+      outputTokens: metrics.output_tokens || 0,
+      latencyMs,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

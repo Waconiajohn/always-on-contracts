@@ -30,16 +30,33 @@ interface ScoringInput {
   requirements?: string[];
 }
 
-// Cache for AI quality scores (cache until user updates section)
-const qualityScoreCache = new Map<string, QualityScoreResult>();
+// Cache with TTL support
+interface CacheEntry {
+  data: QualityScoreResult;
+  expiresAt: number;
+}
+
+const qualityScoreCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 function getCacheKey(input: ScoringInput): string {
-  // Create hash from content + keywords
-  return JSON.stringify({
-    contentHash: input.content.substring(0, 200),
-    criticalKW: input.atsKeywords?.critical || [],
-    reqCount: input.requirements?.length || 0
-  });
+  // Create a strong hash of the entire input for accurate cache matching
+  const cacheData = {
+    content: input.content,
+    atsKeywords: input.atsKeywords,
+    requirements: input.requirements,
+    jobAnalysis: input.jobAnalysis
+  };
+  
+  // Simple but effective hash for cache key
+  const str = JSON.stringify(cacheData);
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return `quality_${hash.toString(36)}`;
 }
 
 /**
@@ -53,12 +70,17 @@ export async function calculateSectionQuality(input: ScoringInput): Promise<Qual
     requirements = []
   } = input;
 
-  // Check cache first (cache until user updates the section)
+  // Check cache first with TTL validation
   const cacheKey = getCacheKey(input);
   const cached = qualityScoreCache.get(cacheKey);
   if (cached) {
-    console.log('[Quality Scorer] Returning cached AI result');
-    return cached;
+    if (Date.now() < cached.expiresAt) {
+      console.log('[Quality Scorer] Cache hit');
+      return cached.data;
+    } else {
+      // Expired entry - remove it
+      qualityScoreCache.delete(cacheKey);
+    }
   }
 
   try {
@@ -93,8 +115,11 @@ export async function calculateSectionQuality(input: ScoringInput): Promise<Qual
       }
     };
 
-    // Cache the result
-    qualityScoreCache.set(cacheKey, result);
+    // Cache the result with TTL
+    qualityScoreCache.set(cacheKey, {
+      data: result,
+      expiresAt: Date.now() + CACHE_TTL_MS
+    });
 
     console.log(`[Quality Scorer] AI analysis complete - Score: ${result.overallScore}/100`);
     return result;
@@ -102,8 +127,8 @@ export async function calculateSectionQuality(input: ScoringInput): Promise<Qual
   } catch (error) {
     console.error('[Quality Scorer] Error calling AI:', error);
     
-    // Fallback to basic validation (NOT for quality judgment)
-    return fallbackValidation(input);
+    // Fallback to basic validation with error context
+    return fallbackValidation(input, error instanceof Error ? error : undefined);
   }
 }
 
@@ -115,31 +140,38 @@ export function clearQualityCache() {
 }
 
 /**
- * Fallback validation - basic checks only (used if AI fails)
- * This is NOT for quality judgment - just ensures content isn't empty
+ * Fallback validation when AI service is unavailable
+ * CRITICAL: Returns 0 scores to avoid false confidence
  */
-function fallbackValidation(input: ScoringInput): QualityScoreResult {
-  const { content, atsKeywords = { critical: [], important: [], nice_to_have: [] } } = input;
-  const contentLower = content.toLowerCase();
-
-  // Very basic validation only - check if content exists
-  const hasContent = content.trim().length > 20;
+function fallbackValidation(input: ScoringInput, error?: Error): QualityScoreResult {
+  // Log the actual error for debugging
+  console.error('[Quality Scorer] AI service unavailable:', error?.message || 'Unknown error');
   
-  const criticalMatched = atsKeywords.critical.filter(kw =>
-    contentLower.includes(kw.toLowerCase())
-  );
-
+  // Check if it's a specific error type
+  const errorMsg = error?.message || '';
+  const isTimeout = errorMsg.includes('timeout');
+  const isRateLimit = errorMsg.includes('429') || errorMsg.includes('rate limit');
+  const isPaymentRequired = errorMsg.includes('402') || errorMsg.includes('payment required');
+  
+  // Determine error message
+  let errorReason = 'Service unavailable';
+  if (isTimeout) errorReason = 'Service timeout';
+  else if (isRateLimit) errorReason = 'Rate limit exceeded';
+  else if (isPaymentRequired) errorReason = 'Credits required';
+  
+  // CRITICAL: Don't give false confidence - return 0 scores
   return {
-    overallScore: hasContent ? 70 : 30, // Neutral score
-    atsMatchPercentage: criticalMatched.length > 0 ? 60 : 40,
-    requirementsCoverage: 60,
-    competitiveStrength: 3,
-    strengths: hasContent ? ['Content provided'] : [],
-    weaknesses: ['AI analysis unavailable - scores are estimated', 'Please try again or check your connection'],
-    keywords: {
-      matched: criticalMatched,
-      missing: []
-    }
+    overallScore: 0,
+    atsMatchPercentage: 0,
+    requirementsCoverage: 0,
+    competitiveStrength: 1,
+    strengths: [],
+    weaknesses: [
+      `❌ AI analysis failed: ${errorReason}`,
+      '🔄 Please try again in a moment',
+      '💡 If this persists, contact support'
+    ],
+    keywords: { matched: [], missing: [] }
   };
 }
 

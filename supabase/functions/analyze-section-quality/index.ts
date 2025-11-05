@@ -1,8 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { SectionQualitySchema } from '../_shared/ai-response-schemas.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff } from '../_shared/error-handling.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +17,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const logger = createLogger('analyze-section-quality');
+  const startTime = Date.now();
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -106,42 +113,60 @@ Return ONLY a valid JSON object with this exact structure:
       estimatedOutputTokens: 600
     });
 
-    console.log(`[analyze-section-quality] Using model: ${model}`);
+    logger.info('Using model', { model });
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
+    // Use retry logic with exponential backoff
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        return await callPerplexity(
           {
-            role: "system",
-            content: "You are a Certified Professional Resume Writer with expertise in ATS optimization and executive career positioning. Return valid JSON only."
+            messages: [
+              {
+                role: "system",
+                content: "You are a Certified Professional Resume Writer with expertise in ATS optimization and executive career positioning. Return valid JSON only."
+              },
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            model,
+            temperature: 0.2,
+            max_tokens: 1200,
+            return_citations: false,
           },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        model,
-        temperature: 0.2,
-        max_tokens: 1200,
-        return_citations: false,
+          'analyze-section-quality',
+          user.id
+        );
       },
-      'analyze-section-quality',
-      user.id
+      3, // max retries
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     const content_text = cleanCitations(response.choices[0].message.content);
-
-    console.log("AI response:", content_text);
-
-    // Extract JSON from response
-    const jsonMatch = content_text.match(/\{[\s\S]*\}/);
-    const scoring = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-    if (!scoring) {
-      throw new Error("Failed to parse AI response");
+    const result = extractJSON(content_text, SectionQualitySchema);
+    
+    if (!result.success) {
+      logger.error('JSON parsing failed', new Error(result.error));
+      throw new Error(`Failed to parse AI response: ${result.error}`);
     }
+
+    const scoring = result.data;
+    
+    // Log metrics
+    const latencyMs = Date.now() - startTime;
+    logger.logAICall({
+      model,
+      inputTokens: metrics.input_tokens || 0,
+      outputTokens: metrics.output_tokens || 0,
+      latencyMs,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
     return new Response(JSON.stringify(scoring), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

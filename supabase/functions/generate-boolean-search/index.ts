@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractToolCallJSON } from '../_shared/json-parser.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +14,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const logger = createLogger('generate-boolean-search');
+  const startTime = Date.now();
 
   try {
     const { messages } = await req.json();
@@ -74,25 +79,31 @@ Common Patterns:
 
     await logAIUsage(metrics);
 
-    // Parse structured output from tool call
-    const toolCall = response.choices[0].message.tool_calls?.[0];
-    let reply: string;
+    // Use robust JSON extraction from tool call
+    const result = extractToolCallJSON(response, 'suggest_job_titles');
     
-    if (toolCall?.function?.arguments) {
-      try {
-        const parsed = JSON.parse(toolCall.function.arguments);
-        const titles = parsed.titles || [];
-        reply = JSON.stringify({ titles });
-        console.log('[Boolean AI] Structured output:', { titles });
-      } catch (e) {
-        console.error('[Boolean AI] Failed to parse tool call:', e);
-        reply = 'I apologize, I could not generate a response.';
-      }
+    let reply: string;
+    if (result.success) {
+      const titles = result.data.titles || [];
+      reply = JSON.stringify({ titles });
+      logger.info('Structured output extracted', { titleCount: titles.length });
     } else {
+      logger.error('Tool call extraction failed', new Error(result.error));
       // Fallback to text response
       reply = cleanCitations(response.choices[0].message.content) || 'I apologize, I could not generate a response.';
-      console.log('[Boolean AI] Fallback text response:', reply);
+      logger.warn('Using fallback text response');
     }
+    
+    // Log metrics
+    const latencyMs = Date.now() - startTime;
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens || 0,
+      outputTokens: metrics.output_tokens || 0,
+      latencyMs,
+      cost: metrics.cost_usd,
+      success: true
+    });
     
     return new Response(
       JSON.stringify({ reply }),
