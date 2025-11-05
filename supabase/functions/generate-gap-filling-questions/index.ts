@@ -157,7 +157,7 @@ Return ONLY the JSON object, no additional text.
           taskType: 'analysis',
           complexity: 'high',
           requiresReasoning: true,
-          outputLength: 'short'
+          estimatedOutputTokens: 500
         }),
         temperature: 0.1,
         max_tokens: 2000,
@@ -370,7 +370,7 @@ QUESTION TYPE GUIDELINES:
           taskType: 'analysis',
           complexity: 'medium',
           requiresReasoning: true,
-          outputLength: 'long'
+          estimatedOutputTokens: 4000
         }),
         temperature: 0.5,
         max_tokens: 4000,

@@ -6,6 +6,7 @@ import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { CompetitivePositionSchema } from '../_shared/ai-response-schemas.ts';
+import { analyzeCareerContextAI } from '../_shared/career-context-analyzer-ai.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +76,54 @@ Deno.serve(async (req) => {
       .eq('user_id', user_id)
       .single();
 
-    // Step 4: Use Perplexity to analyze competitive position
+    // Step 3.5: Get ALL vault data for AI career analysis
+    const { data: powerPhrases } = await supabase
+      .from('vault_power_phrases')
+      .select('*')
+      .eq('vault_id', vaultData.vault_id);
+
+    const { data: skills } = await supabase
+      .from('vault_transferable_skills')
+      .select('*')
+      .eq('vault_id', vaultData.vault_id);
+
+    const { data: softSkills } = await supabase
+      .from('vault_soft_skills')
+      .select('*')
+      .eq('vault_id', vaultData.vault_id);
+
+    const { data: leadership } = await supabase
+      .from('vault_leadership_philosophy')
+      .select('*')
+      .eq('vault_id', vaultData.vault_id);
+
+    const { data: executivePresence } = await supabase
+      .from('vault_executive_presence')
+      .select('*')
+      .eq('vault_id', vaultData.vault_id);
+
+    // Step 3.6: Run AI-powered career context analysis
+    console.log('[analyze-competitive-position] Running AI career context analysis...');
+    const careerContext = await analyzeCareerContextAI(
+      {
+        powerPhrases: powerPhrases || [],
+        skills: skills || [],
+        competencies: [],
+        softSkills: softSkills || [],
+        leadership: leadership || [],
+        executivePresence: executivePresence || [],
+      },
+      user_id
+    );
+
+    console.log('[analyze-competitive-position] Career context:', {
+      hasManagementExperience: careerContext.hasManagementExperience,
+      managementDetails: careerContext.managementDetails,
+      careerLevel: careerContext.inferredSeniority,
+      hasBudgetOwnership: careerContext.hasBudgetOwnership
+    });
+
+    // Step 4: Use Perplexity to analyze competitive position WITH AI career context
     const model = selectOptimalModel({
       taskType: 'analysis',
       complexity: 'medium',
@@ -104,9 +152,23 @@ ${JSON.stringify(market_data, null, 2)}
 
 CANDIDATE PROFILE:
 - Current Title: ${profile?.current_title || 'N/A'}
-- Years Experience: ${profile?.years_experience || 'N/A'}
+- Years Experience: ${profile?.years_experience || careerContext.yearsOfExperience}
 - Core Skills: ${profile?.core_skills?.join(', ') || 'N/A'}
 - Key Achievements: ${profile?.key_achievements?.join(', ') || 'N/A'}
+
+AI-DETECTED CAREER CONTEXT (CRITICAL - USE THIS):
+- Management Experience: ${careerContext.hasManagementExperience ? 'YES' : 'NO'}
+${careerContext.hasManagementExperience ? `- Management Details: ${careerContext.managementDetails}
+- Team Sizes Managed: ${careerContext.teamSizesManaged.join(', ')}` : ''}
+- Budget Ownership: ${careerContext.hasBudgetOwnership ? 'YES' : 'NO'}
+${careerContext.hasBudgetOwnership ? `- Budget Details: ${careerContext.budgetDetails}
+- Budget Amounts: ${careerContext.budgetSizesManaged.map((b: number) => `$${(b/1000000).toFixed(0)}MM`).join(', ')}` : ''}
+- Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES' : 'NO'}
+- Career Level: ${careerContext.inferredSeniority}
+- Career Archetype: ${careerContext.careerArchetype}
+- Leadership Depth: ${careerContext.leadershipDepth}/100
+- Technical Depth: ${careerContext.technicalDepth}/100
+- Strategic Depth: ${careerContext.strategicDepth}/100
 
 CAREER VAULT INTELLIGENCE:
 - Total Vault Strength: ${vaultData.overall_strength_score || 0}/100
