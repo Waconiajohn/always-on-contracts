@@ -3,6 +3,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const logger = createLogger('generate-cover-letter');
+
+// Response validation schema
+const CoverLetterSchema = z.object({
+  coverLetter: z.string().min(100),
+  metadata: z.object({
+    tone: z.string(),
+    emphasis: z.string(),
+    wordCount: z.number(),
+    generatedAt: z.string()
+  }).optional()
+}).or(z.string().min(100)); // Allow plain string response
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +32,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const { resumeContent, jobTitle, companyName, jobDescription, tone, emphasis } = await req.json();
 
     if (!resumeContent || !jobDescription) {
@@ -34,7 +52,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    console.log('Generating cover letter for user:', user.id);
+    logger.info('Starting cover letter generation', { userId: user.id, tone, emphasis });
 
     // Build the prompt for AI
     const toneGuidelines: Record<string, string> = {
@@ -88,37 +106,60 @@ CRITICAL GUIDELINES:
 
 Format as plain text with proper spacing between paragraphs.`;
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
           {
-            role: 'system',
-            content: 'You are an expert executive career coach specializing in creating compelling cover letters that get interviews. You understand how to position senior leaders for their next role.'
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert executive career coach specializing in creating compelling cover letters that get interviews. You understand how to position senior leaders for their next role.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            model: selectOptimalModel({
+              taskType: 'generation',
+              complexity: 'medium',
+              requiresReasoning: true,
+              outputLength: 'medium'
+            }),
+            temperature: 0.8,
+            max_tokens: 1200,
+            return_citations: false,
           },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
-        }),
-        temperature: 0.8,
-        max_tokens: 1200,
-        return_citations: false,
+          'generate-cover-letter',
+          user.id
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'generate-cover-letter',
-      user.id
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
     const coverLetter = cleanCitations(response.choices[0].message.content);
 
-    console.log('Cover letter generated successfully');
+    logger.info('Cover letter generated successfully', { 
+      wordCount: coverLetter.split(/\s+/).length,
+      latencyMs: Date.now() - startTime
+    });
 
     // Save to database
     try {
@@ -151,14 +192,20 @@ Format as plain text with proper spacing between paragraphs.`;
     );
 
   } catch (error) {
-    console.error('Error in generate-cover-letter function:', error);
+    const aiError = handlePerplexityError(error);
+    logger.error('Cover letter generation failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: aiError.userMessage,
+        retryable: aiError.retryable
       }),
       {
-        status: 500,
+        status: aiError.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

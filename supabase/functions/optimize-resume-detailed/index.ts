@@ -4,6 +4,28 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const logger = createLogger('optimize-resume-detailed');
+
+// Response validation schema
+const OptimizationResultSchema = z.object({
+  optimizedResume: z.string().min(100),
+  analysis: z.object({
+    skillsMatchScore: z.number().min(0).max(100),
+    experienceMatchScore: z.number().min(0).max(100),
+    achievementsScore: z.number().min(0).max(100),
+    keywordDensityScore: z.number().min(0).max(100),
+    formatScore: z.number().min(0).max(100),
+    overallScore: z.number().min(0).max(100)
+  }),
+  improvements: z.array(z.string()),
+  missingKeywords: z.array(z.string()),
+  recommendations: z.array(z.string())
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +54,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -59,7 +82,7 @@ serve(async (req) => {
       throw new Error('Job description must be at least 50 characters');
     }
 
-    console.log('[OPTIMIZE-RESUME] Starting for user:', user.id);
+    logger.info('Starting resume optimization', { userId: user.id });
 
     // Fetch ALL Career Vault intelligence (get-vault-data fetches all 10 tables)
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
@@ -73,7 +96,7 @@ serve(async (req) => {
     const intelligence = intelligenceError ? null : intelligenceData?.data?.intelligence;
     
     if (intelligence) {
-      console.log('[OPTIMIZE-RESUME] Career Vault loaded:', {
+      logger.info('Career Vault loaded', {
         powerPhrases: intelligence.counts.powerPhrases,
         businessImpacts: intelligence.counts.businessImpacts,
         confirmedSkills: intelligence.counts.technicalSkills
@@ -125,13 +148,14 @@ ${intelligence.competitiveAdvantages.slice(0, 3).map((a: any) => `- ${a.advantag
 `;
     }
 
-    console.log('[OPTIMIZE-RESUME] Calling Perplexity API...');
-
-    const { response, metrics } = await callPerplexity({
-      messages: [
-        {
-          role: 'system',
-          content: `ROLE: You are an elite resume optimization expert with 15+ years optimizing executive resumes for Fortune 500 roles and high-value contracts. You understand ATS systems, human recruiter psychology, and executive positioning.
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity({
+          messages: [
+            {
+              role: 'system',
+              content: `ROLE: You are an elite resume optimization expert with 15+ years optimizing executive resumes for Fortune 500 roles and high-value contracts. You understand ATS systems, human recruiter psychology, and executive positioning.
 
 EXPERTISE AREAS:
 - ATS keyword optimization (beat 95%+ of applicant tracking systems)
@@ -179,10 +203,10 @@ OUTPUT REQUIREMENTS:
 ${intelligence ? '5. Validation of Career Vault data usage in optimized resume' : ''}
 
 TONE: Direct, specific, actionable. No generic advice. Return valid JSON only.`
-        },
-        {
-          role: 'user',
-          content: `Optimize this resume for maximum impact against the target role.
+            },
+            {
+              role: 'user',
+              content: `Optimize this resume for maximum impact against the target role.
 
 CURRENT RESUME:
 ${resumeText}
@@ -201,28 +225,52 @@ DELIVERABLES:
 ${intelligence ? '6. Confirmation of which Career Vault intelligence was leveraged' : ''}
 
 FORMAT: Return detailed JSON matching the expected schema with optimizedResume, analysis (with all score fields), improvements array, missingKeywords array, and recommendations array.`
-        }
-      ],
-      model: selectOptimalModel({
-        taskType: 'analysis',
-        complexity: 'high',
-        requiresReasoning: true,
-        outputLength: 'long'
-      }),
-      temperature: 0.7,
-      max_tokens: 4000,
-    }, 'optimize-resume-detailed', user.id);
+            }
+          ],
+          model: selectOptimalModel({
+            taskType: 'analysis',
+            complexity: 'high',
+            requiresReasoning: true,
+            outputLength: 'long'
+          }),
+          temperature: 0.7,
+          max_tokens: 4000,
+        }, 'optimize-resume-detailed', user.id);
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
+      },
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
+    );
 
     await logAIUsage(metrics);
 
+    // Use robust JSON extraction with schema validation
+    const content = cleanCitations(response.choices[0].message.content || '{}');
+    const extractResult = extractJSON(content, OptimizationResultSchema);
+    
     let result;
-    try {
-      const content = cleanCitations(response.choices[0].message.content || '{}');
+    if (extractResult.success) {
+      result = extractResult.data;
+      logger.info('Successfully validated optimization result');
+    } else {
+      logger.warn('Schema validation failed, using fallback parsing', { 
+        error: extractResult.error 
+      });
+      // Fallback parsing
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
-    } catch (e) {
-      console.error('Failed to parse AI response:', e);
-      result = {};
+      result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     }
 
     const optimizationResult: ResumeOptimizationResult = {
@@ -241,7 +289,11 @@ FORMAT: Return detailed JSON matching the expected schema with optimizedResume, 
       recommendations: result.recommendations || []
     };
 
-    console.log('[OPTIMIZE-RESUME] Optimization complete, overall score:', optimizationResult.analysis.overallScore);
+    logger.info('Optimization complete', { 
+      overallScore: optimizationResult.analysis.overallScore,
+      latencyMs: Date.now() - startTime,
+      vaultUsed: !!intelligence
+    });
 
     // Store optimization result as an artifact
     await supabase
@@ -270,14 +322,20 @@ FORMAT: Return detailed JSON matching the expected schema with optimizedResume, 
     );
 
   } catch (error) {
-    console.error('Error in optimize-resume-detailed function:', error);
+    const aiError = handlePerplexityError(error);
+    logger.error('Resume optimization failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+    
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: aiError.userMessage,
+        retryable: aiError.retryable
       }),
       {
-        status: 500,
+        status: aiError.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

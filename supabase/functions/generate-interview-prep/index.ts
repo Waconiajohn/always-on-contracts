@@ -3,6 +3,29 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractArray } from '../_shared/json-parser.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+
+const logger = createLogger('generate-interview-prep');
+
+// Response validation schema
+const InterviewQuestionSchema = z.object({
+  id: z.string(),
+  category: z.enum(['behavioral', 'technical', 'situational', 'leadership']),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  question: z.string(),
+  context: z.string(),
+  tips: z.array(z.string()),
+  vaultSuggestions: z.array(z.string()).optional(),
+  starFramework: z.object({
+    situation: z.string(),
+    task: z.string(),
+    action: z.string(),
+    result: z.string()
+  }).optional()
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +38,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const { resumeContent, jobTitle, jobDescription, vaultIntelligence } = await req.json();
 
     if (!resumeContent || !jobDescription) {
@@ -34,7 +58,10 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    console.log('Generating interview prep for user:', user.id);
+    logger.info('Starting interview prep generation', { 
+      userId: user.id, 
+      hasVault: !!vaultIntelligence 
+    });
 
     const prompt = `You are an expert executive career coach specializing in interview preparation. Generate a comprehensive set of interview questions based on:
 
@@ -111,39 +138,75 @@ Return as JSON array with this structure:
   }
 ]`;
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
           {
-            role: 'system',
-            content: 'You are an expert executive interview coach with 20+ years of experience preparing senior leaders for high-stakes interviews. You understand what hiring committees look for and how to position candidates effectively. Return valid JSON only.'
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert executive interview coach with 20+ years of experience preparing senior leaders for high-stakes interviews. You understand what hiring committees look for and how to position candidates effectively. Return valid JSON only.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            model: selectOptimalModel({
+              taskType: 'generation',
+              complexityLevel: 'medium',
+              requiresCreativity: true,
+              requiresReasoning: true
+            }),
+            temperature: 0.7,
+            max_tokens: 2000,
+            return_citations: false,
           },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexityLevel: 'medium',
-          requiresCreativity: true,
-          requiresReasoning: true
-        }),
-        temperature: 0.7,
-        max_tokens: 2000,
-        return_citations: false,
+          'generate-interview-prep',
+          user.id
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'generate-interview-prep',
-      user.id
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      }
     );
 
     await logAIUsage(metrics);
 
+    // Use robust array extraction with schema validation
     const questionsText = cleanCitations(response.choices[0].message.content);
-    const jsonMatch = questionsText.match(/\[[\s\S]*\]/);
-    const questions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    const extractResult = extractArray(questionsText, InterviewQuestionSchema);
+    
+    let questions;
+    if (extractResult.success) {
+      questions = extractResult.data;
+      logger.info('Successfully validated interview questions', { count: questions.length });
+    } else {
+      logger.warn('Schema validation failed, using fallback parsing', { 
+        error: extractResult.error 
+      });
+      // Fallback parsing
+      const jsonMatch = questionsText.match(/\[[\s\S]*\]/);
+      questions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    }
 
-    console.log('Interview questions generated successfully');
+    logger.info('Interview prep generated successfully', {
+      questionCount: questions.length,
+      latencyMs: Date.now() - startTime
+    });
 
     return new Response(
       JSON.stringify({
@@ -158,14 +221,20 @@ Return as JSON array with this structure:
     );
 
   } catch (error) {
-    console.error('Error in generate-interview-prep function:', error);
+    const aiError = handlePerplexityError(error);
+    logger.error('Interview prep generation failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable
+    });
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: aiError.userMessage,
+        retryable: aiError.retryable
       }),
       {
-        status: 500,
+        status: aiError.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

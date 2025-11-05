@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
+
+const logger = createLogger('generate-resume-section');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +19,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const {
       sectionType,
       sectionGuidance,
@@ -22,7 +28,12 @@ serve(async (req) => {
       userSelections,
       vaultId,
       enhanceMode = false
-    } = await req.json()
+    } = await req.json();
+
+    logger.info('Starting resume section generation', { 
+      sectionType, 
+      vaultItemCount: vaultItems?.length || 0 
+    });
 
     // Build context for AI
     const jobContext = `
@@ -220,10 +231,6 @@ Generate appropriate content for this section that incorporates the vault items 
 Return as plain text or JSON array depending on section type.`
     }
 
-    console.log('Calling Perplexity for section generation...')
-    console.log('Section type:', sectionType)
-    console.log('Vault items:', vaultItems?.length || 0)
-
     const model = selectOptimalModel({
       taskType: 'generation',
       complexity: 'medium',
@@ -232,78 +239,104 @@ Return as plain text or JSON array depending on section type.`
       requiresReasoning: true
     });
 
-    const { response, metrics } = await callPerplexity(
-      {
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        model,
-        temperature: 0.7,
-        max_tokens: 2048
+    const { response, metrics } = await retryWithBackoff(
+      async () => {
+        const aiStartTime = Date.now();
+        const result = await callPerplexity(
+          {
+            messages: [
+              { role: 'user', content: prompt }
+            ],
+            model,
+            temperature: 0.7,
+            max_tokens: 2048
+          },
+          'generate-resume-section'
+        );
+
+        logger.logAICall({
+          model: result.metrics.model,
+          inputTokens: result.metrics.input_tokens,
+          outputTokens: result.metrics.output_tokens,
+          latencyMs: Date.now() - aiStartTime,
+          cost: result.metrics.cost_usd,
+          success: true
+        });
+
+        return result;
       },
-      'generate-resume-section'
+      3,
+      (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message, sectionType });
+      }
     );
 
     await logAIUsage(metrics);
 
-    let generatedContent = response.choices?.[0]?.message?.content || ''
+    let generatedContent = response.choices?.[0]?.message?.content || '';
 
-    console.log('Raw AI response:', generatedContent.substring(0, 200))
+    logger.debug('Raw AI response received', { 
+      length: generatedContent.length,
+      preview: generatedContent.substring(0, 100)
+    });
 
-    // Clean up response - remove markdown formatting if present
-    generatedContent = generatedContent
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    // Use robust JSON extraction
+    let parsed: any;
+    
+    // For text sections, skip JSON parsing
+    if (['opening_paragraph', 'summary'].includes(sectionType)) {
+      parsed = generatedContent
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+    } else {
+      // For structured sections, use extractJSON
+      const extractResult = extractJSON(generatedContent);
+      
+      if (extractResult.success) {
+        parsed = extractResult.data;
 
-    // Try to parse as JSON for structured sections
-    let parsed: any
-    try {
-      parsed = JSON.parse(generatedContent)
-
-      // Special validation for skills sections
-      if (['skills_list', 'core_competencies', 'technical_skills', 'key_skills'].includes(sectionType)) {
-        if (!Array.isArray(parsed)) {
-          console.error('Skills section did not return array, attempting to extract skills from text')
-          // Fallback: try to extract skills from text
-          const skillMatches = generatedContent.match(/"([^"]+)"/g)
-          if (skillMatches && skillMatches.length > 0) {
-            parsed = skillMatches.map((s: any) => s.replace(/"/g, ''))
-            console.log('Extracted skills from text:', parsed.length)
-          } else {
-            throw new Error('AI returned non-array for skills section and extraction failed')
+        // Special validation for skills sections
+        if (['skills_list', 'core_competencies', 'technical_skills', 'key_skills'].includes(sectionType)) {
+          if (!Array.isArray(parsed)) {
+            logger.warn('Skills section did not return array, attempting fallback extraction');
+            // Fallback: try to extract skills from text
+            const skillMatches = generatedContent.match(/"([^"]+)"/g);
+            if (skillMatches && skillMatches.length > 0) {
+              parsed = skillMatches.map((s: any) => s.replace(/"/g, ''));
+              logger.info('Extracted skills from text', { count: parsed.length });
+            } else {
+              throw new Error('AI returned non-array for skills section and extraction failed');
+            }
           }
-        }
-      }
-
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError)
-
-      // If not JSON, treat as plain text (for summary/opening paragraph)
-      if (['opening_paragraph', 'summary'].includes(sectionType)) {
-        parsed = generatedContent
-      } else if (['skills_list', 'core_competencies', 'technical_skills', 'key_skills'].includes(sectionType)) {
-        // For skills, try aggressive extraction
-        const lines = generatedContent.split('\n').filter((l: any) => l.trim())
-        const skills: string[] = []
-
-        for (const line of lines) {
-          // Try to extract from bullet points or numbered lists
-          const cleaned = line.replace(/^[•\-*\d.]+\s*/, '').trim()
-          if (cleaned && cleaned.length < 100) { // Skills shouldn't be long
-            skills.push(cleaned)
-          }
-        }
-
-        if (skills.length > 0) {
-          console.log('Extracted skills from lines:', skills.length)
-          parsed = skills
-        } else {
-          throw new Error('Could not parse skills from AI response')
         }
       } else {
-        // For other structured sections, keep trying JSON
-        parsed = generatedContent
+        logger.warn('JSON extraction failed, using fallback', { 
+          error: extractResult.error,
+          sectionType 
+        });
+        
+        // Fallback for skills sections
+        if (['skills_list', 'core_competencies', 'technical_skills', 'key_skills'].includes(sectionType)) {
+          const lines = generatedContent.split('\n').filter((l: any) => l.trim());
+          const skills: string[] = [];
+
+          for (const line of lines) {
+            const cleaned = line.replace(/^[•\-*\d.]+\s*/, '').trim();
+            if (cleaned && cleaned.length < 100) {
+              skills.push(cleaned);
+            }
+          }
+
+          if (skills.length > 0) {
+            logger.info('Extracted skills from lines', { count: skills.length });
+            parsed = skills;
+          } else {
+            throw new Error('Could not parse skills from AI response');
+          }
+        } else {
+          parsed = generatedContent;
+        }
       }
     }
 
@@ -319,13 +352,19 @@ Return as plain text or JSON array depending on section type.`
         }))
       : [];
 
+    logger.info('Resume section generated successfully', {
+      sectionType,
+      latencyMs: Date.now() - startTime,
+      vaultItemsUsed: vaultItemsUsed.length
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         sectionType,
         content: parsed,
         rawContent: generatedContent,
-        vaultItemsUsed // NEW: Return attribution data
+        vaultItemsUsed
       }),
       {
         headers: {
@@ -336,14 +375,21 @@ Return as plain text or JSON array depending on section type.`
     )
 
   } catch (error: any) {
-    console.error('Error in generate-resume-section:', error)
+    const aiError = handlePerplexityError(error);
+    logger.error('Resume section generation failed', error, {
+      code: aiError.code,
+      retryable: aiError.retryable,
+      sectionType
+    });
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Failed to generate section'
+        error: aiError.userMessage,
+        retryable: aiError.retryable
       }),
       {
-        status: 500,
+        status: aiError.statusCode,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
