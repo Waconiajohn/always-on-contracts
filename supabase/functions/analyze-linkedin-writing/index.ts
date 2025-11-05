@@ -107,7 +107,7 @@ Return ONLY a valid JSON object:
       estimatedOutputTokens: 500
     });
 
-    console.log(`[analyze-linkedin-writing] Using model: ${model}`);
+    logger.info('Using model', { model });
 
     const { response, metrics } = await callPerplexity(
       {
