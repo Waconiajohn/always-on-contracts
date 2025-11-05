@@ -340,10 +340,10 @@ function deduplicateSkills(skills: any[]): any[] {
       // Take highest confidence
       const maxConfidence = Math.max(existing.confidenceScore || 0, skill.confidenceScore || 0);
       // Take best quality tier
-      const tierRank = { gold: 3, silver: 2, bronze: 1 };
-      const bestTier = (tierRank[existing.qualityTier] || 1) >= (tierRank[skill.qualityTier] || 1) 
-        ? existing.qualityTier 
-        : skill.qualityTier;
+      const tierRank: Record<string, number> = { gold: 3, silver: 2, bronze: 1 };
+      const existingRank = tierRank[existing.qualityTier as string] || 1;
+      const skillRank = tierRank[skill.qualityTier as string] || 1;
+      const bestTier = existingRank >= skillRank ? existing.qualityTier : skill.qualityTier;
       
       grouped.set(key, {
         ...existing,
