@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,7 +68,12 @@ serve(async (req) => {
             content: primaryPrompt
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'analysis',
+          complexity: 'medium',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
         temperature: 0.7,
       },
       'dual-ai-audit-primary'
@@ -94,7 +100,12 @@ serve(async (req) => {
             content: verificationPrompt
           }
         ],
-        model: PERPLEXITY_MODELS.HUGE,
+        model: selectOptimalModel({
+          taskType: 'analysis',
+          complexity: 'high',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
         temperature: 0.2,
       },
       'dual-ai-audit'
@@ -121,7 +132,12 @@ serve(async (req) => {
             content: synthesisPrompt
           }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'generation',
+          complexity: 'medium',
+          requiresReasoning: true,
+          outputLength: 'medium'
+        }),
         temperature: 0.5,
       },
       'dual-ai-audit-synthesis'

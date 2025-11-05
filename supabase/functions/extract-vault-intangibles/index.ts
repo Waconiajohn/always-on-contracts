@@ -20,8 +20,9 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 interface IntangiblesRequest {
   resumeText: string;
@@ -115,7 +116,12 @@ RETURN VALID JSON ONLY:
 
     const { response: leadershipResponse, metrics: leadershipMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: leadershipPrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'extraction',
+        complexity: 'high',
+        requiresReasoning: true,
+        outputLength: 'medium'
+      }),
       temperature: 0.4,
       max_tokens: 2000,
     }, 'extract-vault-intangibles-leadership', user.id);
@@ -177,7 +183,12 @@ RETURN VALID JSON ONLY:
 
     const { response: presenceResponse, metrics: presenceMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: presencePrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'extraction',
+        complexity: 'high',
+        requiresReasoning: true,
+        outputLength: 'medium'
+      }),
       temperature: 0.4,
       max_tokens: 2000,
     }, 'extract-vault-intangibles-presence', user.id);
@@ -238,7 +249,12 @@ RETURN VALID JSON ONLY:
 
     const { response: personalityResponse, metrics: personalityMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: personalityPrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'extraction',
+        complexity: 'medium',
+        requiresReasoning: true,
+        outputLength: 'medium'
+      }),
       temperature: 0.4,
       max_tokens: 2000,
     }, 'extract-vault-intangibles-personality', user.id);
@@ -298,7 +314,12 @@ RETURN VALID JSON ONLY:
 
     const { response: workStyleResponse, metrics: workStyleMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: workStylePrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'extraction',
+        complexity: 'low',
+        requiresReasoning: false,
+        outputLength: 'short'
+      }),
       temperature: 0.4,
       max_tokens: 1500,
     }, 'extract-vault-intangibles-workstyle', user.id);
@@ -357,7 +378,12 @@ RETURN VALID JSON ONLY:
 
     const { response: valuesResponse, metrics: valuesMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: valuesPrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'extraction',
+        complexity: 'medium',
+        requiresReasoning: true,
+        outputLength: 'short'
+      }),
       temperature: 0.4,
       max_tokens: 1500,
     }, 'extract-vault-intangibles-values', user.id);
@@ -418,7 +444,12 @@ RETURN VALID JSON ONLY:
 
     const { response: behavioralResponse, metrics: behavioralMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: behavioralPrompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
+      model: selectOptimalModel({
+        taskType: 'extraction',
+        complexity: 'medium',
+        requiresReasoning: true,
+        outputLength: 'short'
+      }),
       temperature: 0.4,
       max_tokens: 1500,
     }, 'extract-vault-intangibles-behavioral', user.id);

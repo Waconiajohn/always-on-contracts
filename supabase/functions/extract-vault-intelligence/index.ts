@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,7 +103,12 @@ CRITICAL: Extract from ALL categories where evidence exists. Do NOT leave catego
           { role: 'system', content: 'You are an expert career intelligence analyst extracting structured data from executive interview responses across ALL 20 intelligence categories. Return valid JSON only.' },
           { role: 'user', content: prompt }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: selectOptimalModel({
+          taskType: 'extraction',
+          complexity: 'high',
+          requiresReasoning: true,
+          outputLength: 'long'
+        }),
         temperature: 0.5,
         max_tokens: 4000,
         return_citations: false,
