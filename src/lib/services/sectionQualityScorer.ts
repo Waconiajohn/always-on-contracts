@@ -143,7 +143,7 @@ export function clearQualityCache() {
  * Fallback validation when AI service is unavailable
  * CRITICAL: Returns 0 scores to avoid false confidence
  */
-function fallbackValidation(input: ScoringInput, error?: Error): QualityScoreResult {
+function fallbackValidation(_input: ScoringInput, error?: Error): QualityScoreResult {
   // Log the actual error for debugging
   console.error('[Quality Scorer] AI service unavailable:', error?.message || 'Unknown error');
   
