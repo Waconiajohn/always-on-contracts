@@ -91,160 +91,153 @@ serve(async (req) => {
       throw new Error('vaultData is required');
     }
 
-    // ===== PRODUCTION-GRADE: COMPREHENSIVE GAP DETECTION =====
-    // Problem: Full vault (130K tokens) exceeds Perplexity's 128K limit
-    // Solution: Smart compression that PRESERVES gap detection capability
+    // ===== PHASE 1: CAREER CONTEXT ANALYSIS (AI-POWERED) =====
+    // Use AI to analyze FULL resume and vault data to detect management experience
     
-    // Helper: Extract titles/keywords without full descriptions
-    const extractCompact = (items: any[], limit = 10) => {
-      if (!items || !Array.isArray(items)) return [];
-      return items.slice(0, limit).map(item => {
-        if (typeof item === 'string') return item;
-        return item.title || item.name || item.skill_name || 
-               (item.description ? item.description.substring(0, 80) : 'Unlabeled');
-      });
-    };
+    console.log('[generate-gap-filling-questions] Phase 1: Analyzing career context with AI...');
+    
+    // Prepare FULL resume text (no truncation)
+    const fullResumeText = resumeText || 'No resume provided';
+    
+    // Extract ALL vault power phrases and achievements for context
+    const allPowerPhrases = vaultData.power_phrases?.map((pp: any) => pp.power_phrase || pp.phrase).filter(Boolean) || [];
+    const allAchievements = vaultData.achievements?.map((a: any) => a.description).filter(Boolean) || [];
+    
+    const careerAnalysisPrompt = `
+Analyze this professional's career to detect management and leadership experience.
 
-    // Step 1: Resume - extract key professional facts (2K chars)
-    const resumeSummary = resumeText ? resumeText.substring(0, 2000) : 'No resume provided';
-    
-    // Step 2: Vault - COMPREHENSIVE structure for gap detection
-    const vaultSummary = {
-      // Identity
-      professionalIdentity: {
-        currentTitle: vaultData.professional_identity?.current_title || 'Unknown',
-        industry: vaultData.professional_identity?.industry || 'Unknown',
-        yearsExperience: vaultData.professional_identity?.years_of_experience || 0,
-        targetRoles: vaultData.professional_identity?.target_roles || [],
-        careerLevel: vaultData.professional_identity?.career_level || 'Unknown'
+FULL RESUME TEXT:
+${fullResumeText}
+
+VAULT POWER PHRASES (ALL):
+${allPowerPhrases.join('\n')}
+
+VAULT ACHIEVEMENTS (ALL):
+${allAchievements.join('\n')}
+
+TASK: Return a career context analysis in this exact JSON format:
+{
+  "hasManagementExperience": boolean,
+  "managementEvidence": [
+    "Evidence item 1 (e.g., job title)",
+    "Evidence item 2 (e.g., team scope)",
+    "Evidence item 3 (e.g., budget authority)"
+  ],
+  "teamSizesDetected": [3, 4, 12],
+  "budgetAmountsDetected": [350000000],
+  "careerLevel": "Manager" | "Director" | "VP" | "Senior IC" | "Mid IC" | "Entry IC",
+  "leadershipScope": "Brief description of leadership scope",
+  "confidenceScore": 0.95
+}
+
+Look for:
+- Job titles: supervisor, manager, director, VP, head, chief, lead
+- Team indicators: "team of X", "X engineers", "guided X people", "managed X rigs", "direct reports"
+- Budget indicators: "$XM", "$XMM", "$XB", "budget", "P&L"
+- Leadership verbs: led, managed, directed, supervised, guided, oversaw, coordinated
+- Scope indicators: multi-location, regional, global, cross-functional
+
+Return ONLY the JSON object, no additional text.
+`;
+
+    // Call AI for career context analysis
+    const { response: careerResponse, metrics: careerMetrics } = await callPerplexity(
+      {
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert career analyst. Extract management and leadership indicators from resumes. Return only valid JSON.'
+          },
+          {
+            role: 'user',
+            content: careerAnalysisPrompt
+          }
+        ],
+        model: selectOptimalModel({
+          taskType: 'analysis',
+          complexity: 'high',
+          requiresReasoning: true,
+          outputLength: 'short'
+        }),
+        temperature: 0.1,
+        max_tokens: 2000,
+        return_citations: false,
       },
-      
-      // CRITICAL: Track what EXISTS and what's MISSING
-      categories: {
-        // Leadership & Management (CRITICAL for executive gaps)
-        leadership: {
-          count: vaultData.leadership_experiences?.length || 0,
-          hasDirectReports: vaultData.leadership_experiences?.some((l: any) => 
-            l.team_size > 0 || l.direct_reports > 0 || 
-            l.title?.toLowerCase().includes('manager') ||
-            l.title?.toLowerCase().includes('director') ||
-            l.title?.toLowerCase().includes('supervisor')
-          ) || false,
-          hasBudgetAuthority: vaultData.leadership_experiences?.some((l: any) => 
-            l.budget_managed > 0 || l.description?.toLowerCase().includes('budget')
-          ) || false,
-          items: extractCompact(vaultData.leadership_experiences, 5)
-        },
-        
-        // Achievements
-        achievements: {
-          count: vaultData.achievements?.length || 0,
-          hasQuantified: vaultData.achievements?.some((a: any) => 
-            /\d+%|\$\d+|saved|increased|reduced/i.test(a.description || '')
-          ) || false,
-          items: extractCompact(vaultData.achievements, 5)
-        },
-        
-        // Skills
-        skills: {
-          count: vaultData.skills?.length || 0,
-          hasTechnical: vaultData.skills?.some((s: any) => 
-            s.category === 'technical' || s.type === 'technical'
-          ) || false,
-          hasLeadership: vaultData.skills?.some((s: any) => 
-            s.category === 'leadership' || /leadership|management/i.test(s.name || s)
-          ) || false,
-          items: extractCompact(vaultData.skills, 10)
-        },
-        
-        // Certifications
-        certifications: {
-          count: vaultData.certifications?.length || 0,
-          items: extractCompact(vaultData.certifications, 5)
-        },
-        
-        // Projects
-        projects: {
-          count: vaultData.projects?.length || 0,
-          items: extractCompact(vaultData.projects, 5)
-        },
-        
-        // Education
-        education: {
-          count: vaultData.education?.length || 0,
-          hasAdvancedDegree: vaultData.education?.some((e: any) => 
-            /master|mba|phd|doctorate/i.test(e.degree || '')
-          ) || false,
-          items: extractCompact(vaultData.education, 3)
-        }
-      },
-      
-      // Overall metrics
-      metrics: {
-        completionPercentage: vaultData.review_completion_percentage || 0,
-        overallStrength: vaultData.overall_strength_score || 0,
-        lastUpdated: vaultData.updated_at || 'Unknown'
+      'generate-gap-filling-questions-phase1',
+      user.id
+    );
+
+    await logAIUsage(careerMetrics);
+
+    // Parse career context
+    let careerContext;
+    try {
+      const rawCareerContent = cleanCitations(careerResponse.choices[0].message.content);
+      let cleanedCareerContent = rawCareerContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const jsonMatch = cleanedCareerContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedCareerContent = jsonMatch[0];
       }
-    };
+      careerContext = JSON.parse(cleanedCareerContent);
+      
+      console.log('[generate-gap-filling-questions] Phase 1 complete:', {
+        hasManagementExperience: careerContext.hasManagementExperience,
+        careerLevel: careerContext.careerLevel,
+        confidenceScore: careerContext.confidenceScore
+      });
+    } catch (parseError) {
+      console.error('Failed to parse career context:', parseError);
+      // Fallback to empty context
+      careerContext = {
+        hasManagementExperience: false,
+        managementEvidence: [],
+        teamSizesDetected: [],
+        budgetAmountsDetected: [],
+        careerLevel: 'Mid IC',
+        leadershipScope: 'Unable to determine',
+        confidenceScore: 0.0
+      };
+    }
     
-    // Step 3: Industry context (minimal but targeted)
+    // ===== PHASE 2: GAP DETECTION (USING CAREER CONTEXT) =====
+    console.log('[generate-gap-filling-questions] Phase 2: Generating gap questions based on career context...');
+    
+    // Prepare industry context (minimal)
     const industryInsights = industryResearch ? {
       keyCompetencies: industryResearch.required_competencies?.slice(0, 5) || [],
       commonCertifications: industryResearch.certifications?.slice(0, 3) || [],
       marketTrends: industryResearch.trends?.slice(0, 3) || []
     } : null;
     
-    // Build COMPREHENSIVE prompt for precise gap detection
+    // Build gap analysis prompt using AI-detected career context
     const gapAnalysisPrompt = `
 You are an expert career strategist analyzing a professional's career profile to identify CRITICAL gaps.
 
-## RESUME SUMMARY:
-${resumeSummary}
+## CAREER CONTEXT (AI-DETECTED):
+Management Experience: ${careerContext.hasManagementExperience ? 'YES ✓' : 'NO'}
+${careerContext.hasManagementExperience ? `
+Evidence Found:
+${careerContext.managementEvidence.map((e: string) => `- ${e}`).join('\n')}
 
-## CURRENT PROFESSIONAL PROFILE:
-Role: ${vaultSummary.professionalIdentity.currentTitle}
-Industry: ${vaultSummary.professionalIdentity.industry}
-Experience: ${vaultSummary.professionalIdentity.yearsExperience} years
-Career Level: ${vaultSummary.professionalIdentity.careerLevel}
-Target Roles: ${vaultSummary.professionalIdentity.targetRoles.join(', ') || 'Not specified'}
+Team Sizes Managed: ${careerContext.teamSizesDetected.join(', ')}
+Budget Amounts: ${careerContext.budgetAmountsDetected.map((b: number) => `$${(b/1000000).toFixed(0)}MM`).join(', ')}
+Leadership Scope: ${careerContext.leadershipScope}
+` : 'No management experience detected in resume or vault.'}
 
-## VAULT ANALYSIS - WHAT EXISTS vs. WHAT'S MISSING:
+Career Level: ${careerContext.careerLevel}
+AI Confidence: ${(careerContext.confidenceScore * 100).toFixed(0)}%
 
-### Leadership & Management (CRITICAL for advancement):
-- Count: ${vaultSummary.categories.leadership.count} items
-- Has Direct Reports: ${vaultSummary.categories.leadership.hasDirectReports ? 'YES' : 'NO ⚠️'}
-- Has Budget Authority: ${vaultSummary.categories.leadership.hasBudgetAuthority ? 'YES' : 'NO ⚠️'}
-${vaultSummary.categories.leadership.count > 0 ? `- Examples: ${vaultSummary.categories.leadership.items.join('; ')}` : '- NO LEADERSHIP EXPERIENCE DOCUMENTED ⚠️'}
+## PROFESSIONAL IDENTITY:
+Current Title: ${vaultData.professional_identity?.current_title || 'Unknown'}
+Industry: ${vaultData.professional_identity?.industry || 'Unknown'}
+Years of Experience: ${vaultData.professional_identity?.years_of_experience || 0}
+Target Roles: ${vaultData.professional_identity?.target_roles?.join(', ') || 'Not specified'}
 
-### Achievements:
-- Count: ${vaultSummary.categories.achievements.count}
-- Has Quantified Results: ${vaultSummary.categories.achievements.hasQuantified ? 'YES' : 'NO ⚠️'}
-${vaultSummary.categories.achievements.count > 0 ? `- Examples: ${vaultSummary.categories.achievements.items.join('; ')}` : '- NO ACHIEVEMENTS DOCUMENTED ⚠️'}
+## VAULT STRENGTH:
+Overall Strength: ${vaultData.overall_strength_score || 0}%
+Completion: ${vaultData.review_completion_percentage || 0}%
 
-### Skills:
-- Count: ${vaultSummary.categories.skills.count}
-- Has Technical Skills: ${vaultSummary.categories.skills.hasTechnical ? 'YES' : 'NO ⚠️'}
-- Has Leadership Skills: ${vaultSummary.categories.skills.hasLeadership ? 'YES' : 'NO ⚠️'}
-- Examples: ${vaultSummary.categories.skills.items.join(', ')}
-
-### Certifications:
-- Count: ${vaultSummary.categories.certifications.count}
-${vaultSummary.categories.certifications.count > 0 ? `- Examples: ${vaultSummary.categories.certifications.items.join(', ')}` : '- NO CERTIFICATIONS DOCUMENTED ⚠️'}
-
-### Projects:
-- Count: ${vaultSummary.categories.projects.count}
-${vaultSummary.categories.projects.count > 0 ? `- Examples: ${vaultSummary.categories.projects.items.join('; ')}` : '- NO PROJECTS DOCUMENTED ⚠️'}
-
-### Education:
-- Count: ${vaultSummary.categories.education.count}
-- Has Advanced Degree: ${vaultSummary.categories.education.hasAdvancedDegree ? 'YES' : 'NO'}
-${vaultSummary.categories.education.count > 0 ? `- Degrees: ${vaultSummary.categories.education.items.join(', ')}` : ''}
-
-## OVERALL METRICS:
-- Vault Strength: ${vaultSummary.metrics.overallStrength}%
-- Completion: ${vaultSummary.metrics.completionPercentage}%
-
-${industryInsights ? `## INDUSTRY CONTEXT (${vaultSummary.professionalIdentity.industry}):
+${industryInsights ? `## INDUSTRY CONTEXT:
 Expected Competencies: ${industryInsights.keyCompetencies.join(', ')}
 Standard Certifications: ${industryInsights.commonCertifications.join(', ')}
 Market Trends: ${industryInsights.marketTrends.join(', ')}` : ''}
@@ -253,31 +246,25 @@ ${targetRoles && targetRoles.length > 0 ? `## TARGET ROLES: ${targetRoles.join('
 
 ## Your Task:
 
-STEP 1 - ANALYZE THE RESUME:
-Read the resume carefully and determine:
-- What is their ACTUAL job title(s) and role(s)? (e.g., "Drilling Engineer", "Software Architect", "Registered Nurse")
-- What industry/field do they work in? (e.g., "Oil & Gas", "Healthcare", "Technology")
-- What is their career level? (entry-level, mid-level, senior, leadership, executive)
-- What are their core technical skills and domain expertise?
-- What projects, achievements, or experiences do they mention?
+Based on the ACTUAL career context above (AI-analyzed, not assumptions), generate gap-filling questions.
 
-STEP 2 - IDENTIFY GAPS:
-Based on their ACTUAL role and industry (not a generic template), identify what's MISSING that would strengthen their profile:
-- What certifications or qualifications are standard in their field but not mentioned?
-- What types of projects or achievements might they have done but haven't documented?
-- What technical skills or tools are common in their role but not listed?
-- What leadership or team experiences might be relevant to their level?
-- What industry-specific accomplishments would be valuable to document?
+CRITICAL RULES FOR QUESTION GENERATION:
 
-STEP 3 - GENERATE ROLE-SPECIFIC QUESTIONS:
-Create 5-15 questions that are HIGHLY SPECIFIC to their actual job, industry, and career level.
+1. **Management Experience Questions:**
+   - If hasManagementExperience = true: Ask about ADVANCING management scope (larger teams, bigger budgets, strategic leadership)
+   - If hasManagementExperience = false: First ask if they have undocumented management experience, then ask about acquiring it
+   - DO NOT say "zero management experience" if evidence shows otherwise
 
-CRITICAL RULES:
-- Questions MUST match their actual job (if they're a drilling engineer, ask about drilling operations, NOT digital transformation)
-- Use terminology and concepts from THEIR industry (e.g., oil & gas professionals: "wellbore", "completions", "BOP"; not "SaaS", "API", "CI/CD")
-- Match sophistication to their career level (senior engineer vs. entry-level technician)
-- Ask about gaps that are REALISTIC for someone in their specific role
-- NO generic business/executive questions unless they're actually in executive roles
+2. **Career Level Matching:**
+   - Questions must match their ACTUAL career level (${careerContext.careerLevel})
+   - ${careerContext.careerLevel === 'Manager' || careerContext.careerLevel === 'Director' || careerContext.careerLevel === 'VP' ? 
+     'Focus on strategic impact, cross-functional leadership, and scaling operations' : 
+     'Focus on building foundational skills and documenting technical achievements'}
+
+3. **Industry Specificity:**
+   - Use terminology from THEIR industry (${vaultData.professional_identity?.industry || 'their field'})
+   - Ask about gaps that are REALISTIC for someone in their specific role
+   - NO generic questions that could apply to anyone
 
 Generate 5-15 highly targeted questions organized into logical batches. Each question should:
 1. Address a SPECIFIC gap that someone in THEIR EXACT role would realistically have
