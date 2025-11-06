@@ -112,6 +112,7 @@ serve(async (req) => {
         hasBudgetOwnership: cachedContext.has_budget_ownership,
         budgetDetails: cachedContext.budget_details,
         budgetSizesManaged: cachedContext.budget_sizes_managed || [],
+        budgetAmount: cachedContext.budget_amount,
         hasExecutiveExposure: cachedContext.has_executive_exposure,
         inferredSeniority: cachedContext.inferred_seniority,
         yearsOfExperience: cachedContext.years_of_experience,
@@ -119,9 +120,13 @@ serve(async (req) => {
         technicalDepth: cachedContext.technical_depth,
         leadershipDepth: cachedContext.leadership_depth,
         strategicDepth: cachedContext.strategic_depth,
+        // EDUCATION FIELDS (FIX: These were missing!)
+        educationLevel: cachedContext.education_level,
+        educationField: cachedContext.education_field,
+        certifications: cachedContext.certifications || [],
         identifiedGaps: cachedContext.identified_gaps || []
       };
-      
+
       // Build verified areas list
       if (cachedContext.has_management_experience && cachedContext.management_details) {
         verifiedAreas.push(`Management experience: ${cachedContext.management_details}`);
@@ -131,6 +136,10 @@ serve(async (req) => {
       }
       if (cachedContext.has_executive_exposure && cachedContext.executive_details) {
         verifiedAreas.push(`Executive exposure: ${cachedContext.executive_details}`);
+      }
+      // ADD EDUCATION TO VERIFIED AREAS
+      if (cachedContext.education_level && cachedContext.education_field) {
+        verifiedAreas.push(`Education: ${cachedContext.education_level} in ${cachedContext.education_field}`);
       }
       
       // Extract gaps
