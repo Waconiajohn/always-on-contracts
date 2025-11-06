@@ -30,6 +30,11 @@ import { VerificationWorkflow } from '@/components/career-vault/VerificationWork
 import { SimplifiedVaultHero } from '@/components/career-vault/dashboard/SimplifiedVaultHero';
 import { QuickWinsPanel, useQuickWins } from '@/components/career-vault/dashboard/QuickWinsPanel';
 import { MissionControl } from '@/components/career-vault/dashboard/MissionControl';
+// REDESIGN: Phase 1 - Strategic Command Center
+import { BlockerAlert, detectCareerBlockers, type CareerBlocker } from '@/components/career-vault/dashboard/BlockerAlert';
+import { CompactVaultStats, calculateGrade } from '@/components/career-vault/dashboard/CompactVaultStats';
+import { StrategicCommandCenter } from '@/components/career-vault/dashboard/StrategicCommandCenter';
+import { generateMissions, calculateMarketRank, type Mission } from '@/lib/utils/missionGenerator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -221,7 +226,9 @@ const VaultDashboardContent = () => {
   const [behavioralIndicators, setBehavioralIndicators] = useState<BehavioralIndicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [strengthScore, setStrengthScore] = useState<StrengthScore | null>(null);
-  const [qualityDistribution, setQualityDistribution] = useState<QualityDistribution>({ gold: 0, silver: 0, bronze: 0, assumed: 0 });
+  const [qualityDistribution, setQualityDistribution] = useState<QualityDistribution>({ gold: 0, silver: 0, bronze: 0, assumed: 0, assumedNeedingReview: 0 });
+  const [userProfile, setUserProfile] = useState<{ target_roles?: string[] } | null>(null);
+  const [careerContext, setCareerContext] = useState<{ has_budget_ownership?: boolean } | null>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -446,6 +453,24 @@ const VaultDashboardContent = () => {
               total_behavioral_indicators: (behavioralData.data || []).length
             })
             .eq('id', vault.id);
+
+          // Fetch user profile for target roles (needed for blocker detection)
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('target_roles')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          setUserProfile(profile);
+
+          // Fetch career context for budget ownership (needed for blocker detection)
+          const { data: context } = await supabase
+            .from('vault_career_context')
+            .select('has_budget_ownership')
+            .eq('vault_id', vault.id)
+            .maybeSingle();
+
+          setCareerContext(context);
         }
       } catch (error) {
         console.error('Error fetching career vault data:', error);
@@ -715,28 +740,105 @@ const VaultDashboardContent = () => {
       {/* AI Inference Review Alert */}
       <InferredItemsReview />
 
-      {/* Master Controls Section */}
-      {/* Mission Control - NEW: Redesigned with clear hierarchy */}
-      <MissionControl
-        onboardingComplete={vault?.auto_populated || stats.review_completion_percentage === 100}
-        totalItems={totalIntelligenceItems}
-        strengthScore={strengthScore?.total || 0}
-        reviewProgress={stats.review_completion_percentage}
-        autoPopulated={vault?.auto_populated}
-        onPrimaryAction={() => {
-          if (stats.review_completion_percentage === 100 || vault?.auto_populated) {
-            navigate('/agents/resume-builder');
-          } else {
-            navigate('/career-vault-onboarding');
-          }
-        }}
-        onManageResume={() => setResumeModalOpen(true)}
-        onAddDocument={() => setResumeModalOpen(true)}
-        onReanalyze={handleReanalyze}
-        isReanalyzing={isReanalyzing}
-        hasResumeData={!!vault?.resume_raw_text}
-        onResetVault={() => setRestartDialogOpen(true)}
-      />
+      {/* REDESIGN: Blocker Detection - Shows critical issues at top */}
+      {strengthScore && userProfile && (() => {
+        const blockers = detectCareerBlockers({
+          strengthScore: strengthScore.total,
+          leadershipItems: stats.total_leadership_philosophy,
+          budgetOwnership: careerContext?.has_budget_ownership || false,
+          targetRoles: userProfile.target_roles || [],
+        });
+
+        return blockers.length > 0 ? (
+          <BlockerAlert
+            blocker={blockers[0]}
+            onAction={() => navigate('/career-vault-onboarding')}
+            onDismiss={() => {
+              // Store dismissal in localStorage to persist across refreshes
+              localStorage.setItem(`blocker-dismissed-${blockers[0].id}`, 'true');
+            }}
+          />
+        ) : null;
+      })()}
+
+      {/* REDESIGN: Compact Vault Stats - Replaces SimplifiedVaultHero */}
+      {strengthScore && (
+        <div className="mb-6">
+          <CompactVaultStats
+            strengthScore={strengthScore.total}
+            level={strengthScore.level}
+            totalItems={totalIntelligenceItems}
+            verifiedPercentage={Math.round(
+              ((qualityDistribution.gold + qualityDistribution.silver) / totalIntelligenceItems) * 100
+            )}
+            dataQuality={calculateGrade(
+              (qualityDistribution.gold + qualityDistribution.silver) / totalIntelligenceItems * 100
+            )}
+            dataFreshness={calculateGrade((() => {
+              const allItems = [...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills];
+              const freshItems = allItems.filter(item => {
+                const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
+                if (!lastUpdated) return false;
+                const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+                return daysSince <= 30;
+              });
+              return (freshItems.length / Math.max(allItems.length, 1)) * 100;
+            })())}
+            marketRank={calculateMarketRank(strengthScore.total)}
+            coreScores={{
+              powerPhrases: strengthScore.powerPhrasesScore,
+              skills: strengthScore.transferableSkillsScore,
+              competencies: strengthScore.hiddenCompetenciesScore,
+              intangibles: strengthScore.intangiblesScore,
+              quantification: strengthScore.quantificationScore,
+              modernTerms: strengthScore.modernTerminologyScore,
+            }}
+          />
+        </div>
+      )}
+
+      {/* REDESIGN: Strategic Command Center - Replaces MissionControl */}
+      {strengthScore && (() => {
+        const staleItems = [...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
+          const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
+          if (!lastUpdated) return true;
+          const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+          return daysSince > 180;
+        });
+
+        const missions = generateMissions({
+          assumedNeedingReview: qualityDistribution.assumedNeedingReview,
+          weakPhrasesCount: powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length,
+          staleItemsCount: staleItems.length,
+          missingManagementItems: Math.max(0, 5 - stats.total_leadership_philosophy),
+          missingBudgetOwnership: !careerContext?.has_budget_ownership,
+          targetRoles: userProfile?.target_roles || [],
+          strengthScore: strengthScore.total,
+          onVerifyAssumed: () => navigate('/career-vault-onboarding'),
+          onAddMetrics: () => setAddMetricsModalOpen(true),
+          onRefreshStale: handleRefreshVault,
+        });
+
+        return (
+          <StrategicCommandCenter
+            strengthScore={strengthScore.total}
+            level={strengthScore.level}
+            totalItems={totalIntelligenceItems}
+            reviewProgress={stats.review_completion_percentage}
+            autoPopulated={vault?.auto_populated || false}
+            marketAverage={68}
+            eliteThreshold={90}
+            marketRank={calculateMarketRank(strengthScore.total)}
+            missions={missions}
+            onManageResume={() => setResumeModalOpen(true)}
+            onAddDocument={() => setResumeModalOpen(true)}
+            onReanalyze={handleReanalyze}
+            isReanalyzing={isReanalyzing}
+            hasResumeData={!!vault?.resume_raw_text}
+            onResetVault={() => setRestartDialogOpen(true)}
+          />
+        );
+      })()}
 
       <ResumeManagementModal
         open={resumeModalOpen}
@@ -784,58 +886,7 @@ const VaultDashboardContent = () => {
         </Alert>
       )}
 
-      {/* TIER 1: Critical Dashboard - Simplified Vault Hero */}
-      {strengthScore && (
-        <div className="mb-6">
-          <SimplifiedVaultHero
-            strengthScore={strengthScore.total}
-            level={strengthScore.level}
-            totalItems={totalIntelligenceItems}
-            verifiedPercentage={Math.round(
-              ((qualityDistribution.gold + qualityDistribution.silver) / totalIntelligenceItems) * 100
-            )}
-            quickWinsCount={
-              (qualityDistribution.assumedNeedingReview > 0 ? 1 : 0) +
-              (powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0 ? 1 : 0) +
-              ([...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
-                const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
-                if (!lastUpdated) return true;
-                const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
-                return daysSince > 180;
-              }).length > 0 ? 1 : 0)
-            }
-            hasQuickWins={
-              qualityDistribution.assumedNeedingReview > 0 ||
-              powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0 ||
-              [...powerPhrases, ...transferableSkills, ...hiddenCompetencies, ...softSkills].filter(item => {
-                const lastUpdated = item.last_updated_at || (item as any).updated_at || (item as any).created_at;
-                if (!lastUpdated) return true;
-                const daysSince = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
-                return daysSince > 180;
-              }).length > 0
-            }
-            onPrimaryCTA={() => {
-              const hasQuickWins = qualityDistribution.assumedNeedingReview > 0 ||
-                powerPhrases.filter(p => !p.impact_metrics || Object.keys(p.impact_metrics).length === 0).length > 0;
-
-              if (hasQuickWins) {
-                // Scroll to quick wins panel
-                document.querySelector('[data-quick-wins]')?.scrollIntoView({ behavior: 'smooth' });
-              } else {
-                navigate('/agents/resume-builder');
-              }
-            }}
-            coreScores={{
-              powerPhrases: strengthScore.powerPhrasesScore,
-              skills: strengthScore.transferableSkillsScore,
-              competencies: strengthScore.hiddenCompetenciesScore,
-              intangibles: strengthScore.intangiblesScore,
-              quantification: strengthScore.quantificationScore,
-              modernTerms: strengthScore.modernTerminologyScore,
-            }}
-          />
-        </div>
-      )}
+      {/* REMOVED: SimplifiedVaultHero - Replaced with CompactVaultStats above */}
 
       {/* TIER 1: Quick Wins Panel - Consolidated Suggestions */}
       {strengthScore && (
