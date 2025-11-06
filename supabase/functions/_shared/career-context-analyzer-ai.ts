@@ -119,6 +119,18 @@ export async function analyzeCareerContextAI(vaultData: VaultData, userId: strin
     .map(pp => `- ${pp.power_phrase || pp.phrase}`)
     .join('\n');
 
+  // 🔍 DIAGNOSTIC: Check what power phrases the analyzer is receiving
+  const managementKeywordsInPhrases = (vaultData.powerPhrases || []).filter(pp =>
+    /supervis|manag|led|team|direct|oversee|rig|crew/i.test(pp.power_phrase || pp.phrase || '')
+  );
+  console.log('🔍 [DIAGNOSTIC] Career analyzer received power phrases with management keywords:',
+    managementKeywordsInPhrases.map(pp => pp.power_phrase || pp.phrase)
+  );
+
+  if (managementKeywordsInPhrases.length === 0) {
+    console.warn('⚠️ [DIAGNOSTIC] Career analyzer received NO power phrases with management keywords!');
+  }
+
   const skillsText = (vaultData.skills || [])
     .map(s => s.stated_skill || s.skill)
     .join(', ');
@@ -253,6 +265,9 @@ BE ACCURATE. Use the ACTUAL evidence from vault data. Don't assume or invent det
   const content = response.choices[0].message.content;
   const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
+  // 🔍 DIAGNOSTIC: Show raw AI response for management detection debugging
+  console.log('🔍 [DIAGNOSTIC] AI response snippet:', cleaned.substring(0, 500));
+
   let parsed;
   try {
     parsed = JSON.parse(cleaned);
@@ -262,6 +277,14 @@ BE ACCURATE. Use the ACTUAL evidence from vault data. Don't assume or invent det
     console.warn('Falling back to regex-based analysis due to AI parse error');
     return analyzeCareerContextFallback(vaultData);
   }
+
+  // 🔍 DIAGNOSTIC: Show what AI detected about management
+  console.log('🔍 [DIAGNOSTIC] AI detected management:', {
+    hasManagement: parsed.hasManagementExperience,
+    details: parsed.managementDetails,
+    teamSizes: parsed.teamSizesManaged,
+    budgetOwnership: parsed.hasBudgetOwnership,
+  });
 
   // Validate and return
   return {

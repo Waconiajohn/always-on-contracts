@@ -571,6 +571,20 @@ RETURN VALID JSON ONLY:
       competenciesCount: hiddenCompetencies?.length || 0,
       softSkillsCount: softSkills?.length || 0,
     });
+
+    // 🔍 DIAGNOSTIC: Check if any power phrases contain management keywords
+    const managementPhrases = powerPhrases?.filter(pp =>
+      /supervis|manag|led|team|direct|oversee|rig|crew/i.test(pp.phrase)
+    ) || [];
+    console.log('🔍 [DIAGNOSTIC] Power phrases with management keywords:', managementPhrases.map(pp => ({
+      phrase: pp.phrase,
+      category: pp.category,
+      confidence: pp.confidence_score,
+    })));
+
+    if (managementPhrases.length === 0) {
+      console.warn('⚠️ [DIAGNOSTIC] NO management keywords found in power phrases! This may indicate extraction failure.');
+    }
     
     try {
       const careerContext = await analyzeCareerContextAI({
