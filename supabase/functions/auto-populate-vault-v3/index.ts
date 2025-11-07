@@ -20,7 +20,7 @@ import { orchestrateExtraction } from '../_shared/extraction/extraction-orchestr
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
-import { extractJSON } from '../_shared/extract-json.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 interface AutoPopulateRequest {
   resumeText: string;
