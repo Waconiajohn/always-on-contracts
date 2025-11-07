@@ -34,8 +34,31 @@ export const ResumeManagementModal = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Read file as text
-      const text = await file.text();
+      // For PDFs, parse the file first to extract text
+      let text: string;
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        // Upload PDF to storage first for parsing
+        const fileName = `${user.id}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('resumes')
+          .upload(fileName, file, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        // Parse PDF using edge function
+        const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-resume', {
+          body: { fileName, userId: user.id }
+        });
+
+        if (parseError) throw parseError;
+        text = parseData.text || '';
+        
+        // Clean up storage file after parsing
+        await supabase.storage.from('resumes').remove([fileName]);
+      } else {
+        // Plain text files can be read directly
+        text = await file.text();
+      }
 
       if (selectedAction === 'replace') {
         console.log('[VAULT-CLEAR] Starting complete vault replacement...');
