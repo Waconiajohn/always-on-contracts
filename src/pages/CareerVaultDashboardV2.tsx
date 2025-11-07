@@ -143,15 +143,74 @@ const VaultDashboardContent = () => {
     getUser();
   }, []);
 
-  const handleEditItem = (item: any) => {
-    setSelectedItem(item);
-    setEditModalOpen(true);
+  // Calculate metrics (must be before early returns due to hooks)
+  const grade = calculateGrade(stats?.strengthScore.total || 0);
+  const marketRank = calculateMarketRank(stats?.strengthScore.total || 0);
+  const unverifiedItems = stats ? (stats.totalItems - stats.qualityDistribution.gold - stats.qualityDistribution.silver - stats.qualityDistribution.bronze) : 0;
+
+  // Detect blockers (only critical severity shown in main area)
+  const allBlockers = detectCareerBlockers({
+    strengthScore: stats?.strengthScore.total || 0,
+    leadershipItems: (vaultData?.leadershipPhilosophy?.length || 0) + (vaultData?.executivePresence?.length || 0),
+    budgetOwnership: vaultData?.careerContext?.has_budget_ownership || false,
+    targetRoles: vaultData?.userProfile?.target_roles || [],
+  });
+  const criticalBlockers = allBlockers.filter(b => b.severity === 'critical');
+
+  // Calculate days since last action for SmartNudge
+  const calculateDaysSinceLastAction = () => {
+    const lastAction = localStorage.getItem('vault-last-action');
+    if (!lastAction) return 999;
+    const days = Math.floor((Date.now() - new Date(lastAction).getTime()) / (1000 * 60 * 60 * 24));
+    return days;
   };
 
-  const handleViewItem = (item: any) => {
+  // Calculate days since extraction
+  const daysSinceExtraction = vaultData?.vault?.last_updated_at 
+    ? Math.floor((Date.now() - new Date(vaultData.vault.last_updated_at).getTime()) / (1000 * 60 * 60 * 24))
+    : undefined;
+
+  // Check for recent score improvements
+  const hasRecentImprovements = useMemo(() => {
+    const storedScore = localStorage.getItem('last-vault-score');
+    const currentScore = stats?.strengthScore.total || 0;
+    
+    if (storedScore) {
+      const lastScore = parseInt(storedScore);
+      if (currentScore > lastScore) {
+        localStorage.setItem('last-vault-score', currentScore.toString());
+        return true;
+      }
+    } else {
+      localStorage.setItem('last-vault-score', currentScore.toString());
+    }
+    return false;
+  }, [stats?.strengthScore.total]);
+
+  // Build context for smart nudges
+  const nudgeContext = useMemo(() => ({
+    daysSinceExtraction,
+    unverifiedItems,
+    viewCount,
+    lastActionDaysAgo: calculateDaysSinceLastAction(),
+    score: stats?.strengthScore.total || 0,
+    hasBlockers: criticalBlockers.length > 0,
+    hasRecentImprovements,
+    quickWinsAvailable: quickWins.length,
+  }), [daysSinceExtraction, unverifiedItems, viewCount, stats?.strengthScore.total, criticalBlockers.length, hasRecentImprovements, quickWins.length]);
+
+  const { activeNudge, onDismiss } = useSmartNudges(nudgeContext);
+
+  // Handlers
+  const handleEditItem = useCallback((item: any) => {
+    setSelectedItem(item);
+    setEditModalOpen(true);
+  }, []);
+
+  const handleViewItem = useCallback((item: any) => {
     setSelectedItem(item);
     setViewModalOpen(true);
-  };
+  }, []);
 
   // Loading state
   if (isLoading) {
@@ -183,66 +242,8 @@ const VaultDashboardContent = () => {
     );
   }
 
-  // Calculate metrics
-  const grade = calculateGrade(stats?.strengthScore.total || 0);
-  const marketRank = calculateMarketRank(stats?.strengthScore.total || 0);
-  const unverifiedItems = stats ? (stats.totalItems - stats.qualityDistribution.gold - stats.qualityDistribution.silver - stats.qualityDistribution.bronze) : 0;
-
-  // Detect blockers (only critical severity shown in main area)
-  const allBlockers = detectCareerBlockers({
-    strengthScore: stats?.strengthScore.total || 0,
-    leadershipItems: (vaultData?.leadershipPhilosophy?.length || 0) + (vaultData?.executivePresence?.length || 0),
-    budgetOwnership: vaultData?.careerContext?.has_budget_ownership || false,
-    targetRoles: vaultData?.userProfile?.target_roles || [],
-  });
-  const criticalBlockers = allBlockers.filter(b => b.severity === 'critical');
-
   // Determine if migration tool should be shown
   const shouldShowMigrationTool = (grade === 'C' || grade === 'D' || grade === 'F') || showMigrationTool || (stats?.totalItems || 0) > 500;
-
-  // Calculate days since last action for SmartNudge
-  const calculateDaysSinceLastAction = () => {
-    const lastAction = localStorage.getItem('vault-last-action');
-    if (!lastAction) return 999;
-    const days = Math.floor((Date.now() - new Date(lastAction).getTime()) / (1000 * 60 * 60 * 24));
-    return days;
-  };
-
-  // Calculate days since extraction
-  const daysSinceExtraction = vaultData?.vault?.last_updated_at 
-    ? Math.floor((Date.now() - new Date(vaultData.vault.last_updated_at).getTime()) / (1000 * 60 * 60 * 24))
-    : undefined;
-
-  // Check for recent score improvements
-  const hasRecentImprovements = (() => {
-    const storedScore = localStorage.getItem('last-vault-score');
-    const currentScore = stats?.strengthScore.total || 0;
-    
-    if (storedScore) {
-      const lastScore = parseInt(storedScore);
-      if (currentScore > lastScore) {
-        localStorage.setItem('last-vault-score', currentScore.toString());
-        return true;
-      }
-    } else {
-      localStorage.setItem('last-vault-score', currentScore.toString());
-    }
-    return false;
-  })();
-
-  // Build context for smart nudges
-  const nudgeContext = {
-    daysSinceExtraction,
-    unverifiedItems,
-    viewCount,
-    lastActionDaysAgo: calculateDaysSinceLastAction(),
-    score: stats?.strengthScore.total || 0,
-    hasBlockers: criticalBlockers.length > 0,
-    hasRecentImprovements,
-    quickWinsAvailable: quickWins.length,
-  };
-
-  const { activeNudge, onDismiss } = useSmartNudges(nudgeContext);
 
   // AI-powered career level detection
   const determineCareerLevel = () => {
