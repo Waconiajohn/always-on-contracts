@@ -169,14 +169,14 @@ serve(async (req) => {
     deleted.personalityTraits = ptData?.length || 0;
     console.log(`✅ Deleted ${deleted.personalityTraits} personality traits`);
 
-    // Delete from vault_core_values
-    const { data: cvData } = await supabase
-      .from('vault_core_values')
+    // Delete from vault_values_motivations
+    const { data: vmData } = await supabase
+      .from('vault_values_motivations')
       .delete()
       .eq('vault_id', vaultId)
       .select('id');
-    deleted.coreValues = cvData?.length || 0;
-    console.log(`✅ Deleted ${deleted.coreValues} core values`);
+    deleted.coreValues = vmData?.length || 0;
+    console.log(`✅ Deleted ${deleted.coreValues} values & motivations`);
 
     // Delete from vault_work_style
     const { data: wsData } = await supabase
@@ -187,14 +187,14 @@ serve(async (req) => {
     deleted.workStyle = wsData?.length || 0;
     console.log(`✅ Deleted ${deleted.workStyle} work style items`);
 
-    // Delete from vault_passion_projects
-    const { data: ppjData } = await supabase
-      .from('vault_passion_projects')
+    // Delete from vault_behavioral_indicators
+    const { data: biData } = await supabase
+      .from('vault_behavioral_indicators')
       .delete()
       .eq('vault_id', vaultId)
       .select('id');
-    deleted.passionProjects = ppjData?.length || 0;
-    console.log(`✅ Deleted ${deleted.passionProjects} passion projects`);
+    deleted.passionProjects = biData?.length || 0;
+    console.log(`✅ Deleted ${deleted.passionProjects} behavioral indicators`);
 
     // Calculate total
     deleted.total =

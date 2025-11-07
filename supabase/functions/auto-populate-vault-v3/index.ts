@@ -242,6 +242,35 @@ serve(async (req) => {
     }
 
     // ========================================================================
+    // UPDATE CAREER VAULT RECORD WITH EXTRACTION RESULTS
+    // ========================================================================
+
+    const totalItemsExtracted = 
+      result.extracted.powerPhrases.length +
+      result.extracted.skills.length +
+      result.extracted.competencies.length +
+      result.extracted.softSkills.length;
+
+    console.log(`\n🔄 Updating career_vault record with ${totalItemsExtracted} items...`);
+    
+    const { error: vaultUpdateError } = await supabase
+      .from('career_vault')
+      .update({
+        auto_populated: true,
+        extraction_item_count: totalItemsExtracted,
+        last_updated_at: new Date().toISOString(),
+        last_extraction_session_id: result.sessionId,
+        extraction_version: 'v3',
+      })
+      .eq('id', vaultId);
+
+    if (vaultUpdateError) {
+      console.error('❌ Error updating career_vault record:', vaultUpdateError);
+    } else {
+      console.log('✅ Career vault record updated successfully');
+    }
+
+    // ========================================================================
     // RETURN RESPONSE
     // ========================================================================
 
