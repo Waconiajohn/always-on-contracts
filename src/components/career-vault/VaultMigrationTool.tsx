@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, AlertTriangle, CheckCircle2, Trash2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface MigrationResult {
   cleanup?: {
@@ -44,6 +45,7 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
   const [result, setResult] = useState<MigrationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleMigration = async () => {
     if (!resumeText) {
@@ -58,6 +60,10 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
     setIsProcessing(true);
     setError(null);
     setResult(null);
+
+    // Clear ALL React Query cache before starting
+    console.log('💣 Clearing all cache before migration...');
+    queryClient.clear();
 
     try {
       // Step 1: Cleanup with retry logic
@@ -127,18 +133,59 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
 
       setCurrentStep('complete');
       
-      console.log('✅ Migration complete - triggering data refresh');
-      console.log(`Items deleted: ${cleanupData?.deleted?.total || 0}`);
-      console.log(`Items extracted: ${extractionData?.data?.extracted?.total || 0}`);
+      const totalDeleted = cleanupData?.deleted?.total || 0;
+      const totalExtracted = extractionData?.data?.extracted?.total || 0;
+      
+      console.log('✅ Migration complete - verifying database...');
+      console.log(`Items deleted: ${totalDeleted}`);
+      console.log(`Items extracted: ${totalExtracted}`);
+
+      // Verify actual database counts
+      console.log('🔍 Verifying actual database counts...');
+      const { data: powerPhrases } = await supabase
+        .from('vault_power_phrases')
+        .select('id', { count: 'exact' })
+        .eq('vault_id', vaultId);
+      
+      const { data: skills } = await supabase
+        .from('vault_transferable_skills')
+        .select('id', { count: 'exact' })
+        .eq('vault_id', vaultId);
+      
+      const { data: competencies } = await supabase
+        .from('vault_hidden_competencies')
+        .select('id', { count: 'exact' })
+        .eq('vault_id', vaultId);
+      
+      const { data: softSkills } = await supabase
+        .from('vault_soft_skills')
+        .select('id', { count: 'exact' })
+        .eq('vault_id', vaultId);
+
+      const actualTotal = (powerPhrases?.length || 0) + (skills?.length || 0) + 
+                          (competencies?.length || 0) + (softSkills?.length || 0);
+      
+      console.log(`✅ Database verification: ${actualTotal} items saved`);
+      console.log(`   - Power phrases: ${powerPhrases?.length || 0}`);
+      console.log(`   - Skills: ${skills?.length || 0}`);
+      console.log(`   - Competencies: ${competencies?.length || 0}`);
+      console.log(`   - Soft skills: ${softSkills?.length || 0}`);
       
       toast({
         title: "Migration Complete! ✅",
-        description: `Cleaned ${cleanupData?.deleted?.total || 0} items and extracted ${extractionData?.data?.extracted?.total || 0} new items.`,
+        description: `Cleaned ${totalDeleted} items and extracted ${actualTotal} new items (verified in database).`,
       });
 
-      // Refresh dashboard data to show correct counts
+      // Nuclear cache clear and refetch
+      console.log('💣 Clearing all cache and forcing refetch...');
+      await queryClient.resetQueries({ queryKey: ['vault-data'] });
+      await queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+      queryClient.clear();
+
+      // Call callbacks
       console.log('🔄 Calling onDataChange callback...');
       onDataChange?.();
+      
       console.log('🔄 Calling onComplete callback...');
       onComplete?.();
 

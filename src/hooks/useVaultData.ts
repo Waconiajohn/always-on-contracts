@@ -26,6 +26,7 @@ export const useVaultData = (userId: string | undefined) => {
   return useQuery({
     queryKey: ['vault-data', userId],
     queryFn: async (): Promise<VaultData> => {
+      console.log('🔄 Fetching fresh vault data from database...');
       if (!userId) throw new Error('User ID required');
 
       // CRITICAL FIX: Query vault once, reuse ID for all subsequent queries (10x performance improvement)
@@ -86,7 +87,9 @@ export const useVaultData = (userId: string | undefined) => {
       };
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 };

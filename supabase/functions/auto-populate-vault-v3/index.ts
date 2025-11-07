@@ -179,9 +179,8 @@ serve(async (req) => {
         user_id: userId,
         stated_skill: s.stated_skill || s.skill_name || s.skill,
         equivalent_skills: s.equivalent_skills || (s.cross_functional_equivalent || s.equivalent ? [s.cross_functional_equivalent || s.equivalent] : []),
-        confidence_score: s.confidence_score || s.confidenceScore || 80,
+        confidence_score: Math.round((s.confidence_score || s.confidenceScore || 0.8) * 100),
         quality_tier: s.quality_tier || 'assumed',
-        extraction_session_id: result.sessionId,
       }));
 
       const { error: skillsError } = await supabase
@@ -200,9 +199,8 @@ serve(async (req) => {
         competency_area: c.competency_area || c.area,
         inferred_capability: c.inferred_capability || c.capability,
         supporting_evidence: c.supporting_evidence || (c.evidence_source || c.evidence ? [c.evidence_source || c.evidence || 'Resume analysis'] : ['Resume analysis']),
-        confidence_score: c.confidence_score || c.confidenceScore || 75,
+        confidence_score: Math.round((c.confidence_score || c.confidenceScore || 0.75) * 100),
         quality_tier: c.quality_tier || 'assumed',
-        extraction_session_id: result.sessionId,
       }));
 
       const { error: compError } = await supabase
@@ -215,15 +213,19 @@ serve(async (req) => {
 
     // Store soft skills
     if (result.extracted.softSkills.length > 0) {
-      const softSkillsInserts = result.extracted.softSkills.map((ss: any) => ({
-        vault_id: vaultId,
-        user_id: userId,
-        skill_name: ss.soft_skill || ss.skill_name || ss.skill,
-        examples: ss.examples || ss.behavioral_evidence || ss.evidence || [],
-        confidence_score: ss.confidence_score || ss.confidenceScore || 75,
-        quality_tier: ss.quality_tier || 'assumed',
-        extraction_session_id: result.sessionId,
-      }));
+      const softSkillsInserts = result.extracted.softSkills.map((ss: any) => {
+        const examplesArray = ss.examples || ss.behavioral_evidence || ss.evidence || [];
+        const examplesText = Array.isArray(examplesArray) ? examplesArray.join('; ') : String(examplesArray);
+        
+        return {
+          vault_id: vaultId,
+          user_id: userId,
+          skill_name: ss.soft_skill || ss.skill_name || ss.skill,
+          examples: examplesText,
+          confidence_score: Math.round((ss.confidence_score || ss.confidenceScore || 0.75) * 100),
+          quality_tier: ss.quality_tier || 'assumed',
+        };
+      });
 
       const { error: ssError } = await supabase
         .from('vault_soft_skills')
