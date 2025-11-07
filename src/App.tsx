@@ -42,7 +42,7 @@ const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
 const RedeemCode = lazy(() => import("./pages/RedeemCode"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
-const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboard"));
+const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboardV2"));
 const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboarding"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));

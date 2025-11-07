@@ -203,8 +203,9 @@ export function generateMissions(input: MissionGeneratorInput): Mission[] {
 /**
  * Calculate market percentile from vault score
  * Based on normal distribution assumption
+ * Returns the percentile number (e.g., 84 for top 16%)
  */
-export function calculateMarketRank(score: number): string {
+export function calculateMarketRank(score: number): number {
   // Assuming mean = 68, std = 15
   const mean = 68;
   const std = 15;
@@ -222,11 +223,5 @@ export function calculateMarketRank(score: number): string {
   else if (zScore >= -1) percentile = 16;
   else percentile = 5;
 
-  const topPercent = 100 - percentile;
-
-  if (topPercent <= 5) return 'Top 5%';
-  if (topPercent <= 10) return 'Top 10%';
-  if (topPercent <= 25) return 'Top 25%';
-  if (topPercent <= 50) return 'Top 50%';
-  return `Top ${Math.round(topPercent)}%`;
+  return percentile;
 }

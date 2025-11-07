@@ -11,13 +11,13 @@ import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLangu
 import { InferredItemsReview } from "@/components/career-vault/InferredItemsReview";
 import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
 import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
-import { VaultHeader } from '@/components/career-vault/dashboard/VaultHeader';
-import { QuickActionsBar } from '@/components/career-vault/dashboard/QuickActionsBar';
+import { VaultHeader } from '@/components/career-vault/dashboard/legacy/VaultHeader';
+import { QuickActionsBar } from '@/components/career-vault/dashboard/legacy/QuickActionsBar';
 import { VaultTabs } from '@/components/career-vault/dashboard/VaultTabs';
-import { StrategicCommandCenter } from '@/components/career-vault/dashboard/StrategicCommandCenter';
+import { StrategicCommandCenter } from '@/components/career-vault/dashboard/legacy/StrategicCommandCenter';
 import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/dashboard/BlockerAlert';
-import { CompactVaultStats, calculateGrade } from '@/components/career-vault/dashboard/CompactVaultStats';
-import { QuickWinsPanel, useQuickWins } from '@/components/career-vault/dashboard/QuickWinsPanel';
+import { CompactVaultStats, calculateGrade } from '@/components/career-vault/dashboard/legacy/CompactVaultStats';
+import { QuickWinsPanel, useQuickWins } from '@/components/career-vault/dashboard/legacy/QuickWinsPanel';
 import { VaultItemViewModal } from '@/components/career-vault/VaultItemViewModal';
 import { VaultItemEditModal } from '@/components/career-vault/VaultItemEditModal';
 import { VaultAIAssistant } from '@/components/career-vault/VaultAIAssistant';

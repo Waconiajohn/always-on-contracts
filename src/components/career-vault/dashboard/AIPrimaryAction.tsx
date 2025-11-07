@@ -8,6 +8,7 @@ import {
   FileText,
   Mail
 } from 'lucide-react';
+import { AITooltip } from './AITooltip';
 
 export type ActionType = 'fix_blocker' | 'review_items' | 'quick_win' | 'ready';
 
@@ -134,15 +135,22 @@ export function AIPrimaryAction({ action, onActionClick }: AIPrimaryActionProps)
                 </Button>
               ))
             ) : (
-              // Single action
-              <Button
-                size="lg"
-                variant={getButtonVariant()}
-                onClick={() => action.route && onActionClick(action.route)}
-                className="min-w-[140px]"
+              // Single action with AI tooltip
+              <AITooltip
+                type={action.type === 'fix_blocker' ? 'recommendation' : 'insight'}
+                title={action.type === 'fix_blocker' ? 'Critical Action Required' : 'Next Best Action'}
+                description={action.description || action.message}
+                insight={action.impact}
               >
-                {action.action} →
-              </Button>
+                <Button
+                  size="lg"
+                  variant={getButtonVariant()}
+                  onClick={() => action.route && onActionClick(action.route)}
+                  className="min-w-[140px] cursor-help"
+                >
+                  {action.action} →
+                </Button>
+              </AITooltip>
             )}
           </div>
         </div>

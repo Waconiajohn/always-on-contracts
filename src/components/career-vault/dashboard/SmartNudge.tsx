@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Sparkles, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { X, Sparkles, TrendingUp, AlertCircle } from 'lucide-react';
 
 export interface Nudge {
   id: string;
