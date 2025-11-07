@@ -108,7 +108,15 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete }: VaultMig
         },
       });
 
-      if (extractionError) throw new Error(`Extraction failed: ${extractionError.message}`);
+      if (extractionError) {
+        console.error('Extraction error details:', extractionError);
+        throw new Error(`Extraction failed: ${extractionError.message}. ${extractionData?.error || ''}`);
+      }
+
+      if (!extractionData?.success) {
+        console.error('Extraction failed:', extractionData);
+        throw new Error(`Extraction failed: ${extractionData?.error || 'Unknown error'}`);
+      }
 
       setResult({
         cleanup: cleanupData,
