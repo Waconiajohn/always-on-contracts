@@ -372,5 +372,8 @@ verify_jwt = true
 [functions.auto-populate-vault-v3]
 verify_jwt = true
 
+[functions.vault-cleanup]
+verify_jwt = true
+
 [functions.career-vault-chat]
 verify_jwt = true
