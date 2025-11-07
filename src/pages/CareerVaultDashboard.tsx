@@ -19,6 +19,7 @@ import { CompactVaultStats, calculateGrade } from '@/components/career-vault/das
 import { QuickWinsPanel, useQuickWins } from '@/components/career-vault/dashboard/QuickWinsPanel';
 import { VaultItemViewModal } from '@/components/career-vault/VaultItemViewModal';
 import { VaultItemEditModal } from '@/components/career-vault/VaultItemEditModal';
+import { VaultAIAssistant } from '@/components/career-vault/VaultAIAssistant';
 import { useVaultData } from '@/hooks/useVaultData';
 import { useVaultStats } from '@/hooks/useVaultStats';
 import { useVaultMissions } from '@/hooks/useVaultMissions';
@@ -323,6 +324,20 @@ const VaultDashboardContent = () => {
           </>
         )}
       </div>
+
+      {/* AI Assistant */}
+      {stats && (
+        <VaultAIAssistant
+          vaultContext={{
+            totalItems: stats.totalItems,
+            strengthScore: stats.strengthScore.total,
+            qualityDistribution: stats.qualityDistribution,
+            powerPhrases: vaultData?.powerPhrases,
+            skills: vaultData?.transferableSkills,
+            competencies: vaultData?.hiddenCompetencies,
+          }}
+        />
+      )}
     </ContentLayout>
   );
 };
