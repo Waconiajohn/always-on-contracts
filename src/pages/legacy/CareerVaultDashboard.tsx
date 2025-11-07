@@ -178,7 +178,8 @@ const VaultDashboardContent = () => {
 
   const grade = calculateGrade(stats?.strengthScore.total || 0);
   const dataFreshness = grade; // Simplified for now
-  const marketRank = calculateMarketRank(stats?.strengthScore.total || 0);
+  const marketRankNumber = calculateMarketRank(stats?.strengthScore.total || 0);
+  const marketRank = `Top ${100 - marketRankNumber}%`;
   const verifiedPercentage = stats ? Math.round(((stats.totalItems - stats.qualityDistribution.assumed) / Math.max(stats.totalItems, 1)) * 100) : 0;
   
   // Detect career blockers
