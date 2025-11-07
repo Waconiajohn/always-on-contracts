@@ -12,7 +12,7 @@ export interface ExtractionSession {
   extraction_version: string;
   started_at: Date;
   ended_at: Date | null;
-  status: 'in_progress' | 'completed' | 'failed';
+  status: 'running' | 'completed' | 'failed';
   metadata: Record<string, any>;
   final_data?: Record<string, any>;
 }
@@ -101,7 +101,7 @@ export class ExtractionObservability {
       user_id: config.userId,
       extraction_version: config.extractionVersion || 'v3',
       started_at: new Date(),
-      status: 'in_progress',
+      status: 'running',
       metadata: config.metadata || {},
     };
 
