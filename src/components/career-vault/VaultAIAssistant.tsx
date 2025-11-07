@@ -66,28 +66,80 @@ export const VaultAIAssistant = ({ vaultContext }: VaultAIAssistantProps) => {
     setInput('');
     setIsLoading(true);
 
+    // Add empty assistant message that will be filled progressively
+    const assistantMessageIndex = messages.length + 1;
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
     try {
-      const { data, error } = await supabase.functions.invoke('career-vault-chat', {
-        body: {
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          vaultContext
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/career-vault-chat`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: [...messages, userMessage].map(m => ({
+              role: m.role,
+              content: m.content
+            })),
+            vaultContext
+          }),
         }
-      });
+      );
 
-      if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again in a moment.');
+        }
+        if (response.status === 402) {
+          throw new Error('AI credits depleted. Please add credits to continue.');
+        }
+        throw new Error('Failed to get AI response');
       }
 
-      const assistantMessage: Message = { 
-        role: 'assistant', 
-        content: data.message 
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulatedContent = '';
+
+      if (!reader) throw new Error('No response body');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              
+              if (delta) {
+                accumulatedContent += delta;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[assistantMessageIndex] = {
+                    role: 'assistant',
+                    content: accumulatedContent
+                  };
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
 
     } catch (error: any) {
       console.error('Error sending message:', error);
@@ -96,6 +148,9 @@ export const VaultAIAssistant = ({ vaultContext }: VaultAIAssistantProps) => {
         description: error.message || 'Failed to get AI response. Please try again.',
         variant: 'destructive'
       });
+      
+      // Remove the empty assistant message on error
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }

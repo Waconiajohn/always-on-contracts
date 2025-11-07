@@ -68,6 +68,7 @@ If asked about specific items, reference the data provided in the vault context.
         ],
         temperature: 0.7,
         max_tokens: 1000,
+        stream: true,
       }),
     });
 
@@ -92,16 +93,17 @@ If asked about specific items, reference the data provided in the vault context.
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('Lovable AI response received');
+    console.log('Lovable AI streaming response started');
 
-    return new Response(
-      JSON.stringify({ 
-        message: data.choices[0].message.content,
-        usage: data.usage 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Return the streaming response directly
+    return new Response(response.body, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     console.error('Error in career-vault-chat:', error);
