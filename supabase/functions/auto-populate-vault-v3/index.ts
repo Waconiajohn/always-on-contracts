@@ -179,6 +179,7 @@ serve(async (req) => {
         user_id: userId,
         stated_skill: s.stated_skill || s.skill_name || s.skill,
         equivalent_skills: s.equivalent_skills || (s.cross_functional_equivalent || s.equivalent ? [s.cross_functional_equivalent || s.equivalent] : []),
+        evidence: s.evidence || s.description || s.context || 'Extracted from resume analysis',
         confidence_score: Math.round((s.confidence_score || s.confidenceScore || 0.8) * 100),
         quality_tier: s.quality_tier || 'assumed',
       }));
@@ -215,7 +216,12 @@ serve(async (req) => {
     if (result.extracted.softSkills.length > 0) {
       const softSkillsInserts = result.extracted.softSkills.map((ss: any) => {
         const examplesArray = ss.examples || ss.behavioral_evidence || ss.evidence || [];
-        const examplesText = Array.isArray(examplesArray) ? examplesArray.join('; ') : String(examplesArray);
+        let examplesText = Array.isArray(examplesArray) ? examplesArray.join('; ') : String(examplesArray);
+        
+        // Ensure examples is never empty (required field)
+        if (!examplesText || examplesText.trim() === '') {
+          examplesText = 'Demonstrated through professional experience';
+        }
         
         return {
           vault_id: vaultId,
