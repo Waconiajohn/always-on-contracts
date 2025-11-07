@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from "@tanstack/react-query";
@@ -86,38 +86,8 @@ const VaultDashboardContent = () => {
   const { data: vaultData, isLoading, refetch } = useVaultData(userId);
   const stats = useVaultStats(vaultData);
 
-  // Mission callbacks
-  const missionCallbacks = {
-    onVerifyAssumed: () => navigate('/career-vault-onboarding'),
-    onAddMetrics: () => setAddMetricsModalOpen(true),
-    onRefreshStale: () => handleReanalyze(),
-  };
-
-  useVaultMissions(vaultData, stats, missionCallbacks);
-  const quickWins = useQuickWins({
-    assumedCount: stats?.qualityDistribution.assumedNeedingReview || 0,
-    weakPhrasesCount: vaultData?.powerPhrases.filter((p: any) =>
-      !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
-    ).length || 0,
-    staleItemsCount: 0,
-    onVerifyAssumed: () => navigate('/career-vault-onboarding'),
-    onAddMetrics: () => setAddMetricsModalOpen(true),
-    onRefreshStale: () => handleReanalyze(),
-  });
-
-  // Get user on mount
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-      }
-    };
-    getUser();
-  }, []);
-
   // Handlers
-  const handleReanalyze = async () => {
+  const handleReanalyze = useCallback(async () => {
     if (!vaultData?.vault?.id) return;
 
     setIsReanalyzing(true);
@@ -141,7 +111,37 @@ const VaultDashboardContent = () => {
     } finally {
       setIsReanalyzing(false);
     }
-  };
+  }, [vaultData?.vault?.id, vaultData?.vault?.resume_raw_text, refetch, queryClient]);
+
+  // Mission callbacks (memoized to prevent infinite loops)
+  const missionCallbacks = useMemo(() => ({
+    onVerifyAssumed: () => navigate('/career-vault-onboarding'),
+    onAddMetrics: () => setAddMetricsModalOpen(true),
+    onRefreshStale: handleReanalyze,
+  }), [navigate, handleReanalyze]);
+
+  useVaultMissions(vaultData, stats, missionCallbacks);
+  const quickWins = useQuickWins({
+    assumedCount: stats?.qualityDistribution.assumedNeedingReview || 0,
+    weakPhrasesCount: vaultData?.powerPhrases.filter((p: any) =>
+      !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
+    ).length || 0,
+    staleItemsCount: 0,
+    onVerifyAssumed: missionCallbacks.onVerifyAssumed,
+    onAddMetrics: missionCallbacks.onAddMetrics,
+    onRefreshStale: missionCallbacks.onRefreshStale,
+  });
+
+  // Get user on mount
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, []);
 
   const handleEditItem = (item: any) => {
     setSelectedItem(item);
