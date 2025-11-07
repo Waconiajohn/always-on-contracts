@@ -321,10 +321,19 @@ function createExtractPowerPhrasesFunction(resumeText: string, supabase: any, us
     });
 
     const content = result.response.choices[0].message.content;
-    const extracted = extractJSON(content, 'power phrases extraction');
+    const parseResult = extractJSON(content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('Failed to parse power phrases:', parseResult.error);
+      return {
+        parsedData: { powerPhrases: [] },
+        raw: content,
+        usage: result.response.usage,
+      };
+    }
 
     return {
-      parsedData: { powerPhrases: extracted },
+      parsedData: { powerPhrases: parseResult.data },
       raw: content,
       usage: result.response.usage,
     };
@@ -351,10 +360,19 @@ function createExtractSkillsFunction(resumeText: string, supabase: any, userId: 
     });
 
     const content = result.response.choices[0].message.content;
-    const extracted = extractJSON(content, 'skills extraction');
+    const parseResult = extractJSON(content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('Failed to parse skills:', parseResult.error);
+      return {
+        parsedData: { skills: [] },
+        raw: content,
+        usage: result.response.usage,
+      };
+    }
 
     return {
-      parsedData: { skills: extracted },
+      parsedData: { skills: parseResult.data },
       raw: content,
       usage: result.response.usage,
     };
@@ -381,10 +399,19 @@ function createExtractCompetenciesFunction(resumeText: string, supabase: any, us
     });
 
     const content = result.response.choices[0].message.content;
-    const extracted = extractJSON(content, 'competencies extraction');
+    const parseResult = extractJSON(content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('Failed to parse competencies:', parseResult.error);
+      return {
+        parsedData: { competencies: [] },
+        raw: content,
+        usage: result.response.usage,
+      };
+    }
 
     return {
-      parsedData: { competencies: extracted },
+      parsedData: { competencies: parseResult.data },
       raw: content,
       usage: result.response.usage,
     };
@@ -411,10 +438,19 @@ function createExtractSoftSkillsFunction(resumeText: string, supabase: any, user
     });
 
     const content = result.response.choices[0].message.content;
-    const extracted = extractJSON(content, 'soft skills extraction');
+    const parseResult = extractJSON(content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('Failed to parse soft skills:', parseResult.error);
+      return {
+        parsedData: { softSkills: [] },
+        raw: content,
+        usage: result.response.usage,
+      };
+    }
 
     return {
-      parsedData: { softSkills: extracted },
+      parsedData: { softSkills: parseResult.data },
       raw: content,
       usage: result.response.usage,
     };
