@@ -28,6 +28,7 @@ interface AutoPopulateRequest {
   targetRoles?: string[];
   targetIndustries?: string[];
   industryResearch?: any;
+  mode?: 'full' | 'incremental'; // 'full' = clear before extract, 'incremental' = add to existing
 }
 
 const corsHeaders = {
@@ -43,7 +44,7 @@ serve(async (req) => {
 
   try {
     // Parse request
-    const { resumeText, vaultId, targetRoles, targetIndustries, industryResearch } =
+    const { resumeText, vaultId, targetRoles, targetIndustries, industryResearch, mode = 'full' } =
       await req.json() as AutoPopulateRequest;
 
     if (!resumeText || !vaultId) {
@@ -76,6 +77,28 @@ serve(async (req) => {
     console.log(`Vault: ${vaultId}`);
     console.log(`Resume length: ${resumeText.length} chars`);
     console.log(`Target roles: ${targetRoles?.join(', ') || 'auto-detect'}`);
+    console.log(`Mode: ${mode}`);
+
+    // ========================================================================
+    // PRE-EXTRACTION CLEANUP (if mode = 'full')
+    // ========================================================================
+    if (mode === 'full') {
+      console.log('\n🧹 CLEARING EXISTING VAULT DATA (mode: full)');
+
+      // Delete all existing items from vault
+      const cleanupResults = await clearVaultData(supabase, vaultId);
+
+      console.log(`✅ Cleanup complete: ${cleanupResults.total} items deleted`);
+      console.log(`   - Power phrases: ${cleanupResults.powerPhrases}`);
+      console.log(`   - Skills: ${cleanupResults.transferableSkills}`);
+      console.log(`   - Competencies: ${cleanupResults.hiddenCompetencies}`);
+      console.log(`   - Soft skills: ${cleanupResults.softSkills}`);
+      console.log(`   - Leadership: ${cleanupResults.leadershipPhilosophy}`);
+      console.log(`   - Executive presence: ${cleanupResults.executivePresence}`);
+      console.log(`   - Other categories: ${cleanupResults.other}`);
+    } else {
+      console.log('\n➕ INCREMENTAL MODE: Adding to existing vault data');
+    }
 
     // ========================================================================
     // ORCHESTRATE EXTRACTION
@@ -131,6 +154,22 @@ serve(async (req) => {
 
       if (ppError) console.error('Error inserting power phrases:', ppError);
       else console.log(`✅ Stored ${powerPhrasesInserts.length} power phrases`);
+
+      // ========================================================================
+      // CATEGORIZE MANAGEMENT EVIDENCE (Fix blocker detection)
+      // ========================================================================
+      const managementCount = await categorizeManagementEvidence(
+        supabase,
+        vaultId,
+        userId,
+        result.extracted.powerPhrases,
+        result.sessionId,
+        result.validation.overallConfidence
+      );
+
+      if (managementCount > 0) {
+        console.log(`✅ Categorized ${managementCount} management evidence items into leadership table`);
+      }
     }
 
     // Store skills
@@ -351,4 +390,179 @@ function createExtractSoftSkillsFunction(resumeText: string, supabase: any, user
       usage: response.usage,
     };
   };
+}
+
+// ========================================================================
+// VAULT CLEANUP HELPER
+// ========================================================================
+
+interface CleanupResults {
+  powerPhrases: number;
+  transferableSkills: number;
+  hiddenCompetencies: number;
+  softSkills: number;
+  leadershipPhilosophy: number;
+  executivePresence: number;
+  other: number;
+  total: number;
+}
+
+async function clearVaultData(supabase: any, vaultId: string): Promise<CleanupResults> {
+  const results: CleanupResults = {
+    powerPhrases: 0,
+    transferableSkills: 0,
+    hiddenCompetencies: 0,
+    softSkills: 0,
+    leadershipPhilosophy: 0,
+    executivePresence: 0,
+    other: 0,
+    total: 0,
+  };
+
+  // Delete from vault_power_phrases
+  const { data: ppData } = await supabase
+    .from('vault_power_phrases')
+    .delete()
+    .eq('vault_id', vaultId)
+    .select('id');
+  results.powerPhrases = ppData?.length || 0;
+
+  // Delete from vault_transferable_skills
+  const { data: skillsData } = await supabase
+    .from('vault_transferable_skills')
+    .delete()
+    .eq('vault_id', vaultId)
+    .select('id');
+  results.transferableSkills = skillsData?.length || 0;
+
+  // Delete from vault_hidden_competencies
+  const { data: compData } = await supabase
+    .from('vault_hidden_competencies')
+    .delete()
+    .eq('vault_id', vaultId)
+    .select('id');
+  results.hiddenCompetencies = compData?.length || 0;
+
+  // Delete from vault_soft_skills
+  const { data: ssData } = await supabase
+    .from('vault_soft_skills')
+    .delete()
+    .eq('vault_id', vaultId)
+    .select('id');
+  results.softSkills = ssData?.length || 0;
+
+  // Delete from vault_leadership_philosophy
+  const { data: lpData } = await supabase
+    .from('vault_leadership_philosophy')
+    .delete()
+    .eq('vault_id', vaultId)
+    .select('id');
+  results.leadershipPhilosophy = lpData?.length || 0;
+
+  // Delete from vault_executive_presence
+  const { data: epData } = await supabase
+    .from('vault_executive_presence')
+    .delete()
+    .eq('vault_id', vaultId)
+    .select('id');
+  results.executivePresence = epData?.length || 0;
+
+  // Delete from other vault tables
+  const otherTables = [
+    'vault_personality_traits',
+    'vault_core_values',
+    'vault_work_style',
+    'vault_passion_projects',
+  ];
+
+  let otherCount = 0;
+  for (const table of otherTables) {
+    try {
+      const { data } = await supabase
+        .from(table)
+        .delete()
+        .eq('vault_id', vaultId)
+        .select('id');
+      otherCount += data?.length || 0;
+    } catch (error) {
+      console.warn(`Failed to delete from ${table}:`, error.message);
+    }
+  }
+  results.other = otherCount;
+
+  // Calculate total
+  results.total =
+    results.powerPhrases +
+    results.transferableSkills +
+    results.hiddenCompetencies +
+    results.softSkills +
+    results.leadershipPhilosophy +
+    results.executivePresence +
+    results.other;
+
+  // Update vault metadata
+  await supabase
+    .from('career_vault')
+    .update({
+      auto_populated: false,
+      extraction_item_count: 0,
+    })
+    .eq('id', vaultId);
+
+  return results;
+}
+
+// ========================================================================
+// MANAGEMENT EVIDENCE CATEGORIZATION (Fix Blocker Detection)
+// ========================================================================
+
+async function categorizeManagementEvidence(
+  supabase: any,
+  vaultId: string,
+  userId: string,
+  powerPhrases: any[],
+  sessionId: string,
+  overallConfidence: number
+): Promise<number> {
+  // Management keywords to identify leadership evidence
+  const managementKeywords = /\b(manage|managed|managing|manager|supervis|supervised|supervising|supervisor|led|leading|lead|team|direct|directed|directing|oversee|oversaw|overseeing|budget|p&l|headcount|report|reports|reporting)\b/i;
+
+  // Find phrases with management evidence
+  const managementPhrases = powerPhrases.filter((pp: any) => {
+    const phrase = pp.phrase || pp.power_phrase || '';
+    return managementKeywords.test(phrase);
+  });
+
+  if (managementPhrases.length === 0) {
+    console.log('No management evidence found in power phrases');
+    return 0;
+  }
+
+  // Store in vault_leadership_philosophy table
+  const leadershipInserts = managementPhrases.map((pp: any) => ({
+    vault_id: vaultId,
+    user_id: userId,
+    leadership_area: 'Management Scope',
+    philosophy_statement: pp.phrase || pp.power_phrase,
+    evidence_source: 'AI extracted from resume (auto-categorized from power phrases)',
+    quality_tier: pp.quality_tier || 'assumed',
+    confidence_score: pp.confidence_score || pp.confidenceScore || 0.8,
+    extraction_session_id: sessionId,
+    extraction_metadata: {
+      extractionVersion: 'v3',
+      confidence: overallConfidence,
+      autoCategorized: true,
+    },
+  }));
+
+  const { error: leadershipError } = await supabase
+    .from('vault_leadership_philosophy')
+    .insert(leadershipInserts);
+
+  if (leadershipError) {
+    console.error('Error inserting leadership evidence:', leadershipError);
+    return 0;
+  }
+
+  return leadershipInserts.length;
 }
