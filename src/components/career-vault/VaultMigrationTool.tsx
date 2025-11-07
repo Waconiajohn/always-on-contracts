@@ -59,17 +59,44 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete }: VaultMig
     setResult(null);
 
     try {
-      // Step 1: Cleanup
+      // Step 1: Cleanup with retry logic
       setCurrentStep('cleanup');
-      const { data: cleanupData, error: cleanupError } = await supabase.functions.invoke('vault-cleanup', {
-        body: {
-          vaultId,
-          confirmation: 'DELETE_ALL_DATA',
-          preserveVaultRecord: true,
-        },
-      });
+      
+      let cleanupData = null;
+      let retries = 0;
+      const maxRetries = 3;
+      
+      while (retries < maxRetries) {
+        const { data, error: cleanupError } = await supabase.functions.invoke('vault-cleanup', {
+          body: {
+            vaultId,
+            confirmation: 'DELETE_ALL_DATA',
+            preserveVaultRecord: true,
+          },
+        });
 
-      if (cleanupError) throw new Error(`Cleanup failed: ${cleanupError.message}`);
+        if (!cleanupError) {
+          cleanupData = data;
+          break;
+        }
+
+        // If function not deployed yet, wait and retry
+        if (cleanupError.message.includes('Failed to send a request') && retries < maxRetries - 1) {
+          retries++;
+          toast({
+            title: "Function Deploying...",
+            description: `Waiting for function deployment (attempt ${retries}/${maxRetries})`,
+          });
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+          continue;
+        }
+
+        throw new Error(`Cleanup failed: ${cleanupError.message}`);
+      }
+
+      if (!cleanupData) {
+        throw new Error('Cleanup failed after retries. The function may still be deploying. Please try again in 1-2 minutes.');
+      }
 
       // Step 2: Re-extraction with v3
       setCurrentStep('extraction');
