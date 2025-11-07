@@ -51,7 +51,7 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
     if (!resumeText) {
       toast({
         title: "Resume Required",
-        description: "Please upload a resume before running vault migration.",
+        description: "Please upload a resume before re-analyzing your vault.",
         variant: "destructive",
       });
       return;
@@ -172,7 +172,7 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
       console.log(`   - Soft skills: ${softSkills?.length || 0}`);
       
       toast({
-        title: "Migration Complete! ✅",
+        title: "Re-Analysis Complete! ✅",
         description: `Cleaned ${totalDeleted} items and extracted ${actualTotal} new items (verified in database).`,
       });
 
@@ -196,10 +196,10 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
       }, 1500);
 
     } catch (err: any) {
-      setError(err.message || 'Migration failed');
+      setError(err.message || 'Re-analysis failed');
       setCurrentStep('idle');
       toast({
-        title: "Migration Failed",
+        title: "Re-Analysis Failed",
         description: err.message,
         variant: "destructive",
       });
@@ -213,17 +213,17 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <RefreshCw className="h-5 w-5" />
-          Vault Migration Tool
+          Vault Re-Analysis Tool
         </CardTitle>
         <CardDescription>
-          Clean up duplicate items and re-extract your vault with the latest V3 extraction engine
+          Clean your vault and re-extract career data using the latest AI extraction engine
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            This will delete all existing vault items and re-extract from your resume. This process cannot be undone.
+            This will delete all existing vault items and re-extract fresh data from your resume. This action cannot be undone.
           </AlertDescription>
         </Alert>
 
@@ -231,7 +231,7 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              No resume found. Please upload a resume to Career Vault before running migration.
+              No resume found. Please upload a resume to Career Vault before running re-analysis.
             </AlertDescription>
           </Alert>
         )}
@@ -258,7 +258,7 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
 
         {result && (
           <div className="rounded-lg bg-muted p-4 space-y-2">
-            <h4 className="font-semibold text-sm">Migration Results:</h4>
+            <h4 className="font-semibold text-sm">Re-Analysis Results:</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Items Deleted:</p>
@@ -298,12 +298,12 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
           ) : currentStep === 'complete' ? (
             <>
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              Migration Complete
+              Re-Analysis Complete
             </>
           ) : (
             <>
               <Trash2 className="mr-2 h-4 w-4" />
-              Run Vault Migration
+              Re-Analyze Vault
             </>
           )}
         </Button>

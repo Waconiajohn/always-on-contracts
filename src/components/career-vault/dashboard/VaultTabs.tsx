@@ -4,6 +4,7 @@ import { VaultActivityFeed } from '../VaultActivityFeed';
 import { FreshnessManager } from '../FreshnessManager';
 import { AutoDuplicateCleanup } from '../AutoDuplicateCleanup';
 import { VaultNuclearReset } from '../VaultNuclearReset';
+import { VaultMigrationTool } from '../VaultMigrationTool';
 import { MilestoneManager } from '../MilestoneManager';
 import { Card } from '@/components/ui/card';
 
@@ -59,6 +60,12 @@ export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Advanced Tools</h3>
             <div className="space-y-4">
+              <VaultMigrationTool
+                vaultId={vaultId}
+                resumeText={vault?.resume_raw_text || ''}
+                onComplete={onRefresh}
+                onDataChange={onRefresh}
+              />
               <FreshnessManager vaultId={vaultId} />
               <AutoDuplicateCleanup vaultId={vaultId} onCleanupComplete={onRefresh} />
               <VaultNuclearReset

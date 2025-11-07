@@ -14,7 +14,6 @@ interface UnifiedHeroCardProps {
   summary: string;
   totalItems: number;
   marketPercentile: number;
-  itemsToReview: number;
   onManageResume: () => void;
   onReanalyze: () => void;
   onSettings: () => void;
@@ -37,7 +36,6 @@ export function UnifiedHeroCard({
   summary,
   totalItems,
   marketPercentile,
-  itemsToReview,
   onManageResume,
   onReanalyze,
   onSettings,

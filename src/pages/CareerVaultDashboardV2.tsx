@@ -14,7 +14,6 @@ import { EnhancementQuestionsModal } from '@/components/career-vault/dashboard/E
 import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/dashboard/BlockerAlert';
 import { UnifiedHeroCard } from '@/components/career-vault/dashboard/UnifiedHeroCard';
 import { AIPrimaryAction, determinePrimaryAction } from '@/components/career-vault/dashboard/AIPrimaryAction';
-import { VaultMigrationTool } from '@/components/career-vault/VaultMigrationTool';
 import { calculateGrade } from '@/components/career-vault/dashboard/legacy/CompactVaultStats';
 import { useVaultData } from '@/hooks/useVaultData';
 import { useVaultStats } from '@/hooks/useVaultStats';
@@ -73,7 +72,6 @@ const VaultDashboardContent = () => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [showMigrationTool, setShowMigrationTool] = useState(false);
   const [viewCount, setViewCount] = useState(0);
 
   // Track view count and behavior for SmartNudge
@@ -244,9 +242,6 @@ const VaultDashboardContent = () => {
     );
   }
 
-  // Migration tool moved to Settings - no longer shown on main dashboard
-  const shouldShowMigrationTool = false; // Hidden from main dashboard (available in Settings)
-
   // AI-powered career level detection
   const determineCareerLevel = () => {
     const score = stats?.strengthScore.total || 0;
@@ -299,7 +294,6 @@ const VaultDashboardContent = () => {
           summary={generateContextualSummary()}
           totalItems={stats?.totalItems || 0}
           marketPercentile={marketRank}
-          itemsToReview={unverifiedItems}
           onManageResume={() => setResumeModalOpen(true)}
           onReanalyze={handleReanalyze}
           onSettings={() => navigate('/settings')}
@@ -318,27 +312,6 @@ const VaultDashboardContent = () => {
                 onAction={() => navigate(blocker.actionRoute)}
               />
             ))}
-          </div>
-        )}
-
-        {/* ====================================================================
-            MIGRATION TOOL - Conditional: Only if grade < B or quality issues
-            ==================================================================== */}
-        {shouldShowMigrationTool && (
-          <div className="mb-6">
-            <VaultMigrationTool
-              vaultId={vaultData.vault.id}
-              resumeText={vaultData.vault.resume_raw_text}
-              onComplete={() => {
-                queryClient.invalidateQueries({ queryKey: ['vault-data'] });
-                refetch();
-                setShowMigrationTool(false); // Hide after successful migration
-              }}
-              onDataChange={() => {
-                queryClient.invalidateQueries({ queryKey: ['vault-data'] });
-                refetch();
-              }}
-            />
           </div>
         )}
 
@@ -442,7 +415,7 @@ const VaultDashboardContent = () => {
           currentScore={stats?.strengthScore.total || 0}
           targetRoles={vaultData.userProfile?.target_roles || []}
           targetIndustries={vaultData.vault?.target_industries || []}
-          onComplete={(newScore) => {
+          onComplete={() => {
             queryClient.invalidateQueries({ queryKey: ['vault-data'] });
             refetch();
           }}
