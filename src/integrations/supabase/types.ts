@@ -344,6 +344,47 @@ export type Database = {
           },
         ]
       }
+      ai_responses: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          parsed_data: Json | null
+          pass_type: string
+          raw_response: string | null
+          session_id: string
+          usage: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          parsed_data?: Json | null
+          pass_type: string
+          raw_response?: string | null
+          session_id: string
+          usage?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          parsed_data?: Json | null
+          pass_type?: string
+          raw_response?: string | null
+          session_id?: string
+          usage?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "extraction_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_metrics: {
         Row: {
           cost_usd: number
@@ -1025,6 +1066,158 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      extraction_checkpoints: {
+        Row: {
+          checkpoint_data: Json
+          checkpoint_name: string
+          created_at: string
+          id: string
+          session_id: string
+        }
+        Insert: {
+          checkpoint_data: Json
+          checkpoint_name: string
+          created_at?: string
+          id?: string
+          session_id: string
+        }
+        Update: {
+          checkpoint_data?: Json
+          checkpoint_name?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_checkpoints_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "extraction_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extraction_events: {
+        Row: {
+          event_data: Json | null
+          event_type: string
+          id: string
+          session_id: string
+          timestamp: string
+        }
+        Insert: {
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          session_id: string
+          timestamp?: string
+        }
+        Update: {
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          session_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "extraction_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extraction_sessions: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          ended_at: string | null
+          extraction_version: string
+          id: string
+          metadata: Json | null
+          started_at: string
+          status: string
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          extraction_version?: string
+          id?: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          extraction_version?: string
+          id?: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_sessions_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extraction_validations: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          issues: Json | null
+          passed: boolean
+          recommendations: Json | null
+          session_id: string
+          validation_type: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          issues?: Json | null
+          passed: boolean
+          recommendations?: Json | null
+          session_id: string
+          validation_type: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          issues?: Json | null
+          passed?: boolean
+          recommendations?: Json | null
+          session_id?: string
+          validation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_validations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "extraction_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feature_vault_usage: {
         Row: {

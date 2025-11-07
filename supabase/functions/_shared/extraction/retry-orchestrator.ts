@@ -112,7 +112,7 @@ export const differentModelStrategy: RetryStrategy = {
  * STRATEGY 3: Section-by-Section
  * Extract each resume section separately then merge
  */
-export const sectionBySection Strategy: RetryStrategy = {
+export const sectionBySectionStrategy: RetryStrategy = {
   name: 'section_by_section',
   cost: 2,
   shouldAttempt: (error, attempt) => error.type === 'incomplete_extraction',
@@ -188,7 +188,7 @@ Return the corrected JSON:`;
 export const RETRY_STRATEGIES: RetryStrategy[] = [
   enhancedPromptStrategy,
   jsonRepairStrategy,
-  sectionBySection Strategy,
+  sectionBySectionStrategy,
   differentModelStrategy,
 ];
 
