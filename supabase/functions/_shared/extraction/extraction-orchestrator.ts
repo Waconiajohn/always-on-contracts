@@ -134,7 +134,11 @@ export async function orchestrateExtraction(
 
       // Build framework-aware prompt
       let frameworkContext = '';
-      if (preExtractionContext.frameworkContext?.framework && preExtractionContext.extractionStrategy.shouldUseFramework) {
+      if (
+        preExtractionContext.frameworkContext?.framework !== null &&
+        preExtractionContext.frameworkContext?.framework !== undefined &&
+        preExtractionContext.extractionStrategy.shouldUseFramework
+      ) {
         frameworkContext = buildFrameworkPromptContext(
           preExtractionContext.frameworkContext.framework,
           passType as any
