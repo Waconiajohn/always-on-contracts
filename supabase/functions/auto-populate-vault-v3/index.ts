@@ -178,15 +178,10 @@ serve(async (req) => {
         vault_id: vaultId,
         user_id: userId,
         stated_skill: s.stated_skill || s.skill_name || s.skill,
-        skill_category: s.skill_category || s.category || 'technical',
         equivalent_skills: s.equivalent_skills || (s.cross_functional_equivalent || s.equivalent ? [s.cross_functional_equivalent || s.equivalent] : []),
-        confidence_score: s.confidence_score || s.confidenceScore || 0.8,
+        confidence_score: s.confidence_score || s.confidenceScore || 80,
         quality_tier: s.quality_tier || 'assumed',
         extraction_session_id: result.sessionId,
-        extraction_metadata: {
-          extractionVersion: 'v3',
-          confidence: result.validation.overallConfidence,
-        },
       }));
 
       const { error: skillsError } = await supabase
@@ -205,13 +200,9 @@ serve(async (req) => {
         competency_area: c.competency_area || c.area,
         inferred_capability: c.inferred_capability || c.capability,
         supporting_evidence: c.supporting_evidence || (c.evidence_source || c.evidence ? [c.evidence_source || c.evidence || 'Resume analysis'] : ['Resume analysis']),
-        confidence_score: c.confidence_score || c.confidenceScore || 0.75,
+        confidence_score: c.confidence_score || c.confidenceScore || 75,
         quality_tier: c.quality_tier || 'assumed',
         extraction_session_id: result.sessionId,
-        extraction_metadata: {
-          extractionVersion: 'v3',
-          confidence: result.validation.overallConfidence,
-        },
       }));
 
       const { error: compError } = await supabase
@@ -227,15 +218,11 @@ serve(async (req) => {
       const softSkillsInserts = result.extracted.softSkills.map((ss: any) => ({
         vault_id: vaultId,
         user_id: userId,
-        soft_skill: ss.soft_skill || ss.skill_name || ss.skill,
-        behavioral_evidence: ss.behavioral_evidence || ss.evidence || '',
-        confidence_score: ss.confidence_score || ss.confidenceScore || 0.75,
+        skill_name: ss.soft_skill || ss.skill_name || ss.skill,
+        examples: ss.examples || ss.behavioral_evidence || ss.evidence || [],
+        confidence_score: ss.confidence_score || ss.confidenceScore || 75,
         quality_tier: ss.quality_tier || 'assumed',
         extraction_session_id: result.sessionId,
-        extraction_metadata: {
-          extractionVersion: 'v3',
-          confidence: result.validation.overallConfidence,
-        },
       }));
 
       const { error: ssError } = await supabase
