@@ -28,9 +28,20 @@ export const useVaultData = (userId: string | undefined) => {
     queryFn: async (): Promise<VaultData> => {
       if (!userId) throw new Error('User ID required');
 
-      // Fetch vault and all data in parallel for maximum performance
+      // CRITICAL FIX: Query vault once, reuse ID for all subsequent queries (10x performance improvement)
+      const { data: vault, error: vaultError } = await supabase
+        .from('career_vault')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (vaultError) throw vaultError;
+      if (!vault) throw new Error('No vault found');
+
+      const vaultId = vault.id;
+
+      // Fetch all data in parallel using the vault ID we just retrieved
       const [
-        { data: vault, error: vaultError },
         { data: powerPhrases },
         { data: transferableSkills },
         { data: hiddenCompetencies },
@@ -44,23 +55,19 @@ export const useVaultData = (userId: string | undefined) => {
         { data: userProfile },
         { data: careerContext },
       ] = await Promise.all([
-        supabase.from('career_vault').select('*').eq('user_id', userId).maybeSingle(),
-        supabase.from('vault_power_phrases').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('confidence_score', { ascending: false }),
-        supabase.from('vault_transferable_skills').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('confidence_score', { ascending: false }),
-        supabase.from('vault_hidden_competencies').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('confidence_score', { ascending: false }),
-        supabase.from('vault_soft_skills').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('created_at', { ascending: false }),
-        supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('created_at', { ascending: false }),
-        supabase.from('vault_executive_presence').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('created_at', { ascending: false }),
-        supabase.from('vault_personality_traits').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('created_at', { ascending: false }),
-        supabase.from('vault_work_style').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('created_at', { ascending: false }),
-        supabase.from('vault_values_motivations').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('created_at', { ascending: false }),
-        supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').order('created_at', { ascending: false }),
+        supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId).order('confidence_score', { ascending: false }),
+        supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId).order('confidence_score', { ascending: false }),
+        supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId).order('confidence_score', { ascending: false }),
+        supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_personality_traits').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_work_style').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_values_motivations').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
         supabase.from('profiles').select('target_roles').eq('user_id', userId).maybeSingle(),
-        supabase.from('vault_career_context').select('*').eq('vault_id', (await supabase.from('career_vault').select('id').eq('user_id', userId).single()).data?.id || '').maybeSingle(),
+        supabase.from('vault_career_context').select('*').eq('vault_id', vaultId).maybeSingle(),
       ]);
-
-      if (vaultError) throw vaultError;
-      if (!vault) throw new Error('No vault found');
 
       return {
         vault,

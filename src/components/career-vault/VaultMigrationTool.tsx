@@ -35,9 +35,10 @@ interface VaultMigrationToolProps {
   vaultId: string;
   resumeText?: string;
   onComplete?: () => void;
+  onDataChange?: () => void;
 }
 
-export function VaultMigrationTool({ vaultId, resumeText, onComplete }: VaultMigrationToolProps) {
+export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChange }: VaultMigrationToolProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState<'idle' | 'cleanup' | 'extraction' | 'complete'>('idle');
   const [result, setResult] = useState<MigrationResult | null>(null);
@@ -131,6 +132,8 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete }: VaultMig
         description: `Cleaned ${cleanupData?.deleted?.total || 0} items and extracted ${extractionData?.data?.extracted?.total || 0} new items.`,
       });
 
+      // Refresh dashboard data to show correct counts
+      onDataChange?.();
       onComplete?.();
 
     } catch (err: any) {
