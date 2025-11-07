@@ -209,7 +209,7 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete }: VaultMig
             </div>
             {result.validation && (
               <p className="text-xs text-muted-foreground">
-                Extraction Confidence: {Math.round((result.validation.overallConfidence || 0) * 100)}%
+                Extraction Confidence: {result.validation.overallConfidence || 0}%
               </p>
             )}
           </div>
