@@ -192,7 +192,7 @@ export function detectCareerBlockers(
       targetRoles: directorPlusRoles,
       impact: `Need ${80 - vaultData.strengthScore} more points`,
       actionLabel: 'Improve Vault Score',
-      actionRoute: '/career-vault-dashboard',
+      actionRoute: '/career-vault',
     });
   }
 
