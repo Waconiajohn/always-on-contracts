@@ -189,6 +189,12 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
       console.log('🔄 Calling onComplete callback...');
       onComplete?.();
 
+      // Force page reload to show fresh data (after a short delay to show success message)
+      console.log('🔄 Reloading page to show fresh data...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
     } catch (err: any) {
       setError(err.message || 'Migration failed');
       setCurrentStep('idle');
