@@ -357,13 +357,86 @@ function getExtractionFunction(
 function buildBasePrompt(passType: string, resumeText: string): string {
   switch (passType) {
     case 'power_phrases':
-      return `Extract quantified achievements and management scope from this resume. Return ONLY a JSON array of objects with this exact structure: [{"achievement": "string", "metric": "string", "impact": "string"}]\n\nResume:\n${resumeText}`;
+      return `Extract quantified achievements and management scope from this resume.
+
+CRITICAL: Return ONLY a valid JSON array with NO markdown, NO explanations, NO code blocks.
+
+Required structure for each power phrase:
+{
+  "phrase": "Full achievement statement with quantified metrics",
+  "category": "Leadership|Management|Technical|Business|Process",
+  "impact_metrics": {
+    "metric_name": "value with units",
+    "metric_name2": "value2"
+  },
+  "keywords": ["keyword1", "keyword2"],
+  "confidence_score": 0.8
+}
+
+Example output:
+[
+  {
+    "phrase": "Directed drilling engineering team managing $350M annual budget and overseeing operations of 3-4 rigs",
+    "category": "Leadership",
+    "impact_metrics": {
+      "budget": "$350M",
+      "team_scope": "3-4 rigs"
+    },
+    "keywords": ["directed", "managing", "overseeing", "leadership"],
+    "confidence_score": 0.9
+  }
+]
+
+Resume:
+${resumeText}`;
+
     case 'skills':
-      return `Extract technical skills from this resume. Return ONLY a JSON array of objects with this exact structure: [{"skill": "string", "proficiency": "string", "yearsExperience": number}]\n\nResume:\n${resumeText}`;
+      return `Extract technical and transferable skills from this resume.
+
+CRITICAL: Return ONLY a valid JSON array with NO markdown, NO explanations, NO code blocks.
+
+Required structure:
+{
+  "stated_skill": "Skill name as stated in resume",
+  "skill_category": "Technical|Functional|Industry|Tool",
+  "cross_functional_equivalent": "How this skill applies across industries",
+  "confidence_score": 0.8
+}
+
+Resume:
+${resumeText}`;
+
     case 'competencies':
-      return `Extract hidden competencies from this resume. Return ONLY a JSON array of objects with this exact structure: [{"competency": "string", "evidence": "string", "level": "string"}]\n\nResume:\n${resumeText}`;
+      return `Extract hidden competencies and capabilities from this resume.
+
+CRITICAL: Return ONLY a valid JSON array with NO markdown, NO explanations, NO code blocks.
+
+Required structure:
+{
+  "competency_area": "Category of competency",
+  "inferred_capability": "What capability this demonstrates",
+  "evidence_source": "Where in resume this is shown",
+  "confidence_score": 0.75
+}
+
+Resume:
+${resumeText}`;
+
     case 'soft_skills':
-      return `Extract soft skills with behavioral evidence from this resume. Return ONLY a JSON array of objects with this exact structure: [{"skill": "string", "evidence": "string", "strength": "string"}]\n\nResume:\n${resumeText}`;
+      return `Extract soft skills with behavioral evidence from this resume.
+
+CRITICAL: Return ONLY a valid JSON array with NO markdown, NO explanations, NO code blocks.
+
+Required structure:
+{
+  "soft_skill": "Name of the soft skill",
+  "behavioral_evidence": "Specific example from resume demonstrating this",
+  "confidence_score": 0.75
+}
+
+Resume:
+${resumeText}`;
+
     default:
       return resumeText;
   }
