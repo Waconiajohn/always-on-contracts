@@ -99,14 +99,14 @@ export default function AutoPopulationProgress({
       setCurrentPhase('🧠 Analyzing your executive background...');
       setOverallProgress(5);
 
-      // Phase 1: Extract core achievements and skills (auto-populate-vault-v2)
+      // Phase 1: Extract core achievements and skills (auto-populate-vault-v3)
       setCurrentPhase('📊 Extracting quantified achievements and skills...');
       updateCategoryStatus('power_phrases', 'extracting');
       updateCategoryStatus('transferable_skills', 'extracting');
       updateCategoryStatus('hidden_competencies', 'extracting');
       updateCategoryStatus('soft_skills', 'extracting');
 
-      const { data: coreData, error: coreError } = await supabase.functions.invoke('auto-populate-vault-v2', {
+      const { data: coreData, error: coreError } = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: {
           resumeText,
           vaultId,

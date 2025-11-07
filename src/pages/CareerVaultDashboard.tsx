@@ -27,14 +27,12 @@ import { FreshnessManager } from '@/components/career-vault/FreshnessManager';
 import { DuplicateDetector } from '@/components/career-vault/DuplicateDetector';
 import { VerificationWorkflow } from '@/components/career-vault/VerificationWorkflow';
 // NEW: Redesigned dashboard components
-import { SimplifiedVaultHero } from '@/components/career-vault/dashboard/SimplifiedVaultHero';
 import { QuickWinsPanel, useQuickWins } from '@/components/career-vault/dashboard/QuickWinsPanel';
-import { MissionControl } from '@/components/career-vault/dashboard/MissionControl';
 // REDESIGN: Phase 1 - Strategic Command Center
-import { BlockerAlert, detectCareerBlockers, type CareerBlocker } from '@/components/career-vault/dashboard/BlockerAlert';
+import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/dashboard/BlockerAlert';
 import { CompactVaultStats, calculateGrade } from '@/components/career-vault/dashboard/CompactVaultStats';
 import { StrategicCommandCenter } from '@/components/career-vault/dashboard/StrategicCommandCenter';
-import { generateMissions, calculateMarketRank, type Mission } from '@/lib/utils/missionGenerator';
+import { generateMissions, calculateMarketRank } from '@/lib/utils/missionGenerator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -461,7 +459,7 @@ const VaultDashboardContent = () => {
             .eq('user_id', user.id)
             .maybeSingle();
 
-          setUserProfile(profile);
+          setUserProfile(profile ? { target_roles: profile.target_roles || undefined } : null);
 
           // Fetch career context for budget ownership (needed for blocker detection)
           const { data: context } = await supabase
