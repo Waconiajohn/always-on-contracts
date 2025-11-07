@@ -303,91 +303,120 @@ serve(async (req) => {
 
 function createExtractPowerPhrasesFunction(resumeText: string, supabase: any, userId: string) {
   return async (prompt: string, options?: any) => {
-    // Use existing v2 extraction logic but with enhanced prompt
-    const model = options?.forceHighQuality
-      ? 'mixtral-8x7b-instruct'
-      : selectOptimalModel({ taskType: 'extraction', complexity: 'high' });
-
-    const response = await callPerplexity(
-      [{ role: 'user', content: prompt }],
-      model.id
+    const result = await callPerplexity(
+      {
+        messages: [{ role: 'user', content: prompt }],
+        model: 'sonar-pro',
+        max_tokens: 4000,
+      },
+      'extract_power_phrases',
+      userId
     );
 
-    await logAIUsage({ model: model.id, tokens: response.usage?.total_tokens || 1500, task: 'power_phrases', userId });
+    await logAIUsage({ 
+      model: 'sonar-pro', 
+      tokens: result.response.usage?.total_tokens || 1500, 
+      task: 'power_phrases', 
+      userId 
+    });
 
-    const content = response.choices[0].message.content;
+    const content = result.response.choices[0].message.content;
     const extracted = extractJSON(content, 'power phrases extraction');
 
     return {
       parsedData: { powerPhrases: extracted },
       raw: content,
-      usage: response.usage,
+      usage: result.response.usage,
     };
   };
 }
 
 function createExtractSkillsFunction(resumeText: string, supabase: any, userId: string) {
   return async (prompt: string, options?: any) => {
-    const model = selectOptimalModel({ taskType: 'extraction', complexity: 'medium' });
-
-    const response = await callPerplexity(
-      [{ role: 'user', content: prompt }],
-      model.id
+    const result = await callPerplexity(
+      {
+        messages: [{ role: 'user', content: prompt }],
+        model: 'sonar-pro',
+        max_tokens: 4000,
+      },
+      'extract_skills',
+      userId
     );
 
-    await logAIUsage({ model: model.id, tokens: response.usage?.total_tokens || 1000, task: 'skills', userId });
+    await logAIUsage({ 
+      model: 'sonar-pro', 
+      tokens: result.response.usage?.total_tokens || 1000, 
+      task: 'skills', 
+      userId 
+    });
 
-    const content = response.choices[0].message.content;
+    const content = result.response.choices[0].message.content;
     const extracted = extractJSON(content, 'skills extraction');
 
     return {
       parsedData: { skills: extracted },
       raw: content,
-      usage: response.usage,
+      usage: result.response.usage,
     };
   };
 }
 
 function createExtractCompetenciesFunction(resumeText: string, supabase: any, userId: string) {
   return async (prompt: string, options?: any) => {
-    const model = selectOptimalModel({ taskType: 'extraction', complexity: 'medium' });
-
-    const response = await callPerplexity(
-      [{ role: 'user', content: prompt }],
-      model.id
+    const result = await callPerplexity(
+      {
+        messages: [{ role: 'user', content: prompt }],
+        model: 'sonar-pro',
+        max_tokens: 4000,
+      },
+      'extract_competencies',
+      userId
     );
 
-    await logAIUsage({ model: model.id, tokens: response.usage?.total_tokens || 1000, task: 'competencies', userId });
+    await logAIUsage({ 
+      model: 'sonar-pro', 
+      tokens: result.response.usage?.total_tokens || 1000, 
+      task: 'competencies', 
+      userId 
+    });
 
-    const content = response.choices[0].message.content;
+    const content = result.response.choices[0].message.content;
     const extracted = extractJSON(content, 'competencies extraction');
 
     return {
       parsedData: { competencies: extracted },
       raw: content,
-      usage: response.usage,
+      usage: result.response.usage,
     };
   };
 }
 
 function createExtractSoftSkillsFunction(resumeText: string, supabase: any, userId: string) {
   return async (prompt: string, options?: any) => {
-    const model = selectOptimalModel({ taskType: 'extraction', complexity: 'low' });
-
-    const response = await callPerplexity(
-      [{ role: 'user', content: prompt }],
-      model.id
+    const result = await callPerplexity(
+      {
+        messages: [{ role: 'user', content: prompt }],
+        model: 'sonar-pro',
+        max_tokens: 4000,
+      },
+      'extract_soft_skills',
+      userId
     );
 
-    await logAIUsage({ model: model.id, tokens: response.usage?.total_tokens || 800, task: 'soft_skills', userId });
+    await logAIUsage({ 
+      model: 'sonar-pro', 
+      tokens: result.response.usage?.total_tokens || 800, 
+      task: 'soft_skills', 
+      userId 
+    });
 
-    const content = response.choices[0].message.content;
+    const content = result.response.choices[0].message.content;
     const extracted = extractJSON(content, 'soft skills extraction');
 
     return {
       parsedData: { softSkills: extracted },
       raw: content,
-      usage: response.usage,
+      usage: result.response.usage,
     };
   };
 }
