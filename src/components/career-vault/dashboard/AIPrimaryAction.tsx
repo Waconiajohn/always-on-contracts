@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { AITooltip } from './AITooltip';
 
-export type ActionType = 'fix_blocker' | 'review_items' | 'quick_win' | 'ready';
+export type ActionType = 'fix_blocker' | 'enhance_intelligence' | 'quick_win' | 'ready';
 
 export interface PrimaryAction {
   type: ActionType;
@@ -43,7 +43,7 @@ export function AIPrimaryAction({ action, onActionClick }: AIPrimaryActionProps)
     switch (action.type) {
       case 'fix_blocker':
         return <AlertTriangle className="h-8 w-8 text-red-500" />;
-      case 'review_items':
+      case 'enhance_intelligence':
         return <TrendingUp className="h-8 w-8 text-blue-500" />;
       case 'quick_win':
         return <Lightbulb className="h-8 w-8 text-amber-500" />;
@@ -59,7 +59,7 @@ export function AIPrimaryAction({ action, onActionClick }: AIPrimaryActionProps)
     switch (action.type) {
       case 'fix_blocker':
         return 'border-red-200 bg-red-50/50';
-      case 'review_items':
+      case 'enhance_intelligence':
         return 'border-blue-200 bg-blue-50/50';
       case 'quick_win':
         return 'border-amber-200 bg-amber-50/50';
@@ -164,9 +164,9 @@ export function AIPrimaryAction({ action, onActionClick }: AIPrimaryActionProps)
  *
  * Priority logic:
  * 1. CRITICAL: Blockers present → Fix blocker
- * 2. HIGH: Items need review (>10 unverified) → Review items
+ * 2. HIGH: Score < 85 → Enhance intelligence with targeted questions
  * 3. MEDIUM: Quick wins available → Do quick win
- * 4. LOW: Vault optimized → Ready to use
+ * 4. LOW: Vault optimized (≥85) → Ready to use
  */
 export function determinePrimaryAction(vaultState: {
   hasBlockers: boolean;
@@ -189,17 +189,17 @@ export function determinePrimaryAction(vaultState: {
     };
   }
 
-  // 2. HIGH: Items need review (>10 unverified)
-  if (vaultState.unverifiedItems > 10) {
-    const estimatedBoost = Math.min(Math.floor(vaultState.unverifiedItems * 0.5), 15);
+  // 2. HIGH: Vault score < 85 → Enhancement needed
+  if (vaultState.score < 85) {
+    const pointsNeeded = 85 - vaultState.score;
     return {
-      type: 'review_items',
-      message: `Review ${vaultState.unverifiedItems} AI-extracted items`,
-      description: 'Quick review and approval can significantly boost your vault strength',
-      impact: `Estimated +${estimatedBoost} points to vault score`,
-      action: 'Start Review',
-      route: '#vault-tabs',
-      estimatedTime: `${Math.ceil(vaultState.unverifiedItems / 5)} minutes`,
+      type: 'enhance_intelligence',
+      message: 'Deepen Your Career Intelligence',
+      description: 'Answer targeted questions about your experience to unlock hidden achievements, quantify impact, and strengthen your competitive position',
+      impact: `+${Math.min(pointsNeeded, 15)} points to reach elite tier (85+)`,
+      action: 'Enhance Intelligence',
+      route: '#enhance-intelligence',
+      estimatedTime: '10-15 minutes',
     };
   }
 
@@ -217,7 +217,7 @@ export function determinePrimaryAction(vaultState: {
     };
   }
 
-  // 4. LOW: Vault optimized, ready to use
+  // 4. LOW: Vault optimized (≥85), ready to use
   return {
     type: 'ready',
     message: 'Vault Optimized! 🎉',

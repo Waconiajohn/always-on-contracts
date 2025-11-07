@@ -2,10 +2,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Upload, RefreshCw, Settings, TrendingUp } from 'lucide-react';
-import { 
-  VaultScoreTooltip, 
-  MarketRankTooltip, 
-  ItemsToReviewTooltip 
+import {
+  VaultScoreTooltip,
+  MarketRankTooltip
 } from './AITooltip';
 
 interface UnifiedHeroCardProps {
@@ -139,17 +138,7 @@ export function UnifiedHeroCard({
                 </Badge>
               </MarketRankTooltip>
 
-              {itemsToReview > 0 && (
-                <ItemsToReviewTooltip
-                  itemCount={itemsToReview}
-                  estimatedTime={`${Math.ceil(itemsToReview / 5)} minutes`}
-                  scoreImpact={Math.min(Math.floor(itemsToReview * 0.5), 15)}
-                >
-                  <Badge variant="outline" className="text-sm border-amber-300 bg-amber-50 text-amber-700 cursor-help">
-                    {itemsToReview} to review
-                  </Badge>
-                </ItemsToReviewTooltip>
-              )}
+              {/* Removed "items to review" - replaced with Enhancement Questions flow */}
             </div>
           </div>
 

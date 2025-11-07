@@ -10,6 +10,7 @@ import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLangu
 import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
 import { VaultItemViewModal } from '@/components/career-vault/VaultItemViewModal';
 import { VaultItemEditModal } from '@/components/career-vault/VaultItemEditModal';
+import { EnhancementQuestionsModal } from '@/components/career-vault/dashboard/EnhancementQuestionsModal';
 import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/dashboard/BlockerAlert';
 import { UnifiedHeroCard } from '@/components/career-vault/dashboard/UnifiedHeroCard';
 import { AIPrimaryAction, determinePrimaryAction } from '@/components/career-vault/dashboard/AIPrimaryAction';
@@ -68,6 +69,7 @@ const VaultDashboardContent = () => {
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [addMetricsModalOpen, setAddMetricsModalOpen] = useState(false);
   const [modernizeModalOpen, setModernizeModalOpen] = useState(false);
+  const [enhancementModalOpen, setEnhancementModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -242,8 +244,8 @@ const VaultDashboardContent = () => {
     );
   }
 
-  // Determine if migration tool should be shown
-  const shouldShowMigrationTool = (grade === 'C' || grade === 'D' || grade === 'F') || showMigrationTool || (stats?.totalItems || 0) > 500;
+  // Migration tool moved to Settings - no longer shown on main dashboard
+  const shouldShowMigrationTool = false; // Hidden from main dashboard (available in Settings)
 
   // AI-powered career level detection
   const determineCareerLevel = () => {
@@ -257,7 +259,7 @@ const VaultDashboardContent = () => {
     return 'Professional';
   };
 
-  // AI-generated contextual summary
+  // AI-generated contextual summary (focus on intelligence depth, not verification)
   const generateContextualSummary = () => {
     const score = stats?.strengthScore.total || 0;
     const items = stats?.totalItems || 0;
@@ -265,22 +267,22 @@ const VaultDashboardContent = () => {
     const percentile = marketRank;
 
     if (criticalBlockers.length > 0) {
-      return `Your vault has ${items} items but needs critical updates before applying to ${targetRole} positions.`;
-    }
-
-    if (unverifiedItems > 20) {
-      return `Your vault has ${items} items with ${Math.round((items - unverifiedItems) / items * 100)}% verified. Quick review will boost your competitiveness.`;
+      return `${items} career achievements extracted. Critical updates needed to maximize your competitive advantage for ${targetRole} positions.`;
     }
 
     if (score >= 85) {
-      return `Your vault is highly optimized for ${targetRole} positions. You rank in the top ${Math.round((100 - percentile) / 10) * 10}% of professionals.`;
+      return `Elite-tier career intelligence with ${items} achievements documented. You rank in the top ${Math.round((100 - percentile) / 10) * 10}% of professionals targeting ${targetRole} roles.`;
     }
 
     if (score >= 70) {
-      return `Your vault is ${Math.round(score)}% optimized and competitive for ${targetRole} positions.`;
+      return `Strong career intelligence base with ${items} achievements. Answer targeted questions to deepen impact quantification and reach elite tier (85+).`;
     }
 
-    return `Your vault has ${items} items. Continue building to strengthen your position for ${targetRole} roles.`;
+    if (score >= 60) {
+      return `${items} career achievements extracted. Enhance your intelligence depth to unlock hidden impact and strengthen positioning for ${targetRole} roles.`;
+    }
+
+    return `${items} career achievements extracted. Build your intelligence depth to strengthen competitive positioning for ${targetRole} roles.`;
   };
 
   return (
@@ -358,7 +360,9 @@ const VaultDashboardContent = () => {
             score: stats?.strengthScore.total || 0,
           })}
           onActionClick={(route) => {
-            if (route.startsWith('#')) {
+            if (route === '#enhance-intelligence') {
+              setEnhancementModalOpen(true);
+            } else if (route.startsWith('#')) {
               const element = document.querySelector(route);
               element?.scrollIntoView({ behavior: 'smooth' });
             } else {
@@ -429,6 +433,20 @@ const VaultDashboardContent = () => {
             />
           </>
         )}
+
+        {/* Enhancement Questions Modal */}
+        <EnhancementQuestionsModal
+          open={enhancementModalOpen}
+          onOpenChange={setEnhancementModalOpen}
+          vaultId={vaultData.vault.id}
+          currentScore={stats?.strengthScore.total || 0}
+          targetRoles={vaultData.userProfile?.target_roles || []}
+          targetIndustries={vaultData.vault?.target_industries || []}
+          onComplete={(newScore) => {
+            queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+            refetch();
+          }}
+        />
       </div>
 
       {/* ====================================================================
