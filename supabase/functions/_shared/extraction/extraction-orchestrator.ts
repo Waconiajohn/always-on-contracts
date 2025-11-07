@@ -357,13 +357,13 @@ function getExtractionFunction(
 function buildBasePrompt(passType: string, resumeText: string): string {
   switch (passType) {
     case 'power_phrases':
-      return `Extract quantified achievements and management scope from this resume:\n\n${resumeText}`;
+      return `Extract quantified achievements and management scope from this resume. Return ONLY a JSON array of objects with this exact structure: [{"achievement": "string", "metric": "string", "impact": "string"}]\n\nResume:\n${resumeText}`;
     case 'skills':
-      return `Extract technical skills from this resume:\n\n${resumeText}`;
+      return `Extract technical skills from this resume. Return ONLY a JSON array of objects with this exact structure: [{"skill": "string", "proficiency": "string", "yearsExperience": number}]\n\nResume:\n${resumeText}`;
     case 'competencies':
-      return `Extract hidden competencies from this resume:\n\n${resumeText}`;
+      return `Extract hidden competencies from this resume. Return ONLY a JSON array of objects with this exact structure: [{"competency": "string", "evidence": "string", "level": "string"}]\n\nResume:\n${resumeText}`;
     case 'soft_skills':
-      return `Extract soft skills with behavioral evidence from this resume:\n\n${resumeText}`;
+      return `Extract soft skills with behavioral evidence from this resume. Return ONLY a JSON array of objects with this exact structure: [{"skill": "string", "evidence": "string", "strength": "string"}]\n\nResume:\n${resumeText}`;
     default:
       return resumeText;
   }
