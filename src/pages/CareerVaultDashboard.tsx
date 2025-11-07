@@ -20,6 +20,7 @@ import { QuickWinsPanel, useQuickWins } from '@/components/career-vault/dashboar
 import { VaultItemViewModal } from '@/components/career-vault/VaultItemViewModal';
 import { VaultItemEditModal } from '@/components/career-vault/VaultItemEditModal';
 import { VaultAIAssistant } from '@/components/career-vault/VaultAIAssistant';
+import { VaultMigrationTool } from '@/components/career-vault/VaultMigrationTool';
 import { useVaultData } from '@/hooks/useVaultData';
 import { useVaultStats } from '@/hooks/useVaultStats';
 import { useVaultMissions } from '@/hooks/useVaultMissions';
@@ -217,6 +218,17 @@ const VaultDashboardContent = () => {
             ))}
           </div>
         )}
+
+        {/* Vault Migration Tool */}
+        <div className="mb-6">
+          <VaultMigrationTool 
+            vaultId={vaultData.vault.id} 
+            resumeText={vaultData.vault.resume_text}
+            onComplete={() => {
+              refetch();
+            }}
+          />
+        </div>
 
         {/* Compact Stats */}
         {stats && (
