@@ -223,7 +223,7 @@ const VaultDashboardContent = () => {
         <div className="mb-6">
           <VaultMigrationTool 
             vaultId={vaultData.vault.id} 
-            resumeText={vaultData.vault.resume_text}
+            resumeText={vaultData.vault.resume_raw_text}
             onComplete={() => {
               refetch();
             }}
