@@ -177,7 +177,7 @@ export const ResumeManagementModal = ({
         .single();
 
       // Run auto-populate AI analysis
-      const { data: autoPopData, error: autoPopError } = await supabase.functions.invoke('auto-populate-vault', {
+      const { data: autoPopData, error: autoPopError } = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: {
           vaultId,
           resumeText: text,

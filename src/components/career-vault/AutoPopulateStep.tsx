@@ -123,7 +123,7 @@ export const AutoPopulateStep = ({
       const data = await executeWithRetry(
         async () => {
           console.log('[AUTO-POPULATE] Calling edge function...');
-          const { data, error } = await supabase.functions.invoke('auto-populate-vault', {
+          const { data, error } = await supabase.functions.invoke('auto-populate-vault-v3', {
             body: {
               vaultId,
               resumeText,
