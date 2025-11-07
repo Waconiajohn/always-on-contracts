@@ -193,7 +193,7 @@ export class ExtractionObservability {
     };
 
     const { error } = await this.supabase
-      .from('ai_response_captures')
+      .from('ai_responses')
       .insert(capture);
 
     if (error) {
@@ -226,7 +226,7 @@ export class ExtractionObservability {
     };
 
     const { error } = await this.supabase
-      .from('extraction_validation_logs')
+      .from('extraction_validations')
       .insert(log);
 
     if (error) {
@@ -275,7 +275,6 @@ export class ExtractionObservability {
       .update({
         ended_at: new Date().toISOString(),
         status,
-        final_data: finalData || {},
       })
       .eq('id', sessionId);
 
@@ -311,13 +310,13 @@ export class ExtractionObservability {
 
     // Fetch AI responses
     const { data: aiResponses } = await this.supabase
-      .from('ai_response_captures')
+      .from('ai_responses')
       .select('*')
       .eq('session_id', sessionId);
 
     // Fetch validation logs
     const { data: validations } = await this.supabase
-      .from('extraction_validation_logs')
+      .from('extraction_validations')
       .select('*')
       .eq('session_id', sessionId);
 

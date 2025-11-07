@@ -308,7 +308,6 @@ function createExtractPowerPhrasesFunction(resumeText: string, supabase: any, us
         messages: [{ role: 'user', content: prompt }],
         model: 'sonar-pro',
         max_tokens: 4000,
-        response_format: { type: 'json_object' },
       },
       'extract_power_phrases',
       userId
@@ -348,7 +347,6 @@ function createExtractSkillsFunction(resumeText: string, supabase: any, userId: 
         messages: [{ role: 'user', content: prompt }],
         model: 'sonar-pro',
         max_tokens: 4000,
-        response_format: { type: 'json_object' },
       },
       'extract_skills',
       userId
@@ -388,7 +386,6 @@ function createExtractCompetenciesFunction(resumeText: string, supabase: any, us
         messages: [{ role: 'user', content: prompt }],
         model: 'sonar-pro',
         max_tokens: 4000,
-        response_format: { type: 'json_object' },
       },
       'extract_competencies',
       userId
@@ -428,7 +425,6 @@ function createExtractSoftSkillsFunction(resumeText: string, supabase: any, user
         messages: [{ role: 'user', content: prompt }],
         model: 'sonar-pro',
         max_tokens: 4000,
-        response_format: { type: 'json_object' },
       },
       'extract_soft_skills',
       userId

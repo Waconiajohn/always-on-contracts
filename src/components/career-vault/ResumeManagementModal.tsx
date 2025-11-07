@@ -92,7 +92,6 @@ export const ResumeManagementModal = ({
             extraction_item_count: 0, // CRITICAL FIX: Reset to 0
             resume_raw_text: text,
             auto_populated: false,
-            reviewed: false,
             extraction_timestamp: new Date().toISOString()
           })
           .eq('id', vaultId);

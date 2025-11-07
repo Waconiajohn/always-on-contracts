@@ -51,7 +51,6 @@ interface PerplexityRequest {
   return_related_questions?: boolean;
   search_recency_filter?: 'month' | 'week' | 'day';
   prompt_tokens_cached?: boolean;  // Enable prompt caching for 50% cost reduction
-  response_format?: { type: 'json_object' };  // Force JSON output
 }
 
 interface PerplexityResponse {
@@ -162,7 +161,6 @@ export async function callPerplexity(
                 model,
                 temperature: request.temperature ?? PERPLEXITY_CONFIG.DEFAULT_TEMPERATURE,
                 max_tokens: request.max_tokens ?? PERPLEXITY_CONFIG.DEFAULT_MAX_TOKENS,
-                response_format: request.response_format || { type: 'json_object' },
                 // Note: top_p is not supported by newer Sonar models
               }),
               signal: controller.signal,
