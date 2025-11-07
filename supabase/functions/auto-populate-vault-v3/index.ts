@@ -260,7 +260,6 @@ serve(async (req) => {
         extraction_item_count: totalItemsExtracted,
         last_updated_at: new Date().toISOString(),
         last_extraction_session_id: result.sessionId,
-        extraction_version: 'v3',
       })
       .eq('id', vaultId);
 
