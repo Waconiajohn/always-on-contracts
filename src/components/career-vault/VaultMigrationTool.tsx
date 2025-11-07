@@ -127,13 +127,19 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
 
       setCurrentStep('complete');
       
+      console.log('✅ Migration complete - triggering data refresh');
+      console.log(`Items deleted: ${cleanupData?.deleted?.total || 0}`);
+      console.log(`Items extracted: ${extractionData?.data?.extracted?.total || 0}`);
+      
       toast({
         title: "Migration Complete! ✅",
         description: `Cleaned ${cleanupData?.deleted?.total || 0} items and extracted ${extractionData?.data?.extracted?.total || 0} new items.`,
       });
 
       // Refresh dashboard data to show correct counts
+      console.log('🔄 Calling onDataChange callback...');
       onDataChange?.();
+      console.log('🔄 Calling onComplete callback...');
       onComplete?.();
 
     } catch (err: any) {

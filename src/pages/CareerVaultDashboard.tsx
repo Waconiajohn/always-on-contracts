@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { VaultSidebar } from "@/components/career-vault/VaultSidebar";
@@ -32,6 +33,7 @@ import { Info } from "lucide-react";
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | undefined>(undefined);
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
@@ -224,8 +226,18 @@ const VaultDashboardContent = () => {
           <VaultMigrationTool 
             vaultId={vaultData.vault.id} 
             resumeText={vaultData.vault.resume_raw_text}
-            onComplete={() => refetch()}
-            onDataChange={() => refetch()}
+            onComplete={() => {
+              console.log('📊 Migration onComplete - invalidating cache and refetching');
+              // Force complete cache invalidation to show fresh data
+              queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+              refetch();
+            }}
+            onDataChange={() => {
+              console.log('📊 Migration onDataChange - invalidating cache and refetching');
+              // Force complete cache invalidation to show fresh data
+              queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+              refetch();
+            }}
           />
         </div>
 
