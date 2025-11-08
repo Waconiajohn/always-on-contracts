@@ -71,6 +71,13 @@ export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Advanced Tools</h3>
               <div className="space-y-4">
+                <VaultNuclearReset
+                  vaultId={vaultId}
+                  resumeText={vault?.resume_raw_text || ''}
+                  targetRoles={vault?.target_roles || []}
+                  targetIndustries={vault?.target_industries || []}
+                  onResetComplete={onRefresh}
+                />
                 <VaultMigrationTool
                   vaultId={vaultId}
                   resumeText={vault?.resume_raw_text || ''}
@@ -79,13 +86,6 @@ export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView
                 />
                 <FreshnessManager vaultId={vaultId} />
                 <AutoDuplicateCleanup vaultId={vaultId} onCleanupComplete={onRefresh} />
-                <VaultNuclearReset
-                  vaultId={vaultId}
-                  resumeText={vault?.resume_raw_text || ''}
-                  targetRoles={vault?.target_roles || []}
-                  targetIndustries={vault?.target_industries || []}
-                  onResetComplete={onRefresh}
-                />
               </div>
             </Card>
           </div>

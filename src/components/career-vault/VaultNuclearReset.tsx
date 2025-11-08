@@ -26,7 +26,7 @@ export const VaultNuclearReset = ({
 
   const clearVaultAndReExtract = async () => {
     setIsResetting(true);
-    
+
     try {
       // 1. Delete ALL vault items from all 10 tables
       const deletePromises = VAULT_TABLE_NAMES.map(async (tableName) => {
@@ -50,10 +50,16 @@ export const VaultNuclearReset = ({
       });
 
       await Promise.all(deletePromises);
-      
-      toast.success('Vault cleared successfully');
 
-      // 2. Trigger v3 extraction
+      // 2. Delete gap analysis data (cached analysis from before AI extraction fix)
+      await supabase
+        .from('vault_gap_analysis')
+        .delete()
+        .eq('vault_id', vaultId);
+
+      toast.success('Vault and gap analysis cleared successfully');
+
+      // 3. Trigger v3 extraction with AI-based analysis
       const { error: extractError } = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: { 
           resumeText,
@@ -86,7 +92,7 @@ export const VaultNuclearReset = ({
           Nuclear Reset
         </CardTitle>
         <CardDescription>
-          Delete ALL vault items and re-extract cleanly with v3
+          Delete ALL vault items, gap analysis, and re-extract cleanly with AI-powered v3
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -114,13 +120,18 @@ export const VaultNuclearReset = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all {VAULT_TABLE_NAMES.length} vault tables 
-                and re-extract everything from your resume using v3. 
+                This will permanently delete:
+                <ul className="list-disc list-inside mt-2 mb-2">
+                  <li>All {VAULT_TABLE_NAMES.length} vault item tables</li>
+                  <li>All gap analysis data (cached blockers)</li>
+                </ul>
+                Then re-extract everything from your resume using AI-powered v3.
                 <br /><br />
                 This action cannot be undone.
                 <br /><br />
                 <strong>Use this to fix:</strong>
                 <ul className="list-disc list-inside mt-2">
+                  <li>Cached blockers showing despite management experience</li>
                   <li>Massive duplicates</li>
                   <li>Wrong categorization (management in wrong table)</li>
                   <li>Poor quality extractions from v2</li>
