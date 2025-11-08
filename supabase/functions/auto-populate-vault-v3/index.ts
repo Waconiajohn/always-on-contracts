@@ -931,6 +931,9 @@ async function populateCareerContextCache(
 
     // Extract education details
     const hasEducation = educationCount > 0 || (vault?.formal_education?.length > 0);
+    const educationLevel = vault?.formal_education?.[0]?.degree || null;
+    const educationField = vault?.formal_education?.[0]?.major || null;
+    const certificationsList = vault?.certifications || [];
 
     // Build cache entry
     const cacheData = {
@@ -950,6 +953,10 @@ async function populateCareerContextCache(
       has_budget_ownership: hasBudget,
       budget_details: budgetInfo.join(', '),
       budget_sizes_managed: [],
+      // Education (CRITICAL: These fields must be populated or gap questions will ask about degree!)
+      education_level: educationLevel,
+      education_field: educationField,
+      certifications: certificationsList,
       // Work characteristics
       company_sizes: [],
       technical_depth: 70,
@@ -960,7 +967,7 @@ async function populateCareerContextCache(
       // Career trajectory
       next_likely_role: '',
       career_archetype: 'specialist',
-      ai_reasoning: `Populated by AI extraction v3. Management: ${hasManagement}, Education: ${hasEducation}, Budget: ${hasBudget}`,
+      ai_reasoning: `Populated by AI extraction v3. Management: ${hasManagement}, Education: ${hasEducation} (${educationLevel} in ${educationField}), Budget: ${hasBudget}`,
     };
 
     // Upsert into cache
@@ -975,9 +982,10 @@ async function populateCareerContextCache(
 
     console.log(`✅ Career context cache populated:
       - Management: ${hasManagement}
-      - Education: ${hasEducation}
+      - Education: ${hasEducation} (${educationLevel} in ${educationField})
       - Budget: ${hasBudget}
-      - Team sizes: [${teamSizes.join(', ')}]`);
+      - Team sizes: [${teamSizes.join(', ')}]
+      - Certifications: [${certificationsList.join(', ')}]`);
 
   } catch (error) {
     console.error('❌ Error in populateCareerContextCache:', error);
