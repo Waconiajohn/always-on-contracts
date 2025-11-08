@@ -7,6 +7,7 @@ import { AutoDuplicateCleanup } from '../AutoDuplicateCleanup';
 import { VaultNuclearReset } from '../VaultNuclearReset';
 import { VaultMigrationTool } from '../VaultMigrationTool';
 import { MilestoneManager } from '../MilestoneManager';
+import { CategoryRegenerateButton } from '../CategoryRegenerateButton';
 import { Card } from '@/components/ui/card';
 import {
   VaultItemsTableSkeleton,
@@ -67,6 +68,57 @@ export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView
         <Suspense fallback={<VaultSettingsSkeleton />}>
           <div className="space-y-6 animate-fade-in">
             <MilestoneManager vaultId={vaultId} />
+            
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-2">AI Regeneration Tools</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Regenerate specific categories with improved AI prompts for better quality extractions
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">Leadership Philosophy</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {vaultData?.leadershipPhilosophy?.length || 0} items
+                    </p>
+                  </div>
+                  <CategoryRegenerateButton
+                    category="leadership"
+                    vaultId={vaultId}
+                    resumeText={vault?.resume_raw_text || ''}
+                    onComplete={onRefresh}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">Soft Skills</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {vaultData?.softSkills?.length || 0} items
+                    </p>
+                  </div>
+                  <CategoryRegenerateButton
+                    category="soft_skills"
+                    vaultId={vaultId}
+                    resumeText={vault?.resume_raw_text || ''}
+                    onComplete={onRefresh}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">Executive Presence</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {vaultData?.executivePresence?.length || 0} items
+                    </p>
+                  </div>
+                  <CategoryRegenerateButton
+                    category="executive_presence"
+                    vaultId={vaultId}
+                    resumeText={vault?.resume_raw_text || ''}
+                    onComplete={onRefresh}
+                  />
+                </div>
+              </div>
+            </Card>
             
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Advanced Tools</h3>
