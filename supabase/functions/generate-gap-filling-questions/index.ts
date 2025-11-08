@@ -105,6 +105,14 @@ serve(async (req) => {
       .single();
 
     if (cachedContext && !contextError) {
+      console.log('[GAP QUESTIONS] ✅ Cache hit - using verified career context');
+      console.log('[GAP QUESTIONS] Cache data:', {
+        hasManagement: cachedContext.has_management_experience,
+        hasBudget: cachedContext.has_budget_ownership,
+        hasEducation: !!cachedContext.education_level,
+        identifiedGaps: cachedContext.identified_gaps?.length || 0
+      });
+      
       careerContext = {
         hasManagementExperience: cachedContext.has_management_experience,
         managementDetails: cachedContext.management_details,
@@ -151,7 +159,10 @@ serve(async (req) => {
       
       console.log('[GAP QUESTIONS] ✅ Using cached career context with', verifiedAreas.length, 'verified areas and', gapAreas.length, 'gaps');
     } else {
-      console.warn('[GAP QUESTIONS] ⚠️ No cached context found, using fallback');
+      console.warn('[GAP QUESTIONS] ⚠️ Cache miss - vault may need re-extraction');
+      console.warn('[GAP QUESTIONS] Context error:', contextError);
+      console.warn('[GAP QUESTIONS] Vault ID:', vaultData.vault_id);
+      console.warn('[GAP QUESTIONS] This will result in verification questions instead of enhancement questions');
       careerContext = {
         hasManagementExperience: false,
         managementDetails: 'Context not yet analyzed',

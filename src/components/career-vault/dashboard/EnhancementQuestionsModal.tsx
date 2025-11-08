@@ -111,9 +111,9 @@ export function EnhancementQuestionsModal({
       // Generate gap-filling questions
       const { data, error } = await supabase.functions.invoke('generate-gap-filling-questions', {
         body: {
-          vaultId,
           resumeText: vaultData?.resume_raw_text || '',
           vaultData: {
+            vault_id: vaultId, // ✅ Fixed: moved inside vaultData for cache lookup
             powerPhrases: powerPhrases.data || [],
             transferableSkills: skills.data || [],
             hiddenCompetencies: competencies.data || [],
