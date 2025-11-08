@@ -208,6 +208,11 @@ export default function AutoPopulationProgress({
                 </div>
               </div>
 
+              {/* Real-time percentage counter */}
+              <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse">
+                {overallProgress}%
+              </div>
+
               <div>
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">
                   {currentPhase}
@@ -218,10 +223,6 @@ export default function AutoPopulationProgress({
               </div>
 
               <Progress value={overallProgress} className="max-w-md mx-auto h-3" />
-
-              <div className="text-sm font-medium text-purple-600">
-                {overallProgress}% Complete
-              </div>
             </div>
 
             {/* Category Progress Grid */}

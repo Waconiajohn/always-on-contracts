@@ -206,6 +206,11 @@ export default function IndustryResearchProgress({
                 </div>
               </div>
 
+              {/* Real-time percentage counter */}
+              <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-pulse">
+                {researchProgress}%
+              </div>
+
               <div>
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">
                   {currentPhase}
@@ -217,10 +222,6 @@ export default function IndustryResearchProgress({
               </div>
 
               <Progress value={researchProgress} className="max-w-md mx-auto h-3" />
-
-              <div className="text-sm font-medium text-blue-600">
-                {researchProgress}% Complete
-              </div>
             </div>
 
             {/* Fun Fact Rotation */}
