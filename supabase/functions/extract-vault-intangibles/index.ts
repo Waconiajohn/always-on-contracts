@@ -94,7 +94,12 @@ Use this to infer intangible qualities.
     const targetRole = vault?.target_roles?.[0] || 'Not specified';
     const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
 
-    const leadershipPrompt = `You are an executive coach analyzing leadership philosophy from resume evidence.
+    const leadershipPrompt = `You are an executive coach inferring UNSPOKEN leadership philosophy from resume evidence.
+
+CRITICAL: The candidate won't say "I'm a servant leader" on their resume. INFER it from:
+- HOW they describe their wins (team-first vs. I-focused language)
+- What they PRIORITIZE (growth vs. efficiency vs. innovation)
+- Team outcomes (high retention = trust, fast growth = talent magnet)
 
 ${vaultContext}
 
@@ -104,33 +109,34 @@ ${resumeText}
 TARGET ROLE: ${targetRole}
 TARGET INDUSTRY: ${targetIndustry}
 
-TASK: Infer leadership philosophy AND analyze industry fit for interview prep and LinkedIn.
+EXAMPLES OF INFERENCE (NOT RESTATEMENT):
 
-Look for evidence of:
-- How they build and develop teams
-- Their approach to decision-making
-- Management philosophy (servant leadership, command-and-control, collaborative, etc.)
-- Core leadership principles
-- Real-world applications of their philosophy
+Resume: "Grew engineering team from 12 to 45 in 18 months with 92% retention"
+❌ BAD: "Believes in team growth"
+✅ GOOD: "Talent magnet with retention mastery - built high-trust culture that attracts and retains A-players. Philosophy: Invest in people, create autonomy, and they'll deliver beyond expectations."
+Industry fit: Strong fit for ${targetIndustry} - retention stats prove leadership effectiveness
+
+Resume: "Delivered 8 consecutive quarters ahead of roadmap"
+❌ BAD: "Results-oriented leader"
+✅ GOOD: "Execution-obsessed with sustainable velocity - balances speed with quality. Philosophy: Under-promise, over-deliver, and build team pride through consistent wins."
+LinkedIn angle: "Why 'move fast and break things' fails at scale - a case for disciplined execution"
 
 RETURN VALID JSON ONLY:
 {
   "leadershipPhilosophy": [
     {
-      "philosophyStatement": "Believes in servant leadership and empowering teams through autonomy",
-      "leadershipStyle": "Collaborative, coaching-oriented",
-      "realWorldApplication": "Built high-performing teams by delegating authority and providing mentorship",
-      "corePrinciples": ["Empower others", "Lead by example", "Data-informed decisions"],
+      "philosophyStatement": "INFERRED philosophy statement (not stated in resume)",
+      "leadershipStyle": "Specific style inferred from actions",
+      "realWorldApplication": "How this manifests in their work",
+      "corePrinciples": ["Principle 1", "Principle 2"],
       "confidenceScore": 0.80,
-      "inferredFrom": "Team growth achievements and language used in experience section",
-      
-      // NEW FIELDS for interview prep & LinkedIn
-      "alignmentWithIndustryNorms": "Strong fit for ${targetIndustry} - collaborative approach valued in tech",
+      "inferredFrom": "Specific evidence that led to this inference",
+      "alignmentWithIndustryNorms": "How this fits ${targetIndustry} expectations",
       "behavioralInterviewExamples": [
-        "Tell me about a time you empowered a struggling team member",
-        "Describe your approach to building high-performing teams"
+        "Interview question 1 based on this philosophy",
+        "Interview question 2"
       ],
-      "linkedinAngle": "Why micromanagement fails in high-growth tech companies"
+      "linkedinAngle": "Thought leadership topic for LinkedIn"
     }
   ]
 }`;

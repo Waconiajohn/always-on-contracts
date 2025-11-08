@@ -357,35 +357,41 @@ function getExtractionFunction(
 function buildBasePrompt(passType: string, resumeText: string): string {
   switch (passType) {
     case 'power_phrases':
-      return `Extract quantified achievements and management scope from this resume.
+      return `You are a quantification expert. Extract achievements and CALCULATE additional metrics the candidate forgot.
+
+CRITICAL RULES:
+1. DO NOT just copy resume phrases - ENHANCE them with calculations
+2. CALCULATE derived metrics (person-years = team size × tenure, ROI, cost savings estimates)
+3. ADD industry context for scale when possible
+4. If the resume says "Managed 20-person team" - calculate estimated payroll responsibility ($3M+ at $150K avg)
+5. If it says "Reduced costs 30%" - estimate dollar savings based on typical budgets
 
 CRITICAL: Return ONLY a valid JSON array with NO markdown, NO explanations, NO code blocks.
 
 Required structure for each power phrase:
 {
-  "phrase": "Full achievement statement with quantified metrics",
+  "phrase": "ENHANCED achievement with calculated metrics",
   "category": "Leadership|Management|Technical|Business|Process",
   "impact_metrics": {
-    "metric_name": "value with units",
+    "metric_name": "value with units (include calculated estimates)",
     "metric_name2": "value2"
   },
   "keywords": ["keyword1", "keyword2"],
   "confidence_score": 0.8
 }
 
-Example output:
-[
-  {
-    "phrase": "Directed drilling engineering team managing $350M annual budget and overseeing operations of 3-4 rigs",
-    "category": "Leadership",
-    "impact_metrics": {
-      "budget": "$350M",
-      "team_scope": "3-4 rigs"
-    },
-    "keywords": ["directed", "managing", "overseeing", "leadership"],
-    "confidence_score": 0.9
-  }
-]
+GOOD EXAMPLES:
+Resume: "Managed 20-person engineering team"
+❌ BAD: "Managed 20-person team"
+✅ GOOD: "Led 20-person engineering team (estimated $3M+ payroll responsibility at $150K average compensation)"
+
+Resume: "Reduced infrastructure costs by 30%"
+❌ BAD: "Reduced costs 30%"
+✅ GOOD: "Reduced infrastructure costs 30% through cloud optimization (estimated $450K annual savings on typical $1.5M cloud spend for 50-person eng team)"
+
+Resume: "Launched 3 products in 18 months"
+❌ BAD: "Launched 3 products"
+✅ GOOD: "Shipped 3 products in 18 months (2X industry average velocity - typical: 1 product/year in enterprise SaaS)"
 
 Resume:
 ${resumeText}`;
@@ -407,14 +413,26 @@ Resume:
 ${resumeText}`;
 
     case 'competencies':
-      return `Extract hidden competencies and capabilities from this resume.
+      return `You are a competency detective. Find skills the candidate DEMONSTRATED but never explicitly named.
+
+CRITICAL: Only extract if NOT explicitly stated in resume. Find HIDDEN competencies.
+
+GOOD HIDDEN COMPETENCIES (inferred from actions):
+- "Scaled system 10x with zero downtime" → HIDDEN: Capacity planning, chaos engineering, SRE practices
+- "Negotiated vendor contracts saving 40%" → HIDDEN: Contract negotiation, financial modeling, competitive analysis  
+- "Built team from 5 to 50 in 2 years with <10% attrition" → HIDDEN: Talent acquisition strategy, retention strategy, comp design
+
+BAD (these are STATED, not hidden):
+- "Python experience" → Stated skill, not hidden
+- "Led cross-functional teams" → Stated, not hidden
+- "Project management" → Stated, not hidden
 
 CRITICAL: Return ONLY a valid JSON array with NO markdown, NO explanations, NO code blocks.
 
 Required structure:
 {
   "competency_area": "Category of competency",
-  "inferred_capability": "What capability this demonstrates",
+  "inferred_capability": "What HIDDEN capability this demonstrates (NOT stated in resume)",
   "evidence_source": "Where in resume this is shown",
   "confidence_score": 0.75
 }
