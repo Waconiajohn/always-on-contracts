@@ -52,7 +52,7 @@ export function AIProgressIndicator({ stages, onComplete }: AIProgressIndicatorP
       </div>
 
       <div className="space-y-3">
-        {stageStatuses.map((stage, index) => (
+        {stageStatuses.map((stage) => (
           <div key={stage.id} className="flex items-center gap-3">
             <div className="flex-shrink-0">
               {stage.status === 'complete' ? (

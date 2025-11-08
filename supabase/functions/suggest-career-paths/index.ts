@@ -36,12 +36,12 @@ interface SuggestedRole {
   title: string;
   reasoning: string;
   matchScore: number; // 0-1
-  matchBreakdown: {
+  matchBreakdown?: {
     technicalSkills: number; // 0-1
     leadership: number; // 0-1
     industryAlignment: number; // 0-1
   };
-  resumeEvidence: string[]; // Quotes from resume that support this match
+  resumeEvidence?: string[]; // Quotes from resume that support this match
   skillsAlignment: string[];
   skillsGap: string[];
   marketDemand: 'high' | 'medium' | 'low';
