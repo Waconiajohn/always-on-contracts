@@ -36,6 +36,12 @@ interface SuggestedRole {
   title: string;
   reasoning: string;
   matchScore: number; // 0-1
+  matchBreakdown: {
+    technicalSkills: number; // 0-1
+    leadership: number; // 0-1
+    industryAlignment: number; // 0-1
+  };
+  resumeEvidence: string[]; // Quotes from resume that support this match
   skillsAlignment: string[];
   skillsGap: string[];
   marketDemand: 'high' | 'medium' | 'low';
@@ -178,6 +184,16 @@ RETURN VALID JSON ONLY:
       "title": "VP of Engineering",
       "reasoning": "Natural progression from Director role with strong technical leadership",
       "matchScore": 0.95,
+      "matchBreakdown": {
+        "technicalSkills": 0.98,
+        "leadership": 0.95,
+        "industryAlignment": 0.92
+      },
+      "resumeEvidence": [
+        "$350M budget management demonstrates executive-level financial responsibility",
+        "Led team across 3-4 rigs shows multi-site leadership capability",
+        "20% BHA failure reduction proves operational excellence"
+      ],
       "skillsAlignment": ["Technical leadership", "Team scaling", "Architecture"],
       "skillsGap": ["Board-level communication", "P&L management"],
       "marketDemand": "high",
@@ -195,6 +211,8 @@ RETURN VALID JSON ONLY:
   ],
   "marketInsights": "2-3 sentence summary of current market trends relevant to this person"
 }
+
+CRITICAL: For each role, EXTRACT 2-3 SPECIFIC QUOTES from the user's achievements that prove the match. Use exact phrases or numbers from their background.
 
 NO MARKDOWN. ONLY JSON.`,
           },

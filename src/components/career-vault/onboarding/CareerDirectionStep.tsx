@@ -29,10 +29,12 @@ import {
   X,
   Loader2,
   ArrowRight,
-  Zap
+  Zap,
+  Quote
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseClient } from '@/hooks/useAuth';
+import { AIProgressIndicator } from './AIProgressIndicator';
 
 interface CareerDirectionStepProps {
   onComplete: (data: {
@@ -250,17 +252,17 @@ export default function CareerDirectionStep({
           </div>
         )}
 
-        {/* Loading suggestions */}
+        {/* Loading suggestions with progress indicator */}
         {careerDirection && isLoadingSuggestions && (
-          <div className="text-center py-12">
-            <Loader2 className="w-12 h-12 text-purple-600 mx-auto animate-spin mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              AI Analyzing Career Paths...
-            </h3>
-            <p className="text-slate-600 max-w-md mx-auto">
-              We're analyzing thousands of career transitions to find the best matches for your
-              background and {careerDirection === 'stay' ? 'advancement goals' : careerDirection === 'pivot' ? 'pivot goals' : 'exploration goals'}...
-            </p>
+          <div className="py-8">
+            <AIProgressIndicator
+              stages={[
+                { id: 'extract', label: 'Extracting your key achievements and skills', duration: 2000 },
+                { id: 'analyze', label: 'Analyzing 10,000+ career transitions', duration: 2500 },
+                { id: 'match', label: 'Matching your background to opportunities', duration: 2000 },
+                { id: 'score', label: 'Calculating match scores and evidence', duration: 1500 },
+              ]}
+            />
           </div>
         )}
 
@@ -451,31 +453,87 @@ function RoleSuggestionCard({
   onToggle: () => void;
 }) {
   const matchPercentage = Math.round(role.matchScore * 100);
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div
-      onClick={onToggle}
-      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+      className={`border-2 rounded-lg transition-all ${
         isSelected
           ? 'border-blue-500 bg-blue-50 shadow-md'
           : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
       }`}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-start gap-2">
-          <Checkbox checked={isSelected} className="mt-1" />
-          <div>
-            <h4 className="font-semibold text-slate-900">{role.title}</h4>
-            <p className="text-xs text-slate-600 mt-1">{role.reasoning}</p>
+      <div onClick={onToggle} className="p-4 cursor-pointer">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start gap-2">
+            <Checkbox checked={isSelected} className="mt-1" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-slate-900">{role.title}</h4>
+              <p className="text-xs text-slate-600 mt-1">{role.reasoning}</p>
+            </div>
           </div>
+          <Badge
+            variant={matchPercentage >= 80 ? 'default' : matchPercentage >= 60 ? 'secondary' : 'outline'}
+            className="ml-2 flex-shrink-0"
+          >
+            {matchPercentage}% match
+          </Badge>
         </div>
-        <Badge
-          variant={matchPercentage >= 80 ? 'default' : matchPercentage >= 60 ? 'secondary' : 'outline'}
-          className="ml-2"
-        >
-          {matchPercentage}% match
-        </Badge>
+
+        {/* Match Score Breakdown */}
+        {role.matchBreakdown && (
+          <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+            <p className="text-xs font-medium text-slate-700">Match Breakdown:</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-600">
+                  {Math.round(role.matchBreakdown.technicalSkills * 100)}%
+                </div>
+                <div className="text-xs text-slate-600">Technical</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">
+                  {Math.round(role.matchBreakdown.leadership * 100)}%
+                </div>
+                <div className="text-xs text-slate-600">Leadership</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {Math.round(role.matchBreakdown.industryAlignment * 100)}%
+                </div>
+                <div className="text-xs text-slate-600">Industry</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* AI Evidence Section */}
+      {role.resumeEvidence && role.resumeEvidence.length > 0 && (
+        <div className="px-4 pb-4">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDetails(!showDetails);
+            }}
+            className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+          >
+            <Quote className="w-3 h-3" />
+            {showDetails ? 'Hide' : 'Show'} AI Evidence from Your Resume
+          </button>
+
+          {showDetails && (
+            <div className="mt-2 space-y-1.5 bg-purple-50 rounded-lg p-3 border border-purple-200">
+              {role.resumeEvidence.map((evidence: string, idx: number) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-600 mt-1.5 flex-shrink-0" />
+                  <p className="text-xs text-slate-700 italic">"{evidence}"</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
