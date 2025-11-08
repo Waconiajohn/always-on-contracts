@@ -148,14 +148,16 @@ const VaultDashboardContent = () => {
   const marketRank = calculateMarketRank(stats?.strengthScore.total || 0);
   const unverifiedItems = stats ? (stats.totalItems - stats.qualityDistribution.gold - stats.qualityDistribution.silver - stats.qualityDistribution.bronze) : 0;
 
-  // Detect blockers (only critical severity shown in main area)
+  // Detect blockers - these indicate high-priority enhancement questions needed
+  // Blocker alerts are no longer shown - gaps are addressed through enhancement questions
   const allBlockers = detectCareerBlockers({
     strengthScore: stats?.strengthScore.total || 0,
     leadershipItems: (vaultData?.leadershipPhilosophy?.length || 0) + (vaultData?.executivePresence?.length || 0),
     budgetOwnership: vaultData?.careerContext?.has_budget_ownership || false,
     targetRoles: vaultData?.userProfile?.target_roles || [],
   });
-  const criticalBlockers = allBlockers.filter(b => b.severity === 'critical');
+  // Hide blocker UI - blockers are prioritized in enhancement questions instead
+  const criticalBlockers: typeof allBlockers = [];
 
   // Calculate days since last action for SmartNudge
   const calculateDaysSinceLastAction = () => {

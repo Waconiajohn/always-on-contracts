@@ -21,6 +21,11 @@ import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
+import {
+  analyzeManagementExperience,
+  analyzeEducation,
+  analyzeCareerContext
+} from '../_shared/extraction/career-analysis-extractor.ts';
 
 interface AutoPopulateRequest {
   resumeText: string;
@@ -156,19 +161,45 @@ serve(async (req) => {
       else console.log(`✅ Stored ${powerPhrasesInserts.length} power phrases`);
 
       // ========================================================================
-      // CATEGORIZE MANAGEMENT EVIDENCE (Fix blocker detection)
+      // AI-BASED MANAGEMENT & EDUCATION ANALYSIS (Replaces regex categorization)
       // ========================================================================
-      const managementCount = await categorizeManagementEvidence(
+      const managementCount = await analyzeAndStoreManagementExperience(
         supabase,
         vaultId,
         userId,
-        result.extracted.powerPhrases,
+        resumeText,
         result.sessionId,
         result.validation.overallConfidence
       );
 
       if (managementCount > 0) {
-        console.log(`✅ Categorized ${managementCount} management evidence items into leadership table`);
+        console.log(`✅ AI analyzed and stored ${managementCount} management evidence items`);
+      }
+
+      // Extract education data (degrees, certifications)
+      const educationCount = await analyzeAndStoreEducation(
+        supabase,
+        vaultId,
+        userId,
+        resumeText,
+        result.sessionId
+      );
+
+      if (educationCount > 0) {
+        console.log(`✅ AI analyzed and stored ${educationCount} education items`);
+      }
+
+      // Extract career context (industries, specializations, years of experience)
+      const contextStored = await analyzeAndStoreCareerContext(
+        supabase,
+        vaultId,
+        userId,
+        resumeText,
+        result.sessionId
+      );
+
+      if (contextStored) {
+        console.log(`✅ AI analyzed and stored career context`);
       }
     }
 
@@ -601,56 +632,182 @@ async function clearVaultData(supabase: any, vaultId: string): Promise<CleanupRe
 }
 
 // ========================================================================
-// MANAGEMENT EVIDENCE CATEGORIZATION (Fix Blocker Detection)
+// AI-BASED MANAGEMENT & EDUCATION ANALYSIS (Replaces Regex)
 // ========================================================================
 
-async function categorizeManagementEvidence(
+async function analyzeAndStoreManagementExperience(
   supabase: any,
   vaultId: string,
   userId: string,
-  powerPhrases: any[],
+  resumeText: string,
   sessionId: string,
   overallConfidence: number
 ): Promise<number> {
-  // Management keywords to identify leadership evidence
-  const managementKeywords = /\b(manage|managed|managing|manager|supervis|supervised|supervising|supervisor|led|leading|lead|team|direct|directed|directing|oversee|oversaw|overseeing|budget|p&l|headcount|report|reports|reporting)\b/i;
+  console.log('🧠 Running AI-based management experience analysis...');
 
-  // Find phrases with management evidence
-  const managementPhrases = powerPhrases.filter((pp: any) => {
-    const phrase = pp.phrase || pp.power_phrase || '';
-    return managementKeywords.test(phrase);
-  });
+  try {
+    // Call AI-based semantic analysis (NO regex)
+    const managementAnalysis = await analyzeManagementExperience(resumeText, userId);
 
-  if (managementPhrases.length === 0) {
-    console.log('No management evidence found in power phrases');
+    if (!managementAnalysis.hasManagementExperience) {
+      console.log('ℹ️ No management experience detected by AI analysis');
+      return 0;
+    }
+
+    console.log(`✅ AI detected management experience:
+      - Level: ${managementAnalysis.managementLevel}
+      - Team size: ${managementAnalysis.teamSize || 'not specified'}
+      - Budget: ${managementAnalysis.budgetAmount || 'not specified'}
+      - Direct reports: ${managementAnalysis.directReports || 'not specified'}
+      - Confidence: ${Math.round(managementAnalysis.confidence * 100)}%`);
+
+    // Create leadership philosophy entries from evidence quotes
+    const leadershipInserts = managementAnalysis.evidenceQuotes.map((quote: string, index: number) => ({
+      vault_id: vaultId,
+      user_id: userId,
+      leadership_area: managementAnalysis.managementLevel.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      philosophy_statement: quote,
+      evidence_source: `AI extracted: ${managementAnalysis.jobTitles[index] || 'Management role'}`,
+      quality_tier: managementAnalysis.confidence >= 0.8 ? 'verified' : 'assumed',
+      confidence_score: managementAnalysis.confidence,
+      extraction_session_id: sessionId,
+      extraction_metadata: {
+        extractionVersion: 'v3-ai',
+        confidence: overallConfidence,
+        aiAnalyzed: true,
+        managementLevel: managementAnalysis.managementLevel,
+        teamSize: managementAnalysis.teamSize,
+        budgetAmount: managementAnalysis.budgetAmount,
+        directReports: managementAnalysis.directReports,
+        yearsInManagement: managementAnalysis.yearsInManagement,
+      },
+    }));
+
+    if (leadershipInserts.length === 0) {
+      console.log('ℹ️ No leadership evidence quotes to store');
+      return 0;
+    }
+
+    const { error: leadershipError } = await supabase
+      .from('vault_leadership_philosophy')
+      .insert(leadershipInserts);
+
+    if (leadershipError) {
+      console.error('❌ Error inserting leadership evidence:', leadershipError);
+      return 0;
+    }
+
+    console.log(`✅ Stored ${leadershipInserts.length} AI-analyzed management evidence items`);
+    return leadershipInserts.length;
+
+  } catch (error) {
+    console.error('❌ Error in AI management analysis:', error);
     return 0;
   }
+}
 
-  // Store in vault_leadership_philosophy table
-  const leadershipInserts = managementPhrases.map((pp: any) => ({
-    vault_id: vaultId,
-    user_id: userId,
-    leadership_area: 'Management Scope',
-    philosophy_statement: pp.phrase || pp.power_phrase,
-    evidence_source: 'AI extracted from resume (auto-categorized from power phrases)',
-    quality_tier: pp.quality_tier || 'assumed',
-    confidence_score: pp.confidence_score || pp.confidenceScore || 0.8,
-    extraction_session_id: sessionId,
-    extraction_metadata: {
-      extractionVersion: 'v3',
-      confidence: overallConfidence,
-      autoCategorized: true,
-    },
-  }));
+async function analyzeAndStoreEducation(
+  supabase: any,
+  vaultId: string,
+  userId: string,
+  resumeText: string,
+  sessionId: string
+): Promise<number> {
+  console.log('🎓 Running AI-based education analysis...');
 
-  const { error: leadershipError } = await supabase
-    .from('vault_leadership_philosophy')
-    .insert(leadershipInserts);
+  try {
+    // Call AI-based education extraction (NO regex)
+    const educationAnalysis = await analyzeEducation(resumeText, userId);
 
-  if (leadershipError) {
-    console.error('Error inserting leadership evidence:', leadershipError);
+    if (educationAnalysis.degrees.length === 0 && educationAnalysis.certifications.length === 0) {
+      console.log('ℹ️ No formal education or certifications detected');
+      return 0;
+    }
+
+    console.log(`✅ AI detected education:
+      - Degrees: ${educationAnalysis.degrees.length}
+      - Certifications: ${educationAnalysis.certifications.length}
+      - Confidence: ${Math.round(educationAnalysis.confidence * 100)}%`);
+
+    // Update career_vault with education data
+    const educationData = {
+      formal_education: educationAnalysis.degrees.map(d => ({
+        degree: d.degree,
+        major: d.major,
+        institution: d.institution,
+        graduationYear: d.graduationYear,
+        honors: d.honors,
+      })),
+      certifications: educationAnalysis.certifications,
+      education_confidence: educationAnalysis.confidence,
+      education_analyzed_at: new Date().toISOString(),
+      education_session_id: sessionId,
+    };
+
+    const { error: updateError } = await supabase
+      .from('career_vault')
+      .update(educationData)
+      .eq('id', vaultId);
+
+    if (updateError) {
+      console.error('❌ Error updating education data:', updateError);
+      return 0;
+    }
+
+    const totalItems = educationAnalysis.degrees.length + educationAnalysis.certifications.length;
+    console.log(`✅ Stored ${totalItems} education items`);
+    return totalItems;
+
+  } catch (error) {
+    console.error('❌ Error in AI education analysis:', error);
     return 0;
   }
+}
 
-  return leadershipInserts.length;
+async function analyzeAndStoreCareerContext(
+  supabase: any,
+  vaultId: string,
+  userId: string,
+  resumeText: string,
+  sessionId: string
+): Promise<boolean> {
+  console.log('🎯 Running AI-based career context analysis...');
+
+  try {
+    // Call AI-based career context analysis (NO regex)
+    const careerContext = await analyzeCareerContext(resumeText, userId);
+
+    console.log(`✅ AI analyzed career context:
+      - Industries: ${careerContext.industries.join(', ')}
+      - Specializations: ${careerContext.specializations.join(', ')}
+      - Experience: ${careerContext.totalYearsExperience} years
+      - Confidence: ${Math.round(careerContext.confidence * 100)}%`);
+
+    // Update career_vault with context data
+    const contextData = {
+      detected_industries: careerContext.industries,
+      detected_specializations: careerContext.specializations,
+      total_years_experience: careerContext.totalYearsExperience,
+      career_context_confidence: careerContext.confidence,
+      career_context_analyzed_at: new Date().toISOString(),
+      career_context_session_id: sessionId,
+    };
+
+    const { error: updateError } = await supabase
+      .from('career_vault')
+      .update(contextData)
+      .eq('id', vaultId);
+
+    if (updateError) {
+      console.error('❌ Error updating career context:', updateError);
+      return false;
+    }
+
+    console.log(`✅ Stored career context analysis`);
+    return true;
+
+  } catch (error) {
+    console.error('❌ Error in AI career context analysis:', error);
+    return false;
+  }
 }
