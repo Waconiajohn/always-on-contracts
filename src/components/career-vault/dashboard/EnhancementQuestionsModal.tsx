@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { EnhancementQuestionsSkeleton } from './EnhancementQuestionsSkeleton';
 
 interface EnhancementQuestionsModalProps {
   open: boolean;
@@ -247,10 +248,7 @@ export function EnhancementQuestionsModal({
         </DialogHeader>
 
         {isLoading ? (
-          <div className="py-12 text-center space-y-3">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Analyzing gaps and generating questions...</p>
-          </div>
+          <EnhancementQuestionsSkeleton />
         ) : batches.length === 0 ? (
           <div className="py-8 text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 mx-auto text-green-600" />
@@ -261,7 +259,7 @@ export function EnhancementQuestionsModal({
             <Button onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             {/* Marketing Message */}
             <Alert className="border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
               <Sparkles className="w-4 h-4 text-blue-600" />

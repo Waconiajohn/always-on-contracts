@@ -237,7 +237,7 @@ export const VaultContentsTable = ({
   };
 
   return (
-    <Card className="p-6">
+    <Card className="p-6 animate-fade-in">
       <div className="space-y-4">
         {/* Filters & Search */}
         <div className="flex flex-col md:flex-row gap-4">

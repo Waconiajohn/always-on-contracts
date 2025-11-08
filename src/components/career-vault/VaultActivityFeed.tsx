@@ -81,7 +81,7 @@ export const VaultActivityFeed = ({ vaultId, limit = 7 }: VaultActivityFeedProps
   }
 
   return (
-    <Card>
+    <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
           <Activity className="h-4 w-4" />

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VaultContentsTable } from '../VaultContentsTable';
 import { VaultActivityFeed } from '../VaultActivityFeed';
@@ -7,6 +8,11 @@ import { VaultNuclearReset } from '../VaultNuclearReset';
 import { VaultMigrationTool } from '../VaultMigrationTool';
 import { MilestoneManager } from '../MilestoneManager';
 import { Card } from '@/components/ui/card';
+import {
+  VaultItemsTableSkeleton,
+  VaultActivityFeedSkeleton,
+  VaultSettingsSkeleton
+} from './VaultTabsSkeleton';
 
 interface VaultTabsProps {
   vaultId: string;
@@ -33,51 +39,57 @@ export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView
       </TabsList>
 
       <TabsContent value="items">
-        <VaultContentsTable
-          powerPhrases={vaultData.powerPhrases || []}
-          transferableSkills={vaultData.transferableSkills || []}
-          hiddenCompetencies={vaultData.hiddenCompetencies || []}
-          softSkills={vaultData.softSkills || []}
-          leadershipPhilosophy={vaultData.leadershipPhilosophy || []}
-          executivePresence={vaultData.executivePresence || []}
-          personalityTraits={vaultData.personalityTraits || []}
-          workStyle={vaultData.workStyle || []}
-          values={vaultData.values || []}
-          behavioralIndicators={vaultData.behavioralIndicators || []}
-          onEdit={onEdit}
-          onView={onView}
-        />
+        <Suspense fallback={<VaultItemsTableSkeleton />}>
+          <VaultContentsTable
+            powerPhrases={vaultData.powerPhrases || []}
+            transferableSkills={vaultData.transferableSkills || []}
+            hiddenCompetencies={vaultData.hiddenCompetencies || []}
+            softSkills={vaultData.softSkills || []}
+            leadershipPhilosophy={vaultData.leadershipPhilosophy || []}
+            executivePresence={vaultData.executivePresence || []}
+            personalityTraits={vaultData.personalityTraits || []}
+            workStyle={vaultData.workStyle || []}
+            values={vaultData.values || []}
+            behavioralIndicators={vaultData.behavioralIndicators || []}
+            onEdit={onEdit}
+            onView={onView}
+          />
+        </Suspense>
       </TabsContent>
 
       <TabsContent value="activity">
-        <VaultActivityFeed vaultId={vaultId} />
+        <Suspense fallback={<VaultActivityFeedSkeleton />}>
+          <VaultActivityFeed vaultId={vaultId} />
+        </Suspense>
       </TabsContent>
 
       <TabsContent value="settings">
-        <div className="space-y-6">
-          <MilestoneManager vaultId={vaultId} />
-          
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Advanced Tools</h3>
-            <div className="space-y-4">
-              <VaultMigrationTool
-                vaultId={vaultId}
-                resumeText={vault?.resume_raw_text || ''}
-                onComplete={onRefresh}
-                onDataChange={onRefresh}
-              />
-              <FreshnessManager vaultId={vaultId} />
-              <AutoDuplicateCleanup vaultId={vaultId} onCleanupComplete={onRefresh} />
-              <VaultNuclearReset
-                vaultId={vaultId}
-                resumeText={vault?.resume_raw_text || ''}
-                targetRoles={vault?.target_roles || []}
-                targetIndustries={vault?.target_industries || []}
-                onResetComplete={onRefresh}
-              />
-            </div>
-          </Card>
-        </div>
+        <Suspense fallback={<VaultSettingsSkeleton />}>
+          <div className="space-y-6 animate-fade-in">
+            <MilestoneManager vaultId={vaultId} />
+            
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Advanced Tools</h3>
+              <div className="space-y-4">
+                <VaultMigrationTool
+                  vaultId={vaultId}
+                  resumeText={vault?.resume_raw_text || ''}
+                  onComplete={onRefresh}
+                  onDataChange={onRefresh}
+                />
+                <FreshnessManager vaultId={vaultId} />
+                <AutoDuplicateCleanup vaultId={vaultId} onCleanupComplete={onRefresh} />
+                <VaultNuclearReset
+                  vaultId={vaultId}
+                  resumeText={vault?.resume_raw_text || ''}
+                  targetRoles={vault?.target_roles || []}
+                  targetIndustries={vault?.target_industries || []}
+                  onResetComplete={onRefresh}
+                />
+              </div>
+            </Card>
+          </div>
+        </Suspense>
       </TabsContent>
     </Tabs>
   );
