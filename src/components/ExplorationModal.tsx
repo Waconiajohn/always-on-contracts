@@ -23,7 +23,7 @@ export const ExplorationModal = ({
 
   const handleContinueSetup = () => {
     onClose();
-    navigate('/career-vault-onboarding');
+    navigate('/career-vault');
   };
 
   return (

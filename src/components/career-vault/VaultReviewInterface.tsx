@@ -332,7 +332,7 @@ export const VaultReviewInterface = ({
             description: 'Please upload a resume to populate your vault first.',
             variant: 'destructive'
           });
-          window.location.href = '/career-vault-onboarding';
+          window.location.href = '/career-vault';
         }
       } catch (error) {
         console.error('[VAULT_REVIEW] Error checking vault state:', error);

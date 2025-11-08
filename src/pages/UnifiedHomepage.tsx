@@ -72,7 +72,7 @@ const UnifiedHomeContent = () => {
       title: 'Career Vault',
       description: 'Build your intelligence foundation',
       icon: Target,
-      path: '/career-vault-onboarding',
+      path: '/career-vault',
       progress: vaultStats.vaultCompletion,
       order: 1,
       isLocked: false,

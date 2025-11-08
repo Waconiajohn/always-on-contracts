@@ -75,7 +75,7 @@ const CommandCenter = () => {
               icon: Package,
               completion: vaultComplete,
               lastActivity: null,
-              route: '/career-vault-onboarding',
+              route: '/career-vault',
               description: 'Upload resume & build intelligence (Required)',
               isLocked: false
             }

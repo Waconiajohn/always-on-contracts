@@ -42,8 +42,7 @@ const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
 const RedeemCode = lazy(() => import("./pages/RedeemCode"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
-const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboardV2"));
-const CareerVaultOnboarding = lazy(() => import("./pages/CareerVaultOnboarding"));
+const UnifiedCareerVault = lazy(() => import("./pages/UnifiedCareerVault"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
@@ -106,8 +105,8 @@ const AppContent = () => {
             <Route path="/redeem-retirement" element={<RedeemCode />} />
             <Route path="/admin" element={<ProtectedRoute><AdminPortal /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
-            <Route path="/career-vault" element={<ProtectedRoute><CareerVaultDashboard /></ProtectedRoute>} />
-            <Route path="/career-vault-onboarding" element={<ProtectedRoute><CareerVaultOnboarding /></ProtectedRoute>} />
+            <Route path="/career-vault" element={<ProtectedRoute><UnifiedCareerVault /></ProtectedRoute>} />
+            <Route path="/career-vault-onboarding" element={<Navigate to="/career-vault" replace />} />
             {/* Legacy redirects */}
             <Route path="/career-tools" element={<Navigate to="/home" replace />} />
             <Route path="/command-center" element={<Navigate to="/home" replace />} />

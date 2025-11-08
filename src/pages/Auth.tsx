@@ -38,15 +38,15 @@ const Auth = () => {
             if (error) {
               console.error('Error checking vault:', error);
               // If error, default to onboarding
-              navigate("/career-vault-onboarding");
+              navigate("/career-vault");
               return;
             }
             
             // If vault exists and has resume, go to home, otherwise start onboarding
-            navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
+            navigate(vault?.resume_raw_text ? "/home" : "/career-vault");
           } catch (err) {
             console.error('Unexpected error:', err);
-            navigate("/career-vault-onboarding");
+            navigate("/career-vault");
           }
         }, 0);
       }
@@ -65,14 +65,14 @@ const Auth = () => {
             
             if (error) {
               console.error('Error checking vault:', error);
-              navigate("/career-vault-onboarding");
+              navigate("/career-vault");
               return;
             }
             
-            navigate(vault?.resume_raw_text ? "/home" : "/career-vault-onboarding");
+            navigate(vault?.resume_raw_text ? "/home" : "/career-vault");
           } catch (err) {
             console.error('Unexpected error:', err);
-            navigate("/career-vault-onboarding");
+            navigate("/career-vault");
           }
         }, 0);
       }

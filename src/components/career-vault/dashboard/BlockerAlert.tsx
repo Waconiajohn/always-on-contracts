@@ -154,7 +154,7 @@ export function detectCareerBlockers(
       requiredItems: 5,
       currentItems: vaultData.leadershipItems,
       actionLabel: 'Add Management Experience',
-      actionRoute: '/career-vault-onboarding',
+      actionRoute: '/career-vault',
     });
   }
 
@@ -173,7 +173,7 @@ export function detectCareerBlockers(
       targetRoles: cSuiteRoles,
       impact: 'Blocks executive-level opportunities',
       actionLabel: 'Add Budget Experience',
-      actionRoute: '/career-vault-onboarding',
+      actionRoute: '/career-vault',
     });
   }
 

@@ -140,7 +140,7 @@ export const MarketRealityWidget = () => {
           {!isComplete ? (
             <>
               <Button 
-                onClick={() => navigate("/career-vault-onboarding")} 
+                onClick={() => navigate("/career-vault")} 
                 className="w-full"
                 size="lg"
               >

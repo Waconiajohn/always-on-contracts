@@ -115,7 +115,7 @@ const VaultDashboardContent = () => {
 
   // Mission callbacks (memoized to prevent infinite loops)
   const missionCallbacks = useMemo(() => ({
-    onVerifyAssumed: () => navigate('/career-vault-onboarding'),
+    onVerifyAssumed: () => navigate('/career-vault'),
     onAddMetrics: () => setAddMetricsModalOpen(true),
     onRefreshStale: handleReanalyze,
   }), [navigate, handleReanalyze]);

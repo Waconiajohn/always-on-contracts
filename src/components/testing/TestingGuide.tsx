@@ -44,7 +44,7 @@ const deploymentPhases: Phase[] = [
     priority: 'critical',
     status: 'pending',
     steps: [
-      'Navigate to /career-vault-onboarding',
+      'Navigate to /career-vault',
       'Upload test resume (PDF or DOCX)',
       'Verify upload succeeds without auth errors',
       'Confirm analysis completes in <10 seconds',

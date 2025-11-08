@@ -57,9 +57,35 @@ export const VaultNuclearReset = ({
         .delete()
         .eq('vault_id', vaultId);
 
-      toast.success('Vault and gap analysis cleared successfully');
+      // 3. Delete career context cache
+      await supabase
+        .from('vault_career_context')
+        .delete()
+        .eq('vault_id', vaultId);
 
-      // 3. Trigger v3 extraction with AI-based analysis
+      // 4. Delete new vault tables (thought leadership, network, competitive advantages)
+      await supabase.from('vault_thought_leadership').delete().eq('vault_id', vaultId);
+      await supabase.from('vault_professional_network').delete().eq('vault_id', vaultId);
+      await supabase.from('vault_competitive_advantages').delete().eq('vault_id', vaultId);
+
+      // 5. Reset career_vault metadata to zero state
+      await supabase
+        .from('career_vault')
+        .update({
+          onboarding_step: 'not_started',
+          review_completion_percentage: 0,
+          vault_strength_before_qa: null,
+          vault_strength_after_qa: null,
+          total_power_phrases: 0,
+          total_transferable_skills: 0,
+          total_hidden_competencies: 0,
+          extraction_item_count: 0,
+        })
+        .eq('id', vaultId);
+
+      toast.success('Vault completely cleared - ready for fresh extraction');
+
+      // 6. Trigger v3 extraction with AI-based analysis
       const { error: extractError } = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: { 
           resumeText,
