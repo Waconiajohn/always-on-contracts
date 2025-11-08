@@ -201,6 +201,15 @@ serve(async (req) => {
       if (contextStored) {
         console.log(`✅ AI analyzed and stored career context`);
       }
+
+      // Populate vault_career_context cache for gap-filling questions
+      await populateCareerContextCache(
+        supabase,
+        vaultId,
+        userId,
+        managementCount,
+        educationCount
+      );
     }
 
     // Store skills
@@ -875,5 +884,102 @@ async function analyzeAndStoreCareerContext(
   } catch (error) {
     console.error('❌ Error in AI career context analysis:', error);
     return false;
+  }
+}
+
+/**
+ * Populates vault_career_context cache for gap-filling questions
+ * This cache tells the enhancement question AI what's already verified
+ */
+async function populateCareerContextCache(
+  supabase: any,
+  vaultId: string,
+  userId: string,
+  managementCount: number,
+  educationCount: number
+): Promise<void> {
+  console.log('📦 Populating career context cache for gap-filling questions...');
+
+  try {
+    // Fetch leadership and education data
+    const { data: leadership } = await supabase
+      .from('vault_leadership_philosophy')
+      .select('*')
+      .eq('vault_id', vaultId);
+
+    const { data: vault } = await supabase
+      .from('career_vault')
+      .select('formal_education, certifications, detected_industries, total_years_experience')
+      .eq('id', vaultId)
+      .single();
+
+    // Extract management details from leadership data
+    const hasManagement = managementCount > 0;
+    const managementDetails = leadership?.map((l: any) => l.philosophy_statement).join('; ') || '';
+
+    // Extract team sizes from metadata
+    const teamSizes = leadership
+      ?.map((l: any) => l.extraction_metadata?.teamSize)
+      .filter((size: any) => size != null) || [];
+
+    // Extract budget info from metadata
+    const budgetInfo = leadership
+      ?.map((l: any) => l.extraction_metadata?.budgetAmount)
+      .filter((budget: any) => budget != null) || [];
+
+    const hasBudget = budgetInfo.length > 0;
+
+    // Extract education details
+    const hasEducation = educationCount > 0 || (vault?.formal_education?.length > 0);
+
+    // Build cache entry
+    const cacheData = {
+      vault_id: vaultId,
+      user_id: userId,
+      // Core career data
+      inferred_seniority: hasManagement ? 'Manager' : 'Mid-Level IC',
+      seniority_confidence: hasManagement ? 85 : 60,
+      years_of_experience: vault?.total_years_experience || 5,
+      // Management
+      has_management_experience: hasManagement,
+      management_details: managementDetails,
+      team_sizes_managed: teamSizes,
+      // Executive/Budget
+      has_executive_exposure: false,
+      executive_details: null,
+      has_budget_ownership: hasBudget,
+      budget_details: budgetInfo.join(', '),
+      budget_sizes_managed: [],
+      // Work characteristics
+      company_sizes: [],
+      technical_depth: 70,
+      leadership_depth: hasManagement ? 75 : 30,
+      strategic_depth: 50,
+      primary_responsibilities: [],
+      impact_scale: 'team',
+      // Career trajectory
+      next_likely_role: '',
+      career_archetype: 'specialist',
+      ai_reasoning: `Populated by AI extraction v3. Management: ${hasManagement}, Education: ${hasEducation}, Budget: ${hasBudget}`,
+    };
+
+    // Upsert into cache
+    const { error: cacheError } = await supabase
+      .from('vault_career_context')
+      .upsert(cacheData, { onConflict: 'vault_id' });
+
+    if (cacheError) {
+      console.error('❌ Error populating career context cache:', cacheError);
+      return;
+    }
+
+    console.log(`✅ Career context cache populated:
+      - Management: ${hasManagement}
+      - Education: ${hasEducation}
+      - Budget: ${hasBudget}
+      - Team sizes: [${teamSizes.join(', ')}]`);
+
+  } catch (error) {
+    console.error('❌ Error in populateCareerContextCache:', error);
   }
 }
