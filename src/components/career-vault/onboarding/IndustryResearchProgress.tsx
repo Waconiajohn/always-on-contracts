@@ -190,15 +190,19 @@ export default function IndustryResearchProgress({
           </AlertDescription>
         </Alert>
 
-        {/* Progress Animation */}
+        {/* Progress Animation - ALWAYS VISIBLE during research */}
         {!isComplete && (
           <div className="space-y-6">
             <div className="text-center space-y-4">
-              <div className="relative mx-auto w-24 h-24">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-ping opacity-20"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse opacity-40"></div>
-                <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 rounded-full w-24 h-24 flex items-center justify-center shadow-2xl">
-                  <Search className="w-12 h-12 text-white animate-pulse" />
+              {/* Animated pulsing loader */}
+              <div className="relative mx-auto w-28 h-28">
+                {/* Outer ping ring */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-75 animate-ping"></div>
+                {/* Middle pulse ring */}
+                <div className="absolute inset-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-75 animate-pulse"></div>
+                {/* Inner solid circle with icon */}
+                <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 rounded-full w-28 h-28 flex items-center justify-center shadow-2xl">
+                  <Loader2 className="w-14 h-14 text-white animate-spin" />
                 </div>
               </div>
 

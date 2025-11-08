@@ -192,15 +192,19 @@ export default function AutoPopulationProgress({
           </AlertDescription>
         </Alert>
 
-        {/* Overall Progress */}
+        {/* Overall Progress - ALWAYS VISIBLE during extraction */}
         {!isComplete && (
           <div className="space-y-4">
             <div className="text-center space-y-3">
-              <div className="relative mx-auto w-24 h-24">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full animate-ping opacity-20"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full animate-pulse opacity-40"></div>
-                <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 rounded-full w-24 h-24 flex items-center justify-center shadow-2xl">
-                  <Brain className="w-12 h-12 text-white animate-pulse" />
+              {/* Animated pulsing loader */}
+              <div className="relative mx-auto w-28 h-28">
+                {/* Outer ping ring */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-75 animate-ping"></div>
+                {/* Middle pulse ring */}
+                <div className="absolute inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 animate-pulse"></div>
+                {/* Inner solid circle with icon */}
+                <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 rounded-full w-28 h-28 flex items-center justify-center shadow-2xl">
+                  <Loader2 className="w-14 h-14 text-white animate-spin" />
                 </div>
               </div>
 
