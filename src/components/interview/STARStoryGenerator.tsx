@@ -24,6 +24,8 @@ interface STARStoryGeneratorProps {
 export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
   const [selectedPhrase, setSelectedPhrase] = useState<any>(null);
   const [powerPhrases, setPowerPhrases] = useState<any[]>([]);
+  const [softSkills, setSoftSkills] = useState<any[]>([]);
+  const [leadershipPhilosophy, setLeadershipPhilosophy] = useState<any>(null);
   const [competency, setCompetency] = useState('');
   const [story, setStory] = useState<STARStory | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -31,20 +33,40 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchPowerPhrases = async () => {
+    const fetchVaultData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
+      // Fetch power phrases
+      const { data: phrasesData } = await supabase
         .from('vault_power_phrases')
         .select('*')
         .eq('vault_id', vaultId)
         .order('impact_metrics', { ascending: false });
 
-      if (data) setPowerPhrases(data);
+      if (phrasesData) setPowerPhrases(phrasesData);
+
+      // Fetch soft skills with industry context
+      const { data: skillsData } = await supabase
+        .from('vault_soft_skills')
+        .select('*')
+        .eq('vault_id', vaultId)
+        .limit(5);
+
+      if (skillsData) setSoftSkills(skillsData);
+
+      // Fetch leadership philosophy
+      const { data: leadershipData } = await supabase
+        .from('vault_leadership_philosophy')
+        .select('*')
+        .eq('vault_id', vaultId)
+        .limit(1)
+        .single();
+
+      if (leadershipData) setLeadershipPhilosophy(leadershipData);
     };
     
-    fetchPowerPhrases();
+    fetchVaultData();
   }, [vaultId]);
 
   const generateSTARStory = async () => {
@@ -123,10 +145,39 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
         </div>
 
         {selectedPhrase && (
-          <div className="p-3 bg-muted rounded-lg">
-            <Badge variant="secondary" className="mb-2">{selectedPhrase.category}</Badge>
-            <p className="text-sm font-medium">{selectedPhrase.power_phrase}</p>
-            <p className="text-xs text-muted-foreground mt-1">{selectedPhrase.impact_metrics}</p>
+          <div className="space-y-2">
+            <div className="p-3 bg-muted rounded-lg">
+              <Badge variant="secondary" className="mb-2">{selectedPhrase.category}</Badge>
+              <p className="text-sm font-medium">{selectedPhrase.power_phrase}</p>
+              <p className="text-xs text-muted-foreground mt-1">{selectedPhrase.impact_metrics}</p>
+            </div>
+
+            {/* Interview Hooks from Soft Skills */}
+            {softSkills.length > 0 && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-2">💡 Interview Hooks:</p>
+                <div className="flex flex-wrap gap-1">
+                  {softSkills.slice(0, 3).map((skill) => (
+                    <Badge key={skill.id} variant="outline" className="text-xs">
+                      {skill.skill_name}
+                      {skill.interview_question_map && skill.interview_question_map.length > 0 && 
+                        ` → "${skill.interview_question_map[0].substring(0, 40)}..."`
+                      }
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Leadership Philosophy Alignment */}
+            {leadershipPhilosophy && leadershipPhilosophy.behavioral_interview_examples && (
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                <p className="text-xs font-semibold text-purple-900 dark:text-purple-100 mb-1">🎯 Leadership Angle:</p>
+                <p className="text-xs text-purple-700 dark:text-purple-300">
+                  {leadershipPhilosophy.behavioral_interview_examples[0]}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

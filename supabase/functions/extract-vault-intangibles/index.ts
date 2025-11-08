@@ -515,6 +515,209 @@ RETURN VALID JSON ONLY:
     console.log(`✅ Extracted ${behavioralItems.length} behavioral indicators`);
 
     // =================================================
+    // EXTRACTION 7: THOUGHT LEADERSHIP
+    // =================================================
+    console.log('📝 Extracting thought leadership...');
+
+    const thoughtLeadershipPrompt = `You are a career strategist identifying thought leadership content.
+
+${vaultContext}
+
+RESUME TEXT:
+${resumeText}
+
+TASK: Find evidence of thought leadership:
+- Publications (articles, whitepapers, books)
+- Speaking engagements (conferences, panels, webinars)
+- Podcasts, interviews, media appearances
+- Industry recognition for expertise
+
+RETURN VALID JSON (or empty array if none found):
+{
+  "thoughtLeadership": [
+    {
+      "contentType": "speaking",
+      "title": "Keynote: Scaling Engineering Teams at 10x Growth",
+      "platform": "TechCrunch Disrupt 2023",
+      "datePublished": "2023-06-15",
+      "interviewTalkingPoint": "I've spoken at TechCrunch Disrupt about scaling engineering teams",
+      "demonstratesCompetency": ["Communication", "Thought Leadership", "Engineering Management"],
+      "linkedinReferenceValue": "Link to speaking page in Featured section",
+      "repurposePotential": "Turn keynote themes into LinkedIn post series",
+      "confidenceScore": 0.85
+    }
+  ]
+}`;
+
+    const { response: thoughtResponse, metrics: thoughtMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: thoughtLeadershipPrompt }],
+      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false, outputLength: 'medium' }),
+      temperature: 0.3,
+    }, 'extract-thought-leadership', user.id);
+
+    await logAIUsage(thoughtMetrics);
+    const thoughtData = extractJSON(thoughtResponse, 'thoughtLeadership');
+    const thoughtItems = thoughtData?.thoughtLeadership || [];
+
+    if (thoughtItems.length > 0) {
+      const thoughtInserts = thoughtItems.map((item: any) => ({
+        vault_id: vaultId,
+        user_id: user.id,
+        content_type: item.contentType,
+        title: item.title,
+        platform: item.platform || null,
+        date_published: item.datePublished || null,
+        interview_talking_point: item.interviewTalkingPoint,
+        demonstrates_competency: item.demonstratesCompetency || [],
+        linkedin_reference_value: item.linkedinReferenceValue,
+        repurpose_potential: item.repurposePotential,
+        ai_confidence: item.confidenceScore || 0.70,
+        quality_tier: 'bronze'
+      }));
+
+      await supabaseClient.from('vault_thought_leadership').insert(thoughtInserts);
+      console.log(`✅ Extracted ${thoughtItems.length} thought leadership items`);
+    } else {
+      console.log('⚠️ No thought leadership found');
+    }
+
+    // =================================================
+    // EXTRACTION 8: PROFESSIONAL NETWORK
+    // =================================================
+    console.log('🤝 Extracting professional network...');
+
+    const networkPrompt = `You are a career strategist identifying professional network affiliations.
+
+${vaultContext}
+
+RESUME TEXT:
+${resumeText}
+
+TASK: Find evidence of professional network:
+- Board seats (corporate, non-profit)
+- Advisory roles (companies, startups, organizations)
+- Professional associations (memberships, leadership roles)
+- Alumni networks (active participation, leadership)
+- Industry groups (committees, councils)
+
+RETURN VALID JSON (or empty array if none found):
+{
+  "professionalNetwork": [
+    {
+      "networkType": "board_seat",
+      "organizationName": "TechCorp Board of Directors",
+      "roleTitle": "Board Member",
+      "startDate": "2022-01-01",
+      "selectionCriteria": "Invited for expertise in digital transformation",
+      "impact": "Advised on $50M strategic technology investment",
+      "interviewLeveragePoint": "My board experience gives me insight into executive decision-making",
+      "linkedinProfilePlacement": "Feature prominently in Experience section",
+      "credibilitySignalStrength": "high",
+      "confidenceScore": 0.85
+    }
+  ]
+}`;
+
+    const { response: networkResponse, metrics: networkMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: networkPrompt }],
+      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false, outputLength: 'medium' }),
+      temperature: 0.3,
+    }, 'extract-professional-network', user.id);
+
+    await logAIUsage(networkMetrics);
+    const networkData = extractJSON(networkResponse, 'professionalNetwork');
+    const networkItems = networkData?.professionalNetwork || [];
+
+    if (networkItems.length > 0) {
+      const networkInserts = networkItems.map((item: any) => ({
+        vault_id: vaultId,
+        user_id: user.id,
+        network_type: item.networkType,
+        organization_name: item.organizationName,
+        role_title: item.roleTitle || null,
+        start_date: item.startDate || null,
+        selection_criteria: item.selectionCriteria,
+        impact: item.impact,
+        interview_leverage_point: item.interviewLeveragePoint,
+        linkedin_profile_placement: item.linkedinProfilePlacement,
+        credibility_signal_strength: item.credibilitySignalStrength || 'medium',
+        ai_confidence: item.confidenceScore || 0.80,
+        quality_tier: 'gold'
+      }));
+
+      await supabaseClient.from('vault_professional_network').insert(networkInserts);
+      console.log(`✅ Extracted ${networkItems.length} professional network items`);
+    } else {
+      console.log('⚠️ No professional network found');
+    }
+
+    // =================================================
+    // EXTRACTION 9: COMPETITIVE ADVANTAGES
+    // =================================================
+    console.log('⭐ Analyzing competitive advantages...');
+
+    const advantagesPrompt = `You are a career strategist identifying unique competitive advantages.
+
+${vaultContext}
+
+RESUME TEXT:
+${resumeText}
+
+TASK: Analyze what makes this candidate UNIQUELY qualified vs typical candidates:
+- Unique experience combinations (e.g., engineering + law)
+- Rare skill combinations (e.g., AI + healthcare domain expertise)
+- Industry insider knowledge (e.g., worked at 3 top competitors)
+- Exceptional track record (e.g., 5 successful exits)
+- Rare certifications or credentials
+
+RETURN VALID JSON with 3-5 strongest differentiators:
+{
+  "competitiveAdvantages": [
+    {
+      "advantageCategory": "rare_skill_combo",
+      "advantageStatement": "Combines technical AI expertise with healthcare domain knowledge",
+      "marketRarity": "Only 5-10% of AI engineers have deep healthcare experience",
+      "proofPoints": ["Built FDA-approved AI diagnostic tool", "10 years in medical device industry"],
+      "interviewPositioning": "Most AI candidates understand the tech but not healthcare compliance - I bring both",
+      "linkedinHookPotential": "Why the future of AI in healthcare needs engineers who speak 'doctor'",
+      "differentiatorStrength": "exceptional",
+      "confidenceScore": 0.90
+    }
+  ]
+}`;
+
+    const { response: advantagesResponse, metrics: advantagesMetrics } = await callPerplexity({
+      messages: [{ role: 'user', content: advantagesPrompt }],
+      model: selectOptimalModel({ taskType: 'extraction', complexity: 'high', requiresReasoning: true, outputLength: 'medium' }),
+      temperature: 0.4,
+    }, 'extract-competitive-advantages', user.id);
+
+    await logAIUsage(advantagesMetrics);
+    const advantagesData = extractJSON(advantagesResponse, 'competitiveAdvantages');
+    const advantageItems = advantagesData?.competitiveAdvantages || [];
+
+    if (advantageItems.length > 0) {
+      const advantageInserts = advantageItems.map((item: any) => ({
+        vault_id: vaultId,
+        user_id: user.id,
+        advantage_category: item.advantageCategory,
+        advantage_statement: item.advantageStatement,
+        market_rarity: item.marketRarity,
+        proof_points: item.proofPoints || [],
+        interview_positioning: item.interviewPositioning,
+        linkedin_hook_potential: item.linkedinHookPotential,
+        differentiator_strength: item.differentiatorStrength || 'moderate',
+        ai_confidence: item.confidenceScore || 0.75,
+        quality_tier: 'gold'
+      }));
+
+      await supabaseClient.from('vault_competitive_advantages').insert(advantageInserts);
+      console.log(`✅ Extracted ${advantageItems.length} competitive advantages`);
+    } else {
+      console.log('⚠️ No competitive advantages identified');
+    }
+
+    // =================================================
     // CALCULATE TOTALS
     // =================================================
     const totalIntangibles =
@@ -523,7 +726,10 @@ RETURN VALID JSON ONLY:
       personalityItems.length +
       workStyleItems.length +
       valuesItems.length +
-      behavioralItems.length;
+      behavioralItems.length +
+      thoughtItems.length +
+      networkItems.length +
+      advantageItems.length;
 
     console.log(`🎉 INTANGIBLES EXTRACTION COMPLETE: ${totalIntangibles} items`);
 
@@ -538,7 +744,10 @@ RETURN VALID JSON ONLY:
             personalityTraits: personalityItems.length,
             workStyle: workStyleItems.length,
             valuesMotivations: valuesItems.length,
-            behavioralIndicators: behavioralItems.length
+            behavioralIndicators: behavioralItems.length,
+            thoughtLeadership: thoughtItems.length,
+            professionalNetwork: networkItems.length,
+            competitiveAdvantages: advantageItems.length
           }
         },
         meta: {

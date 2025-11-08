@@ -4098,6 +4098,71 @@ export type Database = {
           },
         ]
       }
+      vault_competitive_advantages: {
+        Row: {
+          advantage_category: string | null
+          advantage_statement: string
+          ai_confidence: number | null
+          created_at: string | null
+          differentiator_strength: string | null
+          id: string
+          interview_positioning: string | null
+          linkedin_hook_potential: string | null
+          market_rarity: string | null
+          objection_handler: string | null
+          proof_points: string[] | null
+          quality_tier: string | null
+          quantified_impact: string | null
+          updated_at: string | null
+          user_id: string | null
+          vault_id: string | null
+        }
+        Insert: {
+          advantage_category?: string | null
+          advantage_statement: string
+          ai_confidence?: number | null
+          created_at?: string | null
+          differentiator_strength?: string | null
+          id?: string
+          interview_positioning?: string | null
+          linkedin_hook_potential?: string | null
+          market_rarity?: string | null
+          objection_handler?: string | null
+          proof_points?: string[] | null
+          quality_tier?: string | null
+          quantified_impact?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+        }
+        Update: {
+          advantage_category?: string | null
+          advantage_statement?: string
+          ai_confidence?: number | null
+          created_at?: string | null
+          differentiator_strength?: string | null
+          id?: string
+          interview_positioning?: string | null
+          linkedin_hook_potential?: string | null
+          market_rarity?: string | null
+          objection_handler?: string | null
+          proof_points?: string[] | null
+          quality_tier?: string | null
+          quantified_impact?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_competitive_advantages_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_confirmed_skills: {
         Row: {
           created_at: string | null
@@ -4662,6 +4727,77 @@ export type Database = {
           },
         ]
       }
+      vault_professional_network: {
+        Row: {
+          ai_confidence: number | null
+          created_at: string | null
+          credibility_signal_strength: string | null
+          end_date: string | null
+          id: string
+          impact: string | null
+          interview_leverage_point: string | null
+          linkedin_profile_placement: string | null
+          network_type: string | null
+          networking_intel: string | null
+          organization_name: string
+          quality_tier: string | null
+          role_title: string | null
+          selection_criteria: string | null
+          start_date: string | null
+          updated_at: string | null
+          user_id: string | null
+          vault_id: string | null
+        }
+        Insert: {
+          ai_confidence?: number | null
+          created_at?: string | null
+          credibility_signal_strength?: string | null
+          end_date?: string | null
+          id?: string
+          impact?: string | null
+          interview_leverage_point?: string | null
+          linkedin_profile_placement?: string | null
+          network_type?: string | null
+          networking_intel?: string | null
+          organization_name: string
+          quality_tier?: string | null
+          role_title?: string | null
+          selection_criteria?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+        }
+        Update: {
+          ai_confidence?: number | null
+          created_at?: string | null
+          credibility_signal_strength?: string | null
+          end_date?: string | null
+          id?: string
+          impact?: string | null
+          interview_leverage_point?: string | null
+          linkedin_profile_placement?: string | null
+          network_type?: string | null
+          networking_intel?: string | null
+          organization_name?: string
+          quality_tier?: string | null
+          role_title?: string | null
+          selection_criteria?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_professional_network_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_research: {
         Row: {
           citations: Json | null
@@ -4875,6 +5011,77 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "war_chest_soft_skills_war_chest_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_thought_leadership: {
+        Row: {
+          ai_confidence: number | null
+          content_type: string | null
+          created_at: string | null
+          date_published: string | null
+          demonstrates_competency: string[] | null
+          engagement_rate: number | null
+          id: string
+          interview_talking_point: string | null
+          linkedin_reference_value: string | null
+          platform: string | null
+          quality_tier: string | null
+          repurpose_potential: string | null
+          title: string
+          updated_at: string | null
+          url: string | null
+          user_id: string | null
+          vault_id: string | null
+          views: number | null
+        }
+        Insert: {
+          ai_confidence?: number | null
+          content_type?: string | null
+          created_at?: string | null
+          date_published?: string | null
+          demonstrates_competency?: string[] | null
+          engagement_rate?: number | null
+          id?: string
+          interview_talking_point?: string | null
+          linkedin_reference_value?: string | null
+          platform?: string | null
+          quality_tier?: string | null
+          repurpose_potential?: string | null
+          title: string
+          updated_at?: string | null
+          url?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+          views?: number | null
+        }
+        Update: {
+          ai_confidence?: number | null
+          content_type?: string | null
+          created_at?: string | null
+          date_published?: string | null
+          demonstrates_competency?: string[] | null
+          engagement_rate?: number | null
+          id?: string
+          interview_talking_point?: string | null
+          linkedin_reference_value?: string | null
+          platform?: string | null
+          quality_tier?: string | null
+          repurpose_potential?: string | null
+          title?: string
+          updated_at?: string | null
+          url?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_thought_leadership_vault_id_fkey"
             columns: ["vault_id"]
             isOneToOne: false
             referencedRelation: "career_vault"
