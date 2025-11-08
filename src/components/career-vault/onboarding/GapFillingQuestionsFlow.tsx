@@ -213,10 +213,37 @@ export default function GapFillingQuestionsFlow({
   if (isLoading) {
     return (
       <Card className="bg-card backdrop-blur-sm border-border shadow-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="w-6 h-6 text-primary" />
+            Gap Analysis & Question Generation
+          </CardTitle>
+          <CardDescription>
+            Identifying opportunities to strengthen your vault
+          </CardDescription>
+        </CardHeader>
         <CardContent className="py-12">
-          <div className="text-center space-y-3">
-            <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
-            <p className="text-muted-foreground">Analyzing gaps and generating questions...</p>
+          <div className="text-center space-y-4">
+            {/* Animated pulsing loader with throbbing target */}
+            <div className="relative mx-auto w-28 h-28">
+              {/* Outer ping ring - slower, more visible throb */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full opacity-30 animate-ping"></div>
+              {/* Middle pulse ring */}
+              <div className="absolute inset-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-full opacity-50 animate-pulse"></div>
+              {/* Inner solid circle with TARGET icon */}
+              <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 rounded-full w-28 h-28 flex items-center justify-center shadow-2xl">
+                <Target className="w-14 h-14 text-white animate-pulse" />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                Analyzing gaps and generating questions...
+              </h3>
+              <p className="text-muted-foreground">
+                Comparing your vault against industry benchmarks
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
