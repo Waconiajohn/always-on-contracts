@@ -196,15 +196,15 @@ export default function AutoPopulationProgress({
         {!isComplete && (
           <div className="space-y-4">
             <div className="text-center space-y-3">
-              {/* Animated pulsing loader */}
+              {/* Animated pulsing loader with throbbing brain */}
               <div className="relative mx-auto w-28 h-28">
-                {/* Outer ping ring */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-75 animate-ping"></div>
+                {/* Outer ping ring - slower, more visible throb */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-30 animate-ping"></div>
                 {/* Middle pulse ring */}
-                <div className="absolute inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 animate-pulse"></div>
-                {/* Inner solid circle with icon */}
+                <div className="absolute inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-50 animate-pulse"></div>
+                {/* Inner solid circle with BRAIN icon */}
                 <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 rounded-full w-28 h-28 flex items-center justify-center shadow-2xl">
-                  <Loader2 className="w-14 h-14 text-white animate-spin" />
+                  <Brain className="w-14 h-14 text-white animate-pulse" />
                 </div>
               </div>
 
