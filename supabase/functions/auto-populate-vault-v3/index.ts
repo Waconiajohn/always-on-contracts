@@ -732,7 +732,7 @@ async function analyzeAndStoreEducation(
     // Update career_vault with education data
     const educationData = {
       formal_education: educationAnalysis.degrees.map(d => ({
-        degree: d.degree,
+        degree: d.degreeType,
         major: d.major,
         institution: d.institution,
         graduationYear: d.graduationYear,
@@ -777,17 +777,23 @@ async function analyzeAndStoreCareerContext(
     // Call AI-based career context analysis (NO regex)
     const careerContext = await analyzeCareerContext(resumeText, userId);
 
+    // Add defensive check for low confidence
+    if (!careerContext || careerContext.confidence < 0.3) {
+      console.warn('⚠️ AI career context analysis returned low confidence');
+      return false;
+    }
+
     console.log(`✅ AI analyzed career context:
       - Industries: ${careerContext.industries.join(', ')}
       - Specializations: ${careerContext.specializations.join(', ')}
-      - Experience: ${careerContext.totalYearsExperience} years
+      - Experience: ${careerContext.yearsOfExperience} years
       - Confidence: ${Math.round(careerContext.confidence * 100)}%`);
 
     // Update career_vault with context data
     const contextData = {
       detected_industries: careerContext.industries,
       detected_specializations: careerContext.specializations,
-      total_years_experience: careerContext.totalYearsExperience,
+      total_years_experience: careerContext.yearsOfExperience,
       career_context_confidence: careerContext.confidence,
       career_context_analyzed_at: new Date().toISOString(),
       career_context_session_id: sessionId,
