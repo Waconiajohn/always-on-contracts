@@ -935,6 +935,9 @@ async function populateCareerContextCache(
     const educationField = vault?.formal_education?.[0]?.major || null;
     const certificationsList = vault?.certifications || [];
 
+    // Extract budget details from management analysis
+    const budgetAmount = managementAnalysis?.budgetAmount || null;
+
     // Build cache entry
     const cacheData = {
       vault_id: vaultId,
@@ -953,10 +956,13 @@ async function populateCareerContextCache(
       has_budget_ownership: hasBudget,
       budget_details: budgetInfo.join(', '),
       budget_sizes_managed: [],
+      budget_amount: budgetAmount, // CRITICAL: Budget amount in USD (e.g., 350000000 for $350M)
       // Education (CRITICAL: These fields must be populated or gap questions will ask about degree!)
       education_level: educationLevel,
       education_field: educationField,
       certifications: certificationsList,
+      // Gaps (initialized as empty, will be filled by completion benchmark)
+      identified_gaps: [],
       // Work characteristics
       company_sizes: [],
       technical_depth: 70,

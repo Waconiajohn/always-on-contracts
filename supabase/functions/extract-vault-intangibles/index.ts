@@ -84,6 +84,16 @@ Use this to infer intangible qualities.
     // =================================================
     console.log('👔 Extracting leadership philosophy...');
 
+    // Fetch target roles/industries for context
+    const { data: vault } = await supabaseClient
+      .from('career_vault')
+      .select('target_roles, target_industries')
+      .eq('id', vaultId)
+      .single();
+
+    const targetRole = vault?.target_roles?.[0] || 'Not specified';
+    const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
+
     const leadershipPrompt = `You are an executive coach analyzing leadership philosophy from resume evidence.
 
 ${vaultContext}
@@ -91,7 +101,10 @@ ${vaultContext}
 RESUME TEXT:
 ${resumeText}
 
-TASK: Infer leadership philosophy and management style from achievements and language used.
+TARGET ROLE: ${targetRole}
+TARGET INDUSTRY: ${targetIndustry}
+
+TASK: Infer leadership philosophy AND analyze industry fit for interview prep and LinkedIn.
 
 Look for evidence of:
 - How they build and develop teams
@@ -109,7 +122,15 @@ RETURN VALID JSON ONLY:
       "realWorldApplication": "Built high-performing teams by delegating authority and providing mentorship",
       "corePrinciples": ["Empower others", "Lead by example", "Data-informed decisions"],
       "confidenceScore": 0.80,
-      "inferredFrom": "Team growth achievements and language used in experience section"
+      "inferredFrom": "Team growth achievements and language used in experience section",
+      
+      // NEW FIELDS for interview prep & LinkedIn
+      "alignmentWithIndustryNorms": "Strong fit for ${targetIndustry} - collaborative approach valued in tech",
+      "behavioralInterviewExamples": [
+        "Tell me about a time you empowered a struggling team member",
+        "Describe your approach to building high-performing teams"
+      ],
+      "linkedinAngle": "Why micromanagement fails in high-growth tech companies"
     }
   ]
 }`;
@@ -132,7 +153,7 @@ RETURN VALID JSON ONLY:
     const cleanedLeadership = leadershipContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const leadershipItems = JSON.parse(cleanedLeadership).leadershipPhilosophy;
 
-    // Insert leadership philosophy
+    // Insert leadership philosophy with industry context
     const leadershipInserts = leadershipItems.map((item: any) => ({
       vault_id: vaultId,
       user_id: user.id,
@@ -143,7 +164,11 @@ RETURN VALID JSON ONLY:
       confidence_score: item.confidenceScore,
       quality_tier: 'bronze', // Inferred data starts as bronze
       source: 'auto_populated_intangibles',
-      needs_user_review: true
+      needs_user_review: true,
+      // Industry-aware fields for interview prep & LinkedIn
+      alignment_with_industry_norms: item.alignmentWithIndustryNorms,
+      behavioral_interview_examples: item.behavioralInterviewExamples || [],
+      linkedin_angle: item.linkedinAngle
     }));
 
     await supabaseClient.from('vault_leadership_philosophy').insert(leadershipInserts);
@@ -168,6 +193,9 @@ ${vaultContext}
 RESUME TEXT:
 ${resumeText}
 
+TARGET ROLE: ${targetRole}
+TARGET INDUSTRY: ${targetIndustry}
+
 RETURN VALID JSON ONLY:
 {
   "executivePresence": [
@@ -176,7 +204,12 @@ RETURN VALID JSON ONLY:
       "situationalExample": "Presented quarterly business reviews to board of directors",
       "brandAlignment": "Positions as strategic communicator comfortable with C-suite",
       "perceivedImpact": "High - demonstrates comfort at executive level",
-      "confidenceScore": 0.88
+      "confidenceScore": 0.88,
+      
+      // NEW FIELDS for interview prep & LinkedIn
+      "roleFitAssessment": "Board presentation experience = strong fit for VP+ roles in ${targetRole}",
+      "interviewResponseHook": "I presented to our board quarterly, which taught me how to distill complex technical details for executive audiences",
+      "linkedinCredibilityBoost": "Board presentations signal C-suite readiness and strategic communication skills"
     }
   ]
 }`;
@@ -199,7 +232,7 @@ RETURN VALID JSON ONLY:
     const cleanedPresence = presenceContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const presenceItems = JSON.parse(cleanedPresence).executivePresence;
 
-    // Insert executive presence
+    // Insert executive presence with industry context
     const presenceInserts = presenceItems.map((item: any) => ({
       vault_id: vaultId,
       user_id: user.id,
@@ -210,7 +243,11 @@ RETURN VALID JSON ONLY:
       confidence_score: item.confidenceScore,
       quality_tier: 'bronze',
       source: 'auto_populated_intangibles',
-      needs_user_review: true
+      needs_user_review: true,
+      // Industry-aware fields for interview prep & LinkedIn
+      role_fit_assessment: item.roleFitAssessment,
+      interview_response_hook: item.interviewResponseHook,
+      linkedin_credibility_boost: item.linkedinCredibilityBoost
     }));
 
     await supabaseClient.from('vault_executive_presence').insert(presenceInserts);

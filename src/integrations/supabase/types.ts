@@ -3941,11 +3941,14 @@ export type Database = {
           id: string
           indicator_type: string
           inferred_from: string | null
+          interview_behavioral_anchor: string | null
           last_updated_at: string | null
+          linkedin_case_study_potential: string | null
           needs_user_review: boolean | null
           outcome_pattern: string | null
           quality_tier: string | null
           specific_behavior: string
+          success_pattern_analysis: string | null
           user_id: string
           vault_id: string
         }
@@ -3957,11 +3960,14 @@ export type Database = {
           id?: string
           indicator_type: string
           inferred_from?: string | null
+          interview_behavioral_anchor?: string | null
           last_updated_at?: string | null
+          linkedin_case_study_potential?: string | null
           needs_user_review?: boolean | null
           outcome_pattern?: string | null
           quality_tier?: string | null
           specific_behavior: string
+          success_pattern_analysis?: string | null
           user_id: string
           vault_id: string
         }
@@ -3973,11 +3979,14 @@ export type Database = {
           id?: string
           indicator_type?: string
           inferred_from?: string | null
+          interview_behavioral_anchor?: string | null
           last_updated_at?: string | null
+          linkedin_case_study_potential?: string | null
           needs_user_review?: boolean | null
           outcome_pattern?: string | null
           quality_tier?: string | null
           specific_behavior?: string
+          success_pattern_analysis?: string | null
           user_id?: string
           vault_id?: string
         }
@@ -3994,6 +4003,7 @@ export type Database = {
       vault_career_context: {
         Row: {
           ai_reasoning: string | null
+          budget_amount: number | null
           budget_details: string | null
           budget_sizes_managed: number[] | null
           career_archetype: string | null
@@ -4004,6 +4014,7 @@ export type Database = {
           has_executive_exposure: boolean
           has_management_experience: boolean
           id: string
+          identified_gaps: Json | null
           impact_scale: string | null
           inferred_seniority: string
           leadership_depth: number | null
@@ -4021,6 +4032,7 @@ export type Database = {
         }
         Insert: {
           ai_reasoning?: string | null
+          budget_amount?: number | null
           budget_details?: string | null
           budget_sizes_managed?: number[] | null
           career_archetype?: string | null
@@ -4031,6 +4043,7 @@ export type Database = {
           has_executive_exposure: boolean
           has_management_experience: boolean
           id?: string
+          identified_gaps?: Json | null
           impact_scale?: string | null
           inferred_seniority: string
           leadership_depth?: number | null
@@ -4048,6 +4061,7 @@ export type Database = {
         }
         Update: {
           ai_reasoning?: string | null
+          budget_amount?: number | null
           budget_details?: string | null
           budget_sizes_managed?: number[] | null
           career_archetype?: string | null
@@ -4058,6 +4072,7 @@ export type Database = {
           has_executive_exposure?: boolean
           has_management_experience?: boolean
           id?: string
+          identified_gaps?: Json | null
           impact_scale?: string | null
           inferred_seniority?: string
           leadership_depth?: number | null
@@ -4130,11 +4145,14 @@ export type Database = {
           created_at: string | null
           id: string
           inferred_from: string | null
+          interview_response_hook: string | null
           last_updated_at: string | null
+          linkedin_credibility_boost: string | null
           needs_user_review: boolean | null
           perceived_impact: string | null
           presence_indicator: string
           quality_tier: string | null
+          role_fit_assessment: string | null
           situational_example: string
           user_id: string
           vault_id: string
@@ -4146,11 +4164,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           inferred_from?: string | null
+          interview_response_hook?: string | null
           last_updated_at?: string | null
+          linkedin_credibility_boost?: string | null
           needs_user_review?: boolean | null
           perceived_impact?: string | null
           presence_indicator: string
           quality_tier?: string | null
+          role_fit_assessment?: string | null
           situational_example: string
           user_id: string
           vault_id: string
@@ -4162,11 +4183,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           inferred_from?: string | null
+          interview_response_hook?: string | null
           last_updated_at?: string | null
+          linkedin_credibility_boost?: string | null
           needs_user_review?: boolean | null
           perceived_impact?: string | null
           presence_indicator?: string
           quality_tier?: string | null
+          role_fit_assessment?: string | null
           situational_example?: string
           user_id?: string
           vault_id?: string
@@ -4440,6 +4464,8 @@ export type Database = {
       vault_leadership_philosophy: {
         Row: {
           ai_confidence: number | null
+          alignment_with_industry_norms: string | null
+          behavioral_interview_examples: string[] | null
           confidence_score: number | null
           core_principles: string[] | null
           created_at: string | null
@@ -4447,6 +4473,7 @@ export type Database = {
           inferred_from: string | null
           last_updated_at: string | null
           leadership_style: string | null
+          linkedin_angle: string | null
           needs_user_review: boolean | null
           philosophy_statement: string
           quality_tier: string | null
@@ -4456,6 +4483,8 @@ export type Database = {
         }
         Insert: {
           ai_confidence?: number | null
+          alignment_with_industry_norms?: string | null
+          behavioral_interview_examples?: string[] | null
           confidence_score?: number | null
           core_principles?: string[] | null
           created_at?: string | null
@@ -4463,6 +4492,7 @@ export type Database = {
           inferred_from?: string | null
           last_updated_at?: string | null
           leadership_style?: string | null
+          linkedin_angle?: string | null
           needs_user_review?: boolean | null
           philosophy_statement: string
           quality_tier?: string | null
@@ -4472,6 +4502,8 @@ export type Database = {
         }
         Update: {
           ai_confidence?: number | null
+          alignment_with_industry_norms?: string | null
+          behavioral_interview_examples?: string[] | null
           confidence_score?: number | null
           core_principles?: string[] | null
           created_at?: string | null
@@ -4479,6 +4511,7 @@ export type Database = {
           inferred_from?: string | null
           last_updated_at?: string | null
           leadership_style?: string | null
+          linkedin_angle?: string | null
           needs_user_review?: boolean | null
           philosophy_statement?: string
           quality_tier?: string | null
@@ -4502,9 +4535,12 @@ export type Database = {
           behavioral_evidence: string
           confidence_score: number | null
           created_at: string | null
+          culture_fit_indicators: string[] | null
           id: string
           inferred_from: string | null
+          interview_red_flags: string | null
           last_updated_at: string | null
+          linkedin_authenticity_note: string | null
           needs_user_review: boolean | null
           quality_tier: string | null
           strength_or_growth: string | null
@@ -4518,9 +4554,12 @@ export type Database = {
           behavioral_evidence: string
           confidence_score?: number | null
           created_at?: string | null
+          culture_fit_indicators?: string[] | null
           id?: string
           inferred_from?: string | null
+          interview_red_flags?: string | null
           last_updated_at?: string | null
+          linkedin_authenticity_note?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null
           strength_or_growth?: string | null
@@ -4534,9 +4573,12 @@ export type Database = {
           behavioral_evidence?: string
           confidence_score?: number | null
           created_at?: string | null
+          culture_fit_indicators?: string[] | null
           id?: string
           inferred_from?: string | null
+          interview_red_flags?: string | null
           last_updated_at?: string | null
+          linkedin_authenticity_note?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null
           strength_or_growth?: string | null
@@ -4780,8 +4822,11 @@ export type Database = {
           examples: string
           id: string
           impact: string | null
+          industry_relevance: Json | null
           inferred_from: string | null
+          interview_question_map: string[] | null
           last_updated_at: string | null
+          linkedin_post_type: string | null
           needs_user_review: boolean | null
           proficiency_level: string | null
           quality_tier: string | null
@@ -4796,8 +4841,11 @@ export type Database = {
           examples: string
           id?: string
           impact?: string | null
+          industry_relevance?: Json | null
           inferred_from?: string | null
+          interview_question_map?: string[] | null
           last_updated_at?: string | null
+          linkedin_post_type?: string | null
           needs_user_review?: boolean | null
           proficiency_level?: string | null
           quality_tier?: string | null
@@ -4812,8 +4860,11 @@ export type Database = {
           examples?: string
           id?: string
           impact?: string | null
+          industry_relevance?: Json | null
           inferred_from?: string | null
+          interview_question_map?: string[] | null
           last_updated_at?: string | null
+          linkedin_post_type?: string | null
           needs_user_review?: boolean | null
           proficiency_level?: string | null
           quality_tier?: string | null
@@ -4891,12 +4942,15 @@ export type Database = {
         Row: {
           ai_confidence: number | null
           career_decisions_influenced: string | null
+          company_culture_alignment: Json | null
           confidence_score: number | null
           created_at: string | null
           id: string
           importance_level: string | null
           inferred_from: string | null
+          interview_motivation_question_prep: string | null
           last_updated_at: string | null
+          linkedin_authentic_voice_guide: string | null
           manifestation: string
           needs_user_review: boolean | null
           quality_tier: string | null
@@ -4907,12 +4961,15 @@ export type Database = {
         Insert: {
           ai_confidence?: number | null
           career_decisions_influenced?: string | null
+          company_culture_alignment?: Json | null
           confidence_score?: number | null
           created_at?: string | null
           id?: string
           importance_level?: string | null
           inferred_from?: string | null
+          interview_motivation_question_prep?: string | null
           last_updated_at?: string | null
+          linkedin_authentic_voice_guide?: string | null
           manifestation: string
           needs_user_review?: boolean | null
           quality_tier?: string | null
@@ -4923,12 +4980,15 @@ export type Database = {
         Update: {
           ai_confidence?: number | null
           career_decisions_influenced?: string | null
+          company_culture_alignment?: Json | null
           confidence_score?: number | null
           created_at?: string | null
           id?: string
           importance_level?: string | null
           inferred_from?: string | null
+          interview_motivation_question_prep?: string | null
           last_updated_at?: string | null
+          linkedin_authentic_voice_guide?: string | null
           manifestation?: string
           needs_user_review?: boolean | null
           quality_tier?: string | null
@@ -4988,11 +5048,14 @@ export type Database = {
           id: string
           ideal_environment: string | null
           inferred_from: string | null
+          interview_scenario_match: string | null
           last_updated_at: string | null
+          linkedin_work_philosophy_hook: string | null
           needs_user_review: boolean | null
           preference_area: string
           preference_description: string
           quality_tier: string | null
+          team_compatibility_analysis: string | null
           user_id: string
           vault_id: string
         }
@@ -5004,11 +5067,14 @@ export type Database = {
           id?: string
           ideal_environment?: string | null
           inferred_from?: string | null
+          interview_scenario_match?: string | null
           last_updated_at?: string | null
+          linkedin_work_philosophy_hook?: string | null
           needs_user_review?: boolean | null
           preference_area: string
           preference_description: string
           quality_tier?: string | null
+          team_compatibility_analysis?: string | null
           user_id: string
           vault_id: string
         }
@@ -5020,11 +5086,14 @@ export type Database = {
           id?: string
           ideal_environment?: string | null
           inferred_from?: string | null
+          interview_scenario_match?: string | null
           last_updated_at?: string | null
+          linkedin_work_philosophy_hook?: string | null
           needs_user_review?: boolean | null
           preference_area?: string
           preference_description?: string
           quality_tier?: string | null
+          team_compatibility_analysis?: string | null
           user_id?: string
           vault_id?: string
         }

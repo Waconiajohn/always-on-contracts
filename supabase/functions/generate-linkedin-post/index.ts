@@ -154,7 +154,30 @@ TONE: ${tone}
 POST TYPE: ${postType}
 TARGET AUDIENCE: ${targetAudience}
 KEY POINTS TO COVER: ${keyPoints?.join(', ') || 'Use your expertise'}
-${userProfile ? `\nUSER PROFILE: ${JSON.stringify(userProfile)}` : ''}
+
+${userProfile ? `
+USER'S VAULT INTELLIGENCE (USE FOR AUTHENTICITY):
+
+Leadership Philosophy:
+${userProfile.leadershipPhilosophy ? `- ${userProfile.leadershipPhilosophy.philosophy_statement}
+  LinkedIn Angle: ${userProfile.leadershipPhilosophy.linkedin_angle}
+  Industry Fit: ${userProfile.leadershipPhilosophy.alignment_with_industry_norms}` : 'None'}
+
+Top Soft Skill for Post:
+${userProfile.topSoftSkill ? `- ${userProfile.topSoftSkill.skill_name}
+  Post Type Suggestion: ${userProfile.topSoftSkill.linkedin_post_type || 'professional_insight'}
+  Industry Relevance: ${JSON.stringify(userProfile.topSoftSkill.industry_relevance || {})}` : 'None'}
+
+Executive Presence Signal:
+${userProfile.executivePresence ? `- ${userProfile.executivePresence.presence_indicator}
+  Credibility Boost: ${userProfile.executivePresence.linkedin_credibility_boost}
+  Role Fit: ${userProfile.executivePresence.role_fit_assessment}` : 'None'}
+
+Top Achievement to Reference:
+${userProfile.topAchievement ? `- ${userProfile.topAchievement.power_phrase || userProfile.topAchievement.phrase}` : 'None'}
+
+CRITICAL: Use these REAL, VERIFIED vault items to create authentic content. Don't make up generic examples - reference their actual leadership philosophy, achievements, and presence indicators.
+` : ''}
 
 Apply the content framework rigorously. Optimize for LinkedIn algorithm (favor authentic engagement over vanity metrics).`;
 

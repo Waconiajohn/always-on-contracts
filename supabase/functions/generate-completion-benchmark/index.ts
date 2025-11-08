@@ -452,6 +452,23 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
       console.log('💾 CACHED for future requests');
     }
 
+    // CRITICAL FIX: Sync gaps to vault_career_context cache
+    // This ensures generate-gap-filling-questions can see the identified gaps
+    console.log('🔄 Syncing gaps to career context cache...');
+    const { error: syncError } = await supabase
+      .from('vault_career_context')
+      .update({ 
+        identified_gaps: benchmarkAnalysis.gaps || [],
+        updated_at: new Date().toISOString()
+      })
+      .eq('vault_id', vaultId);
+    
+    if (syncError) {
+      console.error('Failed to sync gaps to cache:', syncError);
+    } else {
+      console.log('✅ Gaps synced to cache for gap-filling questions');
+    }
+
     // ===== STEP 8: RETURN RESULTS =====
     return new Response(
       JSON.stringify({

@@ -73,22 +73,36 @@ JOB DETAILS:
 - Description: ${jobDescription}
 
 ${vaultIntelligence ? `
-CAREER VAULT INTELLIGENCE:
-The candidate has the following verified strengths in their vault:
+CAREER VAULT INTELLIGENCE (INDUSTRY-AWARE):
+The candidate has the following verified strengths with industry context:
 
 Power Phrases:
 ${vaultIntelligence.powerPhrases?.slice(0, 5).map((p: any) => `- ${p.power_phrase || p.phrase}`).join('\n') || 'None'}
 
-Key Competencies:
-${vaultIntelligence.competencies?.slice(0, 5).map((c: any) => `- ${c.competency_area || c.inferred_capability}`).join('\n') || 'None'}
+Soft Skills with Interview Hooks:
+${vaultIntelligence.softSkills?.slice(0, 5).map((s: any) => {
+  const hook = s.interview_question_map?.[0] || 'Standard behavioral question';
+  return `- ${s.skill_name} → Interview Hook: "${hook}"`;
+}).join('\n') || 'None'}
 
-Soft Skills:
-${vaultIntelligence.softSkills?.slice(0, 5).map((s: any) => `- ${s.skill_name}`).join('\n') || 'None'}
+Leadership Philosophy with Behavioral Examples:
+${vaultIntelligence.leadershipPhilosophy?.map((l: any) => {
+  const example = l.behavioral_interview_examples?.[0] || 'Describe your leadership approach';
+  return `- ${l.philosophy_statement}\n  Industry Fit: ${l.alignment_with_industry_norms}\n  Behavioral Question: "${example}"`;
+}).join('\n\n') || 'None'}
+
+Executive Presence with Interview Hooks:
+${vaultIntelligence.executivePresence?.map((e: any) => {
+  return `- ${e.presence_indicator}\n  Role Fit: ${e.role_fit_assessment}\n  How to Use: "${e.interview_response_hook}"`;
+}).join('\n\n') || 'None'}
 
 Personality Traits:
 ${vaultIntelligence.personalityTraits?.slice(0, 3).map((t: any) => `- ${t.trait_name}`).join('\n') || 'None'}
 
-Use these vault items to generate more personalized questions and suggest STAR story answers.
+Use these vault items with their industry context to generate questions that:
+1. Leverage the candidate's specific strengths (not generic)
+2. Reference actual behavioral interview hooks from their vault
+3. Tie to their leadership philosophy and industry fit
 ` : ''}
 
 Generate 8-10 interview questions that:
