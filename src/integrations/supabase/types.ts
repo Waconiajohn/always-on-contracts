@@ -4798,6 +4798,74 @@ export type Database = {
           },
         ]
       }
+      vault_professional_resources: {
+        Row: {
+          ai_confidence: number | null
+          certifications_funded: Json | null
+          conferences_attended: Json | null
+          consultant_experience: Json | null
+          created_at: string | null
+          enterprise_systems: Json | null
+          external_coaches: Json | null
+          id: string
+          last_updated_at: string | null
+          professional_memberships: Json | null
+          proficiency_levels: Json | null
+          quality_tier: string | null
+          trade_shows: Json | null
+          training_programs: Json | null
+          updated_at: string | null
+          user_verified: boolean | null
+          vault_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          certifications_funded?: Json | null
+          conferences_attended?: Json | null
+          consultant_experience?: Json | null
+          created_at?: string | null
+          enterprise_systems?: Json | null
+          external_coaches?: Json | null
+          id?: string
+          last_updated_at?: string | null
+          professional_memberships?: Json | null
+          proficiency_levels?: Json | null
+          quality_tier?: string | null
+          trade_shows?: Json | null
+          training_programs?: Json | null
+          updated_at?: string | null
+          user_verified?: boolean | null
+          vault_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          certifications_funded?: Json | null
+          conferences_attended?: Json | null
+          consultant_experience?: Json | null
+          created_at?: string | null
+          enterprise_systems?: Json | null
+          external_coaches?: Json | null
+          id?: string
+          last_updated_at?: string | null
+          professional_memberships?: Json | null
+          proficiency_levels?: Json | null
+          quality_tier?: string | null
+          trade_shows?: Json | null
+          training_programs?: Json | null
+          updated_at?: string | null
+          user_verified?: boolean | null
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_professional_resources_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_research: {
         Row: {
           citations: Json | null

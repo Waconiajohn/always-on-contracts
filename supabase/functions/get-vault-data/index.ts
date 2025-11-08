@@ -69,7 +69,8 @@ serve(async (req) => {
       personalityTraits,
       workStyle,
       values,
-      behavioralIndicators
+      behavioralIndicators,
+      professionalResources
     ] = await Promise.all([
       supabaseClient.from('vault_power_phrases').select('*').eq('vault_id', vault.id),
       supabaseClient.from('vault_transferable_skills').select('*').eq('vault_id', vault.id),
@@ -80,7 +81,8 @@ serve(async (req) => {
       supabaseClient.from('vault_personality_traits').select('*').eq('vault_id', vault.id),
       supabaseClient.from('vault_work_style').select('*').eq('vault_id', vault.id),
       supabaseClient.from('vault_values_motivations').select('*').eq('vault_id', vault.id),
-      supabaseClient.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id)
+      supabaseClient.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id),
+      supabaseClient.from('vault_professional_resources').select('*').eq('vault_id', vault.id)
     ]);
 
     return new Response(JSON.stringify({ 
@@ -97,7 +99,8 @@ serve(async (req) => {
           personalityTraits: personalityTraits.data || [],
           workStyle: workStyle.data || [],
           values: values.data || [],
-          behavioralIndicators: behavioralIndicators.data || []
+          behavioralIndicators: behavioralIndicators.data || [],
+          professionalResources: professionalResources.data || []
         }
       }
     }), {

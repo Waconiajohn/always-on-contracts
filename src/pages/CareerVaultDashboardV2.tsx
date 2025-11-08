@@ -14,6 +14,9 @@ import { EnhancementQuestionsModal } from '@/components/career-vault/dashboard/E
 import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/dashboard/BlockerAlert';
 import { UnifiedHeroCard } from '@/components/career-vault/dashboard/UnifiedHeroCard';
 import { AIPrimaryAction, determinePrimaryAction } from '@/components/career-vault/dashboard/AIPrimaryAction';
+import { PlainEnglishHero } from '@/components/career-vault/dashboard/PlainEnglishHero';
+import { Layer1FoundationsCard } from '@/components/career-vault/dashboard/Layer1FoundationsCard';
+import { Layer2IntelligenceCard } from '@/components/career-vault/dashboard/Layer2IntelligenceCard';
 import { calculateGrade } from '@/components/career-vault/dashboard/legacy/CompactVaultStats';
 import { useVaultData } from '@/hooks/useVaultData';
 import { useVaultStats } from '@/hooks/useVaultStats';
@@ -282,25 +285,85 @@ const VaultDashboardContent = () => {
     return `${items} career achievements extracted. Build your intelligence depth to strengthen competitive positioning for ${targetRole} roles.`;
   };
 
+  // Handler for section clicks
+  const handleSectionClick = useCallback((section: string) => {
+    console.log('Section clicked:', section);
+    // TODO: Route to appropriate questionnaire/modal based on section
+    switch (section) {
+      case 'work-experience':
+      case 'strategic-impact':
+        setAddMetricsModalOpen(true);
+        break;
+      case 'leadership':
+        setEnhancementModalOpen(true);
+        break;
+      case 'professional-resources':
+        setEnhancementModalOpen(true);
+        break;
+      default:
+        setEnhancementModalOpen(true);
+    }
+  }, []);
+
+  const handlePrimaryAction = useCallback(() => {
+    // Determine what action to take based on score
+    const score = stats?.strengthScore.total || 0;
+    if (score < 70) {
+      // Low score - direct to add metrics
+      setAddMetricsModalOpen(true);
+    } else {
+      // Good score - could create resume (future feature)
+      navigate('/create-resume');
+    }
+  }, [stats?.strengthScore.total, navigate]);
+
   return (
     <ContentLayout>
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
 
         {/* ====================================================================
-            HERO SECTION - Single-glance vault status
+            HERO SECTION - Plain English Resume Strength
             ==================================================================== */}
-        <UnifiedHeroCard
+        <PlainEnglishHero
           score={stats?.strengthScore.total || 0}
-          grade={grade}
-          level={determineCareerLevel()}
-          summary={generateContextualSummary()}
           totalItems={stats?.totalItems || 0}
-          marketPercentile={marketRank}
-          onManageResume={() => setResumeModalOpen(true)}
-          onReanalyze={handleReanalyze}
-          onSettings={() => navigate('/settings')}
-          isReanalyzing={isReanalyzing}
+          onPrimaryAction={handlePrimaryAction}
         />
+
+        {/* ====================================================================
+            3-LAYER STRUCTURE - Career Vault Sections
+            ==================================================================== */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <Layer1FoundationsCard
+            vaultData={vaultData}
+            stats={stats}
+            onSectionClick={handleSectionClick}
+          />
+          
+          <Layer2IntelligenceCard
+            vaultData={vaultData}
+            stats={stats}
+            onSectionClick={handleSectionClick}
+          />
+        </div>
+
+        {/* ====================================================================
+            OLD HERO (Hidden for now - will delete later)
+            ==================================================================== */}
+        <div className="hidden">
+          <UnifiedHeroCard
+            score={stats?.strengthScore.total || 0}
+            grade={grade}
+            level={determineCareerLevel()}
+            summary={generateContextualSummary()}
+            totalItems={stats?.totalItems || 0}
+            marketPercentile={marketRank}
+            onManageResume={() => setResumeModalOpen(true)}
+            onReanalyze={handleReanalyze}
+            onSettings={() => navigate('/settings')}
+            isReanalyzing={isReanalyzing}
+          />
+        </div>
 
         {/* ====================================================================
             CRITICAL BLOCKERS - Only severity='critical' shown here

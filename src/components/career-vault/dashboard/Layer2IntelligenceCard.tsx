@@ -1,0 +1,231 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Sparkles, ArrowRight } from "lucide-react";
+import type { VaultData } from "@/hooks/useVaultData";
+import type { VaultStats } from "@/hooks/useVaultStats";
+
+interface Layer2IntelligenceCardProps {
+  vaultData: VaultData | undefined;
+  stats: VaultStats | null;
+  onSectionClick: (section: string) => void;
+}
+
+interface ExecutiveSection {
+  name: string;
+  description: string;
+  percentage: number;
+  impact: number;
+  count: number;
+  status: 'empty' | 'weak' | 'building' | 'strong';
+  ctaText: string;
+  section: string;
+  benchmark: string;
+}
+
+export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Layer2IntelligenceCardProps) => {
+  if (!vaultData || !stats) return null;
+
+  const calculateExecutiveSections = (): ExecutiveSection[] => {
+    const leadershipCount = stats.categoryCounts.leadershipPhilosophy || 0;
+    const powerPhrasesWithMetrics = vaultData.powerPhrases?.filter(
+      p => p.impact_metrics && Object.keys(p.impact_metrics).length > 0
+    ).length || 0;
+    // Professional resources will come from future extraction
+    const professionalResourcesCount = 0;
+
+    // Leadership Approach - based on leadership_philosophy entries
+    const leadershipPercentage = leadershipCount > 0 
+      ? Math.min((leadershipCount / 3) * 100, 100) 
+      : 0;
+
+    // Strategic Impact - based on power phrases with metrics
+    const strategicPercentage = powerPhrasesWithMetrics > 0 
+      ? Math.min((powerPhrasesWithMetrics / 8) * 100, 100) 
+      : 0;
+
+    // Professional Development & Resources - NEW table
+    const resourcesPercentage = professionalResourcesCount > 0 
+      ? Math.min((professionalResourcesCount / 1) * 100, 100) 
+      : 0;
+
+    // Professional Network - placeholder (could be enhanced later)
+    const networkPercentage = 0; // Not yet implemented
+
+    const getStatus = (percentage: number): ExecutiveSection['status'] => {
+      if (percentage === 0) return 'empty';
+      if (percentage < 40) return 'weak';
+      if (percentage < 80) return 'building';
+      return 'strong';
+    };
+
+    return [
+      {
+        name: 'Leadership Approach',
+        description: 'How you lead, your management philosophy, decision-making style',
+        percentage: leadershipPercentage,
+        impact: 20,
+        count: leadershipCount,
+        status: getStatus(leadershipPercentage),
+        ctaText: leadershipPercentage === 0 ? 'Start Building' : 'Enhance',
+        section: 'leadership',
+        benchmark: 'Modern leadership: inclusive, data-driven, growth-focused'
+      },
+      {
+        name: 'Strategic Impact',
+        description: 'Business outcomes, financial impact, organizational change',
+        percentage: strategicPercentage,
+        impact: 25,
+        count: powerPhrasesWithMetrics,
+        status: getStatus(strategicPercentage),
+        ctaText: strategicPercentage === 0 ? 'Add Achievements' : 'Quantify More',
+        section: 'strategic-impact',
+        benchmark: '80%+ of accomplishments should have numbers'
+      },
+      {
+        name: 'Professional Development & Resources',
+        description: 'Training investments, enterprise systems, industry exposure',
+        percentage: resourcesPercentage,
+        impact: 15,
+        count: professionalResourcesCount,
+        status: getStatus(resourcesPercentage),
+        ctaText: resourcesPercentage === 0 ? 'Start Now' : 'Add More',
+        section: 'professional-resources',
+        benchmark: 'Enterprise-grade tools + $5K-$15K annual training investment'
+      },
+      {
+        name: 'Professional Network',
+        description: 'Industry relationships, cross-functional collaboration',
+        percentage: networkPercentage,
+        impact: 10,
+        count: 0,
+        status: 'empty',
+        ctaText: 'Coming Soon',
+        section: 'network',
+        benchmark: 'Senior roles: direct work with VPs/C-suite + external network'
+      }
+    ];
+  };
+
+  const sections = calculateExecutiveSections();
+  const overallCompletion = Math.round(
+    sections.reduce((sum, s) => sum + s.percentage, 0) / sections.length
+  );
+
+  const getStatusColor = (status: ExecutiveSection['status']) => {
+    switch (status) {
+      case 'strong': return 'text-green-500';
+      case 'building': return 'text-yellow-500';
+      case 'weak': return 'text-orange-500';
+      case 'empty': return 'text-red-500';
+    }
+  };
+
+  const getHighestImpactSection = () => {
+    return sections
+      .filter(s => s.status === 'empty' || s.status === 'weak')
+      .sort((a, b) => b.impact - a.impact)[0];
+  };
+
+  const prioritySection = getHighestImpactSection();
+
+  return (
+    <Card className="border-border/50 bg-gradient-to-br from-background to-primary/5">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            LAYER 2: Executive Intelligence
+          </span>
+          <span className="text-sm font-normal text-muted-foreground">
+            {overallCompletion}% complete
+          </span>
+        </CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          What makes you stand out. This intelligence powers your resume, LinkedIn, cover letters, and interview prep.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {sections.map((section) => (
+          <div key={section.section} className="space-y-2">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className={`h-4 w-4 ${getStatusColor(section.status)}`} />
+                  <span className="font-medium">{section.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    +{section.impact} pts
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground pl-6 mb-2">
+                  {section.description}
+                </p>
+              </div>
+              <Button 
+                variant={section.status === 'empty' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onSectionClick(section.section)}
+                disabled={section.section === 'network'}
+              >
+                {section.ctaText}
+                {section.section !== 'network' && <ArrowRight className="ml-2 h-4 w-4" />}
+              </Button>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="w-full bg-muted rounded-full h-2 ml-6">
+              <div 
+                className={`h-2 rounded-full transition-all ${
+                  section.status === 'strong' ? 'bg-green-500' :
+                  section.status === 'building' ? 'bg-yellow-500' :
+                  section.status === 'weak' ? 'bg-orange-500' :
+                  'bg-red-500'
+                }`}
+                style={{ width: `${section.percentage}%` }}
+              />
+            </div>
+            
+            {/* Benchmark */}
+            <p className="text-xs text-muted-foreground pl-6">
+              📊 {section.benchmark}
+            </p>
+          </div>
+        ))}
+
+        {prioritySection && (
+          <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">
+                  🎯 Highest Impact Action
+                </p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Complete "{prioritySection.name}" to boost your score by +{prioritySection.impact} points.
+                </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Why: Most candidates miss this. Showing {prioritySection.description.toLowerCase()} 
+                  positions you as someone companies have invested in.
+                </p>
+                <Button 
+                  onClick={() => onSectionClick(prioritySection.section)}
+                  className="w-full"
+                  disabled={prioritySection.section === 'network'}
+                >
+                  {prioritySection.ctaText}
+                  {prioritySection.section !== 'network' && <ArrowRight className="ml-2 h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 p-3 bg-primary/5 rounded-lg">
+          <p className="text-xs text-muted-foreground">
+            <strong>Benchmark:</strong> You're {overallCompletion < 50 ? 'missing' : 'building'} key executive 
+            positioning data. Target is 80%+ to stand out to senior-level hiring managers.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
