@@ -809,6 +809,66 @@ async function analyzeAndStoreCareerContext(
       return false;
     }
 
+    // ========================================================================
+    // CRITICAL FIX: Populate vault_career_context cache for gap-filling questions
+    // ========================================================================
+    console.log('💾 Populating vault_career_context cache...');
+    
+    // Use the AI-based career analysis functions
+    const managementAnalysis = await analyzeManagementExperience(resumeText, userId);
+    const educationAnalysis = await analyzeEducation(resumeText, userId);
+    
+    const cacheData = {
+      vault_id: vaultId,
+      user_id: userId,
+      // Management experience
+      has_management_experience: managementAnalysis?.hasManagementExperience || false,
+      management_details: managementAnalysis?.evidence || null,
+      team_sizes_managed: managementAnalysis?.teamSizes || [],
+      // Budget ownership  
+      has_budget_ownership: managementAnalysis?.hasBudgetResponsibility || false,
+      budget_details: managementAnalysis?.budgetEvidence || null,
+      budget_amount: managementAnalysis?.budgetAmount || null,
+      budget_sizes_managed: managementAnalysis?.budgetAmount ? [managementAnalysis.budgetAmount] : [],
+      // Executive exposure
+      has_executive_exposure: managementAnalysis?.hasExecutiveExposure || false,
+      executive_details: managementAnalysis?.executiveEvidence || null,
+      // Career level
+      inferred_seniority: managementAnalysis?.inferredLevel || 'Mid-Level IC',
+      years_of_experience: careerContext.yearsOfExperience || 5,
+      career_archetype: careerContext.industries?.[0] || 'Unknown',
+      // Depth scores
+      technical_depth: 50,
+      leadership_depth: managementAnalysis?.hasManagementExperience ? 70 : 30,
+      strategic_depth: managementAnalysis?.hasExecutiveExposure ? 60 : 40,
+      // Education
+      education_level: educationAnalysis?.highestDegree || null,
+      education_field: educationAnalysis?.fieldOfStudy || null,
+      certifications: educationAnalysis?.certifications || [],
+      // Gaps will be identified by generate-completion-benchmark
+      identified_gaps: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Delete existing cache first (in case of re-extraction)
+    await supabase
+      .from('vault_career_context')
+      .delete()
+      .eq('vault_id', vaultId);
+
+    // Insert new cache
+    const { error: cacheError } = await supabase
+      .from('vault_career_context')
+      .insert(cacheData);
+
+    if (cacheError) {
+      console.error('❌ Error populating vault_career_context cache:', cacheError);
+      // Don't fail the whole extraction just because cache failed
+    } else {
+      console.log('✅ vault_career_context cache populated successfully');
+    }
+
     console.log(`✅ Stored career context analysis`);
     return true;
 
