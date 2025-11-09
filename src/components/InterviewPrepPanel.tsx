@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, XCircle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +61,6 @@ export const InterviewPrepPanel = ({ jobDescription }: InterviewPrepPanelProps) 
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-interview-question',
         validation.data
       );
@@ -95,7 +93,6 @@ export const InterviewPrepPanel = ({ jobDescription }: InterviewPrepPanelProps) 
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'validate-interview-response',
         validation.data
       );

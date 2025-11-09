@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, ExternalLink, MessageSquare, TrendingUp, Users } from 'lucide-react';
 import { KeywordScoreCard } from './KeywordScoreCard';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { 
   AnalyzeJobQualificationsSchema,
@@ -60,7 +60,6 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
         });
 
         const { data, error } = await invokeEdgeFunction(
-          supabase,
           'analyze-job-qualifications',
           validated
         );
@@ -94,10 +93,8 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-executive-resume',
-        { ...validated, conversationResponses: responses, persona: 'executive', format: 'html' },
-        { successMessage: 'Resume optimized!' }
+        { ...validated, conversationResponses: responses, persona: 'executive', format: 'html' }
       );
 
       if (error) return;
@@ -109,7 +106,6 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
       });
 
       const { data: scoreData, error: scoreError } = await invokeEdgeFunction(
-        supabase,
         'score-resume-match',
         scoreValidated
       );

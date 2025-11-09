@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, Star, Volume2 } from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { validateInput, invokeEdgeFunction, TextToSpeechSchema } from '@/lib/edgeFunction';
 
 export interface Persona {
@@ -58,10 +57,8 @@ export const PersonaSelector = ({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'text-to-speech',
-        validatedInput,
-        { suppressErrorToast: true }
+        validatedInput
       );
 
       if (error) throw error;

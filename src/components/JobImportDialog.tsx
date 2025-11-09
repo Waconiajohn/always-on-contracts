@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { FileText, Link, Upload, Search, Loader2 } from "lucide-react";
 import { 
   ParseJobDocumentSchema,
@@ -95,10 +94,8 @@ export function JobImportDialog({ open, onOpenChange, onJobImported }: JobImport
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'parse-job-document',
-        validation.data,
-        { successMessage: 'Job imported successfully!' }
+        validation.data
       );
 
       if (error) return;

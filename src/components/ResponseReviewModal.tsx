@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-// GuidedPromptSelector component removed
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
 import { 
   ValidateInterviewResponseSchema,
@@ -66,7 +65,6 @@ export function ResponseReviewModal({
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'validate-interview-response',
         validation.data
       );
@@ -118,10 +116,8 @@ export function ResponseReviewModal({
 
         if (extractValidation.success) {
           await invokeEdgeFunction(
-            supabase,
             'extract-vault-intangibles',
-            extractValidation.data,
-            { suppressErrorToast: true } // Don't show error toast for extraction
+            extractValidation.data
           );
         }
 

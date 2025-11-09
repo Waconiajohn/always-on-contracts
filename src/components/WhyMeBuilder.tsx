@@ -57,10 +57,8 @@ export const WhyMeBuilder: React.FC<WhyMeBuilderProps> = ({ userId, narratives, 
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-why-me-questions',
-        validation.data,
-        { successMessage: 'Questions generated!' }
+        validation.data
       );
 
       if (error) return;

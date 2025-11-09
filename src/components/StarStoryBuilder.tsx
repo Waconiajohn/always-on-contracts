@@ -5,8 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Trash2, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -83,10 +83,8 @@ export function StarStoryBuilder() {
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-star-story',
-        validation.data,
-        { successMessage: 'STAR story generated!' }
+        validation.data
       );
 
       if (error) return;

@@ -84,10 +84,8 @@ export function ResumeOptimizer() {
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'optimize-resume-with-audit',
-        { ...validation.data, vaultData },
-        { successMessage: 'Resume optimized with dual AI audit!' }
+        { ...validation.data, vaultData }
       );
 
       if (error) return;

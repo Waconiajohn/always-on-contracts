@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, ArrowLeft, User, Bot } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ExecutiveCoachingSchema,
@@ -129,7 +129,6 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'executive-coaching',
         { ...validation.data, sessionId, config: { persona: coachPersonality, intensity: 'balanced', focus_area: 'general' } }
       );

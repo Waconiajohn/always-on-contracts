@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunction, ParseResumeMilestonesSchema, safeValidateInput } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
 
@@ -66,7 +66,6 @@ export const useResumeMilestones = () => {
       if (!user) throw new Error("User not authenticated");
 
       const { data, error: parseError } = await invokeEdgeFunction(
-        supabase,
         'parse-resume-milestones',
         { resume_text: resumeText }
       );

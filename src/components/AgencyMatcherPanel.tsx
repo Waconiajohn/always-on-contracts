@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Building2, Mail, ExternalLink, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { safeValidateInput, invokeEdgeFunction, PerplexityResearchSchema } from '@/lib/edgeFunction';
@@ -52,7 +51,6 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'perplexity-research',
         validation.data
       );

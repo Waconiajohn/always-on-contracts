@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { invokeEdgeFunction, PerplexityResearchSchema, safeValidateInput } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ResearchParams {
   research_type: 'market_intelligence' | 'company_research' | 'skills_demand' | 'career_path' | 'interview_prep';
@@ -32,10 +31,8 @@ export const usePerplexityResearch = () => {
     }
 
     const { data, error } = await invokeEdgeFunction<ResearchResult>(
-      supabase,
       'perplexity-research',
-      params,
-      { showSuccessToast: true, successMessage: 'Research complete!' }
+      params
     );
 
     setIsResearching(false);
@@ -59,10 +56,8 @@ export const usePerplexityResearch = () => {
     setIsResearching(true);
 
     const { data, error } = await invokeEdgeFunction<ResearchResult>(
-      supabase,
       'verify-with-perplexity',
-      { content_to_verify, verification_type, context },
-      { showSuccessToast: true, successMessage: 'Verification complete!' }
+      { content_to_verify, verification_type, context }
     );
 
     setIsResearching(false);

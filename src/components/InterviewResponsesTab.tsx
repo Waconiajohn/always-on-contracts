@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Sparkles, CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { validateInput, invokeEdgeFunction, ValidateInterviewResponseWithAuditSchema } from '@/lib/edgeFunction';
 
@@ -38,7 +37,6 @@ export function InterviewResponsesTab({ question }: InterviewResponsesTabProps) 
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'validate-interview-response-with-audit',
         validatedInput
       );

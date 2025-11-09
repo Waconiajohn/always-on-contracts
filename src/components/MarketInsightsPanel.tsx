@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, TrendingUp, DollarSign, Users, Briefcase } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { validateInput, invokeEdgeFunction, PerplexityResearchSchema } from '@/lib/edgeFunction';
 
@@ -60,7 +60,6 @@ export const MarketInsightsPanel = ({ targetRole, targetIndustry }: MarketInsigh
       });
 
       const { data: researchData, error: researchError } = await invokeEdgeFunction(
-        supabase,
         'perplexity-research',
         validatedInput
       );
