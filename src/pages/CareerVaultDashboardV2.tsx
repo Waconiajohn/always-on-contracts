@@ -305,7 +305,7 @@ const VaultDashboardContent = () => {
         setLeadershipModalOpen(true);
         break;
       case 'professional-resources':
-        setEnhancementModalOpen(true);
+        setProfessionalResourcesModalOpen(true);
         break;
       default:
         setEnhancementModalOpen(true);
