@@ -2,9 +2,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Info, ChevronDown, AlertCircle, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
-import { PreFilledQuestion } from "@/components/PreFilledQuestion";
+// PreFilledQuestion component removed
 import { VoiceInput } from "@/components/VoiceInput";
 
 interface InterviewPhase {
@@ -106,14 +107,31 @@ export const InterviewStep = ({
           {/* Question Display */}
           {currentQuestionData?.context && currentQuestionData?.questionsToExpand ? (
             <div className="mb-6">
-              <PreFilledQuestion 
-                context={currentQuestionData.context}
-                knownData={currentQuestionData.knownData || []}
-                singleQuestion={currentQuestionData.questionsToExpand[currentSubQuestion]}
-                exampleAnswer={currentQuestionData.exampleAnswer}
-                questionNumber={currentSubQuestion + 1}
-                totalQuestions={currentQuestionData.questionsToExpand.length}
-              />
+            <Card className="p-6 mb-6 bg-card border-2">
+              <div className="space-y-4">
+                {currentQuestionData?.context && (
+                  <div className="text-sm text-muted-foreground mb-4">
+                    <strong>Context:</strong> {currentQuestionData.context}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Badge variant="outline" className="mb-2">
+                    Question {currentSubQuestion + 1} of {currentQuestionData?.questionsToExpand?.length || 1}
+                  </Badge>
+                  <p className="text-lg font-medium">
+                    {currentQuestionData?.questionsToExpand?.[currentSubQuestion] || 'Loading question...'}
+                  </p>
+                </div>
+                {currentQuestionData?.exampleAnswer && (
+                  <Alert className="bg-muted/50">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      <strong>Example:</strong> {currentQuestionData.exampleAnswer}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </Card>
             </div>
           ) : (
             <>

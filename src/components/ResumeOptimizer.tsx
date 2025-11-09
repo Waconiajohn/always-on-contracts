@@ -9,17 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Sparkles, TrendingUp, AlertCircle, CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { toast } from 'sonner';
-import { JobConversation } from './JobConversation';
 import { supabase } from '@/integrations/supabase/client';
-
-interface JobAnalysis {
-  professionalTitle: string;
-  industry: string;
-  standardizedQualifications: any;
-  hiringManagerPerspective: any;
-  atsKeywords: string[];
-  compensationRange: any;
-}
 
 export function ResumeOptimizer() {
   const [step, setStep] = useState<'input' | 'analysis' | 'optimization'>('input');
@@ -66,10 +56,6 @@ export function ResumeOptimizer() {
   const insertPowerPhrase = (phrase: string) => {
     setResumeText(prev => prev + '\n' + phrase);
     toast.success('Power phrase added to resume');
-  };
-
-  const handleAnalysisComplete = (_analysis: JobAnalysis) => {
-    setStep('optimization');
   };
 
   const handleOptimize = async () => {
@@ -228,10 +214,13 @@ export function ResumeOptimizer() {
           </p>
         </div>
 
-        <JobConversation 
-          jobDescription={jobDescription}
-          onAnalysisComplete={handleAnalysisComplete}
-        />
+        <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription>
+            <p className="text-sm mb-2"><strong>Job Description Analysis:</strong></p>
+            <p className="text-sm">Enter your job description below and we'll analyze it to optimize your resume.</p>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }

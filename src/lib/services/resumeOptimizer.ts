@@ -36,7 +36,7 @@ export async function optimizeResume(
   const validated = optimizeResumeSchema.parse({ resumeText, jobDescription });
 
   try {
-    const { data, error } = await supabase.functions.invoke('optimize-resume-detailed', {
+    const { data, error } = await supabase.functions.invoke('optimize-resume-with-audit', {
       body: {
         resumeText: validated.resumeText,
         jobDescription: validated.jobDescription

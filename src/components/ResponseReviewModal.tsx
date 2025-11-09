@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { GuidedPromptSelector } from './GuidedPromptSelector';
+// GuidedPromptSelector component removed
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Loader2, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface ResponseReviewModalProps {
   open: boolean;
@@ -66,13 +66,6 @@ export function ResponseReviewModal({
     } finally {
       setIsValidating(false);
     }
-  };
-
-  const handleApplyOptions = (selectedOptions: string[]) => {
-    const optionsText = selectedOptions.join('; ');
-    const enhancedAnswer = `${answer}\n\nAdditional details: ${optionsText}`;
-    setAnswer(enhancedAnswer);
-    setValidationResult(null);
   };
 
   const handleSave = async () => {
@@ -209,13 +202,13 @@ export function ResponseReviewModal({
                 </Alert>
               )}
 
-              {validationResult.guided_prompts && !validationResult.is_sufficient && (
-                <GuidedPromptSelector
-                  guidedPrompts={validationResult.guided_prompts}
-                  onApply={handleApplyOptions}
-                  onSkip={() => setValidationResult(null)}
-                  skipAttempts={1}
-                />
+              {validationResult.missing_elements && validationResult.missing_elements.length > 0 && !validationResult.is_sufficient && (
+                <Alert className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <AlertDescription className="text-sm">
+                    <strong>Missing Elements:</strong> {validationResult.missing_elements.join(', ')}
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
           )}
