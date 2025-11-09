@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, Zap, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ModernizeLanguageSchema, validateInput, invokeEdgeFunction } from '@/lib/edgeFunction';
 
 interface ModernizeLanguageModalProps {
   open: boolean;
@@ -99,14 +100,18 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
 
     setGeneratingSuggestion(true);
     try {
-      const { data, error } = await supabase.functions.invoke('modernize-language', {
-        body: {
-          phrase: selectedPhrase.power_phrase,
-          context: selectedPhrase.context
-        }
+      const validated = validateInput(ModernizeLanguageSchema, {
+        phrase: selectedPhrase.power_phrase,
+        context: selectedPhrase.context
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'modernize-language',
+        validated
+      );
+
+      if (error) throw new Error(error.message);
 
       if (data?.suggestion) {
         setSuggestion(data.suggestion);
@@ -117,7 +122,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
       console.error('Error generating suggestion:', error);
       toast({
         title: 'Suggestion Generation Failed',
-        description: 'Try manually adding modern keywords below',
+        description: error instanceof Error ? error.message : 'Try manually adding modern keywords below',
         variant: 'default'
       });
     } finally {

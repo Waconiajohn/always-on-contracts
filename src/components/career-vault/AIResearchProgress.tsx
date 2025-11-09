@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { ConductIndustryResearchSchema, validateInput, invokeEdgeFunction } from "@/lib/edgeFunction";
 
 interface ResearchStage {
   id: string;
@@ -78,14 +79,18 @@ export const AIResearchProgress = ({
 
       // Call real industry research function
       try {
-        const { data, error } = await supabase.functions.invoke('conduct-industry-research', {
-          body: {
-            targetRole,
-            targetIndustry
-          }
+        const validated = validateInput(ConductIndustryResearchSchema, {
+          targetRole,
+          targetIndustry
         });
 
-        if (error) throw error;
+        const { data, error } = await invokeEdgeFunction(
+          supabase,
+          'conduct-industry-research',
+          validated
+        );
+
+        if (error) throw new Error(error.message);
 
         const realResearchData = data?.research || {
           roleOverview: {
