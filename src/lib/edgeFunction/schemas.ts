@@ -176,7 +176,152 @@ export const GenerateInterviewQuestionSchema = z.object({
   jobDescription: z.string()
     .min(50, 'Job description must be at least 50 characters')
     .max(20000, 'Job description must be less than 20,000 characters'),
-  questionType: z.enum(['behavioral', 'technical', 'situational', 'general']).optional()
+  questionType: z.enum(['behavioral', 'technical', 'situational', 'general']).optional(),
+  count: z.number().min(1).max(10).optional(),
+  includeSTAR: z.boolean().optional()
+});
+
+// Interview Followup & Communication
+export const GenerateInterviewFollowupSchema = z.object({
+  jobProjectId: z.string().uuid('Invalid job project ID'),
+  communicationType: z.enum(['thank_you', 'follow_up', 'check_in']),
+  customInstructions: z.string().optional()
+});
+
+export const SendCommunicationSchema = z.object({
+  communicationId: z.string().uuid(),
+  recipientEmail: z.string().email('Invalid email'),
+  recipientName: z.string().min(1).optional(),
+  subject: z.string().min(1, 'Subject required'),
+  body: z.string().min(10, 'Body too short'),
+  scheduledFor: z.string().datetime().nullable().optional()
+});
+
+// Career Tools
+export const GenerateStarStorySchema = z.object({
+  rawStory: z.string().min(50, 'Story description too short').max(2000, 'Story description too long'),
+  action: z.enum(['generate', 'refine']).optional().default('generate')
+});
+
+export const GenerateWhyMeQuestionsSchema = z.object({
+  jobDescription: z.string().min(50, 'Job description too short'),
+  vaultId: z.string().uuid().optional()
+});
+
+export const SuggestMetricsSchema = z.object({
+  phrase: z.string().min(10, 'Phrase too short').max(500, 'Phrase too long'),
+  context: z.string().max(1000).optional()
+});
+
+export const InferTargetRolesSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  currentRole: z.string().optional(),
+  yearsExperience: z.number().min(0).optional()
+});
+
+// Job Analysis & Matching
+export const AnalyzeJobQualificationsSchema = z.object({
+  jobDescription: z.string().min(50, 'Job description too short'),
+  resumeText: z.string().min(100, 'Resume text too short'),
+  jobId: z.string().uuid().optional()
+});
+
+export const GenerateExecutiveResumeSchema = z.object({
+  jobDescription: z.string().min(50, 'Job description too short'),
+  vaultId: z.string().uuid('Invalid vault ID'),
+  templateId: z.string().optional()
+});
+
+// Batch Operations
+export const BatchProcessResumesSchema = z.object({
+  resumes: z.array(z.object({
+    fileData: z.string(),
+    fileName: z.string(),
+    fileType: z.string()
+  })).min(1, 'At least one resume required'),
+  vaultId: z.string().uuid().optional()
+});
+
+// Coaching & Analysis
+export const ExecutiveCoachingSchema = z.object({
+  message: z.string().min(1, 'Message cannot be empty'),
+  context: z.string().optional(),
+  conversationHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string()
+  })).optional()
+});
+
+export const AnalyzeResumeAndResearchSchema = z.object({
+  resumeText: z.string().min(100, 'Resume text too short'),
+  vaultId: z.string().uuid('Invalid vault ID'),
+  targetRole: z.string().optional(),
+  targetIndustry: z.string().optional()
+});
+
+// Vault Operations
+export const BulkVaultOperationsSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  operation: z.enum(['delete', 'export', 'quality_upgrade']),
+  itemIds: z.array(z.string().uuid()).min(1, 'At least one item required'),
+  category: z.string().optional()
+});
+
+export const SearchVaultAdvancedSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  query: z.string().min(1, 'Search query required'),
+  category: z.string().optional(),
+  qualityTier: z.enum(['gold', 'silver', 'bronze', 'assumed']).optional(),
+  limit: z.number().min(1).max(100).optional().default(50)
+});
+
+export const ExportVaultSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  format: z.enum(['json', 'csv', 'pdf']).default('json'),
+  includeCategories: z.array(z.string()).optional()
+});
+
+// Career Focus & Roles
+export const SuggestAdjacentRolesSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  currentRole: z.string().optional(),
+  targetIndustry: z.string().optional()
+});
+
+export const CompetencyQuizSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  skillArea: z.string().min(1, 'Skill area required'),
+  difficultyLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional().default('intermediate')
+});
+
+export const SubmitMicroAnswersSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  answers: z.array(z.object({
+    questionId: z.string(),
+    answer: z.string().min(1, 'Answer cannot be empty')
+  })).min(1, 'At least one answer required')
+});
+
+// Job Feedback & Market Insights
+export const JobFeedbackSchema = z.object({
+  jobId: z.string().uuid('Invalid job ID'),
+  feedbackType: z.enum(['applied', 'interview', 'offer', 'rejected', 'not_interested']),
+  notes: z.string().optional()
+});
+
+// Text to Speech
+export const TextToSpeechSchema = z.object({
+  text: z.string().min(1, 'Text cannot be empty').max(5000, 'Text too long'),
+  voiceId: z.string().optional(),
+  modelId: z.string().optional()
+});
+
+// Validate Interview Response with Audit
+export const ValidateInterviewResponseWithAuditSchema = z.object({
+  question: z.string().min(10, 'Question too short'),
+  answer: z.string().min(20, 'Answer too short'),
+  responseId: z.string().uuid().nullable().optional(),
+  includeAudit: z.boolean().optional().default(true)
 });
 
 // ============= LinkedIn & Content =============

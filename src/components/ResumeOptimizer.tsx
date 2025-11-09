@@ -10,6 +10,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Sparkles, TrendingUp, AlertCircle, CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  OptimizeResumeSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 export function ResumeOptimizer() {
   const [step, setStep] = useState<'input' | 'analysis' | 'optimization'>('input');
@@ -67,19 +72,21 @@ export function ResumeOptimizer() {
     setIsOptimizing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('optimize-resume-with-audit', {
-        body: {
-          resumeText,
-          jobDescription,
-          vaultData
-        }
+      const validated = validateInput(OptimizeResumeSchema, {
+        resumeText,
+        jobDescription
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'optimize-resume-with-audit',
+        { ...validated, vaultData },
+        { successMessage: 'Resume optimized with dual AI audit!' }
+      );
+
+      if (error) return;
+
       setResult(data);
-      toast.success('Resume optimized with dual AI audit!');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to optimize resume');
     } finally {
       setIsOptimizing(false);
     }

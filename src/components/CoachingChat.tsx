@@ -3,9 +3,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send, ArrowLeft, User, Bot } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  ExecutiveCoachingSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface CoachingChatProps {
   coachPersonality: string;
@@ -42,7 +46,6 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
 
   const coach = COACH_PERSONALITIES[coachPersonality as keyof typeof COACH_PERSONALITIES] || COACH_PERSONALITIES.robert;
 
@@ -114,20 +117,18 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
         content: m.content
       }));
 
-      const { data, error } = await supabase.functions.invoke('executive-coaching', {
-        body: {
-          message: input,
-          conversationHistory,
-          sessionId,
-          config: {
-            persona: coachPersonality,
-            intensity: 'balanced',
-            focus_area: 'general'
-          }
-        }
+      const validated = validateInput(ExecutiveCoachingSchema, {
+        message: input,
+        conversationHistory
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'executive-coaching',
+        { ...validated, sessionId, config: { persona: coachPersonality, intensity: 'balanced', focus_area: 'general' } }
+      );
+
+      if (error) return;
 
       const assistantMessage: Message = {
         role: 'assistant',
@@ -139,13 +140,6 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
 
       // Store important exchanges in persona memories
       await storeMemory(input, data.response);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }

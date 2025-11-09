@@ -6,7 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Sparkles, Brain, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { executeWithRetry } from '@/lib/errorHandling';
+import { 
+  AutoPopulateVaultSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface AutoPopulateStepProps {
   vaultId: string;
@@ -119,58 +123,47 @@ export const AutoPopulateStep = ({
         description: 'Extracting comprehensive career intelligence from your resume...'
       });
 
-      // Phase 1: Call with retry mechanism and better error handling
-      const data = await executeWithRetry(
-        async () => {
-          console.log('[AUTO-POPULATE] Calling edge function...');
-          const { data, error } = await supabase.functions.invoke('auto-populate-vault-v3', {
-            body: {
-              vaultId,
-              resumeText,
-              targetRoles,
-              targetIndustries
-            }
-          });
+      // Phase 1: Call with validation and new error handling
+      const validated = validateInput(AutoPopulateVaultSchema, {
+        vaultId,
+        resumeText,
+        targetRoles,
+        targetIndustries
+      });
 
-          console.log('[AUTO-POPULATE] Response received:', {
-            hasData: !!data,
-            hasError: !!error,
-            dataStructure: data ? Object.keys(data) : [],
-            errorDetails: error
-          });
-
-          // Handle network/timeout errors
-          if (error) {
-            if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
-              throw new Error('Network timeout - AI analysis took longer than expected. Checking if data was saved...');
-            }
-            throw error;
-          }
-
-          // Validate response structure
-          if (!data || typeof data !== 'object') {
-            throw new Error('Invalid response from AI - please try again');
-          }
-
-          if (data.success === false) {
-            throw new Error(data.error || 'Auto-population failed - no specific error provided');
-          }
-
-          if (!data.success) {
-            throw new Error('Auto-population failed');
-          }
-
-          return data;
-        },
-        {
-          operationName: 'AI Vault Auto-Population',
-          config: {
-            maxRetries: 1,
-            baseDelay: 2000
-          },
-          showToasts: false // We'll handle toasts manually
-        }
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'auto-populate-vault-v3',
+        validated,
+        { suppressErrorToast: true } // Handle toasts manually
       );
+
+      console.log('[AUTO-POPULATE] Response received:', {
+        hasData: !!data,
+        hasError: !!error,
+        dataStructure: data ? Object.keys(data) : []
+      });
+
+      // Handle network/timeout errors
+      if (error) {
+        if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
+          throw new Error('Network timeout - AI analysis took longer than expected. Checking if data was saved...');
+        }
+        throw new Error(error.message || 'Auto-population failed');
+      }
+
+      // Validate response structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response from AI - please try again');
+      }
+
+      if (data.success === false) {
+        throw new Error(data.error || 'Auto-population failed - no specific error provided');
+      }
+
+      if (!data.success) {
+        throw new Error('Auto-population failed');
+      }
 
       // Cleanup intervals
       if (progressInterval) clearInterval(progressInterval);

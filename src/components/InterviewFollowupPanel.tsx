@@ -8,6 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Send, Clock, CheckCircle, Calendar, Sparkles, AlertCircle } from "lucide-react";
+import { 
+  GenerateInterviewFollowupSchema, 
+  SendCommunicationSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 import { format } from "date-fns";
 import {
   Select,
@@ -79,15 +85,20 @@ export const InterviewFollowupPanel = ({ userId, jobProjectId }: InterviewFollow
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-interview-followup', {
-        body: {
-          jobProjectId: selectedProject,
-          communicationType,
-          customInstructions
-        }
+      const validated = validateInput(GenerateInterviewFollowupSchema, {
+        jobProjectId: selectedProject,
+        communicationType: communicationType as 'thank_you' | 'follow_up' | 'check_in',
+        customInstructions
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-interview-followup',
+        validated,
+        { successMessage: 'Email generated successfully!' }
+      );
+
+      if (error) return;
 
       setGeneratedContent(data);
       
@@ -102,17 +113,6 @@ export const InterviewFollowupPanel = ({ userId, jobProjectId }: InterviewFollow
         setRecipientEmail(project.interviewer_email);
       }
 
-      toast({
-        title: "Email Generated",
-        description: "AI-powered follow-up is ready to review",
-      });
-    } catch (error) {
-      console.error('Error generating follow-up:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate follow-up email",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
@@ -148,36 +148,33 @@ export const InterviewFollowupPanel = ({ userId, jobProjectId }: InterviewFollow
 
       if (createError) throw createError;
 
-      // Send the email
-      const { data, error } = await supabase.functions.invoke('send-interview-communication', {
-        body: {
-          communicationId: newComm.id,
-          recipientEmail,
-          recipientName,
-          subject: generatedContent.subject,
-          body: generatedContent.body,
-          scheduledFor: null // Send immediately
-        }
+      // Send the email  
+      const validated = validateInput(SendCommunicationSchema, {
+        communicationId: newComm.id,
+        recipientEmail,
+        recipientName,
+        subject: generatedContent.subject,
+        body: generatedContent.body,
+        scheduledFor: null
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'send-interview-communication',
+        validated
+      );
 
+      if (error) return;
+      
       toast({
-        title: data.simulated ? "Email Simulated" : "Email Sent",
-        description: data.message,
+        title: data?.simulated ? "Email Simulated" : "Email Sent",
+        description: data?.message || "Communication sent successfully",
       });
 
       // Refresh communications list
       fetchCommunications(selectedProject);
       setGeneratedContent(null);
       setCustomInstructions("");
-    } catch (error) {
-      console.error('Error sending communication:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send email",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }

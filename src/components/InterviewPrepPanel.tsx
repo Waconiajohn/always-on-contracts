@@ -6,6 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, XCircle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { 
+  GenerateInterviewQuestionSchema, 
+  ValidateInterviewResponseSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface InterviewPrepPanelProps {
   jobDescription?: string;
@@ -44,27 +50,24 @@ export const InterviewPrepPanel = ({ jobDescription }: InterviewPrepPanelProps) 
     
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-interview-question', {
-        body: { 
-          jobDescription,
-          count: 5,
-          includeSTAR: true
-        }
+      const validated = validateInput(GenerateInterviewQuestionSchema, {
+        jobDescription,
+        count: 5,
+        includeSTAR: true
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-interview-question',
+        validated
+      );
+
+      if (error) return;
 
       if (data.questions) {
         setQuestions(data.questions);
         setCurrentQuestionIndex(0);
       }
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate interview questions",
-        variant: "destructive"
-      });
     } finally {
       setIsGenerating(false);
     }
@@ -75,15 +78,19 @@ export const InterviewPrepPanel = ({ jobDescription }: InterviewPrepPanelProps) 
 
     setIsValidating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-interview-response', {
-        body: {
-          question: questions[currentQuestionIndex].question,
-          answer,
-          responseId: null
-        }
+      const validated = validateInput(ValidateInterviewResponseSchema, {
+        question: questions[currentQuestionIndex].question,
+        response: answer,
+        context: undefined
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'validate-interview-response',
+        validated
+      );
+
+      if (error) return;
 
       setValidationResult({
         isStrong: data.isStrong,
@@ -99,13 +106,6 @@ export const InterviewPrepPanel = ({ jobDescription }: InterviewPrepPanelProps) 
           ? "Great job! Your answer demonstrates solid STAR methodology."
           : "Review the recommendations to strengthen your response.",
         variant: data.isStrong ? "default" : "destructive"
-      });
-    } catch (error) {
-      console.error('Error validating answer:', error);
-      toast({
-        title: "Error",
-        description: "Failed to validate your answer",
-        variant: "destructive"
       });
     } finally {
       setIsValidating(false);

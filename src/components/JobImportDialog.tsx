@@ -8,6 +8,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Link, Upload, Search, Loader2 } from "lucide-react";
+import { 
+  ParseJobDocumentSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface JobImportDialogProps {
   open: boolean;
@@ -79,11 +84,18 @@ export function JobImportDialog({ open, onOpenChange, onJobImported }: JobImport
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('parse-job-document', {
-        body: { url: urlInput }
+      const validated = validateInput(ParseJobDocumentSchema, {
+        url: urlInput
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'parse-job-document',
+        validated,
+        { successMessage: 'Job imported successfully!' }
+      );
+
+      if (error) return;
 
       if (!data.success) {
         toast({
@@ -102,21 +114,8 @@ export function JobImportDialog({ open, onOpenChange, onJobImported }: JobImport
         externalUrl: urlInput,
       });
 
-      toast({
-        title: "Job Imported",
-        description: "Job details extracted successfully",
-      });
-
       resetForm();
       onOpenChange(false);
-    } catch (error) {
-      console.error('URL import error:', error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to import from URL";
-      toast({
-        title: "Import Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }

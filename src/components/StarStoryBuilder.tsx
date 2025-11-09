@@ -9,6 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  GenerateStarStorySchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface StarStory {
   id: string;
@@ -66,18 +71,22 @@ export function StarStoryBuilder() {
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-star-story', {
-        body: { rawStory: rawInput, action: 'generate' }
+      const validated = validateInput(GenerateStarStorySchema, {
+        rawStory: rawInput,
+        action: 'generate'
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-star-story',
+        validated,
+        { successMessage: 'STAR story generated!' }
+      );
+
+      if (error) return;
 
       setEditingStory(data.starStory);
       setRawInput("");
-      toast.success("STAR story generated! Review and save below.");
-    } catch (error) {
-      console.error('Error generating story:', error);
-      toast.error("Failed to generate STAR story");
     } finally {
       setIsGenerating(false);
     }

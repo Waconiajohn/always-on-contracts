@@ -8,6 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  BatchProcessResumesSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface BatchResult {
   fileName: string;
@@ -92,14 +97,18 @@ export function BatchResumeUpload() {
       setProgress(20);
 
       // Process batch
-      const { data, error } = await supabase.functions.invoke('batch-process-resumes', {
-        body: {
-          resumes: resumesData,
-          userId: session.user.id
-        }
+      const validated = validateInput(BatchProcessResumesSchema, {
+        resumes: resumesData
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'batch-process-resumes',
+        { ...validated, userId: session.user.id },
+        { successMessage: 'Batch processing complete!' }
+      );
+
+      if (error) return;
 
       setResults(data.results || []);
       setProgress(100);
@@ -109,13 +118,6 @@ export function BatchResumeUpload() {
         description: `${data.successCount} succeeded, ${data.failureCount} failed`,
       });
 
-    } catch (error: any) {
-      console.error("Batch upload error:", error);
-      toast({
-        title: "Batch Upload Failed",
-        description: error.message || "Failed to process batch",
-        variant: "destructive"
-      });
     } finally {
       setProcessing(false);
     }

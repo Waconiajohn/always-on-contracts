@@ -8,6 +8,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
+import { 
+  ValidateInterviewResponseSchema,
+  ExtractVaultIntangiblesSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface ResponseReviewModalProps {
   open: boolean;
@@ -48,21 +54,21 @@ export function ResponseReviewModal({
   const validateAnswer = async (answerText: string) => {
     setIsValidating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-interview-response', {
-        body: { question, answer: answerText }
+      const validated = validateInput(ValidateInterviewResponseSchema, {
+        question,
+        response: answerText
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'validate-interview-response',
+        validated
+      );
+
+      if (error) return null;
+
       setValidationResult(data);
       return data;
-    } catch (error: any) {
-      console.error('Validation error:', error);
-      toast({
-        title: 'Validation failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-      return null;
     } finally {
       setIsValidating(false);
     }
@@ -98,17 +104,18 @@ export function ResponseReviewModal({
         if (updateError) throw updateError;
 
         // Re-extract intelligence
-        const { error: extractError } = await supabase.functions.invoke('extract-vault-intangibles', {
-          body: {
-            vaultId,
-            question,
-            userResponse: answer,
-          }
+        const extractValidated = validateInput(ExtractVaultIntangiblesSchema, {
+          vaultId,
+          questionText: question,
+          responseText: answer
         });
 
-        if (extractError) {
-          console.error('Intelligence extraction error:', extractError);
-        }
+        await invokeEdgeFunction(
+          supabase,
+          'extract-vault-intangibles',
+          extractValidated,
+          { suppressErrorToast: true } // Don't show error toast for extraction
+        );
 
         toast({
           title: 'Response enhanced!',

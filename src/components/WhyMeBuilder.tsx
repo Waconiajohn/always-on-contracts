@@ -7,6 +7,11 @@ import { MessageSquare, Save, Sparkles, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { 
+  GenerateWhyMeQuestionsSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface WhyMeNarrative {
   id: string;
@@ -42,26 +47,21 @@ export const WhyMeBuilder: React.FC<WhyMeBuilderProps> = ({ userId, narratives, 
   const handleGenerateQuestions = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-why-me-questions', {
-        body: { category: currentCategory }
+      const validated = validateInput(GenerateWhyMeQuestionsSchema, {
+        jobDescription: currentCategory // Using category as job description context
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-why-me-questions',
+        validated,
+        { successMessage: 'Questions generated!' }
+      );
 
-      toast({
-        title: "Questions generated",
-        description: "Answer these to build your narrative",
-      });
+      if (error) return;
 
       // You could display these questions in a dialog
       logger.debug('Generated questions:', { data });
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate questions",
-        variant: "destructive",
-      });
     } finally {
       setIsGenerating(false);
     }

@@ -7,6 +7,13 @@ import { KeywordScoreCard } from './KeywordScoreCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { 
+  AnalyzeJobQualificationsSchema,
+  GenerateExecutiveResumeSchema,
+  ScoreResumeMatchSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface QueueItemProps {
   item: any;
@@ -46,42 +53,22 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
     if (qualifications.length === 0) {
       setIsAnalyzing(true);
       try {
-      const { data, error } = await supabase.functions.invoke('analyze-job-qualifications', {
-        body: { 
-          opportunityId: item.opportunity_id,
-          jobDescription: item.opportunity?.job_description
-        }
-      });
+        const validated = validateInput(AnalyzeJobQualificationsSchema, {
+          jobDescription: item.opportunity?.job_description || '',
+          resumeText: '', // Not provided in this context
+          jobId: item.opportunity_id
+        });
 
-        if (error) {
-          // Handle specific error codes
-          if (error.message?.includes('Rate limit')) {
-            toast({
-              title: "Rate Limit Exceeded",
-              description: "Too many requests. Please try again in a moment.",
-              variant: "destructive",
-            });
-          } else if (error.message?.includes('credits')) {
-            toast({
-              title: "Credits Exhausted",
-              description: "Please add more credits to your workspace to continue.",
-              variant: "destructive",
-            });
-          } else {
-            throw error;
-          }
-          return;
-        }
+        const { data, error } = await invokeEdgeFunction(
+          supabase,
+          'analyze-job-qualifications',
+          validated
+        );
+
+        if (error) return;
 
         setQualifications(data.critical_qualifications || []);
         setShowConversation(true);
-      } catch (error) {
-        console.error('Error analyzing qualifications:', error);
-        toast({
-          title: "Error",
-          description: "Failed to analyze job qualifications. Please try again.",
-          variant: "destructive",
-        });
       } finally {
         setIsAnalyzing(false);
       }
@@ -101,24 +88,31 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
         .eq('id', item.id);
 
       // Generate executive resume with conversation context
-      const { data, error } = await supabase.functions.invoke('generate-executive-resume', {
-        body: { 
-          jobDescription: item.opportunity?.job_description,
-          persona: 'executive',
-          format: 'html',
-          conversationResponses: responses,
-        }
+      const validated = validateInput(GenerateExecutiveResumeSchema, {
+        jobDescription: item.opportunity?.job_description || '',
+        vaultId: item.vault_id // Assuming vault_id is in item
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-executive-resume',
+        { ...validated, conversationResponses: responses, persona: 'executive', format: 'html' },
+        { successMessage: 'Resume optimized!' }
+      );
+
+      if (error) return;
 
       // Score the new resume
-      const { data: scoreData, error: scoreError } = await supabase.functions.invoke('score-resume-match', {
-        body: {
-          keywords: data.keywords || [],
-          resumeContent: data,
-        }
+      const scoreValidated = validateInput(ScoreResumeMatchSchema, {
+        keywords: data.keywords || [],
+        resumeContent: data
       });
+
+      const { data: scoreData, error: scoreError } = await invokeEdgeFunction(
+        supabase,
+        'score-resume-match',
+        scoreValidated
+      );
 
       if (!scoreError && scoreData) {
         setKeywordAnalysis(scoreData);
@@ -133,13 +127,7 @@ export const EnhancedQueueItem: React.FC<QueueItemProps> = ({
       }
 
       setShowConversation(false);
-      
-      toast({
-        title: "Resume Optimized",
-        description: "Your resume has been customized based on your responses",
-      });
-    } catch (error) {
-      console.error('Error completing conversation:', error);
+    } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to optimize resume",

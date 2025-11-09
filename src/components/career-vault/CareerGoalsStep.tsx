@@ -7,6 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Plus, Target, Building2, Save, ArrowRight } from 'lucide-react';
+import { 
+  InferTargetRolesSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface CareerGoalsStepProps {
   resumeAnalysis: any;
@@ -128,18 +133,21 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
 
-      const { data, error } = await supabase.functions.invoke('infer-target-roles', {
-        body: { resume_analysis: resumeAnalysis },
+      const validated = validateInput(InferTargetRolesSchema, {
+        vaultId: resumeAnalysis?.vaultId // Assuming vault ID is in resume analysis
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'infer-target-roles',
+        validated
+      );
+
+      if (error) return;
 
       if (data.success) {
         setRoleSuggestions(data.suggestions);
       }
-    } catch (error) {
-      console.error('Error fetching role suggestions:', error);
-      toast.error('Failed to load role suggestions');
     } finally {
       setLoading(false);
     }

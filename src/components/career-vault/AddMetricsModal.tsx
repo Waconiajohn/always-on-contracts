@@ -8,6 +8,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { 
+  SuggestMetricsSchema,
+  validateInput,
+  invokeEdgeFunction 
+} from '@/lib/edgeFunction';
 
 interface AddMetricsModalProps {
   open: boolean;
@@ -88,25 +93,22 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
 
     setGeneratingSuggestions(true);
     try {
-      const { data, error } = await supabase.functions.invoke('suggest-metrics', {
-        body: {
-          phrase: selectedPhrase.power_phrase,
-          context: selectedPhrase.context
-        }
+      const validated = validateInput(SuggestMetricsSchema, {
+        phrase: selectedPhrase.power_phrase,
+        context: selectedPhrase.context
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'suggest-metrics',
+        validated
+      );
+
+      if (error) return;
 
       if (data?.suggestions) {
         setSuggestions(data.suggestions);
       }
-    } catch (error) {
-      console.error('Error generating suggestions:', error);
-      toast({
-        title: 'Suggestion Generation Failed',
-        description: 'Using manual entry mode',
-        variant: 'default'
-      });
     } finally {
       setGeneratingSuggestions(false);
     }
