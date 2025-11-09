@@ -11,9 +11,10 @@ import { Loader2, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
 import { 
   ValidateInterviewResponseSchema,
   ExtractVaultIntangiblesSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface ResponseReviewModalProps {
   open: boolean;
@@ -54,15 +55,20 @@ export function ResponseReviewModal({
   const validateAnswer = async (answerText: string) => {
     setIsValidating(true);
     try {
-      const validated = validateInput(ValidateInterviewResponseSchema, {
+      const validation = safeValidateInput(ValidateInterviewResponseSchema, {
         question,
         response: answerText
       });
 
+      if (!validation.success) {
+        setIsValidating(false);
+        return null;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'validate-interview-response',
-        validated
+        validation.data
       );
 
       if (error) return null;
@@ -104,18 +110,20 @@ export function ResponseReviewModal({
         if (updateError) throw updateError;
 
         // Re-extract intelligence
-        const extractValidated = validateInput(ExtractVaultIntangiblesSchema, {
+        const extractValidation = safeValidateInput(ExtractVaultIntangiblesSchema, {
           vaultId,
           questionText: question,
           responseText: answer
         });
 
-        await invokeEdgeFunction(
-          supabase,
-          'extract-vault-intangibles',
-          extractValidated,
-          { suppressErrorToast: true } // Don't show error toast for extraction
-        );
+        if (extractValidation.success) {
+          await invokeEdgeFunction(
+            supabase,
+            'extract-vault-intangibles',
+            extractValidation.data,
+            { suppressErrorToast: true } // Don't show error toast for extraction
+          );
+        }
 
         toast({
           title: 'Response enhanced!',
@@ -125,7 +133,7 @@ export function ResponseReviewModal({
         onSuccess();
         onOpenChange(false);
       } catch (error: any) {
-        console.error('Save error:', error);
+        logger.error('Save error', error);
         toast({
           title: 'Failed to save',
           description: error.message,

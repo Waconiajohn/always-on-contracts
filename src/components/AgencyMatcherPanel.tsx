@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Building2, Mail, ExternalLink, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { validateInput, invokeEdgeFunction, PerplexityResearchSchema } from '@/lib/edgeFunction';
+import { safeValidateInput, invokeEdgeFunction, PerplexityResearchSchema } from '@/lib/edgeFunction';
 
 interface AgencyMatcherPanelProps {
   userId: string;
@@ -36,7 +36,7 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
     setIsLoading(true);
     try {
       // Use Perplexity research to find relevant agencies
-      const validatedInput = validateInput(PerplexityResearchSchema, {
+      const validation = safeValidateInput(PerplexityResearchSchema, {
         research_type: 'company_research',
         query_params: {
           targetRoles: targetRoles.join(', '),
@@ -46,10 +46,15 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
         }
       });
 
+      if (!validation.success) {
+        setIsLoading(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'perplexity-research',
-        validatedInput
+        validation.data
       );
 
       if (error) throw error;

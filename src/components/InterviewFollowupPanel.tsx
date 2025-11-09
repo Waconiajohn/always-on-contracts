@@ -11,7 +11,7 @@ import { Mail, Send, Clock, CheckCircle, Calendar, Sparkles, AlertCircle } from 
 import { 
   GenerateInterviewFollowupSchema, 
   SendCommunicationSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
 import { format } from "date-fns";
@@ -85,16 +85,21 @@ export const InterviewFollowupPanel = ({ userId, jobProjectId }: InterviewFollow
 
     setLoading(true);
     try {
-      const validated = validateInput(GenerateInterviewFollowupSchema, {
+      const validation = safeValidateInput(GenerateInterviewFollowupSchema, {
         jobProjectId: selectedProject,
         communicationType: communicationType as 'thank_you' | 'follow_up' | 'check_in',
         customInstructions
       });
 
+      if (!validation.success) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'generate-interview-followup',
-        validated,
+        validation.data,
         { successMessage: 'Email generated successfully!' }
       );
 
@@ -149,7 +154,7 @@ export const InterviewFollowupPanel = ({ userId, jobProjectId }: InterviewFollow
       if (createError) throw createError;
 
       // Send the email  
-      const validated = validateInput(SendCommunicationSchema, {
+      const validation = safeValidateInput(SendCommunicationSchema, {
         communicationId: newComm.id,
         recipientEmail,
         recipientName,
@@ -158,10 +163,15 @@ export const InterviewFollowupPanel = ({ userId, jobProjectId }: InterviewFollow
         scheduledFor: null
       });
 
+      if (!validation.success) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'send-interview-communication',
-        validated
+        validation.data
       );
 
       if (error) return;

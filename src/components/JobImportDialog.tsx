@@ -10,9 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileText, Link, Upload, Search, Loader2 } from "lucide-react";
 import { 
   ParseJobDocumentSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface JobImportDialogProps {
   open: boolean;
@@ -84,14 +85,19 @@ export function JobImportDialog({ open, onOpenChange, onJobImported }: JobImport
 
     setLoading(true);
     try {
-      const validated = validateInput(ParseJobDocumentSchema, {
+      const validation = safeValidateInput(ParseJobDocumentSchema, {
         url: urlInput
       });
+
+      if (!validation.success) {
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'parse-job-document',
-        validated,
+        validation.data,
         { successMessage: 'Job imported successfully!' }
       );
 
@@ -176,7 +182,7 @@ export function JobImportDialog({ open, onOpenChange, onJobImported }: JobImport
         });
       }
     } catch (error) {
-      console.error('File import error:', error);
+      logger.error('File import error', error);
       const errorMessage = error instanceof Error ? error.message : "Failed to import file";
       toast({
         title: "Import Failed",

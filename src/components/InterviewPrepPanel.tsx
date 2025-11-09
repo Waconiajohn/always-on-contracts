@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   GenerateInterviewQuestionSchema, 
   ValidateInterviewResponseSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
 
@@ -50,16 +50,21 @@ export const InterviewPrepPanel = ({ jobDescription }: InterviewPrepPanelProps) 
     
     setIsGenerating(true);
     try {
-      const validated = validateInput(GenerateInterviewQuestionSchema, {
+      const validation = safeValidateInput(GenerateInterviewQuestionSchema, {
         jobDescription,
         count: 5,
         includeSTAR: true
       });
 
+      if (!validation.success) {
+        setIsGenerating(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'generate-interview-question',
-        validated
+        validation.data
       );
 
       if (error) return;
@@ -78,16 +83,21 @@ export const InterviewPrepPanel = ({ jobDescription }: InterviewPrepPanelProps) 
 
     setIsValidating(true);
     try {
-      const validated = validateInput(ValidateInterviewResponseSchema, {
+      const validation = safeValidateInput(ValidateInterviewResponseSchema, {
         question: questions[currentQuestionIndex].question,
         response: answer,
         context: undefined
       });
 
+      if (!validation.success) {
+        setIsValidating(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'validate-interview-response',
-        validated
+        validation.data
       );
 
       if (error) return;

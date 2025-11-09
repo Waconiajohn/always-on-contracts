@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   BatchProcessResumesSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
 
@@ -97,14 +97,19 @@ export function BatchResumeUpload() {
       setProgress(20);
 
       // Process batch
-      const validated = validateInput(BatchProcessResumesSchema, {
+      const validation = safeValidateInput(BatchProcessResumesSchema, {
         resumes: resumesData
       });
+
+      if (!validation.success) {
+        setProcessing(false);
+        return;
+      }
 
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'batch-process-resumes',
-        { ...validated, userId: session.user.id },
+        { ...validation.data, userId: session.user.id },
         { successMessage: 'Batch processing complete!' }
       );
 
