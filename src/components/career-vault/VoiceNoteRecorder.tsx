@@ -191,7 +191,7 @@ export const VoiceNoteRecorder = ({
 
     try {
       // Extract intelligence from voice transcript using AI
-      const { data, error } = await supabase.functions.invoke('extract-vault-intelligence', {
+      const { data, error } = await supabase.functions.invoke('extract-vault-intangibles', {
         body: {
           responseText: transcript,
           questionText: prompt,

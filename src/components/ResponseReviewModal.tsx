@@ -98,7 +98,7 @@ export function ResponseReviewModal({
         if (updateError) throw updateError;
 
         // Re-extract intelligence
-        const { error: extractError } = await supabase.functions.invoke('extract-vault-intelligence', {
+        const { error: extractError } = await supabase.functions.invoke('extract-vault-intangibles', {
           body: {
             vaultId,
             question,
