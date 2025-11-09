@@ -170,7 +170,8 @@ const VaultDashboardContent = () => {
     // Determine what action to take based on score
     const score = stats?.strengthScore.total || 0;
     if (score < 70) {
-      setAddMetricsModalOpen(true);
+      // Low score = incomplete resume, open resume management modal
+      setResumeModalOpen(true);
     } else {
       navigate('/create-resume');
     }

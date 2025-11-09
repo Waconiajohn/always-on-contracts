@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -23,6 +23,14 @@ export const ResumeManagementModal = ({
   const [selectedAction, setSelectedAction] = useState<'replace' | 'add' | null>(null);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+
+  // Reset state when modal closes or opens
+  useEffect(() => {
+    if (!open) {
+      setSelectedAction(null);
+      setUploading(false);
+    }
+  }, [open]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
