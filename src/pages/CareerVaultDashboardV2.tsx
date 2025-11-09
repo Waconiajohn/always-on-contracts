@@ -91,11 +91,25 @@ const VaultDashboardContent = () => {
     localStorage.setItem('vault-last-visit', new Date().toISOString());
   }, []);
 
+  // Get user on mount FIRST
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, []);
+
   // Data hooks
   const { data: vaultData, isLoading, refetch } = useVaultData(userId);
   const stats = useVaultStats(vaultData);
 
-  // Handlers
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // This ensures React hook count remains consistent across renders
+  
+  // Handlers - defined early to ensure consistent hook order
   const handleReanalyze = useCallback(async () => {
     if (!vaultData?.vault?.id) return;
 
@@ -122,6 +136,46 @@ const VaultDashboardContent = () => {
     }
   }, [vaultData?.vault?.id, vaultData?.vault?.resume_raw_text, refetch, queryClient]);
 
+  const handleEditItem = useCallback((item: any) => {
+    setSelectedItem(item);
+    setEditModalOpen(true);
+  }, []);
+
+  const handleViewItem = useCallback((item: any) => {
+    setSelectedItem(item);
+    setViewModalOpen(true);
+  }, []);
+
+  const handleSectionClick = useCallback((section: string) => {
+    console.log('Section clicked:', section);
+    switch (section) {
+      case 'work-experience':
+        setAddMetricsModalOpen(true);
+        break;
+      case 'strategic-impact':
+        setStrategicImpactModalOpen(true);
+        break;
+      case 'leadership':
+        setLeadershipModalOpen(true);
+        break;
+      case 'professional-resources':
+        setProfessionalResourcesModalOpen(true);
+        break;
+      default:
+        setEnhancementModalOpen(true);
+    }
+  }, []);
+
+  const handlePrimaryAction = useCallback(() => {
+    // Determine what action to take based on score
+    const score = stats?.strengthScore.total || 0;
+    if (score < 70) {
+      setAddMetricsModalOpen(true);
+    } else {
+      navigate('/create-resume');
+    }
+  }, [stats?.strengthScore.total, navigate]);
+
   // Mission callbacks (memoized to prevent infinite loops)
   const missionCallbacks = useMemo(() => ({
     onVerifyAssumed: () => navigate('/career-vault'),
@@ -129,7 +183,9 @@ const VaultDashboardContent = () => {
     onRefreshStale: handleReanalyze,
   }), [navigate, handleReanalyze]);
 
+  // Custom hooks that may have internal hooks
   useVaultMissions(vaultData, stats, missionCallbacks);
+  
   const quickWins = useQuickWins({
     assumedCount: stats?.qualityDistribution.assumedNeedingReview || 0,
     weakPhrasesCount: vaultData?.powerPhrases.filter((p: any) =>
@@ -141,47 +197,7 @@ const VaultDashboardContent = () => {
     onRefreshStale: missionCallbacks.onRefreshStale,
   });
 
-  // Get user on mount
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-      }
-    };
-    getUser();
-  }, []);
-
-  // Calculate metrics (must be before early returns due to hooks)
-  const grade = calculateGrade(stats?.strengthScore.total || 0);
-  const marketRank = calculateMarketRank(stats?.strengthScore.total || 0);
-  const unverifiedItems = stats ? (stats.totalItems - stats.qualityDistribution.gold - stats.qualityDistribution.silver - stats.qualityDistribution.bronze) : 0;
-
-  // Detect blockers - these indicate high-priority enhancement questions needed
-  // Blocker alerts are no longer shown - gaps are addressed through enhancement questions
-  const allBlockers = detectCareerBlockers({
-    strengthScore: stats?.strengthScore.total || 0,
-    leadershipItems: (vaultData?.leadershipPhilosophy?.length || 0) + (vaultData?.executivePresence?.length || 0),
-    budgetOwnership: vaultData?.careerContext?.has_budget_ownership || false,
-    targetRoles: vaultData?.userProfile?.target_roles || [],
-  });
-  // Hide blocker UI - blockers are prioritized in enhancement questions instead
-  const criticalBlockers: typeof allBlockers = [];
-
-  // Calculate days since last action for SmartNudge
-  const calculateDaysSinceLastAction = () => {
-    const lastAction = localStorage.getItem('vault-last-action');
-    if (!lastAction) return 999;
-    const days = Math.floor((Date.now() - new Date(lastAction).getTime()) / (1000 * 60 * 60 * 24));
-    return days;
-  };
-
-  // Calculate days since extraction
-  const daysSinceExtraction = vaultData?.vault?.last_updated_at 
-    ? Math.floor((Date.now() - new Date(vaultData.vault.last_updated_at).getTime()) / (1000 * 60 * 60 * 24))
-    : undefined;
-
-  // Check for recent score improvements
+  // Memoized calculations
   const hasRecentImprovements = useMemo(() => {
     const storedScore = localStorage.getItem('last-vault-score');
     const currentScore = stats?.strengthScore.total || 0;
@@ -198,30 +214,48 @@ const VaultDashboardContent = () => {
     return false;
   }, [stats?.strengthScore.total]);
 
-  // Build context for smart nudges
-  const nudgeContext = useMemo(() => ({
-    daysSinceExtraction,
-    unverifiedItems,
-    viewCount,
-    lastActionDaysAgo: calculateDaysSinceLastAction(),
-    score: stats?.strengthScore.total || 0,
-    hasBlockers: criticalBlockers.length > 0,
-    hasRecentImprovements,
-    quickWinsAvailable: quickWins.length,
-  }), [daysSinceExtraction, unverifiedItems, viewCount, stats?.strengthScore.total, criticalBlockers.length, hasRecentImprovements, quickWins.length]);
+  const nudgeContext = useMemo(() => {
+    const calculateDaysSinceLastAction = () => {
+      const lastAction = localStorage.getItem('vault-last-action');
+      if (!lastAction) return 999;
+      return Math.floor((Date.now() - new Date(lastAction).getTime()) / (1000 * 60 * 60 * 24));
+    };
+
+    const daysSinceExtraction = vaultData?.vault?.last_updated_at 
+      ? Math.floor((Date.now() - new Date(vaultData.vault.last_updated_at).getTime()) / (1000 * 60 * 60 * 24))
+      : undefined;
+
+    const unverifiedItems = stats ? (stats.totalItems - stats.qualityDistribution.gold - stats.qualityDistribution.silver - stats.qualityDistribution.bronze) : 0;
+
+    const criticalBlockers = detectCareerBlockers({
+      strengthScore: stats?.strengthScore.total || 0,
+      leadershipItems: (vaultData?.leadershipPhilosophy?.length || 0) + (vaultData?.executivePresence?.length || 0),
+      budgetOwnership: vaultData?.careerContext?.has_budget_ownership || false,
+      targetRoles: vaultData?.userProfile?.target_roles || [],
+    });
+
+    return {
+      daysSinceExtraction,
+      unverifiedItems,
+      viewCount,
+      lastActionDaysAgo: calculateDaysSinceLastAction(),
+      score: stats?.strengthScore.total || 0,
+      hasBlockers: criticalBlockers.length > 0,
+      hasRecentImprovements,
+      quickWinsAvailable: quickWins.length,
+    };
+  }, [vaultData, stats, viewCount, hasRecentImprovements, quickWins.length]);
 
   const { activeNudge, onDismiss } = useSmartNudges(nudgeContext);
 
-  // Handlers
-  const handleEditItem = useCallback((item: any) => {
-    setSelectedItem(item);
-    setEditModalOpen(true);
-  }, []);
+  // NOW we can do conditional returns - all hooks are called above
+  // Calculate display values
+  const grade = calculateGrade(stats?.strengthScore.total || 0);
+  const marketRank = calculateMarketRank(stats?.strengthScore.total || 0);
+  const unverifiedItems = stats ? (stats.totalItems - stats.qualityDistribution.gold - stats.qualityDistribution.silver - stats.qualityDistribution.bronze) : 0;
 
-  const handleViewItem = useCallback((item: any) => {
-    setSelectedItem(item);
-    setViewModalOpen(true);
-  }, []);
+  // Blockers are handled through enhancement questions, not displayed separately
+  const criticalBlockers: any[] = [];
 
   // Loading state
   if (isLoading) {
@@ -290,39 +324,6 @@ const VaultDashboardContent = () => {
 
     return `${items} career achievements extracted. Build your intelligence depth to strengthen competitive positioning for ${targetRole} roles.`;
   };
-
-  // Handler for section clicks
-  const handleSectionClick = useCallback((section: string) => {
-    console.log('Section clicked:', section);
-    switch (section) {
-      case 'work-experience':
-        setAddMetricsModalOpen(true);
-        break;
-      case 'strategic-impact':
-        setStrategicImpactModalOpen(true);
-        break;
-      case 'leadership':
-        setLeadershipModalOpen(true);
-        break;
-      case 'professional-resources':
-        setProfessionalResourcesModalOpen(true);
-        break;
-      default:
-        setEnhancementModalOpen(true);
-    }
-  }, []);
-
-  const handlePrimaryAction = useCallback(() => {
-    // Determine what action to take based on score
-    const score = stats?.strengthScore.total || 0;
-    if (score < 70) {
-      // Low score - direct to add metrics
-      setAddMetricsModalOpen(true);
-    } else {
-      // Good score - could create resume (future feature)
-      navigate('/create-resume');
-    }
-  }, [stats?.strengthScore.total, navigate]);
 
   return (
     <ContentLayout>
