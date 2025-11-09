@@ -256,19 +256,19 @@ export default function AutoPopulationProgress({
       if (coreError) throw coreError;
       if (!coreData.success) throw new Error(coreData.error || 'Extraction failed');
 
-      const coreBreakdown = coreData.data.breakdown;
+      const extracted = coreData.data.extracted;
 
-      updateCategoryStatus('power_phrases', 'complete', coreBreakdown.powerPhrases);
-      updateCategoryStatus('transferable_skills', 'complete', coreBreakdown.transferableSkills);
-      updateCategoryStatus('hidden_competencies', 'complete', coreBreakdown.hiddenCompetencies);
-      updateCategoryStatus('soft_skills', 'complete', coreBreakdown.softSkills);
+      updateCategoryStatus('power_phrases', 'complete', extracted.powerPhrasesCount);
+      updateCategoryStatus('transferable_skills', 'complete', extracted.skillsCount);
+      updateCategoryStatus('hidden_competencies', 'complete', extracted.competenciesCount);
+      updateCategoryStatus('soft_skills', 'complete', extracted.softSkillsCount);
 
       setOverallProgress(90);
       setCurrentPhase('🎯 Calculating vault strength and quality distribution...');
 
       // Calculate totals (only 4 categories now)
-      const total = coreData.data.totalItems;
-      const strength = coreData.data.vaultStrength;
+      const total = extracted.total;
+      const strength = Math.min(100, (extracted.total * 2) + (extracted.powerPhrasesCount * 3));
 
       setTotalItems(total);
       setVaultStrength(strength);
@@ -286,7 +286,12 @@ export default function AutoPopulationProgress({
         onComplete({
           totalItems: total,
           vaultStrength: strength,
-          breakdown: coreBreakdown,
+          breakdown: {
+            powerPhrases: extracted.powerPhrasesCount,
+            transferableSkills: extracted.skillsCount,
+            hiddenCompetencies: extracted.competenciesCount,
+            softSkills: extracted.softSkillsCount,
+          },
         });
       }, 3000);
 
