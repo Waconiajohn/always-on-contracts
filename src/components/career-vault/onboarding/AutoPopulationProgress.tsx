@@ -15,11 +15,12 @@
 // realize you demonstrated. No other platform does this."
 // =====================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Brain,
   Sparkles,
@@ -29,7 +30,8 @@ import {
   Lightbulb,
   CheckCircle2,
   Loader2,
-  Zap
+  Zap,
+  Activity
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +59,15 @@ interface ExtractionCategory {
   targetCount: string;
 }
 
+interface ActivityLogItem {
+  id: string;
+  timestamp: Date;
+  category: string;
+  content: string;
+  type: 'power_phrase' | 'skill' | 'competency' | 'soft_skill';
+  quality_tier?: string;
+}
+
 export default function AutoPopulationProgress({
   vaultId,
   resumeText,
@@ -79,9 +90,111 @@ export default function AutoPopulationProgress({
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completionPercentage, setCompletionPercentage] = useState(0);
+  const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
+  const activityLogRef = useRef<HTMLDivElement>(null);
 
   const supabase = useSupabaseClient();
   const { toast } = useToast();
+
+  // Auto-scroll activity log to bottom
+  useEffect(() => {
+    if (activityLogRef.current) {
+      activityLogRef.current.scrollTop = activityLogRef.current.scrollHeight;
+    }
+  }, [activityLog]);
+
+  // Real-time subscription to vault data insertions
+  useEffect(() => {
+    if (isComplete) return;
+
+    const channel = supabase
+      .channel('extraction-activity')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'vault_power_phrases',
+          filter: `vault_id=eq.${vaultId}`
+        },
+        (payload: any) => {
+          const newItem: ActivityLogItem = {
+            id: payload.new.id,
+            timestamp: new Date(),
+            category: 'Power Phrase',
+            content: payload.new.power_phrase,
+            type: 'power_phrase',
+            quality_tier: payload.new.quality_tier
+          };
+          setActivityLog(prev => [...prev, newItem]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'vault_transferable_skills',
+          filter: `vault_id=eq.${vaultId}`
+        },
+        (payload: any) => {
+          const newItem: ActivityLogItem = {
+            id: payload.new.id,
+            timestamp: new Date(),
+            category: 'Transferable Skill',
+            content: payload.new.stated_skill,
+            type: 'skill',
+            quality_tier: payload.new.quality_tier
+          };
+          setActivityLog(prev => [...prev, newItem]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'vault_hidden_competencies',
+          filter: `vault_id=eq.${vaultId}`
+        },
+        (payload: any) => {
+          const newItem: ActivityLogItem = {
+            id: payload.new.id,
+            timestamp: new Date(),
+            category: 'Hidden Competency',
+            content: payload.new.inferred_capability,
+            type: 'competency',
+            quality_tier: payload.new.quality_tier
+          };
+          setActivityLog(prev => [...prev, newItem]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'vault_soft_skills',
+          filter: `vault_id=eq.${vaultId}`
+        },
+        (payload: any) => {
+          const newItem: ActivityLogItem = {
+            id: payload.new.id,
+            timestamp: new Date(),
+            category: 'Soft Skill',
+            content: payload.new.skill_name,
+            type: 'soft_skill',
+            quality_tier: payload.new.quality_tier
+          };
+          setActivityLog(prev => [...prev, newItem]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [vaultId, isComplete, supabase]);
 
   // Poll vault completion percentage during extraction
   useEffect(() => {
@@ -302,6 +415,76 @@ export default function AutoPopulationProgress({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Real-time Activity Feed */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+              <div className="border-b border-slate-200 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-purple-600" />
+                  <h4 className="font-semibold text-slate-900">Live Extraction Feed</h4>
+                  <Badge variant="outline" className="ml-auto">
+                    {activityLog.length} insights
+                  </Badge>
+                </div>
+              </div>
+              
+              <ScrollArea className="h-[300px]">
+                <div ref={activityLogRef} className="p-4 space-y-3">
+                  {activityLog.length === 0 ? (
+                    <div className="text-center py-12 text-slate-500">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-purple-600" />
+                      <p className="text-sm">Waiting for first insights...</p>
+                    </div>
+                  ) : (
+                    activityLog.map((item, index) => {
+                      const iconMap = {
+                        power_phrase: Award,
+                        skill: Target,
+                        competency: Lightbulb,
+                        soft_skill: Users
+                      };
+                      const colorMap = {
+                        power_phrase: 'text-amber-600 bg-amber-50 border-amber-200',
+                        skill: 'text-blue-600 bg-blue-50 border-blue-200',
+                        competency: 'text-purple-600 bg-purple-50 border-purple-200',
+                        soft_skill: 'text-green-600 bg-green-50 border-green-200'
+                      };
+                      const Icon = iconMap[item.type];
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          className={`flex gap-3 p-3 rounded-lg border animate-in fade-in slide-in-from-bottom-2 duration-300 ${colorMap[item.type]}`}
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <div className="flex-shrink-0 mt-0.5">
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold uppercase tracking-wide">
+                                {item.category}
+                              </span>
+                              {item.quality_tier && (
+                                <Badge variant="outline" className="text-xs py-0 h-4">
+                                  {item.quality_tier}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm font-medium text-slate-900 leading-relaxed">
+                              {item.content}
+                            </p>
+                            <span className="text-xs text-slate-500 mt-1 block">
+                              {item.timestamp.toLocaleTimeString()}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </ScrollArea>
             </div>
 
             {/* Fun extraction facts */}
