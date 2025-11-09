@@ -18,17 +18,30 @@ interface VaultItem {
   created_at?: string;
 }
 
+import type {
+  PowerPhrase,
+  TransferableSkill,
+  HiddenCompetency,
+  SoftSkill,
+  LeadershipPhilosophy,
+  ExecutivePresence,
+  PersonalityTrait,
+  WorkStyle,
+  CoreValue,
+  BehavioralIndicator
+} from '@/types/vault';
+
 interface VaultContentsTableProps {
-  powerPhrases: any[];
-  transferableSkills: any[];
-  hiddenCompetencies: any[];
-  softSkills: any[];
-  leadershipPhilosophy: any[];
-  executivePresence: any[];
-  personalityTraits: any[];
-  workStyle: any[];
-  values: any[];
-  behavioralIndicators: any[];
+  powerPhrases: PowerPhrase[];
+  transferableSkills: TransferableSkill[];
+  hiddenCompetencies: HiddenCompetency[];
+  softSkills: SoftSkill[];
+  leadershipPhilosophy: LeadershipPhilosophy[];
+  executivePresence: ExecutivePresence[];
+  personalityTraits: PersonalityTrait[];
+  workStyle: WorkStyle[];
+  values: CoreValue[];
+  behavioralIndicators: BehavioralIndicator[];
   onEdit: (item: VaultItem) => void;
   onView: (item: VaultItem) => void;
 }
@@ -97,7 +110,7 @@ export const VaultContentsTable = ({
       source: item.inferred_from || 'Interview',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
-      created_at: item.created_at
+      created_at: item.created_at || ''
     }));
 
     leadershipPhilosophy.forEach(item => items.push({
@@ -108,7 +121,7 @@ export const VaultContentsTable = ({
       source: item.inferred_from || 'Interview',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
-      created_at: item.created_at
+      created_at: item.created_at || ''
     }));
 
     executivePresence.forEach(item => items.push({
@@ -119,7 +132,7 @@ export const VaultContentsTable = ({
       source: item.inferred_from || 'Interview',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
-      created_at: item.created_at
+      created_at: item.created_at || ''
     }));
 
     personalityTraits.forEach(item => items.push({
@@ -130,7 +143,7 @@ export const VaultContentsTable = ({
       source: item.inferred_from || 'AI Inference',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
-      created_at: item.created_at
+      created_at: item.created_at || ''
     }));
 
     workStyle.forEach(item => items.push({
@@ -141,7 +154,7 @@ export const VaultContentsTable = ({
       source: item.inferred_from || 'Interview',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
-      created_at: item.created_at
+      created_at: item.created_at || ''
     }));
 
     values.forEach(item => items.push({
@@ -152,7 +165,7 @@ export const VaultContentsTable = ({
       source: item.inferred_from || 'Interview',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
-      created_at: item.created_at
+      created_at: item.created_at || ''
     }));
 
     behavioralIndicators.forEach(item => items.push({
@@ -163,7 +176,7 @@ export const VaultContentsTable = ({
       source: item.context || 'Interview',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
-      created_at: item.created_at
+      created_at: item.created_at || ''
     }));
 
     return items;

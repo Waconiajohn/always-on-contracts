@@ -1,18 +1,30 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { 
+  PowerPhrase,
+  TransferableSkill,
+  HiddenCompetency,
+  SoftSkill,
+  LeadershipPhilosophy,
+  ExecutivePresence,
+  PersonalityTrait,
+  WorkStyle,
+  CoreValue,
+  BehavioralIndicator
+} from '@/types/vault';
 
 export interface VaultData {
   vault: any;
-  powerPhrases: any[];
-  transferableSkills: any[];
-  hiddenCompetencies: any[];
-  softSkills: any[];
-  leadershipPhilosophy: any[];
-  executivePresence: any[];
-  personalityTraits: any[];
-  workStyle: any[];
-  values: any[];
-  behavioralIndicators: any[];
+  powerPhrases: PowerPhrase[];
+  transferableSkills: TransferableSkill[];
+  hiddenCompetencies: HiddenCompetency[];
+  softSkills: SoftSkill[];
+  leadershipPhilosophy: LeadershipPhilosophy[];
+  executivePresence: ExecutivePresence[];
+  personalityTraits: PersonalityTrait[];
+  workStyle: WorkStyle[];
+  values: CoreValue[];
+  behavioralIndicators: BehavioralIndicator[];
   userProfile: any;
   careerContext: any;
 }

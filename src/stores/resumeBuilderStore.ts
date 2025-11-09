@@ -1,27 +1,46 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
+import type { ResumeMilestone } from '@/types/vault';
+import { showContextualError, showContextualSuccess } from '@/lib/utils/contextualErrors';
+
+export interface ResumeSection {
+  id: string;
+  title: string;
+  content: any;
+  type: string;
+  order: number;
+}
+
+export interface GeneratedOption {
+  id: string;
+  content: string;
+  vaultItemsUsed: string[];
+  atsScore: number;
+}
+
+export interface Requirement {
+  id: string;
+  text: string;
+  source: string;
+  priority: 'critical' | 'important' | 'nice_to_have';
+  atsKeywords: string[];
+}
 
 export interface RequirementResponse {
-  requirement: {
-    id: string;
-    text: string;
-    source: string;
-    priority: string;
-    atsKeywords: string[];
-  };
+  requirement: Requirement;
   answers: Record<string, any>;
   voiceContext?: string;
   selectedOption: number;
   editedContent: string;
-  options: any[];
+  options: GeneratedOption[];
   timestamp: Date;
 }
 
 interface CategorizedRequirements {
-  autoHandled: any[];
-  needsInput: any[];
-  optionalEnhancement: any[];
+  autoHandled: Requirement[];
+  needsInput: Requirement[];
+  optionalEnhancement: Requirement[];
 }
 
 interface ResumeBuilderState {
@@ -37,7 +56,7 @@ interface ResumeBuilderState {
   
   // Vault data
   vaultMatches: any | null;
-  resumeMilestones: any[];
+  resumeMilestones: ResumeMilestone[];
   
   // Requirements
   categorizedRequirements: CategorizedRequirements;
@@ -45,7 +64,7 @@ interface ResumeBuilderState {
   
   // Resume data
   selectedFormat: string | null;
-  resumeSections: any[];
+  resumeSections: ResumeSection[];
   contactInfo: {
     name: string;
     email: string;
@@ -72,11 +91,11 @@ interface ResumeBuilderState {
   setJobAnalysis: (analysis: any) => void;
   setDisplayJobText: (text: string) => void;
   setVaultMatches: (matches: any) => void;
-  setResumeMilestones: (milestones: any[]) => void;
+  setResumeMilestones: (milestones: ResumeMilestone[]) => void;
   setCategorizedRequirements: (reqs: CategorizedRequirements) => void;
   addRequirementResponse: (response: RequirementResponse) => void;
   setSelectedFormat: (format: string) => void;
-  setResumeSections: (sections: any[]) => void;
+  setResumeSections: (sections: ResumeSection[]) => void;
   updateSection: (sectionId: string, content: any) => void;
   setContactInfo: (info: any) => void;
   setResumeMode: (mode: 'edit' | 'preview') => void;
@@ -204,8 +223,10 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
           }
           
           console.log('Resume saved successfully');
+          showContextualSuccess('resume_save');
         } catch (error) {
           console.error('Error saving resume:', error);
+          showContextualError('resume_save', error instanceof Error ? error : undefined);
           throw error;
         }
       },
@@ -250,6 +271,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
           console.log('Resume loaded successfully');
         } catch (error) {
           console.error('Error loading resume:', error);
+          showContextualError('resume_save', error instanceof Error ? error : undefined);
           throw error;
         }
       },

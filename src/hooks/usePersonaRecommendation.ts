@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { handleEdgeFunctionError } from '@/lib/errorHandling';
+import { showContextualError } from '@/lib/utils/contextualErrors';
+
+export interface PersonaMatch {
+  id: string;
+  name: string;
+  description: string;
+  score: number;
+  strengths: string[];
+}
 
 export interface PersonaRecommendation {
   recommendedPersona: string;
   reasoning: string;
   confidence: number;
-  personas: any[];
+  personas: PersonaMatch[];
 }
 
 export const usePersonaRecommendation = (agentType: 'resume' | 'interview' | 'networking') => {
@@ -46,12 +54,7 @@ export const usePersonaRecommendation = (agentType: 'resume' | 'interview' | 'ne
       }
     } catch (error) {
       console.error('Error getting persona recommendation:', error);
-      const errorInfo = handleEdgeFunctionError(error);
-      toast({
-        title: errorInfo.title,
-        description: errorInfo.message,
-        variant: "destructive"
-      });
+      showContextualError('ai_generation', error instanceof Error ? error : undefined);
     } finally {
       setLoading(false);
     }
