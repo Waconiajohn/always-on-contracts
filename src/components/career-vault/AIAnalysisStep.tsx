@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { validateInput, invokeEdgeFunction, AnalyzeResumeAndResearchSchema } from '@/lib/edgeFunction';
 
 interface AIAnalysisStepProps {
   resumeText: string;
@@ -61,14 +62,28 @@ export const AIAnalysisStep = ({
       setProgress(75);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user');
 
-      const { data, error } = await supabase.functions.invoke('analyze-resume-and-research', {
-        body: {
-          resume_text: resumeText,
-          target_roles: targetRoles,
-          target_industries: targetIndustries,
-        },
+      const { data: vault } = await supabase
+        .from('career_vault')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      const validatedInput = validateInput(AnalyzeResumeAndResearchSchema, {
+        resumeText,
+        vaultId: vault?.id || '',
+        targetRole: targetRoles[0],
+        targetIndustry: targetIndustries[0]
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'analyze-resume-and-research',
+        validatedInput
+      );
 
       if (error) throw error;
 
@@ -77,7 +92,6 @@ export const AIAnalysisStep = ({
       }
 
       // Auto-save analysis results
-      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase
           .from('career_vault')
@@ -114,8 +128,7 @@ export const AIAnalysisStep = ({
         onComplete();
       }, 1500);
     } catch (error) {
-      console.error('Error during analysis:', error);
-      toast.error('Failed to complete analysis. Please try again.');
+      // Error already handled by invokeEdgeFunction
     }
   };
 

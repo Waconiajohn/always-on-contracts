@@ -6,6 +6,7 @@ import { Upload, FileText, Plus, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { validateInput, invokeEdgeFunction, AutoPopulateVaultSchema } from '@/lib/edgeFunction';
 
 interface ResumeManagementModalProps {
   open: boolean;
@@ -54,9 +55,11 @@ export const ResumeManagementModal = ({
         if (uploadError) throw uploadError;
 
         // Parse PDF using edge function
-        const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-resume', {
-          body: { fileName, userId: user.id }
-        });
+        const { data: parseData, error: parseError } = await invokeEdgeFunction(
+          supabase,
+          'parse-resume',
+          { fileName, userId: user.id }
+        );
 
         if (parseError) throw parseError;
         text = parseData.text || '';
@@ -185,14 +188,18 @@ export const ResumeManagementModal = ({
         .single();
 
       // Run auto-populate AI analysis
-      const { data: autoPopData, error: autoPopError } = await supabase.functions.invoke('auto-populate-vault-v3', {
-        body: {
-          vaultId,
-          resumeText: text,
-          targetRoles: profile?.target_roles || [],
-          targetIndustries: profile?.target_industries || []
-        }
+      const validatedInput = validateInput(AutoPopulateVaultSchema, {
+        vaultId,
+        resumeText: text,
+        targetRoles: profile?.target_roles,
+        targetIndustries: profile?.target_industries
       });
+
+      const { data: autoPopData, error: autoPopError } = await invokeEdgeFunction(
+        supabase,
+        'auto-populate-vault-v3',
+        validatedInput
+      );
 
       if (autoPopError) throw autoPopError;
 
@@ -210,12 +217,7 @@ export const ResumeManagementModal = ({
       onOpenChange(false);
 
     } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Could not process resume',
-        variant: 'destructive'
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setUploading(false);
     }

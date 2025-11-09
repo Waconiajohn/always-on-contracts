@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { validateInput, invokeEdgeFunction, SearchVaultAdvancedSchema } from '@/lib/edgeFunction';
 import {
   Search,
   Loader2,
@@ -93,15 +94,19 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
     setIsSearching(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('search-vault-advanced', {
-        body: {
-          vaultId,
-          query: searchQuery,
-          category: categoryFilter !== 'all' ? categoryFilter : undefined,
-          qualityTier: qualityFilter !== 'all' ? qualityFilter : undefined,
-          limit: 100,
-        },
+      const validatedInput = validateInput(SearchVaultAdvancedSchema, {
+        vaultId,
+        query: searchQuery,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        qualityTier: qualityFilter !== 'all' ? qualityFilter as any : undefined,
+        limit: 100
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'search-vault-advanced',
+        validatedInput
+      );
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
@@ -116,12 +121,7 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
         description: data.meta?.message || `Found ${data.data.results?.length || 0} results`,
       });
     } catch (err: any) {
-      console.error('Search error:', err);
-      toast({
-        title: 'Search Failed',
-        description: err.message || 'Please try again',
-        variant: 'destructive',
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsSearching(false);
     }

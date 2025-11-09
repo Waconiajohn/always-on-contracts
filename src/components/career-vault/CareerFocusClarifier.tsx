@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Target, TrendingUp, Compass, ChevronRight, Loader2, Clock, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { validateInput, invokeEdgeFunction, SuggestAdjacentRolesSchema } from '@/lib/edgeFunction';
 
 interface CareerFocusClarifierProps {
   onComplete: (data: {
@@ -17,14 +18,13 @@ interface CareerFocusClarifierProps {
   }) => void;
   detectedRole?: string;
   detectedIndustry?: string;
-  resumeText: string;
+  resumeText?: string;
 }
 
 export const CareerFocusClarifier = ({ 
   onComplete, 
   detectedRole,
-  detectedIndustry,
-  resumeText
+  detectedIndustry
 }: CareerFocusClarifierProps) => {
   const { toast } = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -51,13 +51,26 @@ export const CareerFocusClarifier = ({
       // Load AI suggestions for adjacent roles/industries
       setIsLoadingSuggestions(true);
       try {
-        const { data, error } = await supabase.functions.invoke('suggest-adjacent-roles', {
-          body: {
-            resumeText,
-            currentRole: detectedRole,
-            currentIndustry: detectedIndustry
-          }
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No user');
+
+        const { data: vault } = await supabase
+          .from('career_vault')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        const validatedInput = validateInput(SuggestAdjacentRolesSchema, {
+          vaultId: vault?.id || '',
+          currentRole: detectedRole,
+          targetIndustry: detectedIndustry
         });
+
+        const { data, error } = await invokeEdgeFunction(
+          supabase,
+          'suggest-adjacent-roles',
+          validatedInput
+        );
 
         if (error) throw error;
         
@@ -68,12 +81,7 @@ export const CareerFocusClarifier = ({
           setSuggestedIndustries(data.suggestedIndustries);
         }
       } catch (error) {
-        console.error('Error loading suggestions:', error);
-        toast({
-          title: 'Could not load suggestions',
-          description: 'You can still manually select roles and industries.',
-          variant: 'destructive'
-        });
+        // Error already handled by invokeEdgeFunction
       } finally {
         setIsLoadingSuggestions(false);
       }

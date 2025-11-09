@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, TrendingUp, DollarSign, Users, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { validateInput, invokeEdgeFunction, PerplexityResearchSchema } from '@/lib/edgeFunction';
 
 interface MarketInsightsPanelProps {
   targetRole?: string;
@@ -28,7 +28,6 @@ interface MarketInsight {
 export const MarketInsightsPanel = ({ targetRole, targetIndustry }: MarketInsightsPanelProps) => {
   const [insights, setInsights] = useState<MarketInsight | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (targetRole) {
@@ -51,16 +50,20 @@ export const MarketInsightsPanel = ({ targetRole, targetIndustry }: MarketInsigh
         .single();
 
       // Use Perplexity for comprehensive market research
-      const { data: researchData, error: researchError } = await supabase.functions.invoke('perplexity-research', {
-        body: {
-          research_type: 'market_analysis',
-          query_params: {
-            role: targetRole,
-            industry: targetIndustry || 'General',
-            query: `Analyze the current job market for ${targetRole} positions${targetIndustry ? ` in ${targetIndustry}` : ''}. Include demand trends, salary ranges, required skills, and growth outlook for 2024-2025.`
-          }
+      const validatedInput = validateInput(PerplexityResearchSchema, {
+        research_type: 'market_intelligence',
+        query_params: {
+          role: targetRole,
+          industry: targetIndustry || 'General',
+          query: `Analyze the current job market for ${targetRole} positions${targetIndustry ? ` in ${targetIndustry}` : ''}. Include demand trends, salary ranges, required skills, and growth outlook for 2024-2025.`
         }
       });
+
+      const { data: researchData, error: researchError } = await invokeEdgeFunction(
+        supabase,
+        'perplexity-research',
+        validatedInput
+      );
 
       if (researchError) throw researchError;
 
@@ -80,12 +83,7 @@ export const MarketInsightsPanel = ({ targetRole, targetIndustry }: MarketInsigh
 
       setInsights(parsedInsights);
     } catch (error) {
-      console.error('Error fetching market insights:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch market insights",
-        variant: "destructive"
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsLoading(false);
     }

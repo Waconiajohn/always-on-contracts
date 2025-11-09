@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, AlertTriangle, CheckCircle2, Trash2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { validateInput, invokeEdgeFunction, VaultCleanupSchema, AutoPopulateVaultSchema } from '@/lib/edgeFunction';
 
 interface MigrationResult {
   cleanup?: {
@@ -74,13 +75,17 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
       const maxRetries = 3;
       
       while (retries < maxRetries) {
-        const { data, error: cleanupError } = await supabase.functions.invoke('vault-cleanup', {
-          body: {
-            vaultId,
-            confirmation: 'DELETE_ALL_DATA',
-            preserveVaultRecord: true,
-          },
+        const validatedInput = validateInput(VaultCleanupSchema, {
+          vaultId,
+          aggressive: true
         });
+
+        const { data, error: cleanupError } = await invokeEdgeFunction(
+          supabase,
+          'vault-cleanup',
+          validatedInput,
+          { suppressErrorToast: true }
+        );
 
         if (!cleanupError) {
           cleanupData = data;
@@ -94,7 +99,7 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
             title: "Function Deploying...",
             description: `Waiting for function deployment (attempt ${retries}/${maxRetries})`,
           });
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+          await new Promise(resolve => setTimeout(resolve, 3000));
           continue;
         }
 
@@ -107,21 +112,23 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
 
       // Step 2: Re-extraction with v3
       setCurrentStep('extraction');
-      const { data: extractionData, error: extractionError } = await supabase.functions.invoke('auto-populate-vault-v3', {
-        body: {
-          resumeText,
-          vaultId,
-          mode: 'full',
-        },
+      const validatedExtractionInput = validateInput(AutoPopulateVaultSchema, {
+        vaultId,
+        resumeText
       });
 
+      const { data: extractionData, error: extractionError } = await invokeEdgeFunction(
+        supabase,
+        'auto-populate-vault-v3',
+        validatedExtractionInput,
+        { suppressErrorToast: true }
+      );
+
       if (extractionError) {
-        console.error('Extraction error details:', extractionError);
-        throw new Error(`Extraction failed: ${extractionError.message}. ${extractionData?.error || ''}`);
+        throw new Error(`Extraction failed: ${extractionError.message}`);
       }
 
       if (!extractionData?.success) {
-        console.error('Extraction failed:', extractionData);
         throw new Error(`Extraction failed: ${extractionData?.error || 'Unknown error'}`);
       }
 
@@ -198,11 +205,6 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
     } catch (err: any) {
       setError(err.message || 'Re-analysis failed');
       setCurrentStep('idle');
-      toast({
-        title: "Re-Analysis Failed",
-        description: err.message,
-        variant: "destructive",
-      });
     } finally {
       setIsProcessing(false);
     }

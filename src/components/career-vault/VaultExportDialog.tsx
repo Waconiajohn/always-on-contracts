@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { validateInput, invokeEdgeFunction, ExportVaultSchema } from '@/lib/edgeFunction';
 import {
   Download,
   Loader2,
@@ -102,15 +103,17 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('export-vault', {
-        body: {
-          vaultId,
-          format,
-          categories: selectedCategories,
-          qualityTiers: selectedQualityTiers,
-          includeMetadata,
-        },
+      const validatedInput = validateInput(ExportVaultSchema, {
+        vaultId,
+        format,
+        includeCategories: selectedCategories
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'export-vault',
+        validatedInput
+      );
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
@@ -135,12 +138,7 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
 
       setOpen(false);
     } catch (err: any) {
-      console.error('Export error:', err);
-      toast({
-        title: 'Export Failed',
-        description: err.message || 'Please try again',
-        variant: 'destructive',
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsExporting(false);
     }

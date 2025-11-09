@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { validateInput, invokeEdgeFunction, BulkVaultOperationsSchema } from '@/lib/edgeFunction';
 
 interface BulkVaultOperationsProps {
   vaultId: string;
@@ -113,20 +114,18 @@ export default function BulkVaultOperations({
     setConfirmDialogOpen(false);
 
     try {
-      // Build operations array for each table
-      const operations = Object.entries(groupedByTable).map(([tableName, itemIds]) => ({
+      const validatedInput = validateInput(BulkVaultOperationsSchema, {
+        vaultId,
         operation,
-        tableName,
-        itemIds,
-        newValues: operation === 'update_quality' ? { quality_tier: newQualityTier } : undefined,
-      }));
-
-      const { data, error } = await supabase.functions.invoke('bulk-vault-operations', {
-        body: {
-          vaultId,
-          operations,
-        },
+        itemIds: Object.values(groupedByTable).flat(),
+        category: operation === 'update_quality' ? newQualityTier : undefined
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'bulk-vault-operations',
+        validatedInput
+      );
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
@@ -142,12 +141,7 @@ export default function BulkVaultOperations({
       onClearSelection();
       onOperationComplete();
     } catch (err: any) {
-      console.error('Bulk operation error:', err);
-      toast({
-        title: 'Operation Failed',
-        description: err.message || 'Please try again',
-        variant: 'destructive',
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsProcessing(false);
     }
