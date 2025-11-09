@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invokeEdgeFunction, AddVaultItemSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -73,35 +75,40 @@ export const GapAnalysisView = ({
       const quality_tier = solution.approach === 'vault_based' ? 'silver' : 'bronze';
 
       // Save to appropriate vault table
-      const { error } = await supabase.functions.invoke('add-vault-item', {
-        body: {
-          vaultId: vault.id,
-          category,
-          itemData: {
-            [category === 'power_phrases' ? 'power_phrase' : 
-              category === 'transferable_skills' ? 'stated_skill' : 
-              'content']: solution.content,
-            quality_tier,
-            source: 'gap_analysis',
-            satisfies_requirement: unmatchedRequirements[index],
-            confidence_score: solution.approach === 'vault_based' ? 85 : 70
-          }
+      const payload = {
+        vaultId: vault.id,
+        category,
+        itemData: {
+          [category === 'power_phrases' ? 'power_phrase' : 
+            category === 'transferable_skills' ? 'stated_skill' : 
+            'content']: solution.content,
+          quality_tier,
+          source: 'gap_analysis',
+          satisfies_requirement: unmatchedRequirements[index],
+          confidence_score: solution.approach === 'vault_based' ? 85 : 70
         }
-      });
+      };
 
-      if (error) throw error;
+      const validation = safeValidateInput(AddVaultItemSchema, payload);
+      if (!validation.success) return;
+
+      const { error } = await invokeEdgeFunction(
+        supabase,
+        'add-vault-item',
+        payload
+      );
+
+      if (error) {
+        logger.error('Failed to add vault item', error);
+        return;
+      }
 
       toast({
         title: "✅ Added to Career Vault",
         description: `This ${category.replace('_', ' ')} will be available for all future resumes`,
       });
     } catch (error: any) {
-      console.error('Error adding to vault:', error);
-      toast({
-        title: "Failed to add to vault",
-        description: error.message,
-        variant: "destructive"
-      });
+      logger.error('Error adding to vault', error);
     }
   };
 

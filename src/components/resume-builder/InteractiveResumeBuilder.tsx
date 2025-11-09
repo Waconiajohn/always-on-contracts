@@ -10,6 +10,8 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invokeEdgeFunction, GenerateDualResumeSectionSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 import { SectionGenerationCard } from "./SectionGenerationCard";
 import { SectionReviewPanel } from "./SectionReviewPanel";
 import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
@@ -85,7 +87,7 @@ export const InteractiveResumeBuilder = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        console.log('User ID loaded for resume generation:', user.id);
+        logger.info('User ID loaded for resume generation', { userId: user.id });
       }
     };
     getUserId();
@@ -122,7 +124,7 @@ export const InteractiveResumeBuilder = ({
     }
 
     setGeneratingSection(sectionId);
-    console.log('Generating AI content for section:', {
+    logger.info('Generating AI content for section', {
       sectionId,
       sectionType,
       sectionTitle: sections.find(s => s.id === sectionId)?.title
@@ -143,26 +145,40 @@ export const InteractiveResumeBuilder = ({
         return false;
       });
 
-      const { data, error } = await supabase.functions.invoke('generate-dual-resume-section', {
-        body: {
-          section_type: sectionType,
-          section_guidance: getSectionGuidance(sectionType),
-          job_analysis_research: jobAnalysis.research || '',
-          vault_items: relevantVaultItems,
-          resume_milestones: relevantMilestones,
-          user_id: userId, // Pass user_id so edge function can fetch vault skills
-          job_title: jobAnalysis.jobTitle || 'Professional',
-          industry: jobAnalysis.industry || 'Technology',
-          seniority: jobAnalysis.seniority || 'mid-level',
-          ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
-          requirements: [
-            ...(jobAnalysis.jobRequirements?.required || []),
-            ...(jobAnalysis.jobRequirements?.preferred || [])
-          ]
-        }
-      });
+      const payload = {
+        section_type: sectionType,
+        section_guidance: getSectionGuidance(sectionType),
+        job_analysis_research: jobAnalysis.research || '',
+        vault_items: relevantVaultItems,
+        resume_milestones: relevantMilestones,
+        user_id: userId,
+        job_title: jobAnalysis.jobTitle || 'Professional',
+        industry: jobAnalysis.industry || 'Technology',
+        seniority: jobAnalysis.seniority || 'mid-level',
+        ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+        requirements: [
+          ...(jobAnalysis.jobRequirements?.required || []),
+          ...(jobAnalysis.jobRequirements?.preferred || [])
+        ]
+      };
 
-      if (error) throw error;
+      const validation = safeValidateInput(GenerateDualResumeSectionSchema, payload);
+      if (!validation.success) {
+        setGeneratingSection(null);
+        return;
+      }
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-dual-resume-section',
+        payload
+      );
+
+      if (error) {
+        logger.error('Failed to generate resume section', error);
+        setGeneratingSection(null);
+        return;
+      }
 
       if (data.success) {
         // Calculate vault strength based on section type
@@ -217,11 +233,11 @@ export const InteractiveResumeBuilder = ({
           toast.info('Review the generated skills and select your preferred version');
         }
       } else {
-        throw new Error(data.error || 'Generation failed');
+        logger.error('Generation failed - no data returned');
+        toast.error('Generation failed');
       }
     } catch (error: any) {
-      console.error('AI generation error:', error);
-      toast.error(error.message || 'Failed to generate section');
+      logger.error('AI generation error', error);
     } finally {
       setGeneratingSection(null);
     }
@@ -234,7 +250,7 @@ export const InteractiveResumeBuilder = ({
     const sectionType = generationData.sectionType;
     const currentSection = sections.find(s => s.id === sectionId);
     
-    console.log('Applying generated content to section:', {
+    logger.info('Applying generated content to section', {
       sectionId,
       sectionType,
       currentSectionId: currentSection?.id,
@@ -274,7 +290,7 @@ export const InteractiveResumeBuilder = ({
     
     // CRITICAL: Verify we're updating the correct section
     if (currentSection?.id !== sectionId) {
-      console.error('Section ID mismatch!', {
+      logger.error('Section ID mismatch', {
         expectedId: sectionId,
         foundSection: currentSection
       });

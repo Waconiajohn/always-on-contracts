@@ -20,6 +20,8 @@ import { VaultItemAttributionBadge } from "@/components/career-vault/VaultItemAt
 import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction, PerplexityResearchSchema, GenerateDualResumeSectionSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
 import { TooltipHelp } from "./HelpTooltip";
@@ -144,56 +146,70 @@ export const SectionWizard = ({
 
           let research = jobResearch;
           if (!research) {
-            const { data: researchData, error: researchError } = await supabase.functions.invoke(
-              'perplexity-research',
-              {
-                body: {
-                  research_type: 'resume_job_analysis',
-                  query_params: {
-                    job_description: jobAnalysis.originalJobDescription || '',
-                    job_title: jobAnalysis.roleProfile?.title || '',
-                    company: jobAnalysis.roleProfile?.company || '',
-                    industry: jobAnalysis.roleProfile?.industry || '',
-                    location: jobAnalysis.roleProfile?.location || ''
-                  }
-                }
+            const researchPayload = {
+              research_type: 'resume_job_analysis' as const,
+              query_params: {
+                job_description: jobAnalysis.originalJobDescription || '',
+                job_title: jobAnalysis.roleProfile?.title || '',
+                company: jobAnalysis.roleProfile?.company || '',
+                industry: jobAnalysis.roleProfile?.industry || '',
+                location: jobAnalysis.roleProfile?.location || ''
               }
+            };
+
+            const validation = safeValidateInput(PerplexityResearchSchema, researchPayload);
+            if (!validation.success) {
+              throw new Error('Invalid research parameters');
+            }
+
+            const { data: researchData, error: researchError } = await invokeEdgeFunction(
+              supabase,
+              'perplexity-research',
+              researchPayload
             );
 
             if (researchError) {
+              logger.error('Job analysis failed', researchError);
               throw new Error(`Job analysis failed: ${researchError.message || 'Unable to analyze job description'}`);
             }
 
             research = researchData;
-            setJobResearch(research); // Cache for next sections
+            setJobResearch(research);
           }
 
           // Step 2 & 3: Generate BOTH versions simultaneously using new dual generation function
           setCurrentGenerationStep(1);
 
-          const { data: dualData, error: dualError } = await supabase.functions.invoke(
+          const dualPayload = {
+            section_type: section.type,
+            section_guidance: section.guidancePrompt,
+            job_analysis_research: research.research_result,
+            vault_items: relevantMatches,
+            resume_milestones: resumeMilestones,
+            user_id: user.id,
+            job_title: jobAnalysis.roleProfile?.title || '',
+            industry: jobAnalysis.roleProfile?.industry || '',
+            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
+            ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+            requirements: [
+              ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => r.requirement || r),
+              ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
+            ]
+          };
+
+          const dualValidation = safeValidateInput(GenerateDualResumeSectionSchema, dualPayload);
+          if (!dualValidation.success) {
+            throw new Error('Invalid generation parameters');
+          }
+
+          const { data: dualData, error: dualError } = await invokeEdgeFunction(
+            supabase,
             'generate-dual-resume-section',
-            {
-              body: {
-                section_type: section.type,
-                section_guidance: section.guidancePrompt,
-                job_analysis_research: research.research_result,
-                vault_items: relevantMatches,
-                resume_milestones: resumeMilestones,
-                user_id: user.id,
-                job_title: jobAnalysis.roleProfile?.title || '',
-                industry: jobAnalysis.roleProfile?.industry || '',
-                seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
-                ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
-                requirements: [
-                  ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => r.requirement || r),
-                  ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
-                ]
-              }
-            }
+            dualPayload
           );
 
           if (dualError) {
+            logger.error('Dual generation failed', dualError);
             throw new Error(`Dual generation failed: ${dualError.message || 'Unable to generate versions'}`);
           }
 
@@ -242,7 +258,7 @@ export const SectionWizard = ({
       });
 
     } catch (error) {
-      console.error('Error generating section:', error);
+      logger.error('Error generating section', error);
 
       // Determine operation context for better error messages
       const operation: 'research' | 'ideal_generation' | 'personalized_generation' | 'general' = 

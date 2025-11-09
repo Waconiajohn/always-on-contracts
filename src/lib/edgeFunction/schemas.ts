@@ -249,27 +249,50 @@ export const GenerateSeriesOutlineSchema = z.object({
 });
 
 export const GenerateGapSolutionsSchema = z.object({
-  gap: z.string().min(10, 'Gap description too short'),
-  jobRequirements: z.string().optional(),
-  vaultId: z.string().uuid().optional()
+  requirement: z.string().min(10, 'Requirement description too short'),
+  vault_items: z.array(z.any()),
+  job_title: z.string().min(1, 'Job title is required'),
+  industry: z.string().min(1, 'Industry is required'),
+  seniority: z.string().min(1, 'Seniority is required')
 });
 
 export const GenerateRequirementQuestionsSchema = z.object({
   requirement: z.string().min(5, 'Requirement too short'),
-  context: z.string().optional()
+  vaultMatches: z.array(z.any()),
+  matchStatus: z.string(),
+  jobContext: z.any()
 });
 
 export const GenerateRequirementOptionsSchema = z.object({
   requirement: z.string().min(5, 'Requirement too short'),
-  userContext: z.string().optional(),
-  vaultId: z.string().uuid().optional()
+  requirementSource: z.string(),
+  requirementPriority: z.string(),
+  vaultMatches: z.array(z.any()),
+  answers: z.record(z.any()),
+  voiceContext: z.string(),
+  jobContext: z.any(),
+  matchStatus: z.string(),
+  atsKeywords: z.array(z.string())
+});
+
+export const AddVaultItemSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  category: z.string().min(1, 'Category is required'),
+  itemData: z.record(z.any())
 });
 
 export const GenerateDualResumeSectionSchema = z.object({
-  sectionType: z.string().min(1, 'Section type required'),
-  vaultId: z.string().uuid('Invalid vault ID'),
-  jobDescription: z.string().optional(),
-  requirements: z.array(z.any()).optional()
+  section_type: z.string().min(1, 'Section type required'),
+  section_guidance: z.string(),
+  job_analysis_research: z.string(),
+  vault_items: z.array(z.any()),
+  resume_milestones: z.array(z.any()),
+  user_id: z.string().uuid('Invalid user ID'),
+  job_title: z.string(),
+  industry: z.string(),
+  seniority: z.string(),
+  ats_keywords: z.any(),
+  requirements: z.array(z.any())
 });
 
 export const GenerateInterviewPrepSchema = z.object({

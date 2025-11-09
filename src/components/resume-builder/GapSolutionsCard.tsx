@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Loader2, Edit2, Save, X, CheckCircle2, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invokeEdgeFunction, GenerateGapSolutionsSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface GapSolution {
   approach: 'pure_ai' | 'vault_based' | 'alternative';
@@ -43,26 +45,36 @@ export const GapSolutionsCard = ({
     setIsGenerating(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-gap-solutions', {
-        body: {
-          requirement,
-          vault_items: vaultMatches.slice(0, 5),
-          job_title: jobContext.title,
-          industry: jobContext.industry,
-          seniority: jobContext.seniority
-        }
-      });
+      const payload = {
+        requirement,
+        vault_items: vaultMatches.slice(0, 5),
+        job_title: jobContext.title,
+        industry: jobContext.industry,
+        seniority: jobContext.seniority
+      };
 
-      if (error) throw error;
-      setSolutions(data.solutions || []);
+      const validation = safeValidateInput(GenerateGapSolutionsSchema, payload);
+      if (!validation.success) {
+        setIsGenerating(false);
+        return;
+      }
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-gap-solutions',
+        payload
+      );
+
+      if (error) {
+        logger.error('Failed to generate gap solutions', error);
+        setIsGenerating(false);
+        return;
+      }
+
+      setSolutions(data?.solutions || []);
 
     } catch (error) {
-      console.error('Error generating gap solutions:', error);
-      toast({
-        title: "Generation failed",
-        description: "Could not generate solutions. Please try again.",
-        variant: "destructive"
-      });
+      logger.error('Error generating gap solutions', error);
     } finally {
       setIsGenerating(false);
     }

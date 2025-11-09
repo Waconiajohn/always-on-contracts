@@ -7,6 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Check, Loader2, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invokeEdgeFunction, GenerateRequirementQuestionsSchema, GenerateRequirementOptionsSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 import { RequirementNeed } from "./RequirementNeed";
 import { VaultMatchesDisplay } from "./VaultMatchesDisplay";
 import { ClarifyingQuestions } from "./ClarifyingQuestions";
@@ -70,18 +72,33 @@ export const RequirementCard = ({
 
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-requirement-questions', {
-        body: {
-          requirement: requirement.text,
-          vaultMatches,
-          matchStatus,
-          jobContext
-        }
-      });
+      const payload = {
+        requirement: requirement.text,
+        vaultMatches,
+        matchStatus,
+        jobContext
+      };
+
+      const validation = safeValidateInput(GenerateRequirementQuestionsSchema, payload);
+      if (!validation.success) {
+        setGenerating(false);
+        setStep('options');
+        await generateOptions();
+        return;
+      }
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-requirement-questions',
+        payload
+      );
 
       if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to generate questions');
+        logger.error('Failed to generate questions', error);
+        setStep('options');
+        await generateOptions();
+        setGenerating(false);
+        return;
       }
       
       if (data?.questions && data.questions.length > 0) {
@@ -89,13 +106,11 @@ export const RequirementCard = ({
         setStep('questions');
         toast.success('Here are some questions to help us personalize your content');
       } else {
-        // No questions needed, go straight to options
         setStep('options');
         await generateOptions();
       }
     } catch (error: any) {
-      console.error('Error generating questions:', error);
-      toast.error(error.message || 'Failed to generate questions. Moving to options...');
+      logger.error('Error generating questions', error);
       setStep('options');
       await generateOptions();
     } finally {
@@ -107,23 +122,34 @@ export const RequirementCard = ({
   const generateOptions = async () => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-requirement-options', {
-        body: {
-          requirement: requirement.text,
-          requirementSource: requirement.source,
-          requirementPriority: requirement.priority,
-          vaultMatches,
-          answers,
-          voiceContext,
-          jobContext,
-          matchStatus,
-          atsKeywords: requirement.atsKeywords
-        }
-      });
+      const payload = {
+        requirement: requirement.text,
+        requirementSource: requirement.source,
+        requirementPriority: requirement.priority,
+        vaultMatches,
+        answers,
+        voiceContext,
+        jobContext,
+        matchStatus,
+        atsKeywords: requirement.atsKeywords
+      };
+
+      const validation = safeValidateInput(GenerateRequirementOptionsSchema, payload);
+      if (!validation.success) {
+        setGenerating(false);
+        return;
+      }
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-requirement-options',
+        payload
+      );
 
       if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to generate options');
+        logger.error('Failed to generate options', error);
+        setGenerating(false);
+        return;
       }
       
       if (data?.options && data.options.length > 0) {
@@ -134,8 +160,7 @@ export const RequirementCard = ({
         toast.error('No options generated. Please try again or skip.');
       }
     } catch (error: any) {
-      console.error('Error generating options:', error);
-      toast.error(error.message || 'Failed to generate options. Please try again.');
+      logger.error('Error generating options', error);
     } finally {
       setGenerating(false);
     }
