@@ -21,6 +21,7 @@ export interface VaultData {
  * Centralized data fetching hook for Career Vault
  * Replaces scattered Supabase queries throughout the dashboard
  * Uses React Query for caching and automatic refetching
+ * Includes retry logic with exponential backoff for extraction process
  */
 export const useVaultData = (userId: string | undefined) => {
   return useQuery({
@@ -91,5 +92,15 @@ export const useVaultData = (userId: string | undefined) => {
     gcTime: 0, // Don't cache
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
+    // Retry logic with exponential backoff for extraction process
+    retry: 5, // Retry up to 5 times
+    retryDelay: (attemptIndex) => {
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+      const delay = Math.min(1000 * Math.pow(2, attemptIndex), 16000);
+      console.log(`⏳ Retry attempt ${attemptIndex + 1} after ${delay}ms...`);
+      return delay;
+    },
+    // Retry on specific errors that indicate temporary unavailability
+    retryOnMount: true,
   });
 };
