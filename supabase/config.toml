@@ -117,17 +117,11 @@ verify_jwt = true
 [functions.update-strong-answer]
 verify_jwt = true
 
-[functions.refresh-vault-intelligence]
-verify_jwt = true
-
 [functions.get-vault-data]
 verify_jwt = true
 
 [functions.add-vault-item]
 verify_jwt = true
-
-[functions.send-affiliate-commission-email]
-verify_jwt = false
 
 [functions.generate-linkedin-post]
 verify_jwt = true
@@ -202,18 +196,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.verify-vault-with-perplexity]
-verify_jwt = true
-
-[functions.extract-vault-intelligence]
-verify_jwt = true
-
-[functions.get-vault-intelligence]
-verify_jwt = true
-
-[functions.calculate-completeness-score]
-verify_jwt = true
-
-[functions.backfill-vault-intangibles]
 verify_jwt = true
 
 [functions.update-interview-completion]
@@ -299,12 +281,6 @@ verify_jwt = true
 
 [functions.generate-skill-verification-questions]
 verify_jwt = true
-
-[functions.track-vault-usage]
-verify_jwt = true
-
-[functions.update-competency-benchmarks]
-verify_jwt = false
 
 [functions.generate-micro-questions]
 verify_jwt = true
