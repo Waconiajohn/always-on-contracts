@@ -115,6 +115,32 @@ export const GenerateSalaryReportSchema = z.object({
   }).optional()
 });
 
+// Additional agent-specific schemas
+export const AnalyzeResumeSchema = z.object({
+  resumeText: z.string().min(100).max(50000),
+  userId: z.string().uuid('Invalid user ID')
+});
+
+export const GeneratePowerPhrasesSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID')
+});
+
+export const GenerateTransferableSkillsSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID')
+});
+
+export const AnalyzeJobRequirementsSchema = z.object({
+  jobDescription: z.string().min(50).max(20000)
+});
+
+export const MatchVaultToRequirementsSchema = z.object({
+  userId: z.string().uuid(),
+  jobRequirements: z.any(),
+  industryStandards: z.any().optional(),
+  professionBenchmarks: z.any().optional(),
+  atsKeywords: z.any().optional()
+});
+
 // ============= Career Vault =============
 
 export const ExtractVaultIntangiblesSchema = z.object({

@@ -8,6 +8,18 @@ import { ResumeUploadStep } from "@/components/career-vault/ResumeUploadStep";
 import { InterviewStep } from "@/components/career-vault/InterviewStep";
 import { BuildingStep } from "@/components/career-vault/BuildingStep";
 import { ProgressHeader } from "@/components/career-vault/ProgressHeader";
+import { 
+  safeValidateInput, 
+  invokeEdgeFunction, 
+  logger,
+  ParseResumeSchema,
+  AnalyzeResumeSchema,
+  GenerateInterviewQuestionSchema,
+  ValidateInterviewResponseSchema,
+  GeneratePowerPhrasesSchema,
+  GenerateTransferableSkillsSchema,
+  DiscoverHiddenCompetenciesSchema
+} from "@/lib/edgeFunction";
 
 interface InterviewPhase {
   phase: 'resume_understanding' | 'skills_translation' | 'hidden_gems' | 'complete';
@@ -87,16 +99,19 @@ const CorporateAssistantContent = () => {
         const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
         
         // Send to backend edge function
-        const { data, error } = await supabase.functions.invoke('parse-resume', {
-          body: { fileData: base64Data, fileName: file.name }
+        const validation = safeValidateInput(ParseResumeSchema, { 
+          fileData: base64Data, 
+          fileName: file.name 
         });
         
-        if (error) {
-          throw new Error(error.message || 'Failed to parse file');
+        if (!validation.success) {
+          throw new Error(validation.error);
         }
         
-        if (!data?.success) {
-          throw new Error(data?.error || 'Failed to parse file');
+        const { data, error } = await invokeEdgeFunction('parse-resume', validation.data);
+        
+        if (error || !data?.success) {
+          throw new Error(error?.message || data?.error || 'Failed to parse file');
         }
         
         setResumeText(data.text);
@@ -108,7 +123,7 @@ const CorporateAssistantContent = () => {
         throw new Error('Unsupported file type. Please upload .txt, .pdf, .doc, or .docx');
       }
     } catch (error: any) {
-      console.error('File upload error:', error);
+      logger.error('File upload error', error);
       toast({ 
         title: "Unable to parse file", 
         description: error.message || 'An unexpected error occurred', 
@@ -149,12 +164,16 @@ const CorporateAssistantContent = () => {
       setVaultId(vault.id);
 
       // Call initial analysis edge function
-      const { data: analysis, error: analysisError } = await supabase.functions.invoke('analyze-resume', {
-        body: { 
-          resumeText: sanitizedText,
-          userId: userId
-        }
+      const validation = safeValidateInput(AnalyzeResumeSchema, {
+        resumeText: sanitizedText,
+        userId: userId
       });
+      
+      if (!validation.success) {
+        throw new Error(validation.error);
+      }
+      
+      const { data: analysis, error: analysisError } = await invokeEdgeFunction('analyze-resume', validation.data);
 
       if (analysisError) throw analysisError;
 
@@ -176,7 +195,7 @@ const CorporateAssistantContent = () => {
         description: "Let's start building your Career Vault!",
       });
     } catch (error: any) {
-      console.error('Error analyzing resume:', error);
+      logger.error('Error analyzing resume', error);
       toast({
         title: "Analysis Error",
         description: error.message,
@@ -208,12 +227,16 @@ const CorporateAssistantContent = () => {
       }
 
       // Generate next question based on phase
-      const { data: question, error } = await supabase.functions.invoke('generate-interview-question', {
-        body: {
-          vaultId: wcId,
-          previousResponses: responses
-        }
+      const validation = safeValidateInput(GenerateInterviewQuestionSchema, {
+        vaultId: wcId,
+        previousResponses: responses
       });
+      
+      if (!validation.success) {
+        throw new Error(validation.error);
+      }
+      
+      const { data: question, error } = await invokeEdgeFunction('generate-interview-question', validation.data);
 
       if (error) throw error;
 
@@ -245,7 +268,7 @@ const CorporateAssistantContent = () => {
         .eq('id', wcId);
 
     } catch (error: any) {
-      console.error('Error loading question:', error);
+      logger.error('Error loading question', error);
       toast({
         title: "Error",
         description: "Failed to load next question",
@@ -289,12 +312,16 @@ const CorporateAssistantContent = () => {
       // Validate combined answer
       setIsValidating(true);
       try {
-        const { data: validation, error: valError } = await supabase.functions.invoke('validate-interview-response', {
-          body: {
-            question: interviewPhase.questions[0],
-            answer: combinedResponse
-          }
+        const validationCheck = safeValidateInput(ValidateInterviewResponseSchema, {
+          question: interviewPhase.questions[0],
+          answer: combinedResponse
         });
+        
+        if (!validationCheck.success) {
+          throw new Error(validationCheck.error);
+        }
+        
+        const { data: validation, error: valError } = await invokeEdgeFunction('validate-interview-response', validationCheck.data);
 
         if (valError) throw valError;
 
@@ -326,7 +353,7 @@ const CorporateAssistantContent = () => {
         await loadNextQuestion(vaultId);
 
       } catch (error: any) {
-        console.error('Error submitting response:', error);
+        logger.error('Error submitting response', error);
         toast({
           title: "Error",
           description: "Failed to save response",
@@ -339,12 +366,16 @@ const CorporateAssistantContent = () => {
       // Old format - single question
       setIsValidating(true);
       try {
-        const { data: validation, error: valError } = await supabase.functions.invoke('validate-interview-response', {
-          body: {
-            question: interviewPhase.questions[0],
-            answer: currentResponse
-          }
+        const validationCheck = safeValidateInput(ValidateInterviewResponseSchema, {
+          question: interviewPhase.questions[0],
+          answer: currentResponse
         });
+        
+        if (!validationCheck.success) {
+          throw new Error(validationCheck.error);
+        }
+        
+        const { data: validation, error: valError } = await invokeEdgeFunction('validate-interview-response', validationCheck.data);
 
         if (valError) throw valError;
 
@@ -374,7 +405,7 @@ const CorporateAssistantContent = () => {
         await loadNextQuestion(vaultId);
 
       } catch (error: any) {
-        console.error('Error submitting response:', error);
+        logger.error('Error submitting response', error);
         toast({
           title: "Error",
           description: "Failed to save response",
@@ -420,7 +451,7 @@ const CorporateAssistantContent = () => {
         await loadNextQuestion(vaultId);
 
       } catch (error: any) {
-        console.error('Error submitting response:', error);
+        logger.error('Error submitting response', error);
         toast({
           title: "Error",
           description: "Failed to save response",
@@ -444,7 +475,7 @@ const CorporateAssistantContent = () => {
         await loadNextQuestion(vaultId);
 
       } catch (error: any) {
-        console.error('Error submitting response:', error);
+        logger.error('Error submitting response', error);
         toast({
           title: "Error",
           description: "Failed to save response",
@@ -462,11 +493,20 @@ const CorporateAssistantContent = () => {
     setAiTyping(true);
     
     try {
+      // Validate inputs
+      const phrasesValidation = safeValidateInput(GeneratePowerPhrasesSchema, { vaultId: wcId });
+      const skillsValidation = safeValidateInput(GenerateTransferableSkillsSchema, { vaultId: wcId });
+      const competenciesValidation = safeValidateInput(DiscoverHiddenCompetenciesSchema, { vaultId: wcId });
+      
+      if (!phrasesValidation.success || !skillsValidation.success || !competenciesValidation.success) {
+        throw new Error('Invalid vault ID');
+      }
+      
       // Call intelligence edge functions in parallel
       await Promise.all([
-        supabase.functions.invoke('generate-power-phrases', { body: { vaultId: wcId } }),
-        supabase.functions.invoke('generate-transferable-skills', { body: { vaultId: wcId } }),
-        supabase.functions.invoke('discover-hidden-competencies', { body: { vaultId: wcId } })
+        invokeEdgeFunction('generate-power-phrases', phrasesValidation.data),
+        invokeEdgeFunction('generate-transferable-skills', skillsValidation.data),
+        invokeEdgeFunction('discover-hidden-competencies', competenciesValidation.data)
       ]);
 
       // Update totals
@@ -491,7 +531,7 @@ const CorporateAssistantContent = () => {
       });
 
     } catch (error: any) {
-      console.error('Error building Career Vault:', error);
+      logger.error('Error building Career Vault', error);
       toast({
         title: "Error",
         description: "Failed to build Career Vault intelligence",

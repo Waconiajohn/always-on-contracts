@@ -7,9 +7,9 @@ import { Network, Users, Calendar, MessageSquare, Sparkles, Copy, Check } from "
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useNetworkingContacts } from "@/hooks/useNetworkingContacts";
 import { ReferralPathwayVisualizer } from "@/components/networking/ReferralPathwayVisualizer";
+import { invokeEdgeFunction, logger } from "@/lib/edgeFunction";
 
 export default function NetworkingAgent() {
   const { contacts } = useNetworkingContacts();
@@ -50,12 +50,10 @@ export default function NetworkingAgent() {
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-networking-email', {
-        body: {
-          context: jobDescription,
-          persona: selectedPersona,
-          purpose: 'informational_interview'
-        }
+      const { data, error } = await invokeEdgeFunction('generate-networking-email', {
+        context: jobDescription,
+        persona: selectedPersona,
+        purpose: 'informational_interview'
       });
 
       if (error) throw error;
@@ -66,7 +64,7 @@ export default function NetworkingAgent() {
         description: "Your networking email is ready!"
       });
     } catch (error) {
-      console.error('Error generating email:', error);
+      logger.error('Error generating email', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to generate email",

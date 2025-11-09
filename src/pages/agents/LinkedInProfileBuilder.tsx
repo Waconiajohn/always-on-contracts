@@ -13,6 +13,12 @@ import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
 import { SkillsTagInput } from "@/components/linkedin/SkillsTagInput";
 import { ProfileProgressTracker } from "@/components/linkedin/ProfileProgressTracker";
 import { RecruiterSearchSimulator } from "@/components/linkedin/RecruiterSearchSimulator";
+import { 
+  safeValidateInput, 
+  invokeEdgeFunction, 
+  logger,
+  OptimizeLinkedInProfileSchema
+} from "@/lib/edgeFunction";
 
 export default function LinkedInProfileBuilder() {
   const [currentHeadline, setCurrentHeadline] = useState("");
@@ -96,15 +102,19 @@ export default function LinkedInProfileBuilder() {
 
     setIsOptimizing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('optimize-linkedin-profile', {
-        body: {
-          currentHeadline,
-          currentAbout,
-          targetRole,
-          industry,
-          skills
-        }
+      const validation = safeValidateInput(OptimizeLinkedInProfileSchema, {
+        currentHeadline,
+        currentAbout,
+        targetRole,
+        industry,
+        skills
       });
+      
+      if (!validation.success) {
+        throw new Error(validation.error);
+      }
+      
+      const { data, error } = await invokeEdgeFunction('optimize-linkedin-profile', validation.data);
 
       if (error) throw error;
       setOptimizationResult(data);
@@ -146,7 +156,7 @@ export default function LinkedInProfileBuilder() {
             .eq('user_id', user.id);
         }
       } catch (saveError) {
-        console.error('Error saving LinkedIn sections:', saveError);
+        logger.error('Error saving LinkedIn sections', saveError);
       }
       
       toast({ title: "Profile optimized with dual AI audit!", description: "Review your enhanced profile below" });

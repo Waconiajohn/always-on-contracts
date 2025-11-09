@@ -10,6 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
+import { 
+  safeValidateInput, 
+  invokeEdgeFunction, 
+  logger,
+  GenerateInterviewQuestionSchema
+} from "@/lib/edgeFunction";
 import { InterviewFollowupPanel } from "@/components/InterviewFollowupPanel";
 import { InterviewResponsesTab } from "@/components/InterviewResponsesTab";
 import { JobSelector } from "@/components/interview/JobSelector";
@@ -94,7 +100,7 @@ const InterviewPrepAgentContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('interview_prep_sessions')
         .insert({
           user_id: user.id,
@@ -112,12 +118,10 @@ const InterviewPrepAgentContent = () => {
         .single();
 
       if (error) {
-        console.error('Error creating prep session:', error);
-      } else {
-        console.log('Prep session created:', data);
+        logger.error('Error creating prep session', error);
       }
     } catch (error) {
-      console.error('Error in createPrepSession:', error);
+      logger.error('Error in createPrepSession', error);
     }
   };
 
@@ -126,13 +130,22 @@ const InterviewPrepAgentContent = () => {
 
     toast({ title: "Generating interview question..." });
 
-    const { data, error } = await supabase.functions.invoke('generate-interview-question', {
-      body: {
-        vaultId: vaultData.id,
-        phase: 'interview_prep',
-        persona: selectedPersona
-      }
+    const validation = safeValidateInput(GenerateInterviewQuestionSchema, {
+      vaultId: vaultData.id,
+      phase: 'interview_prep',
+      persona: selectedPersona
     });
+    
+    if (!validation.success) {
+      toast({ 
+        title: "Validation Error", 
+        description: validation.error,
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    const { data, error } = await invokeEdgeFunction('generate-interview-question', validation.data);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
