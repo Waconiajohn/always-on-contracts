@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Target, TrendingUp, Sparkles } from "lucide-react";
+import { validateInput, invokeEdgeFunction, Generate3060Plan } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface ThirtyPlanBuilderProps {
   jobDescription: string;
@@ -16,32 +17,32 @@ interface ThirtyPlanBuilderProps {
 export function ThirtyPlanBuilder({ jobDescription, companyResearch, vaultId }: ThirtyPlanBuilderProps) {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<any>(null);
-  const { toast } = useToast();
 
   const generatePlan = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-30-60-90-plan', {
-        body: { jobDescription, companyResearch, vaultId }
+      const validated = validateInput(Generate3060Plan, {
+        jobDescription,
+        vaultId
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-30-60-90-plan',
+        { ...validated, companyResearch },
+        {
+          showSuccessToast: true,
+          successMessage: 'Your onboarding roadmap has been created'
+        }
+      );
 
-      if (data.success) {
-        setPlan(data.plan);
-        toast({
-          title: "30-60-90 Plan Ready",
-          description: "Your onboarding roadmap has been created",
-        });
-      } else {
-        throw new Error(data.error);
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Generation failed');
       }
+
+      setPlan(data.plan);
     } catch (error: any) {
-      toast({
-        title: "Generation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      logger.error('30-60-90 plan generation failed', error);
     } finally {
       setLoading(false);
     }

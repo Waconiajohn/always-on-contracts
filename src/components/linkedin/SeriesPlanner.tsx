@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Edit2, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSeriesManagement } from "@/hooks/useSeriesManagement";
+import { validateInput, invokeEdgeFunction, GenerateSeriesOutlineSchema } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface SeriesOutline {
   seriesTitle: string;
@@ -44,22 +46,34 @@ export function SeriesPlanner({ onSeriesCreated }: { onSeriesCreated?: (seriesId
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-series-outline', {
-        body: {
-          seriesTopic,
-          seriesLength,
-          userRole,
-          industry,
-          experienceYears: experienceYears ? parseInt(experienceYears) : null,
-          targetAudience
-        }
+      const validated = validateInput(GenerateSeriesOutlineSchema, {
+        topic: seriesTopic,
+        targetAudience,
+        postCount: seriesLength
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-series-outline',
+        {
+          ...validated,
+          userRole,
+          industry,
+          experienceYears: experienceYears ? parseInt(experienceYears) : null
+        },
+        {
+          showSuccessToast: true,
+          successMessage: `${seriesLength}-part series ready for review`
+        }
+      );
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Generation failed');
+      }
+
       setOutline(data);
-      toast({ title: "Outline generated!", description: `${seriesLength}-part series ready for review` });
     } catch (error: any) {
-      toast({ title: "Generation failed", description: error.message, variant: "destructive" });
+      logger.error('Series outline generation failed', error);
     } finally {
       setIsGenerating(false);
     }

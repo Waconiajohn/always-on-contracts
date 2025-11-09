@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Award, HelpCircle, MessageSquare, Copy, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { validateInput, invokeEdgeFunction, Generate321FrameworkSchema } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface ThreeTwoOneFrameworkProps {
   jobDescription: string;
@@ -22,27 +24,28 @@ export function ThreeTwoOneFramework({ jobDescription, companyResearch, vaultId 
   const generateFramework = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-3-2-1-framework', {
-        body: { jobDescription, companyResearch, vaultId }
+      const validated = validateInput(Generate321FrameworkSchema, {
+        jobDescription,
+        vaultId
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-3-2-1-framework',
+        { ...validated, companyResearch },
+        {
+          showSuccessToast: true,
+          successMessage: 'Your interview essentials have been created'
+        }
+      );
 
-      if (data.success) {
-        setFramework(data);
-        toast({
-          title: "3-2-1 Framework Ready",
-          description: "Your interview essentials have been created",
-        });
-      } else {
-        throw new Error(data.error);
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Generation failed');
       }
+
+      setFramework(data);
     } catch (error: any) {
-      toast({
-        title: "Generation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      logger.error('3-2-1 framework generation failed', error);
     } finally {
       setLoading(false);
     }

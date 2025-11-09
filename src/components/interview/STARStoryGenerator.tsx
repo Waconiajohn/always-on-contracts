@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Copy, Check } from "lucide-react";
+import { validateInput, invokeEdgeFunction, GenerateStarStorySchema } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface STARStory {
   situation: string;
@@ -81,27 +83,28 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
 
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-star-story', {
-        body: {
-          rawStory: `${selectedPhrase.power_phrase}. ${selectedPhrase.impact_metrics}. Competency: ${competency}`,
-          action: 'generate'
-        }
+      const validated = validateInput(GenerateStarStorySchema, {
+        rawStory: `${selectedPhrase.power_phrase}. ${selectedPhrase.impact_metrics}. Competency: ${competency}`,
+        action: 'generate'
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-star-story',
+        validated,
+        {
+          showSuccessToast: true,
+          successMessage: 'Story created successfully'
+        }
+      );
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Generation failed');
+      }
 
       setStory(data.starStory);
-      
-      toast({
-        title: "STAR Story Generated",
-        description: "Story created successfully"
-      });
     } catch (error: any) {
-      toast({
-        title: "Generation Failed",
-        description: error.message,
-        variant: "destructive"
-      });
+      logger.error('STAR story generation failed', error);
     } finally {
       setGenerating(false);
     }

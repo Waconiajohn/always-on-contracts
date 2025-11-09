@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { validateInput, invokeEdgeFunction, AutoPopulateVaultSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface AutoPopulationProgressProps {
   vaultId: string;
@@ -211,9 +213,9 @@ export default function AutoPopulationProgress({
         if (vault?.review_completion_percentage !== undefined && vault.review_completion_percentage !== null) {
           setCompletionPercentage(Math.round(vault.review_completion_percentage * 100));
         }
-      } catch (err) {
-        console.error('Error polling completion:', err);
-      }
+        } catch (err) {
+          logger.error('Error polling completion', err);
+        }
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(pollInterval);
@@ -243,18 +245,25 @@ export default function AutoPopulationProgress({
       updateCategoryStatus('hidden_competencies', 'extracting');
       updateCategoryStatus('soft_skills', 'extracting');
 
-      const { data: coreData, error: coreError } = await supabase.functions.invoke('auto-populate-vault-v3', {
-        body: {
-          resumeText,
-          vaultId,
-          targetRoles,
-          targetIndustries,
-          industryResearch: industryResearch?.[0]?.results, // Use first research result
-        },
+      const validated = validateInput(AutoPopulateVaultSchema, {
+        resumeText,
+        vaultId,
+        targetRoles,
+        targetIndustries
       });
 
-      if (coreError) throw coreError;
-      if (!coreData.success) throw new Error(coreData.error || 'Extraction failed');
+      const { data: coreData, error: coreError } = await invokeEdgeFunction(
+        supabase,
+        'auto-populate-vault-v3',
+        {
+          ...validated,
+          industryResearch: industryResearch?.[0]?.results
+        }
+      );
+
+      if (coreError || !coreData?.success) {
+        throw new Error(coreError?.message || coreData?.error || 'Extraction failed');
+      }
 
       const extracted = coreData.data.extracted;
 
@@ -296,7 +305,7 @@ export default function AutoPopulationProgress({
       }, 3000);
 
     } catch (err: any) {
-      console.error('Extraction error:', err);
+      logger.error('Extraction error', err);
       setError(err.message || 'Extraction failed');
       toast({
         title: 'Extraction Failed',

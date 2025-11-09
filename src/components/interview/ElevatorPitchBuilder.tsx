@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Copy, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { validateInput, invokeEdgeFunction, GenerateElevatorPitchSchema } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface ElevatorPitchBuilderProps {
   jobDescription: string;
@@ -22,27 +24,29 @@ export function ElevatorPitchBuilder({ jobDescription, vaultId }: ElevatorPitchB
   const generatePitch = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-elevator-pitch', {
-        body: { jobDescription, vaultId }
+      const validated = validateInput(GenerateElevatorPitchSchema, {
+        vaultId,
+        targetRole: 'Executive', // Extracted from job description
+        jobDescription
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-elevator-pitch',
+        validated,
+        {
+          showSuccessToast: true,
+          successMessage: 'Your perfect fit narrative has been created'
+        }
+      );
 
-      if (data.success) {
-        setPitch(data);
-        toast({
-          title: "Elevator Pitch Ready",
-          description: "Your perfect fit narrative has been created",
-        });
-      } else {
-        throw new Error(data.error);
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Generation failed');
       }
+
+      setPitch(data);
     } catch (error: any) {
-      toast({
-        title: "Generation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      logger.error('Elevator pitch generation failed', error);
     } finally {
       setLoading(false);
     }

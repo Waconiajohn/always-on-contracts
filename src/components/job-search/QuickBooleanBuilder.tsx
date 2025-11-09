@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, X, Sparkles, Copy } from "lucide-react";
+import { validateInput, invokeEdgeFunction, GenerateBooleanSearchSchema } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface QuickBooleanBuilderProps {
   open: boolean;
@@ -47,7 +49,7 @@ export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBoolea
         setSelectedTitles(new Set(vault.target_roles));
       }
     } catch (error) {
-      console.error('Error loading vault:', error);
+      logger.error('Error loading vault', error);
     } finally {
       setIsLoadingVault(false);
     }
@@ -65,22 +67,25 @@ export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBoolea
 
     setIsLoadingAI(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-boolean-search', {
-        body: { jobTitle: customTitle.trim() }
+      const validated = validateInput(GenerateBooleanSearchSchema, {
+        jobTitle: customTitle.trim()
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-boolean-search',
+        validated
+      );
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to get suggestions');
+      }
 
       if (data.variations) {
         setAiSuggestions(data.variations);
       }
     } catch (error: any) {
-      console.error('AI error:', error);
-      toast({
-        title: "Failed to get suggestions",
-        description: error.message,
-        variant: "destructive"
-      });
+      logger.error('AI suggestions failed', error);
     } finally {
       setIsLoadingAI(false);
     }

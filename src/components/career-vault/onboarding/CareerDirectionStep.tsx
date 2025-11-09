@@ -35,6 +35,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { AIProgressIndicator } from './AIProgressIndicator';
+import { validateInput, invokeEdgeFunction, SuggestCareerPathsSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface CareerDirectionStepProps {
   onComplete: (data: {
@@ -75,19 +77,21 @@ export default function CareerDirectionStep({
     setIsLoadingSuggestions(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('suggest-career-paths', {
-        body: {
-          resumeAnalysis: initialAnalysis,
-          careerDirection,
-          currentRole: initialAnalysis.detectedRole,
-          currentIndustry: initialAnalysis.detectedIndustry,
-        },
+      const validated = validateInput(SuggestCareerPathsSchema, {
+        resumeAnalysis: initialAnalysis,
+        careerDirection,
+        currentRole: initialAnalysis.detectedRole,
+        currentIndustry: initialAnalysis.detectedIndustry
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'suggest-career-paths',
+        validated
+      );
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to generate suggestions');
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Failed to generate suggestions');
       }
 
       setSuggestedRoles(data.data.suggestedRoles || []);
@@ -115,7 +119,7 @@ export default function CareerDirectionStep({
         }, 2000);
       }
     } catch (err: any) {
-      console.error('Suggestion error:', err);
+      logger.error('Suggestion error', err);
       toast({
         title: 'Suggestion Failed',
         description: err.message || 'Could not generate suggestions. Please try again.',
@@ -167,7 +171,7 @@ export default function CareerDirectionStep({
         targetIndustries: selectedIndustries,
       });
     } catch (err: any) {
-      console.error('Save error:', err);
+      logger.error('Save error', err);
       toast({
         title: 'Save Failed',
         description: err.message,

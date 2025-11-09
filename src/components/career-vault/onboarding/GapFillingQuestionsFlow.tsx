@@ -28,6 +28,8 @@ import { Sparkles, ChevronRight, Target, Zap, Loader2, Info, CheckCircle2, Trend
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { AIBrainAnimation } from '@/components/career-vault/AIBrainAnimation';
+import { validateInput, invokeEdgeFunction, GenerateGapFillingQuestionsSchema, ProcessGapFillingResponsesSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 // Auto-detect correct question type based on text (runtime fallback)
 function normalizeQuestionType(question: any): any {
@@ -35,7 +37,7 @@ function normalizeQuestionType(question: any): any {
   if ((textLower.includes('select all that apply') || 
        (textLower.includes('which of the following') && question.options?.length > 2)) && 
       question.type !== 'checkbox') {
-    console.log(`[RUNTIME-FIX] Changed question type to checkbox: "${question.text}"`);
+    logger.debug('[RUNTIME-FIX] Changed question type to checkbox', { question: question.text });
     return { ...question, type: 'checkbox' };
   }
   return question;
@@ -88,25 +90,32 @@ export default function GapFillingQuestionsFlow({
       ]);
 
       // Generate gap-filling questions with ACTUAL resume content
-      const { data, error } = await supabase.functions.invoke('generate-gap-filling-questions', {
-        body: {
-          vaultId,
-          resumeText: vaultData?.resume_raw_text || '',  // PASS THE ACTUAL RESUME
-          vaultData: {
-            powerPhrases: powerPhrases.data || [],
-            transferableSkills: skills.data || [],
-            hiddenCompetencies: competencies.data || [],
-            softSkills: softSkills.data || [],
-            targetRoles: vaultData?.target_roles || [],
-            targetIndustries: vaultData?.target_industries || [],
-          },
-          industryResearch: industryResearch?.[0]?.results,
+      const validated = validateInput(GenerateGapFillingQuestionsSchema, {
+        vaultId,
+        resumeText: vaultData?.resume_raw_text || '',
+        vaultData: {
+          powerPhrases: powerPhrases.data || [],
+          transferableSkills: skills.data || [],
+          hiddenCompetencies: competencies.data || [],
+          softSkills: softSkills.data || [],
           targetRoles: vaultData?.target_roles || [],
+          targetIndustries: vaultData?.target_industries || [],
         },
+        targetRoles: vaultData?.target_roles || []
       });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-gap-filling-questions',
+        {
+          ...validated,
+          industryResearch: industryResearch?.[0]?.results
+        }
+      );
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Failed to generate questions');
+      }
 
       // Add unique IDs to each question in each batch and normalize types
       const batchesWithIds = (data.data.batches || []).map((batch: any, batchIdx: number) => ({
@@ -119,8 +128,8 @@ export default function GapFillingQuestionsFlow({
         )
       }));
 
-      console.log('Gap-filling questions loaded:', 
-        batchesWithIds.map((b: any) => ({
+      logger.debug('Gap-filling questions loaded', {
+        batches: batchesWithIds.map((b: any) => ({
           title: b.title,
           questions: b.questions.map((q: any) => ({ 
             text: q.text.substring(0, 50) + '...', 
@@ -129,7 +138,7 @@ export default function GapFillingQuestionsFlow({
             optionsCount: q.options?.length 
           }))
         }))
-      );
+      });
       setQuestionBatches(batchesWithIds);
       setIsLoading(false);
 
@@ -138,7 +147,7 @@ export default function GapFillingQuestionsFlow({
         description: data.meta?.message || 'Gap-filling questions generated',
       });
     } catch (err: any) {
-      console.error('Load questions error:', err);
+      logger.error('Load questions error', err);
       setError(err.message);
       setIsLoading(false);
     }
@@ -182,17 +191,24 @@ export default function GapFillingQuestionsFlow({
         };
       });
 
-      const { data, error } = await supabase.functions.invoke('process-gap-filling-responses', {
-        body: {
-          vaultId,
-          responses: formattedResponses,
-          industryResearch: industryResearch?.[0]?.results,
-          targetRoles: [],
-        },
+      const validated = validateInput(ProcessGapFillingResponsesSchema, {
+        vaultId,
+        responses: formattedResponses,
+        targetRoles: []
       });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'process-gap-filling-responses',
+        {
+          ...validated,
+          industryResearch: industryResearch?.[0]?.results
+        }
+      );
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Processing failed');
+      }
 
       toast({
         title: '🎉 Gap-Filling Complete!',
@@ -201,7 +217,7 @@ export default function GapFillingQuestionsFlow({
 
       onComplete({ newVaultStrength: data.data.newVaultStrength });
     } catch (err: any) {
-      console.error('Submit error:', err);
+      logger.error('Submit error', err);
       toast({
         title: 'Submission Failed',
         description: err.message,

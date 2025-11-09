@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, TrendingUp, AlertTriangle, Users, ChevronDown, RefreshCw } from "lucide-react";
+import { validateInput, invokeEdgeFunction, GenerateCompanyResearchSchema } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface CompanyResearchPanelProps {
   companyName: string;
@@ -15,32 +16,32 @@ interface CompanyResearchPanelProps {
 export function CompanyResearchPanel({ companyName, jobDescription }: CompanyResearchPanelProps) {
   const [loading, setLoading] = useState(false);
   const [research, setResearch] = useState<any>(null);
-  const { toast } = useToast();
 
   const generateResearch = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-company-research', {
-        body: { companyName, jobDescription }
+      const validated = validateInput(GenerateCompanyResearchSchema, { 
+        companyName, 
+        jobDescription 
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-company-research',
+        validated,
+        {
+          showSuccessToast: true,
+          successMessage: `Company intelligence gathered for ${companyName}`
+        }
+      );
 
-      if (data.success) {
-        setResearch(data);
-        toast({
-          title: "Research Complete",
-          description: `Company intelligence gathered for ${companyName}`,
-        });
-      } else {
-        throw new Error(data.error);
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Research failed');
       }
+
+      setResearch(data);
     } catch (error: any) {
-      toast({
-        title: "Research Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      logger.error('Company research failed', error);
     } finally {
       setLoading(false);
     }

@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { validateInput, invokeEdgeFunction, ResearchIndustryStandardsSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface IndustryResearchProgressProps {
   vaultId: string;
@@ -103,16 +105,22 @@ export default function IndustryResearchProgress({
         for (const industry of targetIndustries) {
           researchPromises.push(
             (async () => {
-              const { data, error } = await supabase.functions.invoke('research-industry-standards', {
-                body: {
-                  targetRole: role,
-                  targetIndustry: industry,
-                  vaultId,
-                  careerDirection,
-                },
+              const validated = validateInput(ResearchIndustryStandardsSchema, {
+                targetRole: role,
+                targetIndustry: industry,
+                vaultId,
+                careerDirection
               });
 
-              if (error) throw error;
+              const { data, error } = await invokeEdgeFunction(
+                supabase,
+                'research-industry-standards',
+                validated
+              );
+
+              if (error || !data) {
+                throw new Error(error?.message || 'Research failed');
+              }
 
               completedResearch++;
               setResearchProgress(25 + (completedResearch / totalCombinations) * 60);
@@ -157,7 +165,7 @@ export default function IndustryResearchProgress({
       }, 2000);
 
     } catch (err: any) {
-      console.error('Research error:', err);
+      logger.error('Research error', err);
       setError(err.message || 'Research failed');
       toast({
         title: 'Research Failed',

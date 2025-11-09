@@ -213,6 +213,71 @@ export const GenerateStarStorySchema = z.object({
   action: z.enum(['generate', 'refine']).optional().default('generate')
 });
 
+export const GenerateCompanyResearchSchema = z.object({
+  companyName: z.string().min(1, 'Company name required').max(200),
+  jobDescription: z.string().optional()
+});
+
+export const GenerateElevatorPitchSchema = z.object({
+  vaultId: z.string().uuid().optional(),
+  targetRole: z.string().min(1, 'Target role required'),
+  companyName: z.string().optional(),
+  jobDescription: z.string().optional()
+});
+
+export const Generate3060Plan = z.object({
+  jobDescription: z.string().min(50, 'Job description too short'),
+  vaultId: z.string().uuid().optional()
+});
+
+export const Generate321FrameworkSchema = z.object({
+  jobDescription: z.string().min(50, 'Job description too short'),
+  vaultId: z.string().uuid().optional()
+});
+
+export const GenerateBooleanSearchSchema = z.object({
+  jobTitle: z.string().min(1, 'Job title required'),
+  skills: z.array(z.string()).optional(),
+  location: z.string().optional(),
+  experience: z.string().optional()
+});
+
+export const GenerateSeriesOutlineSchema = z.object({
+  topic: z.string().min(10, 'Topic too short').max(500),
+  targetAudience: z.string().optional(),
+  postCount: z.number().min(3).max(10).optional().default(5)
+});
+
+export const GenerateGapSolutionsSchema = z.object({
+  gap: z.string().min(10, 'Gap description too short'),
+  jobRequirements: z.string().optional(),
+  vaultId: z.string().uuid().optional()
+});
+
+export const GenerateRequirementQuestionsSchema = z.object({
+  requirement: z.string().min(5, 'Requirement too short'),
+  context: z.string().optional()
+});
+
+export const GenerateRequirementOptionsSchema = z.object({
+  requirement: z.string().min(5, 'Requirement too short'),
+  userContext: z.string().optional(),
+  vaultId: z.string().uuid().optional()
+});
+
+export const GenerateDualResumeSectionSchema = z.object({
+  sectionType: z.string().min(1, 'Section type required'),
+  vaultId: z.string().uuid('Invalid vault ID'),
+  jobDescription: z.string().optional(),
+  requirements: z.array(z.any()).optional()
+});
+
+export const GenerateInterviewPrepSchema = z.object({
+  jobDescription: z.string().min(50, 'Job description too short'),
+  vaultId: z.string().uuid().optional(),
+  company: z.string().optional()
+});
+
 export const GenerateWhyMeQuestionsSchema = z.object({
   jobDescription: z.string().min(50, 'Job description too short'),
   vaultId: z.string().uuid().optional()

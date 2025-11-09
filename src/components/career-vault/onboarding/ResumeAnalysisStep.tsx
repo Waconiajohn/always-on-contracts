@@ -19,6 +19,8 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, FileText, Sparkles, TrendingUp, Award, Briefcase, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useSupabaseClient } from '@/hooks/useAuth';
+import { validateInput, invokeEdgeFunction, AnalyzeResumeInitialSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface ResumeAnalysisStepProps {
   onComplete: (data: {
@@ -85,16 +87,17 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       formData.append('file', file);
 
       // Use the existing process-resume function
-      const { data, error: processError } = await supabase.functions.invoke('process-resume', {
-        body: formData,
-      });
+      const { data, error: processError } = await invokeEdgeFunction(
+        supabase,
+        'process-resume',
+        formData
+      );
 
-      console.log('Process resume response:', { data, processError });
+      logger.debug('Process resume response', { data, processError });
 
       // Phase 5.3: Enhanced error tracking
       if (processError) {
-        console.error('Process error:', {
-          message: processError.message,
+        logger.error('Process error', processError, {
           status: processError.status,
           details: processError.details,
           timestamp: new Date().toISOString()
@@ -114,14 +117,17 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
 
       if (!data?.success) {
         const errorMsg = data?.error || data?.details || 'Unable to process this resume file';
-        console.error('Processing failed:', errorMsg);
+        logger.error('Processing failed', new Error(errorMsg));
         throw new Error(errorMsg);
       }
 
       // Try multiple possible response formats
       const extractedText = data.extractedText || data.resume_text || data.text || data.data?.extractedText || '';
 
-      console.log('Extracted text length:', extractedText?.length, 'First 100 chars:', extractedText?.substring(0, 100));
+      logger.debug('Extracted text', {
+        length: extractedText?.length,
+        preview: extractedText?.substring(0, 100)
+      });
 
       if (!extractedText || extractedText.length < 100) {
         throw new Error('Unable to read the resume content. Please try a different file.');
@@ -134,7 +140,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       await analyzeResume(extractedText);
 
     } catch (err: any) {
-      console.error('Upload error:', err);
+      logger.error('Upload error', err);
       setError(err.message || 'Failed to process resume. Please try again.');
       setIsUploading(false);
       toast({
@@ -212,20 +218,19 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       }
 
       // Call analyze-resume-initial function
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke(
+      const validated = validateInput(AnalyzeResumeInitialSchema, {
+        resumeText: text,
+        vaultId: currentVaultId
+      });
+
+      const { data: analysisData, error: analysisError } = await invokeEdgeFunction(
+        supabase,
         'analyze-resume-initial',
-        {
-          body: {
-            resumeText: text,
-            vaultId: currentVaultId,
-          },
-        }
+        validated
       );
 
-      if (analysisError) throw analysisError;
-
-      if (!analysisData.success) {
-        throw new Error(analysisData.error || 'Analysis failed');
+      if (analysisError || !analysisData?.success) {
+        throw new Error(analysisError?.message || analysisData?.error || 'Analysis failed');
       }
 
       const initialAnalysis = analysisData.data;
@@ -259,7 +264,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       }, 2000);
 
     } catch (err: any) {
-      console.error(`Analysis error (attempt ${attempt}):`, err);
+      logger.error(`Analysis error (attempt ${attempt})`, err);
 
       // Retry logic
       if (attempt < MAX_RETRIES) {
