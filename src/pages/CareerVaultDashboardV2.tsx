@@ -188,7 +188,7 @@ const VaultDashboardContent = () => {
   
   const quickWins = useQuickWins({
     assumedCount: stats?.qualityDistribution.assumedNeedingReview || 0,
-    weakPhrasesCount: vaultData?.powerPhrases.filter((p: any) =>
+    weakPhrasesCount: vaultData?.powerPhrases?.filter((p: any) =>
       !p.impact_metrics || Object.keys(p.impact_metrics).length === 0
     ).length || 0,
     staleItemsCount: 0,
@@ -552,9 +552,9 @@ const VaultDashboardContent = () => {
               totalItems: stats.totalItems,
               strengthScore: stats.strengthScore.total,
               qualityDistribution: stats.qualityDistribution,
-              powerPhrases: vaultData.powerPhrases,
-              skills: vaultData.transferableSkills,
-              competencies: vaultData.hiddenCompetencies,
+              powerPhrases: vaultData?.powerPhrases || [],
+              skills: vaultData?.transferableSkills || [],
+              competencies: vaultData?.hiddenCompetencies || [],
             }}
           />
         </Suspense>
