@@ -54,6 +54,7 @@ export function AICostDashboard() {
       // Aggregate by function
       const functionCosts = new Map<string, { cost: number; calls: number }>();
       topFunctionsData?.forEach(item => {
+        if (!item.function_name) return; // Skip null function names
         const existing = functionCosts.get(item.function_name) || { cost: 0, calls: 0 };
         functionCosts.set(item.function_name, {
           cost: existing.cost + (item.cost_usd || 0),

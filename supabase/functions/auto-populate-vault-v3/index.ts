@@ -27,6 +27,37 @@ import {
   analyzeCareerContext
 } from '../_shared/extraction/career-analysis-extractor.ts';
 
+/**
+ * @fileoverview Auto-Populate Vault V3 Edge Function
+ * 
+ * CRITICAL NAMING CONVENTIONS:
+ * 
+ * 1. VAULT ID REFERENCE:
+ *    - Input parameter: vaultId (camelCase from frontend)
+ *    - Database column: vault_id (snake_case when inserting)
+ *    - When querying career_vault: Use vaultData.id
+ *    - Example:
+ *      // Frontend sends: { vaultId: '123' }
+ *      // Edge function receives: const { vaultId } = await req.json()
+ *      // Database insert: { vault_id: vaultId, ... }
+ * 
+ * 2. RESPONSE STRUCTURE:
+ *    - Returns: { success: true, data: { extracted: { powerPhrasesCount, ... } } }
+ *    - Frontend accesses: result.data.data.extracted.powerPhrasesCount
+ *    - ❌ NOT: result.data.breakdown.powerPhrases
+ * 
+ * 3. QUALITY TIERS:
+ *    - Values: 'gold', 'silver', 'bronze', 'assumed'
+ *    - All lowercase in database
+ * 
+ * 4. CONFIDENCE SCORES:
+ *    - Range: 0.0 to 1.0 (decimal)
+ *    - Database type: DECIMAL
+ * 
+ * @see docs/VAULT_NAMING_CONVENTIONS.md for complete guide
+ * @see supabase/functions/_shared/vault-response-types.ts for type definitions
+ */
+
 interface AutoPopulateRequest {
   resumeText: string;
   vaultId: string;
