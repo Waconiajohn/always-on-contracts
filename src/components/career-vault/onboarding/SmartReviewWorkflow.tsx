@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { invokeEdgeFunction, ProcessReviewActionsSchema, safeValidateInput } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface SmartReviewWorkflowProps {
   vaultId: string;
@@ -137,7 +139,7 @@ export default function SmartReviewWorkflow({
       }
 
     } catch (err: any) {
-      console.error('Load items error:', err);
+      logger.error('Load items error', err);
       toast({
         title: 'Load Failed',
         description: err.message,
@@ -231,17 +233,27 @@ export default function SmartReviewWorkflow({
       return;
     }
 
+    const validation = safeValidateInput(ProcessReviewActionsSchema, {
+      vaultId,
+      actions: reviewActions,
+    });
+    if (!validation.success) {
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('process-review-actions', {
-        body: {
-          vaultId,
-          actions: reviewActions,
-        },
-      });
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'process-review-actions',
+        { vaultId, actions: reviewActions }
+      );
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Process review actions failed', error);
+        throw new Error(error.message);
+      }
       if (!data.success) throw new Error(data.error || 'Review processing failed');
 
       const newStrength = data.data.newVaultStrength;
@@ -255,7 +267,7 @@ export default function SmartReviewWorkflow({
       onComplete({ newVaultStrength: newStrength });
 
     } catch (err: any) {
-      console.error('Review save error:', err);
+      logger.error('Review save error', err);
       toast({
         title: 'Save Failed',
         description: err.message,

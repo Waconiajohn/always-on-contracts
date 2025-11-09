@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeEdgeFunction } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 export interface SubscriptionStatus {
   subscribed: boolean;
@@ -23,13 +25,20 @@ export function useSubscription() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'check-subscription',
+        {}
+      );
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Check subscription failed', error);
+        throw new Error(error.message);
+      }
 
       setSubscription(data);
     } catch (error: any) {
-      console.error('Error checking subscription:', error);
+      logger.error('Error checking subscription', error);
       setSubscription({ subscribed: false });
     } finally {
       setLoading(false);
@@ -38,14 +47,22 @@ export function useSubscription() {
 
   const manageSubscription = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'customer-portal',
+        {}
+      );
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Manage subscription failed', error);
+        throw new Error(error.message);
+      }
 
       if (data?.url) {
         window.open(data.url, '_blank');
       }
     } catch (error: any) {
+      logger.error('Error managing subscription', error);
       toast.error(error.message || 'Failed to open customer portal');
     }
   };

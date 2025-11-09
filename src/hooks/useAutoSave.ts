@@ -9,6 +9,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { OnboardingStep } from '@/types/career-vault';
+import { logger } from '@/lib/logger';
 
 interface AutoSaveOptions {
   vaultId: string;
@@ -67,7 +68,7 @@ export function useAutoSave(options: AutoSaveOptions) {
       setLastSaved(new Date());
       onSaveComplete?.();
     } catch (error) {
-      console.error('Auto-save failed:', error);
+      logger.error('Auto-save failed', error as Error);
       onSaveError?.(error as Error);
     } finally {
       setIsSaving(false);
@@ -184,7 +185,7 @@ export function useOnboardingAutoSave(
         // Reset to idle after 2 seconds
         setTimeout(() => setSaveStatus('idle'), 2000);
       } catch (error) {
-        console.error('Failed to save step progress:', error);
+        logger.error('Failed to save step progress', error as Error);
         setSaveStatus('error');
       }
     };

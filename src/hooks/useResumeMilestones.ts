@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { invokeEdgeFunction, ParseResumeMilestonesSchema, safeValidateInput } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 export interface ResumeMilestone {
   id: string;
@@ -43,7 +45,7 @@ export const useResumeMilestones = () => {
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch milestones');
       setError(error);
-      console.error('Error fetching resume milestones:', error);
+      logger.error('Error fetching resume milestones', error);
     } finally {
       setLoading(false);
     }
@@ -53,15 +55,26 @@ export const useResumeMilestones = () => {
     setLoading(true);
     setError(null);
 
+    const validation = safeValidateInput(ParseResumeMilestonesSchema, { resume_text: resumeText });
+    if (!validation.success) {
+      setLoading(false);
+      return [];
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const { data, error: parseError } = await supabase.functions.invoke('parse-resume-milestones', {
-        body: { resume_text: resumeText }
-      });
+      const { data, error: parseError } = await invokeEdgeFunction(
+        supabase,
+        'parse-resume-milestones',
+        { resume_text: resumeText }
+      );
 
-      if (parseError) throw parseError;
+      if (parseError) {
+        logger.error('Parse resume milestones failed', parseError);
+        throw new Error(parseError.message);
+      }
 
       // Save parsed milestones to database
       if (data?.milestones && data.milestones.length > 0) {

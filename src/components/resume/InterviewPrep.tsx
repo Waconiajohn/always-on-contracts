@@ -19,6 +19,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction, GenerateInterviewPrepSchema, safeValidateInput } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface InterviewQuestion {
   id: string;
@@ -137,26 +139,27 @@ export function InterviewPrep({
       return;
     }
 
+    const validation = safeValidateInput(GenerateInterviewPrepSchema, {
+      resumeContent,
+      jobTitle,
+      jobDescription
+    });
+    if (!validation.success) {
+      return;
+    }
+
     setGeneratingQuestions(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-interview-prep', {
-        body: {
-          resumeContent,
-          jobTitle,
-          jobDescription
-        }
-      });
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-interview-prep',
+        { resumeContent, jobTitle, jobDescription }
+      );
 
       if (error) {
-        console.error('Interview prep error:', error);
-        if (error.message?.includes('429') || error.status === 429) {
-          throw new Error('Rate limit exceeded. Please try again in a moment.');
-        }
-        if (error.message?.includes('402') || error.status === 402) {
-          throw new Error('AI credits required. Please add funds to your workspace.');
-        }
-        throw error;
+        logger.error('Interview prep failed', error);
+        throw new Error(error.message);
       }
 
       if (!data?.success || !data?.questions) {
@@ -167,7 +170,7 @@ export function InterviewPrep({
       onGenerate?.(data.questions);
       toast.success(`Generated ${data.questions.length} interview questions!`);
     } catch (error: any) {
-      console.error('Failed to generate questions:', error);
+      logger.error('Failed to generate questions', error);
       toast.error(error.message || 'Failed to generate questions. Please try again.');
       // Fallback to mock questions if AI fails
       setQuestions(mockQuestions);

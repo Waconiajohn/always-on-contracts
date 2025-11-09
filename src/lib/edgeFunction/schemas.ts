@@ -48,12 +48,9 @@ export const ParseResumeSchema = z.object({
 });
 
 export const ParseResumeMilestonesSchema = z.object({
-  resumeText: z.string()
+  resume_text: z.string()
     .min(100, 'Resume text must be at least 100 characters')
-    .max(50000, 'Resume text must be less than 50,000 characters'),
-  vaultId: z.string().uuid('Invalid vault ID'),
-  targetRoles: z.array(z.string().trim().min(1)).optional(),
-  targetIndustries: z.array(z.string().trim().min(1)).optional()
+    .max(50000, 'Resume text must be less than 50,000 characters')
 });
 
 export const ParseJobDocumentSchema = z.object({
@@ -501,8 +498,10 @@ export const CreateCheckoutSchema = z.object({
 });
 
 export const CustomerPortalSchema = z.object({
-  returnUrl: z.string().url('Invalid return URL')
+  returnUrl: z.string().url('Invalid return URL').optional()
 });
+
+export const CheckSubscriptionSchema = z.object({});
 
 export const RedeemRetirementCodeSchema = z.object({
   code: z.string()

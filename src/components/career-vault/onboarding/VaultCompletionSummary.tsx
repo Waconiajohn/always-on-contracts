@@ -40,6 +40,8 @@ import {
 } from 'lucide-react';
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { invokeEdgeFunction, GenerateCompletionBenchmarkSchema, safeValidateInput } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface VaultCompletionSummaryProps {
   vaultId: string;
@@ -72,6 +74,16 @@ export default function VaultCompletionSummary({
   }, []);
 
   const loadBenchmark = async (forceRegenerate: boolean) => {
+    const validation = safeValidateInput(GenerateCompletionBenchmarkSchema, {
+      vaultId,
+      targetRoles,
+      targetIndustries,
+      forceRegenerate,
+    });
+    if (!validation.success) {
+      return;
+    }
+
     try {
       if (forceRegenerate) {
         setIsRegenerating(true);
@@ -79,16 +91,16 @@ export default function VaultCompletionSummary({
         setIsLoadingBenchmark(true);
       }
 
-      const { data, error } = await supabase.functions.invoke('generate-completion-benchmark', {
-        body: {
-          vaultId,
-          targetRoles,
-          targetIndustries,
-          forceRegenerate,
-        },
-      });
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-completion-benchmark',
+        { vaultId, targetRoles, targetIndustries, forceRegenerate }
+      );
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Generate completion benchmark failed', error);
+        throw new Error(error.message);
+      }
       if (!data.success) throw new Error(data.error);
 
       setBenchmark(data.data);
@@ -101,7 +113,7 @@ export default function VaultCompletionSummary({
         description: data.meta?.message || 'Your vault has been benchmarked against industry leaders',
       });
     } catch (err: any) {
-      console.error('Benchmark error:', err);
+      logger.error('Benchmark error', err);
       setError(err.message);
       setIsLoadingBenchmark(false);
       setIsRegenerating(false);
