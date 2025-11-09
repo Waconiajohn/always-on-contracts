@@ -21,6 +21,7 @@ import {
 import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface JobFeedbackDialogProps {
   opportunityId: string;
@@ -61,7 +62,7 @@ export function JobFeedbackDialog({ opportunityId, jobTitle }: JobFeedbackDialog
       setFeedbackType("");
       setFeedbackText("");
     } catch (error: any) {
-      console.error('Error submitting feedback:', error);
+      logger.error('Error submitting feedback', error);
       if (error.message?.includes('duplicate')) {
         toast.error("You've already submitted this type of feedback for this job");
       } else {

@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, Zap, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ModernizeLanguageSchema, validateInput, invokeEdgeFunction } from '@/lib/edgeFunction';
+import { ModernizeLanguageSchema, safeValidateInput, invokeEdgeFunction } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface ModernizeLanguageModalProps {
   open: boolean;
@@ -84,7 +85,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
         setEditedPhrase(phrasesNeedingModernization[0].power_phrase);
       }
     } catch (error) {
-      console.error('Error loading phrases:', error);
+      logger.error('Error loading phrases', error);
       toast({
         title: 'Error',
         description: 'Failed to load power phrases',
@@ -100,15 +101,20 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
 
     setGeneratingSuggestion(true);
     try {
-      const validated = validateInput(ModernizeLanguageSchema, {
+      const validation = safeValidateInput(ModernizeLanguageSchema, {
         phrase: selectedPhrase.power_phrase,
         context: selectedPhrase.context
       });
 
+      if (!validation.success) {
+        setGeneratingSuggestion(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'modernize-language',
-        validated
+        validation.data
       );
 
       if (error) throw new Error(error.message);
@@ -119,7 +125,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
         setSelectedKeywords(data.suggestion.addedKeywords);
       }
     } catch (error) {
-      console.error('Error generating suggestion:', error);
+      logger.error('Error generating suggestion', error);
       toast({
         title: 'Suggestion Generation Failed',
         description: error instanceof Error ? error.message : 'Try manually adding modern keywords below',
@@ -176,7 +182,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
         onOpenChange(false);
       }
     } catch (error) {
-      console.error('Error saving modernized phrase:', error);
+      logger.error('Error saving modernized phrase', error);
       toast({
         title: 'Error',
         description: 'Failed to save changes',

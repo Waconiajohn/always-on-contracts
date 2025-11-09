@@ -11,9 +11,10 @@ import { Loader2, Plus, Trash2, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   GenerateStarStorySchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface StarStory {
   id: string;
@@ -58,7 +59,7 @@ export function StarStoryBuilder() {
       if (error) throw error;
       setStories((data || []) as StarStory[]);
     } catch (error) {
-      console.error('Error fetching stories:', error);
+      logger.error('Error fetching stories', error);
       toast.error("Failed to load STAR stories");
     }
   };
@@ -71,15 +72,20 @@ export function StarStoryBuilder() {
 
     setIsGenerating(true);
     try {
-      const validated = validateInput(GenerateStarStorySchema, {
+      const validation = safeValidateInput(GenerateStarStorySchema, {
         rawStory: rawInput,
         action: 'generate'
       });
 
+      if (!validation.success) {
+        setIsGenerating(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'generate-star-story',
-        validated,
+        validation.data,
         { successMessage: 'STAR story generated!' }
       );
 
@@ -134,7 +140,7 @@ export function StarStoryBuilder() {
       });
       fetchStories();
     } catch (error) {
-      console.error('Error saving story:', error);
+      logger.error('Error saving story', error);
       toast.error("Failed to save STAR story");
     } finally {
       setIsLoading(false);
@@ -153,7 +159,7 @@ export function StarStoryBuilder() {
       toast.success("Story deleted");
       fetchStories();
     } catch (error) {
-      console.error('Error deleting story:', error);
+      logger.error('Error deleting story', error);
       toast.error("Failed to delete story");
     }
   };

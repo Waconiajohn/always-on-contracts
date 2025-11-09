@@ -7,9 +7,10 @@ import { Loader2, Send, ArrowLeft, User, Bot } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ExecutiveCoachingSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface CoachingChatProps {
   coachPersonality: string;
@@ -90,7 +91,7 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
         }]);
       }
     } catch (error) {
-      console.error('Error loading memories:', error);
+      logger.error('Error loading memories', error);
     }
   };
 
@@ -117,15 +118,20 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
         content: m.content
       }));
 
-      const validated = validateInput(ExecutiveCoachingSchema, {
+      const validation = safeValidateInput(ExecutiveCoachingSchema, {
         message: input,
         conversationHistory
       });
 
+      if (!validation.success) {
+        setIsLoading(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'executive-coaching',
-        { ...validated, sessionId, config: { persona: coachPersonality, intensity: 'balanced', focus_area: 'general' } }
+        { ...validation.data, sessionId, config: { persona: coachPersonality, intensity: 'balanced', focus_area: 'general' } }
       );
 
       if (error) return;
@@ -165,7 +171,7 @@ export function CoachingChat({ coachPersonality, onBack }: CoachingChatProps) {
         importance: assistantResponse.length > 200 ? 8 : 5
       });
     } catch (error) {
-      console.error('Error storing memory:', error);
+      logger.error('Error storing memory', error);
     }
   };
 

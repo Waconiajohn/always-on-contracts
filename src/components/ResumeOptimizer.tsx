@@ -12,9 +12,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   OptimizeResumeSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 export function ResumeOptimizer() {
   const [step, setStep] = useState<'input' | 'analysis' | 'optimization'>('input');
@@ -52,7 +53,7 @@ export function ResumeOptimizer() {
         }
       }
     } catch (error) {
-      console.error('Error loading Career Vault data:', error);
+      logger.error('Error loading Career Vault data', error);
     } finally {
       setLoadingVault(false);
     }
@@ -72,15 +73,20 @@ export function ResumeOptimizer() {
     setIsOptimizing(true);
 
     try {
-      const validated = validateInput(OptimizeResumeSchema, {
+      const validation = safeValidateInput(OptimizeResumeSchema, {
         resumeText,
         jobDescription
       });
 
+      if (!validation.success) {
+        setIsOptimizing(false);
+        return;
+      }
+
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'optimize-resume-with-audit',
-        { ...validated, vaultData },
+        { ...validation.data, vaultData },
         { successMessage: 'Resume optimized with dual AI audit!' }
       );
 

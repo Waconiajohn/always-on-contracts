@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ResponseReviewModal } from './ResponseReviewModal';
 import { Sparkles, TrendingUp, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface EnhancementItem {
   id: string;
@@ -54,13 +55,13 @@ export function EnhancementQueue({ vaultId, onEnhancementComplete }: Enhancement
           await onEnhancementComplete();
         } catch (error) {
           // Log but don't throw - parent refresh is non-critical
-          console.error('Failed to refresh parent dashboard:', error);
+          logger.error('Failed to refresh parent dashboard', error);
           toast.error('Dashboard stats will refresh on next page load');
         }
       }
     } catch (error) {
       // Log queue refresh failure
-      console.error('Failed to refresh enhancement queue:', error);
+      logger.error('Failed to refresh enhancement queue', error);
       toast.error('Queue refresh failed, please reload the page');
     }
   };

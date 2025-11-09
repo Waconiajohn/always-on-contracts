@@ -9,6 +9,7 @@ import { Trash2, AlertTriangle, Shield, Calendar, Briefcase, GraduationCap, Eye,
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 
 interface Milestone {
   id: string;
@@ -58,7 +59,7 @@ export function MilestoneManager({ vaultId }: { vaultId: string }) {
       setMilestones(typedData);
       detectAgeRisks(typedData);
     } catch (error) {
-      console.error('Error loading milestones:', error);
+      logger.error('Error loading milestones', error);
       toast.error('Failed to load career milestones');
     } finally {
       setLoading(false);
@@ -122,7 +123,7 @@ export function MilestoneManager({ vaultId }: { vaultId: string }) {
       );
       toast.success('Privacy settings updated');
     } catch (error) {
-      console.error('Error updating milestone:', error);
+      logger.error('Error updating milestone', error);
       toast.error('Failed to update settings');
     }
   };
@@ -139,7 +140,7 @@ export function MilestoneManager({ vaultId }: { vaultId: string }) {
       setMilestones(prev => prev.filter(m => m.id !== id));
       toast.success('Milestone deleted');
     } catch (error) {
-      console.error('Error deleting milestone:', error);
+      logger.error('Error deleting milestone', error);
       toast.error('Failed to delete milestone');
     }
   };

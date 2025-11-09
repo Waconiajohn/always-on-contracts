@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { 
   GenerateWhyMeQuestionsSchema,
-  validateInput,
+  safeValidateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
 
@@ -47,14 +47,19 @@ export const WhyMeBuilder: React.FC<WhyMeBuilderProps> = ({ userId, narratives, 
   const handleGenerateQuestions = async () => {
     setIsGenerating(true);
     try {
-      const validated = validateInput(GenerateWhyMeQuestionsSchema, {
+      const validation = safeValidateInput(GenerateWhyMeQuestionsSchema, {
         jobDescription: currentCategory // Using category as job description context
       });
+
+      if (!validation.success) {
+        setIsGenerating(false);
+        return;
+      }
 
       const { data, error } = await invokeEdgeFunction(
         supabase,
         'generate-why-me-questions',
-        validated,
+        validation.data,
         { successMessage: 'Questions generated!' }
       );
 
@@ -104,7 +109,7 @@ export const WhyMeBuilder: React.FC<WhyMeBuilderProps> = ({ userId, narratives, 
       setCurrentCategory('');
       onUpdate();
     } catch (error) {
-      console.error('Error saving narrative:', error);
+      logger.error('Error saving narrative', error);
       toast({
         title: "Error",
         description: "Failed to save narrative",
@@ -131,7 +136,7 @@ export const WhyMeBuilder: React.FC<WhyMeBuilderProps> = ({ userId, narratives, 
 
       onUpdate();
     } catch (error) {
-      console.error('Error deleting narrative:', error);
+      logger.error('Error deleting narrative', error);
       toast({
         title: "Error",
         description: "Failed to delete narrative",
