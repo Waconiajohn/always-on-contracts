@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Mic, Square, Trash2, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { validateInput, invokeEdgeFunction, ExtractVaultIntangiblesSchema } from '@/lib/edgeFunction';
 
 interface VoiceNoteRecorderProps {
   vaultId: string;
@@ -191,13 +192,17 @@ export const VoiceNoteRecorder = ({
 
     try {
       // Extract intelligence from voice transcript using AI
-      const { data, error } = await supabase.functions.invoke('extract-vault-intangibles', {
-        body: {
-          responseText: transcript,
-          questionText: prompt,
-          vaultId,
-        }
+      const validatedInput = validateInput(ExtractVaultIntangiblesSchema, {
+        vaultId,
+        responseText: transcript,
+        questionText: prompt
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'extract-vault-intangibles',
+        validatedInput
+      );
 
       if (error) throw error;
 
@@ -213,12 +218,7 @@ export const VoiceNoteRecorder = ({
       // Clear the recording
       clearRecording();
     } catch (error) {
-      console.error('[VOICE-RECORDER] Error processing transcript:', error);
-      toast({
-        title: 'Processing Error',
-        description: 'Failed to extract intelligence from your response',
-        variant: 'destructive'
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsProcessing(false);
     }

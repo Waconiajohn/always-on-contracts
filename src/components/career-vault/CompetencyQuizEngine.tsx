@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { invokeEdgeFunction } from '@/lib/edgeFunction';
 import {
   ChevronLeft,
   ChevronRight,
@@ -105,19 +106,18 @@ export const CompetencyQuizEngine = ({
       let dynamicQuestions: QuizQuestion[] = [];
 
       if (user) {
-        const { data: skillData, error: skillError } = await supabase.functions.invoke(
+        const { data: skillData, error: skillError } = await invokeEdgeFunction(
+          supabase,
           'generate-skill-verification-questions',
           {
-            body: {
-              vault_id: vaultId,
-              user_id: user.id
-            }
-          }
+            vault_id: vaultId,
+            user_id: user.id
+          },
+          { suppressErrorToast: true }
         );
 
         if (!skillError && skillData?.success) {
           dynamicQuestions = skillData.skill_questions || [];
-          console.log(`Loaded ${dynamicQuestions.length} dynamic skill questions`);
         }
       }
 
@@ -133,8 +133,7 @@ export const CompetencyQuizEngine = ({
         `Loaded ${universalQuestions.length} universal + ${dynamicQuestions.length} skill verification questions`
       );
     } catch (error: any) {
-      console.error('Error loading questions:', error);
-      toast.error('Failed to load quiz questions');
+      // Error already handled by invokeEdgeFunction
     } finally {
       setLoading(false);
     }

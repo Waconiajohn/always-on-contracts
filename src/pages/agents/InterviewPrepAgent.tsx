@@ -383,10 +383,9 @@ const InterviewPrepAgentContent = () => {
 
               <TabsContent value="responses" className="mt-4">
                 <ScrollArea className="h-[calc(100vh-300px)]">
-                  {currentQuestion && vaultData ? (
+                  {currentQuestion ? (
                     <InterviewResponsesTab 
                       question={currentQuestion}
-                      vaultId={vaultData.id}
                     />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">

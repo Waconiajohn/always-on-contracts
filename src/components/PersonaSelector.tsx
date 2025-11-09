@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Star, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { validateInput, invokeEdgeFunction, TextToSpeechSchema } from '@/lib/edgeFunction';
 
 export interface Persona {
   id: string;
@@ -36,7 +36,6 @@ export const PersonaSelector = ({
   agentType
 }: PersonaSelectorProps) => {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const getPersonaDetails = (persona: Persona) => {
     if (agentType === 'resume') return persona.writingStyle;
@@ -53,12 +52,17 @@ export const PersonaSelector = ({
         ? "Let me craft your executive summary with strategic impact."
         : "Here's how you should approach this interview question.";
 
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { 
-          text: sampleText,
-          voice: voiceId 
-        }
+      const validatedInput = validateInput(TextToSpeechSchema, {
+        text: sampleText,
+        voiceId
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'text-to-speech',
+        validatedInput,
+        { suppressErrorToast: true }
+      );
 
       if (error) throw error;
 
@@ -67,12 +71,7 @@ export const PersonaSelector = ({
       audio.play();
       audio.onended = () => setPlayingVoice(null);
     } catch (error) {
-      console.error('Voice preview error:', error);
-      toast({
-        title: "Voice preview unavailable",
-        description: "Could not play voice sample",
-        variant: "destructive"
-      });
+      // Error already handled by invokeEdgeFunction (with suppressErrorToast)
       setPlayingVoice(null);
     }
   };

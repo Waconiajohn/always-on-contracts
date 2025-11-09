@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { VAULT_TABLE_NAMES } from '@/lib/constants/vaultTables';
+import { validateInput, invokeEdgeFunction, AutoPopulateVaultSchema } from '@/lib/edgeFunction';
 
 interface VaultNuclearResetProps {
   vaultId: string;
@@ -86,14 +87,18 @@ export const VaultNuclearReset = ({
       toast.success('Vault completely cleared - ready for fresh extraction');
 
       // 6. Trigger v3 extraction with AI-based analysis
-      const { error: extractError } = await supabase.functions.invoke('auto-populate-vault-v3', {
-        body: { 
-          resumeText,
-          vaultId,
-          targetRoles: targetRoles || [],
-          targetIndustries: targetIndustries || []
-        }
+      const validatedInput = validateInput(AutoPopulateVaultSchema, {
+        resumeText,
+        vaultId,
+        targetRoles,
+        targetIndustries
       });
+
+      const { error: extractError } = await invokeEdgeFunction(
+        supabase,
+        'auto-populate-vault-v3',
+        validatedInput
+      );
 
       if (extractError) throw extractError;
 
@@ -103,8 +108,7 @@ export const VaultNuclearReset = ({
         onResetComplete();
       }
     } catch (error) {
-      console.error('Error during nuclear reset:', error);
-      toast.error('Failed to reset vault');
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsResetting(false);
     }

@@ -3,9 +3,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, Mail, ExternalLink, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { validateInput, invokeEdgeFunction, PerplexityResearchSchema } from '@/lib/edgeFunction';
 
 interface AgencyMatcherPanelProps {
   userId: string;
@@ -27,7 +27,6 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
 
   useEffect(() => {
     findMatchingAgencies();
@@ -37,17 +36,21 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
     setIsLoading(true);
     try {
       // Use Perplexity research to find relevant agencies
-      const { data, error } = await supabase.functions.invoke('perplexity-research', {
-        body: {
-          research_type: 'agency_search',
-          query_params: {
-            targetRoles: targetRoles.join(', '),
-            industries: industries.join(', '),
-            location: 'United States',
-            query: `Find top recruiting agencies specializing in ${targetRoles.join(', ')} roles in ${industries.join(', ')} industries`
-          }
+      const validatedInput = validateInput(PerplexityResearchSchema, {
+        research_type: 'company_research',
+        query_params: {
+          targetRoles: targetRoles.join(', '),
+          industries: industries.join(', '),
+          location: 'United States',
+          query: `Find top recruiting agencies specializing in ${targetRoles.join(', ')} roles in ${industries.join(', ')} industries`
         }
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'perplexity-research',
+        validatedInput
+      );
 
       if (error) throw error;
 
@@ -57,12 +60,7 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
         setAgencies(parsedAgencies);
       }
     } catch (error) {
-      console.error('Error finding agencies:', error);
-      toast({
-        title: "Error",
-        description: "Failed to find matching agencies",
-        variant: "destructive"
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsLoading(false);
     }

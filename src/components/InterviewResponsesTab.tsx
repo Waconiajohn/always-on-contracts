@@ -7,13 +7,13 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Sparkles, CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { validateInput, invokeEdgeFunction, ValidateInterviewResponseWithAuditSchema } from '@/lib/edgeFunction';
 
 interface InterviewResponsesTabProps {
   question: string;
-  vaultId: string;
 }
 
-export function InterviewResponsesTab({ question, vaultId }: InterviewResponsesTabProps) {
+export function InterviewResponsesTab({ question }: InterviewResponsesTabProps) {
   const [response, setResponse] = useState("");
   const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -31,13 +31,17 @@ export function InterviewResponsesTab({ question, vaultId }: InterviewResponsesT
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-interview-response-with-audit', {
-        body: {
-          question,
-          response,
-          vaultId
-        }
+      const validatedInput = validateInput(ValidateInterviewResponseWithAuditSchema, {
+        question,
+        answer: response,
+        includeAudit: true
       });
+
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'validate-interview-response-with-audit',
+        validatedInput
+      );
 
       if (error) throw error;
       setAnalysis(data);
@@ -46,11 +50,7 @@ export function InterviewResponsesTab({ question, vaultId }: InterviewResponsesT
         description: "Your response has been reviewed by dual AI systems"
       });
     } catch (error: any) {
-      toast({
-        title: "Analysis failed",
-        description: error.message,
-        variant: "destructive"
-      });
+      // Error already handled by invokeEdgeFunction
     } finally {
       setIsAnalyzing(false);
     }
