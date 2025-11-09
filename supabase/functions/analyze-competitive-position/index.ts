@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     const { data: cachedContext } = await supabase
       .from('vault_career_context')
       .select('*')
-      .eq('vault_id', vaultData.vault_id)
+      .eq('vault_id', vaultData.id)
       .single();
 
     if (cachedContext) {
