@@ -4202,6 +4202,78 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_education: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          degree_name: string | null
+          degree_type: string
+          description: string | null
+          end_date: string | null
+          extraction_source: string | null
+          field_of_study: string | null
+          gpa: number | null
+          graduation_year: number | null
+          honors: string | null
+          id: string
+          institution_name: string
+          is_in_progress: boolean | null
+          quality_tier: string | null
+          relevant_coursework: string[] | null
+          start_date: string | null
+          thesis_title: string | null
+          updated_at: string | null
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          degree_name?: string | null
+          degree_type: string
+          description?: string | null
+          end_date?: string | null
+          extraction_source?: string | null
+          field_of_study?: string | null
+          gpa?: number | null
+          graduation_year?: number | null
+          honors?: string | null
+          id?: string
+          institution_name: string
+          is_in_progress?: boolean | null
+          quality_tier?: string | null
+          relevant_coursework?: string[] | null
+          start_date?: string | null
+          thesis_title?: string | null
+          updated_at?: string | null
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          degree_name?: string | null
+          degree_type?: string
+          description?: string | null
+          end_date?: string | null
+          extraction_source?: string | null
+          field_of_study?: string | null
+          gpa?: number | null
+          graduation_year?: number | null
+          honors?: string | null
+          id?: string
+          institution_name?: string
+          is_in_progress?: boolean | null
+          quality_tier?: string | null
+          relevant_coursework?: string[] | null
+          start_date?: string | null
+          thesis_title?: string | null
+          updated_at?: string | null
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: []
+      }
       vault_executive_presence: {
         Row: {
           ai_confidence: number | null
@@ -5311,6 +5383,72 @@ export type Database = {
           verification_result?: string
           verification_type?: string
           verified_at?: string
+        }
+        Relationships: []
+      }
+      vault_work_positions: {
+        Row: {
+          company_name: string
+          company_size: string | null
+          confidence_score: number | null
+          created_at: string | null
+          description: string | null
+          employment_type: string | null
+          end_date: string | null
+          extraction_source: string | null
+          id: string
+          industry: string | null
+          is_current: boolean | null
+          job_title: string
+          location: string | null
+          quality_tier: string | null
+          reporting_structure: string | null
+          start_date: string
+          updated_at: string | null
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          company_name: string
+          company_size?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          employment_type?: string | null
+          end_date?: string | null
+          extraction_source?: string | null
+          id?: string
+          industry?: string | null
+          is_current?: boolean | null
+          job_title: string
+          location?: string | null
+          quality_tier?: string | null
+          reporting_structure?: string | null
+          start_date: string
+          updated_at?: string | null
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          company_name?: string
+          company_size?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          employment_type?: string | null
+          end_date?: string | null
+          extraction_source?: string | null
+          id?: string
+          industry?: string | null
+          is_current?: boolean | null
+          job_title?: string
+          location?: string | null
+          quality_tier?: string | null
+          reporting_structure?: string | null
+          start_date?: string
+          updated_at?: string | null
+          user_id?: string
+          vault_id?: string
         }
         Relationships: []
       }
