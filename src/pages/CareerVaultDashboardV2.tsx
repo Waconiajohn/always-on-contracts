@@ -17,6 +17,9 @@ import { AIPrimaryAction, determinePrimaryAction } from '@/components/career-vau
 import { PlainEnglishHero } from '@/components/career-vault/dashboard/PlainEnglishHero';
 import { Layer1FoundationsCard } from '@/components/career-vault/dashboard/Layer1FoundationsCard';
 import { Layer2IntelligenceCard } from '@/components/career-vault/dashboard/Layer2IntelligenceCard';
+import { ProfessionalResourcesQuestionnaire } from '@/components/career-vault/dashboard/ProfessionalResourcesQuestionnaire';
+import { LeadershipApproachQuestionnaire } from '@/components/career-vault/dashboard/LeadershipApproachQuestionnaire';
+import { StrategicImpactQuestionnaire } from '@/components/career-vault/dashboard/StrategicImpactQuestionnaire';
 import { calculateGrade } from '@/components/career-vault/dashboard/legacy/CompactVaultStats';
 import { useVaultData } from '@/hooks/useVaultData';
 import { useVaultStats } from '@/hooks/useVaultStats';
@@ -72,6 +75,9 @@ const VaultDashboardContent = () => {
   const [addMetricsModalOpen, setAddMetricsModalOpen] = useState(false);
   const [modernizeModalOpen, setModernizeModalOpen] = useState(false);
   const [enhancementModalOpen, setEnhancementModalOpen] = useState(false);
+  const [professionalResourcesModalOpen, setProfessionalResourcesModalOpen] = useState(false);
+  const [leadershipModalOpen, setLeadershipModalOpen] = useState(false);
+  const [strategicImpactModalOpen, setStrategicImpactModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -288,14 +294,15 @@ const VaultDashboardContent = () => {
   // Handler for section clicks
   const handleSectionClick = useCallback((section: string) => {
     console.log('Section clicked:', section);
-    // TODO: Route to appropriate questionnaire/modal based on section
     switch (section) {
       case 'work-experience':
-      case 'strategic-impact':
         setAddMetricsModalOpen(true);
         break;
+      case 'strategic-impact':
+        setStrategicImpactModalOpen(true);
+        break;
       case 'leadership':
-        setEnhancementModalOpen(true);
+        setLeadershipModalOpen(true);
         break;
       case 'professional-resources':
         setEnhancementModalOpen(true);
@@ -480,6 +487,39 @@ const VaultDashboardContent = () => {
           currentScore={stats?.strengthScore.total || 0}
           targetRoles={vaultData.userProfile?.target_roles || []}
           targetIndustries={vaultData.vault?.target_industries || []}
+          onComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+            refetch();
+          }}
+        />
+
+        {/* Professional Resources Questionnaire */}
+        <ProfessionalResourcesQuestionnaire
+          open={professionalResourcesModalOpen}
+          onOpenChange={setProfessionalResourcesModalOpen}
+          vaultId={vaultData.vault.id}
+          onComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+            refetch();
+          }}
+        />
+
+        {/* Leadership Approach Questionnaire */}
+        <LeadershipApproachQuestionnaire
+          open={leadershipModalOpen}
+          onOpenChange={setLeadershipModalOpen}
+          vaultId={vaultData.vault.id}
+          onComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+            refetch();
+          }}
+        />
+
+        {/* Strategic Impact Questionnaire */}
+        <StrategicImpactQuestionnaire
+          open={strategicImpactModalOpen}
+          onOpenChange={setStrategicImpactModalOpen}
+          vaultId={vaultData.vault.id}
           onComplete={() => {
             queryClient.invalidateQueries({ queryKey: ['vault-data'] });
             refetch();
