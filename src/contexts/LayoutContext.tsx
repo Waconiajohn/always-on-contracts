@@ -17,8 +17,13 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.leftSidebarCollapsed ?? false;
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed.leftSidebarCollapsed ?? false;
+      } catch (error) {
+        console.error('Failed to parse layout preferences:', error);
+        localStorage.removeItem(LAYOUT_STORAGE_KEY);
+      }
     }
     return false;
   });
@@ -26,8 +31,13 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.rightSidebarCollapsed ?? false;
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed.rightSidebarCollapsed ?? false;
+      } catch (error) {
+        console.error('Failed to parse layout preferences:', error);
+        localStorage.removeItem(LAYOUT_STORAGE_KEY);
+      }
     }
     return false;
   });

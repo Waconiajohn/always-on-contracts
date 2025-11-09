@@ -239,7 +239,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
             Modernize Language & Add Tech Keywords
           </DialogTitle>
           <DialogDescription>
-            Update phrases with current industry terminology. Showing {phrases.findIndex(p => p.id === selectedPhrase?.id) + 1} of {phrases.length} phrases.
+            Update phrases with current industry terminology. Showing {Math.max(1, phrases.findIndex(p => p.id === selectedPhrase?.id) + 1)} of {phrases.length} phrases.
           </DialogDescription>
         </DialogHeader>
 

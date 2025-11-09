@@ -287,7 +287,7 @@ export const CompetencyQuizResults = ({
               <div>
                 <p className="font-medium text-green-900">Highlight Your Strengths</p>
                 <p className="text-sm text-green-700">
-                  Your {strengths[0].category} skills are exceptional (top {100 - Math.round(strengths[0].score)}%).
+                  Your {strengths[0]?.category || 'top'} skills are exceptional (top {100 - Math.round(strengths[0]?.score || 50)}%).
                   Lead with these in your resume and interviews.
                 </p>
               </div>
@@ -300,7 +300,7 @@ export const CompetencyQuizResults = ({
               <div>
                 <p className="font-medium text-orange-900">Address Gaps Strategically</p>
                 <p className="text-sm text-orange-700">
-                  {developmentAreas[0].category} is below average for {role} roles.
+                  {developmentAreas[0]?.category || 'Some areas'} {developmentAreas[0] ? 'is' : 'are'} below average for {role} roles.
                   Consider downplaying this or highlighting compensating strengths.
                 </p>
               </div>
@@ -312,8 +312,12 @@ export const CompetencyQuizResults = ({
             <div>
               <p className="font-medium text-blue-900">Smart Application Strategy</p>
               <p className="text-sm text-blue-700">
-                Your profile is strongest for roles emphasizing {strengths[0]?.category.toLowerCase()}.
-                We'll automatically match you to roles that play to your strengths.
+                {strengths.length > 0 ? (
+                  <>Your profile is strongest for roles emphasizing {strengths[0].category.toLowerCase()}.</>
+                ) : (
+                  <>Build your strengths to improve your competitive positioning.</>
+                )}
+                {' '}We'll automatically match you to roles that play to your strengths.
               </p>
             </div>
           </div>

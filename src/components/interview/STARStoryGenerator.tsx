@@ -160,7 +160,7 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
                   {softSkills.slice(0, 3).map((skill) => (
                     <Badge key={skill.id} variant="outline" className="text-xs">
                       {skill.skill_name}
-                      {skill.interview_question_map && skill.interview_question_map.length > 0 && 
+                      {skill.interview_question_map && Array.isArray(skill.interview_question_map) && skill.interview_question_map.length > 0 && 
                         ` → "${skill.interview_question_map[0].substring(0, 40)}..."`
                       }
                     </Badge>
@@ -170,7 +170,7 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
             )}
 
             {/* Leadership Philosophy Alignment */}
-            {leadershipPhilosophy && leadershipPhilosophy.behavioral_interview_examples && (
+            {leadershipPhilosophy && leadershipPhilosophy.behavioral_interview_examples && Array.isArray(leadershipPhilosophy.behavioral_interview_examples) && leadershipPhilosophy.behavioral_interview_examples.length > 0 && (
               <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
                 <p className="text-xs font-semibold text-purple-900 dark:text-purple-100 mb-1">🎯 Leadership Angle:</p>
                 <p className="text-xs text-purple-700 dark:text-purple-300">

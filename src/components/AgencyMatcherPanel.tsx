@@ -79,7 +79,7 @@ export const AgencyMatcherPanel = ({ targetRoles = [], industries = [] }: Agency
       if (lines.length === 0) return;
       
       // Extract agency name (first line, remove ** markdown)
-      const name = lines[0].replace(/\*\*/g, '').split(':')[0].trim();
+      const name = lines[0]?.replace(/\*\*/g, '').split(':')[0].trim() || `Agency ${index + 1}`;
       
       // Extract fields using regex patterns
       const specialization = section.match(/Specialization[:\s]+([^\n]+)/i)?.[1]?.trim() || 'General';
