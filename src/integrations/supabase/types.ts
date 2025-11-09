@@ -346,6 +346,7 @@ export type Database = {
       }
       ai_responses: {
         Row: {
+          ai_reasoning: string | null
           created_at: string
           id: string
           metadata: Json | null
@@ -356,6 +357,7 @@ export type Database = {
           usage: Json | null
         }
         Insert: {
+          ai_reasoning?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -366,6 +368,7 @@ export type Database = {
           usage?: Json | null
         }
         Update: {
+          ai_reasoning?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -391,7 +394,7 @@ export type Database = {
           created_at: string
           error_code: string | null
           execution_time_ms: number | null
-          function_name: string
+          function_name: string | null
           id: string
           input_tokens: number
           model: string
@@ -407,7 +410,7 @@ export type Database = {
           created_at?: string
           error_code?: string | null
           execution_time_ms?: number | null
-          function_name: string
+          function_name?: string | null
           id?: string
           input_tokens: number
           model: string
@@ -423,7 +426,7 @@ export type Database = {
           created_at?: string
           error_code?: string | null
           execution_time_ms?: number | null
-          function_name?: string
+          function_name?: string | null
           id?: string
           input_tokens?: number
           model?: string
@@ -731,6 +734,7 @@ export type Database = {
           initial_analysis: Json | null
           intelligent_qa_completed: boolean | null
           interview_completion_percentage: number | null
+          last_extraction_session_id: string | null
           last_gap_analysis_at: string | null
           last_refreshed_at: string | null
           last_updated_at: string
@@ -773,6 +777,7 @@ export type Database = {
           initial_analysis?: Json | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
+          last_extraction_session_id?: string | null
           last_gap_analysis_at?: string | null
           last_refreshed_at?: string | null
           last_updated_at?: string
@@ -815,6 +820,7 @@ export type Database = {
           initial_analysis?: Json | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
+          last_extraction_session_id?: string | null
           last_gap_analysis_at?: string | null
           last_refreshed_at?: string | null
           last_updated_at?: string
@@ -1073,6 +1079,7 @@ export type Database = {
           checkpoint_name: string
           created_at: string
           id: string
+          phase: string | null
           session_id: string
         }
         Insert: {
@@ -1080,6 +1087,7 @@ export type Database = {
           checkpoint_name: string
           created_at?: string
           id?: string
+          phase?: string | null
           session_id: string
         }
         Update: {
@@ -1087,6 +1095,7 @@ export type Database = {
           checkpoint_name?: string
           created_at?: string
           id?: string
+          phase?: string | null
           session_id?: string
         }
         Relationships: [
