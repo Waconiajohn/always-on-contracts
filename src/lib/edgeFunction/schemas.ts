@@ -7,6 +7,16 @@ import { z } from 'zod';
 
 // ============= Resume & Job Matching =============
 
+export const ProcessResumeSchema = z.object({
+  file: z.any(), // FormData file
+  resumeText: z.string().optional()
+});
+
+export const AnalyzeResumeInitialSchema = z.object({
+  resumeText: z.string().min(100, 'Resume text too short').max(50000, 'Resume text too long'),
+  vaultId: z.string().uuid('Invalid vault ID')
+});
+
 export const OptimizeResumeSchema = z.object({
   resumeText: z.string()
     .min(100, 'Resume must be at least 100 characters')
@@ -292,6 +302,47 @@ export const CompetencyQuizSchema = z.object({
   vaultId: z.string().uuid('Invalid vault ID'),
   skillArea: z.string().min(1, 'Skill area required'),
   difficultyLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional().default('intermediate')
+});
+
+export const GenerateVaultRecommendationsSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  limit: z.number().min(1).max(20).optional().default(5)
+});
+
+export const GenerateGapFillingQuestionsSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID').optional(),
+  resumeText: z.string().min(100).max(50000),
+  vaultData: z.object({
+    vault_id: z.string().uuid().optional(),
+    powerPhrases: z.array(z.any()).optional(),
+    transferableSkills: z.array(z.any()).optional(),
+    hiddenCompetencies: z.array(z.any()).optional(),
+    softSkills: z.array(z.any()).optional(),
+    targetRoles: z.array(z.string()).optional(),
+    targetIndustries: z.array(z.string()).optional()
+  }),
+  targetRoles: z.array(z.string()).optional(),
+  industryResearch: z.any().optional()
+});
+
+export const ProcessGapFillingResponsesSchema = z.object({
+  vaultId: z.string().uuid('Invalid vault ID'),
+  responses: z.array(z.object({
+    questionId: z.string(),
+    questionText: z.string(),
+    questionType: z.string(),
+    category: z.string(),
+    answer: z.any()
+  })).min(1, 'At least one response required'),
+  targetRoles: z.array(z.string()).optional(),
+  industryResearch: z.any().optional()
+});
+
+export const SuggestCareerPathsSchema = z.object({
+  resumeAnalysis: z.any(),
+  careerDirection: z.enum(['stay', 'pivot', 'explore']),
+  currentRole: z.string().optional(),
+  currentIndustry: z.string().optional()
 });
 
 export const SubmitMicroAnswersSchema = z.object({

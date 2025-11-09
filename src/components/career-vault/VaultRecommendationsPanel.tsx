@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { validateInput, invokeEdgeFunction, GenerateVaultRecommendationsSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface Recommendation {
   vaultCategory: string;
@@ -54,22 +56,23 @@ export const VaultRecommendationsPanel = ({
   const loadRecommendations = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-vault-recommendations' as any, {
-        body: { vaultId, limit: 5 }
-      });
+      const validated = validateInput(GenerateVaultRecommendationsSchema, { vaultId, limit: 5 });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-vault-recommendations',
+        validated
+      );
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to load recommendations');
+      }
 
       setRecommendations(data.recommendations || []);
       setSummary(data.summary || null);
 
     } catch (error: any) {
-      console.error('Error loading recommendations:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to load recommendations',
-        variant: 'destructive'
-      });
+      logger.error('Error loading recommendations', error);
     } finally {
       setLoading(false);
     }
@@ -110,7 +113,7 @@ export const VaultRecommendationsPanel = ({
       if (onItemUpdated) onItemUpdated();
 
     } catch (error: any) {
-      console.error('Error accepting recommendation:', error);
+      logger.error('Error accepting recommendation', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to update vault item',

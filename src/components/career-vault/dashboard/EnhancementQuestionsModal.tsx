@@ -23,6 +23,8 @@ import {
 import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { EnhancementQuestionsSkeleton } from './EnhancementQuestionsSkeleton';
+import { validateInput, invokeEdgeFunction, GenerateGapFillingQuestionsSchema, ProcessGapFillingResponsesSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface EnhancementQuestionsModalProps {
   open: boolean;
@@ -109,24 +111,29 @@ export function EnhancementQuestionsModal({
       ]);
 
       // Generate gap-filling questions
-      const { data, error } = await supabase.functions.invoke('generate-gap-filling-questions', {
-        body: {
-          resumeText: vaultData?.resume_raw_text || '',
-          vaultData: {
-            vault_id: vaultId, // ✅ Fixed: moved inside vaultData for cache lookup
-            powerPhrases: powerPhrases.data || [],
-            transferableSkills: skills.data || [],
-            hiddenCompetencies: competencies.data || [],
-            softSkills: softSkills.data || [],
-            targetRoles: vaultData?.target_roles || targetRoles,
-            targetIndustries: vaultData?.target_industries || targetIndustries,
-          },
+      const validated = validateInput(GenerateGapFillingQuestionsSchema, {
+        resumeText: vaultData?.resume_raw_text || '',
+        vaultData: {
+          vault_id: vaultId,
+          powerPhrases: powerPhrases.data || [],
+          transferableSkills: skills.data || [],
+          hiddenCompetencies: competencies.data || [],
+          softSkills: softSkills.data || [],
           targetRoles: vaultData?.target_roles || targetRoles,
+          targetIndustries: vaultData?.target_industries || targetIndustries,
         },
+        targetRoles: vaultData?.target_roles || targetRoles,
       });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'generate-gap-filling-questions',
+        validated
+      );
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Failed to generate questions');
+      }
 
       // Add unique IDs to questions
       const batchesWithIds = (data.data.batches || []).map((batch: any, batchIdx: number) => ({
@@ -145,7 +152,7 @@ export function EnhancementQuestionsModal({
         description: `${batchesWithIds.length} batches of enhancement questions prepared`,
       });
     } catch (err: any) {
-      console.error('Load questions error:', err);
+      logger.error('Load questions error', err);
       toast({
         title: 'Load Failed',
         description: err.message,
@@ -198,16 +205,21 @@ export function EnhancementQuestionsModal({
         };
       });
 
-      const { data, error } = await supabase.functions.invoke('process-gap-filling-responses', {
-        body: {
-          vaultId,
-          responses: formattedResponses,
-          targetRoles,
-        },
+      const validated = validateInput(ProcessGapFillingResponsesSchema, {
+        vaultId,
+        responses: formattedResponses,
+        targetRoles,
       });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'process-gap-filling-responses',
+        validated
+      );
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Failed to process responses');
+      }
 
       const newScore = data.data.newVaultStrength;
 
@@ -219,7 +231,7 @@ export function EnhancementQuestionsModal({
       onComplete(newScore);
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Submit error:', err);
+      logger.error('Submit error', err);
       toast({
         title: 'Submission Failed',
         description: err.message,

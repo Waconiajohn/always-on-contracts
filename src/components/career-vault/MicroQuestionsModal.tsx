@@ -8,6 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Award, ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { validateInput, invokeEdgeFunction, SubmitMicroAnswersSchema } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 
 interface MicroQuestion {
   id: string;
@@ -92,17 +94,22 @@ export const MicroQuestionsModal = ({
         userAnswer
       }));
 
-      const { data, error } = await supabase.functions.invoke('submit-micro-answers', {
-        body: {
-          triggerId,
-          answers: answerArray
-        }
+      const validated = validateInput(SubmitMicroAnswersSchema, {
+        triggerId,
+        answers: answerArray
       });
 
-      if (error) throw error;
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'submit-micro-answers',
+        validated
+      );
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to submit answers');
+      }
 
       const succeededCount = data.succeeded || 0;
-
       toast({
         title: 'Vault Upgraded! 🎉',
         description: `Successfully upgraded ${succeededCount} vault ${succeededCount === 1 ? 'item' : 'items'} to higher quality tiers.`
@@ -112,12 +119,7 @@ export const MicroQuestionsModal = ({
       onClose();
 
     } catch (error: any) {
-      console.error('[MICRO-QUESTIONS] Submit error:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to submit answers',
-        variant: 'destructive'
-      });
+      logger.error('[MICRO-QUESTIONS] Submit error', error);
     } finally {
       setIsSubmitting(false);
     }
