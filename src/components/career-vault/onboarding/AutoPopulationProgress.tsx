@@ -78,9 +78,33 @@ export default function AutoPopulationProgress({
   const [vaultStrength, setVaultStrength] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
 
   const supabase = useSupabaseClient();
   const { toast } = useToast();
+
+  // Poll vault completion percentage during extraction
+  useEffect(() => {
+    if (isComplete) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: vault } = await supabase
+          .from('career_vault')
+          .select('review_completion_percentage')
+          .eq('id', vaultId)
+          .maybeSingle();
+
+        if (vault?.review_completion_percentage !== undefined && vault.review_completion_percentage !== null) {
+          setCompletionPercentage(Math.round(vault.review_completion_percentage * 100));
+        }
+      } catch (err) {
+        console.error('Error polling completion:', err);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [vaultId, isComplete, supabase]);
 
   useEffect(() => {
     runExtraction();
@@ -209,8 +233,13 @@ export default function AutoPopulationProgress({
               </div>
 
               {/* Real-time percentage counter */}
-              <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse">
-                {overallProgress}%
+              <div className="space-y-2">
+                <div className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse">
+                  {completionPercentage}%
+                </div>
+                <div className="text-xs text-slate-500 font-medium">
+                  Extraction Progress
+                </div>
               </div>
 
               <div>
