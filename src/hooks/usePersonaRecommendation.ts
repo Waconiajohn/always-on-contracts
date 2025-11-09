@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { invokeEdgeFunction, RecommendPersonaSchema, safeValidateInput } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { showContextualError } from '@/lib/utils/contextualErrors';
 
 export interface PersonaMatch {
   id: string;
@@ -34,29 +35,33 @@ export const usePersonaRecommendation = (agentType: 'resume' | 'interview' | 'ne
     }
 
     setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('recommend-persona', {
-        body: {
-          jobDescription,
-          agentType
-        }
-      });
 
-      if (error) throw error;
-
-      if (data.success) {
-        setRecommendation({
-          recommendedPersona: data.recommendedPersona,
-          reasoning: data.reasoning,
-          confidence: data.confidence,
-          personas: data.personas
-        });
-      }
-    } catch (error) {
-      console.error('Error getting persona recommendation:', error);
-      showContextualError('ai_generation', error instanceof Error ? error : undefined);
-    } finally {
+    const validation = safeValidateInput(RecommendPersonaSchema, { jobDescription, agentType });
+    if (!validation.success) {
       setLoading(false);
+      return;
+    }
+
+    const { data, error } = await invokeEdgeFunction(
+      supabase,
+      'recommend-persona',
+      { jobDescription, agentType }
+    );
+
+    setLoading(false);
+
+    if (error) {
+      logger.error('Persona recommendation failed', error);
+      return;
+    }
+
+    if (data?.success) {
+      setRecommendation({
+        recommendedPersona: data.recommendedPersona,
+        reasoning: data.reasoning,
+        confidence: data.confidence,
+        personas: data.personas
+      });
     }
   };
 

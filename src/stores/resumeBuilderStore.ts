@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 import type { ResumeMilestone } from '@/types/vault';
 import { showContextualError, showContextualSuccess } from '@/lib/utils/contextualErrors';
+import { logger } from '@/lib/logger';
 
 export interface ResumeSection {
   id: string;
@@ -178,7 +179,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          console.error('No user found');
+          logger.error('No user found when saving resume');
           return;
         }
         
@@ -222,10 +223,10 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
             }
           }
           
-          console.log('Resume saved successfully');
+          logger.info('Resume saved successfully');
           showContextualSuccess('resume_save');
         } catch (error) {
-          console.error('Error saving resume:', error);
+          logger.error('Error saving resume', error instanceof Error ? error : undefined);
           showContextualError('resume_save', error instanceof Error ? error : undefined);
           throw error;
         }
@@ -268,9 +269,9 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
             requirementResponses: resumeData.requirement_responses || []
           });
           
-          console.log('Resume loaded successfully');
+          logger.info('Resume loaded successfully');
         } catch (error) {
-          console.error('Error loading resume:', error);
+          logger.error('Error loading resume', error instanceof Error ? error : undefined);
           showContextualError('resume_save', error instanceof Error ? error : undefined);
           throw error;
         }

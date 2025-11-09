@@ -440,6 +440,23 @@ export const ValidateInterviewResponseWithAuditSchema = z.object({
   includeAudit: z.boolean().optional().default(true)
 });
 
+// Persona recommendation schemas
+export const RecommendPersonaSchema = z.object({
+  jobDescription: z.string().min(10, "Job description must be at least 10 characters"),
+  agentType: z.enum(['resume', 'interview', 'networking'])
+});
+
+// Resume milestones schemas
+export const GenerateMilestoneQuestionsSchema = z.object({
+  jobDescription: z.string().min(10, "Job description required"),
+  requirements: z.array(z.any())
+});
+
+export const ProcessMilestoneResponsesSchema = z.object({
+  responses: z.array(z.any()).min(1, "At least one response required"),
+  jobDescription: z.string().min(10, "Job description required")
+});
+
 // ============= LinkedIn & Content =============
 
 export const OptimizeLinkedInProfileSchema = z.object({

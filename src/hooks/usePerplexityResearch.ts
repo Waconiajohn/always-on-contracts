@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { invokeEdgeFunction, PerplexityResearchSchema, safeValidateInput } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface ResearchParams {
   research_type: 'market_intelligence' | 'company_research' | 'skills_demand' | 'career_path' | 'interview_prep';
@@ -24,34 +25,30 @@ export const usePerplexityResearch = () => {
     setIsResearching(true);
     setResult(null);
 
-    try {
-      const { data, error } = await supabase.functions.invoke('perplexity-research', {
-        body: params,
-      });
-
-      if (error) throw error;
-
-      setResult(data);
-      
-      if (data.success) {
-        toast.success('Research complete!');
-      } else {
-        toast.error(data.error || 'Research failed');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Research error:', error);
-      const errorResult = {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-      setResult(errorResult);
-      toast.error('Failed to complete research');
-      return errorResult;
-    } finally {
+    const validation = safeValidateInput(PerplexityResearchSchema, params);
+    if (!validation.success) {
       setIsResearching(false);
+      return { success: false, error: validation.error };
     }
+
+    const { data, error } = await invokeEdgeFunction<ResearchResult>(
+      supabase,
+      'perplexity-research',
+      params,
+      { showSuccessToast: true, successMessage: 'Research complete!' }
+    );
+
+    setIsResearching(false);
+
+    if (error) {
+      logger.error('Research failed', error);
+      const errorResult = { success: false, error: error.message };
+      setResult(errorResult);
+      return errorResult;
+    }
+
+    setResult(data);
+    return data || { success: false, error: 'No data returned' };
   };
 
   const verify = async (
@@ -61,32 +58,21 @@ export const usePerplexityResearch = () => {
   ): Promise<ResearchResult> => {
     setIsResearching(true);
 
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-with-perplexity', {
-        body: {
-          content_to_verify,
-          verification_type,
-          context,
-        },
-      });
+    const { data, error } = await invokeEdgeFunction<ResearchResult>(
+      supabase,
+      'verify-with-perplexity',
+      { content_to_verify, verification_type, context },
+      { showSuccessToast: true, successMessage: 'Verification complete!' }
+    );
 
-      if (error) throw error;
+    setIsResearching(false);
 
-      if (data.success) {
-        toast.success('Verification complete!');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Verification error:', error);
-      toast.error('Failed to verify');
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    } finally {
-      setIsResearching(false);
+    if (error) {
+      logger.error('Verification failed', error);
+      return { success: false, error: error.message };
     }
+
+    return data || { success: false, error: 'No data returned' };
   };
 
   return {
