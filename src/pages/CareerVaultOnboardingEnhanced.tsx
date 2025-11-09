@@ -5,6 +5,8 @@ import { Upload, Target, Brain, CheckCircle, Sparkles, ClipboardCheck } from 'lu
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { invokeEdgeFunction, ParseResumeMilestonesSchema, safeValidateInput } from '@/lib/edgeFunction';
+import { logger } from '@/lib/logger';
 import { ResumeUploadCard } from '@/components/career-vault/ResumeUploadCard';
 import { CareerGoalsStep } from '@/components/career-vault/CareerGoalsStep';
 import { AutoPopulateStep } from '@/components/career-vault/AutoPopulateStep';
@@ -87,7 +89,7 @@ const CareerVaultOnboardingEnhanced = () => {
         // because they may need to verify assumed items or improve vault quality.
       }
       } catch (error) {
-        console.error('Error checking vault:', error);
+        logger.error('Error checking vault', error);
       }
     };
 
@@ -134,15 +136,17 @@ const CareerVaultOnboardingEnhanced = () => {
       await supabase.storage.from('resumes').upload(filePath, resumeFile);
 
       // Process resume
-      const { data: processData, error } = await supabase.functions.invoke('process-resume', {
-        body: {
+      const { data: processData, error } = await invokeEdgeFunction(
+        supabase,
+        'process-resume',
+        {
           ...(fileData ? { fileData } : { fileText }),
           fileName: resumeFile.name,
           fileSize: resumeFile.size,
           fileType: resumeFile.type,
           userId: user.id
         }
-      });
+      );
 
       if (error || !processData.success) {
         throw new Error(processData?.error || 'Failed to process resume');
@@ -169,29 +173,32 @@ const CareerVaultOnboardingEnhanced = () => {
         
         // Parse resume into structured milestones (once)
         try {
-          console.log('[MILESTONE_PARSE] Starting milestone extraction...');
+          logger.info('[MILESTONE_PARSE] Starting milestone extraction');
           
-          const { data: milestonesData, error: milestonesError } = await supabase.functions.invoke(
-            'parse-resume-milestones',
-            {
-              body: {
-                resumeText: processData.extractedText,
-                vaultId: vaultData.id,
-                targetRoles: [],  // Empty initially - that's OK, the function handles this
-                targetIndustries: []
-              }
-            }
-          );
-          
-          if (milestonesError) {
-            console.error('[MILESTONE_PARSE] Error:', milestonesError);
-            // Don't block the flow - user can still proceed
+          const milestoneData = {
+            resume_text: processData.extractedText
+          };
+
+          const validation = safeValidateInput(ParseResumeMilestonesSchema, milestoneData);
+          if (!validation.success) {
+            logger.error('[MILESTONE_PARSE] Validation failed');
           } else {
-            const count = milestonesData?.milestones?.length || 0;
-            console.log(`[MILESTONE_PARSE] Success: Extracted ${count} career milestones`);
+            const { data: milestonesData, error: milestonesError } = await invokeEdgeFunction(
+              supabase,
+              'parse-resume-milestones',
+              milestoneData
+            );
+            
+            if (milestonesError) {
+              logger.error('[MILESTONE_PARSE] Error', milestonesError);
+              // Don't block the flow - user can still proceed
+            } else {
+              const count = milestonesData?.milestones?.length || 0;
+              logger.info(`[MILESTONE_PARSE] Success: Extracted ${count} career milestones`);
+            }
           }
         } catch (milestoneErr) {
-          console.error('[MILESTONE_PARSE] Exception:', milestoneErr);
+          logger.error('[MILESTONE_PARSE] Exception', milestoneErr);
           // Continue anyway - milestones enhance the experience but aren't critical for onboarding
         }
       }
@@ -203,7 +210,7 @@ const CareerVaultOnboardingEnhanced = () => {
 
       setCurrentStep('goals');
     } catch (error: any) {
-      console.error('[UPLOAD] Error:', error);
+      logger.error('[UPLOAD] Error', error);
       toast({
         title: 'Upload Failed',
         description: error.message,

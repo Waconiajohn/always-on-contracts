@@ -23,6 +23,8 @@ import { ContentLayout } from "@/components/layout/ContentLayout";
 import { ContextSidebar } from "@/components/layout/ContextSidebar";
 import { JobSearchSidebar } from "@/components/job-search/JobSearchSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
+import { invokeEdgeFunction } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 interface JobResult {
   id: string;
@@ -202,8 +204,10 @@ const JobSearchContent = () => {
       const topJobs = jobsList.slice(0, 10);
       
       for (const job of topJobs) {
-        const { data, error } = await supabase.functions.invoke('ai-job-matcher', {
-          body: {
+        const { data, error } = await invokeEdgeFunction(
+          supabase,
+          'ai-job-matcher',
+          {
             userId,
             jobOpportunities: [{
               id: job.id,
@@ -215,7 +219,7 @@ const JobSearchContent = () => {
               hourly_rate_max: job.salary_max || 0
             }]
           }
-        });
+        );
 
         if (!error && data?.matches?.[0]) {
           const match = data.matches[0];
@@ -235,7 +239,7 @@ const JobSearchContent = () => {
         }
       }
     } catch (error) {
-      console.error('Error calculating vault matches:', error);
+      logger.error('Error calculating vault matches', error);
     } finally {
       setIsCalculatingMatches(false);
     }
@@ -268,8 +272,10 @@ const JobSearchContent = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('unified-job-search', {
-        body: {
+      const { data, error } = await invokeEdgeFunction(
+        supabase,
+        'unified-job-search',
+        {
           query: searchQuery,
           location: location || undefined,
           radiusMiles: location ? parseInt(radiusMiles) : undefined,
@@ -285,7 +291,7 @@ const JobSearchContent = () => {
           userId: userId || undefined,
           sources: ['google_jobs', 'company_boards', 'usajobs', 'adzuna', 'jsearch']
         }
-      });
+      );
 
       if (error) throw error;
 
@@ -344,7 +350,7 @@ const JobSearchContent = () => {
         });
       }
     } catch (error: any) {
-      console.error('Search error:', error);
+      logger.error('Search error', error);
       toast({
         title: "Search failed",
         description: error.message || "Failed to search jobs",
@@ -399,7 +405,7 @@ const JobSearchContent = () => {
         description: `${job.title} at ${job.company} added. View in Active Applications →`
       });
     } catch (error: any) {
-      console.error('Add to applications error:', error);
+      logger.error('Add to applications error', error);
       toast({
         title: "Failed to add",
         description: error.message,
@@ -460,7 +466,7 @@ const JobSearchContent = () => {
         description: `${job.title} saved for later review`
       });
     } catch (error: any) {
-      console.error('Save job error:', error);
+      logger.error('Save job error', error);
       toast({
         title: "Failed to save",
         description: error.message,

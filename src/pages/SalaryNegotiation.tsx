@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DollarSign, TrendingUp, Copy, Check, Sparkles, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction, GenerateSalaryReportSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { logger } from "@/lib/logger";
 
 const SalaryNegotiation = () => {
   const { toast } = useToast();
@@ -67,19 +69,29 @@ const SalaryNegotiation = () => {
     setIsGenerating(true);
     setError(null);
 
+    const requestData = {
+      job_title: formData.jobTitle,
+      location: formData.location,
+      years_experience: parseInt(formData.yearsExperience),
+      offer_details: {
+        base_salary: parseFloat(formData.offeredBase) || null,
+        bonus_percent: parseFloat(formData.offeredBonus) || null,
+        equity_value: parseFloat(formData.offeredEquity) || null
+      }
+    };
+
+    const validation = safeValidateInput(GenerateSalaryReportSchema, requestData);
+    if (!validation.success) {
+      setIsGenerating(false);
+      return;
+    }
+
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('generate-salary-report', {
-        body: {
-          job_title: formData.jobTitle,
-          location: formData.location,
-          years_experience: parseInt(formData.yearsExperience),
-          offer_details: {
-            base_salary: parseFloat(formData.offeredBase) || null,
-            bonus_percent: parseFloat(formData.offeredBonus) || null,
-            equity_value: parseFloat(formData.offeredEquity) || null
-          }
-        }
-      });
+      const { data, error: functionError } = await invokeEdgeFunction(
+        supabase,
+        'generate-salary-report',
+        requestData
+      );
 
       if (functionError) {
         throw new Error(functionError.message);
@@ -100,6 +112,7 @@ const SalaryNegotiation = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate salary report';
       setError(errorMessage);
+      logger.error('Salary report generation failed', err);
       toast({
         title: "Error",
         description: errorMessage,

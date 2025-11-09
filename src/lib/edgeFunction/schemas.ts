@@ -63,6 +63,58 @@ export const ParseJobDocumentSchema = z.object({
   { message: 'At least one of url, text, or fileData is required' }
 );
 
+export const AIJobMatcherSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+  jobOpportunities: z.array(
+    z.object({
+      id: z.string().min(1, 'Job ID is required'),
+      job_title: z.string().min(1, 'Job title is required'),
+      job_description: z.string().optional(),
+      required_skills: z.array(z.string()).optional(),
+      location: z.string().optional(),
+      hourly_rate_min: z.number().optional(),
+      hourly_rate_max: z.number().optional()
+    })
+  ).min(1, 'At least one job opportunity is required')
+});
+
+export const UnifiedJobSearchSchema = z.object({
+  query: z.string()
+    .min(1, 'Search query is required')
+    .max(500, 'Search query must be less than 500 characters'),
+  location: z.string().max(200).optional(),
+  radiusMiles: z.number().int().min(1).max(100).optional(),
+  nextPageToken: z.string().optional(),
+  filters: z.object({
+    datePosted: z.string().optional(),
+    contractOnly: z.boolean().optional(),
+    remoteType: z.string().optional(),
+    employmentType: z.string().optional(),
+    booleanString: z.string().max(1000).optional(),
+    radiusMiles: z.number().int().min(1).max(100).optional()
+  }).optional(),
+  userId: z.string().uuid().optional(),
+  sources: z.array(z.string()).optional()
+});
+
+export const GenerateSalaryReportSchema = z.object({
+  job_title: z.string()
+    .min(1, 'Job title is required')
+    .max(200, 'Job title must be less than 200 characters'),
+  location: z.string()
+    .min(1, 'Location is required')
+    .max(200, 'Location must be less than 200 characters'),
+  years_experience: z.number()
+    .int()
+    .min(0, 'Years of experience must be 0 or greater')
+    .max(50, 'Years of experience must be 50 or less'),
+  offer_details: z.object({
+    base_salary: z.number().nullable().optional(),
+    bonus_percent: z.number().nullable().optional(),
+    equity_value: z.number().nullable().optional()
+  }).optional()
+});
+
 // ============= Career Vault =============
 
 export const ExtractVaultIntangiblesSchema = z.object({
