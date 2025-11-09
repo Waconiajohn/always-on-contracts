@@ -53,8 +53,10 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick }: Laye
         percentage: workExpPercentage,
         status: workExpPercentage >= 80 ? 'complete' : workExpPercentage > 0 ? 'incomplete' : 'empty',
         count: powerPhrasesCount,
-        benchmark: 'Industry standard: 60%+ of bullets should have metrics',
-        ctaText: workExpPercentage >= 80 ? 'Review' : 'Add Details',
+        benchmark: powerPhrasesCount === 0 
+          ? 'No work experience extracted - try re-uploading your resume'
+          : 'Industry standard: 60%+ of bullets should have metrics',
+        ctaText: powerPhrasesCount === 0 ? 'Fix Extraction' : workExpPercentage >= 80 ? 'Review' : 'Add Details',
         section: 'work-experience'
       },
       {

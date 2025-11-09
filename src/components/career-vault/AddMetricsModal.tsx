@@ -191,23 +191,46 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
     );
   }
 
-  if (phrases.length === 0) {
+  if (phrases.length === 0 && !loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>All Phrases Have Metrics!</DialogTitle>
+            <DialogTitle>No Work Experience Found</DialogTitle>
             <DialogDescription>
-              Great job! All your power phrases already have quantified metrics.
+              We couldn't find any quantified achievements from your resume yet.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-center py-4">
-            <TrendingUp className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">
-              Your quantification score should be looking good. Try re-analyzing to see the latest score.
-            </p>
+          <div className="text-center py-6 space-y-4">
+            <TrendingUp className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                This could mean:
+              </p>
+              <ul className="text-sm text-muted-foreground text-left max-w-md mx-auto space-y-1">
+                <li>• The resume extraction didn't capture work experience properly</li>
+                <li>• Your resume needs to be re-uploaded or re-analyzed</li>
+                <li>• Work experience bullets need to be added manually</li>
+              </ul>
+            </div>
+            <div className="pt-4">
+              <p className="text-sm font-medium text-slate-900 mb-2">What to do:</p>
+              <p className="text-sm text-muted-foreground">
+                Try re-uploading your resume or use the "Re-analyze" option to extract work experience again.
+              </p>
+            </div>
           </div>
-          <Button onClick={() => onOpenChange(false)}>Close</Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+              Close
+            </Button>
+            <Button onClick={() => {
+              onOpenChange(false);
+              window.location.href = '/career-vault-onboarding';
+            }} className="flex-1">
+              Re-upload Resume
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     );
