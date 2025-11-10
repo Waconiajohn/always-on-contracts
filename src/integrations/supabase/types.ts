@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_prompt_overrides: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          original_prompt: string
+          override_prompt: string
+          prompt_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          original_prompt: string
+          override_prompt: string
+          prompt_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          original_prompt?: string
+          override_prompt?: string
+          prompt_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       affiliate_commissions: {
         Row: {
           affiliate_id: string
@@ -2583,6 +2616,81 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_uses?: number | null
+        }
+        Relationships: []
+      }
+      prompt_test_results: {
+        Row: {
+          cost_usd: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          latency_ms: number | null
+          prompt_id: string
+          success: boolean | null
+          test_input: Json
+          test_output: string | null
+          tested_by: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          prompt_id: string
+          success?: boolean | null
+          test_input: Json
+          test_output?: string | null
+          tested_by?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          prompt_id?: string
+          success?: boolean | null
+          test_input?: Json
+          test_output?: string | null
+          tested_by?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
+      prompt_version_history: {
+        Row: {
+          change_reason: string | null
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          performance_metrics: Json | null
+          prompt_content: string
+          prompt_id: string
+          version_number: number
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          performance_metrics?: Json | null
+          prompt_content: string
+          prompt_id: string
+          version_number: number
+        }
+        Update: {
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          performance_metrics?: Json | null
+          prompt_content?: string
+          prompt_id?: string
+          version_number?: number
         }
         Relationships: []
       }
