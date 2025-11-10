@@ -163,7 +163,6 @@ export const SectionWizard = ({
             }
 
             const { data: researchData, error: researchError } = await invokeEdgeFunction(
-              supabase,
               'perplexity-research',
               researchPayload
             );
@@ -203,7 +202,6 @@ export const SectionWizard = ({
           }
 
           const { data: dualData, error: dualError } = await invokeEdgeFunction(
-            supabase,
             'generate-dual-resume-section',
             dualPayload
           );

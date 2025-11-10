@@ -126,7 +126,6 @@ export function EnhancementQuestionsModal({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-gap-filling-questions',
         validated
       );
@@ -212,7 +211,6 @@ export function EnhancementQuestionsModal({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'process-gap-filling-responses',
         validated
       );

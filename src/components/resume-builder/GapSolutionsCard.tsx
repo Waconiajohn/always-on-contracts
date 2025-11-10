@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Loader2, Edit2, Save, X, CheckCircle2, Lightbulb } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { invokeEdgeFunction, GenerateGapSolutionsSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
@@ -60,7 +59,6 @@ export const GapSolutionsCard = ({
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-gap-solutions',
         payload
       );

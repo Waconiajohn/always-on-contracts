@@ -10,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DollarSign, TrendingUp, Copy, Check, Sparkles, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction, GenerateSalaryReportSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
 
@@ -88,7 +87,6 @@ const SalaryNegotiation = () => {
 
     try {
       const { data, error: functionError } = await invokeEdgeFunction(
-        supabase,
         'generate-salary-report',
         requestData
       );

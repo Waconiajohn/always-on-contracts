@@ -38,7 +38,6 @@ import {
   Loader2,
   Lightbulb
 } from 'lucide-react';
-import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { invokeEdgeFunction, GenerateCompletionBenchmarkSchema, safeValidateInput } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
@@ -66,7 +65,6 @@ export default function VaultCompletionSummary({
   const [error, setError] = useState<string | null>(null);
   const [benchmarkMeta, setBenchmarkMeta] = useState<any>(null);
 
-  const supabase = useSupabaseClient();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -92,7 +90,6 @@ export default function VaultCompletionSummary({
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-completion-benchmark',
         { vaultId, targetRoles, targetIndustries, forceRegenerate }
       );

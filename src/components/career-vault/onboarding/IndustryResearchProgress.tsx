@@ -32,7 +32,6 @@ import {
   Loader2,
   Lightbulb,
 } from 'lucide-react';
-import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { validateInput, invokeEdgeFunction, ResearchIndustryStandardsSchema } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
@@ -59,7 +58,6 @@ export default function IndustryResearchProgress({
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = useSupabaseClient();
   const { toast } = useToast();
 
   // Fun facts to rotate
@@ -113,7 +111,6 @@ export default function IndustryResearchProgress({
               });
 
               const { data, error } = await invokeEdgeFunction(
-                supabase,
                 'research-industry-standards',
                 validated
               );

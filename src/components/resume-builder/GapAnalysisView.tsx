@@ -93,7 +93,6 @@ export const GapAnalysisView = ({
       if (!validation.success) return;
 
       const { error } = await invokeEdgeFunction(
-        supabase,
         'add-vault-item',
         payload
       );

@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction, GenerateInterviewPrepSchema, safeValidateInput } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
 
@@ -152,7 +151,6 @@ export function InterviewPrep({
     
     try {
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-interview-prep',
         { resumeContent, jobTitle, jobDescription }
       );

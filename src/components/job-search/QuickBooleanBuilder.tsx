@@ -72,7 +72,6 @@ export const QuickBooleanBuilder = ({ open, onOpenChange, onApply }: QuickBoolea
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-boolean-search',
         validated
       );

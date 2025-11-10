@@ -137,7 +137,6 @@ const CareerVaultOnboardingEnhanced = () => {
 
       // Process resume
       const { data: processData, error } = await invokeEdgeFunction(
-        supabase,
         'process-resume',
         {
           ...(fileData ? { fileData } : { fileText }),
@@ -184,7 +183,6 @@ const CareerVaultOnboardingEnhanced = () => {
             logger.error('[MILESTONE_PARSE] Validation failed');
           } else {
             const { data: milestonesData, error: milestonesError } = await invokeEdgeFunction(
-              supabase,
               'parse-resume-milestones',
               milestoneData
             );

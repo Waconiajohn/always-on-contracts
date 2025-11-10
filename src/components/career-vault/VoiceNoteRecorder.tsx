@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Mic, Square, Trash2, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { validateInput, invokeEdgeFunction, ExtractVaultIntangiblesSchema } from '@/lib/edgeFunction';
 
 interface VoiceNoteRecorderProps {
@@ -199,7 +198,6 @@ export const VoiceNoteRecorder = ({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'extract-vault-intangibles',
         validatedInput
       );

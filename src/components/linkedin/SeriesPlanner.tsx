@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Edit2, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -53,17 +52,12 @@ export function SeriesPlanner({ onSeriesCreated }: { onSeriesCreated?: (seriesId
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-series-outline',
         {
           ...validated,
           userRole,
           industry,
           experienceYears: experienceYears ? parseInt(experienceYears) : null
-        },
-        {
-          showSuccessToast: true,
-          successMessage: `${seriesLength}-part series ready for review`
         }
       );
 

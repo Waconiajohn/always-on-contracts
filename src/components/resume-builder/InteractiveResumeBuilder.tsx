@@ -169,7 +169,6 @@ export const InteractiveResumeBuilder = ({
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-dual-resume-section',
         payload
       );

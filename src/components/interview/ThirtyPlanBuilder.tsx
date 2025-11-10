@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Target, TrendingUp, Sparkles } from "lucide-react";
 import { validateInput, invokeEdgeFunction, Generate3060Plan } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
@@ -27,13 +26,8 @@ export function ThirtyPlanBuilder({ jobDescription, companyResearch, vaultId }: 
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-30-60-90-plan',
-        { ...validated, companyResearch },
-        {
-          showSuccessToast: true,
-          successMessage: 'Your onboarding roadmap has been created'
-        }
+        { ...validated, companyResearch }
       );
 
       if (error || !data?.success) {

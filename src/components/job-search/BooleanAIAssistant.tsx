@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, Copy, Check, RotateCcw, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BooleanStringPreview } from "./BooleanStringPreview";
 import { invokeEdgeFunction } from "@/lib/edgeFunction";
@@ -52,7 +51,6 @@ export const BooleanAIAssistant = ({ open, onOpenChange, onApplySearch }: Boolea
 
     try {
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-boolean-search',
         { messages: [...messages, userMessage] }
       );

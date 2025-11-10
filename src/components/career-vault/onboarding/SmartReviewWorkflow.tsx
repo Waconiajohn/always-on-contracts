@@ -245,7 +245,6 @@ export default function SmartReviewWorkflow({
 
     try {
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'process-review-actions',
         { vaultId, actions: reviewActions }
       );

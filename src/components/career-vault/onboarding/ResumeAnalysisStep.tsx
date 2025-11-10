@@ -88,7 +88,6 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
 
       // Use the existing process-resume function
       const { data, error: processError } = await invokeEdgeFunction(
-        supabase,
         'process-resume',
         formData
       );
@@ -224,7 +223,6 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       });
 
       const { data: analysisData, error: analysisError } = await invokeEdgeFunction(
-        supabase,
         'analyze-resume-initial',
         validated
       );

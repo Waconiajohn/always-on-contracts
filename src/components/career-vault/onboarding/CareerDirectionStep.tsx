@@ -85,7 +85,6 @@ export default function CareerDirectionStep({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'suggest-career-paths',
         validated
       );

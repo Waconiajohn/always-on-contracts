@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
 import { Building2, TrendingUp, AlertTriangle, Users, ChevronDown, RefreshCw } from "lucide-react";
 import { validateInput, invokeEdgeFunction, GenerateCompanyResearchSchema } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
@@ -26,13 +25,8 @@ export function CompanyResearchPanel({ companyName, jobDescription }: CompanyRes
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-company-research',
-        validated,
-        {
-          showSuccessToast: true,
-          successMessage: `Company intelligence gathered for ${companyName}`
-        }
+        validated
       );
 
       if (error || !data?.success) {

@@ -89,13 +89,8 @@ export function STARStoryGenerator({ vaultId }: STARStoryGeneratorProps) {
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-star-story',
-        validated,
-        {
-          showSuccessToast: true,
-          successMessage: 'Story created successfully'
-        }
+        validated
       );
 
       if (error || !data) {

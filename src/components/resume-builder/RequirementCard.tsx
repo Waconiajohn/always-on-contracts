@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Check, Loader2, Database } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { invokeEdgeFunction, GenerateRequirementQuestionsSchema, GenerateRequirementOptionsSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
@@ -88,7 +87,6 @@ export const RequirementCard = ({
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-requirement-questions',
         payload
       );
@@ -141,7 +139,6 @@ export const RequirementCard = ({
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-requirement-options',
         payload
       );

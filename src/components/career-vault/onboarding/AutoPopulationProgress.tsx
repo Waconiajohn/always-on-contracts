@@ -253,7 +253,6 @@ export default function AutoPopulationProgress({
       });
 
       const { data: coreData, error: coreError } = await invokeEdgeFunction(
-        supabase,
         'auto-populate-vault-v3',
         {
           ...validated,

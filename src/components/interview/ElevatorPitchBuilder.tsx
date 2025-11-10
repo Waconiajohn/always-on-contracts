@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Copy, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { validateInput, invokeEdgeFunction, GenerateElevatorPitchSchema } from "@/lib/edgeFunction";
@@ -31,13 +30,8 @@ export function ElevatorPitchBuilder({ jobDescription, vaultId }: ElevatorPitchB
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-elevator-pitch',
-        validated,
-        {
-          showSuccessToast: true,
-          successMessage: 'Your perfect fit narrative has been created'
-        }
+        validated
       );
 
       if (error || !data?.success) {

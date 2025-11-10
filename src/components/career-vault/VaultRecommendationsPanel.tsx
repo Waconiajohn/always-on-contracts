@@ -59,7 +59,6 @@ export const VaultRecommendationsPanel = ({
       const validated = validateInput(GenerateVaultRecommendationsSchema, { vaultId, limit: 5 });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-vault-recommendations',
         validated
       );

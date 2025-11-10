@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Award, HelpCircle, MessageSquare, Copy, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { validateInput, invokeEdgeFunction, Generate321FrameworkSchema } from "@/lib/edgeFunction";
@@ -30,13 +29,8 @@ export function ThreeTwoOneFramework({ jobDescription, companyResearch, vaultId 
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'generate-3-2-1-framework',
-        { ...validated, companyResearch },
-        {
-          showSuccessToast: true,
-          successMessage: 'Your interview essentials have been created'
-        }
+        { ...validated, companyResearch }
       );
 
       if (error || !data?.success) {
