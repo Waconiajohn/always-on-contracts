@@ -23,13 +23,26 @@ export function GrantAdminAccess() {
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('grant-initial-admin');
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data.error) {
+        // If admin already exists, check if it's this user
+        if (data.error.includes('already exist')) {
+          // Verify if current user is an admin
+          const { data: hasRole } = await supabase.rpc('has_role', {
+            _user_id: user!.id,
+            _role: 'admin'
+          });
+          if (hasRole) {
+            return { success: true, message: 'You already have admin access!' };
+          }
+        }
+        throw new Error(data.error);
+      }
       return data;
     },
     onSuccess: () => {
-      toast.success('Admin access granted! Refreshing...');
+      toast.success('Admin access confirmed! Refreshing...');
       queryClient.invalidateQueries({ queryKey: ['admin-check'] });
-      setTimeout(() => window.location.reload(), 1500);
+      setTimeout(() => window.location.href = '/', 1000);
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to grant admin access');
