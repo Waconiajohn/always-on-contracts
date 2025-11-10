@@ -235,6 +235,8 @@ export default function AutoPopulationProgress({
   };
 
   const runExtraction = async () => {
+    let pollInterval: NodeJS.Timeout | null = null;
+    
     try {
       setCurrentPhase('🧠 Analyzing your executive background...');
       setOverallProgress(5);
@@ -268,19 +270,72 @@ export default function AutoPopulationProgress({
         targetIndustries
       });
 
-      const { data: coreData, error: coreError } = await invokeEdgeFunction(
+      // Start extraction (will timeout on client but continue on server)
+      invokeEdgeFunction(
         'auto-populate-vault-v3',
         {
           ...validated,
           industryResearch: industryResearch?.[0]?.results
         }
-      );
+      ).catch(err => {
+        // Ignore timeout errors - we'll poll for completion instead
+        logger.warn('Edge function call timed out (expected), polling for completion', err);
+      });
 
-      if (coreError || !coreData?.success) {
-        throw new Error(coreError?.message || coreData?.error || 'Extraction failed');
-      }
+      // Poll extraction_sessions for completion
+      let attempts = 0;
+      const maxAttempts = 120; // 4 minutes max (2 second intervals)
+      
+      const waitForCompletion = (): Promise<any> => {
+        return new Promise((resolve, reject) => {
+          pollInterval = setInterval(async () => {
+            attempts++;
+            
+            if (attempts > maxAttempts) {
+              clearInterval(pollInterval!);
+              reject(new Error('Extraction timed out after 4 minutes'));
+              return;
+            }
 
-      const extracted = coreData.data.extracted;
+            try {
+              // Check extraction_sessions for completion
+              const { data: session } = await supabase
+                .from('extraction_sessions')
+                .select('*')
+                .eq('vault_id', vaultId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+              if (session?.status === 'completed') {
+                clearInterval(pollInterval!);
+                
+                // Get category counts
+                const [powerPhrases, skills, competencies, softSkills] = await Promise.all([
+                  supabase.from('vault_power_phrases').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+                  supabase.from('vault_transferable_skills').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+                  supabase.from('vault_hidden_competencies').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+                  supabase.from('vault_soft_skills').select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+                ]);
+
+                resolve({
+                  powerPhrasesCount: powerPhrases.count || 0,
+                  skillsCount: skills.count || 0,
+                  competenciesCount: competencies.count || 0,
+                  softSkillsCount: softSkills.count || 0,
+                });
+              } else if (session?.status === 'failed') {
+                clearInterval(pollInterval!);
+                reject(new Error('Extraction failed - please try again'));
+              }
+            } catch (err) {
+              logger.error('Error polling extraction status', err);
+            }
+          }, 2000); // Poll every 2 seconds
+        });
+      };
+
+      const extracted = await waitForCompletion();
 
       updateCategoryStatus('power_phrases', 'complete', extracted.powerPhrasesCount);
       updateCategoryStatus('transferable_skills', 'complete', extracted.skillsCount);
@@ -327,6 +382,11 @@ export default function AutoPopulationProgress({
         description: err.message || 'Could not complete extraction. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      // Clean up poll interval if it exists
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     }
   };
 
