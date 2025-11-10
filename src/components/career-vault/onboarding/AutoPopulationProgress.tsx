@@ -298,14 +298,44 @@ export default function AutoPopulationProgress({
             }
 
             try {
-              // Check extraction_sessions for completion
-              const { data: session } = await supabase
+              // Check extraction_sessions for completion (use maybeSingle to handle 0 rows)
+              const { data: session, error: sessionError } = await supabase
                 .from('extraction_sessions')
                 .select('*')
                 .eq('vault_id', vaultId)
                 .order('created_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle();
+
+              // Fallback: If extraction_sessions is not available or accessible, 
+              // check if vault has items and completion percentage
+              if (!session && !sessionError) {
+                const { data: vault } = await supabase
+                  .from('career_vault')
+                  .select('review_completion_percentage, total_power_phrases, total_transferable_skills, total_hidden_competencies, total_soft_skills')
+                  .eq('id', vaultId)
+                  .maybeSingle();
+
+                // If vault has items and high completion percentage, consider it done
+                if (vault && vault.review_completion_percentage && vault.review_completion_percentage >= 0.8) {
+                  const totalVaultItems = 
+                    (vault.total_power_phrases || 0) +
+                    (vault.total_transferable_skills || 0) +
+                    (vault.total_hidden_competencies || 0) +
+                    (vault.total_soft_skills || 0);
+
+                  if (totalVaultItems > 0) {
+                    clearInterval(pollInterval!);
+                    resolve({
+                      powerPhrasesCount: vault.total_power_phrases || 0,
+                      skillsCount: vault.total_transferable_skills || 0,
+                      competenciesCount: vault.total_hidden_competencies || 0,
+                      softSkillsCount: vault.total_soft_skills || 0,
+                    });
+                    return;
+                  }
+                }
+              }
 
               if (session?.status === 'completed') {
                 clearInterval(pollInterval!);
