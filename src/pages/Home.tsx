@@ -284,7 +284,7 @@ const HomeContent = () => {
                   }`}
                   onClick={() => !tool.locked && navigate(tool.path)}
                 >
-                  <CardContent className={`p-4 text-center relative ${tool.locked ? 'filter blur-[2px] opacity-70 group-hover:blur-[1px] group-hover:opacity-85 transition-all' : ''}`}>
+                  <CardContent className="p-4 text-center relative">
                     {hasDualAI && !tool.locked && (
                       <Badge 
                         variant="secondary" 
@@ -299,10 +299,10 @@ const HomeContent = () => {
                   </CardContent>
                   
                   {tool.locked && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-[2px] flex items-center justify-center rounded-lg border-2 border-primary/20 group-hover:border-primary/30 transition-colors">
-                      <div className="text-center p-3 bg-card/90 rounded-lg shadow-xl">
+                    <div className="absolute inset-0 bg-background/40 backdrop-blur-[0.5px] flex items-center justify-center rounded-lg border-2 border-primary/30 group-hover:bg-background/30 transition-all">
+                      <div className="text-center p-3 bg-card/95 rounded-lg shadow-xl border border-primary/20">
                         <Lock className="h-6 w-6 mx-auto mb-1 text-primary" />
-                        <p className="text-[10px] font-semibold">Upgrade Required</p>
+                        <p className="text-[10px] font-semibold text-foreground">Upgrade Required</p>
                       </div>
                     </div>
                   )}
