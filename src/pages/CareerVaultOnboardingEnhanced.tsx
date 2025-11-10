@@ -16,6 +16,9 @@ import { CompetencyQuizEngine } from '@/components/career-vault/CompetencyQuizEn
 import { CompetencyQuizResults } from '@/components/career-vault/CompetencyQuizResults';
 import { Button } from '@/components/ui/button';
 import { VaultDuplicationDialog } from '@/components/career-vault/VaultDuplicationDialog';
+import { useOnboardingTour, OnboardingStep as TourStep } from '@/hooks/useOnboardingTour';
+import { OnboardingTooltip } from '@/components/ui/onboarding-tooltip';
+import { HelpCircle } from 'lucide-react';
 
 type OnboardingStep = 'upload' | 'goals' | 'auto-populate' | 'review' | 'quiz' | 'quiz-results' | 'enhance' | 'complete';
 
@@ -49,6 +52,46 @@ const CareerVaultOnboardingEnhanced = () => {
   const hasCheckedVault = useRef(false);
   const [showDuplicationDialog, setShowDuplicationDialog] = useState(false);
   const [existingVaultData, setExistingVaultData] = useState<any>(null);
+
+  const tourSteps: TourStep[] = [
+    {
+      id: 'upload',
+      target: 'upload-card',
+      title: '📄 Upload Your Resume',
+      content: 'Start by uploading your resume. We support PDF, DOCX, and TXT formats. Our AI will extract your career intelligence in seconds.',
+      placement: 'bottom'
+    },
+    {
+      id: 'goals',
+      target: 'goals-card',
+      title: '🎯 Set Career Goals',
+      content: 'Tell us about your target roles and industries. This helps us tailor your vault to match your career aspirations.',
+      placement: 'bottom'
+    },
+    {
+      id: 'ai-analysis',
+      target: 'ai-analysis-card',
+      title: '🧠 AI Extraction',
+      content: 'Watch as our AI analyzes your resume and extracts power phrases, skills, competencies, and more into structured categories.',
+      placement: 'bottom'
+    },
+    {
+      id: 'review',
+      target: 'review-card',
+      title: '✅ Review & Validate',
+      content: 'Review the extracted intelligence. You can edit, add, or remove items to ensure everything is accurate and complete.',
+      placement: 'bottom'
+    },
+    {
+      id: 'quiz',
+      target: 'quiz-card',
+      title: '📝 Competency Assessment',
+      content: 'Complete a quick quiz to verify your skills and build a competency profile. This improves matching accuracy for job applications.',
+      placement: 'bottom'
+    }
+  ];
+
+  const tour = useOnboardingTour('career-vault-onboarding', tourSteps);
 
   const steps = [
     { id: 'upload', label: 'Upload Resume', icon: Upload },
@@ -325,63 +368,144 @@ const CareerVaultOnboardingEnhanced = () => {
         </div>
       </div>
 
+      {/* Help Button */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => tour.resetTour()}
+          className="gap-2"
+        >
+          <HelpCircle className="h-4 w-4" />
+          Show Guide
+        </Button>
+      </div>
+
       {/* Step Content */}
       {currentStep === 'upload' && (
-        <ResumeUploadCard
-          resumeFile={resumeFile}
-          isUploading={isUploading}
-          onFileSelect={handleFileSelect}
-          onUpload={handleUpload}
-        />
+        <OnboardingTooltip
+          isOpen={tour.isActive && tour.stepIndex === 0}
+          title={tour.currentStep?.title || ''}
+          content={tour.currentStep?.content || ''}
+          stepIndex={tour.stepIndex}
+          totalSteps={tour.totalSteps}
+          placement={tour.currentStep?.placement}
+          onNext={tour.nextStep}
+          onPrevious={tour.previousStep}
+          onSkip={tour.skipTour}
+        >
+          <div id="upload-card">
+            <ResumeUploadCard
+              resumeFile={resumeFile}
+              isUploading={isUploading}
+              onFileSelect={handleFileSelect}
+              onUpload={handleUpload}
+            />
+          </div>
+        </OnboardingTooltip>
       )}
 
       {currentStep === 'goals' && (
-        <CareerGoalsStep
-          resumeAnalysis={resumeAnalysis}
-          onComplete={handleGoalsComplete}
-        />
+        <OnboardingTooltip
+          isOpen={tour.isActive && tour.stepIndex === 1}
+          title={tour.currentStep?.title || ''}
+          content={tour.currentStep?.content || ''}
+          stepIndex={tour.stepIndex}
+          totalSteps={tour.totalSteps}
+          placement={tour.currentStep?.placement}
+          onNext={tour.nextStep}
+          onPrevious={tour.previousStep}
+          onSkip={tour.skipTour}
+        >
+          <div id="goals-card">
+            <CareerGoalsStep
+              resumeAnalysis={resumeAnalysis}
+              onComplete={handleGoalsComplete}
+            />
+          </div>
+        </OnboardingTooltip>
       )}
 
       {currentStep === 'auto-populate' && vaultId && (
-        <AutoPopulateStep
-          vaultId={vaultId}
-          resumeText={resumeText}
-          targetRoles={targetRoles}
-          targetIndustries={targetIndustries}
-          onComplete={handleAutoPopulateComplete}
-        />
+        <OnboardingTooltip
+          isOpen={tour.isActive && tour.stepIndex === 2}
+          title={tour.currentStep?.title || ''}
+          content={tour.currentStep?.content || ''}
+          stepIndex={tour.stepIndex}
+          totalSteps={tour.totalSteps}
+          placement={tour.currentStep?.placement}
+          onNext={tour.nextStep}
+          onPrevious={tour.previousStep}
+          onSkip={tour.skipTour}
+        >
+          <div id="ai-analysis-card">
+            <AutoPopulateStep
+              vaultId={vaultId}
+              resumeText={resumeText}
+              targetRoles={targetRoles}
+              targetIndustries={targetIndustries}
+              onComplete={handleAutoPopulateComplete}
+            />
+          </div>
+        </OnboardingTooltip>
       )}
 
       {currentStep === 'review' && vaultId && (
-        <VaultReviewInterface
-          vaultId={vaultId}
-          onComplete={handleReviewComplete}
-        />
+        <OnboardingTooltip
+          isOpen={tour.isActive && tour.stepIndex === 3}
+          title={tour.currentStep?.title || ''}
+          content={tour.currentStep?.content || ''}
+          stepIndex={tour.stepIndex}
+          totalSteps={tour.totalSteps}
+          placement={tour.currentStep?.placement}
+          onNext={tour.nextStep}
+          onPrevious={tour.previousStep}
+          onSkip={tour.skipTour}
+        >
+          <div id="review-card">
+            <VaultReviewInterface
+              vaultId={vaultId}
+              onComplete={handleReviewComplete}
+            />
+          </div>
+        </OnboardingTooltip>
       )}
 
       {currentStep === 'quiz' && vaultId && (
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="py-6">
-              <div className="text-center mb-6">
-                <ClipboardCheck className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <h2 className="text-2xl font-bold mb-2">Competency Assessment</h2>
-                <p className="text-muted-foreground">
-                  Answer questions about your experience to build a verified competency profile.
-                  This helps us match you to roles with precision.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <OnboardingTooltip
+          isOpen={tour.isActive && tour.stepIndex === 4}
+          title={tour.currentStep?.title || ''}
+          content={tour.currentStep?.content || ''}
+          stepIndex={tour.stepIndex}
+          totalSteps={tour.totalSteps}
+          placement={tour.currentStep?.placement}
+          onNext={tour.nextStep}
+          onPrevious={tour.previousStep}
+          onSkip={tour.skipTour}
+        >
+          <div id="quiz-card" className="space-y-6">
+            <Card>
+              <CardContent className="py-6">
+                <div className="text-center mb-6">
+                  <ClipboardCheck className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <h2 className="text-2xl font-bold mb-2">Competency Assessment</h2>
+                  <p className="text-muted-foreground">
+                    Answer questions about your experience to build a verified competency profile.
+                    This helps us match you to roles with precision.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
-          <CompetencyQuizEngine
-            vaultId={vaultId}
-            role={targetRoles[0] || 'Professional'}
-            industry={targetIndustries[0] || 'General'}
-            experienceLevel={resumeAnalysis?.yearsOfExperience || 5}
-            onComplete={handleQuizComplete}
-          />
-        </div>
+            <CompetencyQuizEngine
+              vaultId={vaultId}
+              role={targetRoles[0] || 'Professional'}
+              industry={targetIndustries[0] || 'General'}
+              experienceLevel={resumeAnalysis?.yearsOfExperience || 5}
+              onComplete={handleQuizComplete}
+            />
+          </div>
+        </OnboardingTooltip>
       )}
 
       {currentStep === 'quiz-results' && vaultId && quizResults && (
