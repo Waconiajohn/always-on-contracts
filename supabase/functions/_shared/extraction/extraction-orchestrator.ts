@@ -24,6 +24,14 @@ export interface OrchestrationConfig {
     extractCompetencies: (prompt: string, options?: any) => Promise<any>;
     extractSoftSkills: (prompt: string, options?: any) => Promise<any>;
   };
+  onProgress?: (update: {
+    phase: string;
+    category?: string;
+    progress: number;
+    totalCategories: number;
+    completedCategories: number;
+    message: string;
+  }) => Promise<void>;
 }
 
 export interface OrchestrationResult {
@@ -73,6 +81,17 @@ export async function orchestrateExtraction(
     // ========================================================================
     console.log('📍 PHASE 0: Pre-Extraction Analysis');
     console.log('────────────────────────────────────────────────────────────\n');
+
+    // Report progress
+    if (config.onProgress) {
+      await config.onProgress({
+        phase: 'pre-analysis',
+        progress: 5,
+        totalCategories: 4,
+        completedCategories: 0,
+        message: 'Analyzing resume structure and context...'
+      });
+    }
 
     const session = await observability.startSession({
       vaultId: config.vaultId,
@@ -209,6 +228,22 @@ export async function orchestrateExtraction(
         latencyMs: passLatency,
       });
 
+      // Report progress after each category completes
+      const completedCount = Object.keys(extractedData).filter(k => 
+        (extractedData[k as keyof typeof extractedData] as any[]).length > 0
+      ).length;
+      
+      if (config.onProgress) {
+        await config.onProgress({
+          phase: 'extraction',
+          category: passType,
+          progress: 25 + (completedCount / passes.length) * 50, // 25-75% range
+          totalCategories: passes.length,
+          completedCategories: completedCount,
+          message: `Extracted ${extractedData[passType as keyof typeof extractedData].length} ${passType}`
+        });
+      }
+
       await observability.saveCheckpoint(sessionId, `pass_${passType}`, {
         extracted: extractedData,
       });
@@ -221,6 +256,16 @@ export async function orchestrateExtraction(
     // ========================================================================
     console.log('\n📍 PHASE 2: Cross-Validation');
     console.log('────────────────────────────────────────────────────────────\n');
+
+    if (config.onProgress) {
+      await config.onProgress({
+        phase: 'validation',
+        progress: 80,
+        totalCategories: 4,
+        completedCategories: 4,
+        message: 'Validating extracted data quality...'
+      });
+    }
 
     await observability.logEvent(sessionId, 'phase_started', { phase: 'validation' });
 
@@ -247,6 +292,16 @@ export async function orchestrateExtraction(
     // ========================================================================
     console.log('\n📍 PHASE 3: Storing Results');
     console.log('────────────────────────────────────────────────────────────\n');
+
+    if (config.onProgress) {
+      await config.onProgress({
+        phase: 'storing',
+        progress: 95,
+        totalCategories: 4,
+        completedCategories: 4,
+        message: 'Saving results to your vault...'
+      });
+    }
 
     await observability.logEvent(sessionId, 'phase_started', { phase: 'storage' });
 

@@ -37,6 +37,7 @@ import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { validateInput, invokeEdgeFunction, AutoPopulateVaultSchema } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
+import CategoryExplainer from '@/components/career-vault/CategoryExplainer';
 
 interface AutoPopulationProgressProps {
   vaultId: string;
@@ -431,6 +432,12 @@ export default function AutoPopulationProgress({
                           <Icon className="w-4 h-4" />
                         )}
                         <span className="text-sm font-medium">{category.label}</span>
+                        {(category.key === 'power_phrases' || 
+                          category.key === 'transferable_skills' || 
+                          category.key === 'hidden_competencies' || 
+                          category.key === 'soft_skills') && (
+                          <CategoryExplainer category={category.key as any} />
+                        )}
                       </div>
                       {category.status === 'complete' ? (
                         <Badge variant="outline" className="text-xs">

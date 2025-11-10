@@ -1055,6 +1055,42 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_context: {
+        Row: {
+          context_summary: string | null
+          conversation_id: string
+          created_at: string | null
+          current_plan: Json | null
+          id: string
+          issues_identified: Json[] | null
+          issues_resolved: Json[] | null
+          last_updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context_summary?: string | null
+          conversation_id: string
+          created_at?: string | null
+          current_plan?: Json | null
+          id?: string
+          issues_identified?: Json[] | null
+          issues_resolved?: Json[] | null
+          last_updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context_summary?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          current_plan?: Json | null
+          id?: string
+          issues_identified?: Json[] | null
+          issues_resolved?: Json[] | null
+          last_updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       experiments: {
         Row: {
           control_variant: string
