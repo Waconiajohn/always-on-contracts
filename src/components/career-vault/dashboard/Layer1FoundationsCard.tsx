@@ -34,6 +34,17 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
     const hasResumeText = vaultData.vault?.resume_raw_text && 
                          vaultData.vault.resume_raw_text.length > 500;
     
+    // Check for education data in career_vault (stored as JSON fields by V3)
+    const hasEducation = (
+      vaultData.vault?.formal_education && 
+      Array.isArray(vaultData.vault.formal_education) && 
+      vaultData.vault.formal_education.length > 0
+    ) || (
+      vaultData.vault?.certifications && 
+      Array.isArray(vaultData.vault.certifications) && 
+      vaultData.vault.certifications.length > 0
+    );
+    
     // Work Experience - based on power phrases with metrics
     // If no power phrases but we have resume text, extraction is incomplete
     const workExpPercentage = powerPhrasesCount > 0 
@@ -45,8 +56,7 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
       ? Math.min((skillsCount / 15) * 100, 100) 
       : 0;
     
-    // Education & Credentials - check career context for education data
-    const hasEducation = hasCareerContext && vaultData.vault?.auto_populated;
+    // Education & Credentials - based on extracted education data
     const educationPercentage = hasEducation ? 100 : 0;
     
     // Professional Highlights - based on gold-tier items

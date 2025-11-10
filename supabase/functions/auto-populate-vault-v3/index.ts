@@ -168,28 +168,52 @@ serve(async (req) => {
 
     // Store power phrases
     if (result.extracted.powerPhrases.length > 0) {
-      const powerPhrasesInserts = result.extracted.powerPhrases.map((pp: any) => ({
-        vault_id: vaultId,
-        user_id: userId,
-        power_phrase: pp.phrase || pp.power_phrase,
-        category: pp.category,
-        confidence_score: pp.confidence_score || pp.confidenceScore || 0.8,
-        quality_tier: pp.quality_tier || 'assumed',
-        impact_metrics: pp.impact_metrics || pp.impactMetrics,
-        keywords: pp.keywords || [],
-        extraction_session_id: result.sessionId,
-        extraction_metadata: {
-          extractionVersion: 'v3',
-          confidence: result.validation.overallConfidence,
-        },
-      }));
+      console.log(`\n📦 Preparing to store ${result.extracted.powerPhrases.length} power phrases...`);
+      console.log('Sample power phrase structure:', JSON.stringify(result.extracted.powerPhrases[0], null, 2));
+      
+      const powerPhrasesInserts = result.extracted.powerPhrases.map((pp: any) => {
+        const powerPhrase = pp.phrase || pp.power_phrase || pp.achievement || pp.powerPhrase;
+        
+        if (!powerPhrase) {
+          console.error('❌ Power phrase missing required field:', JSON.stringify(pp, null, 2));
+        }
+        
+        return {
+          vault_id: vaultId,
+          user_id: userId,
+          power_phrase: powerPhrase,
+          category: pp.category || 'General',
+          confidence_score: pp.confidence_score || pp.confidenceScore || 0.8,
+          quality_tier: pp.quality_tier || pp.qualityTier || 'assumed',
+          impact_metrics: pp.impact_metrics || pp.impactMetrics || {},
+          keywords: pp.keywords || [],
+          extraction_session_id: result.sessionId,
+          extraction_metadata: {
+            extractionVersion: 'v3',
+            confidence: result.validation.overallConfidence,
+          },
+        };
+      });
 
-      const { error: ppError } = await supabase
-        .from('vault_power_phrases')
-        .insert(powerPhrasesInserts);
+      // Filter out invalid entries
+      const validInserts = powerPhrasesInserts.filter(pp => pp.power_phrase);
+      
+      if (validInserts.length === 0) {
+        console.error('❌ No valid power phrases to insert after filtering');
+      } else {
+        const { error: ppError, count } = await supabase
+          .from('vault_power_phrases')
+          .insert(validInserts)
+          .select('id');
 
-      if (ppError) console.error('Error inserting power phrases:', ppError);
-      else console.log(`✅ Stored ${powerPhrasesInserts.length} power phrases`);
+        if (ppError) {
+          console.error('❌ Error inserting power phrases:', ppError);
+          console.error('Sample failed insert:', JSON.stringify(validInserts[0], null, 2));
+          throw new Error(`Power phrase insertion failed: ${ppError.message}`);
+        } else {
+          console.log(`✅ Successfully stored ${validInserts.length} power phrases`);
+        }
+      }
 
       // ========================================================================
       // AI-BASED MANAGEMENT & EDUCATION ANALYSIS (Replaces regex categorization)
@@ -276,7 +300,11 @@ serve(async (req) => {
 
     // Store soft skills
     if (result.extracted.softSkills.length > 0) {
+      console.log(`\n📦 Preparing to store ${result.extracted.softSkills.length} soft skills...`);
+      console.log('Sample soft skill structure:', JSON.stringify(result.extracted.softSkills[0], null, 2));
+      
       const softSkillsInserts = result.extracted.softSkills.map((ss: any) => {
+        const skillName = ss.soft_skill || ss.skill_name || ss.skill || ss.name;
         const examplesArray = ss.examples || ss.behavioral_evidence || ss.evidence || [];
         let examplesText = Array.isArray(examplesArray) ? examplesArray.join('; ') : String(examplesArray);
         
@@ -285,22 +313,40 @@ serve(async (req) => {
           examplesText = 'Demonstrated through professional experience';
         }
         
+        if (!skillName) {
+          console.error('❌ Soft skill missing name:', JSON.stringify(ss, null, 2));
+        }
+        
         return {
           vault_id: vaultId,
           user_id: userId,
-          skill_name: ss.soft_skill || ss.skill_name || ss.skill,
+          skill_name: skillName,
           examples: examplesText,
           confidence_score: Math.round((ss.confidence_score || ss.confidenceScore || 0.75) * 100),
-          quality_tier: ss.quality_tier || 'assumed',
+          quality_tier: ss.quality_tier || ss.qualityTier || 'assumed',
         };
       });
 
-      const { error: ssError } = await supabase
-        .from('vault_soft_skills')
-        .insert(softSkillsInserts);
+      const validInserts = softSkillsInserts.filter(ss => ss.skill_name);
+      
+      if (validInserts.length === 0) {
+        console.error('❌ No valid soft skills to insert after filtering');
+      } else {
+        const { error: ssError, count } = await supabase
+          .from('vault_soft_skills')
+          .insert(validInserts)
+          .select('id');
 
-      if (ssError) console.error('Error inserting soft skills:', ssError);
-      else console.log(`✅ Stored ${softSkillsInserts.length} soft skills`);
+        if (ssError) {
+          console.error('❌ Error inserting soft skills:', ssError);
+          console.error('Sample failed insert:', JSON.stringify(validInserts[0], null, 2));
+          throw new Error(`Soft skills insertion failed: ${ssError.message}`);
+        } else {
+          console.log(`✅ Successfully stored ${validInserts.length} soft skills`);
+        }
+      }
+    } else {
+      console.warn('⚠️ No soft skills extracted - this may indicate an extraction issue');
     }
 
     // ========================================================================
@@ -369,11 +415,28 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ Auto-populate error:', error);
 
+    // Return detailed error to frontend
+    const errorResponse = {
+      success: false,
+      error: error.message || 'Unknown extraction error',
+      details: {
+        message: error.message,
+        stack: error.stack,
+        phase: 'extraction',
+        timestamp: new Date().toISOString(),
+      },
+      // Provide helpful error messages
+      userMessage: error.message?.includes('power phrase') 
+        ? 'Failed to extract work experience. Please ensure your resume contains detailed achievements.'
+        : error.message?.includes('soft skill')
+        ? 'Failed to extract soft skills. Please check your resume format.'
+        : 'Extraction failed. Please try re-uploading your resume or contact support.',
+    };
+
+    console.error('📤 Sending error response:', JSON.stringify(errorResponse, null, 2));
+
     return new Response(
-      JSON.stringify({
-        error: error.message,
-        details: error.stack,
-      }),
+      JSON.stringify(errorResponse),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -505,6 +568,8 @@ function createExtractCompetenciesFunction(resumeText: string, supabase: any, us
 
 function createExtractSoftSkillsFunction(resumeText: string, supabase: any, userId: string) {
   return async (prompt: string, options?: any) => {
+    console.log('🔍 Extracting soft skills...');
+    
     const result = await callPerplexity(
       {
         messages: [{ role: 'user', content: prompt }],
@@ -523,10 +588,13 @@ function createExtractSoftSkillsFunction(resumeText: string, supabase: any, user
     });
 
     const content = result.response.choices[0].message.content;
+    console.log('📄 Raw soft skills response (first 200 chars):', content.substring(0, 200));
+    
     const parseResult = extractJSON(content);
     
     if (!parseResult.success || !parseResult.data) {
-      console.error('Failed to parse soft skills:', parseResult.error);
+      console.error('❌ Failed to parse soft skills:', parseResult.error);
+      console.error('Raw content:', content);
       return {
         parsedData: { softSkills: [] },
         raw: content,
@@ -534,8 +602,24 @@ function createExtractSoftSkillsFunction(resumeText: string, supabase: any, user
       };
     }
 
+    // Handle both array and object responses
+    let softSkills = parseResult.data;
+    if (!Array.isArray(softSkills)) {
+      // If the response is an object with a softSkills key, extract it
+      if (softSkills.softSkills) {
+        softSkills = softSkills.softSkills;
+      } else if (softSkills.soft_skills) {
+        softSkills = softSkills.soft_skills;
+      } else {
+        // Try to convert object to array
+        softSkills = Object.values(softSkills);
+      }
+    }
+
+    console.log(`✅ Parsed ${softSkills.length} soft skills`);
+
     return {
-      parsedData: { softSkills: parseResult.data },
+      parsedData: { softSkills },
       raw: content,
       usage: result.response.usage,
     };
