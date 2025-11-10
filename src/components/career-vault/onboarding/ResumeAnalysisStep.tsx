@@ -171,9 +171,11 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
         throw new Error('Authentication system is still loading. Please wait a moment.');
       }
 
-      // Get current user
-      const currentUser = user || (await supabase.auth.getUser()).data.user;
-      if (!currentUser) throw new Error('User not authenticated');
+      // Get current user and ensure session is active
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('User not authenticated. Please log in again.');
+      
+      const currentUser = session.user;
 
       let currentVaultId = vaultId;
 
@@ -189,7 +191,7 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
         if (existingVault?.id) {
           // Use existing vault and update the resume text
           currentVaultId = existingVault.id;
-          await supabase
+          const { error: updateError } = await supabase
             .from('career_vault')
             .update({
               resume_raw_text: text,
@@ -197,8 +199,10 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
               vault_version: '2.0',
             })
             .eq('id', currentVaultId);
+          
+          if (updateError) throw updateError;
         } else {
-          // Create new vault
+          // Create new vault - user_id will be validated by RLS
           const { data: vaultData, error: vaultError } = await supabase
             .from('career_vault')
             .insert({
@@ -206,11 +210,14 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
               resume_raw_text: text,
               onboarding_step: 'resume_uploaded',
               vault_version: '2.0',
-            } as any)
+            })
             .select()
             .single();
 
-          if (vaultError) throw vaultError;
+          if (vaultError) {
+            logger.error('Vault creation error', vaultError);
+            throw new Error(`Failed to create vault: ${vaultError.message}`);
+          }
           if (!vaultData?.id) throw new Error('Failed to create vault record');
           currentVaultId = vaultData.id;
         }
