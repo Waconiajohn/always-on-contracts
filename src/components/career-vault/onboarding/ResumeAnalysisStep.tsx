@@ -171,11 +171,25 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
         throw new Error('Authentication system is still loading. Please wait a moment.');
       }
 
-      // Get current user and ensure session is active
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error('User not authenticated. Please log in again.');
+      // Ensure we have a valid, fresh session for RLS to work
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      const currentUser = session.user;
+      if (sessionError || !session) {
+        throw new Error('Session expired. Please log in again.');
+      }
+      
+      // Refresh the session to ensure JWT is valid
+      const { data: { session: refreshedSession }, error: refreshError } = 
+        await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        logger.warn('Session refresh failed, using existing session', { error: refreshError.message });
+      }
+      
+      const currentUser = refreshedSession?.user || session.user;
+      if (!currentUser) {
+        throw new Error('Authentication failed. Please log in again.');
+      }
 
       let currentVaultId = vaultId;
 
