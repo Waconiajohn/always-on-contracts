@@ -107,10 +107,19 @@ serve(async (req) => {
 
     if (cachedContext && !contextError) {
       console.log('[GAP QUESTIONS] ✅ Cache hit - using verified career context');
-      console.log('[GAP QUESTIONS] Cache data:', {
+      console.log('[GAP QUESTIONS] 📊 Full Cache Data Retrieved:', {
+        vaultId: cachedContext.vault_id,
         hasManagement: cachedContext.has_management_experience,
+        managementDetails: cachedContext.management_details,
+        teamSizes: cachedContext.team_sizes_managed,
         hasBudget: cachedContext.has_budget_ownership,
-        hasEducation: !!cachedContext.education_level,
+        budgetAmount: cachedContext.budget_amount,
+        hasExecutive: cachedContext.has_executive_exposure,
+        educationLevel: cachedContext.education_level,
+        educationField: cachedContext.education_field,
+        certifications: cachedContext.certifications,
+        inferredSeniority: cachedContext.inferred_seniority,
+        yearsOfExperience: cachedContext.years_of_experience,
         identifiedGaps: cachedContext.identified_gaps?.length || 0
       });
       
@@ -139,16 +148,22 @@ serve(async (req) => {
       // Build verified areas list
       if (cachedContext.has_management_experience && cachedContext.management_details) {
         verifiedAreas.push(`Management experience: ${cachedContext.management_details}`);
+        console.log('[GAP QUESTIONS] ✓ Management verified:', cachedContext.management_details.substring(0, 100));
       }
       if (cachedContext.has_budget_ownership && cachedContext.budget_details) {
         verifiedAreas.push(`Budget ownership: ${cachedContext.budget_details}`);
+        console.log('[GAP QUESTIONS] ✓ Budget verified:', cachedContext.budget_details);
       }
       if (cachedContext.has_executive_exposure && cachedContext.executive_details) {
         verifiedAreas.push(`Executive exposure: ${cachedContext.executive_details}`);
+        console.log('[GAP QUESTIONS] ✓ Executive verified:', cachedContext.executive_details);
       }
       // ADD EDUCATION TO VERIFIED AREAS
       if (cachedContext.education_level && cachedContext.education_field) {
         verifiedAreas.push(`Education: ${cachedContext.education_level} in ${cachedContext.education_field}`);
+        console.log('[GAP QUESTIONS] ✓ Education verified:', `${cachedContext.education_level} in ${cachedContext.education_field}`);
+      } else {
+        console.log('[GAP QUESTIONS] ⚠ Education NOT verified - may trigger degree questions');
       }
       
       // Extract gaps
@@ -158,12 +173,21 @@ serve(async (req) => {
         });
       }
       
+      console.log('[GAP QUESTIONS] 📋 Verified Areas Summary:');
+      verifiedAreas.forEach(area => console.log(`  ✓ ${area}`));
+      console.log('[GAP QUESTIONS] 📋 Gap Areas Summary:');
+      gapAreas.forEach(gap => console.log(`  ⚠ ${gap}`));
       console.log('[GAP QUESTIONS] ✅ Using cached career context with', verifiedAreas.length, 'verified areas and', gapAreas.length, 'gaps');
     } else {
       console.warn('[GAP QUESTIONS] ⚠️ Cache miss - vault may need re-extraction');
-      console.warn('[GAP QUESTIONS] Context error:', contextError);
-      console.warn('[GAP QUESTIONS] Vault ID:', vaultData.vault_id);
-      console.warn('[GAP QUESTIONS] This will result in verification questions instead of enhancement questions');
+      console.warn('[GAP QUESTIONS] 🔍 Debug Info:', {
+        vaultIdProvided: vaultId,
+        contextError: contextError,
+        errorCode: contextError?.code,
+        errorMessage: contextError?.message,
+        cacheQueryResult: cachedContext
+      });
+      console.warn('[GAP QUESTIONS] ⚠️ This will result in verification questions instead of enhancement questions');
       careerContext = {
         hasManagementExperience: false,
         managementDetails: 'Context not yet analyzed',
@@ -182,13 +206,22 @@ serve(async (req) => {
       };
     }
 
-    console.log('[GAP QUESTIONS] Career context loaded:', { 
+    console.log('[GAP QUESTIONS] 🎯 Final Career Context for AI Prompt:', { 
       hasManagement: careerContext.hasManagementExperience, 
-      level: careerContext.inferredSeniority, 
+      hasBudget: careerContext.hasBudgetOwnership,
+      hasEducation: !!(careerContext.educationLevel && careerContext.educationField),
+      educationLevel: careerContext.educationLevel,
+      educationField: careerContext.educationField,
+      inferredSeniority: careerContext.inferredSeniority,
+      yearsOfExperience: careerContext.yearsOfExperience,
       cached: !!cachedContext,
-      verifiedCount: verifiedAreas.length,
-      gapCount: gapAreas.length
+      verifiedAreasCount: verifiedAreas.length,
+      gapAreasCount: gapAreas.length
     });
+    
+    console.log('[GAP QUESTIONS] 📝 AI Prompt Will Include:');
+    console.log('[GAP QUESTIONS]   - Verified Areas:', verifiedAreas.length > 0 ? verifiedAreas : 'None');
+    console.log('[GAP QUESTIONS]   - Gap Areas:', gapAreas.length > 0 ? gapAreas : 'None');
     
     // ===== PHASE 2: GAP DETECTION (USING CAREER CONTEXT + RESUME) =====
     console.log('[generate-gap-filling-questions] Phase 2: Generating gap questions based on career context and existing data...');
@@ -447,10 +480,16 @@ QUESTION TYPE GUIDELINES:
       }));
     }
 
-    console.log('✅ Generated gap-filling questions:', {
+    console.log('✅ [GAP QUESTIONS] Generated gap-filling questions:', {
       batches: questionData.batches?.length || 0,
       totalQuestions: questionData.totalQuestions || 0,
       estimatedBoost: questionData.estimatedVaultStrengthBoost || 0,
+      criticalGaps: questionData.criticalGapsIdentified || []
+    });
+    
+    console.log('📊 [GAP QUESTIONS] Question Categories Generated:');
+    questionData.batches?.forEach((batch: any, idx: number) => {
+      console.log(`  Batch ${idx + 1}: ${batch.batchTitle} (${batch.questions?.length || 0} questions)`);
     });
 
     // Return with marketing messaging

@@ -849,6 +849,21 @@ async function analyzeAndStoreCareerContext(
     const managementAnalysis = await analyzeManagementExperience(resumeText, userId);
     const educationAnalysis = await analyzeEducation(resumeText, userId);
     
+    console.log('📋 [CACHE-POPULATION] Education Analysis Results:', {
+      highestDegree: educationAnalysis?.highestDegree,
+      fieldOfStudy: educationAnalysis?.fieldOfStudy,
+      certifications: educationAnalysis?.certifications,
+      hasEducation: !!(educationAnalysis?.highestDegree || educationAnalysis?.fieldOfStudy)
+    });
+    
+    console.log('📋 [CACHE-POPULATION] Management Analysis Results:', {
+      hasManagement: managementAnalysis?.hasManagementExperience,
+      teamSizes: managementAnalysis?.teamSizes,
+      hasBudget: managementAnalysis?.hasBudgetResponsibility,
+      budgetAmount: managementAnalysis?.budgetAmount,
+      inferredLevel: managementAnalysis?.inferredLevel
+    });
+    
     const cacheData = {
       vault_id: vaultId,
       user_id: userId,
@@ -881,6 +896,18 @@ async function analyzeAndStoreCareerContext(
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+    
+    console.log('📦 [CACHE-POPULATION] Final Cache Data Being Inserted:', {
+      vaultId: cacheData.vault_id,
+      hasManagement: cacheData.has_management_experience,
+      hasBudget: cacheData.has_budget_ownership,
+      hasExecutive: cacheData.has_executive_exposure,
+      educationLevel: cacheData.education_level,
+      educationField: cacheData.education_field,
+      certifications: cacheData.certifications,
+      inferredSeniority: cacheData.inferred_seniority,
+      yearsOfExperience: cacheData.years_of_experience
+    });
 
     // Delete existing cache first (in case of re-extraction)
     await supabase
@@ -894,10 +921,16 @@ async function analyzeAndStoreCareerContext(
       .insert(cacheData);
 
     if (cacheError) {
-      console.error('❌ Error populating vault_career_context cache:', cacheError);
+      console.error('❌ [CACHE-POPULATION] Error populating vault_career_context cache:', cacheError);
       // Don't fail the whole extraction just because cache failed
     } else {
-      console.log('✅ vault_career_context cache populated successfully');
+      console.log('✅ [CACHE-POPULATION] vault_career_context cache populated successfully');
+      console.log('🎯 [CACHE-POPULATION] Cache Ready for Gap-Filling Questions with:', {
+        educationVerified: !!(cacheData.education_level && cacheData.education_field),
+        managementVerified: cacheData.has_management_experience,
+        budgetVerified: cacheData.has_budget_ownership,
+        executiveVerified: cacheData.has_executive_exposure
+      });
     }
 
     console.log(`✅ Stored career context analysis`);
