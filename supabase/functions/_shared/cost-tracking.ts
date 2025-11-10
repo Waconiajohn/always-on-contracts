@@ -16,6 +16,12 @@ export async function logAIUsage(metrics: AIUsageMetrics): Promise<void> {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Skip if cost data is missing
+    if (metrics.cost_usd === undefined || metrics.cost_usd === null) {
+      console.warn('[cost-tracking] Skipping log - missing cost data');
+      return;
+    }
+
     const { error } = await supabase
       .from('ai_usage_metrics')
       .insert({

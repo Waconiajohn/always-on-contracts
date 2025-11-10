@@ -383,6 +383,7 @@ export type Database = {
           confidence_score: number | null
           created_at: string
           id: string
+          latency_ms: number | null
           metadata: Json | null
           parsed_data: Json | null
           pass_type: string
@@ -395,6 +396,7 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string
           id?: string
+          latency_ms?: number | null
           metadata?: Json | null
           parsed_data?: Json | null
           pass_type: string
@@ -407,6 +409,7 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string
           id?: string
+          latency_ms?: number | null
           metadata?: Json | null
           parsed_data?: Json | null
           pass_type?: string
