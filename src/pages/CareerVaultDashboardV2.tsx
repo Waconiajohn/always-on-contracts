@@ -347,6 +347,7 @@ const VaultDashboardContent = () => {
             vaultData={vaultData}
             stats={stats}
             onSectionClick={handleSectionClick}
+            onReextract={handleReanalyze}
           />
           
           <Layer2IntelligenceCard

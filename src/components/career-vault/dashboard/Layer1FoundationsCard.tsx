@@ -8,6 +8,7 @@ interface Layer1FoundationsCardProps {
   vaultData: VaultData | undefined;
   stats: VaultStats | null;
   onSectionClick: (section: string) => void;
+  onReextract?: () => void;
 }
 
 interface SectionStatus {
@@ -20,7 +21,7 @@ interface SectionStatus {
   section: string;
 }
 
-export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick }: Layer1FoundationsCardProps) => {
+export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReextract }: Layer1FoundationsCardProps) => {
   if (!vaultData || !stats) return null;
 
   const calculateSectionStatus = (): SectionStatus[] => {
@@ -138,7 +139,14 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick }: Laye
               <Button 
                 variant={section.status === 'empty' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => onSectionClick(section.section)}
+                onClick={() => {
+                  // If this is work-experience with 0 items, trigger re-extraction
+                  if (section.section === 'work-experience' && section.count === 0 && onReextract) {
+                    onReextract();
+                  } else {
+                    onSectionClick(section.section);
+                  }
+                }}
               >
                 {section.ctaText}
                 <ArrowRight className="ml-2 h-4 w-4" />
