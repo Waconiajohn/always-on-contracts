@@ -347,6 +347,7 @@ export type Database = {
       ai_responses: {
         Row: {
           ai_reasoning: string | null
+          confidence_score: number | null
           created_at: string
           id: string
           metadata: Json | null
@@ -358,6 +359,7 @@ export type Database = {
         }
         Insert: {
           ai_reasoning?: string | null
+          confidence_score?: number | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -369,6 +371,7 @@ export type Database = {
         }
         Update: {
           ai_reasoning?: string | null
+          confidence_score?: number | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -390,15 +393,15 @@ export type Database = {
       }
       ai_usage_metrics: {
         Row: {
-          cost_usd: number
+          cost_usd: number | null
           created_at: string
           error_code: string | null
           execution_time_ms: number | null
           function_name: string | null
           id: string
-          input_tokens: number
+          input_tokens: number | null
           model: string
-          output_tokens: number
+          output_tokens: number | null
           prompt_tokens_cached: number | null
           provider: string
           request_id: string | null
@@ -406,15 +409,15 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          cost_usd: number
+          cost_usd?: number | null
           created_at?: string
           error_code?: string | null
           execution_time_ms?: number | null
           function_name?: string | null
           id?: string
-          input_tokens: number
+          input_tokens?: number | null
           model: string
-          output_tokens: number
+          output_tokens?: number | null
           prompt_tokens_cached?: number | null
           provider?: string
           request_id?: string | null
@@ -422,15 +425,15 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          cost_usd?: number
+          cost_usd?: number | null
           created_at?: string
           error_code?: string | null
           execution_time_ms?: number | null
           function_name?: string | null
           id?: string
-          input_tokens?: number
+          input_tokens?: number | null
           model?: string
-          output_tokens?: number
+          output_tokens?: number | null
           prompt_tokens_cached?: number | null
           provider?: string
           request_id?: string | null
@@ -1076,7 +1079,7 @@ export type Database = {
       extraction_checkpoints: {
         Row: {
           checkpoint_data: Json
-          checkpoint_name: string
+          checkpoint_name: string | null
           created_at: string
           id: string
           phase: string | null
@@ -1084,7 +1087,7 @@ export type Database = {
         }
         Insert: {
           checkpoint_data: Json
-          checkpoint_name: string
+          checkpoint_name?: string | null
           created_at?: string
           id?: string
           phase?: string | null
@@ -1092,7 +1095,7 @@ export type Database = {
         }
         Update: {
           checkpoint_data?: Json
-          checkpoint_name?: string
+          checkpoint_name?: string | null
           created_at?: string
           id?: string
           phase?: string | null
