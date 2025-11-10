@@ -125,9 +125,6 @@ export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView
               <div className="space-y-4">
                 <VaultNuclearReset
                   vaultId={vaultId}
-                  resumeText={vault?.resume_raw_text || ''}
-                  targetRoles={vault?.target_roles || []}
-                  targetIndustries={vault?.target_industries || []}
                   onResetComplete={onRefresh}
                 />
                 <VaultMigrationTool

@@ -6,21 +6,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { VAULT_TABLE_NAMES } from '@/lib/constants/vaultTables';
-import { validateInput, invokeEdgeFunction, AutoPopulateVaultSchema } from '@/lib/edgeFunction';
 
 interface VaultNuclearResetProps {
   vaultId: string;
-  resumeText: string;
-  targetRoles?: string[];
-  targetIndustries?: string[];
   onResetComplete?: () => void;
 }
 
 export const VaultNuclearReset = ({ 
   vaultId, 
-  resumeText, 
-  targetRoles, 
-  targetIndustries,
   onResetComplete 
 }: VaultNuclearResetProps) => {
   const [isResetting, setIsResetting] = useState(false);
@@ -84,24 +77,7 @@ export const VaultNuclearReset = ({
         })
         .eq('id', vaultId);
 
-      toast.success('Vault completely cleared - ready for fresh extraction');
-
-      // 6. Trigger v3 extraction with AI-based analysis
-      const validatedInput = validateInput(AutoPopulateVaultSchema, {
-        resumeText,
-        vaultId,
-        targetRoles,
-        targetIndustries
-      });
-
-      const { error: extractError } = await invokeEdgeFunction(
-        'auto-populate-vault-v3',
-        validatedInput
-      );
-
-      if (extractError) throw extractError;
-
-      toast.success('Vault re-extracted with v3 - check for improvements!');
+      toast.success('Vault completely cleared. All data set to zero. Upload a resume to start fresh.');
       
       if (onResetComplete) {
         onResetComplete();
@@ -121,7 +97,7 @@ export const VaultNuclearReset = ({
           Nuclear Reset
         </CardTitle>
         <CardDescription>
-          Delete ALL vault items, gap analysis, and re-extract cleanly with AI-powered v3
+          Delete ALL vault items and reset everything to zero. Upload a resume afterward to start fresh.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -140,7 +116,7 @@ export const VaultNuclearReset = ({
               ) : (
                 <>
                   <AlertTriangle className="mr-2 h-4 w-4" />
-                  Clear Vault & Re-Extract
+                  Clear Vault to Zero
                 </>
               )}
             </Button>
@@ -152,25 +128,19 @@ export const VaultNuclearReset = ({
                 This will permanently delete:
                 <ul className="list-disc list-inside mt-2 mb-2">
                   <li>All {VAULT_TABLE_NAMES.length} vault item tables</li>
-                  <li>All gap analysis data (cached blockers)</li>
+                  <li>All gap analysis data</li>
+                  <li>All career context</li>
+                  <li>All extraction history</li>
                 </ul>
-                Then re-extract everything from your resume using AI-powered v3.
+                Everything will be set to ZERO. You'll need to upload a resume afterward to start fresh.
                 <br /><br />
                 This action cannot be undone.
-                <br /><br />
-                <strong>Use this to fix:</strong>
-                <ul className="list-disc list-inside mt-2">
-                  <li>Cached blockers showing despite management experience</li>
-                  <li>Massive duplicates</li>
-                  <li>Wrong categorization (management in wrong table)</li>
-                  <li>Poor quality extractions from v2</li>
-                </ul>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={clearVaultAndReExtract}>
-                Yes, Reset Everything
+                Yes, Clear to Zero
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

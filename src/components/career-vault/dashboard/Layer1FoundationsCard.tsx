@@ -28,9 +28,7 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
     const powerPhrasesCount = stats.categoryCounts.powerPhrases;
     const skillsCount = stats.categoryCounts.transferableSkills;
     
-    // Check if we have career context data or resume text (indicates work experience exists)
-    const hasCareerContext = vaultData.careerContext?.industries?.length > 0 || 
-                            vaultData.careerContext?.specializations?.length > 0;
+    // Check if we have resume text (indicates work experience exists)
     const hasResumeText = vaultData.vault?.resume_raw_text && 
                          vaultData.vault.resume_raw_text.length > 500;
     
