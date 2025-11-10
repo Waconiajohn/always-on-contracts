@@ -258,8 +258,8 @@ const VaultDashboardContent = () => {
   // Blockers are handled through enhancement questions, not displayed separately
   const criticalBlockers: any[] = [];
 
-  // Loading state
-  if (isLoading) {
+  // Loading state - show while fetching user OR vault data
+  if (!userId || isLoading) {
     return (
       <ContentLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -272,8 +272,8 @@ const VaultDashboardContent = () => {
     );
   }
 
-  // Error state - only show if NOT loading and NO data (prevents flash during initial load)
-  if (!isLoading && !vaultData) {
+  // Error state - only show if we have userId but no data (prevents flash during initial load)
+  if (!vaultData) {
     return (
       <ContentLayout>
         <div className="p-8">
@@ -287,9 +287,6 @@ const VaultDashboardContent = () => {
       </ContentLayout>
     );
   }
-
-  // Type guard: At this point, vaultData is guaranteed to exist
-  if (!vaultData) return null;
 
   // AI-powered career level detection
   const determineCareerLevel = () => {
