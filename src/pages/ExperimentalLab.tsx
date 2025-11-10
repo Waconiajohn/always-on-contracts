@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { usePerplexityResearch } from '@/hooks/usePerplexityResearch';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -22,6 +24,7 @@ import {
   BookOpen,
   Users,
   Brain,
+  Filter,
 } from 'lucide-react';
 
 interface TrendInsight {
@@ -36,6 +39,27 @@ interface TrendInsight {
 }
 
 type ResearchCategory = 'linkedin' | 'twitter' | 'facebook' | 'reddit' | 'resume' | 'interview' | 'networking' | 'ai-tools';
+
+type ExperienceLevel = 'entry-level' | 'mid-career' | 'senior' | 'executive';
+
+const experienceLevels: Record<ExperienceLevel, { label: string; description: string }> = {
+  'entry-level': {
+    label: 'Entry-Level',
+    description: '0-3 years of experience, early career professionals',
+  },
+  'mid-career': {
+    label: 'Mid-Career',
+    description: '4-8 years of experience, established professionals',
+  },
+  'senior': {
+    label: 'Senior',
+    description: '9-15 years of experience, senior professionals and specialists',
+  },
+  'executive': {
+    label: 'Executive',
+    description: '15+ years of experience, C-suite and leadership roles',
+  },
+};
 
 const researchTopics: Record<ResearchCategory, { title: string; icon: any; prompt: string }> = {
   linkedin: {
@@ -82,6 +106,7 @@ const researchTopics: Record<ResearchCategory, { title: string; icon: any; promp
 
 export default function ExperimentalLab() {
   const [activeCategory, setActiveCategory] = useState<ResearchCategory>('linkedin');
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('executive');
   const [insights, setInsights] = useState<TrendInsight[]>([]);
   const [researchProgress, setResearchProgress] = useState(0);
   const { research, isResearching } = usePerplexityResearch();
@@ -91,6 +116,7 @@ export default function ExperimentalLab() {
   const runExperiment = async (category: ResearchCategory) => {
     setResearchProgress(0);
     const topic = researchTopics[category];
+    const levelContext = experienceLevels[experienceLevel];
 
     try {
       // Simulate progress
@@ -98,10 +124,13 @@ export default function ExperimentalLab() {
         setResearchProgress((prev) => Math.min(prev + 10, 90));
       }, 500);
 
+      // Enhance prompt with experience level context
+      const enhancedPrompt = `${topic.prompt} Focus specifically on advice and strategies for ${levelContext.label} professionals (${levelContext.description}).`;
+
       const result = await research({
         research_type: 'market_intelligence',
         query_params: {
-          query: topic.prompt,
+          query: enhancedPrompt,
           focus_area: category,
           include_citations: true,
           recency: 'last_3_months',
@@ -212,10 +241,38 @@ export default function ExperimentalLab() {
           <TrendingUp className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-sm text-foreground">
             <strong className="text-blue-700">Live Market Intelligence:</strong> We analyze real-time trends
-            from LinkedIn, Twitter/X, and top career resources to discover what's actually working in today's
+            from LinkedIn, Twitter/X, Facebook, Reddit, and top career resources to discover what's actually working in today's
             job market. Run experiments to test new strategies before your competition.
           </AlertDescription>
         </Alert>
+
+        {/* Experience Level Filter */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-primary" />
+              Experience Level Filter
+            </CardTitle>
+            <CardDescription>
+              Tailor research insights to your career stage for more relevant recommendations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RadioGroup value={experienceLevel} onValueChange={(v) => setExperienceLevel(v as ExperienceLevel)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Object.entries(experienceLevels).map(([key, { label, description }]) => (
+                  <div key={key} className="flex items-start space-x-3 space-y-0">
+                    <RadioGroupItem value={key} id={key} className="mt-1" />
+                    <Label htmlFor={key} className="flex-1 cursor-pointer">
+                      <div className="font-medium">{label}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{description}</div>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </RadioGroup>
+          </CardContent>
+        </Card>
 
         {/* Research Categories */}
         <Card className="border-2">
