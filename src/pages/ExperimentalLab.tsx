@@ -35,7 +35,7 @@ interface TrendInsight {
   timestamp: Date;
 }
 
-type ResearchCategory = 'linkedin' | 'twitter' | 'resume' | 'interview' | 'networking' | 'ai-tools';
+type ResearchCategory = 'linkedin' | 'twitter' | 'facebook' | 'reddit' | 'resume' | 'interview' | 'networking' | 'ai-tools';
 
 const researchTopics: Record<ResearchCategory, { title: string; icon: any; prompt: string }> = {
   linkedin: {
@@ -47,6 +47,16 @@ const researchTopics: Record<ResearchCategory, { title: string; icon: any; promp
     title: 'Twitter/X Insights',
     icon: Twitter,
     prompt: 'What are the most effective job search tactics and career advice trending on Twitter/X in 2025? Include insights from recruiters, hiring managers, and career experts.',
+  },
+  facebook: {
+    title: 'Facebook Groups',
+    icon: Users,
+    prompt: 'What job search strategies and career advice are being shared in popular Facebook career groups in 2025? Focus on executive job search groups, career transition communities, and professional networking groups.',
+  },
+  reddit: {
+    title: 'Reddit Communities',
+    icon: Sparkles,
+    prompt: 'What job search tactics and career advice are trending on Reddit career subreddits (r/jobs, r/careeradvice, r/resumes, r/cscareerquestions) in 2025? Include real success stories and what actually worked for job seekers.',
   },
   resume: {
     title: 'Resume Innovations',
@@ -220,7 +230,7 @@ export default function ExperimentalLab() {
           </CardHeader>
           <CardContent>
             <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as ResearchCategory)}>
-              <TabsList className="grid grid-cols-3 lg:grid-cols-6 gap-2 h-auto p-2 bg-muted/50">
+              <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 h-auto p-2 bg-muted/50">
                 {Object.entries(researchTopics).map(([key, { title, icon: Icon }]) => (
                   <TabsTrigger
                     key={key}
