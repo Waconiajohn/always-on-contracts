@@ -46,11 +46,63 @@ serve(async (req) => {
 
     console.log('Parsing resume file:', fileName);
 
+    // Validate base64 data
+    const cleanBase64 = (str: string): string => {
+      // Remove whitespace and newlines
+      return str.replace(/\s/g, '');
+    };
+
+    const isValidBase64 = (str: string): boolean => {
+      try {
+        const cleaned = cleanBase64(str);
+        // Check if it matches base64 pattern
+        const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+        if (!base64Regex.test(cleaned)) {
+          return false;
+        }
+        // Try to decode a small portion
+        atob(cleaned.slice(0, Math.min(100, cleaned.length)));
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (!fileData || fileData.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No file data provided' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (!isValidBase64(fileData)) {
+      console.error('Invalid base64 data received, length:', fileData.length);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid file data format. Please try re-uploading your resume.' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const cleanedFileData = cleanBase64(fileData);
     let extractedText = '';
 
     // Handle text files
     if (fileName.endsWith('.txt')) {
-      extractedText = atob(fileData);
+      try {
+        extractedText = atob(cleanedFileData);
+      } catch (err) {
+        console.error('Failed to decode text file:', err);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to read text file. Please ensure the file is not corrupted.' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
     }
     // Handle PDF files with pdfjs
     else if (fileName.endsWith('.pdf')) {
@@ -58,7 +110,7 @@ serve(async (req) => {
       
       try {
         // Convert base64 to Uint8Array
-        const binaryString = atob(fileData);
+        const binaryString = atob(cleanedFileData);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
