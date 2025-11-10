@@ -272,8 +272,8 @@ const VaultDashboardContent = () => {
     );
   }
 
-  // Error state
-  if (!vaultData) {
+  // Error state - only show if NOT loading and NO data (prevents flash during initial load)
+  if (!isLoading && !vaultData) {
     return (
       <ContentLayout>
         <div className="p-8">
@@ -287,6 +287,9 @@ const VaultDashboardContent = () => {
       </ContentLayout>
     );
   }
+
+  // Type guard: At this point, vaultData is guaranteed to exist
+  if (!vaultData) return null;
 
   // AI-powered career level detection
   const determineCareerLevel = () => {
