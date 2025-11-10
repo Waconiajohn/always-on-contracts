@@ -9,7 +9,18 @@ interface PlainEnglishHeroProps {
 }
 
 export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEnglishHeroProps) => {
-  const getScoreInfo = (score: number) => {
+  const getScoreInfo = (score: number, totalItems: number) => {
+    // Special case: no items extracted yet
+    if (totalItems === 0) {
+      return {
+        label: 'Not Started',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted',
+        emoji: '📄',
+        message: 'Upload your resume to get started. We\'ll extract your career achievements automatically.'
+      };
+    }
+
     if (score >= 85) return {
       label: 'Excellent',
       color: 'text-green-600',
@@ -38,16 +49,18 @@ export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEn
       emoji: '🔴',
       message: 'Your resume has the basics, but we couldn\'t find much detail about your achievements and impact.'
     };
+    
+    // Low score with items = extraction may have failed
     return {
-      label: 'Incomplete',
+      label: 'Extraction Issue',
       color: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-950/20',
-      emoji: '❌',
-      message: 'Your resume is missing critical information. Let\'s build it out together.'
+      emoji: '🔄',
+      message: 'The extraction didn\'t capture enough detail. Click "Re-Run Extraction" to try again with our improved AI.'
     };
   };
 
-  const scoreInfo = getScoreInfo(score);
+  const scoreInfo = getScoreInfo(score, totalItems);
 
   return (
     <Card className="border-2 border-primary/20 shadow-lg">
@@ -99,12 +112,20 @@ export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEn
               </p>
             </div>
 
-            {score < 70 && (
+            {totalItems === 0 ? (
               <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
                 <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  Most hiring managers won't see your full value without more specific details. 
-                  Complete the sections below to improve your positioning.
+                  Upload your resume to automatically extract your career achievements, skills, and impact.
+                </p>
+              </div>
+            ) : score < 70 && (
+              <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  {score < 30 
+                    ? 'Our AI extraction may not have captured enough detail. Re-run extraction with our improved engine.'
+                    : 'Most hiring managers won\'t see your full value without more specific details. Complete the sections below or re-run extraction.'}
                 </p>
               </div>
             )}
@@ -114,10 +135,15 @@ export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEn
               className="w-full md:w-auto"
               size="lg"
             >
-              {score < 70 ? (
+              {totalItems === 0 ? (
                 <>
                   <TrendingUp className="mr-2 h-4 w-4" />
-                  Fix My Resume
+                  Upload Resume
+                </>
+              ) : score < 70 ? (
+                <>
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  Re-Run Extraction
                 </>
               ) : (
                 <>

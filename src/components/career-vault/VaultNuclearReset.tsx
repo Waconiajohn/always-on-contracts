@@ -22,7 +22,9 @@ export const VaultNuclearReset = ({
     setIsResetting(true);
 
     try {
-      // 1. Delete ALL vault items from all 10 tables
+      console.log('🔥 NUCLEAR RESET: Starting complete vault wipe for vault:', vaultId);
+      
+      // 1. Delete ALL vault items from all 10 tables with logging
       const deletePromises = VAULT_TABLE_NAMES.map(async (tableName) => {
         const tableConfig = {
           vault_power_phrases: 'vault_id',
@@ -37,33 +39,74 @@ export const VaultNuclearReset = ({
           vault_behavioral_indicators: 'vault_id',
         }[tableName] || 'vault_id';
 
-        return supabase
+        // Count before deletion
+        const { count: beforeCount } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true })
+          .eq(tableConfig, vaultId);
+
+        console.log(`📊 ${tableName}: ${beforeCount} items before deletion`);
+
+        const { error } = await supabase
           .from(tableName)
           .delete()
           .eq(tableConfig, vaultId);
+
+        if (error) {
+          console.error(`❌ Failed to delete from ${tableName}:`, error);
+          throw error;
+        }
+
+        // Verify deletion
+        const { count: afterCount } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true })
+          .eq(tableConfig, vaultId);
+
+        console.log(`✅ ${tableName}: ${afterCount} items after deletion (deleted ${beforeCount})`);
+        
+        return { tableName, deleted: beforeCount };
       });
 
-      await Promise.all(deletePromises);
+      const deletionResults = await Promise.all(deletePromises);
+      const totalDeleted = deletionResults.reduce((sum, r) => sum + (r.deleted || 0), 0);
+      console.log(`🗑️ Total vault items deleted: ${totalDeleted}`);
 
-      // 2. Delete gap analysis data (cached analysis from before AI extraction fix)
-      await supabase
+      // 2. Delete gap analysis data
+      console.log('🧹 Deleting gap analysis data...');
+      const { error: gapError } = await supabase
         .from('vault_gap_analysis')
         .delete()
         .eq('vault_id', vaultId);
+      
+      if (gapError) {
+        console.error('❌ Failed to delete gap analysis:', gapError);
+        throw gapError;
+      }
 
       // 3. Delete career context cache
-      await supabase
+      console.log('🧹 Deleting career context cache...');
+      const { error: contextError } = await supabase
         .from('vault_career_context')
         .delete()
         .eq('vault_id', vaultId);
+      
+      if (contextError) {
+        console.error('❌ Failed to delete career context:', contextError);
+        throw contextError;
+      }
 
-      // 4. Delete new vault tables (thought leadership, network, competitive advantages)
-      await supabase.from('vault_thought_leadership').delete().eq('vault_id', vaultId);
-      await supabase.from('vault_professional_network').delete().eq('vault_id', vaultId);
-      await supabase.from('vault_competitive_advantages').delete().eq('vault_id', vaultId);
+      // 4. Delete new vault tables
+      console.log('🧹 Deleting thought leadership, network, competitive advantages...');
+      await Promise.all([
+        supabase.from('vault_thought_leadership').delete().eq('vault_id', vaultId),
+        supabase.from('vault_professional_network').delete().eq('vault_id', vaultId),
+        supabase.from('vault_competitive_advantages').delete().eq('vault_id', vaultId),
+      ]);
 
       // 5. Reset career_vault metadata to zero state
-      await supabase
+      console.log('♻️ Resetting career_vault metadata to zero...');
+      const { error: resetError } = await supabase
         .from('career_vault')
         .update({
           onboarding_step: 'not_started',
@@ -77,13 +120,25 @@ export const VaultNuclearReset = ({
         })
         .eq('id', vaultId);
 
+      if (resetError) {
+        console.error('❌ Failed to reset career_vault metadata:', resetError);
+        throw resetError;
+      }
+
+      console.log('✅ NUCLEAR RESET COMPLETE: All data wiped to zero state');
+      
       toast.success('Vault completely cleared. All data set to zero. Upload a resume to start fresh.');
       
+      // Force cache invalidation to show zero state immediately
       if (onResetComplete) {
         onResetComplete();
       }
-    } catch (error) {
-      // Error already handled by invokeEdgeFunction
+    } catch (error: any) {
+      console.error('❌ NUCLEAR RESET FAILED:', error);
+      toast.error(
+        error.message || 'Failed to reset vault. Some data may remain. Please refresh and try again.',
+        { duration: 5000 }
+      );
     } finally {
       setIsResetting(false);
     }

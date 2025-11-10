@@ -28,7 +28,9 @@ import { useQuickWins, QuickWin } from '@/components/career-vault/dashboard/lega
 import { calculateMarketRank } from '@/lib/utils/missionGenerator';
 import { handleVaultError, handleVaultSuccess } from '@/lib/utils/errorHandling';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Info } from "lucide-react";
+import { toast } from "sonner";
 
 // Lazy load heavy components (progressive disclosure)
 const VaultTabs = lazy(() => import('@/components/career-vault/dashboard/VaultTabs').then(m => ({ default: m.VaultTabs })));
@@ -169,16 +171,63 @@ const VaultDashboardContent = () => {
     }
   }, []);
 
-  const handlePrimaryAction = useCallback(() => {
-    // Determine what action to take based on score
-    const score = stats?.strengthScore.total || 0;
-    if (score < 70) {
-      // Low score = incomplete resume, open resume management modal
-      setResumeModalOpen(true);
-    } else {
-      navigate('/create-resume');
+  const handleReExtract = useCallback(async () => {
+    if (!vaultData?.vault?.id || !vaultData?.vault?.resume_raw_text) {
+      toast.error('No resume found to re-extract. Please upload a resume first.');
+      return;
     }
-  }, [stats?.strengthScore.total, navigate]);
+
+    const confirmed = window.confirm(
+      'This will re-analyze your existing resume using the latest AI extraction. Any manually added items will be preserved. Continue?'
+    );
+
+    if (!confirmed) return;
+
+    setIsReanalyzing(true);
+    try {
+      console.log('🔄 Starting re-extraction with existing resume text...');
+      
+      const { error } = await supabase.functions.invoke('auto-populate-vault-v3', {
+        body: {
+          vaultId: vaultData.vault.id,
+          resumeText: vaultData.vault.resume_raw_text,
+          mode: 'full',
+          targetRoles: vaultData.userProfile?.target_roles,
+        },
+      });
+
+      if (error) throw error;
+
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+
+      handleVaultSuccess('Re-extraction complete! Your vault has been refreshed.');
+    } catch (error: any) {
+      handleVaultError(error, 'Re-extraction failed');
+    } finally {
+      setIsReanalyzing(false);
+    }
+  }, [vaultData?.vault?.id, vaultData?.vault?.resume_raw_text, vaultData?.userProfile?.target_roles, refetch, queryClient]);
+
+  const handlePrimaryAction = useCallback(() => {
+    const score = stats?.strengthScore.total || 0;
+    const totalItems = stats?.totalItems || 0;
+    
+    // No items extracted yet = need to upload resume
+    if (totalItems === 0) {
+      navigate('/career-vault'); // This will trigger onboarding
+      return;
+    }
+    
+    // Have items but low score = need to re-extract
+    if (score < 70) {
+      handleReExtract();
+      return;
+    }
+    
+    // Good score = ready to create resume
+    navigate('/create-resume');
+  }, [stats?.strengthScore.total, stats?.totalItems, navigate, handleReExtract]);
 
   // Mission callbacks (memoized to prevent infinite loops)
   const missionCallbacks = useMemo(() => ({
@@ -342,6 +391,23 @@ const VaultDashboardContent = () => {
           onPrimaryAction={handlePrimaryAction}
         />
 
+        {/* Show extraction progress if currently re-extracting */}
+        {isReanalyzing && (
+          <Card className="border-primary">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <div>
+                  <h3 className="font-semibold">Re-running extraction...</h3>
+                  <p className="text-sm text-muted-foreground">
+                    This may take 1-2 minutes. Your vault will refresh automatically when complete.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ====================================================================
             3-LAYER STRUCTURE - Career Vault Sections
             ==================================================================== */}
@@ -435,7 +501,10 @@ const VaultDashboardContent = () => {
               vaultId={vaultData.vault.id}
               vault={vaultData.vault}
               vaultData={vaultData}
-              onRefresh={() => refetch()}
+              onRefresh={async () => {
+                await refetch();
+                queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+              }}
               onEdit={handleEditItem}
               onView={handleViewItem}
             />
