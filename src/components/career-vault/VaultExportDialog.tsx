@@ -37,7 +37,6 @@ import {
   Sparkles,
   CheckCircle2,
 } from 'lucide-react';
-import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 const CATEGORIES = [
@@ -75,7 +74,6 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
-  const supabase = useSupabaseClient();
   const { toast } = useToast();
 
   const toggleCategory = (key: string) => {

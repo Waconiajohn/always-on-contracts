@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Award, ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { validateInput, invokeEdgeFunction, SubmitMicroAnswersSchema } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
 

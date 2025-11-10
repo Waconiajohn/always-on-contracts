@@ -205,7 +205,6 @@ const JobSearchContent = () => {
       
       for (const job of topJobs) {
         const { data, error } = await invokeEdgeFunction(
-          supabase,
           'ai-job-matcher',
           {
             userId,
@@ -273,7 +272,6 @@ const JobSearchContent = () => {
 
     try {
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'unified-job-search',
         {
           query: searchQuery,

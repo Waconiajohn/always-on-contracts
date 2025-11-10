@@ -95,7 +95,6 @@ export const VaultNuclearReset = ({
       });
 
       const { error: extractError } = await invokeEdgeFunction(
-        supabase,
         'auto-populate-vault-v3',
         validatedInput
       );

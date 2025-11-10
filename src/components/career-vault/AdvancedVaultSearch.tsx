@@ -36,7 +36,6 @@ import {
   Zap,
   Eye
 } from 'lucide-react';
-import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface SearchResult {
@@ -78,7 +77,6 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
   const [searchMeta, setSearchMeta] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const supabase = useSupabaseClient();
   const { toast } = useToast();
 
   const handleSearch = async () => {

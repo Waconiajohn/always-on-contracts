@@ -45,7 +45,6 @@ import {
   CheckCircle2,
   Clock,
 } from 'lucide-react';
-import { useSupabaseClient } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { validateInput, invokeEdgeFunction, BulkVaultOperationsSchema } from '@/lib/edgeFunction';
 
@@ -74,7 +73,6 @@ export default function BulkVaultOperations({
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
 
-  const supabase = useSupabaseClient();
   const { toast } = useToast();
 
   const groupedByTable = selectedItems.reduce((acc, item) => {

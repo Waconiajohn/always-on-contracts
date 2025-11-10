@@ -81,10 +81,8 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
         });
 
         const { data, error: cleanupError } = await invokeEdgeFunction(
-          supabase,
           'vault-cleanup',
-          validatedInput,
-          { suppressErrorToast: true }
+          validatedInput
         );
 
         if (!cleanupError) {
@@ -118,10 +116,8 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
       });
 
       const { data: extractionData, error: extractionError } = await invokeEdgeFunction(
-        supabase,
         'auto-populate-vault-v3',
-        validatedExtractionInput,
-        { suppressErrorToast: true }
+        validatedExtractionInput
       );
 
       if (extractionError) {
