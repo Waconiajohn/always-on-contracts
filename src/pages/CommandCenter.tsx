@@ -339,14 +339,14 @@ const CommandCenter = () => {
                   return (
                     <Card
                       key={feature.name}
-                      className={`transition-all ${
+                      className={`transition-all relative group ${
                         feature.isLocked 
-                          ? 'opacity-50 cursor-not-allowed' 
+                          ? 'cursor-not-allowed' 
                           : 'hover:shadow-lg cursor-pointer'
                       }`}
                       onClick={() => handleFeatureClick(feature)}
                     >
-                      <CardHeader className="pb-4">
+                      <CardHeader className={`pb-4 ${feature.isLocked ? 'filter blur-[2px] opacity-70 group-hover:blur-[1px] group-hover:opacity-85 transition-all' : ''}`}>
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
                             <div className={`p-3 rounded-lg ${
@@ -358,16 +358,11 @@ const CommandCenter = () => {
                             </div>
                             <CardTitle className="text-xl">{feature.name}</CardTitle>
                           </div>
-                          {getStatusIcon(feature)}
+                          {!feature.isLocked && getStatusIcon(feature)}
                         </div>
                         <CardDescription>{feature.description}</CardDescription>
-                        {feature.isLocked && feature.requiredCompletion && (
-                          <p className="text-xs text-destructive mt-2">
-                            🔒 {feature.requiredCompletion}
-                          </p>
-                        )}
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className={`space-y-3 ${feature.isLocked ? 'filter blur-[2px] opacity-70 group-hover:blur-[1px] group-hover:opacity-85 transition-all' : ''}`}>
                         {!feature.isLocked && (
                           <>
                             <div className="space-y-2">
@@ -390,6 +385,20 @@ const CommandCenter = () => {
                           </>
                         )}
                       </CardContent>
+                      
+                      {feature.isLocked && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-[2px] flex items-center justify-center rounded-lg border-2 border-primary/20 group-hover:border-primary/30 transition-colors">
+                          <div className="text-center p-4 bg-card/90 rounded-lg shadow-xl max-w-[80%]">
+                            <Lock className="h-8 w-8 mx-auto mb-2 text-primary" />
+                            <p className="font-semibold text-sm mb-1">Locked</p>
+                            {feature.requiredCompletion && (
+                              <p className="text-xs text-muted-foreground">
+                                {feature.requiredCompletion}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </Card>
                   );
                 })}

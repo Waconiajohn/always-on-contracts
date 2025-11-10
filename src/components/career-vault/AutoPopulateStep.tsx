@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Brain, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Brain, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -11,6 +11,7 @@ import {
   validateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
+import { AIThinkingIndicator } from './AIThinkingIndicator';
 
 interface AutoPopulateStepProps {
   vaultId: string;
@@ -39,8 +40,6 @@ export const AutoPopulateStep = ({
   const [extractedData, setExtractedData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [deepAnalysis, setDeepAnalysis] = useState(false);
-  const [analysisMessage, setAnalysisMessage] = useState('');
-  const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -52,9 +51,6 @@ export const AutoPopulateStep = ({
     return () => {
       clearTimeout(timer);
       // Cleanup intervals on unmount
-      if (messageIntervalRef.current) {
-        clearInterval(messageIntervalRef.current);
-      }
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
       }
@@ -75,16 +71,6 @@ export const AutoPopulateStep = ({
         console.warn('[AUTO-POPULATE] Session refresh warning:', refreshError);
       }
 
-      const messages = [
-        '🧠 AI is analyzing your achievements...',
-        '💡 Discovering hidden competencies...',
-        '✨ Extracting leadership insights...',
-        '🎯 Identifying transferable skills...',
-        '🔍 Finding power phrases with metrics...'
-      ];
-
-      let messageIndex = 0;
-
       // Progress updates - stop at 85%
       progressInterval = setInterval(() => {
         setProgress(prev => {
@@ -93,13 +79,6 @@ export const AutoPopulateStep = ({
             if (progressInterval) clearInterval(progressInterval);
             // Switch to deep analysis mode
             setDeepAnalysis(true);
-            setAnalysisMessage(messages[0]);
-
-            // Rotate messages during deep analysis
-            messageIntervalRef.current = setInterval(() => {
-              messageIndex = (messageIndex + 1) % messages.length;
-              setAnalysisMessage(messages[messageIndex]);
-            }, 4000);
           }
           return next;
         });
@@ -165,10 +144,6 @@ export const AutoPopulateStep = ({
 
       // Cleanup intervals
       if (progressInterval) clearInterval(progressInterval);
-      if (messageIntervalRef.current) {
-        clearInterval(messageIntervalRef.current);
-        messageIntervalRef.current = null;
-      }
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -202,10 +177,6 @@ export const AutoPopulateStep = ({
 
       // Cleanup intervals
       if (progressInterval) clearInterval(progressInterval);
-      if (messageIntervalRef.current) {
-        clearInterval(messageIntervalRef.current);
-        messageIntervalRef.current = null;
-      }
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -284,63 +255,43 @@ export const AutoPopulateStep = ({
           {!deepAnalysis ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Progress</span>
+                <span className="font-medium">Initializing AI Analysis</span>
                 <span className="text-muted-foreground">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
+              <p className="text-xs text-center text-muted-foreground mt-4">
+                Preparing comprehensive career intelligence extraction...
+              </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-center gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="font-medium">AI Deep Analysis in Progress...</span>
-              </div>
-              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
-                <p className="text-sm font-medium text-primary animate-pulse">{analysisMessage}</p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Typically takes 30-60 seconds - AI is being thorough!
-                </p>
-              </div>
-            </div>
+            <AIThinkingIndicator
+              categories={[
+                {
+                  name: 'Power Phrases',
+                  status: progress > 25 ? 'complete' : progress > 10 ? 'processing' : 'queued',
+                  progress: Math.min(100, (progress / 25) * 100)
+                },
+                {
+                  name: 'Skills & Expertise',
+                  status: progress > 50 ? 'complete' : progress > 25 ? 'processing' : 'queued',
+                  progress: progress > 25 ? Math.min(100, ((progress - 25) / 25) * 100) : 0
+                },
+                {
+                  name: 'Competencies',
+                  status: progress > 75 ? 'complete' : progress > 50 ? 'processing' : 'queued',
+                  progress: progress > 50 ? Math.min(100, ((progress - 50) / 25) * 100) : 0
+                },
+                {
+                  name: 'Leadership & Values',
+                  status: progress > 95 ? 'complete' : progress > 75 ? 'processing' : 'queued',
+                  progress: progress > 75 ? Math.min(100, ((progress - 75) / 20) * 100) : 0
+                }
+              ]}
+              currentProgress={progress}
+              insightsExtracted={Math.floor(progress * 0.5)}
+              estimatedTimeRemaining={progress < 85 ? 60 - Math.floor(progress * 0.6) : 30}
+            />
           )}
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
-            <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-              <Sparkles className="h-5 w-5 mx-auto mb-1 text-purple-600" />
-              <p className="text-xs font-medium">Power Phrases</p>
-            </div>
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <Zap className="h-5 w-5 mx-auto mb-1 text-blue-600" />
-              <p className="text-xs font-medium">Skills</p>
-            </div>
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-              <Brain className="h-5 w-5 mx-auto mb-1 text-amber-600" />
-              <p className="text-xs font-medium">Competencies</p>
-            </div>
-            <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-              <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-green-600" />
-              <p className="text-xs font-medium">Leadership</p>
-            </div>
-          </div>
-
-          <div className="p-4 bg-muted/50 rounded-lg border text-sm space-y-2">
-            <p className="font-medium flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              What AI is extracting:
-            </p>
-            <ul className="space-y-1 text-muted-foreground ml-6">
-              <li>• Quantified achievements with metrics</li>
-              <li>• Transferable skills across industries</li>
-              <li>• Hidden competencies not obvious from titles</li>
-              <li>• Leadership philosophy and executive presence</li>
-              <li>• Personality traits and work style</li>
-              <li>• Core values and behavioral patterns</li>
-            </ul>
-          </div>
-
-          <p className="text-xs text-center text-muted-foreground">
-            This usually takes 30-60 seconds. AI is being thorough!
-          </p>
         </CardContent>
       </Card>
     );

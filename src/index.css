@@ -75,6 +75,9 @@
     --tier-bronze-bg: 24 100% 93%;
     --tier-assumed: 0 84% 60%;
     --tier-assumed-bg: 0 86% 97%;
+    
+    /* Notification System */
+    --notification-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
 .dark {
@@ -140,6 +143,9 @@
     --tier-bronze-bg: 24 56% 12%;
     --tier-assumed: 0 84% 70%;
     --tier-assumed-bg: 0 63% 15%;
+    
+    /* Notification System - Dark Mode */
+    --notification-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 }
 

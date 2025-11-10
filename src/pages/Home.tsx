@@ -277,14 +277,14 @@ const HomeContent = () => {
               return (
                 <Card 
                   key={tool.title}
-                  className={`group cursor-pointer transition-all hover:scale-105 ${
+                  className={`group cursor-pointer transition-all hover:scale-105 relative ${
                     tool.locked 
-                      ? 'opacity-40 grayscale' 
+                      ? 'cursor-not-allowed' 
                       : 'hover:shadow-ai-subtle hover:border-ai-primary/50'
                   }`}
                   onClick={() => !tool.locked && navigate(tool.path)}
                 >
-                  <CardContent className="p-4 text-center relative">
+                  <CardContent className={`p-4 text-center relative ${tool.locked ? 'filter blur-[2px] opacity-70 group-hover:blur-[1px] group-hover:opacity-85 transition-all' : ''}`}>
                     {hasDualAI && !tool.locked && (
                       <Badge 
                         variant="secondary" 
@@ -294,15 +294,18 @@ const HomeContent = () => {
                         Dual-AI
                       </Badge>
                     )}
-                    <tool.icon className={`h-8 w-8 mx-auto mb-2 ${tool.locked ? '' : 'text-ai-primary'}`} />
+                    <tool.icon className={`h-8 w-8 mx-auto mb-2 ${tool.locked ? 'text-muted-foreground' : 'text-ai-primary'}`} />
                     <p className="text-xs font-medium mb-1">{tool.title}</p>
-                    {tool.locked && (
-                      <Badge variant="outline" className="text-[10px] mt-1">
-                        <Lock className="h-2 w-2 mr-1" />
-                        Upgrade
-                      </Badge>
-                    )}
                   </CardContent>
+                  
+                  {tool.locked && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-[2px] flex items-center justify-center rounded-lg border-2 border-primary/20 group-hover:border-primary/30 transition-colors">
+                      <div className="text-center p-3 bg-card/90 rounded-lg shadow-xl">
+                        <Lock className="h-6 w-6 mx-auto mb-1 text-primary" />
+                        <p className="text-[10px] font-semibold">Upgrade Required</p>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               );
             })}
