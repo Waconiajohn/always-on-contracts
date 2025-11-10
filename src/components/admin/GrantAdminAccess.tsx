@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, Copy, CheckCircle2 } from 'lucide-react';
+import { Shield, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export function GrantAdminAccess() {
-  const [copied, setCopied] = useState(false);
+  const [isGranting, setIsGranting] = useState(false);
+  const queryClient = useQueryClient();
 
   // Get current user ID
   const { data: user } = useQuery({
@@ -18,18 +19,31 @@ export function GrantAdminAccess() {
     },
   });
 
-  const sqlCommand = user 
-    ? `INSERT INTO user_roles (user_id, role) VALUES ('${user.id}', 'admin') ON CONFLICT DO NOTHING;`
-    : 'Loading...';
+  const grantAdminMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('grant-initial-admin');
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Admin access granted! Refreshing...');
+      queryClient.invalidateQueries({ queryKey: ['admin-check'] });
+      setTimeout(() => window.location.reload(), 1500);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to grant admin access');
+    }
+  });
 
-  const handleCopy = async () => {
+  const handleGrantAdmin = async () => {
     if (!user) return;
-    
-    await navigator.clipboard.writeText(sqlCommand);
-    setCopied(true);
-    toast.success('SQL command copied to clipboard!');
-    
-    setTimeout(() => setCopied(false), 3000);
+    setIsGranting(true);
+    try {
+      await grantAdminMutation.mutateAsync();
+    } finally {
+      setIsGranting(false);
+    }
   };
 
   return (
@@ -41,38 +55,27 @@ export function GrantAdminAccess() {
       
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          To grant yourself admin privileges, you'll need to run this SQL command in your backend database:
+          Click the button below to grant yourself admin privileges. This will only work if no other admins exist yet.
         </p>
 
-        <div className="relative">
-          <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">
-            {sqlCommand}
-          </pre>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="absolute top-2 right-2"
-            onClick={handleCopy}
-            disabled={!user}
-          >
-            {copied ? (
-              <CheckCircle2 className="w-4 h-4 text-green-500" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-sm font-semibold">Steps:</p>
-          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Copy the SQL command above</li>
-            <li>Open your backend database (click the "View Backend" button in the suggestions below)</li>
-            <li>Navigate to the SQL Editor</li>
-            <li>Paste and run the command</li>
-            <li>Refresh this page to see the Admin dropdown in the navigation</li>
-          </ol>
-        </div>
+        <Button
+          onClick={handleGrantAdmin}
+          disabled={!user || isGranting}
+          className="w-full"
+          size="lg"
+        >
+          {isGranting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Granting Admin Access...
+            </>
+          ) : (
+            <>
+              <Shield className="w-4 h-4 mr-2" />
+              Grant Me Admin Access
+            </>
+          )}
+        </Button>
 
         <p className="text-xs text-muted-foreground pt-2">
           Your User ID: <code className="bg-muted px-2 py-0.5 rounded">{user?.id || 'Loading...'}</code>
