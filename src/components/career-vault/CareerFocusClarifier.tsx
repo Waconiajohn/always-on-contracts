@@ -67,7 +67,6 @@ export const CareerFocusClarifier = ({
         });
 
         const { data, error } = await invokeEdgeFunction(
-          supabase,
           'suggest-adjacent-roles',
           validatedInput
         );

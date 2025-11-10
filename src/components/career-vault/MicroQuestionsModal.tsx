@@ -100,7 +100,6 @@ export const MicroQuestionsModal = ({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'submit-micro-answers',
         validated
       );

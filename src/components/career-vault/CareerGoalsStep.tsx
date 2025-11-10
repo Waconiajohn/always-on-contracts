@@ -138,7 +138,6 @@ export const CareerGoalsStep = ({ resumeAnalysis, onComplete }: CareerGoalsStepP
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'infer-target-roles',
         validated
       );

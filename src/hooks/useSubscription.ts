@@ -26,7 +26,6 @@ export function useSubscription() {
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'check-subscription',
         {}
       );
@@ -48,7 +47,6 @@ export function useSubscription() {
   const manageSubscription = async () => {
     try {
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'customer-portal',
         {}
       );

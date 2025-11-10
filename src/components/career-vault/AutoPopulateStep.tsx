@@ -132,10 +132,8 @@ export const AutoPopulateStep = ({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'auto-populate-vault-v3',
-        validated,
-        { suppressErrorToast: true } // Handle toasts manually
+        validated
       );
 
       console.log('[AUTO-POPULATE] Response received:', {

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { invokeEdgeFunction, RecommendPersonaSchema, safeValidateInput } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface PersonaMatch {
@@ -43,7 +42,6 @@ export const usePersonaRecommendation = (agentType: 'resume' | 'interview' | 'ne
     }
 
     const { data, error } = await invokeEdgeFunction(
-      supabase,
       'recommend-persona',
       { jobDescription, agentType }
     );

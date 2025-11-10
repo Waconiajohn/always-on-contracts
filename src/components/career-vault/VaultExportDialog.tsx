@@ -110,7 +110,6 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'export-vault',
         validatedInput
       );

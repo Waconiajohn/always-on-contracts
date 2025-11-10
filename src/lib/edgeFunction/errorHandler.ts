@@ -85,54 +85,7 @@ export function handleEdgeFunctionError(error: unknown, functionName: string): E
   };
 }
 
-/**
- * Wrapper for edge function invocations with automatic error handling
- */
-export async function invokeEdgeFunction<T = any>(
-  supabase: any,
-  functionName: string,
-  body?: Record<string, any>,
-  options?: {
-    showSuccessToast?: boolean;
-    successMessage?: string;
-    suppressErrorToast?: boolean;
-  }
-): Promise<{ data: T | null; error: EdgeFunctionError | null }> {
-  try {
-    const { data, error } = await supabase.functions.invoke(functionName, { body });
-
-    if (error) {
-      const handledError = handleEdgeFunctionError(error, functionName);
-      return { data: null, error: handledError };
-    }
-
-    // Handle application-level errors in the response
-    if (data?.error) {
-      const message = data.error;
-      if (!options?.suppressErrorToast) {
-        toast.error(message);
-      }
-      return {
-        data: null,
-        error: {
-          message,
-          code: 'APPLICATION_ERROR',
-          details: data
-        }
-      };
-    }
-
-    // Success toast if requested
-    if (options?.showSuccessToast && options?.successMessage) {
-      toast.success(options.successMessage);
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    const handledError = handleEdgeFunctionError(error, functionName);
-    return { data: null, error: handledError };
-  }
-}
+// Duplicate removed - use invokeEdgeFunction from index.ts instead
 
 /**
  * Checks if an error is a rate limit error

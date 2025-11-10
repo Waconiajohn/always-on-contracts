@@ -103,7 +103,6 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'search-vault-advanced',
         validatedInput
       );

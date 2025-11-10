@@ -107,13 +107,11 @@ export const CompetencyQuizEngine = ({
 
       if (user) {
         const { data: skillData, error: skillError } = await invokeEdgeFunction(
-          supabase,
           'generate-skill-verification-questions',
           {
             vault_id: vaultId,
             user_id: user.id
-          },
-          { suppressErrorToast: true }
+          }
         );
 
         if (!skillError && skillData?.success) {

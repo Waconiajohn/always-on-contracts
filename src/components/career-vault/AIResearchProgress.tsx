@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { ConductIndustryResearchSchema, validateInput, invokeEdgeFunction } from "@/lib/edgeFunction";
 
 interface ResearchStage {
@@ -85,7 +84,6 @@ export const AIResearchProgress = ({
         });
 
         const { data, error } = await invokeEdgeFunction(
-          supabase,
           'conduct-industry-research',
           validated
         );

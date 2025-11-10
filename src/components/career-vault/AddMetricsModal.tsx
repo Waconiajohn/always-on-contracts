@@ -99,7 +99,6 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'suggest-metrics',
         validated
       );

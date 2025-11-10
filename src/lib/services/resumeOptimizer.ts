@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { 
   OptimizeResumeSchema, 
   validateInput,
@@ -35,7 +34,6 @@ export async function optimizeResume(
   const validated = validateInput(OptimizeResumeSchema, { resumeText, jobDescription });
 
   const { data, error } = await invokeEdgeFunction<ResumeOptimizationResult>(
-    supabase,
     'optimize-resume-with-audit',
     {
       resumeText: validated.resumeText,

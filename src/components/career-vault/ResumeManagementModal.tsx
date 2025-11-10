@@ -56,7 +56,6 @@ export const ResumeManagementModal = ({
 
         // Parse PDF using edge function
         const { data: parseData, error: parseError } = await invokeEdgeFunction(
-          supabase,
           'parse-resume',
           { fileName, userId: user.id }
         );
@@ -196,7 +195,6 @@ export const ResumeManagementModal = ({
       });
 
       const { data: autoPopData, error: autoPopError } = await invokeEdgeFunction(
-        supabase,
         'auto-populate-vault-v3',
         validatedInput
       );

@@ -112,7 +112,6 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
       }
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'modernize-language',
         validation.data
       );

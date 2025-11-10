@@ -80,7 +80,6 @@ export const AIAnalysisStep = ({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'analyze-resume-and-research',
         validatedInput
       );

@@ -122,7 +122,6 @@ export default function BulkVaultOperations({
       });
 
       const { data, error } = await invokeEdgeFunction(
-        supabase,
         'bulk-vault-operations',
         validatedInput
       );
