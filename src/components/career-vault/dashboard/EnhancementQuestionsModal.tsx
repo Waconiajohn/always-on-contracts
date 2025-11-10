@@ -112,6 +112,7 @@ export function EnhancementQuestionsModal({
 
       // Generate gap-filling questions
       const validated = validateInput(GenerateGapFillingQuestionsSchema, {
+        vaultId,
         resumeText: vaultData?.resume_raw_text || '',
         vaultData: {
           vault_id: vaultId,

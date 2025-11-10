@@ -54,6 +54,7 @@ interface QuestionBatch {
 }
 
 interface GapFillingRequest {
+  vaultId: string;
   vaultData: any;
   industryResearch?: any;
   targetRoles?: string[];
@@ -85,7 +86,7 @@ serve(async (req) => {
 
     // Parse request
     const requestBody: GapFillingRequest = await req.json();
-    const { vaultData, industryResearch, targetRoles, resumeText } = requestBody;
+    const { vaultId, vaultData, industryResearch, targetRoles, resumeText } = requestBody;
 
     if (!vaultData) {
       throw new Error('vaultData is required');
@@ -101,7 +102,7 @@ serve(async (req) => {
     const { data: cachedContext, error: contextError } = await supabase
       .from('vault_career_context')
       .select('*')
-      .eq('vault_id', vaultData.vault_id)
+      .eq('vault_id', vaultId)
       .single();
 
     if (cachedContext && !contextError) {
