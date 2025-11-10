@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Brain, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useNotifications, NotificationCenter } from '@/components/ui/notification-center';
 import { 
   AutoPopulateVaultSchema,
   validateInput,
@@ -34,12 +33,12 @@ export const AutoPopulateStep = ({
   targetIndustries = [],
   onComplete
 }: AutoPopulateStepProps) => {
-  const { toast } = useToast();
+  const { notifications, showNotification, dismissNotification } = useNotifications();
   const [status, setStatus] = useState<'ready' | 'processing' | 'success' | 'error'>('ready');
   const [progress, setProgress] = useState(0);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [deepAnalysis, setDeepAnalysis] = useState(false);
+  
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -77,8 +76,6 @@ export const AutoPopulateStep = ({
           const next = Math.min(prev + 5, 85);
           if (next >= 85) {
             if (progressInterval) clearInterval(progressInterval);
-            // Switch to deep analysis mode
-            setDeepAnalysis(true);
           }
           return next;
         });
@@ -97,9 +94,11 @@ export const AutoPopulateStep = ({
         }
       }, 10000); // Check every 10 seconds
 
-      toast({
-        title: 'AI Analysis Started',
-        description: 'Extracting comprehensive career intelligence from your resume...'
+      showNotification({
+        type: 'ai-insight',
+        title: '🧠 AI Analysis Started',
+        description: 'Extracting comprehensive career intelligence from your resume...',
+        duration: 8000
       });
 
       // Phase 1: Call with validation and new error handling
@@ -148,7 +147,6 @@ export const AutoPopulateStep = ({
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
       }
-      setDeepAnalysis(false);
 
       console.log('[AUTO-POPULATE] Success! Extracted data:', {
         totalExtracted: data.totalExtracted,
@@ -168,9 +166,11 @@ export const AutoPopulateStep = ({
         })
         .eq('id', vaultId);
 
-      toast({
-        title: 'Vault Auto-Populated!',
-        description: `Successfully extracted ${data.totalExtracted} intelligence items across ${data.categories.length} categories`
+      showNotification({
+        type: 'success',
+        title: '✅ Vault Auto-Populated!',
+        description: `Successfully extracted ${data.totalExtracted} intelligence items across ${data.categories.length} categories`,
+        duration: 8000
       });
     } catch (error: any) {
       console.error('[AUTO-POPULATE] Error:', error);
@@ -181,7 +181,7 @@ export const AutoPopulateStep = ({
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
       }
-      setDeepAnalysis(false);
+      
 
       // Phase 2: Polling fallback - check if data was actually inserted
       console.log('[AUTO-POPULATE] Checking database for inserted data...');
@@ -206,9 +206,11 @@ export const AutoPopulateStep = ({
         });
         setStatus('success');
         
-        toast({
-          title: 'Vault Auto-Populated!',
-          description: `Successfully extracted ${vaultData.extraction_item_count} items (recovered from timeout)`
+        showNotification({
+          type: 'success',
+          title: '✅ Vault Auto-Populated!',
+          description: `Successfully extracted ${vaultData.extraction_item_count} items (recovered from timeout)`,
+          duration: 8000
         });
         
         return; // Don't show error
@@ -218,10 +220,11 @@ export const AutoPopulateStep = ({
       setStatus('error');
       setErrorMessage(error.message || 'Failed to auto-populate vault');
 
-      toast({
-        title: 'Auto-Population Failed',
+      showNotification({
+        type: 'error',
+        title: '❌ Auto-Population Failed',
         description: error.message || 'Please try again or use the manual interview',
-        variant: 'destructive'
+        duration: 10000
       });
     }
   };
@@ -241,34 +244,28 @@ export const AutoPopulateStep = ({
 
   if (status === 'ready' || status === 'processing') {
     return (
-      <Card className="w-full">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 p-4 bg-primary/10 rounded-full w-fit">
-            <Brain className="h-12 w-12 text-primary animate-pulse" />
-          </div>
-          <CardTitle className="text-2xl">AI Intelligence Extraction</CardTitle>
-          <CardDescription>
-            Our AI is analyzing your resume across 20 intelligence categories
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {!deepAnalysis ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Initializing AI Analysis</span>
-                <span className="text-muted-foreground">{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <p className="text-xs text-center text-muted-foreground mt-4">
-                Preparing comprehensive career intelligence extraction...
-              </p>
+      <>
+        <NotificationCenter 
+          notifications={notifications}
+          onDismiss={dismissNotification}
+          position="top-right"
+        />
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 p-4 bg-primary/10 rounded-full w-fit">
+              <Brain className="h-12 w-12 text-primary animate-pulse" />
             </div>
-          ) : (
+            <CardTitle className="text-2xl">AI Intelligence Extraction</CardTitle>
+            <CardDescription>
+              Our AI is analyzing your resume across 20 intelligence categories
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
             <AIThinkingIndicator
               categories={[
                 {
                   name: 'Power Phrases',
-                  status: progress > 25 ? 'complete' : progress > 10 ? 'processing' : 'queued',
+                  status: progress > 25 ? 'complete' : progress > 0 ? 'processing' : 'queued',
                   progress: Math.min(100, (progress / 25) * 100)
                 },
                 {
@@ -283,17 +280,17 @@ export const AutoPopulateStep = ({
                 },
                 {
                   name: 'Leadership & Values',
-                  status: progress > 95 ? 'complete' : progress > 75 ? 'processing' : 'queued',
-                  progress: progress > 75 ? Math.min(100, ((progress - 75) / 20) * 100) : 0
+                  status: progress === 100 ? 'complete' : progress > 75 ? 'processing' : 'queued',
+                  progress: progress > 75 ? Math.min(100, ((progress - 75) / 25) * 100) : 0
                 }
               ]}
               currentProgress={progress}
               insightsExtracted={Math.floor(progress * 0.5)}
-              estimatedTimeRemaining={progress < 85 ? 60 - Math.floor(progress * 0.6) : 30}
+              estimatedTimeRemaining={progress < 85 ? 90 - Math.floor(progress * 0.8) : Math.max(5, 30 - Math.floor((progress - 85) * 2))}
             />
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </>
     );
   }
 

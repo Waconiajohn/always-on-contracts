@@ -75,11 +75,32 @@ export default function GapFillingQuestionsFlow({
   const loadGapFillingQuestions = async () => {
     try {
       // Fetch current vault data INCLUDING resume text
-      const { data: vaultData } = await supabase
+      const { data: vaultData, error: vaultError } = await supabase
         .from('career_vault')
         .select('target_roles, target_industries, resume_raw_text')
         .eq('id', vaultId)
-        .single();
+        .maybeSingle();
+
+      if (vaultError) {
+        console.error('[ERROR] Vault fetch error:', vaultError);
+        setError('Failed to load vault data');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!vaultData) {
+        console.error('[ERROR] Vault not found:', vaultId);
+        setError('Vault not found. Please complete the onboarding process first.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!vaultData.resume_raw_text || vaultData.resume_raw_text.length < 100) {
+        console.error('[ERROR] Resume text too short:', vaultData.resume_raw_text?.length);
+        setError('Resume text is missing or too short. Please re-upload your resume.');
+        setIsLoading(false);
+        return;
+      }
 
       // Fetch vault items for gap analysis
       const [powerPhrases, skills, competencies, softSkills] = await Promise.all([
