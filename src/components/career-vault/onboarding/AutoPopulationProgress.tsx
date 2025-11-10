@@ -238,12 +238,27 @@ export default function AutoPopulationProgress({
       setCurrentPhase('🧠 Analyzing your executive background...');
       setOverallProgress(5);
 
+      // Wait a moment before starting extraction to prevent flash
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       // Phase 1: Extract core achievements and skills (auto-populate-vault-v3)
       setCurrentPhase('📊 Extracting quantified achievements and skills...');
+      
+      // Show extracting status sequentially with delays to prevent instant jump
       updateCategoryStatus('power_phrases', 'extracting');
+      setOverallProgress(10);
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
       updateCategoryStatus('transferable_skills', 'extracting');
+      setOverallProgress(15);
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
       updateCategoryStatus('hidden_competencies', 'extracting');
+      setOverallProgress(20);
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
       updateCategoryStatus('soft_skills', 'extracting');
+      setOverallProgress(25);
 
       const validated = validateInput(AutoPopulateVaultSchema, {
         resumeText,

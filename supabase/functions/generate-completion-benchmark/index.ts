@@ -153,10 +153,10 @@ serve(async (req) => {
       careerContext = {
         hasManagementExperience: cachedContext.has_management_experience,
         managementDetails: cachedContext.management_details,
-        teamSizesManaged: cachedContext.team_sizes_managed || [],
+        teamSizesManaged: Array.isArray(cachedContext.team_sizes_managed) ? cachedContext.team_sizes_managed : [],
         hasBudgetOwnership: cachedContext.has_budget_ownership,
         budgetDetails: cachedContext.budget_details,
-        budgetSizesManaged: cachedContext.budget_sizes_managed || [],
+        budgetSizesManaged: Array.isArray(cachedContext.budget_sizes_managed) ? cachedContext.budget_sizes_managed : [],
         hasExecutiveExposure: cachedContext.has_executive_exposure,
         inferredSeniority: cachedContext.inferred_seniority,
         seniorityConfidence: cachedContext.seniority_confidence,

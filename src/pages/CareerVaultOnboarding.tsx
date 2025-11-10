@@ -226,8 +226,17 @@ export default function CareerVaultOnboarding() {
     setOnboardingData(prev => ({ ...prev, ...updates }));
   };
 
-  // Render current step component
+  // Render current step component with guards to prevent flashing
   const renderStep = () => {
+    // Ensure we have required data before rendering steps that need it
+    if (currentStep === 'extraction' && !onboardingData.vaultId) {
+      return null; // Prevent flash by not rendering until data is ready
+    }
+    
+    if (currentStep === 'review' && !onboardingData.vaultId) {
+      return null;
+    }
+    
     switch (currentStep) {
       case 'upload':
       case 'analysis':
