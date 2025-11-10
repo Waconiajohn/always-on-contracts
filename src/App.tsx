@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CommandMenu } from "@/components/CommandMenu";
 import { TopNav } from "@/components/navigation/TopNav";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/admin/AdminRoute";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LayoutProvider } from "@/contexts/LayoutContext";
@@ -42,6 +43,7 @@ const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
 const RedeemCode = lazy(() => import("./pages/RedeemCode"));
 const AdminPortal = lazy(() => import("./pages/AdminPortal"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const AdminPromptManager = lazy(() => import("./pages/AdminPromptManager"));
 const UnifiedCareerVault = lazy(() => import("./pages/UnifiedCareerVault"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
@@ -105,6 +107,7 @@ const AppContent = () => {
             <Route path="/redeem-retirement" element={<RedeemCode />} />
             <Route path="/admin" element={<ProtectedRoute><AdminPortal /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/admin-prompt-manager" element={<ProtectedRoute><AdminRoute><AdminPromptManager /></AdminRoute></ProtectedRoute>} />
             <Route path="/career-vault" element={<ProtectedRoute><UnifiedCareerVault /></ProtectedRoute>} />
             <Route path="/career-vault-onboarding" element={<Navigate to="/career-vault" replace />} />
             {/* Legacy redirects */}

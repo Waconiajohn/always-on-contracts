@@ -237,8 +237,8 @@ export async function orchestrateExtraction(
         await config.onProgress({
           phase: 'extraction',
           category: passType,
-          progress: 25 + (completedCount / passes.length) * 50, // 25-75% range
-          totalCategories: passes.length,
+          progress: 25 + (completedCount / preExtractionContext.extractionStrategy.passOrder.length) * 50, // 25-75% range
+          totalCategories: preExtractionContext.extractionStrategy.passOrder.length,
           completedCategories: completedCount,
           message: `Extracted ${extractedData[passType as keyof typeof extractedData].length} ${passType}`
         });
