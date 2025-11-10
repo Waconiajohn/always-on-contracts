@@ -115,11 +115,14 @@ const VaultDashboardContent = () => {
 
     setIsReanalyzing(true);
     try {
+      console.log('🔄 Starting FULL re-extraction with v3...');
+      
       const { error } = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: {
           vaultId: vaultData.vault.id,
           resumeText: vaultData.vault.resume_raw_text,
-          mode: 'full',
+          mode: 'full', // This clears existing data and re-extracts everything
+          targetRoles: vaultData.userProfile?.target_roles,
         },
       });
 

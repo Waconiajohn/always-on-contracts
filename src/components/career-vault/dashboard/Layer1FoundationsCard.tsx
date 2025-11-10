@@ -27,9 +27,15 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
   const calculateSectionStatus = (): SectionStatus[] => {
     const powerPhrasesCount = stats.categoryCounts.powerPhrases;
     const skillsCount = stats.categoryCounts.transferableSkills;
-    const educationExists = vaultData.vault?.education_details ? 1 : 0;
+    
+    // Check if we have career context data or resume text (indicates work experience exists)
+    const hasCareerContext = vaultData.careerContext?.industries?.length > 0 || 
+                            vaultData.careerContext?.specializations?.length > 0;
+    const hasResumeText = vaultData.vault?.resume_raw_text && 
+                         vaultData.vault.resume_raw_text.length > 500;
     
     // Work Experience - based on power phrases with metrics
+    // If no power phrases but we have resume text, extraction is incomplete
     const workExpPercentage = powerPhrasesCount > 0 
       ? Math.min((powerPhrasesCount / 10) * 100, 100) 
       : 0;
@@ -39,8 +45,9 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
       ? Math.min((skillsCount / 15) * 100, 100) 
       : 0;
     
-    // Education & Credentials
-    const educationPercentage = educationExists ? 100 : 0;
+    // Education & Credentials - check career context for education data
+    const hasEducation = hasCareerContext && vaultData.vault?.auto_populated;
+    const educationPercentage = hasEducation ? 100 : 0;
     
     // Professional Highlights - based on gold-tier items
     const goldCount = stats.qualityDistribution.gold || 0;
@@ -48,16 +55,21 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
       ? Math.min((goldCount / 5) * 100, 100) 
       : 0;
 
+    // Determine if extraction is incomplete (have resume but missing data)
+    const extractionIncomplete = hasResumeText && (powerPhrasesCount === 0 || stats.categoryCounts.softSkills === 0);
+
     return [
       {
         name: 'Work Experience',
         percentage: workExpPercentage,
         status: workExpPercentage >= 80 ? 'complete' : workExpPercentage > 0 ? 'incomplete' : 'empty',
         count: powerPhrasesCount,
-        benchmark: powerPhrasesCount === 0 
-          ? 'No work experience extracted - try re-uploading your resume'
+        benchmark: extractionIncomplete
+          ? '⚠️ Extraction incomplete - some data is missing from your resume'
+          : powerPhrasesCount === 0 
+          ? 'Upload your resume to extract work experience automatically'
           : 'Industry standard: 60%+ of bullets should have metrics',
-        ctaText: powerPhrasesCount === 0 ? 'Fix Extraction' : workExpPercentage >= 80 ? 'Review' : 'Add Details',
+        ctaText: extractionIncomplete ? 'Complete Extraction' : powerPhrasesCount === 0 ? 'Upload Resume' : workExpPercentage >= 80 ? 'Review' : 'Add Details',
         section: 'work-experience'
       },
       {
@@ -73,7 +85,7 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
         name: 'Education & Credentials',
         percentage: educationPercentage,
         status: educationPercentage === 100 ? 'complete' : 'empty',
-        count: educationExists,
+        count: hasEducation ? 1 : 0,
         benchmark: '65% of senior roles require bachelor\'s degree',
         ctaText: educationPercentage === 100 ? 'View' : 'Add Education',
         section: 'education'
@@ -136,12 +148,12 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
                   {section.count > 0 ? `(${section.count} items)` : '(0 items)'}
                 </span>
               </div>
-              <Button 
+               <Button 
                 variant={section.status === 'empty' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => {
-                  // If this is work-experience with 0 items, trigger re-extraction
-                  if (section.section === 'work-experience' && section.count === 0 && onReextract) {
+                  // If extraction is incomplete (have resume but missing data), trigger full re-extraction
+                  if (section.ctaText === 'Complete Extraction' && onReextract) {
                     onReextract();
                   } else {
                     onSectionClick(section.section);
