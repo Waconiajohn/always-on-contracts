@@ -63,7 +63,7 @@ export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEn
   const scoreInfo = getScoreInfo(score, totalItems);
 
   return (
-    <Card className="border-2 border-primary/20 shadow-lg">
+    <Card className="plain-english-hero border-2 border-primary/20 shadow-lg">
       <CardContent className="pt-4 sm:pt-6 pb-4 sm:pb-6 px-4 sm:px-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
           {/* Left: Score visualization */}

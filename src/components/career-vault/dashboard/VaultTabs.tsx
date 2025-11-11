@@ -32,7 +32,7 @@ interface VaultTabsProps {
  */
 export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView }: VaultTabsProps) => {
   return (
-    <Tabs defaultValue="items" className="w-full">
+    <Tabs defaultValue="items" className="vault-tabs w-full">
       <TabsList className="grid w-full grid-cols-3 mb-6">
         <TabsTrigger value="items">Items</TabsTrigger>
         <TabsTrigger value="activity">Activity</TabsTrigger>

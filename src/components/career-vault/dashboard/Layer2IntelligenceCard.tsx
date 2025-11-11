@@ -129,7 +129,7 @@ export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Lay
   const prioritySection = getHighestImpactSection();
 
   return (
-    <Card className="border-border/50 bg-gradient-to-br from-background to-primary/5">
+    <Card className="layer-2-intelligence border-border/50 bg-gradient-to-br from-background to-primary/5">
       <CardHeader>
         <CardTitle className="text-xl font-semibold flex items-center justify-between">
           <span className="flex items-center gap-2">

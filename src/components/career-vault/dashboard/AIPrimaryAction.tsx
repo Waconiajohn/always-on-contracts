@@ -83,7 +83,7 @@ export function AIPrimaryAction({ action, onActionClick }: AIPrimaryActionProps)
   };
 
   return (
-    <Card className={`border-2 shadow-md mb-6 ${getCardStyle()}`}>
+    <Card className={`ai-primary-action border-2 shadow-md mb-6 ${getCardStyle()}`}>
       <div className="p-6">
         <div className="flex items-start gap-4">
           {/* Icon */}

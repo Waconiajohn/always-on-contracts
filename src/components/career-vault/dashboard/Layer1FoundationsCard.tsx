@@ -133,7 +133,7 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
   const prioritySection = getPrioritySection();
 
   return (
-    <Card className="border-border/50">
+    <Card className="layer-1-foundations border-border/50">
       <CardHeader>
         <CardTitle className="text-xl font-semibold flex items-center justify-between">
           <span>Your Resume Essentials</span>
