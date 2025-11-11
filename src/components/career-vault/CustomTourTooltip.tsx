@@ -47,11 +47,21 @@ export const CustomTourTooltip = ({
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [actualPlacement, setActualPlacement] = useState(placement);
 
-  // Calculate tooltip position based on target and placement
+  // Calculate tooltip position - MEMOIZED to prevent excessive recalculations
   useEffect(() => {
+    // Round to prevent sub-pixel changes from causing recalc
+    const roundedRect = {
+      top: Math.round(targetRect.top),
+      left: Math.round(targetRect.left),
+      bottom: Math.round(targetRect.bottom),
+      right: Math.round(targetRect.right),
+      width: Math.round(targetRect.width),
+      height: Math.round(targetRect.height),
+    };
+
     const tooltipWidth = 320; // w-80 = 20rem = 320px
-    const tooltipOffset = 12; // sideOffset
-    const edgePadding = 16; // Minimum distance from screen edge
+    const tooltipOffset = 12;
+    const edgePadding = 16;
 
     let top = 0;
     let left = 0;
@@ -60,48 +70,45 @@ export const CustomTourTooltip = ({
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // Calculate base position based on placement
+    // Calculate base position
     switch (finalPlacement) {
       case 'bottom':
-        top = targetRect.bottom + tooltipOffset;
-        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
+        top = roundedRect.bottom + tooltipOffset;
+        left = roundedRect.left + roundedRect.width / 2 - tooltipWidth / 2;
         break;
       case 'top':
-        top = targetRect.top - tooltipOffset - 200; // Approximate tooltip height
-        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
+        top = roundedRect.top - tooltipOffset - 200;
+        left = roundedRect.left + roundedRect.width / 2 - tooltipWidth / 2;
         break;
       case 'left':
-        top = targetRect.top + targetRect.height / 2 - 100; // Center vertically
-        left = targetRect.left - tooltipWidth - tooltipOffset;
+        top = roundedRect.top + roundedRect.height / 2 - 100;
+        left = roundedRect.left - tooltipWidth - tooltipOffset;
         break;
       case 'right':
-        top = targetRect.top + targetRect.height / 2 - 100;
-        left = targetRect.right + tooltipOffset;
+        top = roundedRect.top + roundedRect.height / 2 - 100;
+        left = roundedRect.right + tooltipOffset;
         break;
     }
 
-    // Edge detection and correction
-    // Check if tooltip goes off-screen horizontally
+    // Edge detection
     if (left < edgePadding) {
       left = edgePadding;
     } else if (left + tooltipWidth > viewportWidth - edgePadding) {
       left = viewportWidth - tooltipWidth - edgePadding;
     }
 
-    // Check if tooltip goes off-screen vertically
     if (top < edgePadding) {
-      // If would go off top, force bottom placement
-      top = targetRect.bottom + tooltipOffset;
+      top = roundedRect.bottom + tooltipOffset;
       finalPlacement = 'bottom';
     } else if (top + 200 > viewportHeight - edgePadding) {
-      // If would go off bottom, force top placement
-      top = targetRect.top - tooltipOffset - 200;
+      top = roundedRect.top - tooltipOffset - 200;
       finalPlacement = 'top';
     }
 
-    setTooltipPosition({ top, left });
+    // Round final position to prevent sub-pixel rendering
+    setTooltipPosition({ top: Math.round(top), left: Math.round(left) });
     setActualPlacement(finalPlacement);
-  }, [targetRect, placement, isMobile]);
+  }, [targetRect.top, targetRect.left, targetRect.width, targetRect.height, placement, isMobile]);
 
   // Fade in animation
   useEffect(() => {
@@ -144,18 +151,18 @@ export const CustomTourTooltip = ({
       {/* Tooltip content card */}
       <div className="bg-card border-2 border-primary/20 rounded-lg shadow-2xl p-4">
         <div className="space-y-3">
-          {/* Header with title and close button */}
+          {/* Header with title and PROMINENT close button */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
               <h4
                 id="tour-tooltip-title"
-                className="font-semibold text-sm mb-1 text-foreground"
+                className="font-semibold text-base mb-2 text-foreground"
               >
                 {title}
               </h4>
               <p
                 id="tour-tooltip-content"
-                className="text-xs text-muted-foreground leading-relaxed"
+                className="text-sm text-foreground/80 leading-relaxed"
               >
                 {content}
               </p>
@@ -164,10 +171,11 @@ export const CustomTourTooltip = ({
               size="sm"
               variant="ghost"
               onClick={onSkip}
-              className="h-6 w-6 p-0 hover:bg-muted flex-shrink-0"
-              aria-label="Skip tour"
+              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
+              aria-label="Skip tour (ESC)"
+              title="Skip tour"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
 

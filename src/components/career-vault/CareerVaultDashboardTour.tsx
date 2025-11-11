@@ -114,20 +114,26 @@ export const CareerVaultDashboardTour = () => {
     return () => clearTimeout(timer);
   }, [currentStep, isActive, nextStep]);
 
-  // Recalculate position on window resize
+  // Recalculate position on window resize - THROTTLED to prevent vibration
   useEffect(() => {
     if (!targetElement) return;
 
+    let throttleTimer: NodeJS.Timeout | null = null;
     const handleResize = () => {
-      setTargetRect(targetElement.getBoundingClientRect());
+      if (throttleTimer) return; // Skip if already scheduled
+      throttleTimer = setTimeout(() => {
+        setTargetRect(targetElement.getBoundingClientRect());
+        throttleTimer = null;
+      }, 150); // Only update every 150ms max
     };
 
     window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleResize);
+    window.addEventListener('scroll', handleResize, true); // Use capture phase
     
     return () => {
+      if (throttleTimer) clearTimeout(throttleTimer);
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize);
+      window.removeEventListener('scroll', handleResize, true);
     };
   }, [targetElement]);
 
@@ -160,23 +166,26 @@ export const CareerVaultDashboardTour = () => {
 
   return (
     <>
-      {/* Overlay to dim background */}
+      {/* Overlay to dim background - CLICKABLE to skip tour */}
       <div 
         className={cn(
-          "fixed inset-0 z-[60] pointer-events-none transition-all duration-300",
-          isMobile ? "bg-background/40" : "bg-background/60 backdrop-blur-sm"
+          "fixed inset-0 z-[60] transition-all duration-300 cursor-pointer",
+          "bg-background/30"
         )}
-        aria-hidden="true"
+        onClick={skipTour}
+        aria-label="Click to skip tour"
+        role="button"
+        tabIndex={0}
       />
 
-      {/* Highlight ring around target */}
+      {/* Highlight ring around target - NO ANIMATION to prevent visual chaos */}
       <div 
-        className="fixed z-[60] pointer-events-none ring-4 ring-primary ring-offset-4 rounded-lg transition-all duration-300 animate-pulse-slow"
+        className="fixed z-[60] pointer-events-none ring-2 ring-primary rounded-lg transition-all duration-200"
         style={{
-          top: targetRect.top - 8,
-          left: targetRect.left - 8,
-          width: targetRect.width + 16,
-          height: targetRect.height + 16,
+          top: targetRect.top - 4,
+          left: targetRect.left - 4,
+          width: targetRect.width + 8,
+          height: targetRect.height + 8,
         }}
         aria-hidden="true"
       />
