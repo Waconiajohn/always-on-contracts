@@ -7,7 +7,24 @@
 
 // ==================== DATABASE TYPES ====================
 
-export type QualityTier = 'gold' | 'silver' | 'bronze' | 'assumed';
+export type QualityTier = 
+  | 'draft'          // Needs enhancement
+  | 'needs_review'   // Has enhancements, needs verification
+  | 'verified'       // User-verified
+  | 'gold'           // Exceptional quality
+  | 'silver'         // Good quality
+  | 'bronze'         // Acceptable quality
+  | 'assumed';       // AI-generated, unverified
+
+export type ResumeSection = 
+  | 'work_experience'
+  | 'education'
+  | 'certifications'
+  | 'summary'
+  | 'skills'
+  | 'volunteer'
+  | 'publications'
+  | 'awards';
 
 export type OnboardingStep =
   | 'not_started'
@@ -81,37 +98,72 @@ export interface IndustryResearch {
 export interface VaultItemBase {
   id: string;
   vault_id: string;
+  user_id?: string;
   quality_tier: QualityTier;
-  confidence_score: number;
-  effectiveness_score: number;
-  source_context: string | null;
+  confidence_score?: number;
+  effectiveness_score?: number;
+  source_context?: string | null;
+  usage_count?: number;
+  last_updated_at?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  inferred_from?: string;
+  needs_user_review?: boolean;
+  // V3 Hybrid Enhancement Fields
+  section_source?: string;
+  extraction_version?: string;
+  review_priority?: number; // 0-100
+  industry_context?: {
+    industry?: string;
+    role?: string;
+    seniority?: string;
+    benchmarks?: Record<string, any>;
+    demandLevel?: 'low' | 'medium' | 'high';
+  };
+  enhancement_notes?: string;
+  resume_section?: ResumeSection;
+  usage_context?: string[];
 }
 
 export interface PowerPhrase extends VaultItemBase {
   power_phrase: string;
+  phrase?: string; // Alias
   category: string;
-  impact_area: string;
+  impact_area?: string;
+  original_text?: string;
+  impact_metrics?: Record<string, number | string>;
+  keywords?: string[];
+  source?: string;
 }
 
 export interface TransferableSkill extends VaultItemBase {
   stated_skill: string;
-  skill_category: string;
-  proficiency_level: string;
-  years_experience: number | null;
+  skill?: string; // Alias
+  skill_category?: string;
+  category?: string;
+  proficiency_level?: string;
+  years_experience?: number | null;
+  evidence?: string;
+  equivalent_skills?: string[]; // Cross-functional skill mappings
 }
 
 export interface HiddenCompetency extends VaultItemBase {
-  competency: string;
-  competency_category: string;
-  evidence: string;
+  competency?: string;
+  competency_area?: string;
+  competency_type?: string;
+  inferred_capability?: string;
+  competency_category?: string;
+  evidence?: string;
+  supporting_evidence?: string | string[];
 }
 
 export interface SoftSkill extends VaultItemBase {
-  soft_skill: string;
-  skill_type: string;
-  behavioral_evidence: string;
+  soft_skill?: string;
+  skill_name?: string;
+  skill_type?: string;
+  behavioral_evidence?: string;
+  examples?: string | string[];
+  skill_level?: string;
 }
 
 export interface LeadershipPhilosophy extends VaultItemBase {

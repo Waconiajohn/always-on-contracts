@@ -81,28 +81,28 @@ const TABLE_CONFIGS: Record<VaultTableName, TableConfig> = {
     contentField: 'power_phrase',
     idField: 'vault_id',
     timestampField: 'last_updated_at',
-    displayName: 'Power Phrase'
+    displayName: 'Career Achievement' // Updated from "Power Phrase"
   },
   vault_transferable_skills: {
     name: 'vault_transferable_skills',
     contentField: 'stated_skill',
     idField: 'vault_id',
     timestampField: 'last_updated_at',
-    displayName: 'Transferable Skill'
+    displayName: 'Skill & Expertise' // Updated from "Transferable Skill"
   },
   vault_hidden_competencies: {
     name: 'vault_hidden_competencies',
     contentField: 'inferred_capability',
     idField: 'vault_id',
     timestampField: 'last_updated_at',
-    displayName: 'Hidden Competency'
+    displayName: 'Strategic Capability' // Updated from "Hidden Competency"
   },
   vault_soft_skills: {
     name: 'vault_soft_skills',
     contentField: 'skill_name',
     idField: 'vault_id',
     timestampField: 'created_at',
-    displayName: 'Soft Skill'
+    displayName: 'Professional Strength' // Updated from "Soft Skill"
   },
   vault_leadership_philosophy: {
     name: 'vault_leadership_philosophy',

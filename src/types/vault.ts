@@ -29,6 +29,14 @@ export interface PowerPhrase {
   ai_confidence?: number | null;
   impact_metrics?: any;
   inferred_from?: string | null;
+  // V3 Hybrid Enhancement Fields
+  section_source?: string | null;
+  extraction_version?: string | null;
+  review_priority?: number | null;
+  industry_context?: any;
+  enhancement_notes?: string | null;
+  resume_section?: string | null;
+  usage_context?: string[] | null;
   [key: string]: any; // Allow additional properties
 }
 
@@ -45,6 +53,14 @@ export interface TransferableSkill {
   usage_count?: number;
   last_updated_at?: string | null;
   created_at: string;
+  // V3 Hybrid Enhancement Fields
+  section_source?: string | null;
+  extraction_version?: string | null;
+  review_priority?: number | null;
+  industry_context?: any;
+  enhancement_notes?: string | null;
+  resume_section?: string | null;
+  usage_context?: string[] | null;
   [key: string]: any;
 }
 
@@ -62,6 +78,14 @@ export interface HiddenCompetency {
   usage_count?: number;
   last_updated_at?: string | null;
   created_at: string;
+  // V3 Hybrid Enhancement Fields
+  section_source?: string | null;
+  extraction_version?: string | null;
+  review_priority?: number | null;
+  industry_context?: any;
+  enhancement_notes?: string | null;
+  resume_section?: string | null;
+  usage_context?: string[] | null;
   [key: string]: any;
 }
 
@@ -76,6 +100,14 @@ export interface SoftSkill {
   usage_count?: number;
   last_updated_at?: string | null;
   created_at: string | null;
+  // V3 Hybrid Enhancement Fields
+  section_source?: string | null;
+  extraction_version?: string | null;
+  review_priority?: number | null;
+  industry_context?: any;
+  enhancement_notes?: string | null;
+  resume_section?: string | null;
+  usage_context?: string[] | null;
   [key: string]: any;
 }
 
