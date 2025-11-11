@@ -1,7 +1,8 @@
 import { useOnboardingTour, OnboardingStep } from '@/hooks/useOnboardingTour';
-import { OnboardingTooltip } from '@/components/ui/onboarding-tooltip';
+import { CustomTourTooltip } from './CustomTourTooltip';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 const TOUR_STEPS: OnboardingStep[] = [
   {
@@ -54,10 +55,31 @@ export const CareerVaultDashboardTour = () => {
     stepIndex,
     totalSteps,
     isActive,
-    nextStep,
+    nextStep: originalNextStep,
     previousStep,
-    skipTour,
+    skipTour: originalSkipTour,
   } = useOnboardingTour('career-vault-dashboard', TOUR_STEPS);
+
+  // Wrap nextStep to add completion feedback
+  const nextStep = () => {
+    if (stepIndex === totalSteps - 1) {
+      // Last step - show completion message
+      toast({
+        title: "Tour Complete! 🎉",
+        description: "You're ready to build your career vault. Need help? Click the Help button.",
+      });
+    }
+    originalNextStep();
+  };
+
+  // Wrap skipTour to add feedback
+  const skipTour = () => {
+    toast({
+      title: "Tour Skipped",
+      description: "You can restart the tour anytime from the Help menu.",
+    });
+    originalSkipTour();
+  };
 
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -141,7 +163,7 @@ export const CareerVaultDashboardTour = () => {
       {/* Overlay to dim background */}
       <div 
         className={cn(
-          "fixed inset-0 z-40 pointer-events-none transition-all duration-300",
+          "fixed inset-0 z-[60] pointer-events-none transition-all duration-300",
           isMobile ? "bg-background/40" : "bg-background/60 backdrop-blur-sm"
         )}
         aria-hidden="true"
@@ -149,7 +171,7 @@ export const CareerVaultDashboardTour = () => {
 
       {/* Highlight ring around target */}
       <div 
-        className="fixed z-50 pointer-events-none ring-4 ring-primary ring-offset-4 rounded-lg transition-all duration-300 animate-pulse-slow"
+        className="fixed z-[60] pointer-events-none ring-4 ring-primary ring-offset-4 rounded-lg transition-all duration-300 animate-pulse-slow"
         style={{
           top: targetRect.top - 8,
           left: targetRect.left - 8,
@@ -159,28 +181,19 @@ export const CareerVaultDashboardTour = () => {
         aria-hidden="true"
       />
 
-      {/* Tooltip attached to target - positioned absolutely */}
-      <div className="fixed z-50" style={{ top: 0, left: 0 }}>
-        <OnboardingTooltip
-          isOpen={isActive}
-          title={currentStep.title}
-          content={currentStep.content}
-          stepIndex={stepIndex}
-          totalSteps={totalSteps}
-          placement={isMobile ? 'bottom' : currentStep.placement || 'bottom'}
-          onNext={nextStep}
-          onPrevious={previousStep}
-          onSkip={skipTour}
-        >
-          <div 
-            style={{
-              position: 'absolute',
-              top: targetRect.top + targetRect.height / 2,
-              left: targetRect.left + targetRect.width / 2,
-            }}
-          />
-        </OnboardingTooltip>
-      </div>
+      {/* Custom portal-based tooltip with manual positioning */}
+      <CustomTourTooltip
+        targetRect={targetRect}
+        title={currentStep.title}
+        content={currentStep.content}
+        stepIndex={stepIndex}
+        totalSteps={totalSteps}
+        placement={currentStep.placement || 'bottom'}
+        onNext={nextStep}
+        onPrevious={previousStep}
+        onSkip={skipTour}
+        isMobile={isMobile}
+      />
     </>
   );
 };
