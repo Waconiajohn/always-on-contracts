@@ -46,6 +46,88 @@ interface CareerContextData {
   seniorityLevel: string;
 }
 
+interface IndustryBenchmark {
+  jobTitle: string;
+  industry: string;
+  seniorityLevel: string;
+  
+  // Management expectations
+  typicalManagementScope: {
+    hasManagement: boolean;
+    typicalTeamSize: string;
+    managementLevel: string;
+  };
+  
+  // Budget expectations
+  typicalBudgetOwnership: {
+    hasBudget: boolean;
+    typicalBudgetRange: string;
+    budgetType: string;
+  };
+  
+  // Executive exposure expectations
+  typicalExecutiveExposure: {
+    hasExposure: boolean;
+    interactionLevel: string;
+    strategicScope: string;
+  };
+  
+  // Experience expectations
+  typicalYearsExperience: {
+    minimum: number;
+    typical: number;
+    maximum: number;
+  };
+  
+  // Key competencies expected
+  expectedCompetencies: string[];
+  
+  // Education expectations
+  typicalEducation: {
+    level: string;
+    fields: string[];
+    certifications: string[];
+  };
+}
+
+interface ComparisonResult {
+  // High-confidence extracted data
+  confirmed: {
+    hasManagementExperience?: boolean;
+    managementDetails?: string;
+    teamSizesManaged?: number[];
+    hasBudgetOwnership?: boolean;
+    budgetDetails?: string;
+    budgetSizesManaged?: number[];
+    hasExecutiveExposure?: boolean;
+    executiveDetails?: string;
+    yearsOfExperience?: number;
+    seniorityLevel?: string;
+  };
+  
+  // Likely inferences (80%+ confidence)
+  likely: {
+    hasManagementExperience?: boolean;
+    hasBudgetOwnership?: boolean;
+    hasExecutiveExposure?: boolean;
+  };
+  
+  // Gaps requiring targeted questions
+  gaps_requiring_questions: Array<{
+    field: string;
+    question: string;
+    context: string;
+    expectedAnswer: string;
+  }>;
+  
+  // Evidence summary
+  evidence: {
+    managementEvidence: string[];
+    budgetEvidence: string[];
+    executiveEvidence: string[];
+  };
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
