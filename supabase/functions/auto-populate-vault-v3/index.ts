@@ -33,6 +33,19 @@ interface EducationData {
   certifications: string[];
 }
 
+interface CareerContextData {
+  hasManagementExperience: boolean;
+  managementDetails: string;
+  teamSizesManaged: number[];
+  hasBudgetOwnership: boolean;
+  budgetDetails: string;
+  budgetSizesManaged: number[];
+  hasExecutiveExposure: boolean;
+  executiveDetails: string;
+  yearsOfExperience: number;
+  seniorityLevel: string;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -231,6 +244,27 @@ serve(async (req) => {
       console.log('⚠️ No education section found in resume');
     }
 
+    // Extract career context (management, budget, executive exposure)
+    console.log('\n📦 Processing CAREER CONTEXT...');
+    let careerContextData: CareerContextData | null = null;
+    
+    try {
+      careerContextData = await extractCareerContext({
+        resumeText: resumeRawText,
+        userId,
+      });
+      
+      console.log(`✅ Career context extracted:`, {
+        management: careerContextData.hasManagementExperience,
+        budget: careerContextData.hasBudgetOwnership,
+        executive: careerContextData.hasExecutiveExposure,
+        seniority: careerContextData.seniorityLevel,
+      });
+    } catch (error) {
+      console.error('❌ Failed to extract career context:', error);
+      careerContextData = null;
+    }
+
     // ========================================================================
     // PHASE 3: Assign Quality Tiers and Review Priority
     // ========================================================================
@@ -420,28 +454,48 @@ serve(async (req) => {
       }
     }
 
-    // Store or update career context with education (NEW - CRITICAL FIX)
-    if (educationData && (educationData.level || educationData.field)) {
+    // Store or update career context with education AND career context (NEW - CRITICAL FIX)
+    if ((educationData && (educationData.level || educationData.field)) || careerContextData) {
+      const contextPayload: any = {
+        vault_id: vaultId,
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Add education if available
+      if (educationData) {
+        contextPayload.education_level = educationData.level;
+        contextPayload.education_field = educationData.field;
+        contextPayload.certifications = educationData.certifications || [];
+      }
+
+      // Add career context if available
+      if (careerContextData) {
+        contextPayload.has_management_experience = careerContextData.hasManagementExperience;
+        contextPayload.management_details = careerContextData.managementDetails;
+        contextPayload.team_sizes_managed = careerContextData.teamSizesManaged;
+        contextPayload.has_budget_ownership = careerContextData.hasBudgetOwnership;
+        contextPayload.budget_details = careerContextData.budgetDetails;
+        contextPayload.budget_sizes_managed = careerContextData.budgetSizesManaged;
+        contextPayload.has_executive_exposure = careerContextData.hasExecutiveExposure;
+        contextPayload.executive_details = careerContextData.executiveDetails;
+        contextPayload.years_of_experience = careerContextData.yearsOfExperience;
+        contextPayload.inferred_seniority = careerContextData.seniorityLevel;
+      }
+
       const { error: contextError } = await supabase
         .from('vault_career_context')
-        .upsert({
-          vault_id: vaultId,
-          user_id: userId,
-          education_level: educationData.level,
-          education_field: educationData.field,
-          certifications: educationData.certifications || [],
-          updated_at: new Date().toISOString(),
-        }, {
+        .upsert(contextPayload, {
           onConflict: 'vault_id'
         });
       
       if (contextError) {
         console.error('❌ Error storing career context:', contextError);
       } else {
-        console.log('✅ Stored career context with education');
+        console.log('✅ Stored comprehensive career context');
       }
     } else {
-      console.log('⚠️ No education data to store');
+      console.log('⚠️ No career context data to store');
     }
 
     // Update vault metadata
@@ -785,6 +839,114 @@ Rules:
       level: null,
       field: null,
       certifications: [],
+    };
+  }
+}
+
+// ========================================================================
+// 🎯 CAREER CONTEXT EXTRACTION
+// ========================================================================
+
+async function extractCareerContext(params: {
+  resumeText: string;
+  userId: string;
+}): Promise<CareerContextData> {
+  const prompt = `Analyze this resume and extract career context indicators.
+
+Resume:
+${params.resumeText}
+
+**MANAGEMENT EXPERIENCE INDICATORS:**
+Look for:
+- Job titles: Manager, Supervisor, Lead, Director, VP, Chief, Head, Team Lead
+- Action verbs: supervised, managed, led, guided, directed, oversaw, coordinated
+- Team scope: "team of X", "X engineers", "X reports", "X rigs", "managed X people"
+- Organizational structure: "reporting to X", "direct reports", "led a team"
+
+**BUDGET OWNERSHIP INDICATORS:**
+Look for:
+- Dollar amounts: "$350MM", "$1.5M", "multi-million", "$500K budget"
+- Financial terms: "budget responsibility", "P&L ownership", "cost center", "spending authority"
+- Budget actions: "managed budget", "oversaw expenditures", "approved spending", "fiscal responsibility"
+
+**EXECUTIVE EXPOSURE INDICATORS:**
+Look for:
+- C-suite interactions: "presented to CEO", "advised board", "executive briefings"
+- Strategic scope: "company-wide initiative", "organizational transformation", "enterprise strategy"
+- External representation: "industry speaker", "partnership negotiations", "executive committee"
+
+**SENIORITY INFERENCE:**
+Based on years of experience, job titles, and scope:
+- Entry-Level: 0-2 years, Junior, Associate titles
+- Mid-Level: 3-5 years, no management, specialist roles
+- Senior: 6-10 years, small team lead, expert roles
+- Senior Manager: 10-15 years, manages multiple teams/projects, significant budget
+- Executive: 15+ years, VP/Director/C-suite, strategic decision-making
+
+Return ONLY valid JSON (no markdown):
+{
+  "hasManagementExperience": boolean,
+  "managementDetails": "Detailed description of management scope (empty string if none)",
+  "teamSizesManaged": [array of numbers extracted from resume, empty array if none],
+  "hasBudgetOwnership": boolean,
+  "budgetDetails": "Detailed description of budget responsibility (empty string if none)",
+  "budgetSizesManaged": [array of budget amounts in dollars, empty array if none],
+  "hasExecutiveExposure": boolean,
+  "executiveDetails": "Detailed description of executive interactions (empty string if none)",
+  "yearsOfExperience": number (estimate from resume),
+  "seniorityLevel": "Entry-Level" | "Mid-Level" | "Senior" | "Senior Manager" | "Executive"
+}
+
+**CRITICAL RULES:**
+- If NO management indicators found, return hasManagementExperience: false
+- If NO budget indicators found, return hasBudgetOwnership: false
+- If NO executive indicators found, return hasExecutiveExposure: false
+- Extract ALL team sizes and budget amounts you find
+- Be generous with inference (e.g., "Supervisor" title = management experience)
+- Return valid JSON only, no markdown code blocks`;
+
+  try {
+    const result = await callPerplexity({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'sonar-pro',
+      max_tokens: 1500,
+    }, 'extract_career_context', params.userId);
+
+    await logAIUsage({
+      model: 'sonar-pro',
+      tokens: result.response.usage?.total_tokens || 1500,
+      task: 'extract_career_context',
+      userId: params.userId,
+    });
+
+    const content = result.response.choices[0].message.content;
+    const parseResult = extractJSON(content);
+    
+    return {
+      hasManagementExperience: parseResult.data?.hasManagementExperience || false,
+      managementDetails: parseResult.data?.managementDetails || '',
+      teamSizesManaged: parseResult.data?.teamSizesManaged || [],
+      hasBudgetOwnership: parseResult.data?.hasBudgetOwnership || false,
+      budgetDetails: parseResult.data?.budgetDetails || '',
+      budgetSizesManaged: parseResult.data?.budgetSizesManaged || [],
+      hasExecutiveExposure: parseResult.data?.hasExecutiveExposure || false,
+      executiveDetails: parseResult.data?.executiveDetails || '',
+      yearsOfExperience: parseResult.data?.yearsOfExperience || 0,
+      seniorityLevel: parseResult.data?.seniorityLevel || 'Mid-Level',
+    };
+  } catch (error) {
+    console.error('[CAREER-CONTEXT-EXTRACTION] Error:', error);
+    return {
+      hasManagementExperience: false,
+      managementDetails: '',
+      teamSizesManaged: [],
+      hasBudgetOwnership: false,
+      budgetDetails: '',
+      budgetSizesManaged: [],
+      hasExecutiveExposure: false,
+      executiveDetails: '',
+      yearsOfExperience: 0,
+      seniorityLevel: 'Mid-Level',
     };
   }
 }
