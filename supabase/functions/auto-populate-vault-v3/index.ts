@@ -103,6 +103,10 @@ interface ComparisonResult {
     executiveDetails?: string;
     yearsOfExperience?: number;
     seniorityLevel?: string;
+    // EDUCATION FIELDS (CRITICAL FIX)
+    educationLevel?: string;
+    educationField?: string;
+    certifications?: string[];
   };
   
   // Likely inferences (80%+ confidence)
@@ -125,6 +129,7 @@ interface ComparisonResult {
     managementEvidence: string[];
     budgetEvidence: string[];
     executiveEvidence: string[];
+    educationEvidence: string[];
   };
 }
 
@@ -421,7 +426,7 @@ serve(async (req) => {
           userId,
         });
 
-        // Use confirmed data as career context
+        // Use confirmed data as career context (INCLUDING EDUCATION)
         careerContextData = {
           hasManagementExperience: benchmarkComparison.confirmed.hasManagementExperience || false,
           managementDetails: benchmarkComparison.confirmed.managementDetails || '',
@@ -433,6 +438,13 @@ serve(async (req) => {
           executiveDetails: benchmarkComparison.confirmed.executiveDetails || '',
           yearsOfExperience: benchmarkComparison.confirmed.yearsOfExperience || 0,
           seniorityLevel: benchmarkComparison.confirmed.seniorityLevel || roleInfo.seniority,
+        };
+        
+        // Also store education from benchmark comparison
+        educationData = {
+          level: benchmarkComparison.confirmed.educationLevel || null,
+          field: benchmarkComparison.confirmed.educationField || null,
+          certifications: benchmarkComparison.confirmed.certifications || [],
         };
 
         // Store benchmark comparison
@@ -1098,12 +1110,13 @@ Expected for this role:
 - Budget: ${params.benchmark.typicalBudgetOwnership.hasBudget ? `Yes (${params.benchmark.typicalBudgetOwnership.typicalBudgetRange})` : 'No'}
 - Executive Exposure: ${params.benchmark.typicalExecutiveExposure.hasExposure ? `Yes (${params.benchmark.typicalExecutiveExposure.interactionLevel})` : 'No'}
 - Years Experience: ${params.benchmark.typicalYearsExperience.typical}
+- Education: ${params.benchmark.typicalEducation.level} in ${params.benchmark.typicalEducation.fields.join(' or ')}, Certifications: ${params.benchmark.typicalEducation.certifications.join(', ')}
 - Key Competencies: ${params.benchmark.expectedCompetencies.join(', ')}
 
 YOUR TASK:
-1. Extract CONFIRMED data (explicitly stated in resume)
+1. Extract CONFIRMED data (explicitly stated in resume) - INCLUDING EDUCATION
 2. Identify LIKELY inferences (80%+ confidence based on context)
-3. Generate TARGETED questions for gaps
+3. Generate TARGETED questions ONLY for gaps where benchmark expects data but resume doesn't show it
 
 Return STRICT JSON:
 {
@@ -1117,7 +1130,10 @@ Return STRICT JSON:
     "hasExecutiveExposure": true/false,
     "executiveDetails": "Specific quote from resume",
     "yearsOfExperience": 10,
-    "seniorityLevel": "Mid-Level|Senior|Executive"
+    "seniorityLevel": "Mid-Level|Senior|Executive",
+    "educationLevel": "Bachelor|Master|PhD|Associate|High School|None",
+    "educationField": "Mechanical Engineering",
+    "certifications": ["PMP", "PE"]
   },
   "likely": {
     "hasManagementExperience": true/false,
@@ -1135,14 +1151,17 @@ Return STRICT JSON:
   "evidence": {
     "managementEvidence": ["Quote 1 from resume", "Quote 2"],
     "budgetEvidence": ["Quote 1", "Quote 2"],
-    "executiveEvidence": ["Quote 1", "Quote 2"]
+    "executiveEvidence": ["Quote 1", "Quote 2"],
+    "educationEvidence": ["Degree quote", "Certification quote"]
   }
 }
 
-RULES:
+CRITICAL RULES:
 - Only mark as "confirmed" if explicitly stated in resume
+- For EDUCATION: Extract degree type (Bachelor/Master/PhD), field of study, and certifications from resume
+- DO NOT generate education questions if degree and field are confirmed in resume
 - Use "likely" for strong contextual inferences (80%+ confidence)
-- Generate targeted questions for missing data that's expected for this role
+- Generate targeted questions ONLY for missing data that the benchmark expects for this role
 - Extract specific quotes as evidence`;
 
   try {
