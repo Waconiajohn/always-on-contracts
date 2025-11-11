@@ -4165,6 +4165,65 @@ export type Database = {
           },
         ]
       }
+      vault_benchmark_comparison: {
+        Row: {
+          benchmark_data: Json
+          comparison_confidence: number | null
+          confirmed_data: Json
+          created_at: string
+          evidence_summary: Json
+          gaps_requiring_questions: Json
+          id: string
+          industry: string
+          job_title: string
+          likely_data: Json
+          seniority_level: string
+          updated_at: string
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          benchmark_data?: Json
+          comparison_confidence?: number | null
+          confirmed_data?: Json
+          created_at?: string
+          evidence_summary?: Json
+          gaps_requiring_questions?: Json
+          id?: string
+          industry: string
+          job_title: string
+          likely_data?: Json
+          seniority_level: string
+          updated_at?: string
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          benchmark_data?: Json
+          comparison_confidence?: number | null
+          confirmed_data?: Json
+          created_at?: string
+          evidence_summary?: Json
+          gaps_requiring_questions?: Json
+          id?: string
+          industry?: string
+          job_title?: string
+          likely_data?: Json
+          seniority_level?: string
+          updated_at?: string
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_benchmark_comparison_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: true
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_career_context: {
         Row: {
           ai_reasoning: string | null

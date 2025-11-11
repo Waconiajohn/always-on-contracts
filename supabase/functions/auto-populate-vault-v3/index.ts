@@ -395,6 +395,81 @@ serve(async (req) => {
     });
 
     // ========================================================================
+    // PHASE 6: EXTRACT CAREER CONTEXT & BENCHMARK COMPARISON
+    // ========================================================================
+    console.log('\n🎯 PHASE 6: Extracting career context with benchmark comparison...');
+
+    let careerContextData: CareerContextData | null = null;
+    let benchmarkComparison: ComparisonResult | null = null;
+
+    try {
+      if (roleInfo) {
+        // Fetch industry benchmarks
+        console.log(`📊 Fetching benchmarks for ${roleInfo.primaryRole} in ${roleInfo.industry}...`);
+        const benchmark = await fetchIndustryBenchmarks({
+          jobTitle: roleInfo.primaryRole,
+          industry: roleInfo.industry,
+          seniorityLevel: roleInfo.seniority,
+          userId,
+        });
+
+        // Compare resume against benchmarks
+        console.log('🔍 Comparing resume against industry benchmarks...');
+        benchmarkComparison = await compareResumeAgainstBenchmark({
+          resumeText,
+          benchmark,
+          userId,
+        });
+
+        // Use confirmed data as career context
+        careerContextData = {
+          hasManagementExperience: benchmarkComparison.confirmed.hasManagementExperience || false,
+          managementDetails: benchmarkComparison.confirmed.managementDetails || '',
+          teamSizesManaged: benchmarkComparison.confirmed.teamSizesManaged || [],
+          hasBudgetOwnership: benchmarkComparison.confirmed.hasBudgetOwnership || false,
+          budgetDetails: benchmarkComparison.confirmed.budgetDetails || '',
+          budgetSizesManaged: benchmarkComparison.confirmed.budgetSizesManaged || [],
+          hasExecutiveExposure: benchmarkComparison.confirmed.hasExecutiveExposure || false,
+          executiveDetails: benchmarkComparison.confirmed.executiveDetails || '',
+          yearsOfExperience: benchmarkComparison.confirmed.yearsOfExperience || 0,
+          seniorityLevel: benchmarkComparison.confirmed.seniorityLevel || roleInfo.seniority,
+        };
+
+        // Store benchmark comparison
+        const { error: benchmarkError } = await supabase
+          .from('vault_benchmark_comparison')
+          .upsert({
+            vault_id: vaultId,
+            user_id: userId,
+            job_title: benchmark.jobTitle,
+            industry: benchmark.industry,
+            seniority_level: benchmark.seniorityLevel,
+            benchmark_data: benchmark,
+            confirmed_data: benchmarkComparison.confirmed,
+            likely_data: benchmarkComparison.likely,
+            gaps_requiring_questions: benchmarkComparison.gaps_requiring_questions,
+            evidence_summary: benchmarkComparison.evidence,
+            comparison_confidence: 0.85,
+          }, {
+            onConflict: 'vault_id'
+          });
+
+        if (benchmarkError) {
+          console.error('❌ Error storing benchmark comparison:', benchmarkError);
+        } else {
+          console.log('✅ Stored benchmark comparison');
+          console.log(`   - Confirmed fields: ${Object.keys(benchmarkComparison.confirmed).length}`);
+          console.log(`   - Likely inferences: ${Object.keys(benchmarkComparison.likely).length}`);
+          console.log(`   - Targeted questions: ${benchmarkComparison.gaps_requiring_questions.length}`);
+        }
+      }
+    } catch (error) {
+      console.error('⚠️ Benchmark comparison failed, falling back to legacy extraction:', error);
+      // Fallback to legacy extraction
+      careerContextData = await extractCareerContext({ resumeText, userId });
+    }
+
+    // ========================================================================
     // PHASE 4: Add Industry Context
     // ========================================================================
     console.log('\n🌐 PHASE 4: Adding industry context...');
@@ -926,7 +1001,177 @@ Rules:
 }
 
 // ========================================================================
-// 🎯 CAREER CONTEXT EXTRACTION
+// 🎯 INDUSTRY BENCHMARK FETCHING
+// ========================================================================
+
+async function fetchIndustryBenchmarks(params: {
+  jobTitle: string;
+  industry: string;
+  seniorityLevel: string;
+  userId: string;
+}): Promise<IndustryBenchmark> {
+  const prompt = `You are an expert career analyst. Provide industry benchmarks for this role:
+
+Job Title: ${params.jobTitle}
+Industry: ${params.industry}
+Seniority: ${params.seniorityLevel}
+
+Return STRICT JSON with this structure:
+{
+  "jobTitle": "${params.jobTitle}",
+  "industry": "${params.industry}",
+  "seniorityLevel": "${params.seniorityLevel}",
+  "typicalManagementScope": {
+    "hasManagement": true/false,
+    "typicalTeamSize": "e.g., 5-10 direct reports",
+    "managementLevel": "e.g., Direct reports, Multiple teams, Department-level"
+  },
+  "typicalBudgetOwnership": {
+    "hasBudget": true/false,
+    "typicalBudgetRange": "e.g., $500K-$2M annually",
+    "budgetType": "e.g., Project budgets, Operational budget, P&L ownership"
+  },
+  "typicalExecutiveExposure": {
+    "hasExposure": true/false,
+    "interactionLevel": "e.g., Regular C-suite presentations, Occasional executive briefings",
+    "strategicScope": "e.g., Influences departmental strategy, Drives company-wide initiatives"
+  },
+  "typicalYearsExperience": {
+    "minimum": 5,
+    "typical": 8,
+    "maximum": 15
+  },
+  "expectedCompetencies": ["Competency 1", "Competency 2", "Competency 3"],
+  "typicalEducation": {
+    "level": "Bachelor|Master|PhD|None",
+    "fields": ["Engineering", "Business"],
+    "certifications": ["PMP", "Six Sigma"]
+  }
+}`;
+
+  try {
+    const { response } = await callPerplexity({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'sonar-pro',
+      max_tokens: 2000,
+      temperature: 0.3,
+    }, 'fetch_industry_benchmarks', params.userId);
+
+    await logAIUsage({
+      model: 'sonar-pro',
+      tokens: response.usage?.total_tokens || 2000,
+      task: 'fetch_industry_benchmarks',
+      userId: params.userId,
+    });
+
+    const content = response.choices[0].message.content;
+    const parseResult = extractJSON(content);
+    
+    return parseResult.data as IndustryBenchmark;
+  } catch (error) {
+    console.error('[BENCHMARK-FETCH] Error:', error);
+    throw error;
+  }
+}
+
+// ========================================================================
+// 🎯 RESUME-TO-BENCHMARK COMPARISON
+// ========================================================================
+
+async function compareResumeAgainstBenchmark(params: {
+  resumeText: string;
+  benchmark: IndustryBenchmark;
+  userId: string;
+}): Promise<ComparisonResult> {
+  const prompt = `Compare this resume against industry benchmarks and identify gaps.
+
+RESUME:
+${params.resumeText}
+
+INDUSTRY BENCHMARKS:
+- Job Title: ${params.benchmark.jobTitle}
+- Industry: ${params.benchmark.industry}
+- Seniority: ${params.benchmark.seniorityLevel}
+
+Expected for this role:
+- Management: ${params.benchmark.typicalManagementScope.hasManagement ? `Yes (${params.benchmark.typicalManagementScope.typicalTeamSize})` : 'No'}
+- Budget: ${params.benchmark.typicalBudgetOwnership.hasBudget ? `Yes (${params.benchmark.typicalBudgetOwnership.typicalBudgetRange})` : 'No'}
+- Executive Exposure: ${params.benchmark.typicalExecutiveExposure.hasExposure ? `Yes (${params.benchmark.typicalExecutiveExposure.interactionLevel})` : 'No'}
+- Years Experience: ${params.benchmark.typicalYearsExperience.typical}
+- Key Competencies: ${params.benchmark.expectedCompetencies.join(', ')}
+
+YOUR TASK:
+1. Extract CONFIRMED data (explicitly stated in resume)
+2. Identify LIKELY inferences (80%+ confidence based on context)
+3. Generate TARGETED questions for gaps
+
+Return STRICT JSON:
+{
+  "confirmed": {
+    "hasManagementExperience": true/false,
+    "managementDetails": "Specific quote from resume",
+    "teamSizesManaged": [5, 10],
+    "hasBudgetOwnership": true/false,
+    "budgetDetails": "Specific quote from resume",
+    "budgetSizesManaged": [500000, 2000000],
+    "hasExecutiveExposure": true/false,
+    "executiveDetails": "Specific quote from resume",
+    "yearsOfExperience": 10,
+    "seniorityLevel": "Mid-Level|Senior|Executive"
+  },
+  "likely": {
+    "hasManagementExperience": true/false,
+    "hasBudgetOwnership": true/false,
+    "hasExecutiveExposure": true/false
+  },
+  "gaps_requiring_questions": [
+    {
+      "field": "budget_ownership",
+      "question": "What was the typical budget size you managed for drilling operations?",
+      "context": "Resume mentions cost management but no specific budget amounts",
+      "expectedAnswer": "Dollar amount range"
+    }
+  ],
+  "evidence": {
+    "managementEvidence": ["Quote 1 from resume", "Quote 2"],
+    "budgetEvidence": ["Quote 1", "Quote 2"],
+    "executiveEvidence": ["Quote 1", "Quote 2"]
+  }
+}
+
+RULES:
+- Only mark as "confirmed" if explicitly stated in resume
+- Use "likely" for strong contextual inferences (80%+ confidence)
+- Generate targeted questions for missing data that's expected for this role
+- Extract specific quotes as evidence`;
+
+  try {
+    const { response } = await callPerplexity({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'sonar-pro',
+      max_tokens: 3000,
+      temperature: 0.4,
+    }, 'compare_resume_benchmark', params.userId);
+
+    await logAIUsage({
+      model: 'sonar-pro',
+      tokens: response.usage?.total_tokens || 3000,
+      task: 'compare_resume_benchmark',
+      userId: params.userId,
+    });
+
+    const content = response.choices[0].message.content;
+    const parseResult = extractJSON(content);
+    
+    return parseResult.data as ComparisonResult;
+  } catch (error) {
+    console.error('[BENCHMARK-COMPARISON] Error:', error);
+    throw error;
+  }
+}
+
+// ========================================================================
+// 🎯 CAREER CONTEXT EXTRACTION (LEGACY - KEPT FOR FALLBACK)
 // ========================================================================
 
 async function extractCareerContext(params: {

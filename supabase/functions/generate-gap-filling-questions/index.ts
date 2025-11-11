@@ -92,12 +92,36 @@ serve(async (req) => {
       throw new Error('vaultData is required');
     }
 
-    // ===== PHASE 1: GET CACHED CAREER CONTEXT (NO AI CALL) =====
-    console.log('[GAP QUESTIONS] Phase 1: Fetching cached career context...');
+    // ===== PHASE 1: GET CACHED CAREER CONTEXT & BENCHMARK COMPARISON =====
+    console.log('[GAP QUESTIONS] Phase 1: Fetching cached career context and benchmark comparison...');
     
     let careerContext: any;
     const verifiedAreas: string[] = [];
     const gapAreas: string[] = [];
+    let benchmarkGaps: any[] = [];
+    
+    // Fetch benchmark comparison first
+    const { data: benchmarkData, error: benchmarkError } = await supabase
+      .from('vault_benchmark_comparison')
+      .select('*')
+      .eq('vault_id', vaultId)
+      .single();
+    
+    if (benchmarkData && !benchmarkError) {
+      console.log('[GAP QUESTIONS] ✅ Benchmark comparison found');
+      benchmarkGaps = benchmarkData.gaps_requiring_questions || [];
+      console.log(`[GAP QUESTIONS] Found ${benchmarkGaps.length} targeted gaps from benchmark analysis`);
+      
+      // If we have benchmark gaps, use them primarily
+      if (benchmarkGaps.length > 0) {
+        benchmarkGaps.forEach((gap: any) => {
+          gapAreas.push(`${gap.field}: ${gap.context} (${gap.expectedAnswer})`);
+        });
+        console.log('[GAP QUESTIONS] Using benchmark-driven gaps for targeted questions');
+      }
+    } else {
+      console.log('[GAP QUESTIONS] ⚠️ No benchmark comparison found - will generate generic gaps');
+    }
     
     const { data: cachedContext, error: contextError } = await supabase
       .from('vault_career_context')
@@ -240,7 +264,10 @@ You are an expert career strategist analyzing a professional's career profile to
 ## VERIFIED AREAS (DO NOT ASK ABOUT THESE):
 ${verifiedAreas.length > 0 ? verifiedAreas.map(v => `✓ ${v}`).join('\n') : 'None verified yet'}
 
-## IDENTIFIED GAPS (ASK ONLY ABOUT THESE):
+## BENCHMARK-DRIVEN GAPS (PRIORITY - ASK THESE FIRST):
+${benchmarkGaps.length > 0 ? benchmarkGaps.map((g: any) => `🎯 ${g.field}: ${g.question}\n   Context: ${g.context}\n   Expected: ${g.expectedAnswer}`).join('\n\n') : 'None - use resume analysis to identify gaps'}
+
+## IDENTIFIED GAPS (ASK ONLY IF NOT COVERED BY BENCHMARK GAPS):
 ${gapAreas.length > 0 ? gapAreas.map(g => `⚠ ${g}`).join('\n') : 'No specific gaps identified - use resume to find areas needing clarification'}
 
 ## RESUME CONTENT (WHAT WE ALREADY KNOW):
@@ -286,14 +313,19 @@ Generate gap-filling questions that address information NOT found in the resume 
 
 CRITICAL RULES FOR QUESTION GENERATION:
 
-1. **NEVER ASK ABOUT VERIFIED AREAS:**
+1. **PRIORITIZE BENCHMARK GAPS:**
+   - If "BENCHMARK-DRIVEN GAPS" are present above, generate questions for those FIRST
+   - Benchmark gaps are role-specific and high-impact - they should be your primary focus
+   - Only add additional questions if you identify other critical gaps not covered by benchmarks
+
+2. **NEVER ASK ABOUT VERIFIED AREAS:**
    - Review the "VERIFIED AREAS" section above - these are CONFIRMED, do NOT ask about them
    - If education is verified (e.g., "Bachelor's in Mechanical Engineering") → DO NOT ask "Do you have a degree?"
    - If management is verified (e.g., "Supervised 3-4 rigs") → DO NOT ask "Have you managed teams?"
    - If budget responsibility is verified → DO NOT ask about budget experience
-   - ONLY ask about the "IDENTIFIED GAPS" or areas genuinely unclear from the resume
+   - ONLY ask about the "BENCHMARK GAPS" or "IDENTIFIED GAPS" areas
 
-2. **Career Level Matching:**
+3. **Career Level Matching:**
    - Questions must match their ACTUAL career level (${careerContext.inferredSeniority})
    - ${['Manager', 'Senior Manager', 'Director', 'VP', 'C-Level'].includes(careerContext.inferredSeniority) ? 
      'Focus on strategic impact, cross-functional leadership, and scaling operations' : 
