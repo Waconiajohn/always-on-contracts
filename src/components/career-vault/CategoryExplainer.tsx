@@ -95,8 +95,8 @@ const CATEGORY_INFO = {
     color: 'text-orange-500'
   },
   power_phrases: {
-    title: 'Power Phrases',
-    description: 'Impactful statements that quantify your achievements and demonstrate measurable results.',
+    title: 'Career Achievements',
+    description: 'Quantified accomplishments that demonstrate your impact and results with specific numbers.',
     examples: [
       {
         before: 'Responsible for team management',
@@ -107,7 +107,7 @@ const CATEGORY_INFO = {
         after: 'Reduced operational costs by 40% ($500K annually) through process automation'
       }
     ],
-    whyItMatters: 'Power phrases make your accomplishments concrete and memorable to hiring managers.',
+    whyItMatters: 'Achievements with numbers make your value immediately clear to hiring managers.',
     color: 'text-blue-500'
   },
   transferable_skills: {

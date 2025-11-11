@@ -197,6 +197,20 @@ serve(async (req) => {
       console.log(`✅ Extracted ${softSkillsResult.softSkills.length} soft skills`);
     }
 
+    // Process Education section (NEW - CRITICAL FIX)
+    const educationSection = resumeStructure.sections.find(s => s.type === 'education');
+    let educationData = null;
+
+    if (educationSection) {
+      console.log('\n📦 Processing EDUCATION section...');
+      educationData = await extractEducation({
+        sectionContent: educationSection.content,
+        userId,
+      });
+      
+      console.log(`✅ Extracted education: ${educationData.level} in ${educationData.field}`);
+    }
+
     // ========================================================================
     // PHASE 3: Assign Quality Tiers and Review Priority
     // ========================================================================
@@ -383,6 +397,28 @@ serve(async (req) => {
         console.error('❌ Error inserting soft skills:', ssError);
       } else {
         console.log(`✅ Stored ${softSkillsInserts.length} soft skills`);
+      }
+    }
+
+    // Store or update career context with education (NEW - CRITICAL FIX)
+    if (educationData) {
+      const { error: contextError } = await supabase
+        .from('vault_career_context')
+        .upsert({
+          vault_id: vaultId,
+          user_id: userId,
+          education_level: educationData.level,
+          education_field: educationData.field,
+          certifications: educationData.certifications || [],
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'vault_id'
+        });
+      
+      if (contextError) {
+        console.error('❌ Error storing career context:', contextError);
+      } else {
+        console.log('✅ Stored career context with education');
       }
     }
 
@@ -663,6 +699,50 @@ function getBenchmarkContext(metrics: any, roleInfo: RoleInfo): any {
   }
 
   return benchmarks;
+}
+
+// ========================================================================
+// VAULT CLEANUP HELPER
+// ========================================================================
+
+// ========================================================================
+// EDUCATION EXTRACTION (NEW - CRITICAL FIX)
+// ========================================================================
+
+async function extractEducation(params: {
+  sectionContent: string;
+  userId: string;
+}): Promise<any> {
+  const prompt = `Extract education information from this resume section.
+
+Resume Section:
+${params.sectionContent}
+
+Return JSON:
+{
+  "level": "High School|Associate|Bachelor|Master|PhD|None",
+  "field": "Primary major/field of study",
+  "institution": "School name",
+  "graduationYear": 2020,
+  "certifications": ["Cert 1", "Cert 2"]
+}
+
+Rules:
+- For "Bachelor of Science in Mechanical Engineering" → level: "Bachelor", field: "Mechanical Engineering"
+- For "MBA" → level: "Master", field: "Business Administration"
+- Extract ALL certifications and licenses
+`;
+
+  const result = await callPerplexity({
+    messages: [{ role: 'user', content: prompt }],
+    model: 'sonar-pro',
+    max_tokens: 1000,
+  }, 'extract_education', params.userId);
+
+  const content = result.response.choices[0].message.content;
+  const parseResult = extractJSON(content);
+  
+  return parseResult.data || { level: null, field: null, certifications: [] };
 }
 
 // ========================================================================

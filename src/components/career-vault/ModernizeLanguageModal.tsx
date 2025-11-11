@@ -18,7 +18,7 @@ interface ModernizeLanguageModalProps {
   onSuccess: () => void;
 }
 
-interface PowerPhrase {
+interface CareerAchievement {
   id: string;
   power_phrase: string;
   context: string;
@@ -45,8 +45,8 @@ const MODERN_KEYWORDS = [
 ];
 
 export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess }: ModernizeLanguageModalProps) => {
-  const [phrases, setPhrases] = useState<PowerPhrase[]>([]);
-  const [selectedPhrase, setSelectedPhrase] = useState<PowerPhrase | null>(null);
+  const [phrases, setPhrases] = useState<CareerAchievement[]>([]);
+  const [selectedPhrase, setSelectedPhrase] = useState<CareerAchievement | null>(null);
   const [loading, setLoading] = useState(false);
   const [generatingSuggestion, setGeneratingSuggestion] = useState(false);
   const [suggestion, setSuggestion] = useState<ModernizationSuggestion | null>(null);
@@ -88,7 +88,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
       logger.error('Error loading phrases', error);
       toast({
         title: 'Error',
-        description: 'Failed to load power phrases',
+        description: 'Failed to load career achievements',
         variant: 'destructive'
       });
     } finally {
@@ -223,9 +223,9 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>All Phrases Are Modern!</DialogTitle>
+            <DialogTitle>All Achievements Are Modern!</DialogTitle>
             <DialogDescription>
-              Excellent! All your power phrases use current terminology.
+              Excellent! All your career achievements use current terminology.
             </DialogDescription>
           </DialogHeader>
           <div className="text-center py-4">
@@ -324,9 +324,9 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
               </Card>
             )}
 
-            {/* Edit Phrase */}
+            {/* Edit Achievement */}
             <div className="space-y-2">
-              <Label htmlFor="editedPhrase">Edit Phrase (or use AI suggestion above)</Label>
+              <Label htmlFor="editedPhrase">Edit Achievement (or use AI suggestion above)</Label>
               <Textarea
                 id="editedPhrase"
                 value={editedPhrase}
@@ -377,7 +377,7 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
             {/* Actions */}
             <div className="flex gap-3 justify-between pt-4 border-t">
               <Button variant="outline" onClick={handleSkip}>
-                Skip This Phrase
+                Skip This Achievement
               </Button>
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => onOpenChange(false)}>

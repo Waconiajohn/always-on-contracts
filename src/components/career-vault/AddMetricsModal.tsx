@@ -21,7 +21,7 @@ interface AddMetricsModalProps {
   onSuccess: () => void;
 }
 
-interface PowerPhrase {
+interface CareerAchievement {
   id: string;
   power_phrase: string;
   context: string;
@@ -35,8 +35,8 @@ interface MetricSuggestion {
 }
 
 export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddMetricsModalProps) => {
-  const [phrases, setPhrases] = useState<PowerPhrase[]>([]);
-  const [selectedPhrase, setSelectedPhrase] = useState<PowerPhrase | null>(null);
+  const [phrases, setPhrases] = useState<CareerAchievement[]>([]);
+  const [selectedPhrase, setSelectedPhrase] = useState<CareerAchievement | null>(null);
   const [loading, setLoading] = useState(false);
   const [generatingSuggestions, setGeneratingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<MetricSuggestion[]>([]);
@@ -80,7 +80,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
       console.error('Error loading phrases:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load power phrases',
+        description: 'Failed to load career achievements',
         variant: 'destructive'
       });
     } finally {
@@ -388,7 +388,7 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
             {/* Actions */}
             <div className="flex gap-3 justify-between pt-4 border-t">
               <Button variant="outline" onClick={handleSkip}>
-                Skip This Phrase
+                Skip This Achievement
               </Button>
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => onOpenChange(false)}>

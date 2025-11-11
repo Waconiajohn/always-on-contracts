@@ -4172,8 +4172,11 @@ export type Database = {
           budget_details: string | null
           budget_sizes_managed: number[] | null
           career_archetype: string | null
+          certifications: string[] | null
           company_sizes: string[] | null
           created_at: string | null
+          education_field: string | null
+          education_level: string | null
           executive_details: string | null
           has_budget_ownership: boolean
           has_executive_exposure: boolean
@@ -4201,8 +4204,11 @@ export type Database = {
           budget_details?: string | null
           budget_sizes_managed?: number[] | null
           career_archetype?: string | null
+          certifications?: string[] | null
           company_sizes?: string[] | null
           created_at?: string | null
+          education_field?: string | null
+          education_level?: string | null
           executive_details?: string | null
           has_budget_ownership: boolean
           has_executive_exposure: boolean
@@ -4230,8 +4236,11 @@ export type Database = {
           budget_details?: string | null
           budget_sizes_managed?: number[] | null
           career_archetype?: string | null
+          certifications?: string[] | null
           company_sizes?: string[] | null
           created_at?: string | null
+          education_field?: string | null
+          education_level?: string | null
           executive_details?: string | null
           has_budget_ownership?: boolean
           has_executive_exposure?: boolean
