@@ -7,7 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 interface CategoryExplainerProps {
-  category: 'career_achievements' | 'skills_expertise' | 'strategic_capabilities' | 'professional_strengths';
+  category: 'career_achievements' | 'skills_expertise' | 'strategic_capabilities' | 'professional_strengths' | 'power_phrases' | 'transferable_skills' | 'hidden_competencies' | 'soft_skills';
 }
 
 const CATEGORY_INFO = {
@@ -93,11 +93,83 @@ const CATEGORY_INFO = {
     ],
     whyItMatters: 'These abilities differentiate top performers when backed by evidence.',
     color: 'text-orange-500'
+  },
+  power_phrases: {
+    title: 'Power Phrases',
+    description: 'Impactful statements that quantify your achievements and demonstrate measurable results.',
+    examples: [
+      {
+        before: 'Responsible for team management',
+        after: 'Led cross-functional team of 12 engineers, delivering $2M project 3 weeks ahead of schedule'
+      },
+      {
+        before: 'Improved efficiency',
+        after: 'Reduced operational costs by 40% ($500K annually) through process automation'
+      }
+    ],
+    whyItMatters: 'Power phrases make your accomplishments concrete and memorable to hiring managers.',
+    color: 'text-blue-500'
+  },
+  transferable_skills: {
+    title: 'Transferable Skills',
+    description: 'Skills that apply across different roles, industries, and contexts.',
+    examples: [
+      {
+        skill: 'Project Management',
+        evidence: 'Coordinated multiple initiatives across 5 departments, always on time and budget'
+      },
+      {
+        skill: 'Communication',
+        evidence: 'Presented quarterly results to board of directors and external stakeholders'
+      }
+    ],
+    whyItMatters: 'These skills prove you can adapt and succeed in new environments.',
+    color: 'text-green-500'
+  },
+  hidden_competencies: {
+    title: 'Hidden Competencies',
+    description: 'Strategic capabilities demonstrated through your actions but not explicitly stated.',
+    examples: [
+      {
+        action: 'Scaled system to handle 10x traffic',
+        competency: '→ Capacity Planning, Performance Optimization, Infrastructure Design'
+      },
+      {
+        action: 'Led digital transformation',
+        competency: '→ Change Management, Strategic Vision, Technology Leadership'
+      }
+    ],
+    whyItMatters: 'Reveals high-level abilities that differentiate senior professionals.',
+    color: 'text-purple-500'
+  },
+  soft_skills: {
+    title: 'Soft Skills',
+    description: 'Interpersonal and behavioral abilities proven through your work experience.',
+    examples: [
+      {
+        skill: 'Leadership',
+        evidence: 'Built engineering team from 3 to 25 people, team velocity increased 300%',
+        impact: 'Created culture of innovation and accountability'
+      },
+      {
+        skill: 'Collaboration',
+        evidence: 'Partnered with product, design, and marketing teams on cross-functional initiatives',
+        impact: 'Reduced time-to-market by 35%'
+      }
+    ],
+    whyItMatters: 'Soft skills backed by evidence show you can work effectively with teams and stakeholders.',
+    color: 'text-orange-500'
   }
 };
 
 export default function CategoryExplainer({ category }: CategoryExplainerProps) {
   const info = CATEGORY_INFO[category];
+
+  // Safety check - if category not found, don't render
+  if (!info) {
+    console.warn(`CategoryExplainer: Unknown category "${category}"`);
+    return null;
+  }
 
   return (
     <Popover>
@@ -152,6 +224,51 @@ export default function CategoryExplainer({ category }: CategoryExplainerProps) 
               )}
 
               {category === 'professional_strengths' && (
+                <>
+                  {(info.examples as Array<{ skill: string; evidence: string; impact: string }>).map((example, idx) => (
+                    <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
+                      <div className="font-semibold text-primary">{example.skill}</div>
+                      <div className="text-muted-foreground">{example.evidence}</div>
+                      <div className="text-foreground">→ {example.impact}</div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {category === 'power_phrases' && (
+                <>
+                  {(info.examples as Array<{ before: string; after: string }>).map((example, idx) => (
+                    <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
+                      <div className="text-destructive line-through">{example.before}</div>
+                      <div className="text-primary font-medium">✓ {example.after}</div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {category === 'transferable_skills' && (
+                <>
+                  {(info.examples as Array<{ skill: string; evidence: string }>).map((example, idx) => (
+                    <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
+                      <div className="font-semibold text-primary">{example.skill}</div>
+                      <div className="text-muted-foreground">{example.evidence}</div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {category === 'hidden_competencies' && (
+                <>
+                  {(info.examples as Array<{ action: string; competency: string }>).map((example, idx) => (
+                    <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
+                      <div className="text-foreground">{example.action}</div>
+                      <div className="text-primary font-medium">{example.competency}</div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {category === 'soft_skills' && (
                 <>
                   {(info.examples as Array<{ skill: string; evidence: string; impact: string }>).map((example, idx) => (
                     <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
