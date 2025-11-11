@@ -291,14 +291,46 @@ export default function AutoPopulationProgress({
           pollInterval = setInterval(async () => {
             attempts++;
             
-            if (attempts > maxAttempts) {
-              clearInterval(pollInterval!);
-              reject(new Error('Extraction timed out after 4 minutes'));
-              return;
+          if (attempts > maxAttempts) {
+            clearInterval(pollInterval!);
+            
+            // Before rejecting, check if vault actually has data
+            console.log('⏱️ [Extraction Timeout] Checking if data exists...');
+            const { data: vault } = await supabase
+              .from('career_vault')
+              .select('total_power_phrases, total_transferable_skills, total_hidden_competencies, total_soft_skills')
+              .eq('id', vaultId)
+              .maybeSingle();
+            
+            const totalItems = 
+              (vault?.total_power_phrases || 0) +
+              (vault?.total_transferable_skills || 0) +
+              (vault?.total_hidden_competencies || 0) +
+              (vault?.total_soft_skills || 0);
+            
+            if (totalItems > 0) {
+              // Extraction actually succeeded!
+              console.log('✅ [Extraction succeeded despite timeout]', { totalItems });
+              toast({
+                title: "Extraction Completed",
+                description: `Successfully extracted ${totalItems} items. The progress indicator timed out, but your data is ready.`,
+                duration: 5000,
+              });
+              resolve({
+                powerPhrasesCount: vault?.total_power_phrases || 0,
+                skillsCount: vault?.total_transferable_skills || 0,
+                competenciesCount: vault?.total_hidden_competencies || 0,
+                softSkillsCount: vault?.total_soft_skills || 0,
+              });
+            } else {
+              console.error('❌ [Extraction failed - no data found]');
+              reject(new Error('Extraction timed out after 4 minutes and no data was found. Please try again.'));
             }
+            return;
+          }
 
             try {
-              // Check extraction_sessions for completion (use maybeSingle to handle 0 rows)
+              // Check extraction_sessions for completion
               const { data: session, error: sessionError } = await supabase
                 .from('extraction_sessions')
                 .select('*')
@@ -307,9 +339,26 @@ export default function AutoPopulationProgress({
                 .limit(1)
                 .maybeSingle();
 
-              // Fallback: If extraction_sessions is not available or accessible, 
-              // check if vault has items and completion percentage
-              if (!session && !sessionError) {
+              console.log('🔍 [Extraction Polling]', {
+                attempt: attempts,
+                maxAttempts,
+                vaultId,
+                sessionFound: !!session,
+                sessionStatus: session?.status,
+                sessionError: (sessionError as any)?.message,
+                sessionErrorCode: (sessionError as any)?.code,
+              });
+
+              // Trigger fallback if RLS blocks access or no session exists
+              const shouldFallback = !session || 
+                (sessionError && (
+                  (sessionError as any).code === 'PGRST301' || // RLS policy violation
+                  (sessionError as any).code === 'PGRST116' || // Not found
+                  (sessionError as any).message?.includes('policy')
+                ));
+
+              if (shouldFallback) {
+                console.log('🔄 [Extraction Fallback] Checking vault directly...');
                 const { data: vault } = await supabase
                   .from('career_vault')
                   .select('review_completion_percentage, total_power_phrases, total_transferable_skills, total_hidden_competencies, total_soft_skills')
@@ -325,6 +374,7 @@ export default function AutoPopulationProgress({
                     (vault.total_soft_skills || 0);
 
                   if (totalVaultItems > 0) {
+                    console.log('✅ [Extraction Complete via Fallback]', { totalVaultItems });
                     clearInterval(pollInterval!);
                     resolve({
                       powerPhrasesCount: vault.total_power_phrases || 0,
@@ -338,6 +388,7 @@ export default function AutoPopulationProgress({
               }
 
               if (session?.status === 'completed') {
+                console.log('✅ [Extraction Complete via Session]');
                 clearInterval(pollInterval!);
                 
                 // Get category counts
@@ -355,11 +406,12 @@ export default function AutoPopulationProgress({
                   softSkillsCount: softSkills.count || 0,
                 });
               } else if (session?.status === 'failed') {
+                console.error('❌ [Extraction Failed]');
                 clearInterval(pollInterval!);
                 reject(new Error('Extraction failed - please try again'));
               }
             } catch (err) {
-              logger.error('Error polling extraction status', err);
+              console.error('❌ [Error polling extraction status]:', err);
             }
           }, 2000); // Poll every 2 seconds
         });

@@ -385,8 +385,10 @@ export type Database = {
           id: string
           latency_ms: number | null
           metadata: Json | null
+          model_used: string | null
           parsed_data: Json | null
           pass_type: string
+          prompt_version: string | null
           raw_response: string | null
           session_id: string
           usage: Json | null
@@ -398,8 +400,10 @@ export type Database = {
           id?: string
           latency_ms?: number | null
           metadata?: Json | null
+          model_used?: string | null
           parsed_data?: Json | null
           pass_type: string
+          prompt_version?: string | null
           raw_response?: string | null
           session_id: string
           usage?: Json | null
@@ -411,8 +415,10 @@ export type Database = {
           id?: string
           latency_ms?: number | null
           metadata?: Json | null
+          model_used?: string | null
           parsed_data?: Json | null
           pass_type?: string
+          prompt_version?: string | null
           raw_response?: string | null
           session_id?: string
           usage?: Json | null
