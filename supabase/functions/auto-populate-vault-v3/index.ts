@@ -187,22 +187,30 @@ serve(async (req) => {
     });
 
     // ========================================================================
-    // PHASE 4: Detect Role and Industry for Context
+    // PHASE 4: Detect Role and Industry for Context (NOW WITH GUARANTEED SUCCESS)
     // ========================================================================
     console.log('\n🎯 PHASE 4: Detecting role and industry...');
-    const detectedRoleInfo = detectRoleAndIndustry(resumeText, resumeStructure);
+    const detectedRoleInfo = detectRoleAndIndustry(resumeText, resumeStructure); // Now always returns RoleInfo
     const roleInfo = targetRoles && targetRoles.length > 0
       ? {
           primaryRole: targetRoles[0],
-          industry: targetIndustries?.[0] || detectedRoleInfo?.industry || 'General',
-          seniority: detectedRoleInfo?.seniority || 'mid',
+          industry: targetIndustries?.[0] || detectedRoleInfo.industry || 'General',
+          seniority: detectedRoleInfo.seniority || 'mid',
           confidence: 90,
           alternativeRoles: targetRoles.slice(1),
         }
       : detectedRoleInfo;
 
-    if (roleInfo) {
-      console.log(`✅ Role: ${roleInfo.primaryRole} | Industry: ${roleInfo.industry} | Seniority: ${roleInfo.seniority}`);
+    console.log(`✅ Role: ${roleInfo.primaryRole} | Industry: ${roleInfo.industry} | Seniority: ${roleInfo.seniority} (${roleInfo.confidence}% confidence)`);
+
+    // ========================================================================
+    // PHASE 4.5: ALWAYS Extract Education Independently (CRITICAL FIX)
+    // ========================================================================
+    console.log('\n🎓 PHASE 4.5: Extracting education data independently...');
+    const extractedEducation = extractEducationData(resumeText, resumeStructure);
+    console.log(`✅ Education: ${extractedEducation.level || 'None'} in ${extractedEducation.field || 'Not specified'}`);
+    if (extractedEducation.certifications.length > 0) {
+      console.log(`✅ Certifications: ${extractedEducation.certifications.join(', ')}`);
     }
 
     // Clear existing data if mode = 'full'
@@ -400,15 +408,26 @@ serve(async (req) => {
     });
 
     // ========================================================================
-    // PHASE 6: EXTRACT CAREER CONTEXT & BENCHMARK COMPARISON
+    // PHASE 6: EXTRACT CAREER CONTEXT & BENCHMARK COMPARISON (WITH FALLBACKS)
     // ========================================================================
     console.log('\n🎯 PHASE 6: Extracting career context with benchmark comparison...');
 
     let careerContextData: CareerContextData | null = null;
     let benchmarkComparison: ComparisonResult | null = null;
+    let educationData: { level: string | null; field: string | null; certifications: string[] } = {
+      level: extractedEducation.level,
+      field: extractedEducation.field,
+      certifications: extractedEducation.certifications,
+    };
 
     try {
       if (roleInfo) {
+        console.log(`🎯 Role confidence: ${roleInfo.confidence}%`);
+        
+        // Use fallback benchmark for low-confidence detections
+        if (roleInfo.confidence < 50) {
+          console.warn(`⚠️ Low confidence (${roleInfo.confidence}%) - will use generic Professional benchmark`);
+        }
         // Fetch industry benchmarks
         console.log(`📊 Fetching benchmarks for ${roleInfo.primaryRole} in ${roleInfo.industry}...`);
         const benchmark = await fetchIndustryBenchmarks({
@@ -440,12 +459,24 @@ serve(async (req) => {
           seniorityLevel: benchmarkComparison.confirmed.seniorityLevel || roleInfo.seniority,
         };
         
-        // Also store education from benchmark comparison
-        educationData = {
+        // CRITICAL: Merge education from benchmark AND independent extraction
+        // Prioritize benchmark (if AI found it) but use independent extraction as fallback
+        const benchmarkEducation = {
           level: benchmarkComparison.confirmed.educationLevel || null,
           field: benchmarkComparison.confirmed.educationField || null,
           certifications: benchmarkComparison.confirmed.certifications || [],
         };
+        
+        educationData = {
+          level: benchmarkEducation.level || extractedEducation.level,
+          field: benchmarkEducation.field || extractedEducation.field,
+          certifications: [
+            ...(benchmarkEducation.certifications || []),
+            ...extractedEducation.certifications,
+          ].filter((cert, index, arr) => arr.indexOf(cert) === index), // Remove duplicates
+        };
+        
+        console.log(`✅ Final education data: ${educationData.level || 'None'} in ${educationData.field || 'Not specified'}, ${educationData.certifications.length} certs`);
 
         // Store benchmark comparison
         const { error: benchmarkError } = await supabase
@@ -474,11 +505,28 @@ serve(async (req) => {
           console.log(`   - Likely inferences: ${Object.keys(benchmarkComparison.likely).length}`);
           console.log(`   - Targeted questions: ${benchmarkComparison.gaps_requiring_questions.length}`);
         }
+      } else {
+        // This should NEVER happen with new fallback system
+        console.error('❌ CRITICAL: roleInfo is null - this should not happen!');
+        educationData = {
+          level: extractedEducation.level,
+          field: extractedEducation.field,
+          certifications: extractedEducation.certifications,
+        };
+        console.log('✅ Using independent education extraction as fallback');
       }
     } catch (error) {
       console.error('⚠️ Benchmark comparison failed, falling back to legacy extraction:', error);
       // Fallback to legacy extraction
       careerContextData = await extractCareerContext({ resumeText, userId });
+      
+      // Ensure education data is still available
+      educationData = {
+        level: extractedEducation.level,
+        field: extractedEducation.field,
+        certifications: extractedEducation.certifications,
+      };
+      console.log('✅ Education data preserved from independent extraction');
     }
 
     // ========================================================================

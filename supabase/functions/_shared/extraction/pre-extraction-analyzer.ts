@@ -151,47 +151,141 @@ export function parseResumeStructure(resumeText: string): ResumeStructure {
 }
 
 /**
- * Detect primary role and industry from resume
+ * Extract education data directly from resume (independent of role detection)
  */
-export function detectRoleAndIndustry(resumeText: string, resumeStructure: ResumeStructure): RoleInfo | null {
+export interface EducationData {
+  level: string | null;
+  field: string | null;
+  certifications: string[];
+}
+
+export function extractEducationData(resumeText: string, resumeStructure: ResumeStructure): EducationData {
+  console.log('🎓 Extracting education data independently...');
+  
+  const educationSection = resumeStructure.sections.find(s => s.type === 'education');
+  const content = educationSection?.content || resumeText;
+  const contentLower = content.toLowerCase();
+  
+  // Detect education level
+  let level: string | null = null;
+  if (/\b(phd|ph\.d\.|doctorate|doctoral)\b/i.test(content)) {
+    level = 'PhD';
+  } else if (/\b(master|m\.s\.|ms|mba|m\.a\.|ma|msc)\b/i.test(content)) {
+    level = 'Master';
+  } else if (/\b(bachelor|b\.s\.|bs|b\.a\.|ba|bsc|b\.eng|b\.tech)\b/i.test(content)) {
+    level = 'Bachelor';
+  } else if (/\b(associate|a\.s\.|as|a\.a\.|aa)\b/i.test(content)) {
+    level = 'Associate';
+  }
+  
+  // Detect field of study
+  let field: string | null = null;
+  const fieldPatterns = [
+    /(?:bachelor|master|phd|doctorate|b\.s\.|m\.s\.|ph\.d\.)(?:\s+of\s+|\s+in\s+|\s+)([A-Z][A-Za-z\s&,-]+?)(?:\s*(?:from|at|,|\n|$))/i,
+    /(?:degree|major)\s+in\s+([A-Z][A-Za-z\s&,-]+?)(?:\s*(?:from|at|,|\n|$))/i,
+  ];
+  
+  for (const pattern of fieldPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      field = match[1].trim().replace(/\s+/g, ' ').slice(0, 100);
+      break;
+    }
+  }
+  
+  // Detect certifications
+  const certifications: string[] = [];
+  const certPatterns = [
+    /\b(PMP|PE|CPA|CFA|CISSP|PgMP|PMI-ACP|CSM|CSPO|AWS|Azure|GCP)\b/gi,
+    /Professional Engineer\s*\(PE\)/gi,
+    /Certified\s+[A-Z][A-Za-z\s]+/gi,
+  ];
+  
+  for (const pattern of certPatterns) {
+    const matches = content.matchAll(pattern);
+    for (const match of matches) {
+      const cert = match[0].trim();
+      if (cert.length > 2 && cert.length < 50 && !certifications.includes(cert)) {
+        certifications.push(cert);
+      }
+    }
+  }
+  
+  console.log(`✅ Education extracted: ${level || 'None'} in ${field || 'Unknown'}, ${certifications.length} certifications`);
+  
+  return {
+    level,
+    field,
+    certifications: certifications.slice(0, 5), // Limit to 5 most relevant
+  };
+}
+
+/**
+ * Detect primary role and industry from resume - NOW WITH ROBUST FALLBACKS
+ */
+export function detectRoleAndIndustry(resumeText: string, resumeStructure: ResumeStructure): RoleInfo {
   console.log('🔍 Detecting role and industry...');
 
   // Find experience section
   const experienceSection = resumeStructure.sections.find(s => s.type === 'experience');
+  
   if (!experienceSection) {
-    console.warn('⚠️ No experience section found');
-    return null;
+    console.warn('⚠️ No experience section found - using fallback');
+    return {
+      primaryRole: 'Professional',
+      industry: 'General',
+      seniority: 'mid',
+      confidence: 30,
+      alternativeRoles: [],
+    };
   }
 
-  // Extract job titles from experience section
-  // Look for patterns like "Job Title | Company" or "Job Title at Company"
+  // ENHANCED job title patterns - now matches more formats
   const lines = experienceSection.content.split('\n');
   const jobTitlePatterns = [
+    // Standard patterns with common titles
     /^([A-Z][A-Za-z\s&-]+(?:Engineer|Manager|Director|Supervisor|Lead|Specialist|Analyst|Consultant|Developer|Designer|Coordinator))/,
     /^•?\s*([A-Z][A-Za-z\s&-]+(?:Engineer|Manager|Director|Supervisor|Lead|Specialist|Analyst|Consultant|Developer|Designer|Coordinator))/,
+    // Bullet point formats
+    /^[\s•\-–*]+([A-Z][A-Za-z\s&-]+(?:Engineer|Manager|Director|Supervisor|Lead|Specialist|Analyst|Consultant|Developer|Designer))/,
+    // Title with pipe separator
+    /^([A-Z][A-Za-z\s&-]+?)\s*\|\s*[A-Z]/,
+    // Title followed by company/dates
+    /^([A-Z][A-Za-z\s&-]{5,40}?)\s*(?:\d{4}|January|February|March|April|May|June|July|August|September|October|November|December)/,
   ];
 
   const detectedTitles: string[] = [];
   for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.length < 5 || trimmedLine.length > 100) continue;
+    
     for (const pattern of jobTitlePatterns) {
-      const match = line.match(pattern);
+      const match = trimmedLine.match(pattern);
       if (match && match[1]) {
         const title = match[1].trim();
-        if (title.length > 5 && title.length < 60) {
+        if (title.length > 5 && title.length < 60 && !detectedTitles.includes(title)) {
           detectedTitles.push(title);
         }
       }
     }
   }
 
+  // FALLBACK: If no titles detected, extract any capitalized phrases that look like titles
   if (detectedTitles.length === 0) {
-    console.warn('⚠️ No job titles detected');
-    return null;
+    console.warn('⚠️ No standard job titles detected - trying fallback extraction');
+    const fallbackPattern = /^([A-Z][A-Za-z\s]{8,50}?)(?:\s*[\n|]|$)/gm;
+    const matches = experienceSection.content.matchAll(fallbackPattern);
+    for (const match of matches) {
+      const title = match[1].trim();
+      if (title.length > 8 && title.length < 60 && /[A-Z][a-z]+/.test(title)) {
+        detectedTitles.push(title);
+      }
+    }
   }
 
-  // Use first (most recent) title as primary role
-  const primaryRole = detectedTitles[0];
-
+  // FINAL FALLBACK: Use "Professional" if still nothing detected
+  const primaryRole = detectedTitles.length > 0 ? detectedTitles[0] : 'Professional';
+  
   // Infer industry from keywords
   const industryKeywords = {
     'Oil & Gas': ['drilling', 'oil', 'gas', 'petroleum', 'upstream', 'downstream', 'refinery', 'rig', 'well'],
@@ -230,15 +324,17 @@ export function detectRoleAndIndustry(resumeText: string, resumeStructure: Resum
     seniority = 'entry';
   }
 
+  const confidence = detectedTitles.length > 0 ? (maxMatches > 2 ? 85 : 70) : 40;
+
   const roleInfo: RoleInfo = {
     primaryRole,
     industry: detectedIndustry,
     seniority,
-    confidence: maxMatches > 2 ? 85 : 70,
-    alternativeRoles: detectedTitles.slice(1, 4), // Next 3 titles
+    confidence,
+    alternativeRoles: detectedTitles.slice(1, 4),
   };
 
-  console.log(`✅ Detected: ${primaryRole} | ${detectedIndustry} | ${seniority} level (${roleInfo.confidence}% confidence)`);
+  console.log(`✅ Detected: ${primaryRole} | ${detectedIndustry} | ${seniority} level (${confidence}% confidence)`);
   return roleInfo;
 }
 
