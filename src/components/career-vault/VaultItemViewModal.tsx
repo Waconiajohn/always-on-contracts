@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Star, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface VaultItem {
@@ -25,20 +25,29 @@ export const VaultItemViewModal = ({ item, open, onOpenChange }: VaultItemViewMo
 
   const getQualityBadge = (tier: string | null | undefined) => {
     const t = tier || 'assumed';
-    const configs = {
-      gold: { icon: Trophy, className: 'bg-tier-gold-bg text-tier-gold border-tier-gold', label: 'Verified' },
-      silver: { icon: Star, className: 'bg-tier-silver-bg text-tier-silver border-tier-silver', label: 'Verified' },
-      bronze: { icon: Star, className: 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze', label: 'Verified' },
-      assumed: { icon: AlertTriangle, className: 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed', label: 'Needs Review' }
-    };
-
-    const config = configs[t as keyof typeof configs] || configs.assumed;
-    const Icon = config.icon;
-
+    
+    if (t === 'gold') {
+      return (
+        <Badge className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Verified
+        </Badge>
+      );
+    }
+    
+    if (t === 'silver' || t === 'bronze') {
+      return (
+        <Badge className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Verified
+        </Badge>
+      );
+    }
+    
     return (
-      <Badge className={config.className}>
-        <Icon className="h-3 w-3 mr-1" />
-        {config.label}
+      <Badge className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        Needs Review
       </Badge>
     );
   };

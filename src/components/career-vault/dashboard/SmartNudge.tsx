@@ -125,7 +125,7 @@ export function SmartNudge({ nudge, onAction, onDismiss }: SmartNudgeProps) {
   return (
     <div
       className={`
-        fixed bottom-4 right-4 z-50 max-w-md
+        fixed bottom-4 right-4 z-50 max-w-[calc(100vw-2rem)] sm:max-w-md
         transition-all duration-300 ease-out
         ${isAnimatingOut ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}
       `}

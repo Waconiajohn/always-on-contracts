@@ -147,64 +147,100 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
       </CardHeader>
       <CardContent className="space-y-4">
         {sections.map((section) => (
-          <div key={section.section} className="space-y-2">
-            <div className="flex items-center justify-between">
+          <div key={section.section} className="space-y-2 group">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {getStatusIcon(section.status)}
-                <span className="font-medium">{section.name}</span>
-                <span className="text-sm text-muted-foreground">
-                  {section.count > 0 ? `(${section.count} items)` : '(0 items)'}
-                </span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm sm:text-base">{section.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {section.count > 0 ? `${section.count} items` : 'Empty'}
+                    </span>
+                  </div>
+                  {/* Inline education - always visible */}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    💡 {section.benchmark}
+                  </p>
+                </div>
               </div>
                <Button 
                 variant={section.status === 'empty' ? 'default' : 'outline'}
                 size="sm"
+                className="w-full sm:w-auto shrink-0"
                 onClick={() => {
-                  // If extraction is incomplete (have resume but missing data), trigger full re-extraction
                   if (section.ctaText === 'Complete Extraction' && onReextract) {
                     onReextract();
                   } else {
                     onSectionClick(section.section);
                   }
                 }}
+                aria-label={`${section.ctaText} for ${section.name}`}
               >
                 {section.ctaText}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
             
-            {/* Progress bar */}
-            <div className="w-full bg-muted rounded-full h-2">
+            {/* Simplified progress bar */}
+            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
               <div 
-                className={`h-2 rounded-full transition-all ${
+                className={`h-1.5 rounded-full transition-all duration-300 ease-out ${
                   section.status === 'complete' ? 'bg-green-500' :
-                  section.status === 'incomplete' ? 'bg-yellow-500' :
-                  'bg-red-500'
+                  section.status === 'incomplete' ? 'bg-blue-500' :
+                  'bg-amber-500'
                 }`}
                 style={{ width: `${section.percentage}%` }}
+                role="progressbar"
+                aria-valuenow={section.percentage}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${section.name} completion: ${section.percentage}%`}
               />
             </div>
-            
-            {/* Benchmark */}
-            <p className="text-xs text-muted-foreground pl-7">
-              {section.benchmark}
-            </p>
           </div>
         ))}
 
-        {prioritySection && (
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border/50">
-            <p className="text-sm font-medium mb-2">🎯 Next Priority</p>
-            <p className="text-sm text-muted-foreground mb-3">
-              Complete "{prioritySection.name}" to improve your positioning against industry standards.
+        {/* Empty state - only show if all sections are empty */}
+        {sections.every(s => s.status === 'empty') && (
+          <div className="mt-6 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20 text-center">
+            <div className="text-4xl mb-3">📄</div>
+            <h3 className="text-lg font-semibold mb-2">Let's Build Your Resume Foundation</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Upload your resume to automatically extract your work experience, skills, and education. 
+              This takes about 2 minutes.
             </p>
             <Button 
-              onClick={() => onSectionClick(prioritySection.section)}
-              className="w-full"
+              onClick={() => onSectionClick('work-experience')}
+              size="lg"
+              className="w-full sm:w-auto"
             >
-              {prioritySection.ctaText}
+              Upload Resume
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+          </div>
+        )}
+
+        {/* Priority action - only show if some sections exist */}
+        {prioritySection && !sections.every(s => s.status === 'empty') && (
+          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">🎯</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">Next Priority</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Complete "{prioritySection.name}" to match industry standards for your role level.
+                </p>
+                <Button 
+                  onClick={() => onSectionClick(prioritySection.section)}
+                  className="w-full sm:w-auto"
+                  size="sm"
+                >
+                  {prioritySection.ctaText}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 

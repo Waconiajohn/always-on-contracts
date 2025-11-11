@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Edit, Eye, Trophy, Star, AlertTriangle } from 'lucide-react';
+import { Search, Edit, Eye, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface VaultItem {
@@ -231,26 +231,36 @@ export const VaultContentsTable = ({
 
   const getQualityBadge = (tier: string | null | undefined) => {
     const t = tier || 'assumed';
-    const configs = {
-      gold: { icon: Trophy, className: 'bg-tier-gold-bg text-tier-gold border-tier-gold', label: 'Verified' },
-      silver: { icon: Star, className: 'bg-tier-silver-bg text-tier-silver border-tier-silver', label: 'Verified' },
-      bronze: { icon: Star, className: 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze', label: 'Verified' },
-      assumed: { icon: AlertTriangle, className: 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed', label: 'Needs Review' }
-    };
-
-    const config = configs[t as keyof typeof configs] || configs.assumed;
-    const Icon = config.icon;
-
+    
+    // Simplified 3-tier system: Verified (gold/silver/bronze) | Needs Review (assumed) | Standout (future)
+    if (t === 'gold') {
+      return (
+        <Badge className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Verified
+        </Badge>
+      );
+    }
+    
+    if (t === 'silver' || t === 'bronze') {
+      return (
+        <Badge className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Verified
+        </Badge>
+      );
+    }
+    
     return (
-      <Badge className={config.className}>
-        <Icon className="h-3 w-3 mr-1" />
-        {config.label}
+      <Badge className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        Needs Review
       </Badge>
     );
   };
 
   return (
-    <Card className="p-6 animate-fade-in">
+    <Card className="p-4 sm:p-6 animate-fade-in">
       <div className="space-y-4">
         {/* Simplified Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
@@ -305,8 +315,13 @@ export const VaultContentsTable = ({
         {/* Items Table */}
         <div className="space-y-3">
           {filteredItems.map((item) => (
-            <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between gap-4">
+            <div 
+              key={item.id} 
+              className="border rounded-lg p-3 sm:p-4 hover:shadow-md hover:border-primary/50 transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20"
+              role="article"
+              aria-label={`${item.category}: ${item.content.text}`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="text-xs">{item.category}</Badge>
@@ -336,21 +351,64 @@ export const VaultContentsTable = ({
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => onView(item)}>
+                <div className="flex gap-2 shrink-0">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => onView(item)}
+                    aria-label={`View ${item.category}`}
+                  >
                     <Eye className="h-4 w-4" />
+                    <span className="sr-only">View</span>
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => onEdit(item)}>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => onEdit(item)}
+                    aria-label={`Edit ${item.category}`}
+                  >
                     <Edit className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
                   </Button>
                 </div>
               </div>
             </div>
           ))}
 
-          {filteredItems.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No items match your filters. Try adjusting your search criteria.
+          {/* Empty state */}
+          {filteredItems.length === 0 && allItems.length === 0 && (
+            <div className="text-center py-12 px-4">
+              <div className="text-5xl mb-4">📦</div>
+              <h3 className="text-lg font-semibold mb-2">Your Career Vault is Empty</h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                Upload your resume to automatically extract your achievements, skills, and experience. 
+                We'll analyze everything and organize it here.
+              </p>
+              <Button size="lg" onClick={() => window.location.href = '/career-vault-onboarding'}>
+                Upload Resume to Get Started
+              </Button>
+            </div>
+          )}
+
+          {/* No results from filter */}
+          {filteredItems.length === 0 && allItems.length > 0 && (
+            <div className="text-center py-12 px-4">
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="text-lg font-semibold mb-2">No Matches Found</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Try adjusting your search or filter settings.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchQuery('');
+                  setQualityFilter('all');
+                  setCategoryFilter('all');
+                  setSortBy('recent');
+                }}
+              >
+                Clear All Filters
+              </Button>
             </div>
           )}
         </div>

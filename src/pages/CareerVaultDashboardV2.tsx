@@ -380,7 +380,7 @@ const VaultDashboardContent = () => {
 
   return (
     <ContentLayout>
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="p-3 sm:p-4 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
         {/* ====================================================================
             HERO SECTION - Plain English Resume Strength
@@ -409,9 +409,9 @@ const VaultDashboardContent = () => {
         )}
 
         {/* ====================================================================
-            3-LAYER STRUCTURE - Career Vault Sections
+            3-LAYER STRUCTURE - Career Vault Sections (Mobile-optimized)
             ==================================================================== */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           <Layer1FoundationsCard
             vaultData={vaultData}
             stats={stats}

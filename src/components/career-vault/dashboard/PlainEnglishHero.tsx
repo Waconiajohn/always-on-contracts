@@ -64,8 +64,8 @@ export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEn
 
   return (
     <Card className="border-2 border-primary/20 shadow-lg">
-      <CardContent className="pt-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <CardContent className="pt-4 sm:pt-6 pb-4 sm:pb-6 px-4 sm:px-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
           {/* Left: Score visualization */}
           <div className="flex-1">
             <h2 className="text-sm font-medium text-muted-foreground mb-2">
@@ -132,8 +132,9 @@ export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEn
 
             <Button 
               onClick={onPrimaryAction}
-              className="w-full md:w-auto"
+              className="w-full sm:w-auto"
               size="lg"
+              aria-label={totalItems === 0 ? 'Upload resume' : score < 70 ? 'Re-run extraction' : 'Create tailored resume'}
             >
               {totalItems === 0 ? (
                 <>
@@ -155,22 +156,22 @@ export const PlainEnglishHero = ({ score, totalItems, onPrimaryAction }: PlainEn
           </div>
         </div>
 
-        {/* Bottom stats */}
-        <div className="mt-6 pt-6 border-t border-border/50">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+        {/* Bottom stats - responsive grid */}
+        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-foreground">{totalItems}</p>
-              <p className="text-xs text-muted-foreground">Career Details Extracted</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{totalItems}</p>
+              <p className="text-xs text-muted-foreground">Items Extracted</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{score >= 70 ? '✓' : 'In Progress'}</p>
-              <p className="text-xs text-muted-foreground">Resume Quality</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{score >= 70 ? '✓' : '⋯'}</p>
+              <p className="text-xs text-muted-foreground">Quality</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl sm:text-2xl font-bold text-foreground">
                 {score >= 85 ? 'Ready' : score >= 70 ? 'Almost' : 'Building'}
               </p>
-              <p className="text-xs text-muted-foreground">Market Readiness</p>
+              <p className="text-xs text-muted-foreground">Status</p>
             </div>
           </div>
         </div>

@@ -146,69 +146,98 @@ export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Lay
       </CardHeader>
       <CardContent className="space-y-4">
         {sections.map((section) => (
-          <div key={section.section} className="space-y-2">
-            <div className="flex items-start justify-between">
+          <div key={section.section} className="space-y-2 group">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <AlertTriangle className={`h-4 w-4 ${getStatusColor(section.status)}`} />
-                  <span className="font-medium">{section.name}</span>
+                  <span className="font-medium text-sm sm:text-base">{section.name}</span>
                   <span className="text-xs text-muted-foreground">
                     +{section.impact} pts
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground pl-6 mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   {section.description}
+                </p>
+                {/* Inline education - always visible */}
+                <p className="text-xs text-muted-foreground">
+                  💡 {section.benchmark}
                 </p>
               </div>
               <Button 
                 variant={section.status === 'empty' ? 'default' : 'outline'}
                 size="sm"
+                className="w-full sm:w-auto shrink-0"
                 onClick={() => onSectionClick(section.section)}
                 disabled={section.section === 'network'}
+                aria-label={`${section.ctaText} for ${section.name}`}
               >
                 {section.ctaText}
                 {section.section !== 'network' && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
             </div>
             
-            {/* Progress bar */}
-            <div className="w-full bg-muted rounded-full h-2 ml-6">
+            {/* Simplified progress bar */}
+            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
               <div 
-                className={`h-2 rounded-full transition-all ${
+                className={`h-1.5 rounded-full transition-all duration-300 ease-out ${
                   section.status === 'strong' ? 'bg-green-500' :
-                  section.status === 'building' ? 'bg-yellow-500' :
-                  section.status === 'weak' ? 'bg-orange-500' :
+                  section.status === 'building' ? 'bg-blue-500' :
+                  section.status === 'weak' ? 'bg-amber-500' :
                   'bg-red-500'
                 }`}
                 style={{ width: `${section.percentage}%` }}
+                role="progressbar"
+                aria-valuenow={section.percentage}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${section.name} completion: ${section.percentage}%`}
               />
             </div>
-            
-            {/* Benchmark */}
-            <p className="text-xs text-muted-foreground pl-6">
-              📊 {section.benchmark}
-            </p>
           </div>
         ))}
 
-        {prioritySection && (
+        {/* Empty state - only show if all sections are empty */}
+        {sections.every(s => s.status === 'empty') && (
+          <div className="mt-6 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20 text-center">
+            <Sparkles className="h-12 w-12 text-primary mx-auto mb-3" />
+            <h3 className="text-lg font-semibold mb-2">Build Your Competitive Edge</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Most resumes list experience. Elite candidates show leadership, strategic impact, 
+              and professional development. Stand out from the crowd.
+            </p>
+            <Button 
+              onClick={() => onSectionClick(sections[0].section)}
+              size="lg"
+              className="w-full sm:w-auto"
+              disabled={sections[0].section === 'network'}
+            >
+              Get Started
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Priority action - only show if some sections exist */}
+        {prioritySection && !sections.every(s => s.status === 'empty') && (
           <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
             <div className="flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+              <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium mb-1">
                   🎯 Highest Impact Action
                 </p>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Complete "{prioritySection.name}" to boost your score by +{prioritySection.impact} points.
+                  Complete "{prioritySection.name}" for +{prioritySection.impact} points.
                 </p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Why: Most candidates miss this. Showing {prioritySection.description.toLowerCase()} 
-                  positions you as someone companies have invested in.
+                  Most candidates miss this—showing {prioritySection.description.toLowerCase()} 
+                  proves companies have invested in you.
                 </p>
                 <Button 
                   onClick={() => onSectionClick(prioritySection.section)}
-                  className="w-full"
+                  className="w-full sm:w-auto"
+                  size="sm"
                   disabled={prioritySection.section === 'network'}
                 >
                   {prioritySection.ctaText}
