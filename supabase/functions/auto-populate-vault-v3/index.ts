@@ -345,7 +345,7 @@ serve(async (req) => {
     
     try {
       careerContextData = await extractCareerContext({
-        resumeText: resumeRawText,
+        resumeText: resumeText,
         userId,
       });
       
