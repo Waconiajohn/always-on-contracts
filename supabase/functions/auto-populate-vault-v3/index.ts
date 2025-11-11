@@ -413,8 +413,9 @@ serve(async (req) => {
     console.log('\n🎯 PHASE 6: Extracting career context with benchmark comparison...');
 
     // careerContextData already declared on line 344 - don't redeclare
+    // educationData already declared on line 318 - just reassign
     let benchmarkComparison: ComparisonResult | null = null;
-    let educationData: { level: string | null; field: string | null; certifications: string[] } = {
+    educationData = {
       level: extractedEducation.level,
       field: extractedEducation.field,
       certifications: extractedEducation.certifications,
