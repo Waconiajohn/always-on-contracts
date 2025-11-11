@@ -412,7 +412,7 @@ serve(async (req) => {
     // ========================================================================
     console.log('\n🎯 PHASE 6: Extracting career context with benchmark comparison...');
 
-    let careerContextData: CareerContextData | null = null;
+    // careerContextData already declared on line 344 - don't redeclare
     let benchmarkComparison: ComparisonResult | null = null;
     let educationData: { level: string | null; field: string | null; certifications: string[] } = {
       level: extractedEducation.level,
