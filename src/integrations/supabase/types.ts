@@ -4624,12 +4624,16 @@ export type Database = {
           competency_area: string
           confidence_score: number | null
           created_at: string
+          enhancement_notes: string | null
+          extraction_version: string | null
           id: string
           inferred_capability: string
           inferred_from: string | null
           last_updated_at: string | null
           needs_user_review: boolean | null
           quality_tier: string | null
+          review_priority: number | null
+          section_source: string | null
           supporting_evidence: string[]
           user_id: string
           vault_id: string
@@ -4640,12 +4644,16 @@ export type Database = {
           competency_area: string
           confidence_score?: number | null
           created_at?: string
+          enhancement_notes?: string | null
+          extraction_version?: string | null
           id?: string
           inferred_capability: string
           inferred_from?: string | null
           last_updated_at?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           supporting_evidence?: string[]
           user_id: string
           vault_id: string
@@ -4656,12 +4664,16 @@ export type Database = {
           competency_area?: string
           confidence_score?: number | null
           created_at?: string
+          enhancement_notes?: string | null
+          extraction_version?: string | null
           id?: string
           inferred_capability?: string
           inferred_from?: string | null
           last_updated_at?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           supporting_evidence?: string[]
           user_id?: string
           vault_id?: string
@@ -4905,8 +4917,11 @@ export type Database = {
           category: string
           confidence_score: number | null
           created_at: string
+          enhancement_notes: string | null
+          extraction_version: string | null
           id: string
           impact_metrics: Json | null
+          industry_context: Json | null
           inferred_from: string | null
           keywords: string[] | null
           last_updated_at: string | null
@@ -4914,6 +4929,8 @@ export type Database = {
           original_text: string | null
           power_phrase: string
           quality_tier: string | null
+          review_priority: number | null
+          section_source: string | null
           source: string | null
           user_id: string
           vault_id: string
@@ -4923,8 +4940,11 @@ export type Database = {
           category: string
           confidence_score?: number | null
           created_at?: string
+          enhancement_notes?: string | null
+          extraction_version?: string | null
           id?: string
           impact_metrics?: Json | null
+          industry_context?: Json | null
           inferred_from?: string | null
           keywords?: string[] | null
           last_updated_at?: string | null
@@ -4932,6 +4952,8 @@ export type Database = {
           original_text?: string | null
           power_phrase: string
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           source?: string | null
           user_id: string
           vault_id: string
@@ -4941,8 +4963,11 @@ export type Database = {
           category?: string
           confidence_score?: number | null
           created_at?: string
+          enhancement_notes?: string | null
+          extraction_version?: string | null
           id?: string
           impact_metrics?: Json | null
+          industry_context?: Json | null
           inferred_from?: string | null
           keywords?: string[] | null
           last_updated_at?: string | null
@@ -4950,6 +4975,8 @@ export type Database = {
           original_text?: string | null
           power_phrase?: string
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           source?: string | null
           user_id?: string
           vault_id?: string
@@ -5261,6 +5288,7 @@ export type Database = {
           confidence_score: number | null
           created_at: string | null
           examples: string
+          extraction_version: string | null
           id: string
           impact: string | null
           industry_relevance: Json | null
@@ -5271,6 +5299,8 @@ export type Database = {
           needs_user_review: boolean | null
           proficiency_level: string | null
           quality_tier: string | null
+          review_priority: number | null
+          section_source: string | null
           skill_name: string
           user_id: string
           vault_id: string
@@ -5280,6 +5310,7 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string | null
           examples: string
+          extraction_version?: string | null
           id?: string
           impact?: string | null
           industry_relevance?: Json | null
@@ -5290,6 +5321,8 @@ export type Database = {
           needs_user_review?: boolean | null
           proficiency_level?: string | null
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           skill_name: string
           user_id: string
           vault_id: string
@@ -5299,6 +5332,7 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string | null
           examples?: string
+          extraction_version?: string | null
           id?: string
           impact?: string | null
           industry_relevance?: Json | null
@@ -5309,6 +5343,8 @@ export type Database = {
           needs_user_review?: boolean | null
           proficiency_level?: string | null
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           skill_name?: string
           user_id?: string
           vault_id?: string
@@ -5399,13 +5435,18 @@ export type Database = {
           ai_confidence: number | null
           confidence_score: number | null
           created_at: string
+          enhancement_notes: string | null
           equivalent_skills: string[]
           evidence: string
+          extraction_version: string | null
           id: string
+          industry_context: Json | null
           inferred_from: string | null
           last_updated_at: string | null
           needs_user_review: boolean | null
           quality_tier: string | null
+          review_priority: number | null
+          section_source: string | null
           stated_skill: string
           user_id: string
           vault_id: string
@@ -5414,13 +5455,18 @@ export type Database = {
           ai_confidence?: number | null
           confidence_score?: number | null
           created_at?: string
+          enhancement_notes?: string | null
           equivalent_skills?: string[]
           evidence: string
+          extraction_version?: string | null
           id?: string
+          industry_context?: Json | null
           inferred_from?: string | null
           last_updated_at?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           stated_skill: string
           user_id: string
           vault_id: string
@@ -5429,13 +5475,18 @@ export type Database = {
           ai_confidence?: number | null
           confidence_score?: number | null
           created_at?: string
+          enhancement_notes?: string | null
           equivalent_skills?: string[]
           evidence?: string
+          extraction_version?: string | null
           id?: string
+          industry_context?: Json | null
           inferred_from?: string | null
           last_updated_at?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null
+          review_priority?: number | null
+          section_source?: string | null
           stated_skill?: string
           user_id?: string
           vault_id?: string
