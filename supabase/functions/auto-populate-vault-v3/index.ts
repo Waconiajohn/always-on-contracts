@@ -25,6 +25,14 @@ interface AutoPopulateRequest {
   mode?: 'full' | 'incremental';
 }
 
+interface EducationData {
+  level: string | null;
+  field: string | null;
+  institution?: string;
+  graduationYear?: number;
+  certifications: string[];
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -199,16 +207,28 @@ serve(async (req) => {
 
     // Process Education section (NEW - CRITICAL FIX)
     const educationSection = resumeStructure.sections.find(s => s.type === 'education');
-    let educationData = null;
+    let educationData: EducationData | null = null;
 
-    if (educationSection) {
+    if (educationSection && educationSection.content?.trim()) {
       console.log('\n📦 Processing EDUCATION section...');
-      educationData = await extractEducation({
-        sectionContent: educationSection.content,
-        userId,
-      });
       
-      console.log(`✅ Extracted education: ${educationData.level} in ${educationData.field}`);
+      try {
+        educationData = await extractEducation({
+          sectionContent: educationSection.content,
+          userId,
+        });
+        
+        if (educationData?.level && educationData?.field) {
+          console.log(`✅ Extracted education: ${educationData.level} in ${educationData.field}`);
+        } else {
+          console.log('⚠️ Education section processed but data incomplete');
+        }
+      } catch (error) {
+        console.error('❌ Failed to extract education:', error);
+        educationData = null;
+      }
+    } else {
+      console.log('⚠️ No education section found in resume');
     }
 
     // ========================================================================
@@ -401,7 +421,7 @@ serve(async (req) => {
     }
 
     // Store or update career context with education (NEW - CRITICAL FIX)
-    if (educationData) {
+    if (educationData && (educationData.level || educationData.field)) {
       const { error: contextError } = await supabase
         .from('vault_career_context')
         .upsert({
@@ -420,6 +440,8 @@ serve(async (req) => {
       } else {
         console.log('✅ Stored career context with education');
       }
+    } else {
+      console.log('⚠️ No education data to store');
     }
 
     // Update vault metadata
@@ -712,7 +734,7 @@ function getBenchmarkContext(metrics: any, roleInfo: RoleInfo): any {
 async function extractEducation(params: {
   sectionContent: string;
   userId: string;
-}): Promise<any> {
+}): Promise<EducationData> {
   const prompt = `Extract education information from this resume section.
 
 Resume Section:
@@ -733,16 +755,38 @@ Rules:
 - Extract ALL certifications and licenses
 `;
 
-  const result = await callPerplexity({
-    messages: [{ role: 'user', content: prompt }],
-    model: 'sonar-pro',
-    max_tokens: 1000,
-  }, 'extract_education', params.userId);
+  try {
+    const result = await callPerplexity({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'sonar-pro',
+      max_tokens: 1000,
+    }, 'extract_education', params.userId);
 
-  const content = result.response.choices[0].message.content;
-  const parseResult = extractJSON(content);
-  
-  return parseResult.data || { level: null, field: null, certifications: [] };
+    await logAIUsage({
+      model: 'sonar-pro',
+      tokens: result.response.usage?.total_tokens || 1000,
+      task: 'extract_education',
+      userId: params.userId,
+    });
+
+    const content = result.response.choices[0].message.content;
+    const parseResult = extractJSON(content);
+    
+    return {
+      level: parseResult.data?.level || null,
+      field: parseResult.data?.field || null,
+      institution: parseResult.data?.institution,
+      graduationYear: parseResult.data?.graduationYear,
+      certifications: parseResult.data?.certifications || [],
+    };
+  } catch (error) {
+    console.error('[EDUCATION-EXTRACTION] Error:', error);
+    return {
+      level: null,
+      field: null,
+      certifications: [],
+    };
+  }
 }
 
 // ========================================================================
