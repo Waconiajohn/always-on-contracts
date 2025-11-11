@@ -26,10 +26,10 @@ export const VaultItemViewModal = ({ item, open, onOpenChange }: VaultItemViewMo
   const getQualityBadge = (tier: string | null | undefined) => {
     const t = tier || 'assumed';
     const configs = {
-      gold: { icon: Trophy, className: 'bg-tier-gold-bg text-tier-gold border-tier-gold', label: 'Gold' },
-      silver: { icon: Star, className: 'bg-tier-silver-bg text-tier-silver border-tier-silver', label: 'Silver' },
-      bronze: { icon: Star, className: 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze', label: 'Bronze' },
-      assumed: { icon: AlertTriangle, className: 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed', label: 'Assumed' }
+      gold: { icon: Trophy, className: 'bg-tier-gold-bg text-tier-gold border-tier-gold', label: 'Verified' },
+      silver: { icon: Star, className: 'bg-tier-silver-bg text-tier-silver border-tier-silver', label: 'Verified' },
+      bronze: { icon: Star, className: 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze', label: 'Verified' },
+      assumed: { icon: AlertTriangle, className: 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed', label: 'Needs Review' }
     };
 
     const config = configs[t as keyof typeof configs] || configs.assumed;

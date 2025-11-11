@@ -134,14 +134,14 @@ export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Lay
         <CardTitle className="text-xl font-semibold flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            LAYER 2: Executive Intelligence
+            What Makes You Stand Out
           </span>
           <span className="text-sm font-normal text-muted-foreground">
             {overallCompletion}% complete
           </span>
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
-          What makes you stand out. This intelligence powers your resume, LinkedIn, cover letters, and interview prep.
+          Beyond the basics—show leadership, impact, and what companies have invested in you.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

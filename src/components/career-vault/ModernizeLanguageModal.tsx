@@ -246,10 +246,10 @@ export const ModernizeLanguageModal = ({ open, onOpenChange, vaultId, onSuccess 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
-            Modernize Language & Add Tech Keywords
+            Update Industry Language
           </DialogTitle>
           <DialogDescription>
-            Update phrases with current industry terminology. Showing {Math.max(1, phrases.findIndex(p => p.id === selectedPhrase?.id) + 1)} of {phrases.length} phrases.
+            Add current industry terms to your achievements. Showing {Math.max(1, phrases.findIndex(p => p.id === selectedPhrase?.id) + 1)} of {phrases.length}.
           </DialogDescription>
         </DialogHeader>
 

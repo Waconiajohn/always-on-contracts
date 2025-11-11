@@ -45,10 +45,14 @@ export const VaultItemEditModal = ({ item, open, onOpenChange, onSave }: VaultIt
 
   const getTableName = (category: string) => {
     const mapping: { [key: string]: string } = {
-      'Power Phrase': 'vault_power_phrases',
-      'Skill': 'vault_transferable_skills',
-      'Competency': 'vault_hidden_competencies',
-      'Soft Skill': 'vault_soft_skills',
+      'Career Achievement': 'vault_power_phrases',
+      'Power Phrase': 'vault_power_phrases', // backward compat
+      'Skill & Expertise': 'vault_transferable_skills',
+      'Skill': 'vault_transferable_skills', // backward compat
+      'Strategic Capability': 'vault_hidden_competencies',
+      'Competency': 'vault_hidden_competencies', // backward compat
+      'Professional Strength': 'vault_soft_skills',
+      'Soft Skill': 'vault_soft_skills', // backward compat
       'Leadership': 'vault_leadership_philosophy',
       'Executive Presence': 'vault_executive_presence',
       'Personality': 'vault_personality_traits',
@@ -61,10 +65,14 @@ export const VaultItemEditModal = ({ item, open, onOpenChange, onSave }: VaultIt
 
   const getMainContentField = (category: string) => {
     const mapping: { [key: string]: string } = {
-      'Power Phrase': 'power_phrase',
-      'Skill': 'stated_skill',
-      'Competency': 'inferred_capability',
-      'Soft Skill': 'skill_name',
+      'Career Achievement': 'power_phrase',
+      'Power Phrase': 'power_phrase', // backward compat
+      'Skill & Expertise': 'stated_skill',
+      'Skill': 'stated_skill', // backward compat
+      'Strategic Capability': 'inferred_capability',
+      'Competency': 'inferred_capability', // backward compat
+      'Professional Strength': 'skill_name',
+      'Soft Skill': 'skill_name', // backward compat
       'Leadership': 'philosophy_statement',
       'Executive Presence': 'presence_indicator',
       'Personality': 'trait_name',
@@ -77,10 +85,14 @@ export const VaultItemEditModal = ({ item, open, onOpenChange, onSave }: VaultIt
 
   const getEvidenceField = (category: string): string | null => {
     const mapping: { [key: string]: string | null } = {
-      'Power Phrase': 'impact_metrics',
-      'Skill': 'evidence',
-      'Competency': 'evidence_from_resume',
-      'Soft Skill': 'examples',
+      'Career Achievement': 'impact_metrics',
+      'Power Phrase': 'impact_metrics', // backward compat
+      'Skill & Expertise': 'evidence',
+      'Skill': 'evidence', // backward compat
+      'Strategic Capability': 'evidence_from_resume',
+      'Competency': 'evidence_from_resume', // backward compat
+      'Professional Strength': 'examples',
+      'Soft Skill': 'examples', // backward compat
       'Leadership': 'real_world_application',
       'Executive Presence': 'situational_example',
       'Personality': 'behavioral_evidence',
@@ -190,10 +202,10 @@ export const VaultItemEditModal = ({ item, open, onOpenChange, onSave }: VaultIt
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gold">Gold - Verified by user</SelectItem>
-                <SelectItem value="silver">Silver - From resume evidence</SelectItem>
-                <SelectItem value="bronze">Bronze - AI inferred with evidence</SelectItem>
-                <SelectItem value="assumed">Assumed - Needs verification</SelectItem>
+                <SelectItem value="gold">✓ Verified - You confirmed this</SelectItem>
+                <SelectItem value="silver">✓ Verified - From resume</SelectItem>
+                <SelectItem value="bronze">✓ Verified - AI extracted</SelectItem>
+                <SelectItem value="assumed">📝 Needs Review - Verify accuracy</SelectItem>
               </SelectContent>
             </Select>
           </div>

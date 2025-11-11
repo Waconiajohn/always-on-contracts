@@ -7,13 +7,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 interface CategoryExplainerProps {
-  category: 'power_phrases' | 'transferable_skills' | 'hidden_competencies' | 'soft_skills';
+  category: 'career_achievements' | 'skills_expertise' | 'strategic_capabilities' | 'professional_strengths';
 }
 
 const CATEGORY_INFO = {
-  power_phrases: {
-    title: 'Power Phrases',
-    description: 'Achievement statements with quantified metrics that demonstrate your impact.',
+  career_achievements: {
+    title: 'Career Achievements',
+    description: 'Accomplishments with numbers that demonstrate your impact.',
     examples: [
       {
         before: 'Responsible for team management',
@@ -28,12 +28,12 @@ const CATEGORY_INFO = {
         after: 'Oversaw $5M annual budget with zero variance, optimizing resource allocation across 8 departments'
       }
     ],
-    whyItMatters: 'Hiring managers need concrete evidence of your impact. Quantified achievements make your value immediately clear and differentiate you from candidates who just list responsibilities.',
+    whyItMatters: 'Hiring managers scan for measurable impact. Numbers make your value immediately clear.',
     color: 'text-blue-500'
   },
-  transferable_skills: {
-    title: 'Transferable Skills',
-    description: 'Core competencies that apply across different industries and roles.',
+  skills_expertise: {
+    title: 'Skills & Expertise',
+    description: 'Technical and professional abilities that apply across roles.',
     examples: [
       {
         skill: 'Strategic Planning',
@@ -48,12 +48,12 @@ const CATEGORY_INFO = {
         evidence: 'Coordinated with C-suite executives and external partners across 5 countries'
       }
     ],
-    whyItMatters: 'These skills show you can succeed in new environments. Especially valuable when changing industries or moving into broader roles.',
+    whyItMatters: 'Shows you can succeed in different environments and roles.',
     color: 'text-green-500'
   },
-  hidden_competencies: {
-    title: 'Hidden Competencies',
-    description: 'Skills you demonstrate through actions but may not explicitly name on your resume.',
+  strategic_capabilities: {
+    title: 'Strategic Capabilities',
+    description: 'High-level abilities you demonstrate through your work.',
     examples: [
       {
         action: 'Scaled system to handle 10x traffic',
@@ -68,12 +68,12 @@ const CATEGORY_INFO = {
         competency: '→ Talent Development, Leadership Pipeline Building, Knowledge Transfer'
       }
     ],
-    whyItMatters: 'Often your most valuable skills are implied, not stated. AI identifies these to ensure your full capability is recognized.',
+    whyItMatters: 'Your most valuable abilities are often implied, not stated directly.',
     color: 'text-purple-500'
   },
-  soft_skills: {
-    title: 'Soft Skills',
-    description: 'Behavioral abilities with concrete evidence from your experience.',
+  professional_strengths: {
+    title: 'Professional Strengths',
+    description: 'Behavioral abilities proven through your experience.',
     examples: [
       {
         skill: 'Leadership',
@@ -91,7 +91,7 @@ const CATEGORY_INFO = {
         impact: 'Maintained 95% customer retention during transition'
       }
     ],
-    whyItMatters: 'Soft skills differentiate top performers. Concrete examples prove you possess these abilities rather than just claiming them.',
+    whyItMatters: 'These abilities differentiate top performers when backed by evidence.',
     color: 'text-orange-500'
   }
 };
@@ -118,7 +118,7 @@ export default function CategoryExplainer({ category }: CategoryExplainerProps) 
               <Badge variant="secondary">Examples</Badge>
             </h5>
             <div className="space-y-3">
-              {category === 'power_phrases' && (
+              {category === 'career_achievements' && (
                 <>
                   {(info.examples as Array<{ before: string; after: string }>).map((example, idx) => (
                     <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
@@ -129,7 +129,7 @@ export default function CategoryExplainer({ category }: CategoryExplainerProps) 
                 </>
               )}
 
-              {category === 'transferable_skills' && (
+              {category === 'skills_expertise' && (
                 <>
                   {(info.examples as Array<{ skill: string; evidence: string }>).map((example, idx) => (
                     <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
@@ -140,7 +140,7 @@ export default function CategoryExplainer({ category }: CategoryExplainerProps) 
                 </>
               )}
 
-              {category === 'hidden_competencies' && (
+              {category === 'strategic_capabilities' && (
                 <>
                   {(info.examples as Array<{ action: string; competency: string }>).map((example, idx) => (
                     <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">
@@ -151,7 +151,7 @@ export default function CategoryExplainer({ category }: CategoryExplainerProps) 
                 </>
               )}
 
-              {category === 'soft_skills' && (
+              {category === 'professional_strengths' && (
                 <>
                   {(info.examples as Array<{ skill: string; evidence: string; impact: string }>).map((example, idx) => (
                     <div key={idx} className="text-xs space-y-1 p-3 bg-muted rounded-lg">

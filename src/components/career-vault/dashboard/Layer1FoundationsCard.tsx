@@ -136,13 +136,13 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
     <Card className="border-border/50">
       <CardHeader>
         <CardTitle className="text-xl font-semibold flex items-center justify-between">
-          <span>LAYER 1: Resume Foundations</span>
+          <span>Your Resume Essentials</span>
           <span className="text-sm font-normal text-muted-foreground">
             {overallCompletion}% complete
           </span>
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
-          What hiring managers expect to see. We're building a complete picture of your professional value.
+          What hiring managers expect to see on every resume.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

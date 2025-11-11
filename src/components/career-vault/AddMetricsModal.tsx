@@ -243,10 +243,10 @@ export const AddMetricsModal = ({ open, onOpenChange, vaultId, onSuccess }: AddM
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Add Quantified Metrics to Power Phrases
+            Add Impact Numbers
           </DialogTitle>
           <DialogDescription>
-            Add numbers to make your achievements more impressive. Showing {phrases.findIndex(p => p.id === selectedPhrase?.id) + 1} of {phrases.length} phrases.
+            Add metrics to show your impact. Showing {phrases.findIndex(p => p.id === selectedPhrase?.id) + 1} of {phrases.length} achievements.
           </DialogDescription>
         </DialogHeader>
 

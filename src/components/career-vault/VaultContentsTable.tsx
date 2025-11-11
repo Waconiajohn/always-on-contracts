@@ -71,7 +71,7 @@ export const VaultContentsTable = ({
 
     powerPhrases.forEach(item => items.push({
       id: item.id,
-      category: 'Power Phrase',
+      category: 'Career Achievement',
       content: { text: item.power_phrase || item.phrase, keywords: item.keywords },
       quality_tier: item.quality_tier,
       source: item.source || 'Resume',
@@ -82,7 +82,7 @@ export const VaultContentsTable = ({
 
     transferableSkills.forEach(item => items.push({
       id: item.id,
-      category: 'Skill',
+      category: 'Skill & Expertise',
       content: { text: item.stated_skill || item.skill, evidence: item.evidence },
       quality_tier: item.quality_tier,
       source: item.source || 'Resume',
@@ -93,10 +93,10 @@ export const VaultContentsTable = ({
 
     hiddenCompetencies.forEach(item => items.push({
       id: item.id,
-      category: 'Competency',
+      category: 'Strategic Capability',
       content: { text: item.competency_area || item.inferred_capability, evidence: item.supporting_evidence },
       quality_tier: item.quality_tier,
-      source: item.source || 'AI Inference',
+      source: item.source || 'AI Analysis',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
       created_at: item.created_at
@@ -104,10 +104,10 @@ export const VaultContentsTable = ({
 
     softSkills.forEach(item => items.push({
       id: item.id,
-      category: 'Soft Skill',
+      category: 'Professional Strength',
       content: { text: item.skill_name, examples: item.examples },
       quality_tier: item.quality_tier,
-      source: item.inferred_from || 'Interview',
+      source: item.inferred_from || 'Analysis',
       usage_count: item.usage_count || 0,
       last_updated_at: item.last_updated_at,
       created_at: item.created_at || ''
@@ -232,10 +232,10 @@ export const VaultContentsTable = ({
   const getQualityBadge = (tier: string | null | undefined) => {
     const t = tier || 'assumed';
     const configs = {
-      gold: { icon: Trophy, className: 'bg-tier-gold-bg text-tier-gold border-tier-gold', label: 'Gold' },
-      silver: { icon: Star, className: 'bg-tier-silver-bg text-tier-silver border-tier-silver', label: 'Silver' },
-      bronze: { icon: Star, className: 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze', label: 'Bronze' },
-      assumed: { icon: AlertTriangle, className: 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed', label: 'Assumed' }
+      gold: { icon: Trophy, className: 'bg-tier-gold-bg text-tier-gold border-tier-gold', label: 'Verified' },
+      silver: { icon: Star, className: 'bg-tier-silver-bg text-tier-silver border-tier-silver', label: 'Verified' },
+      bronze: { icon: Star, className: 'bg-tier-bronze-bg text-tier-bronze border-tier-bronze', label: 'Verified' },
+      assumed: { icon: AlertTriangle, className: 'bg-tier-assumed-bg text-tier-assumed border-tier-assumed', label: 'Needs Review' }
     };
 
     const config = configs[t as keyof typeof configs] || configs.assumed;
@@ -252,53 +252,47 @@ export const VaultContentsTable = ({
   return (
     <Card className="p-6 animate-fade-in">
       <div className="space-y-4">
-        {/* Filters & Search */}
-        <div className="flex flex-col md:flex-row gap-4">
+        {/* Simplified Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search vault items..."
+              placeholder="Search your career vault..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
           
-          <Select value={qualityFilter} onValueChange={setQualityFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Quality" />
+          <Select 
+            value={`${qualityFilter}|${categoryFilter}|${sortBy}`} 
+            onValueChange={(value) => {
+              const [q, c, s] = value.split('|');
+              setQualityFilter(q);
+              setCategoryFilter(c);
+              setSortBy(s);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Filter & Sort" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Quality</SelectItem>
-              <SelectItem value="gold">Gold</SelectItem>
-              <SelectItem value="silver">Silver</SelectItem>
-              <SelectItem value="bronze">Bronze</SelectItem>
-              <SelectItem value="assumed">Assumed</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="Power Phrase">Power Phrases</SelectItem>
-              <SelectItem value="Skill">Skills</SelectItem>
-              <SelectItem value="Competency">Competencies</SelectItem>
-              <SelectItem value="Soft Skill">Soft Skills</SelectItem>
-              <SelectItem value="Leadership">Leadership</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Recent</SelectItem>
-              <SelectItem value="quality">Quality</SelectItem>
-              <SelectItem value="usage">Most Used</SelectItem>
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Quality</div>
+              <SelectItem value="all|all|recent">All Items</SelectItem>
+              <SelectItem value="gold|all|recent">✓ Verified</SelectItem>
+              <SelectItem value="assumed|all|recent">📝 Needs Review</SelectItem>
+              <SelectItem value="all|all|quality">By Quality</SelectItem>
+              
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Type</div>
+              <SelectItem value="all|Career Achievement|recent">Career Achievements</SelectItem>
+              <SelectItem value="all|Skill|recent">Skills & Expertise</SelectItem>
+              <SelectItem value="all|Competency|recent">Strategic Capabilities</SelectItem>
+              <SelectItem value="all|Soft Skill|recent">Professional Strengths</SelectItem>
+              <SelectItem value="all|Leadership|recent">Leadership</SelectItem>
+              
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Sort</div>
+              <SelectItem value="all|all|recent">Most Recent</SelectItem>
+              <SelectItem value="all|all|usage">Most Used</SelectItem>
             </SelectContent>
           </Select>
         </div>
