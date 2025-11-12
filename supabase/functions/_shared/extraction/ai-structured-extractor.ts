@@ -464,7 +464,11 @@ export async function analyzeGapsWithAI(
     highConfidenceFields.push(`Executive: ${extractedData.experience.executive.hasExposure ? 'YES' : 'NO'} (confidence: ${extractedData.experience.executive.confidence}%)`);
   }
 
-  console.log(`🔍 [AI-GAP-ANALYSIS] High-confidence fields (>= 95%) that should NOT be questioned:`, highConfidenceFields);
+  if (highConfidenceFields.length > 0) {
+    console.log(`🔍 [AI-GAP-ANALYSIS] High-confidence fields (>= 95%):`, highConfidenceFields.map(f => `\n  ${f}`).join(''));
+  } else {
+    console.log(`🔍 [AI-GAP-ANALYSIS] No high-confidence fields found - may ask basic questions`);
+  }
 
   const prompt = `You are an expert career advisor. Analyze extracted resume data and identify what questions need to be asked.
 
