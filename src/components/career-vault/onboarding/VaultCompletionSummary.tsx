@@ -137,7 +137,16 @@ export default function VaultCompletionSummary({
       'certifications': '#certifications',
     };
 
-    window.location.href = `/career-vault${sectionMap[categoryKey] || ''}`;
+    // Complete onboarding first, then navigate to vault section
+    onGoToDashboard();
+
+    // Use setTimeout to allow React Router to navigate first
+    setTimeout(() => {
+      const section = sectionMap[categoryKey] || '';
+      if (section) {
+        window.location.hash = section;
+      }
+    }, 100);
   };
 
   const getPriorityColor = (priority: string) => {

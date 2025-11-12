@@ -130,13 +130,14 @@ serve(async (req) => {
     const benchmarks = industryResearch?.[0]?.results || {};
 
     // Fetch actual vault items for detailed analysis
-    const [powerPhrases, skills, competencies, softSkills, leadershipPhilosophy, executivePresence] = await Promise.all([
+    const [powerPhrases, skills, competencies, softSkills, leadershipPhilosophy, executivePresence, confirmedSkills] = await Promise.all([
       supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
       supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
       supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId),
       supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
       supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId),
       supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_confirmed_skills').select('*').eq('vault_id', vaultId),
     ]);
 
     // ===== STEP 3: GET CACHED CAREER CONTEXT (NO AI CALL) =====
@@ -249,12 +250,18 @@ VAULT CONTENTS ANALYSIS:
 ├─ Hidden Competencies: ${competencies.data?.length || 0} deep capabilities
 ├─ Soft Skills: ${softSkills.data?.length || 0} interpersonal strengths
 ├─ Leadership Philosophy: ${leadershipPhilosophy.data?.length || 0} leadership insights
-└─ Executive Presence: ${executivePresence.data?.length || 0} strategic indicators
+├─ Executive Presence: ${executivePresence.data?.length || 0} strategic indicators
+└─ ✅ CONFIRMED TECHNICAL SKILLS: ${confirmedSkills.data?.length || 0} verified skills
+
+**CRITICAL: User has ${confirmedSkills.data?.length || 0} confirmed technical skills. DO NOT suggest technical skills gaps if count > 0.**
 
 SAMPLE ACHIEVEMENTS (their actual work):
 ${powerPhrases.data?.slice(0, 10).map((pp: any, i: number) => `${i + 1}. ${pp.power_phrase}`).join('\n') || 'None documented yet'}
 
-SAMPLE SKILLS (their actual capabilities):
+CONFIRMED TECHNICAL SKILLS (from resume - already verified):
+${confirmedSkills.data?.length > 0 ? confirmedSkills.data.slice(0, 20).map((s: any) => `✓ ${s.skill_name} (${s.proficiency_level || 'experienced'})`).join('\n') : 'None documented yet'}
+
+SAMPLE TRANSFERABLE SKILLS (inferred from experience):
 ${skills.data?.slice(0, 15).map((s: any) => `- ${s.stated_skill}`).join('\n') || 'None documented yet'}
 
 INDUSTRY BENCHMARKS FOR ${targetRoles[0]} IN ${targetIndustries[0]}:
@@ -278,6 +285,7 @@ Only suggest gaps they can REALISTICALLY fill in 3-6 months that will SIGNIFICAN
 Base ALL assessments on actual vault content AND career context cache:
 - If career context shows has_management_experience=true, NEVER suggest management/supervision gaps
 - If career context shows has_budget_ownership=true, NEVER suggest budget responsibility gaps
+- If they have ${confirmedSkills.data?.length || 0} confirmed technical skills, NEVER suggest "add technical skills" gaps - they already have them!
 - If they have 45 power phrases, don't say they need more - focus on QUALITY gaps or MISSING CATEGORIES
 - Career context represents AI-verified facts from their resume - treat as ground truth
 
