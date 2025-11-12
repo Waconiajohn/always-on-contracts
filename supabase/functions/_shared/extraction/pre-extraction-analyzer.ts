@@ -1,6 +1,22 @@
 /**
  * Pre-Extraction Analyzer
  * Gathers context and builds extraction strategy before main extraction
+ *
+ * ⚠️ DEPRECATION NOTICE - 2025-11-11
+ * ============================================
+ * The regex-based extraction functions in this file are DEPRECATED.
+ *
+ * - extractEducationData() - REPLACED BY: AI-first extraction in ai-structured-extractor.ts
+ * - extractCareerContext() - REPLACED BY: AI-first extraction in ai-structured-extractor.ts
+ * - Regex patterns for degrees/certs - REPLACED BY: AI understanding of all formats
+ *
+ * These functions are kept temporarily for backward compatibility but should
+ * NOT be used in new code. They will be removed in the next major version.
+ *
+ * USE INSTEAD:
+ * - extractStructuredResumeData() from ai-structured-extractor.ts
+ * - analyzeGapsWithAI() from ai-structured-extractor.ts
+ * ============================================
  */
 
 import { loadFrameworkContext, FrameworkContext } from '../frameworks/framework-service.ts';

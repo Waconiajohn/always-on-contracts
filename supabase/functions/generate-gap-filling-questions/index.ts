@@ -92,35 +92,83 @@ serve(async (req) => {
       throw new Error('vaultData is required');
     }
 
-    // ===== PHASE 1: GET CACHED CAREER CONTEXT & BENCHMARK COMPARISON =====
-    console.log('[GAP QUESTIONS] Phase 1: Fetching cached career context and benchmark comparison...');
-    
+    // ===== PHASE 1: GET CACHED CAREER CONTEXT & AI-POWERED GAP ANALYSIS =====
+    console.log('[GAP QUESTIONS] Phase 1: Fetching cached career context and AI gap analysis...');
+
     let careerContext: any;
     const verifiedAreas: string[] = [];
     const gapAreas: string[] = [];
     let benchmarkGaps: any[] = [];
-    
-    // Fetch benchmark comparison first
+
+    // Fetch AI-powered gap analysis (stored in benchmark_comparison table)
     const { data: benchmarkData, error: benchmarkError } = await supabase
       .from('vault_benchmark_comparison')
       .select('*')
       .eq('vault_id', vaultId)
       .single();
-    
+
     if (benchmarkData && !benchmarkError) {
-      console.log('[GAP QUESTIONS] ✅ Benchmark comparison found');
+      console.log('[GAP QUESTIONS] ✅ AI gap analysis found');
       benchmarkGaps = benchmarkData.gaps_requiring_questions || [];
-      console.log(`[GAP QUESTIONS] Found ${benchmarkGaps.length} targeted gaps from benchmark analysis`);
-      
-      // If we have benchmark gaps, use them primarily
+      console.log(`[GAP QUESTIONS] Found ${benchmarkGaps.length} AI-identified gaps`);
+
+      // CRITICAL FIX: Filter out gaps for fields that are already verified with high confidence
+      // This prevents asking "Do you have a degree in Mechanical Engineering?" when we already know they do
+      const confirmedData = benchmarkData.confirmed_data || {};
+
+      // Build list of confirmed high-confidence fields to EXCLUDE from questions
+      const highConfidenceFields: string[] = [];
+
+      if (confirmedData.educationLevel && confirmedData.educationField) {
+        highConfidenceFields.push('education');
+        highConfidenceFields.push('education_level');
+        highConfidenceFields.push('education_field');
+        highConfidenceFields.push('degree');
+        console.log(`[GAP QUESTIONS] ✅ Education confirmed: ${confirmedData.educationLevel} in ${confirmedData.educationField} - WILL NOT ask about education`);
+      }
+
+      if (confirmedData.hasManagementExperience && confirmedData.managementDetails) {
+        highConfidenceFields.push('management');
+        highConfidenceFields.push('team');
+        console.log(`[GAP QUESTIONS] ✅ Management confirmed - WILL NOT ask about management experience`);
+      }
+
+      if (confirmedData.hasBudgetOwnership && confirmedData.budgetDetails) {
+        highConfidenceFields.push('budget');
+        console.log(`[GAP QUESTIONS] ✅ Budget confirmed - WILL NOT ask about budget ownership`);
+      }
+
+      if (confirmedData.hasExecutiveExposure && confirmedData.executiveDetails) {
+        highConfidenceFields.push('executive');
+        console.log(`[GAP QUESTIONS] ✅ Executive exposure confirmed - WILL NOT ask about executive interactions`);
+      }
+
+      // Filter benchmark gaps to remove confirmed fields
+      const originalGapCount = benchmarkGaps.length;
+      benchmarkGaps = benchmarkGaps.filter((gap: any) => {
+        const field = (gap.field || '').toLowerCase();
+        const isConfirmed = highConfidenceFields.some(confirmedField =>
+          field.includes(confirmedField.toLowerCase())
+        );
+
+        if (isConfirmed) {
+          console.log(`[GAP QUESTIONS] 🚫 FILTERED OUT: "${gap.question}" - field "${gap.field}" is already confirmed`);
+          return false;
+        }
+        return true;
+      });
+
+      console.log(`[GAP QUESTIONS] ✅ Filtered ${originalGapCount - benchmarkGaps.length} confirmed fields. ${benchmarkGaps.length} gaps remain.`);
+
+      // Add remaining gaps to gapAreas
       if (benchmarkGaps.length > 0) {
         benchmarkGaps.forEach((gap: any) => {
           gapAreas.push(`${gap.field}: ${gap.context} (${gap.expectedAnswer})`);
         });
-        console.log('[GAP QUESTIONS] Using benchmark-driven gaps for targeted questions');
+        console.log('[GAP QUESTIONS] Using AI-filtered gaps for targeted questions');
       }
     } else {
-      console.log('[GAP QUESTIONS] ⚠️ No benchmark comparison found - will generate generic gaps');
+      console.log('[GAP QUESTIONS] ⚠️ No AI gap analysis found - will generate generic gaps');
     }
     
     const { data: cachedContext, error: contextError } = await supabase

@@ -16,6 +16,7 @@ import { extractWithRetry } from '../_shared/extraction/retry-orchestrator.ts';
 import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
+import { extractStructuredResumeData, analyzeGapsWithAI, type StructuredResumeData } from '../_shared/extraction/ai-structured-extractor.ts';
 
 interface AutoPopulateRequest {
   resumeText: string;
@@ -187,6 +188,28 @@ serve(async (req) => {
     });
 
     // ========================================================================
+    // PHASE 3: AI-FIRST STRUCTURED EXTRACTION (NEW - PRODUCTION GRADE)
+    // ========================================================================
+    console.log('\n🤖 PHASE 3: AI-FIRST STRUCTURED EXTRACTION...');
+    console.log('⚡ Using single AI call for comprehensive resume analysis with confidence scores');
+
+    let structuredData: StructuredResumeData;
+    try {
+      structuredData = await extractStructuredResumeData(resumeText, userId);
+      console.log('✅ Structured extraction complete!');
+      console.log(`   📊 Overall Confidence: ${structuredData.extractionMetadata.overallConfidence}%`);
+      console.log(`   🎓 Education: ${structuredData.education.degrees.length} degree(s) found`);
+      console.log(`   💼 Experience: ${structuredData.experience.totalYears} years total`);
+      console.log(`   👔 Management: ${structuredData.experience.management.hasExperience ? 'YES' : 'NO'} (confidence: ${structuredData.experience.management.confidence}%)`);
+      console.log(`   💰 Budget: ${structuredData.experience.budget.hasExperience ? 'YES' : 'NO'} (confidence: ${structuredData.experience.budget.confidence}%)`);
+      console.log(`   📈 High confidence fields: ${structuredData.extractionMetadata.highConfidenceFields.length}`);
+      console.log(`   ⚠️  Low confidence fields: ${structuredData.extractionMetadata.lowConfidenceFields.length}`);
+    } catch (error) {
+      console.error('❌ AI-first extraction failed:', error);
+      throw new Error(`Structured extraction failed: ${error.message}`);
+    }
+
+    // ========================================================================
     // PHASE 4: Detect Role and Industry for Context (NOW WITH GUARANTEED SUCCESS)
     // ========================================================================
     console.log('\n🎯 PHASE 4: Detecting role and industry...');
@@ -204,14 +227,9 @@ serve(async (req) => {
     console.log(`✅ Role: ${roleInfo.primaryRole} | Industry: ${roleInfo.industry} | Seniority: ${roleInfo.seniority} (${roleInfo.confidence}% confidence)`);
 
     // ========================================================================
-    // PHASE 4.5: ALWAYS Extract Education Independently (CRITICAL FIX)
+    // PHASE 4.5: REMOVED - Now using AI-first extraction (Phase 3)
     // ========================================================================
-    console.log('\n🎓 PHASE 4.5: Extracting education data independently...');
-    const extractedEducation = extractEducationData(resumeText, resumeStructure);
-    console.log(`✅ Education: ${extractedEducation.level || 'None'} in ${extractedEducation.field || 'Not specified'}`);
-    if (extractedEducation.certifications.length > 0) {
-      console.log(`✅ Certifications: ${extractedEducation.certifications.join(', ')}`);
-    }
+    // Old regex-based extraction removed - replaced with AI-first structured extraction
 
     // Clear existing data if mode = 'full'
     if (mode === 'full') {
@@ -408,126 +426,101 @@ serve(async (req) => {
     });
 
     // ========================================================================
-    // PHASE 6: EXTRACT CAREER CONTEXT & BENCHMARK COMPARISON (WITH FALLBACKS)
+    // PHASE 6: AI-POWERED GAP ANALYSIS (NEW - REPLACES OLD BENCHMARK LOGIC)
     // ========================================================================
-    console.log('\n🎯 PHASE 6: Extracting career context with benchmark comparison...');
-
-    // careerContextData already declared on line 344 - don't redeclare
-    // educationData already declared on line 318 - just reassign
-    let benchmarkComparison: ComparisonResult | null = null;
-    educationData = {
-      level: extractedEducation.level,
-      field: extractedEducation.field,
-      certifications: extractedEducation.certifications,
-    };
+    console.log('\n🔍 PHASE 6: AI-powered gap analysis...');
 
     try {
-      if (roleInfo) {
-        console.log(`🎯 Role confidence: ${roleInfo.confidence}%`);
-        
-        // Use fallback benchmark for low-confidence detections
-        if (roleInfo.confidence < 50) {
-          console.warn(`⚠️ Low confidence (${roleInfo.confidence}%) - will use generic Professional benchmark`);
-        }
-        // Fetch industry benchmarks
-        console.log(`📊 Fetching benchmarks for ${roleInfo.primaryRole} in ${roleInfo.industry}...`);
-        const benchmark = await fetchIndustryBenchmarks({
-          jobTitle: roleInfo.primaryRole,
-          industry: roleInfo.industry,
-          seniorityLevel: roleInfo.seniority,
-          userId,
-        });
-
-        // Compare resume against benchmarks
-        console.log('🔍 Comparing resume against industry benchmarks...');
-        benchmarkComparison = await compareResumeAgainstBenchmark({
-          resumeText,
-          benchmark,
-          userId,
-        });
-
-        // Use confirmed data as career context (INCLUDING EDUCATION)
-        careerContextData = {
-          hasManagementExperience: benchmarkComparison.confirmed.hasManagementExperience || false,
-          managementDetails: benchmarkComparison.confirmed.managementDetails || '',
-          teamSizesManaged: benchmarkComparison.confirmed.teamSizesManaged || [],
-          hasBudgetOwnership: benchmarkComparison.confirmed.hasBudgetOwnership || false,
-          budgetDetails: benchmarkComparison.confirmed.budgetDetails || '',
-          budgetSizesManaged: benchmarkComparison.confirmed.budgetSizesManaged || [],
-          hasExecutiveExposure: benchmarkComparison.confirmed.hasExecutiveExposure || false,
-          executiveDetails: benchmarkComparison.confirmed.executiveDetails || '',
-          yearsOfExperience: benchmarkComparison.confirmed.yearsOfExperience || 0,
-          seniorityLevel: benchmarkComparison.confirmed.seniorityLevel || roleInfo.seniority,
-        };
-        
-        // CRITICAL: Merge education from benchmark AND independent extraction
-        // Prioritize benchmark (if AI found it) but use independent extraction as fallback
-        const benchmarkEducation = {
-          level: benchmarkComparison.confirmed.educationLevel || null,
-          field: benchmarkComparison.confirmed.educationField || null,
-          certifications: benchmarkComparison.confirmed.certifications || [],
-        };
-        
-        educationData = {
-          level: benchmarkEducation.level || extractedEducation.level,
-          field: benchmarkEducation.field || extractedEducation.field,
-          certifications: [
-            ...(benchmarkEducation.certifications || []),
-            ...extractedEducation.certifications,
-          ].filter((cert, index, arr) => arr.indexOf(cert) === index), // Remove duplicates
-        };
-        
-        console.log(`✅ Final education data: ${educationData.level || 'None'} in ${educationData.field || 'Not specified'}, ${educationData.certifications.length} certs`);
-
-        // Store benchmark comparison
-        const { error: benchmarkError } = await supabase
-          .from('vault_benchmark_comparison')
-          .upsert({
-            vault_id: vaultId,
-            user_id: userId,
-            job_title: benchmark.jobTitle,
-            industry: benchmark.industry,
-            seniority_level: benchmark.seniorityLevel,
-            benchmark_data: benchmark,
-            confirmed_data: benchmarkComparison.confirmed,
-            likely_data: benchmarkComparison.likely,
-            gaps_requiring_questions: benchmarkComparison.gaps_requiring_questions,
-            evidence_summary: benchmarkComparison.evidence,
-            comparison_confidence: 0.85,
-          }, {
-            onConflict: 'vault_id'
-          });
-
-        if (benchmarkError) {
-          console.error('❌ Error storing benchmark comparison:', benchmarkError);
-        } else {
-          console.log('✅ Stored benchmark comparison');
-          console.log(`   - Confirmed fields: ${Object.keys(benchmarkComparison.confirmed).length}`);
-          console.log(`   - Likely inferences: ${Object.keys(benchmarkComparison.likely).length}`);
-          console.log(`   - Targeted questions: ${benchmarkComparison.gaps_requiring_questions.length}`);
-        }
-      } else {
-        // This should NEVER happen with new fallback system
-        console.error('❌ CRITICAL: roleInfo is null - this should not happen!');
-        educationData = {
-          level: extractedEducation.level,
-          field: extractedEducation.field,
-          certifications: extractedEducation.certifications,
-        };
-        console.log('✅ Using independent education extraction as fallback');
-      }
-    } catch (error) {
-      console.error('⚠️ Benchmark comparison failed, falling back to legacy extraction:', error);
-      // Fallback to legacy extraction
-      careerContextData = await extractCareerContext({ resumeText, userId });
-      
-      // Ensure education data is still available
-      educationData = {
-        level: extractedEducation.level,
-        field: extractedEducation.field,
-        certifications: extractedEducation.certifications,
+      // Define benchmark expectations based on role
+      const benchmarkExpectations = {
+        jobTitle: roleInfo.primaryRole,
+        industry: roleInfo.industry,
+        seniorityLevel: structuredData.professionalIdentity.seniorityLevel,
+        expectedEducation: `Bachelor's degree or higher in relevant field`,
+        expectedManagement: roleInfo.seniority.includes('Manager') || roleInfo.seniority.includes('Director') || roleInfo.seniority.includes('VP') || roleInfo.seniority.includes('C-Level')
+          ? 'Management experience required'
+          : 'Management experience preferred',
+        expectedBudget: roleInfo.seniority.includes('Manager') || roleInfo.seniority.includes('Director') || roleInfo.seniority.includes('VP') || roleInfo.seniority.includes('C-Level')
+          ? 'Budget ownership expected'
+          : 'Budget ownership optional',
+        expectedCompetencies: [
+          `${roleInfo.industry} expertise`,
+          'Strategic thinking',
+          'Cross-functional collaboration',
+          'Problem-solving',
+        ],
       };
-      console.log('✅ Education data preserved from independent extraction');
+
+      const gapAnalysis = await analyzeGapsWithAI(
+        structuredData,
+        benchmarkExpectations,
+        userId
+      );
+
+      console.log('✅ Gap analysis complete!');
+      console.log(`   🎯 Critical gaps: ${gapAnalysis.criticalGaps.length}`);
+      console.log(`   ✓  Verification questions: ${gapAnalysis.verificationQuestions.length}`);
+      console.log(`   ✅ No questions needed: ${gapAnalysis.noQuestionsNeeded.length}`);
+      console.log(`   📊 Data completeness: ${gapAnalysis.overallAssessment.dataCompleteness}%`);
+      console.log(`   📊 Data quality: ${gapAnalysis.overallAssessment.dataQuality}%`);
+
+      // Store gap analysis in vault_benchmark_comparison table
+      const { error: benchmarkError } = await supabase
+        .from('vault_benchmark_comparison')
+        .upsert({
+          vault_id: vaultId,
+          user_id: userId,
+          job_title: benchmarkExpectations.jobTitle,
+          industry: benchmarkExpectations.industry,
+          seniority_level: benchmarkExpectations.seniorityLevel,
+          benchmark_data: benchmarkExpectations,
+          confirmed_data: {
+            // Map structuredData to old format for compatibility
+            educationLevel: structuredData.education.degrees[0]?.level,
+            educationField: structuredData.education.degrees[0]?.field,
+            certifications: structuredData.education.certifications.map(c => c.name),
+            hasManagementExperience: structuredData.experience.management.hasExperience,
+            managementDetails: structuredData.experience.management.details,
+            teamSizesManaged: structuredData.experience.management.teamSizes,
+            hasBudgetOwnership: structuredData.experience.budget.hasExperience,
+            budgetDetails: structuredData.experience.budget.details,
+            budgetSizesManaged: structuredData.experience.budget.amounts,
+            hasExecutiveExposure: structuredData.experience.executive.hasExposure,
+            executiveDetails: structuredData.experience.executive.details,
+            yearsOfExperience: structuredData.experience.totalYears,
+            seniorityLevel: structuredData.professionalIdentity.seniorityLevel,
+          },
+          likely_data: {
+            // Empty - we use confidence scores now instead of likely/confirmed split
+          },
+          gaps_requiring_questions: gapAnalysis.criticalGaps.map(gap => ({
+            field: gap.field,
+            question: gap.question,
+            context: gap.reason,
+            expectedAnswer: gap.expectedAnswer,
+            priority: gap.priority,
+            currentConfidence: gap.currentConfidence,
+          })),
+          evidence_summary: {
+            managementEvidence: structuredData.experience.management.evidence,
+            budgetEvidence: structuredData.experience.budget.evidence,
+            executiveEvidence: structuredData.experience.executive.evidence,
+            educationEvidence: structuredData.education.degrees.map(d => d.evidence),
+          },
+          comparison_confidence: gapAnalysis.overallAssessment.dataQuality / 100,
+        }, {
+          onConflict: 'vault_id'
+        });
+
+      if (benchmarkError) {
+        console.error('❌ Error storing gap analysis:', benchmarkError);
+      } else {
+        console.log('✅ Stored AI-powered gap analysis');
+      }
+
+    } catch (error) {
+      console.error('⚠️ Gap analysis failed:', error);
+      console.log('   Continuing without gap analysis...');
     }
 
     // ========================================================================
@@ -672,48 +665,63 @@ serve(async (req) => {
       }
     }
 
-    // Store or update career context with education AND career context (NEW - CRITICAL FIX)
-    if ((educationData && (educationData.level || educationData.field)) || careerContextData) {
-      const contextPayload: any = {
-        vault_id: vaultId,
-        user_id: userId,
-        updated_at: new Date().toISOString(),
-      };
+    // ========================================================================
+    // STORE AI-FIRST STRUCTURED DATA (NEW - REPLACES OLD LOGIC)
+    // ========================================================================
+    console.log('\n💾 STORING AI-FIRST STRUCTURED DATA...');
 
-      // Add education if available
-      if (educationData) {
-        contextPayload.education_level = educationData.level;
-        contextPayload.education_field = educationData.field;
-        contextPayload.certifications = educationData.certifications || [];
-      }
+    // Store career context from AI-first extraction
+    const contextPayload: any = {
+      vault_id: vaultId,
+      user_id: userId,
+      updated_at: new Date().toISOString(),
+    };
 
-      // Add career context if available
-      if (careerContextData) {
-        contextPayload.has_management_experience = careerContextData.hasManagementExperience;
-        contextPayload.management_details = careerContextData.managementDetails;
-        contextPayload.team_sizes_managed = careerContextData.teamSizesManaged;
-        contextPayload.has_budget_ownership = careerContextData.hasBudgetOwnership;
-        contextPayload.budget_details = careerContextData.budgetDetails;
-        contextPayload.budget_sizes_managed = careerContextData.budgetSizesManaged;
-        contextPayload.has_executive_exposure = careerContextData.hasExecutiveExposure;
-        contextPayload.executive_details = careerContextData.executiveDetails;
-        contextPayload.years_of_experience = careerContextData.yearsOfExperience;
-        contextPayload.inferred_seniority = careerContextData.seniorityLevel;
-      }
+    // Education (from AI-first extraction with confidence scores)
+    if (structuredData.education.degrees.length > 0) {
+      const primaryDegree = structuredData.education.degrees[0]; // Highest/most recent degree
+      contextPayload.education_level = primaryDegree.level;
+      contextPayload.education_field = primaryDegree.field;
+      console.log(`  🎓 Education: ${primaryDegree.level} in ${primaryDegree.field} (confidence: ${primaryDegree.confidence}%)`);
+    }
 
-      const { error: contextError } = await supabase
-        .from('vault_career_context')
-        .upsert(contextPayload, {
-          onConflict: 'vault_id'
-        });
-      
-      if (contextError) {
-        console.error('❌ Error storing career context:', contextError);
-      } else {
-        console.log('✅ Stored comprehensive career context');
-      }
+    // Certifications
+    if (structuredData.education.certifications.length > 0) {
+      contextPayload.certifications = structuredData.education.certifications.map(c => c.name);
+      console.log(`  📜 Certifications: ${contextPayload.certifications.join(', ')}`);
+    }
+
+    // Experience
+    contextPayload.years_of_experience = structuredData.experience.totalYears;
+    contextPayload.inferred_seniority = structuredData.professionalIdentity.seniorityLevel;
+
+    // Management
+    contextPayload.has_management_experience = structuredData.experience.management.hasExperience;
+    contextPayload.management_details = structuredData.experience.management.details;
+    contextPayload.team_sizes_managed = structuredData.experience.management.teamSizes;
+    console.log(`  👔 Management: ${contextPayload.has_management_experience ? 'YES' : 'NO'} (confidence: ${structuredData.experience.management.confidence}%)`);
+
+    // Budget
+    contextPayload.has_budget_ownership = structuredData.experience.budget.hasExperience;
+    contextPayload.budget_details = structuredData.experience.budget.details;
+    contextPayload.budget_sizes_managed = structuredData.experience.budget.amounts;
+    console.log(`  💰 Budget: ${contextPayload.has_budget_ownership ? 'YES' : 'NO'} (confidence: ${structuredData.experience.budget.confidence}%)`);
+
+    // Executive
+    contextPayload.has_executive_exposure = structuredData.experience.executive.hasExposure;
+    contextPayload.executive_details = structuredData.experience.executive.details;
+    console.log(`  📈 Executive: ${contextPayload.has_executive_exposure ? 'YES' : 'NO'} (confidence: ${structuredData.experience.executive.confidence}%)`);
+
+    const { error: contextError } = await supabase
+      .from('vault_career_context')
+      .upsert(contextPayload, {
+        onConflict: 'vault_id'
+      });
+
+    if (contextError) {
+      console.error('❌ Error storing career context:', contextError);
     } else {
-      console.log('⚠️ No career context data to store');
+      console.log('✅ Stored AI-first career context successfully!');
     }
 
     // Update vault metadata
