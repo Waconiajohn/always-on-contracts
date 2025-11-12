@@ -117,6 +117,8 @@ export const VaultNuclearReset = ({
           total_transferable_skills: 0,
           total_hidden_competencies: 0,
           extraction_item_count: 0,
+          resume_raw_text: null,
+          initial_analysis: null,
         })
         .eq('id', vaultId);
 
@@ -125,9 +127,9 @@ export const VaultNuclearReset = ({
         throw resetError;
       }
 
-      console.log('✅ NUCLEAR RESET COMPLETE: All data wiped to zero state');
-      
-      toast.success('Vault completely cleared. All data set to zero. Upload a resume to start fresh.');
+      console.log('✅ NUCLEAR RESET COMPLETE: All data wiped to zero state (including resume)');
+
+      toast.success('Vault completely cleared. Resume deleted. Upload a resume to start fresh.');
       
       // Force cache invalidation to show zero state immediately
       if (onResetComplete) {
@@ -152,7 +154,7 @@ export const VaultNuclearReset = ({
           Nuclear Reset
         </CardTitle>
         <CardDescription>
-          Delete ALL vault items and reset everything to zero. Upload a resume afterward to start fresh.
+          Delete ALL vault items, resume, and reset everything to zero. You'll need to upload a resume afterward to start completely fresh.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -182,12 +184,13 @@ export const VaultNuclearReset = ({
               <AlertDialogDescription>
                 This will permanently delete:
                 <ul className="list-disc list-inside mt-2 mb-2">
+                  <li>Your uploaded resume text</li>
                   <li>All {VAULT_TABLE_NAMES.length} vault item tables</li>
                   <li>All gap analysis data</li>
-                  <li>All career context</li>
+                  <li>All career context and AI analysis</li>
                   <li>All extraction history</li>
                 </ul>
-                Everything will be set to ZERO. You'll need to upload a resume afterward to start fresh.
+                Everything will be set to ZERO. You'll need to upload a resume afterward to start completely fresh.
                 <br /><br />
                 This action cannot be undone.
               </AlertDialogDescription>
