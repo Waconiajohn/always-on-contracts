@@ -139,190 +139,50 @@ export async function extractStructuredResumeData(
 ): Promise<StructuredResumeData> {
   console.log('🤖 [AI-STRUCTURED-EXTRACTION] Starting AI-first extraction...');
 
-  const prompt = `You are an expert resume parser. Extract ALL information from this resume into structured JSON with confidence scores.
+  const prompt = `Extract resume data into structured JSON with confidence scores.
 
-RESUME TEXT:
+RESUME:
 ${resumeText}
 
-Return STRICT JSON with this EXACT structure:
+CONFIDENCE SCORING:
+- 100: Explicit with exact quote ("B.S. Mechanical Engineering, UT Austin, 2015")
+- 95-99: Explicit but ambiguous ("Engineering degree")
+- 80-94: Strong inference ("10 years as engineer" → implies degree)
+- 60-79: Moderate inference (job title ��� certain skills)
+- <60: Weak/missing
+
+EDUCATION - Search for:
+- Degrees: BS, MS, PhD, Bachelor's, Master's, Diploma, Licence, Diplôme (any format)
+- Certifications: PMP, PE, CPA, CFA, CISSP, Six Sigma, etc.
+- Extract ALL degrees, mark confidence 95+ if explicitly stated
+
+EXPERIENCE - Extract:
+- totalYears (earliest to latest role)
+- Management: "led/managed/supervised" + team sizes + details + evidence
+- Budget: dollar amounts, "P&L", cost savings + amounts + details + evidence
+- Executive: C-suite interaction, VP contact, board presentations + details + evidence
+- All roles with title, company, years
+
+SKILLS - Extract:
+- technical: tools/technologies with proficiency (expert=5+yrs, advanced=3-5yrs)
+- soft: communication, problem-solving with evidence
+- leadership: mentoring, strategic thinking with evidence
+
+ACHIEVEMENTS - Extract:
+- quantified: with metric + impact ("Reduced costs 30% → Saved $2M")
+- strategic: scope + impact ("Company-wide process → Zero incidents")
+
+Return ONLY JSON (no markdown):
 {
-  "education": {
-    "degrees": [
-      {
-        "level": "PhD|Master|Bachelor|Associate|Diploma|Certificate|High School|None",
-        "field": "Mechanical Engineering",
-        "institution": "University of Texas",
-        "graduationYear": 2015,
-        "confidence": 95,
-        "evidence": "Bachelor of Science in Mechanical Engineering, UT Austin, 2015"
-      }
-    ],
-    "certifications": [
-      {
-        "name": "PE",
-        "issuingOrg": "Texas Board of Professional Engineers",
-        "year": 2017,
-        "confidence": 100,
-        "evidence": "Professional Engineer (PE), Texas, 2017"
-      }
-    ]
-  },
-  "experience": {
-    "totalYears": 10,
-    "confidence": 95,
-    "management": {
-      "hasExperience": true,
-      "teamSizes": [5, 10, 15],
-      "details": "Managed cross-functional engineering teams ranging from 5-15 people",
-      "evidence": ["Led team of 15 engineers", "Supervised 5-person drilling crew"],
-      "confidence": 95
-    },
-    "budget": {
-      "hasExperience": true,
-      "amounts": [500000, 2000000],
-      "details": "Managed annual budgets from $500K to $2M for drilling operations",
-      "evidence": ["Managed $2M annual budget", "Reduced costs by $500K"],
-      "confidence": 90
-    },
-    "executive": {
-      "hasExposure": true,
-      "interactionLevel": "Regular presentations to C-suite",
-      "details": "Presented quarterly results to VP and C-level executives",
-      "evidence": ["Presented to CEO", "Advised VP of Operations"],
-      "confidence": 85
-    },
-    "roles": [
-      {
-        "title": "Senior Drilling Engineer",
-        "company": "ExxonMobil",
-        "startYear": 2018,
-        "endYear": null,
-        "isCurrent": true,
-        "description": "Leading drilling operations for offshore projects",
-        "confidence": 100
-      }
-    ]
-  },
-  "skills": {
-    "technical": [
-      {
-        "skill": "Drilling Engineering",
-        "category": "Core Technical",
-        "proficiencyLevel": "expert",
-        "yearsOfExperience": 10,
-        "confidence": 95
-      }
-    ],
-    "soft": [
-      {
-        "skill": "Cross-functional Leadership",
-        "evidence": "Led cross-functional teams across engineering, operations, and safety",
-        "confidence": 90
-      }
-    ],
-    "leadership": [
-      {
-        "skill": "Team Development",
-        "evidence": "Mentored 5 junior engineers to promotion",
-        "confidence": 85
-      }
-    ]
-  },
-  "achievements": {
-    "quantified": [
-      {
-        "achievement": "Reduced drilling time by 30%",
-        "metric": "30% reduction",
-        "impact": "Saved $2M annually",
-        "context": "Implemented new drilling optimization protocol",
-        "confidence": 100
-      }
-    ],
-    "strategic": [
-      {
-        "achievement": "Developed company-wide safety protocol",
-        "scope": "Company-wide implementation",
-        "impact": "Zero safety incidents for 2 years",
-        "confidence": 95
-      }
-    ]
-  },
-  "professionalIdentity": {
-    "currentTitle": "Senior Drilling Engineer",
-    "primaryIndustry": "Oil & Gas / Energy",
-    "seniorityLevel": "Senior IC",
-    "careerArchetype": "Technical Leader",
-    "confidence": 95
-  },
-  "extractionMetadata": {
-    "overallConfidence": 92,
-    "highConfidenceFields": ["education.degrees", "experience.roles", "achievements.quantified"],
-    "mediumConfidenceFields": ["experience.executive", "skills.leadership"],
-    "lowConfidenceFields": ["experience.budget.amounts"],
-    "extractionTimestamp": "2025-11-11T16:45:00Z"
-  }
+  "education": {"degrees": [{"level": "Bachelor|Master|PhD|...", "field": "...", "institution": "...", "graduationYear": 2015, "confidence": 100, "evidence": "..."}], "certifications": [{"name": "...", "issuingOrg": "...", "year": 2017, "confidence": 100, "evidence": "..."}]},
+  "experience": {"totalYears": 10, "confidence": 95, "management": {"hasExperience": true, "teamSizes": [5,10], "details": "...", "evidence": ["..."], "confidence": 95}, "budget": {"hasExperience": true, "amounts": [500000], "details": "...", "evidence": ["..."], "confidence": 90}, "executive": {"hasExposure": true, "interactionLevel": "...", "details": "...", "evidence": ["..."], "confidence": 85}, "roles": [{"title": "...", "company": "...", "startYear": 2020, "endYear": null, "isCurrent": true, "description": "...", "confidence": 100}]},
+  "skills": {"technical": [{"skill": "...", "category": "...", "proficiencyLevel": "expert|advanced|intermediate|beginner", "yearsOfExperience": 5, "confidence": 95}], "soft": [{"skill": "...", "evidence": "...", "confidence": 90}], "leadership": [{"skill": "...", "evidence": "...", "confidence": 85}]},
+  "achievements": {"quantified": [{"achievement": "...", "metric": "...", "impact": "...", "context": "...", "confidence": 100}], "strategic": [{"achievement": "...", "scope": "...", "impact": "...", "confidence": 95}]},
+  "professionalIdentity": {"currentTitle": "...", "primaryIndustry": "...", "seniorityLevel": "Senior IC|Manager|Director|VP|C-Suite", "careerArchetype": "...", "confidence": 95},
+  "extractionMetadata": {"overallConfidence": 92, "highConfidenceFields": ["..."], "mediumConfidenceFields": ["..."], "lowConfidenceFields": ["..."], "extractionTimestamp": "${new Date().toISOString()}"}
 }
 
-CRITICAL EXTRACTION RULES:
-
-1. **CONFIDENCE SCORING:**
-   - 100 = Explicitly stated with exact quotes (e.g., "Bachelor of Science in Mechanical Engineering")
-   - 95-99 = Explicitly stated but slightly ambiguous (e.g., "Engineering degree" without specifying Bachelor/Master)
-   - 80-94 = Strong inference from context (e.g., "10 years as engineer" implies Bachelor minimum)
-   - 60-79 = Moderate inference (e.g., job title implies certain skills)
-   - <60 = Weak inference or missing data
-   - Set confidence to 0 if data is completely absent
-
-2. **EDUCATION EXTRACTION:**
-   - Search ENTIRE resume for education keywords
-   - Degree formats to recognize:
-     * Full: "Bachelor of Science", "Master of Business Administration", "Doctor of Philosophy"
-     * Abbreviated: "B.S.", "BS", "M.S.", "MS", "MBA", "PhD", "Ph.D."
-     * Possessive: "Bachelor's", "Master's"
-     * Informal: "Engineering degree", "Business degree"
-     * Foreign: "Licence", "Diplôme", "Laurea", "Baccalaureate"
-   - Field extraction: Look for text after "in", "of", "major", "concentration"
-   - If you find ANY mention of a degree, mark confidence as 90+ (unless very ambiguous)
-   - Extract ALL degrees (many people have multiple)
-   - Certifications: PMP, PE, CPA, CFA, CISSP, AWS, Azure, Six Sigma, Scrum, etc.
-
-3. **EXPERIENCE EXTRACTION:**
-   - Calculate totalYears from earliest to latest role (or current date if still employed)
-   - Management: Look for "led", "managed", "supervised", "directed", team sizes, direct reports
-   - Budget: Look for dollar amounts, "managed budget", "P&L responsibility", cost savings
-   - Executive: Look for "C-suite", "executive", "VP", "board", "strategic planning"
-   - Extract specific numbers wherever possible
-
-4. **SKILLS EXTRACTION:**
-   - Technical: Hard skills, tools, technologies, methodologies
-   - Soft: Communication, leadership, problem-solving, collaboration
-   - Leadership: People management, mentoring, strategic thinking
-   - Categorize by proficiency based on context (expert if 5+ years, advanced if 3-5, etc.)
-
-5. **ACHIEVEMENTS EXTRACTION:**
-   - Quantified: Any achievement with numbers/percentages (saved $X, increased Y by Z%)
-   - Strategic: High-level impacts (company-wide changes, new processes, major initiatives)
-   - Extract the WHAT, the METRIC, and the IMPACT
-
-6. **EVIDENCE COLLECTION:**
-   - For EVERY field, include a direct quote from the resume as evidence
-   - This allows for human verification and debugging
-   - Keep evidence concise (< 200 chars per quote)
-
-7. **HANDLING MISSING DATA:**
-   - If data is not found, set field to null (for strings/objects) or 0 (for numbers)
-   - Set confidence to 0 for missing data
-   - DO NOT omit fields - return the full structure even if empty
-   - DO NOT make up data - only extract what's actually in the resume
-
-8. **METADATA CALCULATION:**
-   - overallConfidence: Average all confidence scores across all fields
-   - highConfidenceFields: List all fields with confidence >= 95
-   - mediumConfidenceFields: List all fields with confidence 80-94
-   - lowConfidenceFields: List all fields with confidence < 80
-   - extractionTimestamp: Current ISO 8601 timestamp
-
-Return ONLY valid JSON. No markdown, no explanations, just the JSON object.`;
+Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty. NO markdown.`;
 
   try {
     const { response, metrics } = await callPerplexity({
@@ -336,11 +196,11 @@ Return ONLY valid JSON. No markdown, no explanations, just the JSON object.`;
           content: prompt
         }
       ],
-      model: 'sonar-pro', // Best reasoning model for complex extraction
-      temperature: 0.2, // Low temperature for factual extraction
-      max_tokens: 8000, // Large output for comprehensive extraction
+      model: 'sonar-reasoning-pro', // Best for structured JSON extraction with complex logic
+      temperature: 0.1, // Very low for factual extraction
+      max_tokens: 6000, // Sufficient for comprehensive structured output
       return_citations: false,
-    }, 'ai-structured-extraction', userId);
+    }, 'ai-structured-extraction', userId, 120000); // 2 minute timeout for complex extraction
 
     // Log AI usage
     await logAIUsage(metrics);

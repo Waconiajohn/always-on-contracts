@@ -188,27 +188,34 @@ serve(async (req) => {
     });
 
     // ========================================================================
-    // PHASE 3: AI-FIRST STRUCTURED EXTRACTION (TEMPORARILY DISABLED - CAUSING TIMEOUTS)
+    // 🤖 PHASE 3: AI-FIRST STRUCTURED EXTRACTION (PRODUCTION)
     // ========================================================================
-    // NOTE: AI-first extraction is disabled due to timeout issues
-    // The safety filters in generate-gap-filling-questions are still active
-    // and will prevent duplicate education questions
-    console.log('\n🤖 PHASE 3: Skipping AI-first extraction (using legacy flow)...');
+    // Optimized AI extraction with:
+    // - Compact prompt (reduced from 183 to 44 lines)
+    // - sonar-reasoning-pro model (best for structured JSON)
+    // - 2 minute timeout (vs default 45s)
+    // - 6000 max_tokens (down from 8000)
+    console.log('\n🤖 PHASE 3: AI-first structured extraction (optimized)...');
 
     let structuredData: StructuredResumeData | null = null;
 
-    // TODO: Re-enable AI-first extraction after investigating timeout issues
-    // Temporarily commented out to unblock extraction flow
-    /*
     try {
-      console.log('⏱️  Starting AI-first extraction...');
+      console.log('⏱️  Starting extraction with 2min timeout...');
+      const startTime = Date.now();
+
       structuredData = await extractStructuredResumeData(resumeText, userId);
-      console.log('✅ Structured extraction complete!');
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`✅ Extraction complete in ${duration}s`);
+      console.log(`   📊 Overall confidence: ${structuredData.extractionMetadata.overallConfidence}%`);
+      console.log(`   🎓 Degrees: ${structuredData.education.degrees.length}`);
+      console.log(`   💼 Roles: ${structuredData.experience.roles.length}`);
     } catch (error) {
       console.error('❌ AI-first extraction failed:', error);
-      structuredData = null;
+      console.error('⚠️  PRODUCTION ERROR: This should not happen - needs investigation');
+      // Fail fast - don't silently fall back to broken regex
+      throw new Error(`Resume extraction failed: ${error instanceof Error ? error.message : String(error)}`);
     }
-    */
 
     // ========================================================================
     // PHASE 4: Detect Role and Industry for Context (NOW WITH GUARANTEED SUCCESS)
@@ -383,18 +390,16 @@ serve(async (req) => {
     });
 
     // ========================================================================
-    // PHASE 6: AI-POWERED GAP ANALYSIS (TEMPORARILY DISABLED)
+    // 🔍 PHASE 6: AI-POWERED GAP ANALYSIS (PRODUCTION)
     // ========================================================================
-    console.log('\n🔍 PHASE 6: Skipping AI-powered gap analysis (using legacy benchmark)...');
+    console.log('\n🔍 PHASE 6: AI-powered gap analysis with confidence-based filtering...');
 
-    // TODO: Re-enable when AI-first extraction is working
-    /* TEMPORARILY DISABLED
     try {
       // Define benchmark expectations based on role
       const benchmarkExpectations = {
         jobTitle: roleInfo.primaryRole,
         industry: roleInfo.industry,
-        seniorityLevel: structuredData.professionalIdentity.seniorityLevel,
+        seniorityLevel: structuredData!.professionalIdentity.seniorityLevel,
         expectedEducation: `Bachelor's degree or higher in relevant field`,
         expectedManagement: roleInfo.seniority.includes('Manager') || roleInfo.seniority.includes('Director') || roleInfo.seniority.includes('VP') || roleInfo.seniority.includes('C-Level')
           ? 'Management experience required'
@@ -411,7 +416,7 @@ serve(async (req) => {
       };
 
       const gapAnalysis = await analyzeGapsWithAI(
-        structuredData,
+        structuredData!,
         benchmarkExpectations,
         userId
       );
@@ -434,20 +439,20 @@ serve(async (req) => {
           seniority_level: benchmarkExpectations.seniorityLevel,
           benchmark_data: benchmarkExpectations,
           confirmed_data: {
-            // Map structuredData to old format for compatibility
-            educationLevel: structuredData.education.degrees[0]?.level,
-            educationField: structuredData.education.degrees[0]?.field,
-            certifications: structuredData.education.certifications.map(c => c.name),
-            hasManagementExperience: structuredData.experience.management.hasExperience,
-            managementDetails: structuredData.experience.management.details,
-            teamSizesManaged: structuredData.experience.management.teamSizes,
-            hasBudgetOwnership: structuredData.experience.budget.hasExperience,
-            budgetDetails: structuredData.experience.budget.details,
-            budgetSizesManaged: structuredData.experience.budget.amounts,
-            hasExecutiveExposure: structuredData.experience.executive.hasExposure,
-            executiveDetails: structuredData.experience.executive.details,
-            yearsOfExperience: structuredData.experience.totalYears,
-            seniorityLevel: structuredData.professionalIdentity.seniorityLevel,
+            // Map structuredData to old format for compatibility with gap question generator
+            educationLevel: structuredData!.education.degrees[0]?.level,
+            educationField: structuredData!.education.degrees[0]?.field,
+            certifications: structuredData!.education.certifications.map(c => c.name),
+            hasManagementExperience: structuredData!.experience.management.hasExperience,
+            managementDetails: structuredData!.experience.management.details,
+            teamSizesManaged: structuredData!.experience.management.teamSizes,
+            hasBudgetOwnership: structuredData!.experience.budget.hasExperience,
+            budgetDetails: structuredData!.experience.budget.details,
+            budgetSizesManaged: structuredData!.experience.budget.amounts,
+            hasExecutiveExposure: structuredData!.experience.executive.hasExposure,
+            executiveDetails: structuredData!.experience.executive.details,
+            yearsOfExperience: structuredData!.experience.totalYears,
+            seniorityLevel: structuredData!.professionalIdentity.seniorityLevel,
           },
           likely_data: {
             // Empty - we use confidence scores now instead of likely/confirmed split
@@ -461,10 +466,10 @@ serve(async (req) => {
             currentConfidence: gap.currentConfidence,
           })),
           evidence_summary: {
-            managementEvidence: structuredData.experience.management.evidence,
-            budgetEvidence: structuredData.experience.budget.evidence,
-            executiveEvidence: structuredData.experience.executive.evidence,
-            educationEvidence: structuredData.education.degrees.map(d => d.evidence),
+            managementEvidence: structuredData!.experience.management.evidence,
+            budgetEvidence: structuredData!.experience.budget.evidence,
+            executiveEvidence: structuredData!.experience.executive.evidence,
+            educationEvidence: structuredData!.education.degrees.map(d => d.evidence),
           },
           comparison_confidence: gapAnalysis.overallAssessment.dataQuality / 100,
         }, {
@@ -474,14 +479,13 @@ serve(async (req) => {
       if (benchmarkError) {
         console.error('❌ Error storing gap analysis:', benchmarkError);
       } else {
-        console.log('✅ Stored AI-powered gap analysis');
+        console.log('✅ Stored AI-powered gap analysis with confirmed data mapping');
       }
 
     } catch (error) {
       console.error('⚠️ Gap analysis failed:', error);
       console.log('   Continuing without gap analysis...');
     }
-    */ // END TEMPORARILY DISABLED SECTION
 
     // ========================================================================
     // PHASE 4: Add Industry Context
@@ -626,10 +630,8 @@ serve(async (req) => {
     }
 
     // ========================================================================
-    // STORE AI-FIRST STRUCTURED DATA (NEW - REPLACES OLD LOGIC)
+    // 💾 STORE AI-FIRST STRUCTURED DATA (PRODUCTION)
     // ========================================================================
-
-    /* TEMPORARILY DISABLED - AI-first extraction causing timeouts
     console.log('\n💾 STORING AI-FIRST STRUCTURED DATA...');
 
     // Store career context from AI-first extraction
@@ -640,39 +642,39 @@ serve(async (req) => {
     };
 
     // Education (from AI-first extraction with confidence scores)
-    if (structuredData.education.degrees.length > 0) {
-      const primaryDegree = structuredData.education.degrees[0]; // Highest/most recent degree
+    if (structuredData!.education.degrees.length > 0) {
+      const primaryDegree = structuredData!.education.degrees[0]; // Highest/most recent degree
       contextPayload.education_level = primaryDegree.level;
       contextPayload.education_field = primaryDegree.field;
       console.log(`  🎓 Education: ${primaryDegree.level} in ${primaryDegree.field} (confidence: ${primaryDegree.confidence}%)`);
     }
 
     // Certifications
-    if (structuredData.education.certifications.length > 0) {
-      contextPayload.certifications = structuredData.education.certifications.map(c => c.name);
+    if (structuredData!.education.certifications.length > 0) {
+      contextPayload.certifications = structuredData!.education.certifications.map(c => c.name);
       console.log(`  📜 Certifications: ${contextPayload.certifications.join(', ')}`);
     }
 
     // Experience
-    contextPayload.years_of_experience = structuredData.experience.totalYears;
-    contextPayload.inferred_seniority = structuredData.professionalIdentity.seniorityLevel;
+    contextPayload.years_of_experience = structuredData!.experience.totalYears;
+    contextPayload.inferred_seniority = structuredData!.professionalIdentity.seniorityLevel;
 
     // Management
-    contextPayload.has_management_experience = structuredData.experience.management.hasExperience;
-    contextPayload.management_details = structuredData.experience.management.details;
-    contextPayload.team_sizes_managed = structuredData.experience.management.teamSizes;
-    console.log(`  👔 Management: ${contextPayload.has_management_experience ? 'YES' : 'NO'} (confidence: ${structuredData.experience.management.confidence}%)`);
+    contextPayload.has_management_experience = structuredData!.experience.management.hasExperience;
+    contextPayload.management_details = structuredData!.experience.management.details;
+    contextPayload.team_sizes_managed = structuredData!.experience.management.teamSizes;
+    console.log(`  👔 Management: ${contextPayload.has_management_experience ? 'YES' : 'NO'} (confidence: ${structuredData!.experience.management.confidence}%)`);
 
     // Budget
-    contextPayload.has_budget_ownership = structuredData.experience.budget.hasExperience;
-    contextPayload.budget_details = structuredData.experience.budget.details;
-    contextPayload.budget_sizes_managed = structuredData.experience.budget.amounts;
-    console.log(`  💰 Budget: ${contextPayload.has_budget_ownership ? 'YES' : 'NO'} (confidence: ${structuredData.experience.budget.confidence}%)`);
+    contextPayload.has_budget_ownership = structuredData!.experience.budget.hasExperience;
+    contextPayload.budget_details = structuredData!.experience.budget.details;
+    contextPayload.budget_sizes_managed = structuredData!.experience.budget.amounts;
+    console.log(`  💰 Budget: ${contextPayload.has_budget_ownership ? 'YES' : 'NO'} (confidence: ${structuredData!.experience.budget.confidence}%)`);
 
     // Executive
-    contextPayload.has_executive_exposure = structuredData.experience.executive.hasExposure;
-    contextPayload.executive_details = structuredData.experience.executive.details;
-    console.log(`  📈 Executive: ${contextPayload.has_executive_exposure ? 'YES' : 'NO'} (confidence: ${structuredData.experience.executive.confidence}%)`);
+    contextPayload.has_executive_exposure = structuredData!.experience.executive.hasExposure;
+    contextPayload.executive_details = structuredData!.experience.executive.details;
+    console.log(`  📈 Executive: ${contextPayload.has_executive_exposure ? 'YES' : 'NO'} (confidence: ${structuredData!.experience.executive.confidence}%)`);
 
     const { error: contextError } = await supabase
       .from('vault_career_context')
@@ -685,7 +687,6 @@ serve(async (req) => {
     } else {
       console.log('✅ Stored AI-first career context successfully!');
     }
-    */ // END TEMPORARILY DISABLED SECTION
 
     // Update vault metadata
     const totalItems = 
