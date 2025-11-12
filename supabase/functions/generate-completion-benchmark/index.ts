@@ -172,12 +172,25 @@ serve(async (req) => {
       console.warn('⚠️ No cached context, using fallback');
       careerContext = {
         hasManagementExperience: false,
-        inferredSeniority: 'Mid-Level',
+        managementDetails: 'No management experience documented',
+        teamSizesManaged: [],
+        inferredSeniority: 'Mid-Level IC',
         seniorityConfidence: 50,
         yearsOfExperience: 5,
         technicalDepth: 50,
         leadershipDepth: 30,
-        strategicDepth: 40
+        strategicDepth: 40,
+        companySizes: [],
+        primaryResponsibilities: [],
+        careerArchetype: 'generalist',
+        impactScale: 'individual',
+        nextLikelyRole: 'Senior IC',
+        hasExecutiveExposure: false,
+        executiveDetails: 'No executive exposure documented',
+        hasBudgetOwnership: false,
+        budgetDetails: 'No budget ownership documented',
+        budgetSizesManaged: [],
+        aiReasoning: 'Using fallback context due to missing cached data'
       };
     }
 
