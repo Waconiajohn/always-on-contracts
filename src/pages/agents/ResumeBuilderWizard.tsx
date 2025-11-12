@@ -8,7 +8,6 @@ import { FormatSelector } from "@/components/resume-builder/FormatSelector";
 import { RequirementFilterView } from "@/components/resume-builder/RequirementFilterView";
 import { RequirementCard } from "@/components/resume-builder/RequirementCard";
 import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
-import { ResumeBuilderOnboarding } from "@/components/resume-builder/ResumeBuilderOnboarding";
 import { GenerationProgress } from "@/components/resume-builder/GenerationProgress";
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
@@ -870,7 +869,6 @@ const ResumeBuilderWizardContent = () => {
     case 'job-input':
       return (
         <div className="min-h-screen bg-background">
-          <ResumeBuilderOnboarding />
           <div className="max-w-4xl mx-auto p-6">
             <div className="mb-8 text-center relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-lg blur-3xl -z-10" />

@@ -5,7 +5,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { SmartNudge, useSmartNudges } from '@/components/career-vault/dashboard/SmartNudge';
-import { CareerVaultDashboardTour, resetCareerVaultTour } from '@/components/career-vault/CareerVaultDashboardTour';
 import { AddMetricsModal } from "@/components/career-vault/AddMetricsModal";
 import { ModernizeLanguageModal } from "@/components/career-vault/ModernizeLanguageModal";
 import { ResumeManagementModal } from '@/components/career-vault/ResumeManagementModal';
@@ -30,14 +29,7 @@ import { calculateMarketRank } from '@/lib/utils/missionGenerator';
 import { handleVaultError, handleVaultSuccess } from '@/lib/utils/errorHandling';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Loader2, Info, HelpCircle } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 
 // Lazy load heavy components (progressive disclosure)
@@ -389,23 +381,6 @@ const VaultDashboardContent = () => {
   return (
     <ContentLayout>
       <div className="p-3 sm:p-4 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Help Menu */}
-        <div className="flex justify-end mb-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Help
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={resetCareerVaultTour}>
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Restart Dashboard Tour
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
 
         {/* ====================================================================
             HERO SECTION - Plain English Resume Strength
@@ -641,10 +616,6 @@ const VaultDashboardContent = () => {
         />
       )}
 
-      {/* ====================================================================
-          ONBOARDING TOUR - First-time user guidance
-          ==================================================================== */}
-      <CareerVaultDashboardTour />
 
       {/* ====================================================================
           AI ASSISTANT - Floating, dismissible (lazy loaded)
