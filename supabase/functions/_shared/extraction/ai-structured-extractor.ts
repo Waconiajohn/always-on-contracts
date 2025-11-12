@@ -438,6 +438,34 @@ export async function analyzeGapsWithAI(
 ): Promise<GapAnalysisResult> {
   console.log('🔍 [AI-GAP-ANALYSIS] Analyzing gaps between extracted data and benchmarks...');
 
+  // Pre-analyze confidence scores to build explicit exclusion list
+  const highConfidenceFields: string[] = [];
+
+  // Check education confidence
+  if (extractedData.education.degrees.length > 0) {
+    const highestDegree = extractedData.education.degrees[0];
+    if (highestDegree.confidence >= 95) {
+      highConfidenceFields.push(`Education: ${highestDegree.level} in ${highestDegree.field || 'related field'} (confidence: ${highestDegree.confidence}%)`);
+    }
+  }
+
+  // Check management confidence
+  if (extractedData.experience.management.confidence >= 95) {
+    highConfidenceFields.push(`Management: ${extractedData.experience.management.hasExperience ? 'YES' : 'NO'} (confidence: ${extractedData.experience.management.confidence}%)`);
+  }
+
+  // Check budget confidence
+  if (extractedData.experience.budget.confidence >= 95) {
+    highConfidenceFields.push(`Budget: ${extractedData.experience.budget.hasExperience ? 'YES' : 'NO'} (confidence: ${extractedData.experience.budget.confidence}%)`);
+  }
+
+  // Check executive confidence
+  if (extractedData.experience.executive.confidence >= 95) {
+    highConfidenceFields.push(`Executive: ${extractedData.experience.executive.hasExposure ? 'YES' : 'NO'} (confidence: ${extractedData.experience.executive.confidence}%)`);
+  }
+
+  console.log(`🔍 [AI-GAP-ANALYSIS] High-confidence fields (>= 95%) that should NOT be questioned:`, highConfidenceFields);
+
   const prompt = `You are an expert career advisor. Analyze extracted resume data and identify what questions need to be asked.
 
 EXTRACTED DATA (with confidence scores):
@@ -450,32 +478,46 @@ INDUSTRY BENCHMARKS for ${benchmarkExpectations.jobTitle} in ${benchmarkExpectat
 - Expected Competencies: ${benchmarkExpectations.expectedCompetencies.join(', ')}
 - Seniority Level: ${benchmarkExpectations.seniorityLevel}
 
+✅ CONFIRMED HIGH-CONFIDENCE FIELDS (DO NOT ASK ABOUT THESE):
+${highConfidenceFields.length > 0 ? highConfidenceFields.map(f => `✓ ${f}`).join('\n') : 'None confirmed yet'}
+
 YOUR TASK:
-Identify what questions to ask based on:
-1. **Critical Gaps**: Data with confidence < 80 OR missing data that benchmarks expect
-2. **Verification Questions**: Data with confidence 80-94 that needs clarification
-3. **No Questions Needed**: Data with confidence >= 95 that is complete
+Identify what questions to ask based on confidence scores ONLY. Ignore benchmark expectations if data is already confirmed with high confidence.
 
-CRITICAL RULES:
+CRITICAL RULES (MUST FOLLOW):
 
-1. **DO NOT generate questions for high-confidence data (>= 95)**
-   - Example: If education shows "Bachelor in Mechanical Engineering" with confidence 100, DO NOT ask about education
-   - Example: If management shows "Led team of 15" with confidence 95, DO NOT ask if they have management experience
+1. **ABSOLUTE RULE: DO NOT generate questions for fields listed in "CONFIRMED HIGH-CONFIDENCE FIELDS" above**
+   - If education is in the confirmed list with confidence >= 95, DO NOT add it to criticalGaps
+   - If management is in the confirmed list with confidence >= 95, DO NOT add it to criticalGaps
+   - If budget is in the confirmed list with confidence >= 95, DO NOT add it to criticalGaps
+   - These fields are CONFIRMED - asking about them again is a critical error
 
-2. **Generate CRITICAL gap questions for:**
-   - Confidence < 80 AND benchmark expects this data
-   - Completely missing data (confidence 0) that is expected for the role
-   - Example: If no education data (confidence 0) but benchmark expects Bachelor degree → ASK
+2. **Generate CRITICAL gap questions ONLY for:**
+   - Fields with confidence < 80 AND benchmark expects this data
+   - Fields with confidence 0 (completely missing) that are expected for the role
+   - Example: Education confidence 0 but benchmark expects Bachelor → ASK
+   - Example: Education confidence 100 → DO NOT ASK (already confirmed)
 
 3. **Generate VERIFICATION questions for:**
-   - Confidence 80-94 (strong inference but not explicit)
-   - Example: Resume implies budget ownership but no specific amounts → Ask for clarification
+   - Fields with confidence 80-94 (strong inference but not explicit)
+   - Example: Budget confidence 85 → Ask for specific amounts
+   - DO NOT ask verification questions for confidence >= 95
 
-4. **Priority scoring:**
-   - critical: Missing data that is REQUIRED for the role
+4. **Add to noQuestionsNeeded:**
+   - ALL fields with confidence >= 95
+   - These should match the "CONFIRMED HIGH-CONFIDENCE FIELDS" list above
+
+5. **Priority scoring:**
+   - critical: Missing data (confidence < 80) that is REQUIRED for the role
    - high: Important data that significantly impacts profile strength
    - medium: Nice-to-have data for completeness
    - low: Optional data that adds minimal value
+
+EXAMPLES:
+- Education confidence 100 → noQuestionsNeeded: ["education.degrees (Bachelor in Mech Eng, confidence: 100)"]
+- Education confidence 0 → criticalGaps: [{field: "education", question: "What is your degree?"}]
+- Management confidence 95 → noQuestionsNeeded: ["management (Led teams, confidence: 95)"]
+- Management confidence 70 → criticalGaps: [{field: "management", question: "Have you managed teams?"}]
 
 Return STRICT JSON:
 {
@@ -539,9 +581,9 @@ Return STRICT JSON:
       throw new Error('Failed to parse gap analysis response');
     }
 
-    const gapAnalysis = parseResult.data as GapAnalysisResult;
+    let gapAnalysis = parseResult.data as GapAnalysisResult;
 
-    console.log('✅ [AI-GAP-ANALYSIS] Gap analysis complete:', {
+    console.log('✅ [AI-GAP-ANALYSIS] Gap analysis complete (before safety filter):', {
       criticalGaps: gapAnalysis.criticalGaps.length,
       verificationQuestions: gapAnalysis.verificationQuestions.length,
       noQuestionsNeeded: gapAnalysis.noQuestionsNeeded.length,
@@ -549,7 +591,92 @@ Return STRICT JSON:
       readyForVault: gapAnalysis.overallAssessment.readyForVault
     });
 
-    console.log('🎯 [AI-GAP-ANALYSIS] Critical gaps identified:');
+    // ========================================================================
+    // SAFETY FILTER: Programmatically remove questions for confirmed fields
+    // This is a failsafe in case the AI ignores the prompt
+    // ========================================================================
+    const originalCriticalGapsCount = gapAnalysis.criticalGaps.length;
+    const originalVerificationCount = gapAnalysis.verificationQuestions.length;
+
+    // Filter critical gaps
+    gapAnalysis.criticalGaps = gapAnalysis.criticalGaps.filter(gap => {
+      const field = gap.field.toLowerCase();
+
+      // Check education
+      if ((field.includes('education') || field.includes('degree')) &&
+          extractedData.education.degrees.length > 0 &&
+          extractedData.education.degrees[0].confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed education gap: "${gap.question}" (confidence: ${extractedData.education.degrees[0].confidence}%)`);
+        return false;
+      }
+
+      // Check management
+      if ((field.includes('management') || field.includes('team')) &&
+          extractedData.experience.management.confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed management gap: "${gap.question}" (confidence: ${extractedData.experience.management.confidence}%)`);
+        return false;
+      }
+
+      // Check budget
+      if (field.includes('budget') &&
+          extractedData.experience.budget.confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed budget gap: "${gap.question}" (confidence: ${extractedData.experience.budget.confidence}%)`);
+        return false;
+      }
+
+      // Check executive
+      if (field.includes('executive') &&
+          extractedData.experience.executive.confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed executive gap: "${gap.question}" (confidence: ${extractedData.experience.executive.confidence}%)`);
+        return false;
+      }
+
+      return true; // Keep the gap
+    });
+
+    // Filter verification questions
+    gapAnalysis.verificationQuestions = gapAnalysis.verificationQuestions.filter(gap => {
+      const field = gap.field.toLowerCase();
+
+      // Same checks as critical gaps
+      if ((field.includes('education') || field.includes('degree')) &&
+          extractedData.education.degrees.length > 0 &&
+          extractedData.education.degrees[0].confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed education verification: "${gap.question}"`);
+        return false;
+      }
+
+      if ((field.includes('management') || field.includes('team')) &&
+          extractedData.experience.management.confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed management verification: "${gap.question}"`);
+        return false;
+      }
+
+      if (field.includes('budget') &&
+          extractedData.experience.budget.confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed budget verification: "${gap.question}"`);
+        return false;
+      }
+
+      if (field.includes('executive') &&
+          extractedData.experience.executive.confidence >= 95) {
+        console.log(`🚫 [SAFETY FILTER] Removed executive verification: "${gap.question}"`);
+        return false;
+      }
+
+      return true; // Keep the question
+    });
+
+    const filteredCriticalGaps = originalCriticalGapsCount - gapAnalysis.criticalGaps.length;
+    const filteredVerificationGaps = originalVerificationCount - gapAnalysis.verificationQuestions.length;
+
+    if (filteredCriticalGaps > 0 || filteredVerificationGaps > 0) {
+      console.log(`✅ [SAFETY FILTER] Removed ${filteredCriticalGaps} critical gaps + ${filteredVerificationGaps} verification questions (high confidence fields)`);
+    } else {
+      console.log(`✅ [SAFETY FILTER] No filtering needed - AI correctly excluded confirmed fields`);
+    }
+
+    console.log('🎯 [AI-GAP-ANALYSIS] Final critical gaps after safety filter:');
     gapAnalysis.criticalGaps.forEach((gap, idx) => {
       console.log(`  ${idx + 1}. [${gap.priority}] ${gap.field}: ${gap.question}`);
     });
