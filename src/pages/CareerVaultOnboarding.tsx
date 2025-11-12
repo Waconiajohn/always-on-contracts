@@ -302,12 +302,9 @@ export default function CareerVaultOnboarding() {
             onComplete={(reviewData) => {
               updateOnboardingData({ vaultStrength: reviewData.newVaultStrength });
 
-              // Skip gaps if vault strength is already high
-              if (reviewData.newVaultStrength >= 85) {
-                setCurrentStep('complete');
-              } else {
-                setCurrentStep('gaps');
-              }
+              // ALWAYS go to gap questions - let user decide to skip
+              // Gap questions are smart and won't ask about confirmed data
+              setCurrentStep('gaps');
             }}
             onSkip={() => {
               // Skip to completion
