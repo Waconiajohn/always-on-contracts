@@ -268,7 +268,7 @@ NO MARKDOWN. ONLY JSON.`;
         power_phrase: pp.phrase,
         category: pp.category || 'general',
         impact_metrics: pp.impactMetrics || {},
-        confidence_score: 100, // Integer 0-100, not decimal
+        ai_confidence: 1.0, // Use ai_confidence (0.00-1.00) - confidence_score is generated from this
         quality_tier: 'gold',
         inferred_from: pp.evidence || 'Gap-filling questionnaire',
         keywords: pp.keywords || [],
@@ -295,7 +295,7 @@ NO MARKDOWN. ONLY JSON.`;
         stated_skill: skill.skill,
         equivalent_skills: skill.equivalentSkills || [],
         evidence: skill.evidence || 'Gap-filling questionnaire',
-        confidence_score: 100, // Integer 0-100, not decimal
+        ai_confidence: 1.0, // Use ai_confidence (0.00-1.00) - confidence_score is generated from this
         quality_tier: 'gold',
         needs_user_review: false,
         inferred_from: 'Gap-filling questionnaire',
@@ -320,7 +320,7 @@ NO MARKDOWN. ONLY JSON.`;
         competency_area: comp.competencyArea,
         inferred_capability: comp.capability,
         supporting_evidence: [comp.evidence || 'Gap-filling questionnaire'], // Array type
-        confidence_score: 100, // Integer 0-100, not decimal
+        ai_confidence: 1.0, // Use ai_confidence (0.00-1.00) - confidence_score is generated from this
         quality_tier: 'gold',
         needs_user_review: false,
         inferred_from: 'Gap-filling questionnaire',
