@@ -48,8 +48,6 @@ interface VaultCompletionSummaryProps {
   finalVaultStrength: number;
   targetRoles: string[];
   targetIndustries: string[];
-  onGoToDashboard: () => void;
-  onBuildResume: () => void;
 }
 
 export default function VaultCompletionSummary({
@@ -57,8 +55,6 @@ export default function VaultCompletionSummary({
   finalVaultStrength,
   targetRoles,
   targetIndustries,
-  onGoToDashboard,
-  onBuildResume,
 }: VaultCompletionSummaryProps) {
   const [isLoadingBenchmark, setIsLoadingBenchmark] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);

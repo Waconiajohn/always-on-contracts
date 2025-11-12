@@ -15,7 +15,6 @@
 // =====================================================
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useUser, useSupabaseClient } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -48,7 +47,6 @@ type UIStep =
 export default function CareerVaultOnboarding() {
   const [currentStep, setCurrentStep] = useState<UIStep>('upload');
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
-  const navigate = useNavigate();
   const { user } = useUser();
   const supabase = useSupabaseClient();
   const { toast } = useToast();
@@ -336,8 +334,6 @@ export default function CareerVaultOnboarding() {
             finalVaultStrength={onboardingData.vaultStrength || 0}
             targetRoles={onboardingData.targetRoles || []}
             targetIndustries={onboardingData.targetIndustries || []}
-            onGoToDashboard={() => navigate('/career-vault')}
-            onBuildResume={() => navigate('/resume-builder')}
           />
         );
 

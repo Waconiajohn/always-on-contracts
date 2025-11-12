@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ContentLayout } from "@/components/layout/ContentLayout";
@@ -68,7 +68,6 @@ const VaultAIAssistant = lazy(() => import('@/components/career-vault/VaultAIAss
  */
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
