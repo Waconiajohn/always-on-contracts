@@ -188,26 +188,27 @@ serve(async (req) => {
     });
 
     // ========================================================================
-    // PHASE 3: AI-FIRST STRUCTURED EXTRACTION (NEW - PRODUCTION GRADE)
+    // PHASE 3: AI-FIRST STRUCTURED EXTRACTION (TEMPORARILY DISABLED - CAUSING TIMEOUTS)
     // ========================================================================
-    console.log('\n🤖 PHASE 3: AI-FIRST STRUCTURED EXTRACTION...');
-    console.log('⚡ Using single AI call for comprehensive resume analysis with confidence scores');
+    // NOTE: AI-first extraction is disabled due to timeout issues
+    // The safety filters in generate-gap-filling-questions are still active
+    // and will prevent duplicate education questions
+    console.log('\n🤖 PHASE 3: Skipping AI-first extraction (using legacy flow)...');
 
-    let structuredData: StructuredResumeData;
+    let structuredData: StructuredResumeData | null = null;
+
+    // TODO: Re-enable AI-first extraction after investigating timeout issues
+    // Temporarily commented out to unblock extraction flow
+    /*
     try {
+      console.log('⏱️  Starting AI-first extraction...');
       structuredData = await extractStructuredResumeData(resumeText, userId);
       console.log('✅ Structured extraction complete!');
-      console.log(`   📊 Overall Confidence: ${structuredData.extractionMetadata.overallConfidence}%`);
-      console.log(`   🎓 Education: ${structuredData.education.degrees.length} degree(s) found`);
-      console.log(`   💼 Experience: ${structuredData.experience.totalYears} years total`);
-      console.log(`   👔 Management: ${structuredData.experience.management.hasExperience ? 'YES' : 'NO'} (confidence: ${structuredData.experience.management.confidence}%)`);
-      console.log(`   💰 Budget: ${structuredData.experience.budget.hasExperience ? 'YES' : 'NO'} (confidence: ${structuredData.experience.budget.confidence}%)`);
-      console.log(`   📈 High confidence fields: ${structuredData.extractionMetadata.highConfidenceFields.length}`);
-      console.log(`   ⚠️  Low confidence fields: ${structuredData.extractionMetadata.lowConfidenceFields.length}`);
     } catch (error) {
       console.error('❌ AI-first extraction failed:', error);
-      throw new Error(`Structured extraction failed: ${error.message}`);
+      structuredData = null;
     }
+    */
 
     // ========================================================================
     // PHASE 4: Detect Role and Industry for Context (NOW WITH GUARANTEED SUCCESS)
@@ -382,10 +383,12 @@ serve(async (req) => {
     });
 
     // ========================================================================
-    // PHASE 6: AI-POWERED GAP ANALYSIS (NEW - REPLACES OLD BENCHMARK LOGIC)
+    // PHASE 6: AI-POWERED GAP ANALYSIS (TEMPORARILY DISABLED)
     // ========================================================================
-    console.log('\n🔍 PHASE 6: AI-powered gap analysis...');
+    console.log('\n🔍 PHASE 6: Skipping AI-powered gap analysis (using legacy benchmark)...');
 
+    // TODO: Re-enable when AI-first extraction is working
+    /* TEMPORARILY DISABLED
     try {
       // Define benchmark expectations based on role
       const benchmarkExpectations = {
@@ -478,6 +481,7 @@ serve(async (req) => {
       console.error('⚠️ Gap analysis failed:', error);
       console.log('   Continuing without gap analysis...');
     }
+    */ // END TEMPORARILY DISABLED SECTION
 
     // ========================================================================
     // PHASE 4: Add Industry Context
@@ -624,6 +628,8 @@ serve(async (req) => {
     // ========================================================================
     // STORE AI-FIRST STRUCTURED DATA (NEW - REPLACES OLD LOGIC)
     // ========================================================================
+
+    /* TEMPORARILY DISABLED - AI-first extraction causing timeouts
     console.log('\n💾 STORING AI-FIRST STRUCTURED DATA...');
 
     // Store career context from AI-first extraction
@@ -679,6 +685,7 @@ serve(async (req) => {
     } else {
       console.log('✅ Stored AI-first career context successfully!');
     }
+    */ // END TEMPORARILY DISABLED SECTION
 
     // Update vault metadata
     const totalItems = 
