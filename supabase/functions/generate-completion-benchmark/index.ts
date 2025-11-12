@@ -321,6 +321,12 @@ Before generating your analysis, think step-by-step:
    - What do TOP PERFORMERS at this level have that they don't?
    - Is this gap FIXABLE in 3-6 months?
    - Focus on 3-5 HIGH-IMPACT gaps, not 10 minor ones
+   - **CRITICAL**: Each gap MUST map to an actual vault section:
+     * "achievements" = quantified results, impact stories, regulatory/safety achievements
+     * "skills" = technical skills, domain expertise
+     * "leadership" = leadership philosophy, executive presence
+     * "education" = degrees, certifications
+     * "experience" = roles, management, budget ownership
 
 4. **Recommendations**:
    - What are the FASTEST, HIGHEST-IMPACT actions to close critical gaps?
@@ -359,17 +365,24 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
   "gaps": [
     {
       "area": "Critical gap name (relevant to ${careerContext.nextLikelyRole})",
-      "description": "What's missing and current count vs industry standard",
+      "description": "What's missing and why it matters",
       "relevanceReason": "Why this gap matters specifically for ${careerContext.nextLikelyRole}",
-      "howToFill": "Specific, actionable 2-3 sentence guidance",
+      "howToFill": "Specific, actionable 2-3 sentence guidance on what to add",
       "priority": "critical | high",
-      "currentCount": <number>,
-      "targetCount": <number>,
       "estimatedEffort": "15 min | 30 min | 1 hour",
       "impact": "Concrete expected outcome (e.g., +10% vault strength, closes top 10% gap)",
-      "categoryKey": "power-phrases | skills | competencies | leadership | executive-presence | certifications"
+      "categoryKey": "achievements | skills | leadership | education | experience"
     }
     // 3-5 gaps ONLY, prioritized by impact
+    //
+    // CRITICAL: categoryKey MUST be one of these EXACT values (maps to actual vault dashboard sections):
+    // - "achievements" = For power phrases, quantified results, impact stories, regulatory/safety achievements
+    // - "skills" = For technical skills, domain expertise, certifications
+    // - "leadership" = For leadership philosophy, executive presence, management style
+    // - "education" = For degrees, certifications, formal education
+    // - "experience" = For roles, companies, management/budget experience
+    //
+    // DO NOT use: "power-phrases", "competencies", "soft-skills", "executive-presence" (these don't exist)
   ],
   "recommendations": [
     {

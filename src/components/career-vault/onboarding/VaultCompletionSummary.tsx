@@ -18,6 +18,7 @@
 // =====================================================
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -66,6 +67,7 @@ export default function VaultCompletionSummary({
   const [benchmarkMeta, setBenchmarkMeta] = useState<any>(null);
 
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadBenchmark(false);
@@ -126,28 +128,56 @@ export default function VaultCompletionSummary({
     loadBenchmark(true);
   };
 
-  const navigateToDashboardSection = (categoryKey: string) => {
-    // Map category keys to user-friendly names
-    const categoryNames: Record<string, string> = {
-      'power-phrases': 'Power Phrases',
-      'skills': 'Skills',
-      'competencies': 'Competencies',
-      'leadership': 'Leadership',
-      'soft-skills': 'Soft Skills',
-      'executive-presence': 'Executive Presence',
-      'certifications': 'Certifications',
+  const navigateToDashboardSection = (gap: any) => {
+    // Map AI gap categories to actual vault dashboard sections
+    const categoryMap: Record<string, string> = {
+      'power-phrases': 'achievements',
+      'skills': 'skills',
+      'competencies': 'achievements',
+      'leadership': 'leadership',
+      'soft-skills': 'achievements',
+      'executive-presence': 'leadership',
+      'certifications': 'education',
+      'technical-depth': 'skills',
+      'quantified': 'achievements',
+      'regulatory': 'achievements',
+      'safety': 'achievements',
     };
 
-    const categoryName = categoryNames[categoryKey] || 'the relevant section';
+    // Determine section from gap
+    const gapArea = gap.area?.toLowerCase() || '';
+    const categoryKey = gap.categoryKey?.toLowerCase() || '';
 
-    // Navigate to dashboard
-    onGoToDashboard();
+    let section = 'achievements'; // Default
 
-    // Show guidance toast
+    // Try to match from categoryKey first
+    if (categoryKey && categoryMap[categoryKey]) {
+      section = categoryMap[categoryKey];
+    }
+    // Then try from gap area text
+    else if (gapArea.includes('skill') || gapArea.includes('technical')) {
+      section = 'skills';
+    } else if (gapArea.includes('leadership') || gapArea.includes('executive')) {
+      section = 'leadership';
+    } else if (gapArea.includes('education') || gapArea.includes('certification')) {
+      section = 'education';
+    }
+
+    // Create URL params for smart highlighting
+    const params = new URLSearchParams({
+      section,
+      gap: gap.area.toLowerCase().replace(/\s+/g, '_'),
+      highlight: 'true'
+    });
+
+    // Navigate to dashboard with params
+    navigate(`/career-vault?${params.toString()}`);
+
+    // Show helpful toast
     toast({
-      title: `Go to ${categoryName}`,
-      description: `Once on your dashboard, navigate to the ${categoryName} section to add items`,
-      duration: 6000,
+      title: `Opening ${section.charAt(0).toUpperCase() + section.slice(1)} section`,
+      description: `Add items to close: ${gap.area}`,
+      duration: 5000,
     });
   };
 
@@ -286,34 +316,36 @@ export default function VaultCompletionSummary({
                               #{index + 1} {gap.priority}
                             </Badge>
                           </div>
-                          <div className="flex-1 space-y-2">
+                          <div className="flex-1 space-y-3">
                             <h4 className="font-semibold text-slate-900">{gap.area}</h4>
                             <p className="text-sm text-slate-700">{gap.description}</p>
 
+                            {/* Show actionable guidance */}
+                            {gap.howToFill && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                                <p className="text-xs text-blue-900">
+                                  <strong>How to complete:</strong> {gap.howToFill}
+                                </p>
+                              </div>
+                            )}
+
                             <div className="flex items-center gap-4 text-xs text-slate-600">
-                              <span className="flex items-center gap-1">
-                                <Target className="w-3 h-3" />
-                                {gap.currentCount || 0}/{gap.targetCount || 10} items
-                              </span>
                               <span className="flex items-center gap-1">
                                 <Zap className="w-3 h-3" />
                                 {gap.estimatedEffort || '30-60 min'}
                               </span>
+                              <span className="flex items-center gap-1">
+                                <Target className="w-3 h-3" />
+                                {gap.impact || '+5% vault strength'}
+                              </span>
                             </div>
-
-                            {gap.currentCount !== undefined && gap.targetCount && (
-                              <Progress
-                                value={(gap.currentCount / gap.targetCount) * 100}
-                                className="h-2"
-                              />
-                            )}
 
                             <Button
                               size="sm"
-                              onClick={() => navigateToDashboardSection(gap.categoryKey || 'power-phrases')}
-                              className="mt-2"
+                              onClick={() => navigateToDashboardSection(gap)}
+                              className="mt-2 w-full sm:w-auto"
                             >
-                              Add Now
+                              Go to Section
                               <ArrowRight className="w-3 h-3 ml-1" />
                             </Button>
                           </div>
@@ -392,7 +424,7 @@ export default function VaultCompletionSummary({
             {/* Primary CTA - Build Resume or Complete Gaps */}
             {hasGaps ? (
               <Button
-                onClick={onGoToDashboard}
+                onClick={() => navigate('/career-vault?highlight=gaps')}
                 size="lg"
                 className="w-full justify-start h-auto py-4 bg-indigo-600 hover:bg-indigo-700"
               >
@@ -410,7 +442,11 @@ export default function VaultCompletionSummary({
                 <ArrowRight className="w-5 h-5 ml-auto" />
               </Button>
             ) : (
-              <Button onClick={onBuildResume} size="lg" className="w-full justify-start h-auto py-4 bg-indigo-600 hover:bg-indigo-700">
+              <Button
+                onClick={() => navigate('/agents/resume-builder-wizard')}
+                size="lg"
+                className="w-full justify-start h-auto py-4 bg-indigo-600 hover:bg-indigo-700"
+              >
                 <div className="flex items-center gap-3 text-left">
                   <div className="bg-white/20 rounded-lg p-2">
                     <FileText className="w-6 h-6" />
@@ -431,7 +467,7 @@ export default function VaultCompletionSummary({
               <Button
                 variant="outline"
                 size="lg"
-                onClick={hasGaps ? onBuildResume : onGoToDashboard}
+                onClick={() => navigate(hasGaps ? '/agents/resume-builder-wizard' : '/career-vault')}
                 className="justify-start h-auto py-3 border-slate-300"
               >
                 <div className="flex items-center gap-2 text-left">
@@ -448,7 +484,7 @@ export default function VaultCompletionSummary({
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => window.open('/agents/linkedin-profile-builder', '_blank')}
+                onClick={() => navigate('/agents/linkedin-profile-builder')}
                 className="justify-start h-auto py-3 border-slate-300"
               >
                 <div className="flex items-center gap-2 text-left">
