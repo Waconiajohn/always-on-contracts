@@ -19,6 +19,8 @@ interface VaultTabsProps {
   vaultId: string;
   vault: any;
   vaultData: any;
+  highlightedGap?: string | null;
+  defaultTab?: string;
   onRefresh: () => void;
   onEdit: (item: any) => void;
   onView: (item: any) => void;
@@ -30,9 +32,9 @@ interface VaultTabsProps {
  * - Items: All vault items with filters
  * - Settings: Resume management, milestones, advanced tools
  */
-export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView }: VaultTabsProps) => {
+export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTab = 'items', onRefresh, onEdit, onView }: VaultTabsProps) => {
   return (
-    <Tabs defaultValue="items" className="vault-tabs w-full">
+    <Tabs defaultValue={defaultTab} className="vault-tabs w-full">
       <TabsList className="grid w-full grid-cols-3 mb-6">
         <TabsTrigger value="items">Items</TabsTrigger>
         <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -41,6 +43,16 @@ export const VaultTabs = ({ vaultId, vault, vaultData, onRefresh, onEdit, onView
 
       <TabsContent value="items">
         <Suspense fallback={<VaultItemsTableSkeleton />}>
+          {highlightedGap && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse-border">
+              <p className="text-sm text-blue-900">
+                <strong>💡 Filling Gap:</strong> {highlightedGap.replace(/_/g, ' ')}
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                Look for relevant sections below and click "+ Add" to add new items.
+              </p>
+            </div>
+          )}
           <VaultContentsTable
             powerPhrases={vaultData.powerPhrases || []}
             transferableSkills={vaultData.transferableSkills || []}

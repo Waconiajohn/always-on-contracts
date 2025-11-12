@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ContentLayout } from "@/components/layout/ContentLayout";
@@ -68,6 +68,8 @@ const VaultAIAssistant = lazy(() => import('@/components/career-vault/VaultAIAss
  */
 const VaultDashboardContent = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
   // State
@@ -84,6 +86,8 @@ const VaultDashboardContent = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [viewCount, setViewCount] = useState(0);
+  const [highlightedGap, setHighlightedGap] = useState<string | null>(null);
+  const [defaultTab, setDefaultTab] = useState<string>('items');
 
   // Track view count and behavior for SmartNudge
   useEffect(() => {
@@ -92,6 +96,34 @@ const VaultDashboardContent = () => {
     localStorage.setItem('vault-view-count', count.toString());
     localStorage.setItem('vault-last-visit', new Date().toISOString());
   }, []);
+
+  // Handle URL params from completion page
+  useEffect(() => {
+    const section = searchParams.get('section');
+    const gap = searchParams.get('gap');
+    const highlight = searchParams.get('highlight');
+
+    // Auto-switch to items tab when there's a section param
+    if (section) {
+      setDefaultTab('items');
+    }
+
+    if (highlight && gap) {
+      setHighlightedGap(gap);
+
+      // Show toast with guidance
+      const gapName = gap.replace(/_/g, ' ');
+      toast.success(`Navigate to ${gapName}`, {
+        description: 'Look for highlighted items below. Click "+ Add" to fill this gap.',
+        duration: 7000,
+      });
+
+      // Clear highlight after 10 seconds
+      setTimeout(() => {
+        setHighlightedGap(null);
+      }, 10000);
+    }
+  }, [searchParams]);
 
   // Get user on mount FIRST
   useEffect(() => {
@@ -501,6 +533,8 @@ const VaultDashboardContent = () => {
               vaultId={vaultData.vault.id}
               vault={vaultData.vault}
               vaultData={vaultData}
+              highlightedGap={highlightedGap}
+              defaultTab={defaultTab}
               onRefresh={async () => {
                 await refetch();
                 queryClient.invalidateQueries({ queryKey: ['vault-data'] });
