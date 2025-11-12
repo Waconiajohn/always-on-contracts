@@ -127,26 +127,28 @@ export default function VaultCompletionSummary({
   };
 
   const navigateToDashboardSection = (categoryKey: string) => {
-    const sectionMap: Record<string, string> = {
-      'power-phrases': '#power-phrases',
-      'skills': '#skills',
-      'competencies': '#competencies',
-      'leadership': '#leadership',
-      'soft-skills': '#soft-skills',
-      'executive-presence': '#executive-presence',
-      'certifications': '#certifications',
+    // Map category keys to user-friendly names
+    const categoryNames: Record<string, string> = {
+      'power-phrases': 'Power Phrases',
+      'skills': 'Skills',
+      'competencies': 'Competencies',
+      'leadership': 'Leadership',
+      'soft-skills': 'Soft Skills',
+      'executive-presence': 'Executive Presence',
+      'certifications': 'Certifications',
     };
 
-    // Complete onboarding first, then navigate to vault section
+    const categoryName = categoryNames[categoryKey] || 'the relevant section';
+
+    // Navigate to dashboard
     onGoToDashboard();
 
-    // Use setTimeout to allow React Router to navigate first
-    setTimeout(() => {
-      const section = sectionMap[categoryKey] || '';
-      if (section) {
-        window.location.hash = section;
-      }
-    }, 100);
+    // Show guidance toast
+    toast({
+      title: `Go to ${categoryName}`,
+      description: `Once on your dashboard, navigate to the ${categoryName} section to add items`,
+      duration: 6000,
+    });
   };
 
   const getPriorityColor = (priority: string) => {

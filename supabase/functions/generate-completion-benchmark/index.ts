@@ -246,23 +246,26 @@ ${careerContext.primaryResponsibilities.map((r, i) => `${i + 1}. ${r}`).join('\n
 
 VAULT CONTENTS ANALYSIS:
 ├─ Power Phrases: ${powerPhrases.data?.length || 0} quantified achievements
-├─ Transferable Skills: ${skills.data?.length || 0} documented skills
+├─ ✅ TECHNICAL SKILLS: ${skills.data?.length || 0} extracted from resume (vault_transferable_skills)
+├─ User-Confirmed Skills: ${confirmedSkills.data?.length || 0} manually validated (vault_confirmed_skills)
 ├─ Hidden Competencies: ${competencies.data?.length || 0} deep capabilities
 ├─ Soft Skills: ${softSkills.data?.length || 0} interpersonal strengths
 ├─ Leadership Philosophy: ${leadershipPhilosophy.data?.length || 0} leadership insights
-├─ Executive Presence: ${executivePresence.data?.length || 0} strategic indicators
-└─ ✅ CONFIRMED TECHNICAL SKILLS: ${confirmedSkills.data?.length || 0} verified skills
+└─ Executive Presence: ${executivePresence.data?.length || 0} strategic indicators
 
-**CRITICAL: User has ${confirmedSkills.data?.length || 0} confirmed technical skills. DO NOT suggest technical skills gaps if count > 0.**
+**CRITICAL RULE: User has ${skills.data?.length || 0} technical skills already extracted from their resume.**
+- If this count is > 0, DO NOT suggest "add technical skills" gaps
+- These are REAL skills from their resume (Python, Java, SQL, etc.)
+- Focus on QUALITY or MISSING SKILL CATEGORIES, not quantity
 
 SAMPLE ACHIEVEMENTS (their actual work):
 ${powerPhrases.data?.slice(0, 10).map((pp: any, i: number) => `${i + 1}. ${pp.power_phrase}`).join('\n') || 'None documented yet'}
 
-CONFIRMED TECHNICAL SKILLS (from resume - already verified):
-${confirmedSkills.data?.length > 0 ? confirmedSkills.data.slice(0, 20).map((s: any) => `✓ ${s.skill_name} (${s.proficiency_level || 'experienced'})`).join('\n') : 'None documented yet'}
+EXTRACTED TECHNICAL SKILLS (from resume):
+${skills.data?.length > 0 ? skills.data.slice(0, 20).map((s: any) => `✓ ${s.stated_skill} (confidence: ${s.confidence_score}%)`).join('\n') : 'None documented yet'}
 
-SAMPLE TRANSFERABLE SKILLS (inferred from experience):
-${skills.data?.slice(0, 15).map((s: any) => `- ${s.stated_skill}`).join('\n') || 'None documented yet'}
+ADDITIONAL USER-CONFIRMED SKILLS (manually added):
+${confirmedSkills.data?.length > 0 ? confirmedSkills.data.slice(0, 10).map((s: any) => `✓ ${s.skill_name} (${s.proficiency_level || 'confirmed'})`).join('\n') : 'None manually confirmed yet'}
 
 INDUSTRY BENCHMARKS FOR ${targetRoles[0]} IN ${targetIndustries[0]}:
 ├─ Must-Have Skills: ${benchmarks.mustHaveSkills?.slice(0, 15).join(', ') || 'N/A'}
@@ -285,9 +288,10 @@ Only suggest gaps they can REALISTICALLY fill in 3-6 months that will SIGNIFICAN
 Base ALL assessments on actual vault content AND career context cache:
 - If career context shows has_management_experience=true, NEVER suggest management/supervision gaps
 - If career context shows has_budget_ownership=true, NEVER suggest budget responsibility gaps
-- If they have ${confirmedSkills.data?.length || 0} confirmed technical skills, NEVER suggest "add technical skills" gaps - they already have them!
+- If they have ${skills.data?.length || 0} technical skills (vault_transferable_skills), NEVER suggest "add technical skills" gaps - they already have them!
 - If they have 45 power phrases, don't say they need more - focus on QUALITY gaps or MISSING CATEGORIES
 - Career context represents AI-verified facts from their resume - treat as ground truth
+- vault_transferable_skills contains REAL technical skills extracted from resume - respect this data
 
 **CRITICAL RULE #4: INDUSTRY-SPECIFIC**
 For ${targetIndustries[0]}, prioritize domain-relevant gaps over generic advice.
