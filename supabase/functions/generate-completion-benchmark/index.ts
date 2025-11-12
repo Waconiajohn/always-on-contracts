@@ -165,7 +165,12 @@ serve(async (req) => {
         leadershipDepth: cachedContext.leadership_depth,
         strategicDepth: cachedContext.strategic_depth,
         careerArchetype: cachedContext.career_archetype,
-        impactScale: cachedContext.impact_scale
+        impactScale: cachedContext.impact_scale,
+        companySizes: [],
+        primaryResponsibilities: [],
+        nextLikelyRole: 'Senior IC',
+        executiveDetails: cachedContext.has_executive_exposure ? 'Executive exposure documented' : 'No executive exposure documented',
+        aiReasoning: 'Loaded from cached career context'
       };
       console.log('✅ Using cached career context');
     } else {
