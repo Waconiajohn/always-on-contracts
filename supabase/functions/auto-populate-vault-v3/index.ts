@@ -331,52 +331,8 @@ serve(async (req) => {
       console.log(`✅ Extracted ${softSkillsResult.softSkills.length} soft skills`);
     }
 
-    // Process Education section (NEW - CRITICAL FIX)
-    const educationSection = resumeStructure.sections.find(s => s.type === 'education');
-    let educationData: EducationData | null = null;
-
-    if (educationSection && educationSection.content?.trim()) {
-      console.log('\n📦 Processing EDUCATION section...');
-      
-      try {
-        educationData = await extractEducation({
-          sectionContent: educationSection.content,
-          userId,
-        });
-        
-        if (educationData?.level && educationData?.field) {
-          console.log(`✅ Extracted education: ${educationData.level} in ${educationData.field}`);
-        } else {
-          console.log('⚠️ Education section processed but data incomplete');
-        }
-      } catch (error) {
-        console.error('❌ Failed to extract education:', error);
-        educationData = null;
-      }
-    } else {
-      console.log('⚠️ No education section found in resume');
-    }
-
-    // Extract career context (management, budget, executive exposure)
-    console.log('\n📦 Processing CAREER CONTEXT...');
-    let careerContextData: CareerContextData | null = null;
-    
-    try {
-      careerContextData = await extractCareerContext({
-        resumeText: resumeText,
-        userId,
-      });
-      
-      console.log(`✅ Career context extracted:`, {
-        management: careerContextData.hasManagementExperience,
-        budget: careerContextData.hasBudgetOwnership,
-        executive: careerContextData.hasExecutiveExposure,
-        seniority: careerContextData.seniorityLevel,
-      });
-    } catch (error) {
-      console.error('❌ Failed to extract career context:', error);
-      careerContextData = null;
-    }
+    // Education and career context already extracted in Phase 3 AI-first extraction
+    // Data is available in structuredData.education and structuredData.experience
 
     // ========================================================================
     // PHASE 3: Assign Quality Tiers and Review Priority
@@ -1008,9 +964,13 @@ function getBenchmarkContext(metrics: any, roleInfo: RoleInfo): any {
 // ========================================================================
 
 // ========================================================================
-// EDUCATION EXTRACTION (NEW - CRITICAL FIX)
+// EDUCATION EXTRACTION (DEPRECATED - DO NOT USE)
 // ========================================================================
-
+/**
+ * @deprecated DO NOT USE - Replaced by extractStructuredResumeData()
+ * This function makes redundant AI calls and should NOT be called.
+ * Keep for backward compatibility only.
+ */
 async function extractEducation(params: {
   sectionContent: string;
   userId: string;
@@ -1247,9 +1207,13 @@ CRITICAL RULES:
 }
 
 // ========================================================================
-// 🎯 CAREER CONTEXT EXTRACTION (LEGACY - KEPT FOR FALLBACK)
+// 🎯 CAREER CONTEXT EXTRACTION (DEPRECATED - DO NOT USE)
 // ========================================================================
-
+/**
+ * @deprecated DO NOT USE - Replaced by extractStructuredResumeData()
+ * This function makes redundant AI calls and should NOT be called.
+ * Keep for backward compatibility only.
+ */
 async function extractCareerContext(params: {
   resumeText: string;
   userId: string;
