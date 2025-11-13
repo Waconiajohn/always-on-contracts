@@ -37,7 +37,8 @@ import {
   AlertCircle,
   Award,
   Loader2,
-  Lightbulb
+  Lightbulb,
+  Brain
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { invokeEdgeFunction, GenerateCompletionBenchmarkSchema, safeValidateInput } from '@/lib/edgeFunction';
@@ -61,6 +62,8 @@ export default function VaultCompletionSummary({
   const [benchmark, setBenchmark] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [benchmarkMeta, setBenchmarkMeta] = useState<any>(null);
+  const [isRunningStrategicAudit, setIsRunningStrategicAudit] = useState(false);
+  const [strategicAuditResult, setStrategicAuditResult] = useState<any>(null);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -122,6 +125,39 @@ export default function VaultCompletionSummary({
 
   const handleRegenerate = () => {
     loadBenchmark(true);
+  };
+
+  const runStrategicAudit = async () => {
+    setIsRunningStrategicAudit(true);
+
+    try {
+      const { data, error } = await invokeEdgeFunction(
+        'vault-strategic-audit',
+        { vaultId }
+      );
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      if (!data.success) throw new Error(data.error);
+
+      setStrategicAuditResult(data.data);
+
+      toast({
+        title: '🧠 Strategic Audit Complete',
+        description: 'Comprehensive career intelligence report is ready to view',
+        duration: 5000,
+      });
+    } catch (err: any) {
+      logger.error('Strategic audit error', err);
+      toast({
+        title: 'Audit Error',
+        description: err.message || 'Failed to run strategic audit',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRunningStrategicAudit(false);
+    }
   };
 
   const navigateToDashboardSection = (gap: any) => {
@@ -289,6 +325,207 @@ export default function VaultCompletionSummary({
             </div>
           )}
         </div>
+
+        {/* TIER 2: STRATEGIC AUDIT (Available when vault strength ≥ 60) */}
+        {accurateVaultStrength >= 60 && (
+          <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-indigo-300 shadow-md">
+            <div className="flex items-start gap-4">
+              <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg p-3 flex-shrink-0">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900 mb-2">
+                  Deep Strategic Career Audit
+                </h3>
+                <p className="text-sm text-slate-700 mb-4">
+                  Get a comprehensive AI-powered career intelligence report with personalized strategic positioning,
+                  skill development roadmap, competitive intelligence, and a 90-day action plan.
+                  <strong className="text-indigo-700"> This deep-thinking analysis goes far beyond basic feedback.</strong>
+                </p>
+
+                {!strategicAuditResult ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
+                        <Brain className="w-3 h-3 mr-1" />
+                        Deep Reasoning AI
+                      </Badge>
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
+                        <Target className="w-3 h-3 mr-1" />
+                        Strategic Positioning
+                      </Badge>
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Market Intelligence
+                      </Badge>
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
+                        <Zap className="w-3 h-3 mr-1" />
+                        90-Day Action Plan
+                      </Badge>
+                    </div>
+                    <Button
+                      onClick={runStrategicAudit}
+                      disabled={isRunningStrategicAudit}
+                      className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    >
+                      {isRunningStrategicAudit ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Running Deep Analysis...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Run Strategic Audit ($0.05)
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-slate-500">
+                      Typically takes 2-3 minutes • Unlimited re-runs at $0.05 each
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Alert className="bg-green-50 border-green-200">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <AlertDescription className="text-green-800">
+                        <strong>Strategic audit complete!</strong> View your comprehensive career intelligence report below.
+                      </AlertDescription>
+                    </Alert>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={runStrategicAudit}
+                      disabled={isRunningStrategicAudit}
+                    >
+                      {isRunningStrategicAudit ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                          Re-running...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3 h-3 mr-2" />
+                          Run Again
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Strategic Audit Results Display */}
+        {strategicAuditResult && (
+          <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-indigo-900">
+                <Award className="w-6 h-6" />
+                Strategic Career Intelligence Report
+              </CardTitle>
+              <CardDescription>
+                Generated {new Date(strategicAuditResult.generatedAt).toLocaleDateString()} •
+                Vault Strength: {strategicAuditResult.vaultStrength}%
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Executive Summary */}
+              <div className="bg-white rounded-lg p-4 border border-indigo-200">
+                <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  Executive Summary
+                </h4>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                  {strategicAuditResult.executiveSummary}
+                </p>
+              </div>
+
+              {/* Top Role Recommendations */}
+              {strategicAuditResult.strategicPositioning?.topRecommendations && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-slate-900 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-indigo-600" />
+                    Strategic Role Recommendations
+                  </h4>
+                  <div className="space-y-3">
+                    {strategicAuditResult.strategicPositioning.topRecommendations.map((role: any, idx: number) => (
+                      <div key={idx} className="bg-white rounded-lg p-4 border border-slate-200">
+                        <div className="flex items-start justify-between mb-2">
+                          <h5 className="font-semibold text-slate-900">{role.role}</h5>
+                          <Badge className="bg-indigo-600 text-white">
+                            {role.alignmentScore}% Match
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 text-sm text-slate-700">
+                          <p><strong>Salary Range:</strong> {role.salaryRange} • <strong>Demand:</strong> {role.demandLevel}</p>
+                          <p>{role.reasoning}</p>
+                          {role.gapsToAddress && role.gapsToAddress.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-slate-200">
+                              <p className="font-medium text-slate-900 mb-1">Gaps to Address:</p>
+                              <ul className="list-disc list-inside text-xs space-y-1">
+                                {role.gapsToAddress.map((gap: string, i: number) => (
+                                  <li key={i}>{gap}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 90-Day Action Plan */}
+              {strategicAuditResult.ninetyDayActionPlan && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-slate-900 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-amber-600" />
+                    90-Day Action Plan
+                  </h4>
+                  <div className="space-y-2">
+                    {strategicAuditResult.ninetyDayActionPlan.slice(0, 8).map((action: any, idx: number) => (
+                      <div key={idx} className="bg-white rounded-lg p-3 border border-slate-200">
+                        <div className="flex items-start gap-3">
+                          <Badge className={`${
+                            action.priority === 'high' ? 'bg-rose-600' :
+                            action.priority === 'medium' ? 'bg-amber-600' :
+                            'bg-slate-500'
+                          } text-white flex-shrink-0`}>
+                            {action.priority}
+                          </Badge>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-1">
+                              <h5 className="font-medium text-slate-900">{action.action}</h5>
+                              <span className="text-xs text-slate-500 ml-2">{action.timeframe}</span>
+                            </div>
+                            <p className="text-xs text-slate-600 mb-2">{action.impact}</p>
+                            {action.steps && action.steps.length > 0 && (
+                              <ul className="list-disc list-inside text-xs text-slate-600 space-y-1 ml-2">
+                                {action.steps.slice(0, 3).map((step: string, i: number) => (
+                                  <li key={i}>{step}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Alert className="bg-indigo-50 border-indigo-200">
+                <Lightbulb className="w-4 h-4 text-indigo-600" />
+                <AlertDescription className="text-indigo-900">
+                  <strong>Tip:</strong> Save this report or take screenshots. You can re-run the audit anytime as you update your vault to get fresh insights.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Competitive Analysis - Strengths, Opportunities, Gaps */}
         {benchmark && (

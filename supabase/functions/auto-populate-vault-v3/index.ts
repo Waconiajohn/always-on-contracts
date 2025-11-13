@@ -705,6 +705,39 @@ serve(async (req) => {
       .eq('id', vaultId);
 
     // ========================================================================
+    // TIER 1: FAST QUALITY CHECK (Auto-run after extraction)
+    // ========================================================================
+    console.log('\n🔍 TIER 1: Running fast quality check...');
+
+    try {
+      const qualityCheckResponse = await fetch(`${supabaseUrl}/functions/v1/vault-quality-check`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vaultId,
+          resumeText,
+        }),
+      });
+
+      if (qualityCheckResponse.ok) {
+        const qualityResult = await qualityCheckResponse.json();
+        console.log('✅ Quality check complete:', {
+          overallQuality: qualityResult.data?.overallQuality,
+          autoFixable: qualityResult.data?.autoFixCount,
+          needsReview: qualityResult.data?.reviewNeededCount,
+        });
+      } else {
+        console.warn('⚠️ Quality check failed (non-critical):', await qualityCheckResponse.text());
+      }
+    } catch (qualityError) {
+      console.warn('⚠️ Quality check error (non-critical):', qualityError);
+      // Don't fail the entire extraction if quality check fails
+    }
+
+    // ========================================================================
     // RETURN RESPONSE
     // ========================================================================
 
