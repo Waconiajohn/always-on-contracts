@@ -658,6 +658,7 @@ serve(async (req) => {
     // Experience
     contextPayload.years_of_experience = structuredData!.experience.totalYears;
     contextPayload.inferred_seniority = structuredData!.professionalIdentity.seniorityLevel;
+    contextPayload.seniority_confidence = structuredData!.professionalIdentity.confidence || 50;
 
     // Management
     contextPayload.has_management_experience = structuredData!.experience.management.hasExperience;
