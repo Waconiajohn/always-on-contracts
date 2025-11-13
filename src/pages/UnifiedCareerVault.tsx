@@ -12,17 +12,10 @@ import CareerVaultDashboardV2 from './CareerVaultDashboardV2';
 import { UploadResumeModal } from '@/components/career-vault/modals/UploadResumeModal';
 import { ExtractionProgressModal } from '@/components/career-vault/modals/ExtractionProgressModal';
 import { GapQuestionsModal } from '@/components/career-vault/modals/GapQuestionsModal';
+import { runVaultStrategicAudit, submitSmartQuestionAnswer, type SmartQuestion } from '@/lib/services/vaultStrategicAudit';
 import { toast } from 'sonner';
 
 type VaultState = 'loading' | 'empty' | 'uploading' | 'extracting' | 'questions' | 'ready';
-
-interface SmartQuestion {
-  question: string;
-  category: string;
-  reasoning: string;
-  impact: 'high' | 'medium' | 'low';
-  targetTable: string;
-}
 
 export default function UnifiedCareerVault() {
   const [vaultState, setVaultState] = useState<VaultState>('loading');
@@ -81,55 +74,61 @@ export default function UnifiedCareerVault() {
   // Handle extraction complete
   const handleExtractionComplete = async () => {
     setExtractionModalOpen(false);
-
-    // TODO: Fetch smart questions from vault-strategic-audit
-    // For now, using mock data
-    const mockQuestions: SmartQuestion[] = [
-      {
-        question: "Can you describe a time when you had to influence stakeholders without direct authority?",
-        category: "Executive Presence",
-        reasoning: "Gap: vault shows strong technical skills but lacks evidence of executive-level influence. This question would surface strategic relationship management abilities.",
-        impact: "high",
-        targetTable: "vault_executive_presence"
-      },
-      {
-        question: "What was the largest budget or P&L you've managed?",
-        category: "Leadership Philosophy",
-        reasoning: "Gap: leadership achievements lack financial scope metrics. Understanding budget responsibility strengthens executive positioning.",
-        impact: "high",
-        targetTable: "vault_leadership_philosophy"
-      }
-    ];
-
-    setSmartQuestions(mockQuestions);
-
-    // Show gap questions if AI generated any
-    if (mockQuestions.length > 0) {
-      setVaultState('questions');
-      setQuestionsModalOpen(true);
-    } else {
-      // No questions, go straight to ready
+    
+    if (!vaultId) {
       setVaultState('ready');
-      toast.success('Your Career Vault is ready!', {
-        description: 'AI has extracted and enhanced your career intelligence'
-      });
+      return;
+    }
+
+    setVaultState('questions');
+    
+    try {
+      const auditResult = await runVaultStrategicAudit(vaultId);
+      setSmartQuestions(auditResult.smartQuestions || []);
+      
+      if (auditResult.smartQuestions && auditResult.smartQuestions.length > 0) {
+        setQuestionsModalOpen(true);
+      } else {
+        // No questions to ask, go straight to ready
+        setVaultState('ready');
+        toast.success('Your Career Vault is ready!', {
+          description: 'AI has extracted and enhanced your career intelligence'
+        });
+      }
+    } catch (error) {
+      console.error("Error running strategic audit:", error);
+      toast.error("Failed to generate smart questions");
+      // Still show ready state even if audit fails
+      setVaultState('ready');
     }
   };
 
   // Handle gap questions submission
   const handleQuestionsSubmit = async (answers: Record<string, string>) => {
+    if (!vaultId) return;
+    
     setQuestionsModalOpen(false);
-    setVaultState('ready');
-
-    // TODO: Send answers to backend for processing
-    console.log('Gap question answers:', answers);
-
-    toast.success('Answers saved!', {
-      description: 'Your Career Vault has been enhanced with your responses'
+    
+    const submissionPromises = Object.entries(answers).map(([index, answer]) => {
+      const question = smartQuestions[parseInt(index)];
+      return submitSmartQuestionAnswer(vaultId, question.targetTable, answer, question);
     });
 
-    // Refresh vault data
-    await checkVaultState();
+    try {
+      const results = await Promise.all(submissionPromises);
+      const failedCount = results.filter(r => !r.success).length;
+      
+      if (failedCount > 0) {
+        toast.error(`${failedCount} answer(s) failed to save`);
+      } else if (results.length > 0) {
+        toast.success("All answers saved successfully!");
+      }
+    } catch (error) {
+      console.error("Error submitting answers:", error);
+      toast.error("Failed to save some answers");
+    }
+    
+    setVaultState('ready');
   };
 
   // Handle skip questions
