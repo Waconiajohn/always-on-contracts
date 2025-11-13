@@ -38,7 +38,10 @@ import {
   Award,
   Loader2,
   Lightbulb,
-  Brain
+  Brain,
+  X,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { invokeEdgeFunction, GenerateCompletionBenchmarkSchema, safeValidateInput } from '@/lib/edgeFunction';
@@ -417,7 +420,7 @@ export default function VaultCompletionSummary({
           </div>
         )}
 
-        {/* Strategic Audit Results Display */}
+        {/* Strategic Audit Results Display - NEW STRUCTURE */}
         {strategicAuditResult && (
           <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
             <CardHeader>
@@ -427,7 +430,12 @@ export default function VaultCompletionSummary({
               </CardTitle>
               <CardDescription>
                 Generated {new Date(strategicAuditResult.generatedAt).toLocaleDateString()} •
-                Vault Strength: {strategicAuditResult.vaultStrength}%
+                Vault Strength: {strategicAuditResult.vaultStrengthBefore}% → {strategicAuditResult.vaultStrengthAfter}%
+                {strategicAuditResult.vaultStrengthAfter > strategicAuditResult.vaultStrengthBefore && (
+                  <Badge className="ml-2 bg-green-600 text-white">
+                    +{strategicAuditResult.vaultStrengthAfter - strategicAuditResult.vaultStrengthBefore}%
+                  </Badge>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -442,35 +450,114 @@ export default function VaultCompletionSummary({
                 </p>
               </div>
 
-              {/* Top Role Recommendations */}
-              {strategicAuditResult.strategicPositioning?.topRecommendations && (
+              {/* SECTION 1: Enhancements Applied */}
+              {strategicAuditResult.enhancementsApplied > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-slate-900 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      AI Enhanced Your Vault ({strategicAuditResult.enhancementsApplied} items added)
+                    </h4>
+                  </div>
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      AI discovered and added <strong>{strategicAuditResult.enhancementsApplied} strategic items</strong> to strengthen your vault.
+                      These enhancements are based on your existing data and career trajectory.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="space-y-2">
+                    {strategicAuditResult.enhancements
+                      ?.filter((e: any) => e.confidence >= 80 && e.action === 'add')
+                      .map((enhancement: any, idx: number) => (
+                        <div key={idx} className="bg-white rounded-lg p-4 border border-slate-200">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge className="bg-indigo-600 text-white text-xs">
+                                  {enhancement.table.replace('vault_', '').replace(/_/g, ' ')}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {enhancement.confidence}% confidence
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-slate-700 mb-2">
+                                <strong>Added:</strong> {enhancement.reasoning}
+                              </p>
+                              <div className="bg-indigo-50 border border-indigo-200 rounded-md p-3">
+                                <p className="text-xs text-indigo-900">
+                                  <strong>Strategic Value:</strong> {enhancement.strategicValue}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                              title="Undo this enhancement"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 2: Smart Questions */}
+              {strategicAuditResult.smartQuestionsToAsk && strategicAuditResult.smartQuestionsToAsk.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-indigo-600" />
-                    Strategic Role Recommendations
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    Smart Questions to Strengthen Your Vault ({strategicAuditResult.smartQuestionsToAsk.length})
                   </h4>
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Lightbulb className="w-4 h-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800">
+                      Answer these contextual questions to unlock deeper career intelligence.
+                      Each answer will add strategic value to your vault.
+                    </AlertDescription>
+                  </Alert>
                   <div className="space-y-3">
-                    {strategicAuditResult.strategicPositioning.topRecommendations.map((role: any, idx: number) => (
-                      <div key={idx} className="bg-white rounded-lg p-4 border border-slate-200">
-                        <div className="flex items-start justify-between mb-2">
-                          <h5 className="font-semibold text-slate-900">{role.role}</h5>
-                          <Badge className="bg-indigo-600 text-white">
-                            {role.alignmentScore}% Match
-                          </Badge>
-                        </div>
-                        <div className="space-y-2 text-sm text-slate-700">
-                          <p><strong>Salary Range:</strong> {role.salaryRange} • <strong>Demand:</strong> {role.demandLevel}</p>
-                          <p>{role.reasoning}</p>
-                          {role.gapsToAddress && role.gapsToAddress.length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-slate-200">
-                              <p className="font-medium text-slate-900 mb-1">Gaps to Address:</p>
-                              <ul className="list-disc list-inside text-xs space-y-1">
-                                {role.gapsToAddress.map((gap: string, i: number) => (
-                                  <li key={i}>{gap}</li>
-                                ))}
-                              </ul>
+                    {strategicAuditResult.smartQuestionsToAsk.map((question: any, idx: number) => (
+                      <div key={idx} className="bg-white rounded-lg p-4 border-2 border-blue-200">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <Badge className={`${
+                              question.impact === 'high' ? 'bg-rose-600' :
+                              question.impact === 'medium' ? 'bg-amber-600' :
+                              'bg-slate-500'
+                            } text-white flex-shrink-0`}>
+                              {question.impact} impact
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {question.category}
+                            </Badge>
+                          </div>
+                          <div>
+                            <h5 className="font-semibold text-slate-900 mb-2">
+                              {question.question}
+                            </h5>
+                            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+                              <p className="text-xs text-blue-900">
+                                <strong>Why this matters:</strong> {question.reasoning}
+                              </p>
+                              <p className="text-xs text-blue-700 mt-1">
+                                <strong>Improves:</strong> {question.targetTable.replace('vault_', '').replace(/_/g, ' ')}
+                              </p>
                             </div>
-                          )}
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="Type your answer here..."
+                                className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+                                <Send className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -478,38 +565,46 @@ export default function VaultCompletionSummary({
                 </div>
               )}
 
-              {/* 90-Day Action Plan */}
-              {strategicAuditResult.ninetyDayActionPlan && (
+              {/* SECTION 3: Strategic Gaps */}
+              {strategicAuditResult.strategicGapsDiscovered && strategicAuditResult.strategicGapsDiscovered.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-amber-600" />
-                    90-Day Action Plan
+                    <Target className="w-5 h-5 text-amber-600" />
+                    Strategic Gaps Discovered ({strategicAuditResult.strategicGapsDiscovered.length})
                   </h4>
-                  <div className="space-y-2">
-                    {strategicAuditResult.ninetyDayActionPlan.slice(0, 8).map((action: any, idx: number) => (
-                      <div key={idx} className="bg-white rounded-lg p-3 border border-slate-200">
-                        <div className="flex items-start gap-3">
-                          <Badge className={`${
-                            action.priority === 'high' ? 'bg-rose-600' :
-                            action.priority === 'medium' ? 'bg-amber-600' :
-                            'bg-slate-500'
-                          } text-white flex-shrink-0`}>
-                            {action.priority}
-                          </Badge>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-1">
-                              <h5 className="font-medium text-slate-900">{action.action}</h5>
-                              <span className="text-xs text-slate-500 ml-2">{action.timeframe}</span>
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800">
+                      These gaps represent opportunities to strengthen your career positioning.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="space-y-3">
+                    {strategicAuditResult.strategicGapsDiscovered.map((gap: any, idx: number) => (
+                      <div key={idx} className="bg-white rounded-lg p-4 border border-amber-200">
+                        <div className="space-y-3">
+                          <div>
+                            <Badge variant="outline" className="mb-2 text-xs">
+                              {gap.gapType.replace(/_/g, ' ')}
+                            </Badge>
+                            <h5 className="font-semibold text-slate-900 mb-2">
+                              {gap.description}
+                            </h5>
+                            <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                              <p className="text-xs text-amber-900">
+                                <strong>Impact:</strong> {gap.impact}
+                              </p>
                             </div>
-                            <p className="text-xs text-slate-600 mb-2">{action.impact}</p>
-                            {action.steps && action.steps.length > 0 && (
-                              <ul className="list-disc list-inside text-xs text-slate-600 space-y-1 ml-2">
-                                {action.steps.slice(0, 3).map((step: string, i: number) => (
-                                  <li key={i}>{step}</li>
-                                ))}
-                              </ul>
-                            )}
                           </div>
+                          {gap.suggestedEnhancement && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                              <p className="text-xs text-blue-900 mb-2">
+                                <strong>AI Suggestion:</strong> {gap.suggestedEnhancement.reasoning}
+                              </p>
+                              <Badge className="bg-blue-600 text-white text-xs">
+                                {gap.suggestedEnhancement.confidence}% confidence
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -520,7 +615,7 @@ export default function VaultCompletionSummary({
               <Alert className="bg-indigo-50 border-indigo-200">
                 <Lightbulb className="w-4 h-4 text-indigo-600" />
                 <AlertDescription className="text-indigo-900">
-                  <strong>Tip:</strong> Save this report or take screenshots. You can re-run the audit anytime as you update your vault to get fresh insights.
+                  <strong>Tip:</strong> You can re-run the strategic audit anytime as you update your vault to get fresh insights and more enhancements.
                 </AlertDescription>
               </Alert>
             </CardContent>

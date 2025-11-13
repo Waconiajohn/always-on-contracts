@@ -724,10 +724,13 @@ serve(async (req) => {
 
       if (qualityCheckResponse.ok) {
         const qualityResult = await qualityCheckResponse.json();
-        console.log('✅ Quality check complete:', {
-          overallQuality: qualityResult.data?.overallQuality,
-          autoFixable: qualityResult.data?.autoFixCount,
-          needsReview: qualityResult.data?.reviewNeededCount,
+        console.log('✅ TIER 1 Creative Enhancement complete:', {
+          enhancementsApplied: qualityResult.data?.enhancementsApplied || 0,
+          enhancementsSkipped: qualityResult.data?.enhancementsSkipped || 0,
+          vaultStrengthBefore: qualityResult.data?.vaultStrengthBefore || 0,
+          vaultStrengthAfter: qualityResult.data?.vaultStrengthAfter || 0,
+          improvement: (qualityResult.data?.vaultStrengthAfter || 0) - (qualityResult.data?.vaultStrengthBefore || 0),
+          summary: qualityResult.data?.summary || 'No summary',
         });
       } else {
         console.warn('⚠️ Quality check failed (non-critical):', await qualityCheckResponse.text());
