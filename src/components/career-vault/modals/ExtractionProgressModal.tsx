@@ -209,14 +209,12 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
           powerPhrasesResult,
           skillsResult,
           competenciesResult,
-          technicalResult,
           softSkillsResult,
           leadershipResult
         ] = await Promise.all([
           supabase.from('vault_power_phrases').select('power_phrase', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(3) as any,
           supabase.from('vault_transferable_skills').select('stated_skill', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(3) as any,
           supabase.from('vault_hidden_competencies').select('inferred_capability', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(3) as any,
-          supabase.from('vault_technical_skills' as any).select('skill_name', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(3) as any,
           supabase.from('vault_soft_skills' as any).select('skill_name', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(3) as any,
           supabase.from('vault_leadership_philosophy' as any).select('philosophy_statement', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(3) as any
         ]);
@@ -225,7 +223,6 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
           (powerPhrasesResult.count || 0) +
           (skillsResult.count || 0) +
           (competenciesResult.count || 0) +
-          (technicalResult.count || 0) +
           (softSkillsResult.count || 0) +
           (leadershipResult.count || 0);
 
