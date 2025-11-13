@@ -2,10 +2,8 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Sparkles, Brain, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Sparkles, Brain } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ExtractedItem {
   type: string;
@@ -111,11 +109,6 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
   const [currentMessage, setCurrentMessage] = useState('');
   const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([]);
   const [itemCount, setItemCount] = useState(0);
-  const [errorState, setErrorState] = useState<{
-    hasError: boolean;
-    message: string;
-    canRetry: boolean;
-  } | null>(null);
   const [isComplete, setIsComplete] = useState(false);
 
   // Rotate messages within current phase
@@ -393,27 +386,6 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
             </div>
             <Progress value={progress} className="h-3" />
           </div>
-
-          {/* Error state */}
-          {errorState?.hasError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Extraction Timeout</AlertTitle>
-              <AlertDescription>
-                {errorState.message}
-                {errorState.canRetry && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2"
-                    onClick={() => window.location.reload()}
-                  >
-                    Retry Extraction
-                  </Button>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
 
           {/* Live extraction feed */}
           {extractedItems.length > 0 && (
