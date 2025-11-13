@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Upload, Sparkles, FileText, Brain, TrendingUp, Award, Briefcase } from 'lucide-react';
+import { Loader2, Upload, Sparkles, Brain, TrendingUp, Award, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -360,7 +360,7 @@ function VaultStatCard({
           setCount((powerPhrases.count || 0) + (skills.count || 0) + (competencies.count || 0));
         } else {
           const { count: tableCount } = await supabase
-            .from(table)
+            .from(table as any)
             .select('*', { count: 'exact', head: true })
             .eq('vault_id', vaultId);
           setCount(tableCount || 0);
