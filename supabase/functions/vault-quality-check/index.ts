@@ -1,9 +1,9 @@
 // =====================================================
-// TIER 1: FAST QUALITY CHECK
+// TIER 1: CREATIVE QUALITY ENHANCEMENT
 // =====================================================
-// Runs automatically after extraction to catch errors
-// Model: sonar (cheap, fast) - $0.002 per check
-// Purpose: Find missing items, contradictions, low quality
+// Runs automatically after extraction to enhance vault
+// Model: sonar (cheap, fast) - $0.002 per enhancement
+// Purpose: Use AI creativity to discover & fix issues
 // =====================================================
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -16,29 +16,21 @@ interface QualityCheckRequest {
   resumeText: string;
 }
 
-interface QualityIssue {
-  category: string;
-  severity: 'critical' | 'moderate' | 'minor';
-  issue: string;
-  suggestedFix: string;
-  autoFixable: boolean;
+interface Enhancement {
+  table: string;
+  action: 'add' | 'update' | 'delete';
+  confidence: number; // 0-100
+  reasoning: string;
+  data: any;
 }
 
-interface MissingItem {
-  itemType: string;
-  evidence: string; // Quote from resume
-  confidence: number;
-  suggestedAdd: any;
-}
-
-interface QualityCheckResult {
-  overallQuality: number; // 0-100
-  completenessScore: number; // 0-100
-  consistencyScore: number; // 0-100
-  issues: QualityIssue[];
-  missingItems: MissingItem[];
-  autoFixCount: number;
-  reviewNeededCount: number;
+interface EnhancementResult {
+  enhancementsApplied: number;
+  enhancementsSkipped: number;
+  vaultStrengthBefore: number;
+  vaultStrengthAfter: number;
+  summary: string;
+  enhancements: Enhancement[];
 }
 
 const corsHeaders = {
@@ -69,10 +61,24 @@ serve(async (req) => {
 
     const { vaultId, resumeText }: QualityCheckRequest = await req.json();
 
-    console.log('🔍 QUALITY CHECK: Starting fast quality check for vault:', vaultId);
+    console.log('✨ CREATIVE ENHANCEMENT: Starting AI-powered vault enhancement for vault:', vaultId);
 
-    // Fetch all vault data
-    const [vault, powerPhrases, skills, competencies, softSkills, leadership, education] = await Promise.all([
+    // Fetch ALL vault data for comprehensive enhancement
+    const [
+      vault,
+      powerPhrases,
+      skills,
+      competencies,
+      softSkills,
+      leadership,
+      education,
+      executivePresence,
+      personalityTraits,
+      workStyle,
+      valuesMot,
+      behavioral,
+      technical,
+    ] = await Promise.all([
       supabase.from('career_vault').select('*').eq('id', vaultId).single(),
       supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId),
       supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId),
@@ -80,87 +86,113 @@ serve(async (req) => {
       supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId),
       supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId),
       supabase.from('vault_education').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_personality_traits').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_work_style').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_values_motivations').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vaultId),
+      supabase.from('vault_technical_skills').select('*').eq('vault_id', vaultId),
     ]);
 
-    // Build prompt for AI quality check
-    const prompt = `You are a quality assurance expert for career data extraction. Review the extracted vault data against the original resume and identify issues.
+    const vaultStrengthBefore = vault.data?.vault_strength_before_qa || 0;
+
+    // Build creative AI enhancement prompt
+    const prompt = `You are a creative AI career intelligence enhancer. You've just extracted career vault data from a resume. Now use your reasoning and creativity to discover what's missing or could be better.
 
 **RESUME TEXT:**
 ${resumeText}
 
 **EXTRACTED VAULT DATA:**
-- Power Phrases (Achievements): ${powerPhrases.data?.length || 0} items
-  ${powerPhrases.data?.slice(0, 10).map((p: any) => `  • ${p.power_phrase}`).join('\n') || 'None'}
+- Power Phrases: ${powerPhrases.data?.length || 0} items
+  ${powerPhrases.data?.slice(0, 8).map((p: any) => `  • "${p.power_phrase}"`).join('\n') || 'None'}
 
 - Transferable Skills: ${skills.data?.length || 0} items
-  ${skills.data?.slice(0, 10).map((s: any) => `  • ${s.stated_skill}`).join('\n') || 'None'}
+  ${skills.data?.slice(0, 8).map((s: any) => `  • ${s.stated_skill}`).join('\n') || 'None'}
+
+- Technical Skills: ${technical.data?.length || 0} items
+  ${technical.data?.slice(0, 8).map((t: any) => `  • ${t.skill_name}`).join('\n') || 'None'}
 
 - Hidden Competencies: ${competencies.data?.length || 0} items
-  ${competencies.data?.slice(0, 5).map((c: any) => `  • ${c.inferred_capability}`).join('\n') || 'None'}
+  ${competencies.data?.slice(0, 4).map((c: any) => `  • ${c.inferred_capability}`).join('\n') || 'None'}
 
 - Soft Skills: ${softSkills.data?.length || 0} items
-  ${softSkills.data?.slice(0, 5).map((ss: any) => `  • ${ss.skill_name}`).join('\n') || 'None'}
-
 - Leadership Philosophy: ${leadership.data?.length || 0} items
 - Education: ${education.data?.length || 0} items
+- Executive Presence: ${executivePresence.data?.length || 0} items
 
-**YOUR TASK:**
-Perform a FAST quality check (< 30 seconds) and identify:
+**YOUR CREATIVE MISSION:**
+Use your reasoning to discover enhancements for THIS specific vault. Don't follow a rigid checklist - be creative and contextual.
 
-1. **Missing Obvious Items** - Items clearly stated in resume but NOT extracted
-   - Look for: Education degrees, certifications, job titles, skills mentioned multiple times
-   - ONLY flag if confidence > 85% (very obvious)
+Ask yourself:
+- What obvious items from the resume did we miss?
+- Which achievements are vague and need metrics/context added from the resume?
+- What skills are mentioned in the resume but not extracted?
+- Are there duplicate items that should be merged?
+- Can any items be enhanced with more context from the resume?
+- What educational credentials or certifications are in the resume but missing from the vault?
 
-2. **Data Contradictions** - Inconsistencies in extracted data
-   - Example: "5 years experience" but job dates show 8 years
-   - Example: Skill listed twice with different names
+For EACH enhancement you want to make, return:
 
-3. **Low Quality Items** - Extracted items with issues
-   - Vague achievements without metrics
-   - Skills without context
-   - Duplicate entries
-
-4. **Completeness Gaps** - Expected fields that are empty
-   - No education when resume has degrees
-   - No skills when resume lists technical skills
-   - No achievements when resume has bullet points
-
-Return JSON:
 {
-  "overallQuality": 85,  // 0-100 score
-  "completenessScore": 90,  // % of expected fields filled
-  "consistencyScore": 80,  // % free of contradictions
-  "issues": [
+  "enhancements": [
     {
-      "category": "missing_education",
-      "severity": "critical",
-      "issue": "Resume shows 'B.S. in Computer Science' but no education extracted",
-      "suggestedFix": "Add: B.S. Computer Science, [University Name if stated]",
-      "autoFixable": true
-    }
-  ],
-  "missingItems": [
-    {
-      "itemType": "education",
-      "evidence": "Quote from resume showing the missing item",
+      "table": "vault_power_phrases",
+      "action": "add",
       "confidence": 95,
-      "suggestedAdd": {
+      "reasoning": "Resume clearly states 'Increased revenue by 40%' but this achievement wasn't extracted",
+      "data": {
+        "vault_id": "${vaultId}",
+        "power_phrase": "Increased revenue by 40% through strategic pricing optimization",
+        "quality_tier": "gold",
+        "context": "Strategic pricing optimization initiative",
+        "evidence_quote": "Exact quote from resume"
+      }
+    },
+    {
+      "table": "vault_education",
+      "action": "add",
+      "confidence": 98,
+      "reasoning": "Resume shows 'B.S. Computer Science, MIT, 2015' but no education extracted",
+      "data": {
+        "vault_id": "${vaultId}",
         "degree_type": "Bachelor of Science",
         "field": "Computer Science",
-        "institution": "...",
-        "graduation_year": "..."
+        "institution": "Massachusetts Institute of Technology",
+        "graduation_year": "2015",
+        "quality_tier": "gold"
+      }
+    },
+    {
+      "table": "vault_power_phrases",
+      "action": "update",
+      "confidence": 85,
+      "reasoning": "Achievement 'Led team' is vague - resume shows 'Led team of 12 engineers'",
+      "data": {
+        "id": "<existing_id_from_vault>",
+        "power_phrase": "Led team of 12 engineers to deliver product 2 months ahead of schedule",
+        "quality_tier": "gold"
       }
     }
-  ]
+  ],
+  "summary": "Found 3 high-confidence enhancements: added missing revenue achievement, added MIT degree, enhanced vague leadership statement with team size and timeline"
 }
 
-**RULES:**
-- Be FAST - only check obvious issues (< 10,000 tokens)
-- Only flag CLEAR problems (confidence > 85%)
-- Focus on critical/moderate issues, skip minor nitpicks
-- Maximum 10 issues total
-- Maximum 5 missing items
-- All missing items must be AUTO-FIXABLE (clear extraction from resume)`;
+**CRITICAL RULES:**
+- ONLY return enhancements with confidence > 85%
+- Each enhancement must reference specific evidence from the resume
+- For "add" actions, include ALL required fields for that table
+- For "update" actions, you must know the item ID (you don't have IDs, so focus on "add" actions)
+- Maximum 10 enhancements total (focus on highest impact)
+- Be fast - this is a $0.002 operation, not deep analysis
+- Return ONLY valid JSON, no markdown
+
+**TABLE SCHEMAS:**
+- vault_power_phrases: { vault_id, power_phrase, quality_tier, context, evidence_quote }
+- vault_transferable_skills: { vault_id, stated_skill, quality_tier, evidence_quote }
+- vault_technical_skills: { vault_id, skill_name, proficiency_level, quality_tier }
+- vault_education: { vault_id, degree_type, field, institution, graduation_year, quality_tier }
+- vault_soft_skills: { vault_id, skill_name, quality_tier, evidence_quote }
+- vault_hidden_competencies: { vault_id, inferred_capability, quality_tier, evidence_quote }`;
 
     const startTime = Date.now();
 
@@ -168,68 +200,108 @@ Return JSON:
       model: 'sonar',  // Cheap, fast model
       messages: [{
         role: 'system',
-        content: 'You are a quality assurance expert. Return only valid JSON, no markdown.'
+        content: 'You are a creative AI career enhancer. Use reasoning to discover enhancements. Return only valid JSON, no markdown.'
       }, {
         role: 'user',
         content: prompt
       }],
-      temperature: 0.2,
-      max_tokens: 2000,
+      temperature: 0.3,  // Slightly higher for creativity
+      max_tokens: 3000,  // More room for enhancements
     });
 
     const duration = Date.now() - startTime;
-    console.log(`✅ Quality check completed in ${duration}ms`);
+    console.log(`✅ AI enhancement analysis completed in ${duration}ms`);
 
     // Log AI usage
     await logAIUsage({
       supabase,
       userId: user.id,
       model: 'sonar',
-      inputTokens: prompt.length / 4,  // Rough estimate
+      inputTokens: prompt.length / 4,
       outputTokens: (aiResponse.content || '').length / 4,
-      cost: 0.002,  // Approximate cost
-      operation: 'vault-quality-check',
+      cost: 0.002,
+      operation: 'vault-quality-enhancement',
       metadata: { vaultId, duration }
     });
 
     // Parse AI response
-    const resultText = aiResponse.content || '{}';
+    const resultText = aiResponse.content || '{"enhancements": [], "summary": "No enhancements found"}';
     const cleanedText = resultText.includes('```')
       ? resultText.split('```')[1].replace('json', '').trim()
       : resultText;
 
-    const result: QualityCheckResult = JSON.parse(cleanedText);
+    const aiResult = JSON.parse(cleanedText);
+    const enhancements: Enhancement[] = aiResult.enhancements || [];
+    const summary = aiResult.summary || 'No summary provided';
 
-    // Add counts
-    result.autoFixCount = result.missingItems?.filter((item: MissingItem) => item.confidence > 90).length || 0;
-    result.reviewNeededCount = result.issues?.filter((issue: QualityIssue) => !issue.autoFixable).length || 0;
+    console.log(`🔍 AI discovered ${enhancements.length} potential enhancements`);
 
-    // Store quality check results
-    const { error: insertError } = await supabase
-      .from('vault_quality_checks')
-      .insert({
-        vault_id: vaultId,
-        user_id: user.id,
-        overall_quality: result.overallQuality,
-        completeness_score: result.completenessScore,
-        consistency_score: result.consistencyScore,
-        issues: result.issues,
-        missing_items: result.missingItems,
-        auto_fix_count: result.autoFixCount,
-        review_needed_count: result.reviewNeededCount,
-        checked_at: new Date().toISOString()
-      });
+    // Apply high-confidence enhancements to database
+    let applied = 0;
+    let skipped = 0;
 
-    if (insertError) {
-      console.error('Failed to store quality check:', insertError);
+    for (const enhancement of enhancements) {
+      if (enhancement.confidence >= 90 && enhancement.action === 'add') {
+        try {
+          const { error: insertError } = await supabase
+            .from(enhancement.table)
+            .insert(enhancement.data);
+
+          if (insertError) {
+            console.error(`❌ Failed to apply enhancement to ${enhancement.table}:`, insertError);
+            skipped++;
+          } else {
+            console.log(`✅ Applied: ${enhancement.reasoning}`);
+            applied++;
+          }
+        } catch (err) {
+          console.error(`❌ Error applying enhancement:`, err);
+          skipped++;
+        }
+      } else if (enhancement.confidence < 90) {
+        console.log(`⏭️ Skipped (confidence ${enhancement.confidence}%): ${enhancement.reasoning}`);
+        skipped++;
+      } else if (enhancement.action !== 'add') {
+        console.log(`⏭️ Skipped (action ${enhancement.action} not supported): ${enhancement.reasoning}`);
+        skipped++;
+      }
     }
 
-    console.log('📊 Quality Check Results:', {
-      overallQuality: result.overallQuality,
-      completenessScore: result.completenessScore,
-      issues: result.issues?.length || 0,
-      missingItems: result.missingItems?.length || 0,
-      autoFixable: result.autoFixCount
+    // Recalculate vault strength after enhancements
+    const [updatedPowerPhrases, updatedSkills, updatedCompetencies] = await Promise.all([
+      supabase.from('vault_power_phrases').select('*', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_transferable_skills').select('*', { count: 'exact', head: true }).eq('vault_id', vaultId),
+      supabase.from('vault_hidden_competencies').select('*', { count: 'exact', head: true }).eq('vault_id', vaultId),
+    ]);
+
+    const newItemCount =
+      (updatedPowerPhrases.count || 0) +
+      (updatedSkills.count || 0) +
+      (updatedCompetencies.count || 0);
+
+    const vaultStrengthAfter = Math.min(100, Math.floor(newItemCount * 1.5));
+
+    // Update vault_strength_after_qa
+    await supabase
+      .from('career_vault')
+      .update({ vault_strength_after_qa: vaultStrengthAfter })
+      .eq('id', vaultId);
+
+    const result: EnhancementResult = {
+      enhancementsApplied: applied,
+      enhancementsSkipped: skipped,
+      vaultStrengthBefore,
+      vaultStrengthAfter,
+      summary,
+      enhancements
+    };
+
+    console.log('✨ CREATIVE ENHANCEMENT COMPLETE:', {
+      applied,
+      skipped,
+      strengthBefore: vaultStrengthBefore,
+      strengthAfter: vaultStrengthAfter,
+      improvement: vaultStrengthAfter - vaultStrengthBefore
     });
 
     return new Response(
@@ -244,7 +316,7 @@ Return JSON:
     );
 
   } catch (error: any) {
-    console.error('❌ QUALITY CHECK FAILED:', error);
+    console.error('❌ CREATIVE ENHANCEMENT FAILED:', error);
     return new Response(
       JSON.stringify({
         success: false,
