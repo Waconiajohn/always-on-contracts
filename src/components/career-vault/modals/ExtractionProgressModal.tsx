@@ -335,20 +335,6 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
                   style={{ animationDuration: '1.5s' }}
                 />
                 
-                {/* Sparkles */}
-                {!isComplete && (
-                  <>
-                    <Sparkles 
-                      className="absolute top-4 right-4 w-6 h-6 text-yellow-300 animate-ping" 
-                      style={{ animationDuration: '1s' }}
-                    />
-                    <Sparkles 
-                      className="absolute bottom-4 left-4 w-5 h-5 text-blue-300 animate-ping" 
-                      style={{ animationDuration: '1s', animationDelay: '0.5s' }}
-                    />
-                  </>
-                )}
-                
                 {/* Success checkmark */}
                 {isComplete && (
                   <CheckCircle2 className="absolute -top-2 -right-2 w-12 h-12 text-green-400 animate-in zoom-in-50 duration-500" />
