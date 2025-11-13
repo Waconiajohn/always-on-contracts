@@ -27,7 +27,6 @@ interface SmartQuestion {
 export default function UnifiedCareerVault() {
   const [vaultState, setVaultState] = useState<VaultState>('loading');
   const [vaultId, setVaultId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [smartQuestions, setSmartQuestions] = useState<SmartQuestion[]>([]);
   const navigate = useNavigate();
 
@@ -47,8 +46,6 @@ export default function UnifiedCareerVault() {
         navigate('/auth');
         return;
       }
-
-      setUserId(user.id);
 
       const { data: vault } = await supabase
         .from('career_vault')
@@ -78,10 +75,7 @@ export default function UnifiedCareerVault() {
     setUploadModalOpen(false);
     setExtractionModalOpen(true);
     setVaultState('extracting');
-
-    // TODO: Trigger auto-populate-vault-v3 function
-    // This should be called via supabase.functions.invoke
-    // For now, simulating with timeout
+    // Note: auto-populate-vault-v3 is already triggered by UploadResumeModal
   };
 
   // Handle extraction complete

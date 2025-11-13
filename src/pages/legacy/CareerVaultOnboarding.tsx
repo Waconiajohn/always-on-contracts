@@ -31,7 +31,7 @@ import IndustryResearchProgress from '@/components/career-vault/onboarding/Indus
 import AutoPopulationProgress from '@/components/career-vault/onboarding/AutoPopulationProgress';
 import SmartReviewWorkflow from '@/components/career-vault/onboarding/SmartReviewWorkflow';
 import GapFillingQuestionsFlow from '@/components/career-vault/onboarding/GapFillingQuestionsFlow';
-import VaultCompletionSummary from '@/components/career-vault/onboarding/VaultCompletionSummary';
+import VaultCompletionSummary from '@/components/career-vault/legacy/VaultCompletionSummary';
 
 // UI step type (different from database OnboardingStep)
 type UIStep =

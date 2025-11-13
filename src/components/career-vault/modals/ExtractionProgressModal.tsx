@@ -1,5 +1,5 @@
 // Extraction Progress Modal - Shows transparent AI processing with live feed
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Sparkles, Brain, TrendingUp } from 'lucide-react';
@@ -42,13 +42,13 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
           leadershipResult,
           educationResult
         ] = await Promise.all([
-          supabase.from('vault_power_phrases').select('power_phrase', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5),
-          supabase.from('vault_transferable_skills').select('stated_skill', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5),
-          supabase.from('vault_hidden_competencies').select('inferred_capability', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5),
-          supabase.from('vault_technical_skills').select('skill_name', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5),
-          supabase.from('vault_soft_skills').select('skill_name', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5),
-          supabase.from('vault_leadership_philosophy').select('philosophy_statement', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5),
-          supabase.from('vault_education').select('degree_type, field', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5)
+          supabase.from('vault_power_phrases' as any).select('power_phrase', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5) as any,
+          supabase.from('vault_transferable_skills' as any).select('stated_skill', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5) as any,
+          supabase.from('vault_hidden_competencies' as any).select('inferred_capability', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5) as any,
+          supabase.from('vault_technical_skills' as any).select('skill_name', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5) as any,
+          supabase.from('vault_soft_skills' as any).select('skill_name', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5) as any,
+          supabase.from('vault_leadership_philosophy' as any).select('philosophy_statement', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5) as any,
+          supabase.from('vault_education' as any).select('degree_type, field', { count: 'exact', head: false }).eq('vault_id', vaultId).limit(5) as any
         ]);
 
         const totalCount =
@@ -189,7 +189,7 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
               <p className="text-sm text-slate-500 italic">Starting extraction...</p>
             ) : (
               <div className="space-y-2">
-                {extractedItems.slice().reverse().map((item, idx) => (
+                {extractedItems.slice().reverse().map((item) => (
                   <div
                     key={item.timestamp}
                     className="flex items-start gap-2 text-sm animate-in slide-in-from-top-2 duration-300"
