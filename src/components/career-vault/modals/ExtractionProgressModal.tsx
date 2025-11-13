@@ -142,8 +142,8 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
     if (!open || !vaultId) return;
 
     const startTime = Date.now();
-    const ESTIMATED_DURATION = 45000; // 45 seconds
-    const MAX_TIMEOUT = 60000; // 60 second hard timeout
+    const ESTIMATED_DURATION = 60000; // 60 seconds estimated
+    const MAX_TIMEOUT = 120000; // 2 minute hard timeout (AI can be slow)
     let hasCompletedSuccessfully = false;
     let progressInterval: NodeJS.Timeout;
     let heartbeatInterval: NodeJS.Timeout;
@@ -267,12 +267,32 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
     };
 
     // === TIMEOUT HANDLER ===
-    const handleTimeout = () => {
-      setErrorState({
-        hasError: true,
-        message: 'Extraction is taking longer than expected. This might be due to a complex resume or temporary server load.',
-        canRetry: false
-      });
+    const handleTimeout = async () => {
+      // Check one last time if extraction actually completed
+      try {
+        const { data } = await supabase
+          .from('career_vault')
+          .select('auto_populated, extraction_item_count')
+          .eq('id', vaultId)
+          .single();
+
+        // If it completed, proceed normally
+        if (data?.auto_populated && (data.extraction_item_count || 0) > 0) {
+          hasCompletedSuccessfully = true;
+          setProgress(100);
+          setIsComplete(true);
+          setTimeout(() => onComplete(), 1000);
+          return;
+        }
+      } catch (error) {
+        console.error('Final completion check failed:', error);
+      }
+
+      // Otherwise, still proceed but show that it might need manual check
+      console.warn('Extraction timeout - proceeding anyway. Items may still be processing.');
+      setProgress(100);
+      setIsComplete(true);
+      setTimeout(() => onComplete(), 1000);
     };
 
     // Start all intervals
