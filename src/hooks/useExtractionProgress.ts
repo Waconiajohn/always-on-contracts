@@ -18,11 +18,31 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
   useEffect(() => {
     if (!vaultId) return;
 
+    // Fetch current progress immediately
+    const fetchCurrentProgress = async () => {
+      const { data } = await supabase
+        .from('extraction_progress' as any)
+        .select('*')
+        .eq('vault_id', vaultId)
+        .single();
+      
+      if (data) {
+        const progressData = data as any;
+        setProgress(progressData.percentage || 0);
+        setCurrentMessage(progressData.message || 'Processing...');
+        if ((progressData.percentage || 0) >= 100) {
+          setIsComplete(true);
+        }
+      }
+    };
+
+    fetchCurrentProgress();
+
     // Subscribe to real-time progress updates
     const channel = supabase
       .channel(`extraction-progress-${vaultId}`)
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: '*',
           schema: 'public',
@@ -32,10 +52,10 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
         (payload: RealtimePostgresChangesPayload<ProgressUpdate>) => {
           if (payload.new) {
             const update = payload.new as ProgressUpdate;
-            setProgress(update.percentage);
-            setCurrentMessage(update.message);
+            setProgress(update.percentage || 0);
+            setCurrentMessage(update.message || 'Processing...');
             
-            if (update.percentage >= 100) {
+            if ((update.percentage || 0) >= 100) {
               setIsComplete(true);
             }
           }
