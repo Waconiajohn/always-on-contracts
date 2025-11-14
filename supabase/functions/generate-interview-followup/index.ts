@@ -130,8 +130,7 @@ Return a JSON object with:
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'medium'
+          requiresReasoning: false
         }),
         temperature: 0.7,
         max_tokens: 1000,

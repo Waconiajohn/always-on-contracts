@@ -112,7 +112,7 @@ Cite all sources with URLs.`;
           model: selectOptimalModel({
             taskType: 'research',
             complexity: 'medium',
-            requiresWebSearch: true,
+            requiresResearch: true,
             estimatedInputTokens: 400,
             estimatedOutputTokens: 2000
           }),
@@ -210,11 +210,11 @@ Return JSON with:
             extracted_data: extractedData
           },
           data_sources: [...citations, 'Internal CareerIQ Database'],
-          percentile_25: extractedData.percentile_25,
-          percentile_50: extractedData.percentile_50,
-          percentile_75: extractedData.percentile_75,
-          percentile_90: extractedData.percentile_90,
-          skill_premiums: extractedData.skill_premiums || {}
+          percentile_25: extractedData?.marketRate?.min || 0,
+          percentile_50: extractedData?.marketRate?.median || 0,
+          percentile_75: extractedData?.marketRate?.max || 0,
+          percentile_90: extractedData?.marketRate?.max || 0,
+          skill_premiums: {}
         })
         .select()
         .single();

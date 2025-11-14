@@ -113,8 +113,7 @@ Generate a gap analysis as JSON:
         model: selectOptimalModel({
           taskType: 'analysis',
           complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'long'
+          requiresReasoning: true
         }),
         temperature: 0.5,
         max_tokens: 2000,

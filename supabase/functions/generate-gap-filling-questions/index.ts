@@ -595,7 +595,7 @@ QUESTION TYPE GUIDELINES:
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         userMessage: 'We encountered an issue generating questions. Please try again.',
       }),
       {

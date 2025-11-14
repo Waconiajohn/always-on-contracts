@@ -242,18 +242,18 @@ CAREER PROFILE (AI-INFERRED FROM VAULT CONTENT):
 └─ Next Likely Role: ${careerContext.nextLikelyRole}
 
 PRIMARY RESPONSIBILITIES (from their actual achievements):
-${careerContext.primaryResponsibilities.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+${careerContext.primaryResponsibilities.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n')}
 
 VAULT CONTENTS ANALYSIS:
 ├─ Power Phrases: ${powerPhrases.data?.length || 0} quantified achievements
-├─ ✅ TECHNICAL SKILLS: ${skills.data?.length || 0} extracted from resume (vault_transferable_skills)
-├─ User-Confirmed Skills: ${confirmedSkills.data?.length || 0} manually validated (vault_confirmed_skills)
+├─ ✅ TECHNICAL SKILLS: ${(skills.data?.length ?? 0)} extracted from resume (vault_transferable_skills)
+├─ User-Confirmed Skills: ${(confirmedSkills.data?.length ?? 0)} manually validated (vault_confirmed_skills)
 ├─ Hidden Competencies: ${competencies.data?.length || 0} deep capabilities
 ├─ Soft Skills: ${softSkills.data?.length || 0} interpersonal strengths
 ├─ Leadership Philosophy: ${leadershipPhilosophy.data?.length || 0} leadership insights
 └─ Executive Presence: ${executivePresence.data?.length || 0} strategic indicators
 
-**CRITICAL RULE: User has ${skills.data?.length || 0} technical skills already extracted from their resume.**
+**CRITICAL RULE: User has ${(skills.data?.length ?? 0)} technical skills already extracted from their resume.**
 - If this count is > 0, DO NOT suggest "add technical skills" gaps
 - These are REAL skills from their resume (Python, Java, SQL, etc.)
 - Focus on QUALITY or MISSING SKILL CATEGORIES, not quantity
@@ -262,10 +262,10 @@ SAMPLE ACHIEVEMENTS (their actual work):
 ${powerPhrases.data?.slice(0, 10).map((pp: any, i: number) => `${i + 1}. ${pp.power_phrase}`).join('\n') || 'None documented yet'}
 
 EXTRACTED TECHNICAL SKILLS (from resume):
-${skills.data?.length > 0 ? skills.data.slice(0, 20).map((s: any) => `✓ ${s.stated_skill} (confidence: ${s.confidence_score}%)`).join('\n') : 'None documented yet'}
+${(skills.data && skills.data.length > 0) ? skills.data.slice(0, 20).map((s: any) => `✓ ${s.stated_skill} (confidence: ${s.confidence_score}%)`).join('\n') : 'None documented yet'}
 
 ADDITIONAL USER-CONFIRMED SKILLS (manually added):
-${confirmedSkills.data?.length > 0 ? confirmedSkills.data.slice(0, 10).map((s: any) => `✓ ${s.skill_name} (${s.proficiency_level || 'confirmed'})`).join('\n') : 'None manually confirmed yet'}
+${(confirmedSkills.data && confirmedSkills.data.length > 0) ? confirmedSkills.data.slice(0, 10).map((s: any) => `✓ ${s.skill_name} (${s.proficiency_level || 'confirmed'})`).join('\n') : 'None manually confirmed yet'}
 
 INDUSTRY BENCHMARKS FOR ${targetRoles[0]} IN ${targetIndustries[0]}:
 ├─ Must-Have Skills: ${benchmarks.mustHaveSkills?.slice(0, 15).join(', ') || 'N/A'}
@@ -416,9 +416,8 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
         messages: [{ role: 'user', content: benchmarkPrompt }],
         model: selectOptimalModel({
           taskType: 'analysis',
-          complexityLevel: 'high',
-          requiresReasoning: true,
-          contextSize: 'large'
+          complexity: 'high',
+          requiresReasoning: true
         }),
         temperature: 0.3,
         max_tokens: 4500,
@@ -523,8 +522,7 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
           model: selectOptimalModel({
             taskType: 'analysis',
             complexity: 'high',
-            requiresReasoning: true,
-            outputLength: 'long'
+            requiresReasoning: true
           }),
           executionTime: `${Math.round(executionTime / 1000)}s`,
           careerContext: {
