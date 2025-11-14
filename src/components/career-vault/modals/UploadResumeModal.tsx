@@ -65,8 +65,15 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
       const formData = new FormData();
       formData.append('file', file);
 
+      // Get auth token for the edge function
+      const { data: authSession } = await supabase.auth.getSession();
+      const authToken = authSession.session?.access_token;
+
       const { data: processData, error: processError } = await supabase.functions.invoke('process-resume', {
-        body: formData
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
       });
 
       if (processError) {
