@@ -66,32 +66,95 @@ serve(async (req) => {
 
     console.log('Matching vault to requirements for user:', userId);
 
-    // Fetch ALL vault intelligence using centralized function (ensures all 10 tables)
-    const { data: vaultResponse, error: vaultError } = await supabase.functions.invoke('get-vault-data', {
-      body: { userId }
-    });
+    // Combine all requirements for matching first (needed for early returns)
+    const allRequirements = [
+      ...(jobRequirements?.required || []),
+      ...(jobRequirements?.preferred || []),
+      ...(jobRequirements?.niceToHave || []),
+      ...(industryStandards || []).map((s: any) => ({
+        requirement: s.standard,
+        keywords: [s.category],
+        importance: s.commonInTopPerformers ? 8 : 6,
+        source: 'industry_standard'
+      })),
+      ...(professionBenchmarks || []).map((b: any) => ({
+        requirement: b.competency,
+        keywords: [b.competencyArea],
+        importance: b.importanceForRole >= 8 ? 9 : 7,
+        source: 'profession_benchmark'
+      }))
+    ];
 
-    if (vaultError || !vaultResponse?.data) {
+    // Fetch vault
+    const { data: vault, error: vaultError } = await supabase
+      .from('career_vault')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (vaultError) {
+      console.error('Error fetching vault:', vaultError);
       throw new Error('Could not fetch career vault data');
     }
+
+    if (!vault) {
+      console.log('No vault found for user');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'No career vault found',
+        totalVaultItems: 0,
+        matchedItems: [],
+        unmatchedRequirements: allRequirements,
+        coverageScore: 0,
+        differentiatorStrength: 0,
+        recommendations: {
+          mustInclude: [],
+          stronglyRecommended: [],
+          consider: []
+        }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Fetch all vault intelligence categories in parallel
+    const [
+      powerPhrases,
+      transferableSkills,
+      hiddenCompetencies,
+      softSkills,
+      leadershipPhilosophy,
+      executivePresence,
+      personalityTraits,
+      workStyle,
+      values,
+      behavioralIndicators
+    ] = await Promise.all([
+      supabase.from('vault_power_phrases').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_transferable_skills').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_soft_skills').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_executive_presence').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_personality_traits').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_work_style').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_values_motivations').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id)
+    ]);
 
     const vaultData = {
-      ...vaultResponse.data.vault,
-      vault_power_phrases: vaultResponse.data.intelligence.powerPhrases,
-      vault_transferable_skills: vaultResponse.data.intelligence.transferableSkills,
-      vault_hidden_competencies: vaultResponse.data.intelligence.hiddenCompetencies,
-      vault_soft_skills: vaultResponse.data.intelligence.softSkills,
-      vault_leadership_philosophy: vaultResponse.data.intelligence.leadershipPhilosophy,
-      vault_executive_presence: vaultResponse.data.intelligence.executivePresence,
-      vault_personality_traits: vaultResponse.data.intelligence.personalityTraits,
-      vault_work_style: vaultResponse.data.intelligence.workStyle,
-      vault_values_motivations: vaultResponse.data.intelligence.values,
-      vault_behavioral_indicators: vaultResponse.data.intelligence.behavioralIndicators
+      ...vault,
+      vault_power_phrases: powerPhrases.data || [],
+      vault_transferable_skills: transferableSkills.data || [],
+      vault_hidden_competencies: hiddenCompetencies.data || [],
+      vault_soft_skills: softSkills.data || [],
+      vault_leadership_philosophy: leadershipPhilosophy.data || [],
+      vault_executive_presence: executivePresence.data || [],
+      vault_personality_traits: personalityTraits.data || [],
+      vault_work_style: workStyle.data || [],
+      vault_values_motivations: values.data || [],
+      vault_behavioral_indicators: behavioralIndicators.data || []
     };
-
-    if (vaultError || !vaultData) {
-      throw new Error('Could not fetch career vault data');
-    }
 
     console.log('Vault data fetched successfully');
 
