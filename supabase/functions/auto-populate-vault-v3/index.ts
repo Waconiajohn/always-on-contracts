@@ -271,10 +271,10 @@ serve(async (req) => {
     }
 
     // ========================================================================
-    // PHASE 3: PARALLEL SECTION EXTRACTION (NEW - 70% FASTER!)
+    // PHASE 3: TRANSFORM AI-EXTRACTED DATA TO VAULT FORMAT
     // ========================================================================
-    console.log('\n⚡ PHASE 3: Parallel section extraction (all sections at once)...');
-    await tracker.updateProgress('section_extraction', 40, 'Extracting all sections in parallel...');
+    console.log('\n⚡ PHASE 3: Transforming AI-extracted data to vault format...');
+    await tracker.updateProgress('data_transformation', 40, 'Converting structured data to vault format...');
 
     const allExtracted = {
       powerPhrases: [] as any[],
@@ -284,100 +284,147 @@ serve(async (req) => {
     };
 
     try {
-      const experienceSection = resumeStructure.sections.find(s => s.type === 'experience');
-      const skillsSection = resumeStructure.sections.find(s => s.type === 'skills');
-
-      // Build array of extraction promises (all independent)
-      const extractionPromises: Promise<any>[] = [];
-
-      // Experience: power phrases
-      if (experienceSection) {
-        extractionPromises.push(
-          extractWithEnhancement({
-            sectionContent: experienceSection.content,
-            sectionType: 'experience',
-            extractionType: 'power_phrases',
-            roleInfo,
-            userId,
-          }).then(result => ({ type: 'powerPhrases', data: result.powerPhrases }))
-        );
-      }
-
-      // Skills section
-      if (skillsSection) {
-        extractionPromises.push(
-          extractWithEnhancement({
-            sectionContent: skillsSection.content,
-            sectionType: 'skills',
-            extractionType: 'skills',
-            roleInfo,
-            userId,
-          }).then(result => ({ type: 'skills', data: result.skills }))
-        );
-      }
-
-      // Competencies from experience
-      if (experienceSection) {
-        extractionPromises.push(
-          extractWithEnhancement({
-            sectionContent: experienceSection.content,
-            sectionType: 'experience',
-            extractionType: 'competencies',
-            roleInfo,
-            userId,
-          }).then(result => ({ type: 'competencies', data: result.competencies }))
-        );
-      }
-
-      // Soft skills from experience
-      if (experienceSection) {
-        extractionPromises.push(
-          extractWithEnhancement({
-            sectionContent: experienceSection.content,
-            sectionType: 'experience',
-            extractionType: 'soft_skills',
-            roleInfo,
-            userId,
-          }).then(result => ({ type: 'softSkills', data: result.softSkills }))
-        );
-      }
-
-      // Execute all extractions in parallel (saves ~45s)
       const startTime = Date.now();
-      const results = await Promise.all(extractionPromises);
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-
-      // Aggregate results
-      results.forEach(result => {
-        const items = result.data;
-        items.forEach((item: any) => {
-          item.section_source = result.type === 'skills' ? 'skills' : 'experience';
-          item.extraction_version = 'v3-parallel';
-        });
-
-        if (result.type === 'powerPhrases') allExtracted.powerPhrases.push(...items);
-        else if (result.type === 'skills') allExtracted.skills.push(...items);
-        else if (result.type === 'competencies') allExtracted.competencies.push(...items);
-        else if (result.type === 'softSkills') allExtracted.softSkills.push(...items);
+      
+      // Log what we're transforming
+      logger.info('Phase 3: Transforming structured data', {
+        totalRoles: structuredData!.experience.roles.length,
+        quantifiedAchievements: structuredData!.achievements.quantified.length,
+        strategicAchievements: structuredData!.achievements.strategic.length,
+        technicalSkills: structuredData!.skills.technical.length,
+        softSkills: structuredData!.skills.soft.length,
+        leadershipSkills: structuredData!.skills.leadership.length,
       });
 
-      console.log(`✅ Parallel extraction complete in ${duration}s`);
+      // Transform achievements to power phrases
+      structuredData!.achievements.quantified.forEach((ach, index) => {
+        const hasMetrics = ach.metric && ach.impact;
+        const quality_tier = ach.confidence > 90 ? 'gold' : ach.confidence > 75 ? 'silver' : 'bronze';
+        
+        allExtracted.powerPhrases.push({
+          power_phrase: ach.achievement,
+          category: ach.category || 'Achievement',
+          confidence_score: ach.confidence / 100,
+          impact_metrics: hasMetrics ? {
+            metric: ach.metric,
+            baseline: ach.baseline || '',
+            result: ach.impact,
+            improvement: ach.percentageChange || ''
+          } : {},
+          quality_tier,
+          section_source: 'experience',
+          extraction_version: 'v3-ai-structured',
+          review_priority: quality_tier === 'gold' ? 90 : quality_tier === 'silver' ? 70 : 50,
+          context: ach.context || '',
+          keywords: []
+        });
+      });
+
+      // Add strategic achievements as power phrases
+      structuredData!.achievements.strategic.forEach((ach, index) => {
+        const quality_tier = ach.confidence > 85 ? 'silver' : 'bronze';
+        
+        allExtracted.powerPhrases.push({
+          power_phrase: ach.achievement,
+          category: 'Strategic',
+          confidence_score: ach.confidence / 100,
+          impact_metrics: {
+            strategic_impact: ach.scope || ''
+          },
+          quality_tier,
+          section_source: 'experience',
+          extraction_version: 'v3-ai-structured',
+          review_priority: quality_tier === 'silver' ? 60 : 40,
+          context: ach.context || '',
+          keywords: []
+        });
+      });
+
+      // Transform technical skills
+      structuredData!.skills.technical.forEach((skill, index) => {
+        const quality_tier = skill.confidence > 90 ? 'verified' : skill.confidence > 75 ? 'needs_review' : 'draft';
+        
+        allExtracted.skills.push({
+          stated_skill: skill.skill,
+          skill_name: skill.skill,
+          category: skill.category,
+          proficiency_level: skill.proficiencyLevel,
+          years_experience: skill.yearsOfExperience,
+          confidence_score: skill.confidence / 100,
+          quality_tier,
+          section_source: 'skills',
+          extraction_version: 'v3-ai-structured',
+          review_priority: quality_tier === 'verified' ? 80 : quality_tier === 'needs_review' ? 60 : 40,
+          equivalent_skills: [],
+          evidence: `${skill.proficiencyLevel} proficiency with ${skill.yearsOfExperience || 'multiple'} years of experience`
+        });
+      });
+
+      // Transform leadership skills to competencies
+      structuredData!.skills.leadership.forEach((skill, index) => {
+        const quality_tier = skill.confidence > 80 ? 'needs_review' : 'draft';
+        
+        allExtracted.competencies.push({
+          competency_area: 'Leadership',
+          inferred_capability: skill.skill,
+          area: 'Leadership',
+          capability: skill.skill,
+          confidence_score: skill.confidence / 100,
+          quality_tier,
+          section_source: 'experience',
+          extraction_version: 'v3-ai-structured',
+          review_priority: 60,
+          supporting_evidence: [skill.evidence || 'Demonstrated through leadership roles']
+        });
+      });
+
+      // Transform soft skills
+      structuredData!.skills.soft.forEach((skill, index) => {
+        const hasEvidence = skill.evidence && skill.evidence.length > 50;
+        const quality_tier = skill.confidence > 80 && hasEvidence ? 'needs_review' : 'draft';
+        
+        allExtracted.softSkills.push({
+          soft_skill: skill.skill,
+          skill_name: skill.skill,
+          confidence_score: skill.confidence / 100,
+          quality_tier,
+          section_source: 'experience',
+          extraction_version: 'v3-ai-structured',
+          review_priority: quality_tier === 'needs_review' ? 50 : 30,
+          examples: skill.evidence || 'Demonstrated through professional experience',
+          behavioral_evidence: skill.evidence || ''
+        });
+      });
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      console.log(`✅ Data transformation complete in ${duration}s`);
       console.log(`   💪 Power phrases: ${allExtracted.powerPhrases.length}`);
       console.log(`   🔧 Skills: ${allExtracted.skills.length}`);
       console.log(`   🧠 Competencies: ${allExtracted.competencies.length}`);
       console.log(`   🤝 Soft skills: ${allExtracted.softSkills.length}`);
 
-      await tracker.updateProgress('section_extraction', 70, 
-        `Extracted ${allExtracted.powerPhrases.length + allExtracted.skills.length + allExtracted.competencies.length + allExtracted.softSkills.length} total items`
+      logger.info('Phase 3 transformation results', {
+        powerPhrasesCount: allExtracted.powerPhrases.length,
+        skillsCount: allExtracted.skills.length,
+        competenciesCount: allExtracted.competencies.length,
+        softSkillsCount: allExtracted.softSkills.length,
+        totalItems: allExtracted.powerPhrases.length + allExtracted.skills.length + 
+                    allExtracted.competencies.length + allExtracted.softSkills.length
+      });
+
+      await tracker.updateProgress('data_transformation', 70, 
+        `Transformed ${allExtracted.powerPhrases.length + allExtracted.skills.length + allExtracted.competencies.length + allExtracted.softSkills.length} total items`
       );
-      await tracker.saveCheckpoint('section_extraction_complete', {
+      await tracker.saveCheckpoint('data_transformation_complete', {
         powerPhrasesCount: allExtracted.powerPhrases.length,
         skillsCount: allExtracted.skills.length,
         competenciesCount: allExtracted.competencies.length,
         softSkillsCount: allExtracted.softSkills.length
       });
     } catch (error) {
-      console.error('❌ Parallel section extraction failed:', error);
+      console.error('❌ Data transformation failed:', error);
+      logger.error('Phase 3 transformation failed', error as Error);
       await tracker.logError('section_extraction', error as Error);
       throw error;
     }
@@ -480,7 +527,7 @@ serve(async (req) => {
           user_id: userId,
           job_title: benchmarkExpectations.jobTitle,
           industry: benchmarkExpectations.industry,
-          seniority_level: benchmarkExpectations.seniorityLevel,
+          seniority_level: benchmarkExpectations.seniorityLevel || structuredData!.professionalIdentity.seniorityLevel || 'Mid-Level IC',
           benchmark_data: benchmarkExpectations,
           confirmed_data: {
             // Map structuredData to old format for compatibility with gap question generator
@@ -766,6 +813,10 @@ serve(async (req) => {
     await tracker.updateProgress('quality_check', 95, 'Running quality enhancement...');
 
     try {
+      // Make quality check non-blocking with reduced timeout
+      const qualityCheckController = new AbortController();
+      const qualityCheckTimeout = setTimeout(() => qualityCheckController.abort(), 30000);
+
       const qualityCheckResponse = await fetch(`${supabaseUrl}/functions/v1/vault-quality-check`, {
         method: 'POST',
         headers: {
@@ -776,7 +827,10 @@ serve(async (req) => {
           vaultId,
           resumeText,
         }),
+        signal: qualityCheckController.signal,
       });
+
+      clearTimeout(qualityCheckTimeout);
 
       if (qualityCheckResponse.ok) {
         const qualityResult = await qualityCheckResponse.json();
@@ -791,7 +845,10 @@ serve(async (req) => {
         logger.warn('Quality check returned non-OK status (non-critical)', { status: qualityCheckResponse.status });
       }
     } catch (qualityError) {
-      logger.warn('Quality check error (non-critical)', { error: qualityError });
+      logger.warn('Quality check skipped (non-critical)', { 
+        error: qualityError instanceof Error ? qualityError.message : String(qualityError),
+        reason: qualityError instanceof Error && qualityError.name === 'AbortError' ? 'timeout' : 'error'
+      });
       // Don't fail the entire extraction if quality check fails
     }
 
