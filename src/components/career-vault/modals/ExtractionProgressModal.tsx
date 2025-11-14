@@ -40,7 +40,7 @@ const EXTRACTION_PHASES: ExtractionPhase[] = [
   },
   {
     id: 'extracting',
-    name: 'Extracting Power Phrases',
+    name: 'Extracting Key Achievements',
     percentage: [15, 35],
     messages: [
       'Finding your strongest accomplishments...',
@@ -226,23 +226,23 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
         
         if (powerPhrasesResult.data?.[0]) {
           newItems.push({
-            type: 'Power Phrase',
+            type: 'Achievement',
             content: `"${powerPhrasesResult.data[0].power_phrase.substring(0, 60)}..."`,
             timestamp: Date.now()
           });
         }
-        
+
         if (skillsResult.data?.[0]) {
           newItems.push({
-            type: 'Skill',
+            type: 'Technical Skill',
             content: skillsResult.data[0].stated_skill,
             timestamp: Date.now() + 1
           });
         }
-        
+
         if (competenciesResult.data?.[0]) {
           newItems.push({
-            type: 'Competency',
+            type: 'Soft Skill',
             content: competenciesResult.data[0].inferred_capability,
             timestamp: Date.now() + 2
           });
@@ -320,40 +320,68 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* === MASSIVE THROBBING BRAIN === */}
+          {/* === MASSIVE BREATHING BRAIN === */}
           <div className="flex flex-col items-center justify-center py-6">
             <div className="relative w-40 h-40 mb-6">
-              {/* Outer pulse ring - slowest */}
-              <div 
-                className={`absolute inset-0 bg-gradient-to-r ${currentPhase.color} rounded-full opacity-20 animate-ping`}
-                style={{ animationDuration: '2s' }}
+              {/* Outer breathing ring - slowest */}
+              <div
+                className={`absolute inset-0 bg-gradient-to-r ${currentPhase.color} rounded-full opacity-20`}
+                style={{
+                  animation: 'breathe 3s ease-in-out infinite',
+                }}
               />
-              
-              {/* Middle pulse ring */}
-              <div 
-                className={`absolute inset-2 bg-gradient-to-r ${currentPhase.color} rounded-full opacity-30 animate-ping`}
-                style={{ animationDuration: '1.5s', animationDelay: '0.3s' }}
+
+              {/* Middle breathing ring */}
+              <div
+                className={`absolute inset-2 bg-gradient-to-r ${currentPhase.color} rounded-full opacity-30`}
+                style={{
+                  animation: 'breathe 2.5s ease-in-out infinite',
+                  animationDelay: '0.2s'
+                }}
               />
-              
-              {/* Inner pulse ring - fastest */}
-              <div 
-                className={`absolute inset-4 bg-gradient-to-r ${currentPhase.color} rounded-full opacity-40 animate-pulse`}
-                style={{ animationDuration: '1s' }}
+
+              {/* Inner breathing ring - fastest */}
+              <div
+                className={`absolute inset-4 bg-gradient-to-r ${currentPhase.color} rounded-full opacity-40`}
+                style={{
+                  animation: 'breathe 2s ease-in-out infinite',
+                  animationDelay: '0.4s'
+                }}
               />
-              
-              {/* Core brain with bounce */}
-              <div className={`relative bg-gradient-to-br ${currentPhase.color} rounded-full w-40 h-40 flex items-center justify-center shadow-2xl`}>
-                <Brain 
-                  className="w-20 h-20 text-white animate-pulse" 
-                  style={{ animationDuration: '1.5s' }}
+
+              {/* Core brain with breathing */}
+              <div
+                className={`relative bg-gradient-to-br ${currentPhase.color} rounded-full w-40 h-40 flex items-center justify-center shadow-2xl`}
+                style={{
+                  animation: 'breathe 2s ease-in-out infinite',
+                }}
+              >
+                <Brain
+                  className="w-20 h-20 text-white"
+                  style={{
+                    animation: 'breathe 2s ease-in-out infinite',
+                  }}
                 />
-                
+
                 {/* Success checkmark */}
                 {isComplete && (
                   <CheckCircle2 className="absolute -top-2 -right-2 w-12 h-12 text-green-400 animate-in zoom-in-50 duration-500" />
                 )}
               </div>
             </div>
+
+            <style>{`
+              @keyframes breathe {
+                0%, 100% {
+                  transform: scale(1);
+                  opacity: 1;
+                }
+                50% {
+                  transform: scale(1.15);
+                  opacity: 0.8;
+                }
+              }
+            `}</style>
 
             {/* Phase name */}
             <h3 className="text-2xl font-bold text-center mb-2">

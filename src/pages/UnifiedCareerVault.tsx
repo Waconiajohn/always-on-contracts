@@ -16,7 +16,7 @@ import { runVaultStrategicAudit, submitSmartQuestionAnswer, type SmartQuestion }
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 
-type VaultState = 'loading' | 'empty' | 'uploading' | 'extracting' | 'questions' | 'ready';
+type VaultState = 'loading' | 'empty' | 'questions' | 'ready';
 
 export default function UnifiedCareerVault() {
   const [vaultState, setVaultState] = useState<VaultState>('loading');
@@ -65,7 +65,7 @@ export default function UnifiedCareerVault() {
       setVaultId(vault.id);
 
       // Check if we actually have extracted data
-      const hasExtractedData = ((vault.extraction_item_count || 0) > 0 || !!vault.auto_populated);
+      const hasExtractedData = (vault.extraction_item_count || 0) > 0 || !!vault.auto_populated;
       setHasData(hasExtractedData);
 
       // Vault exists and has resume → Ready state (show dashboard)
@@ -81,25 +81,28 @@ export default function UnifiedCareerVault() {
     setVaultId(uploadedVaultId);
     setUploadModalOpen(false);
     setExtractionModalOpen(true);
-    setVaultState('extracting');
+    // Keep state as 'ready' - modal will show over the dashboard
     // Note: auto-populate-vault-v3 is already triggered by UploadResumeModal
   };
 
   // Handle extraction complete
   const handleExtractionComplete = async () => {
     setExtractionModalOpen(false);
-    
+
+    // Reload vault data to get fresh counts and update hasData
+    await checkVaultState();
+
     if (!vaultId) {
       setVaultState('ready');
       return;
     }
 
     setVaultState('questions');
-    
+
     try {
       const auditResult = await runVaultStrategicAudit(vaultId);
       setSmartQuestions(auditResult.smartQuestions || []);
-      
+
       if (auditResult.smartQuestions && auditResult.smartQuestions.length > 0) {
         setQuestionsModalOpen(true);
       } else {
@@ -339,22 +342,13 @@ export default function UnifiedCareerVault() {
     );
   }
 
-  // Extracting state - Show extraction modal over empty state
+  // Fallback: should never reach here, but show empty state if we do
   return (
     <ProtectedRoute>
       <ContentLayout>
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
         </div>
-
-        {/* Extraction Progress Modal */}
-        {vaultId && (
-          <ExtractionProgressModal
-            open={extractionModalOpen}
-            vaultId={vaultId}
-            onComplete={handleExtractionComplete}
-          />
-        )}
       </ContentLayout>
     </ProtectedRoute>
   );
