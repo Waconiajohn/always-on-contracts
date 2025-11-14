@@ -119,7 +119,7 @@ Return ONLY a JSON object with this structure:
     await logAIUsage(metrics);
 
     const content = cleanCitations(response.choices[0].message.content);
-    const result = extractJSON(content, QuestionResponseSchema);
+    const result = extractJSON(content, GenericAIResponseSchema);
 
     if (!result.success) {
       logger.error('JSON parsing failed', { 

@@ -84,8 +84,7 @@ Example:
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'short'
+          requiresReasoning: false
         }),
         messages: [
           { role: 'system', content: systemPrompt },
@@ -135,8 +134,7 @@ Example:
                 model: selectOptimalModel({
                   taskType: 'generation',
                   complexity: 'low',
-                  requiresReasoning: false,
-                  outputLength: 'short'
+                  requiresReasoning: false
                 }),
                 input_tokens: estimatedInputTokens,
                 output_tokens: estimatedOutputTokens,

@@ -73,8 +73,7 @@ Return JSON:
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
+          requiresReasoning: true
         }),
       },
       'optimize-linkedin-with-audit',

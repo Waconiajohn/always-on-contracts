@@ -81,8 +81,7 @@ Provide specific improvements for each component.`;
         model: selectOptimalModel({
           taskType: 'analysis',
           complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
+          requiresReasoning: true
         }),
       },
       'validate-interview-response-with-audit',

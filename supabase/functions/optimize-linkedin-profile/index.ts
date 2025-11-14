@@ -202,8 +202,7 @@ Use the Career Vault achievements and metrics to create an EVIDENCE-BASED profil
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
+          requiresReasoning: true
         }),
         temperature: 0.7,
         max_tokens: 2000,

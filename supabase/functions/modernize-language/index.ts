@@ -64,8 +64,7 @@ Be authentic - only add terms that genuinely fit the achievement. Don't force mo
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'short'
+          requiresReasoning: false
         }),
         temperature: 0.7,
         max_tokens: 800,

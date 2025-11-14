@@ -5,12 +5,12 @@ import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
-import { TransferableSkillSchema } from '../_shared/ai-response-schemas.ts';
+import { SkillsExtractionSchema } from '../_shared/ai-response-schemas.ts';
 import { extractArray } from '../_shared/json-parser.ts';
 
 serve(createAIHandler({
   functionName: 'generate-transferable-skills',
-  schema: TransferableSkillSchema,
+  schema: SkillsExtractionSchema,
   requireAuth: false,  // Called internally
   parseResponse: false,  // Custom handling with database
 

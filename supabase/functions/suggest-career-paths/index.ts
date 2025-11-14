@@ -224,8 +224,7 @@ NO MARKDOWN. ONLY JSON.`,
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'high',
-          requiresReasoning: true,
-          outputLength: 'long'
+          requiresReasoning: true
         }),
         temperature: 0.7,
         max_tokens: 3000,

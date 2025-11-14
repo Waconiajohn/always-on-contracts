@@ -291,8 +291,7 @@ Return ONLY valid JSON:
           model: selectOptimalModel({
             taskType: 'analysis',
             complexity: 'high',
-            requiresReasoning: true,
-            outputLength: 'long'
+            requiresReasoning: true
           }),
           temperature: 0.4,
           max_tokens: 4096

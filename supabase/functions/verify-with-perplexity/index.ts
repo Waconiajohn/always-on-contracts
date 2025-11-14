@@ -114,8 +114,7 @@ Provide factual verification with current sources.`;
         model: selectOptimalModel({
           taskType: 'research',
           complexity: 'high',
-          requiresReasoning: true,
-          outputLength: 'long'
+          requiresReasoning: true
         }),
         temperature: 0.2,
         max_tokens: 2000,

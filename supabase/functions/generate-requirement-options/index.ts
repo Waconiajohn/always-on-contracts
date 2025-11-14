@@ -125,7 +125,7 @@ Return JSON:
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
-    const result = extractJSON(content, RequirementOptionsSchema);
+    const result = extractJSON(content, GenericAIResponseSchema);
 
     if (!result.success) {
       logger.error('JSON parsing failed', { 
