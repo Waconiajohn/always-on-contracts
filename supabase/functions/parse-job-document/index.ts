@@ -52,7 +52,7 @@ serve(async (req) => {
               message: 'Unable to access job posting. The website is blocking automated access.',
               blocked: true
             }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
         }
         
@@ -83,7 +83,7 @@ serve(async (req) => {
               message: 'The website is blocking automated access to this job posting.',
               blocked: true
             }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
         }
         
@@ -105,7 +105,7 @@ serve(async (req) => {
               message: 'Unable to extract valid job description from URL.',
               blocked: true
             }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
         }
       } catch (error) {
