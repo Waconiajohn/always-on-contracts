@@ -71,7 +71,6 @@ serve(async (req) => {
         model: selectOptimalModel({
           taskType: 'analysis',
           complexity: 'medium',
-          requiresReasoning: true,
           requiresReasoning: true
         }),
         temperature: 0.7,
@@ -103,7 +102,6 @@ serve(async (req) => {
         model: selectOptimalModel({
           taskType: 'analysis',
           complexity: 'high',
-          requiresReasoning: true,
           requiresReasoning: true
         }),
         temperature: 0.2,
@@ -135,7 +133,6 @@ serve(async (req) => {
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'medium',
-          requiresReasoning: true,
           requiresReasoning: false
         }),
         temperature: 0.5,

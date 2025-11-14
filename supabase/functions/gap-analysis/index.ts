@@ -252,9 +252,8 @@ FORMAT: Return detailed JSON with complete scoring, gap classification, hidden s
           ],
           model: selectOptimalModel({
             taskType: 'analysis',
-            complexityLevel: 'high',
-            requiresReasoning: true,
-            contextSize: 'large'
+            complexity: 'high',
+            requiresReasoning: true
           }),
           temperature: 0.5,
           max_tokens: 2000,

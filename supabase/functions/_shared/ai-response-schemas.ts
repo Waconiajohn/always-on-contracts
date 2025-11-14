@@ -123,6 +123,15 @@ export const GapAnalysisSchema = z.object({
   developmentPlan: z.array(z.string()).optional()
 });
 
+// Hidden Competency Schema
+export const HiddenCompetencySchema = z.object({
+  competency_area: z.string(),
+  inferred_capability: z.string(),
+  supporting_evidence: z.array(z.string()),
+  confidence_score: z.number().min(0).max(1).optional(),
+  quality_tier: z.enum(['gold', 'silver', 'bronze', 'assumed']).optional()
+});
+
 // Vault Intelligence Schema
 export const VaultIntelligenceSchema = z.object({
   technicalSkills: z.array(z.string()).optional(),

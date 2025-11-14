@@ -179,7 +179,7 @@ serve(async (req) => {
     const userId = vault.user_id;
 
     // Initialize progress tracker
-    const tracker = new ProgressTracker(vaultId, supabase);
+    const tracker = new ProgressTracker(vaultId, supabase as any);
 
     logger.info('Starting vault extraction', {
       userId,
@@ -979,11 +979,14 @@ async function extractWithEnhancement(params: ExtractionParams): Promise<any> {
   );
 
   await logAIUsage({
+    function_name: 'auto-populate-vault-v3',
     model: 'sonar-pro',
     input_tokens: result.response.usage?.prompt_tokens || 1000,
     output_tokens: result.response.usage?.completion_tokens || 1000,
-    task: extractionType,
+    cost_usd: 0,
+    request_id: crypto.randomUUID(),
     user_id: userId,
+    created_at: new Date().toISOString(),
   });
 
   const content = result.response.choices[0].message.content;
@@ -1287,10 +1290,14 @@ Return STRICT JSON with this structure:
     }, 'fetch_industry_benchmarks', params.userId);
 
     await logAIUsage({
+      function_name: 'auto-populate-vault-v3',
       model: 'sonar-pro',
       input_tokens: response.usage?.prompt_tokens || 1000,
       output_tokens: response.usage?.completion_tokens || 1000,
+      cost_usd: 0,
+      request_id: crypto.randomUUID(),
       user_id: params.userId,
+      created_at: new Date().toISOString(),
     });
 
     const content = response.choices[0].message.content;
@@ -1390,10 +1397,14 @@ CRITICAL RULES:
     }, 'compare_resume_benchmark', params.userId);
 
     await logAIUsage({
+      function_name: 'auto-populate-vault-v3',
       model: 'sonar-pro',
       input_tokens: response.usage?.prompt_tokens || 1500,
       output_tokens: response.usage?.completion_tokens || 1500,
+      cost_usd: 0,
+      request_id: crypto.randomUUID(),
       user_id: params.userId,
+      created_at: new Date().toISOString(),
     });
 
     const content = response.choices[0].message.content;
@@ -1480,10 +1491,14 @@ Return ONLY valid JSON (no markdown):
     }, 'extract_career_context', params.userId);
 
     await logAIUsage({
+      function_name: 'auto-populate-vault-v3',
       model: 'sonar-pro',
       input_tokens: result.response.usage?.prompt_tokens || 750,
       output_tokens: result.response.usage?.completion_tokens || 750,
+      cost_usd: 0,
+      request_id: crypto.randomUUID(),
       user_id: params.userId,
+      created_at: new Date().toISOString(),
     });
 
     const content = result.response.choices[0].message.content;
