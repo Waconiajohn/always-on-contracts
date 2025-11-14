@@ -323,13 +323,11 @@ serve(async (req) => {
         
         allExtracted.powerPhrases.push({
           power_phrase: ach.achievement,
-          category: ach.category || 'Achievement',
+          category: 'Achievement',
           confidence_score: ach.confidence / 100,
           impact_metrics: hasMetrics ? {
             metric: ach.metric,
-            baseline: ach.baseline || '',
-            result: ach.impact,
-            improvement: ach.percentageChange || ''
+            result: ach.impact
           } : {},
           quality_tier,
           section_source: 'experience',
@@ -358,7 +356,7 @@ serve(async (req) => {
           section_source: 'experience',
           extraction_version: 'v3-ai-structured',
           review_priority: quality_tier === 'silver' ? 60 : 40,
-          context: ach.context || '',
+          context: ach.impact || '',
           keywords: []
         });
       });
@@ -933,30 +931,15 @@ serve(async (req) => {
 
   } catch (error) {
     const errorDuration = Date.now() - overallStartTime;
-    logger.error('Extraction failed', error as Error, {
-      vaultId,
-      userId,
-      duration_ms: errorDuration,
-      resumeLength: resumeText?.length || 0
+    const err = error as Error;
+    logger.error('Extraction failed', err, {
+      duration_ms: errorDuration
     });
-
-    // Log error if tracker was initialized
-    if (typeof vaultId !== 'undefined' && typeof supabase !== 'undefined') {
-      try {
-        const errorTracker = new ProgressTracker(vaultId, supabase);
-        await errorTracker.logError('extraction_failed', error as Error, { 
-          resumeLength: resumeText?.length || 0,
-          duration_ms: errorDuration
-        });
-      } catch (logError) {
-        logger.error('Failed to log error to database', logError as Error);
-      }
-    }
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Unknown extraction error',
+        error: err.message || 'Unknown extraction error',
       }),
       {
         status: 500,
@@ -997,9 +980,10 @@ async function extractWithEnhancement(params: ExtractionParams): Promise<any> {
 
   await logAIUsage({
     model: 'sonar-pro',
-    tokens: result.response.usage?.total_tokens || 2000,
+    input_tokens: result.response.usage?.prompt_tokens || 1000,
+    output_tokens: result.response.usage?.completion_tokens || 1000,
     task: extractionType,
-    userId,
+    user_id: userId,
   });
 
   const content = result.response.choices[0].message.content;
@@ -1225,9 +1209,9 @@ Rules:
 
     await logAIUsage({
       model: 'sonar-pro',
-      tokens: result.response.usage?.total_tokens || 1000,
-      task: 'extract_education',
-      userId: params.userId,
+      input_tokens: result.response.usage?.prompt_tokens || 500,
+      output_tokens: result.response.usage?.completion_tokens || 500,
+      user_id: params.userId,
     });
 
     const content = result.response.choices[0].message.content;
@@ -1309,9 +1293,9 @@ Return STRICT JSON with this structure:
 
     await logAIUsage({
       model: 'sonar-pro',
-      tokens: response.usage?.total_tokens || 2000,
-      task: 'fetch_industry_benchmarks',
-      userId: params.userId,
+      input_tokens: response.usage?.prompt_tokens || 1000,
+      output_tokens: response.usage?.completion_tokens || 1000,
+      user_id: params.userId,
     });
 
     const content = response.choices[0].message.content;
@@ -1412,9 +1396,9 @@ CRITICAL RULES:
 
     await logAIUsage({
       model: 'sonar-pro',
-      tokens: response.usage?.total_tokens || 3000,
-      task: 'compare_resume_benchmark',
-      userId: params.userId,
+      input_tokens: response.usage?.prompt_tokens || 1500,
+      output_tokens: response.usage?.completion_tokens || 1500,
+      user_id: params.userId,
     });
 
     const content = response.choices[0].message.content;
@@ -1502,9 +1486,9 @@ Return ONLY valid JSON (no markdown):
 
     await logAIUsage({
       model: 'sonar-pro',
-      tokens: result.response.usage?.total_tokens || 1500,
-      task: 'extract_career_context',
-      userId: params.userId,
+      input_tokens: result.response.usage?.prompt_tokens || 750,
+      output_tokens: result.response.usage?.completion_tokens || 750,
+      user_id: params.userId,
     });
 
     const content = result.response.choices[0].message.content;

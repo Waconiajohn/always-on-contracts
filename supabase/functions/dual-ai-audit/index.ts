@@ -72,7 +72,7 @@ serve(async (req) => {
           taskType: 'analysis',
           complexity: 'medium',
           requiresReasoning: true,
-          outputLength: 'long'
+          requiresReasoning: true
         }),
         temperature: 0.7,
       },
@@ -104,7 +104,7 @@ serve(async (req) => {
           taskType: 'analysis',
           complexity: 'high',
           requiresReasoning: true,
-          outputLength: 'long'
+          requiresReasoning: true
         }),
         temperature: 0.2,
       },
@@ -136,7 +136,7 @@ serve(async (req) => {
           taskType: 'generation',
           complexity: 'medium',
           requiresReasoning: true,
-          outputLength: 'medium'
+          requiresReasoning: false
         }),
         temperature: 0.5,
       },
