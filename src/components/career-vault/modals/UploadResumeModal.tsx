@@ -17,6 +17,14 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  // Reset file state when modal closes
+  const handleClose = () => {
+    if (!isUploading) {
+      setFile(null);
+      onClose();
+    }
+  };
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -119,8 +127,8 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md" key={file?.name || 'no-file'}>
         <DialogHeader>
           <DialogTitle>Upload Your Resume</DialogTitle>
           <DialogDescription>
@@ -138,11 +146,11 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
           onDrop={handleDrop}
         >
           {file ? (
-            <div className="space-y-4">
+            <div className="space-y-4" key={file.name}>
               <FileText className="w-12 h-12 mx-auto text-indigo-600" />
               <div>
-                <p className="font-medium text-slate-900">{file.name}</p>
-                <p className="text-sm text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
+                <p className="font-medium text-slate-900" data-testid="filename-display">{file.name}</p>
+                <p className="text-sm text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
               <Button
                 onClick={() => setFile(null)}
