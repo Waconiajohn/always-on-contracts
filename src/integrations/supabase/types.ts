@@ -766,6 +766,9 @@ export type Database = {
           auto_populated: boolean | null
           auto_population_confidence: string | null
           benchmark_comparison: Json | null
+          benchmark_generated_at: string | null
+          benchmark_role_level: string | null
+          benchmark_standard: Json | null
           career_direction: string | null
           created_at: string
           excluded_industries: string[] | null
@@ -809,6 +812,9 @@ export type Database = {
           auto_populated?: boolean | null
           auto_population_confidence?: string | null
           benchmark_comparison?: Json | null
+          benchmark_generated_at?: string | null
+          benchmark_role_level?: string | null
+          benchmark_standard?: Json | null
           career_direction?: string | null
           created_at?: string
           excluded_industries?: string[] | null
@@ -852,6 +858,9 @@ export type Database = {
           auto_populated?: boolean | null
           auto_population_confidence?: string | null
           benchmark_comparison?: Json | null
+          benchmark_generated_at?: string | null
+          benchmark_role_level?: string | null
+          benchmark_standard?: Json | null
           career_direction?: string | null
           created_at?: string
           excluded_industries?: string[] | null
