@@ -81,8 +81,6 @@ serve(async (req) => {
 
     console.log('🧠 STRATEGIC ENHANCEMENT: Starting deep AI reasoning for vault:', vaultId);
 
-    const vaultStrengthBefore = vault.data?.vault_strength_after_qa || vault.data?.vault_strength_before_qa || 0;
-
     // Fetch ALL vault data for comprehensive analysis
     const [
       vault,
@@ -119,6 +117,8 @@ serve(async (req) => {
       supabase.from('vault_professional_network').select('*').eq('vault_id', vaultId),
       supabase.from('vault_competitive_advantages').select('*').eq('vault_id', vaultId),
     ]);
+
+    const vaultStrengthBefore = vault.data?.vault_strength_after_qa || vault.data?.vault_strength_before_qa || 0;
 
     // Build creative AI strategic enhancement prompt
     const prompt = `You are an elite AI career strategist with deep reasoning capabilities. Use your creativity to strategically enhance THIS specific career vault.
