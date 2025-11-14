@@ -111,8 +111,7 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
           .from('career_vault')
           .update({
             resume_raw_text: text,
-            onboarding_step: 'processing',
-            updated_at: new Date().toISOString()
+            onboarding_step: 'processing'
           })
           .eq('id', vaultId);
       } else {
