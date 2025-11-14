@@ -240,6 +240,27 @@ export async function callPerplexity(
 }
 
 /**
+ * Clean markdown formatting from text
+ */
+export function cleanMarkdownFormatting(text: string): string {
+  if (!text) return '';
+  
+  // Remove bold
+  text = text.replace(/\*\*(.*?)\*\*/g, '$1');
+  
+  // Remove italic
+  text = text.replace(/\*(.*?)\*/g, '$1');
+  
+  // Remove inline code
+  text = text.replace(/`(.*?)`/g, '$1');
+  
+  // Remove headers
+  text = text.replace(/^#{1,6}\s+/gm, '');
+  
+  return text.trim();
+}
+
+/**
  * Clean citation markers from Perplexity output
  * Use this for generation tasks where citations are unwanted
  */
@@ -248,6 +269,9 @@ export function cleanCitations(text: string): string {
   
   // Remove citation numbers like [1], [2], etc.
   cleaned = cleaned.replace(/\[\d+\]/g, '');
+  
+  // Remove UUID citations [abc-123-def...]
+  cleaned = cleaned.replace(/\[[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\]/gi, '');
   
   // Remove "According to X," patterns
   cleaned = cleaned.replace(/According to [^,]+,\s*/gi, '');
@@ -258,6 +282,9 @@ export function cleanCitations(text: string): string {
   
   // Remove "Source:" patterns
   cleaned = cleaned.replace(/Source:\s*[^\n]+\n?/gi, '');
+  
+  // Clean markdown formatting
+  cleaned = cleanMarkdownFormatting(cleaned);
   
   // Clean up extra whitespace
   cleaned = cleaned.replace(/\s+/g, ' ').trim();

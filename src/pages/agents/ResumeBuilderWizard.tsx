@@ -19,6 +19,7 @@ import { GenerationModeSelector } from "@/components/resume-builder/GenerationMo
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
+import { formatResumeContent } from "@/lib/resumeFormatting";
 
 type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
 
@@ -554,6 +555,22 @@ const ResumeBuilderWizardContent = () => {
       const requiredSections = sections.filter(s => s.required);
       const totalSections = requiredSections.length;
 
+      // Check if vault has work positions before generating
+      const { data: vaultCheck } = await supabase
+        .from('vault_work_positions')
+        .select('id')
+        .limit(1);
+
+      if (!vaultCheck || vaultCheck.length === 0) {
+        toast({
+          title: "Career Vault Empty",
+          description: "Please upload and analyze your resume first to populate your career vault.",
+          variant: "destructive"
+        });
+        store.setGeneratingSection(null);
+        return;
+      }
+
       // Generate all sections in parallel for speed
       const generationPromises = requiredSections.map(async (section) => {
         store.setGeneratingSection(section.type);
@@ -661,10 +678,33 @@ const ResumeBuilderWizardContent = () => {
   };
 
   const analyzeATSScore = async () => {
-    if (!resumeSections || resumeSections.length === 0 || !jobAnalysis?.originalJobDescription) {
+    if (!resumeSections || resumeSections.length === 0) {
       toast({
         title: "Cannot analyze ATS score",
-        description: "Missing resume content or job description",
+        description: "No resume sections generated yet. Generate your resume first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!jobAnalysis?.originalJobDescription) {
+      toast({
+        title: "Cannot analyze ATS score",
+        description: "Job description is missing. Please re-analyze the job posting.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if sections have actual content
+    const hasContent = resumeSections.some(s => 
+      Array.isArray(s.content) && s.content.length > 0
+    );
+    
+    if (!hasContent) {
+      toast({
+        title: "Cannot analyze ATS score",
+        description: "Resume sections are empty. This may indicate your career vault needs to be populated first.",
         variant: "destructive"
       });
       return;
@@ -673,11 +713,13 @@ const ResumeBuilderWizardContent = () => {
     setAnalyzingATS(true);
 
     try {
-      // Convert resume sections to plain text for analysis
+      // Convert resume sections to plain text for analysis with formatting cleanup
       const resumeContent = resumeSections.map(section => {
         const items = Array.isArray(section.content) 
-          ? section.content.map((item: any) => item.content || item).join('\n')
-          : section.content;
+          ? section.content
+              .map((item: any) => formatResumeContent(item.content || item))
+              .join('\n')
+          : formatResumeContent(section.content);
         return `${section.title.toUpperCase()}\n${items}`;
       }).join('\n\n');
 
@@ -769,7 +811,11 @@ const ResumeBuilderWizardContent = () => {
         sections: resumeSections.map(section => ({
           title: section.title,
           type: section.type,
-          content: section.content.map((item: any) => item.content || item)
+          content: Array.isArray(section.content)
+            ? section.content
+                .map((item: any) => formatResumeContent(item.content || item))
+                .join('\n')
+            : formatResumeContent(section.content)
         }))
       };
 
