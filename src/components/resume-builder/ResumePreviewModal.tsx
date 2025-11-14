@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Download, X, TrendingUp, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatResumeContent } from "@/lib/resumeFormatting";
 
 interface ResumeSection {
   id: string;
@@ -58,22 +59,28 @@ export const ResumePreviewModal = ({
 
   const renderSectionContent = (content: any) => {
     if (typeof content === 'string') {
-      return <p className="text-sm leading-relaxed whitespace-pre-line">{content}</p>;
+      const cleaned = formatResumeContent(content);
+      return <p className="text-sm leading-relaxed whitespace-pre-line">{cleaned}</p>;
     } else if (Array.isArray(content)) {
       return (
         <ul className="space-y-2">
-          {content.map((item: any, idx: number) => (
-            <li key={idx} className="text-sm flex items-start gap-2">
-              <span className="text-primary mt-0.5">•</span>
-              <span>{typeof item === 'string' ? item : item.content || JSON.stringify(item)}</span>
-            </li>
-          ))}
+          {content.map((item: any, idx: number) => {
+            const text = typeof item === 'string' ? item : item.content || JSON.stringify(item);
+            const cleaned = formatResumeContent(text);
+            return (
+              <li key={idx} className="text-sm flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span>{cleaned}</span>
+              </li>
+            );
+          })}
         </ul>
       );
     } else if (typeof content === 'object' && content.content) {
       return renderSectionContent(content.content);
     }
-    return <pre className="text-xs">{JSON.stringify(content, null, 2)}</pre>;
+    const cleaned = formatResumeContent(JSON.stringify(content, null, 2));
+    return <pre className="text-xs">{cleaned}</pre>;
   };
 
   const completedSections = sections.filter(s => s.content && 

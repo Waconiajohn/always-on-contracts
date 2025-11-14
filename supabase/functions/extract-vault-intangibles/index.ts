@@ -23,6 +23,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 interface IntangiblesRequest {
   resumeText: string;
@@ -562,7 +563,7 @@ RETURN VALID JSON (or empty array if none found):
     }, 'extract-thought-leadership', user.id);
 
     await logAIUsage(thoughtMetrics);
-    const thoughtData = extractJSON(thoughtResponse, 'thoughtLeadership');
+    const thoughtData = extractJSON(thoughtResponse);
     const thoughtItems = thoughtData?.thoughtLeadership || [];
 
     if (thoughtItems.length > 0) {
@@ -631,7 +632,7 @@ RETURN VALID JSON (or empty array if none found):
     }, 'extract-professional-network', user.id);
 
     await logAIUsage(networkMetrics);
-    const networkData = extractJSON(networkResponse, 'professionalNetwork');
+    const networkData = extractJSON(networkResponse);
     const networkItems = networkData?.professionalNetwork || [];
 
     if (networkItems.length > 0) {
@@ -699,7 +700,7 @@ RETURN VALID JSON with 3-5 strongest differentiators:
     }, 'extract-competitive-advantages', user.id);
 
     await logAIUsage(advantagesMetrics);
-    const advantagesData = extractJSON(advantagesResponse, 'competitiveAdvantages');
+    const advantagesData = extractJSON(advantagesResponse);
     const advantageItems = advantagesData?.competitiveAdvantages || [];
 
     if (advantageItems.length > 0) {
