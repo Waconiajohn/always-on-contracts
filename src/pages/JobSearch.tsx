@@ -42,12 +42,6 @@ interface JobResult {
   employment_type?: string | null;
   match_score?: number | null;
   required_skills?: string[] | null;
-  vault_match?: {
-    score: number;
-    matching_skills: string[];
-    hidden_strengths: string[];
-    recommendation: string;
-  };
 }
 
 const JobSearchContent = () => {
@@ -63,8 +57,6 @@ const JobSearchContent = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState<number | null>(null);
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
-  const [useVaultMatching] = useState(true); // Phase 2: Auto-enable vault matching
-  const [isCalculatingMatches, setIsCalculatingMatches] = useState(false);
   
   // Filters
   const [dateFilter, setDateFilter] = useState<string>('30d');
@@ -180,60 +172,6 @@ const JobSearchContent = () => {
 
   // Removed: loadVaultData - now handled by useJobTitleRecommendations hook
 
-  // Phase 2: Calculate vault-based match scores for jobs (TEMPORARILY DISABLED due to edge function issues)
-  const calculateVaultMatches = async (jobsList: JobResult[]) => {
-    if (!userId) return;
-    
-    setIsCalculatingMatches(true);
-    try {
-      console.log('[Job Search] Vault matching temporarily disabled');
-      setIsCalculatingMatches(false);
-      return; // Skip vault matching for now
-      
-      // Call ai-job-matcher for top 10 jobs
-      const topJobs = jobsList.slice(0, 10);
-      
-      for (const job of topJobs) {
-        const { data, error } = await invokeEdgeFunction(
-          'ai-job-matcher',
-          {
-            userId,
-            jobOpportunities: [{
-              id: job.id,
-              job_title: job.title,
-              job_description: job.description || '',
-              required_skills: job.required_skills || [],
-              location: job.location || '',
-              hourly_rate_min: job.salary_min || 0,
-              hourly_rate_max: job.salary_max || 0
-            }]
-          }
-        );
-
-        if (!error && data?.matches?.[0]) {
-          const match = data.matches[0];
-          setJobs(prev => prev.map(j => 
-            j.id === job.id 
-              ? {
-                  ...j,
-                  vault_match: {
-                    score: match.match_score,
-                    matching_skills: match.matching_skills,
-                    hidden_strengths: match.hidden_strengths,
-                    recommendation: match.ai_recommendation
-                  }
-                }
-              : j
-          ));
-        }
-      }
-    } catch (error) {
-      logger.error('Error calculating vault matches', error);
-    } finally {
-      setIsCalculatingMatches(false);
-    }
-  };
-
   const handleSearch = async (isBooleanSearch = false, loadMore = false) => {
     if (!searchQuery.trim()) {
       toast({
@@ -289,11 +227,6 @@ const JobSearchContent = () => {
         setJobs(prev => [...prev, ...newJobs]);
       } else {
         setJobs(newJobs);
-        
-        // Phase 2: Calculate vault-based match scores if enabled
-        if (useVaultMatching && newJobs.length > 0 && userId) {
-          calculateVaultMatches(newJobs);
-        }
       }
       
       setSearchTime(data.executionTimeMs);
@@ -951,23 +884,6 @@ const JobSearchContent = () => {
           </Card>
         )}
 
-        {/* Vault Matching Progress - Phase 2 */}
-        {isCalculatingMatches && (
-          <Card className="mb-6 border-purple-500 bg-purple-50 dark:bg-purple-950">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-                <div className="flex-1">
-                  <p className="font-medium text-purple-900 dark:text-purple-100">Calculating Vault-Based Match Scores...</p>
-                  <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
-                    Analyzing how your Career Vault aligns with these opportunities
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Results Header */}
         {jobs.length > 0 && (
           <div className="mb-4 space-y-3">
@@ -1125,56 +1041,6 @@ const JobSearchContent = () => {
                           </>
                         )}
                       </div>
-                    )}
-
-                    {/* Phase 2: Vault Match Display */}
-                    {job.vault_match && (
-                      <Card className="mb-4 border-purple-200 bg-purple-50 dark:bg-purple-950 dark:border-purple-800">
-                        <CardContent className="pt-4 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-purple-600" />
-                            <h4 className="font-semibold text-sm text-purple-900 dark:text-purple-100">
-                              Vault-Based Match: {job.vault_match.score}%
-                            </h4>
-                          </div>
-                          
-                          {job.vault_match.matching_skills.length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-purple-800 dark:text-purple-200 mb-1">
-                                Matching Skills from Your Vault:
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {job.vault_match.matching_skills.slice(0, 5).map((skill, idx) => (
-                                  <Badge key={idx} variant="outline" className="text-xs bg-white dark:bg-purple-900">
-                                    {skill}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {job.vault_match.hidden_strengths.length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-purple-800 dark:text-purple-200 mb-1">
-                                Hidden Strengths:
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {job.vault_match.hidden_strengths.slice(0, 3).map((strength, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
-                                    {strength}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {job.vault_match.recommendation && (
-                            <p className="text-xs text-purple-700 dark:text-purple-300 italic">
-                              {job.vault_match.recommendation}
-                            </p>
-                          )}
-                        </CardContent>
-                      </Card>
                     )}
 
                     <div className="flex flex-wrap gap-2">
