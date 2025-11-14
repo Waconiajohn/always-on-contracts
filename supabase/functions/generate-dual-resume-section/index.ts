@@ -69,6 +69,23 @@ serve(async (req) => {
 
     console.log(`Generating dual versions for ${section_type}`);
 
+    // SAFETY CHECK: Prevent hallucination when vault is empty
+    const isDataRequiredSection = ['experience', 'work_history', 'professional_experience', 'employment', 'education', 'academic_background'].includes(section_type);
+    
+    if (isDataRequiredSection && resume_milestones.length === 0 && vault_items.length === 0) {
+      console.error(`⚠️ SAFETY CHECK FAILED: Cannot generate ${section_type} without resume data`);
+      return new Response(
+        JSON.stringify({
+          error: 'INSUFFICIENT_DATA',
+          message: 'Your career vault needs to be populated before generating resume sections. Please complete the vault setup first.',
+          section_type
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

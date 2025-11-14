@@ -84,8 +84,7 @@ Return JSON array:
           model: selectOptimalModel({
             taskType: 'analysis',
             complexity: 'high',
-            requiresReasoning: true,
-            outputLength: 'medium'
+            requiresReasoning: true
           }),
           temperature: 0.6,
           max_tokens: 2000,
@@ -123,7 +122,7 @@ Return JSON array:
       success: true
     });
 
-    const insertPromises = competencies.map((comp: any) =>
+    const insertPromises = (competencies || []).map((comp: any) =>
       supabase.from('vault_hidden_competencies').insert({
         vault_id: vaultId,
         user_id: vault.user_id,
@@ -138,7 +137,7 @@ Return JSON array:
     await Promise.all(insertPromises);
 
     return new Response(
-      JSON.stringify({ success: true, count: competencies.length }),
+      JSON.stringify({ success: true, count: competencies?.length || 0 }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

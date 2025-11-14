@@ -147,7 +147,7 @@ RETURN VALID JSON ONLY:
         taskType: 'extraction',
         complexity: 'high',
         requiresReasoning: true,
-        outputLength: 'medium'
+        requiresReasoning: false
       }),
       temperature: 0.4,
       max_tokens: 2000,
@@ -226,7 +226,7 @@ RETURN VALID JSON ONLY:
         taskType: 'extraction',
         complexity: 'high',
         requiresReasoning: true,
-        outputLength: 'medium'
+        requiresReasoning: false
       }),
       temperature: 0.4,
       max_tokens: 2000,
@@ -296,7 +296,7 @@ RETURN VALID JSON ONLY:
         taskType: 'extraction',
         complexity: 'medium',
         requiresReasoning: true,
-        outputLength: 'medium'
+        requiresReasoning: false
       }),
       temperature: 0.4,
       max_tokens: 2000,
@@ -361,7 +361,7 @@ RETURN VALID JSON ONLY:
         taskType: 'extraction',
         complexity: 'low',
         requiresReasoning: false,
-        outputLength: 'short'
+        requiresReasoning: false
       }),
       temperature: 0.4,
       max_tokens: 1500,
@@ -425,7 +425,7 @@ RETURN VALID JSON ONLY:
         taskType: 'extraction',
         complexity: 'medium',
         requiresReasoning: true,
-        outputLength: 'short'
+        requiresReasoning: false
       }),
       temperature: 0.4,
       max_tokens: 1500,
@@ -491,7 +491,7 @@ RETURN VALID JSON ONLY:
         taskType: 'extraction',
         complexity: 'medium',
         requiresReasoning: true,
-        outputLength: 'short'
+        requiresReasoning: false
       }),
       temperature: 0.4,
       max_tokens: 1500,
@@ -557,7 +557,7 @@ RETURN VALID JSON (or empty array if none found):
 
     const { response: thoughtResponse, metrics: thoughtMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: thoughtLeadershipPrompt }],
-      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false, outputLength: 'medium' }),
+      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false }),
       temperature: 0.3,
     }, 'extract-thought-leadership', user.id);
 

@@ -196,7 +196,7 @@ export async function orchestrateExtraction(
                        result.data.powerPhrases ||
                        result.data;
 
-      extractedData[passType as keyof typeof extractedData] = Array.isArray(passData) ? passData : [];
+      (extractedData as any)[passType] = Array.isArray(passData) ? passData : [];
 
       // Track metrics
       totalRetries += result.metadata.attempts - 1;

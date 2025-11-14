@@ -45,9 +45,7 @@ Focus on actionable, specific insights that would help someone build a competiti
         model: selectOptimalModel({
           taskType: 'research',
           complexity: 'high',
-          requiresAccuracy: true,
-          needsSearch: true,
-          outputLength: 'medium'
+          requiresReasoning: true
         }),
         temperature: 0.2,
         max_tokens: 2000

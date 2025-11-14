@@ -236,7 +236,7 @@ serve(async (req) => {
           taskType: 'generation',
           complexity: 'medium',
           requiresReasoning: true,
-          outputLength: 'medium'
+          requiresReasoning: true
         }),
         temperature: 0.7,
         max_tokens: 1000,
