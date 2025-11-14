@@ -147,8 +147,7 @@ RETURN VALID JSON ONLY:
       model: selectOptimalModel({
         taskType: 'extraction',
         complexity: 'high',
-        requiresReasoning: true,
-        requiresReasoning: false
+        requiresReasoning: true
       }),
       temperature: 0.4,
       max_tokens: 2000,
@@ -226,8 +225,7 @@ RETURN VALID JSON ONLY:
       model: selectOptimalModel({
         taskType: 'extraction',
         complexity: 'high',
-        requiresReasoning: true,
-        requiresReasoning: false
+        requiresReasoning: true
       }),
       temperature: 0.4,
       max_tokens: 2000,
@@ -296,8 +294,7 @@ RETURN VALID JSON ONLY:
       model: selectOptimalModel({
         taskType: 'extraction',
         complexity: 'medium',
-        requiresReasoning: true,
-        requiresReasoning: false
+        requiresReasoning: true
       }),
       temperature: 0.4,
       max_tokens: 2000,
@@ -361,7 +358,6 @@ RETURN VALID JSON ONLY:
       model: selectOptimalModel({
         taskType: 'extraction',
         complexity: 'low',
-        requiresReasoning: false,
         requiresReasoning: false
       }),
       temperature: 0.4,
@@ -425,8 +421,7 @@ RETURN VALID JSON ONLY:
       model: selectOptimalModel({
         taskType: 'extraction',
         complexity: 'medium',
-        requiresReasoning: true,
-        requiresReasoning: false
+        requiresReasoning: true
       }),
       temperature: 0.4,
       max_tokens: 1500,
@@ -491,8 +486,7 @@ RETURN VALID JSON ONLY:
       model: selectOptimalModel({
         taskType: 'extraction',
         complexity: 'medium',
-        requiresReasoning: true,
-        requiresReasoning: false
+        requiresReasoning: true
       }),
       temperature: 0.4,
       max_tokens: 1500,
@@ -563,8 +557,9 @@ RETURN VALID JSON (or empty array if none found):
     }, 'extract-thought-leadership', user.id);
 
     await logAIUsage(thoughtMetrics);
-    const thoughtData = extractJSON(thoughtResponse);
-    const thoughtItems = thoughtData?.thoughtLeadership || [];
+    const thoughtContent = thoughtResponse.choices[0].message.content;
+    const thoughtData: any = extractJSON(thoughtContent);
+    const thoughtItems = Array.isArray(thoughtData) ? thoughtData : (thoughtData?.thoughtLeadership || []);
 
     if (thoughtItems.length > 0) {
       const thoughtInserts = thoughtItems.map((item: any) => ({
@@ -627,13 +622,14 @@ RETURN VALID JSON (or empty array if none found):
 
     const { response: networkResponse, metrics: networkMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: networkPrompt }],
-      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false, outputLength: 'medium' }),
+      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false }),
       temperature: 0.3,
     }, 'extract-professional-network', user.id);
 
     await logAIUsage(networkMetrics);
-    const networkData = extractJSON(networkResponse);
-    const networkItems = networkData?.professionalNetwork || [];
+    const networkContent = networkResponse.choices[0].message.content;
+    const networkData: any = extractJSON(networkContent);
+    const networkItems = Array.isArray(networkData) ? networkData : (networkData?.professionalNetwork || []);
 
     if (networkItems.length > 0) {
       const networkInserts = networkItems.map((item: any) => ({
@@ -695,13 +691,14 @@ RETURN VALID JSON with 3-5 strongest differentiators:
 
     const { response: advantagesResponse, metrics: advantagesMetrics } = await callPerplexity({
       messages: [{ role: 'user', content: advantagesPrompt }],
-      model: selectOptimalModel({ taskType: 'extraction', complexity: 'high', requiresReasoning: true, outputLength: 'medium' }),
+      model: selectOptimalModel({ taskType: 'extraction', complexity: 'high', requiresReasoning: true }),
       temperature: 0.4,
     }, 'extract-competitive-advantages', user.id);
 
     await logAIUsage(advantagesMetrics);
-    const advantagesData = extractJSON(advantagesResponse);
-    const advantageItems = advantagesData?.competitiveAdvantages || [];
+    const advantagesContent = advantagesResponse.choices[0].message.content;
+    const advantagesData: any = extractJSON(advantagesContent);
+    const advantageItems = Array.isArray(advantagesData) ? advantagesData : (advantagesData?.competitiveAdvantages || []);
 
     if (advantageItems.length > 0) {
       const advantageInserts = advantageItems.map((item: any) => ({
@@ -769,12 +766,13 @@ RETURN VALID JSON with 3-5 strongest differentiators:
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in extract-vault-intangibles:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
         userMessage: 'We encountered an issue extracting intangible qualities. Please try again.',
       }),
       {

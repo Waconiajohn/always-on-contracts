@@ -9,7 +9,7 @@ export class ProgressTracker {
   private supabase: SupabaseClient;
   private startTime: number;
 
-  constructor(vaultId: string, supabase: SupabaseClient) {
+  constructor(vaultId: string, supabase: SupabaseClient<any, any, any>) {
     this.vaultId = vaultId;
     this.supabase = supabase;
     this.startTime = Date.now();

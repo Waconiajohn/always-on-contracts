@@ -235,7 +235,6 @@ serve(async (req) => {
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'medium',
-          requiresReasoning: true,
           requiresReasoning: true
         }),
         temperature: 0.7,
