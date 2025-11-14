@@ -69,6 +69,7 @@ export const AutoPopulateStep = ({
 
   const handleCompletionCheck = async () => {
     try {
+      // Fetch vault data and item counts
       const { data: vaultData, error: vaultError } = await supabase
         .from('career_vault')
         .select('extraction_item_count, auto_populated')
@@ -80,17 +81,38 @@ export const AutoPopulateStep = ({
         return;
       }
 
-      if (vaultData?.auto_populated && (vaultData.extraction_item_count || 0) > 0) {
+      // Fetch actual item counts from vault tables
+      const [powerPhrasesResult, skillsResult, competenciesResult, softSkillsResult] = await Promise.all([
+        supabase.from('vault_power_phrases' as any).select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+        supabase.from('vault_skills' as any).select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+        supabase.from('vault_competencies' as any).select('id', { count: 'exact', head: true }).eq('vault_id', vaultId),
+        supabase.from('vault_soft_skills' as any).select('id', { count: 'exact', head: true }).eq('vault_id', vaultId)
+      ]);
+
+      const totalItems = (vaultData?.extraction_item_count || 0);
+      const powerPhrasesCount = powerPhrasesResult.count || 0;
+      const skillsCount = skillsResult.count || 0;
+      const competenciesCount = competenciesResult.count || 0;
+      const softSkillsCount = softSkillsResult.count || 0;
+
+      if (vaultData?.auto_populated && totalItems > 0) {
         setStatus('success');
         setExtractedData({
-          totalItems: vaultData.extraction_item_count,
-          success: true
+          totalItems,
+          success: true,
+          extracted: {
+            total: totalItems,
+            powerPhrasesCount,
+            skillsCount,
+            competenciesCount,
+            softSkillsCount
+          }
         });
         
         showNotification({
           type: 'success',
           title: '✅ Vault Population Complete',
-          description: `Successfully extracted ${vaultData.extraction_item_count} career intelligence items!`,
+          description: `Successfully extracted ${totalItems} career intelligence items!`,
           duration: 5000
         });
       }
