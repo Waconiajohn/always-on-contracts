@@ -180,12 +180,16 @@ const JobSearchContent = () => {
 
   // Removed: loadVaultData - now handled by useJobTitleRecommendations hook
 
-  // Phase 2: Calculate vault-based match scores for jobs
+  // Phase 2: Calculate vault-based match scores for jobs (TEMPORARILY DISABLED due to edge function issues)
   const calculateVaultMatches = async (jobsList: JobResult[]) => {
     if (!userId) return;
     
     setIsCalculatingMatches(true);
     try {
+      console.log('[Job Search] Vault matching temporarily disabled');
+      setIsCalculatingMatches(false);
+      return; // Skip vault matching for now
+      
       // Call ai-job-matcher for top 10 jobs
       const topJobs = jobsList.slice(0, 10);
       
