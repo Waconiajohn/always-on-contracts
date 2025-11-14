@@ -65,7 +65,7 @@ export default function UnifiedCareerVault() {
       setVaultId(vault.id);
 
       // Check if we actually have extracted data
-      const hasExtractedData = (vault.extraction_item_count || 0) > 0 || vault.auto_populated;
+      const hasExtractedData = ((vault.extraction_item_count || 0) > 0 || !!vault.auto_populated);
       setHasData(hasExtractedData);
 
       // Vault exists and has resume → Ready state (show dashboard)
