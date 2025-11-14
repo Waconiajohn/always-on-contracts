@@ -18,6 +18,7 @@ import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { extractStructuredResumeData, analyzeGapsWithAI, type StructuredResumeData } from '../_shared/extraction/ai-structured-extractor.ts';
 import { ProgressTracker } from '../_shared/progress-tracker.ts';
+import { createLogger } from '../_shared/logger.ts';
 
 interface AutoPopulateRequest {
   resumeText: string;
@@ -145,7 +146,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const logger = createLogger('auto-populate-vault-v3');
+  const overallStartTime = Date.now();
+
   try {
+    logger.info('Extraction request received');
+    
     const { resumeText, vaultId, targetRoles, targetIndustries, mode = 'full' } =
       await req.json() as AutoPopulateRequest;
 
@@ -175,22 +181,29 @@ serve(async (req) => {
     // Initialize progress tracker
     const tracker = new ProgressTracker(vaultId, supabase);
 
-    console.log('\n🚀 AUTO-POPULATE VAULT V3-PARALLEL (Optimized for Speed)');
-    console.log(`User: ${userId}`);
-    console.log(`Vault: ${vaultId}`);
-    console.log(`Resume length: ${resumeText.length} chars`);
+    logger.info('Starting vault extraction', {
+      userId,
+      vaultId,
+      resumeLength: resumeText.length,
+      hasTargetRoles: !!targetRoles?.length,
+      hasTargetIndustries: !!targetIndustries?.length,
+      mode
+    });
 
     await tracker.updateProgress('initialization', 5, 'Starting career vault extraction...');
 
     // ========================================================================
     // PHASE 1: Parse Resume Structure (Fast)
     // ========================================================================
-    console.log('\n📄 PHASE 1: Parsing resume structure...');
+    logger.info('Phase 1: Starting resume parsing');
+    const parseStartTime = Date.now();
+    
     const resumeStructure = parseResumeStructure(resumeText);
     
-    console.log(`✅ Parsed ${resumeStructure.sections.length} sections:`);
-    resumeStructure.sections.forEach(section => {
-      console.log(`   - ${section.type}: ${section.wordCount} words`);
+    logger.info('Phase 1 complete', {
+      duration_ms: Date.now() - parseStartTime,
+      sectionsFound: resumeStructure.sections.length,
+      totalWords: resumeStructure.sections.reduce((sum, s) => sum + s.wordCount, 0)
     });
 
     await tracker.updateProgress('parsing', 10, `Parsed ${resumeStructure.sections.length} resume sections`);
@@ -199,19 +212,19 @@ serve(async (req) => {
     // ========================================================================
     // PHASE 2: PARALLEL AI EXTRACTION (NEW - 50% FASTER!)
     // ========================================================================
-    console.log('\n⚡ PHASE 2: Parallel AI extraction (structured data + role detection)...');
+    logger.info('Phase 2: Starting parallel AI extraction');
     await tracker.updateProgress('ai_extraction', 15, 'Running parallel AI analysis...');
 
     let structuredData: StructuredResumeData | null = null;
     let roleInfo: RoleInfo;
 
     try {
-      const startTime = Date.now();
+      const phase2StartTime = Date.now();
       
       // Run both AI operations in parallel (saves ~15s)
       const [extractedData, detectedRoleInfo] = await Promise.all([
-        extractStructuredResumeData(resumeText, userId),
-        Promise.resolve(detectRoleAndIndustry(resumeText, resumeStructure))
+        logger.time('extract_structured_data', () => extractStructuredResumeData(resumeText, userId)),
+        logger.time('detect_role_industry', () => Promise.resolve(detectRoleAndIndustry(resumeText, resumeStructure)))
       ]);
 
       structuredData = extractedData;
@@ -225,10 +238,14 @@ serve(async (req) => {
           }
         : detectedRoleInfo;
 
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`✅ Parallel extraction complete in ${duration}s`);
-      console.log(`   📊 Overall confidence: ${structuredData.extractionMetadata.overallConfidence}%`);
-      console.log(`   🎯 Role: ${roleInfo.primaryRole} | Industry: ${roleInfo.industry}`);
+      logger.info('Phase 2 complete', {
+        duration_ms: Date.now() - phase2StartTime,
+        overallConfidence: structuredData.extractionMetadata.overallConfidence,
+        rolesExtracted: structuredData.experience.roles.length,
+        degreesExtracted: structuredData.education.degrees.length,
+        detectedRole: roleInfo.primaryRole,
+        detectedIndustry: roleInfo.industry
+      });
       
       await tracker.updateProgress('ai_extraction', 35, `AI analysis complete: ${structuredData.experience.roles.length} roles found`);
       await tracker.saveCheckpoint('ai_extraction_complete', {
@@ -237,7 +254,7 @@ serve(async (req) => {
         degreesCount: structuredData.education.degrees.length
       });
     } catch (error) {
-      console.error('❌ Parallel AI extraction failed:', error);
+      logger.error('Phase 2 failed', error as Error, { resumeLength: resumeText.length });
       await tracker.logError('ai_extraction', error as Error, { resumeLength: resumeText.length });
       throw new Error(`Resume extraction failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -659,7 +676,8 @@ serve(async (req) => {
     // ========================================================================
     // PHASE 6: STORE AI-FIRST STRUCTURED DATA
     // ========================================================================
-    console.log('\n💾 PHASE 6: Storing career context...');
+    logger.info('Phase 6: Starting career context storage');
+    const phase6StartTime = Date.now();
     await tracker.updateProgress('storing_context', 85, 'Saving career context...');
 
     // Store career context from AI-first extraction
@@ -712,9 +730,14 @@ serve(async (req) => {
       });
 
     if (contextError) {
-      console.error('❌ Error storing career context:', contextError);
+      logger.error('Failed to store career context', contextError as Error);
     } else {
-      console.log('✅ Stored AI-first career context successfully!');
+      logger.info('Phase 6 complete', {
+        duration_ms: Date.now() - phase6StartTime,
+        educationLevel: contextPayload.education_level,
+        yearsExperience: contextPayload.years_of_experience,
+        hasManagement: contextPayload.has_management_experience
+      });
     }
 
     // Update vault metadata
@@ -738,7 +761,8 @@ serve(async (req) => {
     // ========================================================================
     // PHASE 7: FAST QUALITY CHECK (Background Task)
     // ========================================================================
-    console.log('\n🔍 PHASE 7: Running fast quality check...');
+    logger.info('Phase 7: Starting quality check');
+    const phase7StartTime = Date.now();
     await tracker.updateProgress('quality_check', 95, 'Running quality enhancement...');
 
     try {
@@ -756,19 +780,18 @@ serve(async (req) => {
 
       if (qualityCheckResponse.ok) {
         const qualityResult = await qualityCheckResponse.json();
-        console.log('✅ TIER 1 Creative Enhancement complete:', {
+        logger.info('Phase 7 complete', {
+          duration_ms: Date.now() - phase7StartTime,
           enhancementsApplied: qualityResult.data?.enhancementsApplied || 0,
-          enhancementsSkipped: qualityResult.data?.enhancementsSkipped || 0,
           vaultStrengthBefore: qualityResult.data?.vaultStrengthBefore || 0,
           vaultStrengthAfter: qualityResult.data?.vaultStrengthAfter || 0,
-          improvement: (qualityResult.data?.vaultStrengthAfter || 0) - (qualityResult.data?.vaultStrengthBefore || 0),
-          summary: qualityResult.data?.summary || 'No summary',
+          improvement: (qualityResult.data?.vaultStrengthAfter || 0) - (qualityResult.data?.vaultStrengthBefore || 0)
         });
       } else {
-        console.warn('⚠️ Quality check failed (non-critical):', await qualityCheckResponse.text());
+        logger.warn('Quality check returned non-OK status (non-critical)', { status: qualityCheckResponse.status });
       }
     } catch (qualityError) {
-      console.warn('⚠️ Quality check error (non-critical):', qualityError);
+      logger.warn('Quality check error (non-critical)', { error: qualityError });
       // Don't fail the entire extraction if quality check fails
     }
 
@@ -776,7 +799,19 @@ serve(async (req) => {
     // COMPLETE
     // ========================================================================
     await tracker.complete(totalItems);
-    console.log(`\n✅ EXTRACTION COMPLETE - ${totalItems} items extracted`);
+    
+    const totalDuration = Date.now() - overallStartTime;
+    logger.info('Extraction complete', {
+      totalItems,
+      totalDuration_ms: totalDuration,
+      itemsPerSecond: (totalItems / (totalDuration / 1000)).toFixed(2),
+      powerPhrases: allExtracted.powerPhrases.length,
+      skills: allExtracted.skills.length,
+      competencies: allExtracted.competencies.length,
+      softSkills: allExtracted.softSkills.length,
+      role: roleInfo?.primaryRole,
+      industry: roleInfo?.industry
+    });
 
     return new Response(
       JSON.stringify({
@@ -808,15 +843,24 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Auto-populate error:', error);
+    const errorDuration = Date.now() - overallStartTime;
+    logger.error('Extraction failed', error as Error, {
+      vaultId,
+      userId,
+      duration_ms: errorDuration,
+      resumeLength: resumeText?.length || 0
+    });
 
     // Log error if tracker was initialized
     if (typeof vaultId !== 'undefined' && typeof supabase !== 'undefined') {
       try {
         const errorTracker = new ProgressTracker(vaultId, supabase);
-        await errorTracker.logError('extraction_failed', error as Error, { resumeLength: resumeText?.length || 0 });
+        await errorTracker.logError('extraction_failed', error as Error, { 
+          resumeLength: resumeText?.length || 0,
+          duration_ms: errorDuration
+        });
       } catch (logError) {
-        console.error('Failed to log error:', logError);
+        logger.error('Failed to log error to database', logError as Error);
       }
     }
 

@@ -26,8 +26,8 @@ export const AuditProgressModal = ({
   
   return (
     <Dialog open={open}>
-      <DialogContent className="sm:max-w-md" hideCloseButton>
-        <div className="flex flex-col items-center gap-6 py-8">
+      <DialogContent className="sm:max-w-[500px]">
+        <div className="space-y-6 py-4">
           {/* Animated Icon */}
           <motion.div
             className="relative"
