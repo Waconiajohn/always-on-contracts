@@ -111,7 +111,7 @@ export default function AIAgents() {
     'Job Search Agent': '/agents/job-search',
     'Resume Rewriter': '/agents/resume-builder',
     'Job Description Analyzer': '/career-tools',
-    'LinkedIn Profile Builder': '/agents/linkedin-profile',
+    'LinkedIn Profile Builder': '/agents/linkedin-profile-builder',
     'Networking Agent': '/agents/networking',
     'LinkedIn Blogging Agent': '/agents/linkedin-blogging',
     'Interview Prep Master': '/agents/interview-prep',

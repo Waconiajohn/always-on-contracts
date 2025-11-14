@@ -1,0 +1,151 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { invokeEdgeFunction } from '@/lib/edgeFunction';
+
+interface JobTitleRecommendationsHook {
+  suggestedTitles: string[];
+  isLoading: boolean;
+  error: string | null;
+  refreshRecommendations: () => Promise<void>;
+}
+
+export const useJobTitleRecommendations = (userId: string | null): JobTitleRecommendationsHook => {
+  const { toast } = useToast();
+  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateRecommendations = async () => {
+    if (!userId) return;
+    
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // First, fetch vault data for AI analysis
+      const { data: vault } = await supabase
+        .from('career_vault')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!vault) {
+        throw new Error('No Career Vault found. Please set up your vault first.');
+      }
+
+      // Check if we have cached recommendations
+      if (vault.initial_analysis) {
+        const analysis = vault.initial_analysis as any;
+        if (analysis?.recommended_positions && analysis.recommended_positions.length > 0) {
+          setSuggestedTitles(analysis.recommended_positions.slice(0, 7));
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fetch vault items for comprehensive analysis
+      const [powerPhrases, skills, competencies] = await Promise.all([
+        supabase
+          .from('vault_power_phrases')
+          .select('power_phrase, category, impact_metrics')
+          .eq('vault_id', vault.id)
+          .order('confidence_score', { ascending: false })
+          .limit(10),
+        supabase
+          .from('vault_transferable_skills')
+          .select('stated_skill')
+          .eq('vault_id', vault.id)
+          .order('confidence_score', { ascending: false })
+          .limit(10),
+        supabase
+          .from('vault_hidden_competencies')
+          .select('competency_area, inferred_capability')
+          .eq('vault_id', vault.id)
+          .order('confidence_score', { ascending: false })
+          .limit(10)
+      ]);
+
+      // Build comprehensive resume analysis for AI
+      const analysis = vault.initial_analysis as any;
+      const resumeAnalysis = {
+        current_role: analysis?.current_role || 'Professional',
+        years_of_experience: analysis?.years_of_experience || 5,
+        seniority_level: analysis?.seniority_level || 'Mid-Level',
+        industry: analysis?.industry || 'General',
+        key_skills: skills.data?.map(s => s.stated_skill) || [],
+        key_achievements: powerPhrases.data?.map(p => p.power_phrase).slice(0, 5) || [],
+        management_capabilities: competencies.data?.map(c => c.inferred_capability) || [],
+        analysis_summary: analysis?.analysis_summary || 'Experienced professional with demonstrated expertise'
+      };
+
+      // Call infer-target-roles edge function
+      const { data, error: funcError } = await invokeEdgeFunction('infer-target-roles', {
+        resume_analysis: resumeAnalysis
+      });
+
+      if (funcError) {
+        throw new Error(funcError.message || 'Failed to generate recommendations');
+      }
+
+      if (!data?.success || !data.suggestions || data.suggestions.length === 0) {
+        throw new Error('No role suggestions generated');
+      }
+
+      const titles = data.suggestions;
+      setSuggestedTitles(titles);
+
+      // Cache recommendations in career_vault
+      const currentAnalysis = (vault.initial_analysis as any) || {};
+      const updatedAnalysis = {
+        ...currentAnalysis,
+        recommended_positions: titles,
+        last_recommendations_update: new Date().toISOString()
+      };
+
+      await supabase
+        .from('career_vault')
+        .update({ initial_analysis: updatedAnalysis })
+        .eq('id', vault.id);
+
+      toast({
+        title: "Job Titles Generated",
+        description: `Found ${titles.length} recommended roles based on your vault`,
+      });
+
+    } catch (err: any) {
+      console.error('Error generating job title recommendations:', err);
+      setError(err.message || 'Failed to load recommendations');
+      
+      toast({
+        title: "Could not generate recommendations",
+        description: err.message || "Please ensure your Career Vault has sufficient data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshRecommendations = async () => {
+    if (!userId) return;
+    
+    // Clear cache and regenerate
+    setSuggestedTitles([]);
+    await generateRecommendations();
+  };
+
+  // Load recommendations on mount
+  useEffect(() => {
+    if (userId) {
+      generateRecommendations();
+    }
+  }, [userId]);
+
+  return {
+    suggestedTitles,
+    isLoading,
+    error,
+    refreshRecommendations
+  };
+};
