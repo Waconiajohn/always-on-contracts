@@ -89,8 +89,8 @@ export function createAIHandler<T = any>(config: AIHandlerConfig<T>) {
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) {
           throw new AIError(
-            'AUTHENTICATION_ERROR',
             'Missing authorization header',
+            'AUTHENTICATION_ERROR',
             401,
             false,
             'Please log in to use this feature'
@@ -106,8 +106,8 @@ export function createAIHandler<T = any>(config: AIHandlerConfig<T>) {
         const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
         if (userError || !authUser) {
           throw new AIError(
-            'AUTHENTICATION_ERROR',
             'Invalid or expired session',
+            'AUTHENTICATION_ERROR',
             401,
             false,
             'Please log in again'
@@ -171,8 +171,8 @@ export function createAIHandler<T = any>(config: AIHandlerConfig<T>) {
         const MAX_CONTENT_LENGTH = 100000; // ~25k tokens
         if (body.content.length > MAX_CONTENT_LENGTH) {
           throw new AIError(
-            'INVALID_INPUT',
             `Content too long (max ${MAX_CONTENT_LENGTH} characters)`,
+            'VALIDATION_ERROR',
             400,
             false,
             'Please provide shorter content'
@@ -226,8 +226,8 @@ export function createAIHandler<T = any>(config: AIHandlerConfig<T>) {
             });
 
             throw new AIError(
-              'INVALID_RESPONSE',
               'AI returned invalid response format',
+              'INVALID_RESPONSE',
               500,
               true,
               'The AI service returned an unexpected format. Please try again.'
@@ -283,7 +283,7 @@ export function createAIHandler<T = any>(config: AIHandlerConfig<T>) {
       let userMessage = 'An unexpected error occurred. Please try again.';
 
       if (error instanceof AIError) {
-        statusCode = error.statusCode;
+        statusCode = error.statusCode || 500;
         errorCode = error.code;
         userMessage = error.userMessage || error.message;
       } else if (error.message?.includes('timeout')) {

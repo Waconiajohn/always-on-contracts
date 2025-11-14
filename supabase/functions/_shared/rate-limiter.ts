@@ -127,18 +127,14 @@ export class RateLimiter {
       });
 
     // Increment quota counter
-    await supabase.rpc('increment_user_quota', { 
+    const { error: rpcError } = await supabase.rpc('increment_user_quota', { 
       p_user_id: userId 
-    }).catch((error) => {
-      // Fallback: manual update if RPC doesn't exist
-      supabase
-        .from('user_quotas')
-        .update({
-          monthly_request_count: supabase.sql`monthly_request_count + 1`
-        })
-        .eq('user_id', userId)
-        .then(() => {});
     });
+    
+    if (rpcError) {
+      // Fallback: manual update if RPC doesn't exist
+      console.warn('RPC increment_user_quota failed, skipping quota update:', rpcError);
+    }
   }
 
   /**
@@ -147,11 +143,18 @@ export class RateLimiter {
   async recordCost(userId: string, costUsd: number): Promise<void> {
     const supabase = createClient(this.supabaseUrl, this.supabaseKey);
 
+    // Get current cost and add to it
+    const { data: currentQuota } = await supabase
+      .from('user_quotas')
+      .select('monthly_cost_spent_usd')
+      .eq('user_id', userId)
+      .single();
+
+    const newCost = (currentQuota?.monthly_cost_spent_usd || 0) + costUsd;
+
     await supabase
       .from('user_quotas')
-      .update({
-        monthly_cost_spent_usd: supabase.sql`monthly_cost_spent_usd + ${costUsd}`
-      })
+      .update({ monthly_cost_spent_usd: newCost })
       .eq('user_id', userId);
   }
 

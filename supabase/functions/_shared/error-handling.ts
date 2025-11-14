@@ -9,7 +9,8 @@ export type AIErrorCode =
   | 'INVALID_RESPONSE'
   | 'API_ERROR'
   | 'CIRCUIT_OPEN'
-  | 'VALIDATION_ERROR';
+  | 'VALIDATION_ERROR'
+  | 'AUTHENTICATION_ERROR';
 
 export class AIError extends Error {
   constructor(

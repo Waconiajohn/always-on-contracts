@@ -42,7 +42,7 @@ export const PERPLEXITY_CONFIG = {
   RETRY_MULTIPLIER: 2,
 } as const;
 
-interface PerplexityRequest {
+export interface PerplexityRequest {
   messages: Array<{ role: string; content: string }>;
   model?: string;
   temperature?: number;
