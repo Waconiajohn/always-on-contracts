@@ -661,20 +661,20 @@ serve(async (req) => {
     contextPayload.seniority_confidence = structuredData!.professionalIdentity.confidence || 50;
 
     // Management
-    contextPayload.has_management_experience = structuredData!.experience.management.hasExperience;
-    contextPayload.management_details = structuredData!.experience.management.details;
-    contextPayload.team_sizes_managed = structuredData!.experience.management.teamSizes;
+    contextPayload.has_management_experience = structuredData!.experience.management.hasExperience ?? false;
+    contextPayload.management_details = structuredData!.experience.management.details || null;
+    contextPayload.team_sizes_managed = structuredData!.experience.management.teamSizes || [];
     console.log(`  👔 Management: ${contextPayload.has_management_experience ? 'YES' : 'NO'} (confidence: ${structuredData!.experience.management.confidence}%)`);
 
     // Budget
-    contextPayload.has_budget_ownership = structuredData!.experience.budget.hasExperience;
-    contextPayload.budget_details = structuredData!.experience.budget.details;
-    contextPayload.budget_sizes_managed = structuredData!.experience.budget.amounts;
+    contextPayload.has_budget_ownership = structuredData!.experience.budget.hasExperience ?? false;
+    contextPayload.budget_details = structuredData!.experience.budget.details || null;
+    contextPayload.budget_sizes_managed = structuredData!.experience.budget.amounts || [];
     console.log(`  💰 Budget: ${contextPayload.has_budget_ownership ? 'YES' : 'NO'} (confidence: ${structuredData!.experience.budget.confidence}%)`);
 
     // Executive
-    contextPayload.has_executive_exposure = structuredData!.experience.executive.hasExposure;
-    contextPayload.executive_details = structuredData!.experience.executive.details;
+    contextPayload.has_executive_exposure = structuredData!.experience.executive.hasExposure ?? false;
+    contextPayload.executive_details = structuredData!.experience.executive.details || null;
     console.log(`  📈 Executive: ${contextPayload.has_executive_exposure ? 'YES' : 'NO'} (confidence: ${structuredData!.experience.executive.confidence}%)`);
 
     const { error: contextError } = await supabase
