@@ -25,6 +25,7 @@ import { JobSearchSidebar } from "@/components/job-search/JobSearchSidebar";
 import { useLayout } from "@/contexts/LayoutContext";
 import { invokeEdgeFunction } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
+import { useJobTitleRecommendations } from "@/hooks/useJobTitleRecommendations";
 
 interface JobResult {
   id: string;
@@ -143,7 +144,9 @@ const JobSearchContent = () => {
     setBooleanSearchCount(null);
   };
   
-  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  // Use hook for AI-powered job title recommendations
+  const { suggestedTitles, isLoading: loadingTitles } = useJobTitleRecommendations(userId);
+  
   const [sourceStats, setSourceStats] = useState<Record<string, { count: number; status: string }>>({});
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -156,7 +159,6 @@ const JobSearchContent = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
-      await loadVaultData(user.id);
       await loadSavedJobs(user.id);
     }
   };
@@ -176,23 +178,7 @@ const JobSearchContent = () => {
     }
   };
 
-  const loadVaultData = async (userId: string) => {
-    try {
-      const { data: vault } = await supabase
-        .from('career_vault')
-        .select('initial_analysis')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (vault?.initial_analysis) {
-        const analysis = vault.initial_analysis as any;
-        const titles = analysis?.recommended_positions || [];
-        setSuggestedTitles(titles.slice(0, 5));
-      }
-    } catch (error) {
-      console.error('Error loading Career Vault data:', error);
-    }
-  };
+  // Removed: loadVaultData - now handled by useJobTitleRecommendations hook
 
   // Phase 2: Calculate vault-based match scores for jobs
   const calculateVaultMatches = async (jobsList: JobResult[]) => {
@@ -680,22 +666,32 @@ const JobSearchContent = () => {
         </div>
 
         {/* Vault Suggestions */}
-        {suggestedTitles.length > 0 && (
+        {(loadingTitles || suggestedTitles.length > 0) && (
           <Card className="mb-6 border-primary/20">
             <CardContent className="pt-6">
-              <Label className="text-sm text-muted-foreground mb-3 block">💡 From your Career Vault:</Label>
-              <div className="flex flex-wrap gap-2">
-                {suggestedTitles.map((title) => (
-                  <Badge
-                    key={title}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                    onClick={() => setSearchQuery(title)}
-                  >
-                    {title}
-                  </Badge>
-                ))}
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <Label className="text-sm text-muted-foreground">AI-Recommended Roles from Your Career Vault</Label>
               </div>
+              {loadingTitles ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analyzing your vault to suggest relevant job titles...
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {suggestedTitles.map((title) => (
+                    <Badge
+                      key={title}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                      onClick={() => setSearchQuery(title)}
+                    >
+                      {title}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

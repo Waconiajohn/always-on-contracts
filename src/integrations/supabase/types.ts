@@ -1162,6 +1162,8 @@ export type Database = {
           id: string
           phase: string | null
           session_id: string
+          user_id: string | null
+          vault_id: string | null
         }
         Insert: {
           checkpoint_data: Json
@@ -1170,6 +1172,8 @@ export type Database = {
           id?: string
           phase?: string | null
           session_id: string
+          user_id?: string | null
+          vault_id?: string | null
         }
         Update: {
           checkpoint_data?: Json
@@ -1178,6 +1182,8 @@ export type Database = {
           id?: string
           phase?: string | null
           session_id?: string
+          user_id?: string | null
+          vault_id?: string | null
         }
         Relationships: [
           {
@@ -1188,6 +1194,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      extraction_errors: {
+        Row: {
+          created_at: string | null
+          error_code: string | null
+          error_message: string | null
+          error_stack: string | null
+          id: string
+          metadata: Json | null
+          phase: string | null
+          session_id: string | null
+          user_id: string | null
+          vault_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          phase?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          phase?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          vault_id?: string | null
+        }
+        Relationships: []
       }
       extraction_events: {
         Row: {
@@ -1217,6 +1262,50 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "extraction_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extraction_progress: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          id: string
+          items_extracted: number | null
+          message: string
+          percentage: number
+          phase: string
+          updated_at: string | null
+          vault_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          items_extracted?: number | null
+          message: string
+          percentage: number
+          phase: string
+          updated_at?: string | null
+          vault_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          items_extracted?: number | null
+          message?: string
+          percentage?: number
+          phase?: string
+          updated_at?: string | null
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_progress_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: true
+            referencedRelation: "career_vault"
             referencedColumns: ["id"]
           },
         ]
@@ -4177,7 +4266,7 @@ export type Database = {
           industry: string
           job_title: string
           likely_data: Json
-          seniority_level: string
+          seniority_level: string | null
           updated_at: string
           user_id: string
           vault_id: string
@@ -4193,7 +4282,7 @@ export type Database = {
           industry: string
           job_title: string
           likely_data?: Json
-          seniority_level: string
+          seniority_level?: string | null
           updated_at?: string
           user_id: string
           vault_id: string
@@ -4209,7 +4298,7 @@ export type Database = {
           industry?: string
           job_title?: string
           likely_data?: Json
-          seniority_level?: string
+          seniority_level?: string | null
           updated_at?: string
           user_id?: string
           vault_id?: string

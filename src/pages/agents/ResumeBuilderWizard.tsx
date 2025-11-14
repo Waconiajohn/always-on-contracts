@@ -90,6 +90,9 @@ const ResumeBuilderWizardContent = () => {
   const fetchFullJobDescription = async (jobData: any) => {
     console.log('🔍 Attempting to fetch full job description from URL...');
     
+    // Check if we already have a good description
+    const hasGoodDescription = jobData.jobDescription && jobData.jobDescription.length > 200;
+    
     try {
       const { data, error } = await supabase.functions.invoke('parse-job-document', {
         body: { url: jobData.applyUrl }
@@ -97,7 +100,7 @@ const ResumeBuilderWizardContent = () => {
       
       // Check for blocked/error response
       if (error || !data?.success || data?.blocked || data?.error === 'BLOCKED') {
-        console.log('❌ URL fetch blocked or failed, using search result description');
+        console.log('❌ URL fetch blocked or failed');
         throw new Error('URL_BLOCKED');
       }
       
@@ -131,14 +134,27 @@ const ResumeBuilderWizardContent = () => {
       // If we got here, the response wasn't good enough
       throw new Error('INVALID_RESPONSE');
     } catch (error: any) {
-      console.log('⚠️ Job board blocked access:', error.message);
+      console.log('⚠️ URL fetch failed:', error.message);
       
-      toast({
-        title: "Job Board Blocked Access",
-        description: "Please copy and paste the full job description using the Import button.",
-        variant: "destructive",
-        duration: 8000
-      });
+      // Only show error if we don't have a good fallback description
+      if (!hasGoodDescription) {
+        toast({
+          title: "Job Board Blocked Access",
+          description: "Please copy and paste the full job description using the Import button.",
+          variant: "destructive",
+          duration: 8000
+        });
+      } else {
+        // We have a good description from search results - use it!
+        toast({
+          title: "Using search result description",
+          description: "Job board blocked direct access, but we have the description from search results.",
+        });
+        
+        const enhancedDescription = buildEnhancedDescription(jobData);
+        setDisplayJobText(enhancedDescription);
+        handleAnalyzeJob(enhancedDescription);
+      }
     }
   };
 
