@@ -286,18 +286,38 @@ serve(async (req) => {
     try {
       const startTime = Date.now();
       
-      // Log what we're transforming
+      // Log what we're transforming with full data structure
+      console.log('\n🔍 STRUCTURED DATA TO TRANSFORM:', JSON.stringify({
+        achievements: {
+          quantified: structuredData!.achievements?.quantified?.length || 0,
+          strategic: structuredData!.achievements?.strategic?.length || 0,
+          quantifiedSample: structuredData!.achievements?.quantified?.[0] || null,
+        },
+        skills: {
+          technical: structuredData!.skills?.technical?.length || 0,
+          soft: structuredData!.skills?.soft?.length || 0,
+          leadership: structuredData!.skills?.leadership?.length || 0,
+          technicalSample: structuredData!.skills?.technical?.[0] || null,
+        },
+        experience: {
+          roles: structuredData!.experience?.roles?.length || 0,
+        }
+      }, null, 2));
+
       logger.info('Phase 3: Transforming structured data', {
-        totalRoles: structuredData!.experience.roles.length,
-        quantifiedAchievements: structuredData!.achievements.quantified.length,
-        strategicAchievements: structuredData!.achievements.strategic.length,
-        technicalSkills: structuredData!.skills.technical.length,
-        softSkills: structuredData!.skills.soft.length,
-        leadershipSkills: structuredData!.skills.leadership.length,
+        totalRoles: structuredData!.experience?.roles?.length || 0,
+        quantifiedAchievements: structuredData!.achievements?.quantified?.length || 0,
+        strategicAchievements: structuredData!.achievements?.strategic?.length || 0,
+        technicalSkills: structuredData!.skills?.technical?.length || 0,
+        softSkills: structuredData!.skills?.soft?.length || 0,
+        leadershipSkills: structuredData!.skills?.leadership?.length || 0,
       });
 
-      // Transform achievements to power phrases
-      structuredData!.achievements.quantified.forEach((ach, index) => {
+      // Transform achievements to power phrases (with safety checks)
+      const quantifiedAchievements = structuredData!.achievements?.quantified || [];
+      console.log(`\n📝 Processing ${quantifiedAchievements.length} quantified achievements...`);
+      
+      quantifiedAchievements.forEach((ach, index) => {
         const hasMetrics = ach.metric && ach.impact;
         const quality_tier = ach.confidence > 90 ? 'gold' : ach.confidence > 75 ? 'silver' : 'bronze';
         
@@ -320,8 +340,11 @@ serve(async (req) => {
         });
       });
 
-      // Add strategic achievements as power phrases
-      structuredData!.achievements.strategic.forEach((ach, index) => {
+      // Add strategic achievements as power phrases (with safety checks)
+      const strategicAchievements = structuredData!.achievements?.strategic || [];
+      console.log(`\n🎯 Processing ${strategicAchievements.length} strategic achievements...`);
+      
+      strategicAchievements.forEach((ach, index) => {
         const quality_tier = ach.confidence > 85 ? 'silver' : 'bronze';
         
         allExtracted.powerPhrases.push({
@@ -340,8 +363,11 @@ serve(async (req) => {
         });
       });
 
-      // Transform technical skills
-      structuredData!.skills.technical.forEach((skill, index) => {
+      // Transform technical skills (with safety checks)
+      const technicalSkills = structuredData!.skills?.technical || [];
+      console.log(`\n🔧 Processing ${technicalSkills.length} technical skills...`);
+      
+      technicalSkills.forEach((skill, index) => {
         const quality_tier = skill.confidence > 90 ? 'verified' : skill.confidence > 75 ? 'needs_review' : 'draft';
         
         allExtracted.skills.push({
@@ -360,8 +386,11 @@ serve(async (req) => {
         });
       });
 
-      // Transform leadership skills to competencies
-      structuredData!.skills.leadership.forEach((skill, index) => {
+      // Transform leadership skills to competencies (with safety checks)
+      const leadershipSkills = structuredData!.skills?.leadership || [];
+      console.log(`\n👔 Processing ${leadershipSkills.length} leadership skills...`);
+      
+      leadershipSkills.forEach((skill, index) => {
         const quality_tier = skill.confidence > 80 ? 'needs_review' : 'draft';
         
         allExtracted.competencies.push({
@@ -378,8 +407,11 @@ serve(async (req) => {
         });
       });
 
-      // Transform soft skills
-      structuredData!.skills.soft.forEach((skill, index) => {
+      // Transform soft skills (with safety checks)
+      const softSkills = structuredData!.skills?.soft || [];
+      console.log(`\n🤝 Processing ${softSkills.length} soft skills...`);
+      
+      softSkills.forEach((skill, index) => {
         const hasEvidence = skill.evidence && skill.evidence.length > 50;
         const quality_tier = skill.confidence > 80 && hasEvidence ? 'needs_review' : 'draft';
         
