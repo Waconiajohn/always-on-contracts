@@ -56,14 +56,39 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
 
     setIsUploading(true);
     try {
-      // Read file as text
-      const text = await file.text();
-
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Create or get vault
+      // Step 1: Extract text from PDF/DOCX using process-resume function
+      console.log('Processing file:', file.name, file.type, file.size);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data: processData, error: processError } = await supabase.functions.invoke('process-resume', {
+        body: formData
+      });
+
+      if (processError) {
+        console.error('Process resume error:', processError);
+        throw new Error(processError.message || 'Failed to process resume file');
+      }
+
+      if (!processData?.success) {
+        const errorMsg = processData?.error || processData?.details || 'Unable to process this resume file';
+        throw new Error(errorMsg);
+      }
+
+      // Extract text from response (try multiple possible formats)
+      const text = processData.extractedText || processData.resume_text || processData.text || processData.data?.extractedText || '';
+
+      if (!text || text.length < 100) {
+        throw new Error('Unable to read the resume content. Please try a different file.');
+      }
+
+      console.log('Successfully extracted text, length:', text.length);
+
+      // Step 2: Create or get vault
       const { data: existingVault } = await supabase
         .from('career_vault')
         .select('id')
@@ -99,7 +124,9 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
         vaultId = newVault.id;
       }
 
-      // Trigger extraction
+      console.log('Vault ready, triggering extraction for vaultId:', vaultId);
+
+      // Step 3: Trigger extraction
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
 
