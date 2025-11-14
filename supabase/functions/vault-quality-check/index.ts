@@ -196,36 +196,40 @@ For EACH enhancement you want to make, return:
 
     const startTime = Date.now();
 
-    const aiResponse = await callPerplexity({
-      model: 'sonar',  // Cheap, fast model
-      messages: [{
-        role: 'system',
-        content: 'You are a creative AI career enhancer. Use reasoning to discover enhancements. Return only valid JSON, no markdown.'
-      }, {
-        role: 'user',
-        content: prompt
-      }],
-      temperature: 0.3,  // Slightly higher for creativity
-      max_tokens: 3000,  // More room for enhancements
-    });
+    const aiResponse = await callPerplexity(
+      {
+        model: 'sonar',  // Cheap, fast model
+        messages: [{
+          role: 'system',
+          content: 'You are a creative AI career enhancer. Use reasoning to discover enhancements. Return only valid JSON, no markdown.'
+        }, {
+          role: 'user',
+          content: prompt
+        }],
+        temperature: 0.3,  // Slightly higher for creativity
+        max_tokens: 3000,  // More room for enhancements
+      },
+      'vault-quality-check',
+      user.id
+    );
 
     const duration = Date.now() - startTime;
     console.log(`✅ AI enhancement analysis completed in ${duration}ms`);
 
     // Log AI usage
     await logAIUsage({
-      supabase,
-      userId: user.id,
+      user_id: user.id,
       model: 'sonar',
-      inputTokens: prompt.length / 4,
-      outputTokens: (aiResponse.content || '').length / 4,
-      cost: 0.002,
-      operation: 'vault-quality-enhancement',
-      metadata: { vaultId, duration }
+      input_tokens: prompt.length / 4,
+      output_tokens: (aiResponse.response.choices[0]?.message?.content || '').length / 4,
+      cost_usd: aiResponse.metrics.cost_usd || 0.002,
+      function_name: 'vault-quality-check',
+      request_id: crypto.randomUUID(),
+      created_at: new Date().toISOString()
     });
 
     // Parse AI response
-    const resultText = aiResponse.content || '{"enhancements": [], "summary": "No enhancements found"}';
+    const resultText = aiResponse.response.choices[0]?.message?.content || '{"enhancements": [], "summary": "No enhancements found"}';
     const cleanedText = resultText.includes('```')
       ? resultText.split('```')[1].replace('json', '').trim()
       : resultText;

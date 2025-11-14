@@ -124,7 +124,7 @@ serve(async (req) => {
       sum + String(r.questionText || '').length + String(r.answer || '').length, 0
     );
     
-    const estimatedTokens = estimateTokens(totalResponseLength);
+    const estimatedTokens = estimateTokens(String(totalResponseLength));
     
     console.log('Processing responses:', {
       responseCount: responses.length,
@@ -456,15 +456,6 @@ NO MARKDOWN. ONLY JSON.`;
             'Unsupported characters in API request',
             'Model parameter mismatch'
           ],
-          debugData: {
-            responseCount: responses?.length || 0,
-            firstResponseSample: responses?.[0] ? {
-              questionText: String(responses[0].questionText).substring(0, 100),
-              answerPreview: String(responses[0].answer).substring(0, 100),
-              answerType: typeof responses[0].answer,
-              category: responses[0].category
-            } : 'No response data available'
-          },
           recommendation: 'Check sanitization function and prompt structure'
         });
       }

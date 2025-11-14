@@ -535,7 +535,7 @@ Be lenient - if you see resume content despite poor formatting, mark as true.`
 
     return result;
   } catch (error) {
-    console.log('[PROCESS-RESUME] AI validation failed, using regex fallback:', error.message);
+    console.log('[PROCESS-RESUME] AI validation failed, using regex fallback:', error instanceof Error ? error.message : 'Unknown error');
 
     // Fallback to keyword-based validation with improved patterns
     const resumeIndicators = [

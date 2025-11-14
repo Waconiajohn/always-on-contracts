@@ -179,7 +179,7 @@ serve(async (req) => {
 
       } catch (itemError) {
         console.error(`Error processing item ${itemId}:`, itemError);
-        results.errors.push(`Item ${itemId}: ${itemError.message}`);
+        results.errors.push(`Item ${itemId}: ${itemError instanceof Error ? itemError.message : 'Unknown error'}`);
       }
     }
 
@@ -257,7 +257,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         userMessage: 'We encountered an issue processing your review actions. Please try again.',
       }),
       {

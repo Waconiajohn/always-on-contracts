@@ -180,7 +180,6 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
 
     const research_result = response.choices[0]?.message?.content;
     const citations = response.citations || [];
-    const related_questions = response.related_questions || [];
 
     // Store research result
     const { error: insertError } = await supabase
@@ -191,7 +190,6 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
         query_params,
         research_result,
         citations,
-        related_questions,
         researched_at: new Date().toISOString(),
       });
 
@@ -204,7 +202,6 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
         success: true,
         research_result,
         citations,
-        related_questions,
         researched_at: new Date().toISOString(),
       }),
       {

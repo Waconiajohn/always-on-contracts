@@ -4,7 +4,12 @@ import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
-import { LinkedInTopicSchema } from '../_shared/ai-response-schemas.ts';
+import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 import { extractArray } from '../_shared/json-parser.ts';
 
 interface TopicSuggestion {
@@ -18,7 +23,7 @@ interface TopicSuggestion {
 
 serve(createAIHandler({
   functionName: 'suggest-linkedin-topics-from-vault',
-  schema: LinkedInTopicSchema,
+  schema: GenericAIResponseSchema,
   requireAuth: true,
   rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
