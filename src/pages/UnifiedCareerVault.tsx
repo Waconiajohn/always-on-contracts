@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Upload, Sparkles, Brain, TrendingUp, Award, Briefcase } from 'lucide-react';
+import { Loader2, Upload, Sparkles, Brain, TrendingUp, Award, Briefcase, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ContentLayout } from '@/components/layout/ContentLayout';
 import { UploadResumeModal } from '@/components/career-vault/modals/UploadResumeModal';
@@ -21,6 +22,7 @@ export default function UnifiedCareerVault() {
   const [vaultState, setVaultState] = useState<VaultState>('loading');
   const [vaultId, setVaultId] = useState<string | null>(null);
   const [smartQuestions, setSmartQuestions] = useState<SmartQuestion[]>([]);
+  const [hasData, setHasData] = useState<boolean>(false);
   const navigate = useNavigate();
 
   // Modal states
@@ -42,9 +44,17 @@ export default function UnifiedCareerVault() {
 
       const { data: vault } = await supabase
         .from('career_vault')
-        .select('id, onboarding_step, resume_raw_text, review_completion_percentage')
+        .select('id, onboarding_step, resume_raw_text, review_completion_percentage, extraction_item_count, auto_populated')
         .eq('user_id', user.id)
         .single();
+
+      console.log('[UnifiedCareerVault] Vault state check:', {
+        vaultExists: !!vault,
+        hasResume: !!vault?.resume_raw_text,
+        extractionItemCount: vault?.extraction_item_count,
+        autoPopulated: vault?.auto_populated,
+        onboardingStep: vault?.onboarding_step
+      });
 
       // No vault OR no resume → Empty state
       if (!vault || !vault.resume_raw_text) {
@@ -53,6 +63,10 @@ export default function UnifiedCareerVault() {
       }
 
       setVaultId(vault.id);
+
+      // Check if we actually have extracted data
+      const hasExtractedData = (vault.extraction_item_count || 0) > 0 || vault.auto_populated;
+      setHasData(hasExtractedData);
 
       // Vault exists and has resume → Ready state (show dashboard)
       setVaultState('ready');
@@ -236,6 +250,18 @@ export default function UnifiedCareerVault() {
                 Upload New Resume
               </Button>
             </div>
+
+            {/* Alert when no data extracted */}
+            {!hasData && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No Data Extracted Yet</AlertTitle>
+                <AlertDescription>
+                  Your vault is empty. This usually means extraction failed or didn't run.
+                  Click "Upload New Resume" above to try extracting your career data again.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Vault Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
