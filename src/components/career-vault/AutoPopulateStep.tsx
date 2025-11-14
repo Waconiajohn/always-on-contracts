@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Sparkles, Award, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotifications, NotificationCenter } from '@/components/ui/notification-center';
 import { 
@@ -10,7 +10,9 @@ import {
   validateInput,
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
-import { AIThinkingIndicator } from './AIThinkingIndicator';
+import { AIBrainAnimation } from './AIBrainAnimation';
+import { ExtractionRecoveryCard } from './ExtractionRecoveryCard';
+import { useExtractionProgress } from '@/hooks/useExtractionProgress';
 
 interface AutoPopulateStepProps {
   vaultId: string;
@@ -20,12 +22,6 @@ interface AutoPopulateStepProps {
   onComplete: (extractedData: any) => void;
 }
 
-/**
- * AUTO-POPULATE STEP
- *
- * This component triggers the AI to auto-populate the career vault
- * from the resume, then shows progress and results.
- */
 export const AutoPopulateStep = ({
   vaultId,
   resumeText,
@@ -35,64 +31,82 @@ export const AutoPopulateStep = ({
 }: AutoPopulateStepProps) => {
   const { notifications, showNotification, dismissNotification } = useNotifications();
   const [status, setStatus] = useState<'ready' | 'processing' | 'success' | 'error'>('ready');
-  const [progress, setProgress] = useState(0);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showRecovery, setShowRecovery] = useState(false);
   
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Use real-time progress tracking from edge function
+  const { progress, currentMessage, isComplete } = useExtractionProgress(vaultId);
+  
+  const recoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Auto-start population after a brief delay
     const timer = setTimeout(() => {
       handleAutoPopulate();
     }, 1500);
 
+    // Show recovery options after 90 seconds if still processing
+    recoveryTimeoutRef.current = setTimeout(() => {
+      if (status === 'processing' && !isComplete) {
+        setShowRecovery(true);
+      }
+    }, 90000);
+
     return () => {
       clearTimeout(timer);
-      // Cleanup intervals on unmount
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
+      if (recoveryTimeoutRef.current) {
+        clearTimeout(recoveryTimeoutRef.current);
       }
     };
   }, []);
 
+  // React to real-time completion
+  useEffect(() => {
+    if (isComplete && status === 'processing') {
+      handleCompletionCheck();
+    }
+  }, [isComplete, status]);
+
+  const handleCompletionCheck = async () => {
+    try {
+      const { data: vaultData, error: vaultError } = await supabase
+        .from('career_vault')
+        .select('extraction_item_count, auto_populated')
+        .eq('id', vaultId)
+        .single();
+
+      if (vaultError) {
+        console.error('[AUTO-POPULATE] Error checking completion:', vaultError);
+        return;
+      }
+
+      if (vaultData?.auto_populated && (vaultData.extraction_item_count || 0) > 0) {
+        setStatus('success');
+        setExtractedData({
+          totalItems: vaultData.extraction_item_count,
+          success: true
+        });
+        
+        showNotification({
+          type: 'success',
+          title: '✅ Vault Population Complete',
+          description: `Successfully extracted ${vaultData.extraction_item_count} career intelligence items!`,
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      console.error('[AUTO-POPULATE] Completion check error:', error);
+    }
+  };
+
   const handleAutoPopulate = async () => {
     setStatus('processing');
-    setProgress(10);
-
-    let progressInterval: NodeJS.Timeout | null = null;
 
     try {
-      // Phase 3: Refresh session before long operation
-      console.log('[AUTO-POPULATE] Refreshing auth session...');
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
         console.warn('[AUTO-POPULATE] Session refresh warning:', refreshError);
       }
-
-      // Progress updates - stop at 85%
-      progressInterval = setInterval(() => {
-        setProgress(prev => {
-          const next = Math.min(prev + 5, 85);
-          if (next >= 85) {
-            if (progressInterval) clearInterval(progressInterval);
-          }
-          return next;
-        });
-      }, 600);
-
-      // Phase 4: Heartbeat to check database for updates
-      heartbeatIntervalRef.current = setInterval(async () => {
-        const { data: vaultData } = await supabase
-          .from('career_vault')
-          .select('extraction_item_count')
-          .eq('id', vaultId)
-          .single();
-        
-        if (vaultData?.extraction_item_count && vaultData.extraction_item_count > 0) {
-          setProgress(prev => Math.min(prev + 2, 95));
-        }
-      }, 10000); // Check every 10 seconds
 
       showNotification({
         type: 'ai-insight',
@@ -101,7 +115,6 @@ export const AutoPopulateStep = ({
         duration: 8000
       });
 
-      // Phase 1: Call with validation and new error handling
       const validated = validateInput(AutoPopulateVaultSchema, {
         vaultId,
         resumeText,
@@ -114,302 +127,246 @@ export const AutoPopulateStep = ({
         validated
       );
 
-      console.log('[AUTO-POPULATE] Response received:', {
-        hasData: !!data,
-        hasError: !!error,
-        dataStructure: data ? Object.keys(data) : []
-      });
-
-      // Handle network/timeout errors
       if (error) {
-        if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
-          throw new Error('Network timeout - AI analysis took longer than expected. Checking if data was saved...');
-        }
-        throw new Error(error.message || 'Auto-population failed');
-      }
-
-      // Validate response structure
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid response from AI - please try again');
-      }
-
-      if (data.success === false) {
-        throw new Error(data.error || 'Auto-population failed - no specific error provided');
-      }
-
-      if (!data.success) {
-        throw new Error('Auto-population failed');
-      }
-
-      // Cleanup intervals
-      if (progressInterval) clearInterval(progressInterval);
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-        heartbeatIntervalRef.current = null;
-      }
-
-      console.log('[AUTO-POPULATE] Success! Extracted data:', {
-        totalExtracted: data.totalExtracted,
-        categories: data.categories,
-        extractedData: data.extractedData
-      });
-
-      setProgress(100);
-      setExtractedData(data);
-      setStatus('success');
-
-      // Save extraction item count to vault
-      await supabase
-        .from('career_vault')
-        .update({ 
-          extraction_item_count: data.totalExtracted 
-        })
-        .eq('id', vaultId);
-
-      showNotification({
-        type: 'success',
-        title: '✅ Vault Auto-Populated!',
-        description: `Successfully extracted ${data.totalExtracted} intelligence items across ${data.categories.length} categories`,
-        duration: 8000
-      });
-    } catch (error: any) {
-      console.error('[AUTO-POPULATE] Error:', error);
-
-      // Cleanup intervals
-      if (progressInterval) clearInterval(progressInterval);
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-        heartbeatIntervalRef.current = null;
-      }
-      
-
-      // Phase 2: Polling fallback - check if data was actually inserted
-      console.log('[AUTO-POPULATE] Checking database for inserted data...');
-      const { data: vaultData } = await supabase
-        .from('career_vault')
-        .select('auto_populated, extraction_item_count')
-        .eq('id', vaultId)
-        .single();
-
-      console.log('[AUTO-POPULATE] Vault recovery check:', vaultData);
-
-      if (vaultData?.auto_populated === true && vaultData?.extraction_item_count && vaultData.extraction_item_count > 0) {
-        // Success! The function worked but response didn't arrive
-        console.log('[AUTO-POPULATE] Recovery successful: Data was inserted despite timeout');
+        console.error('[AUTO-POPULATE] Edge function error:', error);
+        setErrorMessage(error.message || 'Extraction failed');
+        setStatus('error');
+        setShowRecovery(true);
         
-        setProgress(100);
-        setExtractedData({
-          success: true,
-          totalExtracted: vaultData.extraction_item_count,
-          categories: [],
-          message: 'Auto-population completed (recovered from timeout)'
+        showNotification({
+          type: 'error',
+          title: 'Extraction Error',
+          description: error.message || 'Failed to populate vault',
+          duration: 10000
         });
+        return;
+      }
+
+      if (data?.success) {
         setStatus('success');
+        setExtractedData(data.data);
         
         showNotification({
           type: 'success',
-          title: '✅ Vault Auto-Populated!',
-          description: `Successfully extracted ${vaultData.extraction_item_count} items (recovered from timeout)`,
-          duration: 8000
+          title: '✅ Extraction Complete!',
+          description: `Successfully extracted ${data.data?.extracted?.total || 0} items`,
+          duration: 5000
         });
-        
-        return; // Don't show error
+      } else {
+        await handleCompletionCheck();
       }
 
-      // Actual failure - show error
+    } catch (error: any) {
+      console.error('[AUTO-POPULATE] Exception:', error);
+      setErrorMessage(error.message || 'Unexpected error during extraction');
       setStatus('error');
-      setErrorMessage(error.message || 'Failed to auto-populate vault');
-
+      setShowRecovery(true);
+      
       showNotification({
         type: 'error',
-        title: '❌ Auto-Population Failed',
-        description: error.message || 'Please try again or use the manual interview',
+        title: 'Extraction Failed',
+        description: error.message || 'An unexpected error occurred',
         duration: 10000
       });
     }
   };
 
   const handleRetry = () => {
-    setStatus('ready');
-    setProgress(0);
+    setShowRecovery(false);
     setErrorMessage('');
-    handleAutoPopulate();
+    setStatus('ready');
+    setTimeout(() => handleAutoPopulate(), 500);
+  };
+
+  const handleSkip = () => {
+    onComplete({ skipped: true, totalItems: 0 });
   };
 
   const handleContinue = () => {
-    if (extractedData) {
-      onComplete(extractedData);
-    }
+    onComplete(extractedData);
   };
 
-  if (status === 'ready' || status === 'processing') {
+  // PROCESSING STATE
+  if (status === 'processing') {
     return (
-      <>
+      <div className="space-y-6">
+        <Card className="p-8">
+          <div className="space-y-6">
+            <AIBrainAnimation progress={progress} />
+            
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {currentMessage}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {progress}% complete
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {showRecovery && (
+          <ExtractionRecoveryCard
+            onRetry={handleRetry}
+            onSkip={handleSkip}
+            errorMessage={errorMessage}
+          />
+        )}
+
         <NotificationCenter 
           notifications={notifications}
           onDismiss={dismissNotification}
-          position="top-right"
         />
-        <Card className="w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 p-4 bg-primary/10 rounded-full w-fit">
-              <Brain className="h-12 w-12 text-primary animate-pulse" />
+      </div>
+    );
+  }
+
+  // ERROR STATE
+  if (status === 'error') {
+    return (
+      <div className="space-y-6">
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardHeader>
+            <div className="mx-auto mb-4 p-4 bg-destructive/10 rounded-full w-fit">
+              <AlertCircle className="h-12 w-12 text-destructive" />
             </div>
-            <CardTitle className="text-2xl">AI Intelligence Extraction</CardTitle>
-            <CardDescription>
-              Our AI is analyzing your resume across 20 intelligence categories
+            <CardTitle className="text-center text-2xl">Auto-Population Failed</CardTitle>
+            <CardDescription className="text-center">
+              {errorMessage || 'An error occurred during extraction'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3 justify-center">
+              <Button onClick={handleRetry} variant="default">
+                Try Again
+              </Button>
+              <Button onClick={() => onComplete({ skipped: true })} variant="outline">
+                Use Manual Interview Instead
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <NotificationCenter 
+          notifications={notifications}
+          onDismiss={dismissNotification}
+        />
+      </div>
+    );
+  }
+
+  // SUCCESS STATE
+  if (status === 'success' && extractedData) {
+    const stats = extractedData.extracted || {};
+    const total = stats.total || extractedData.totalItems || 0;
+
+    return (
+      <div className="space-y-6">
+        <Card className="border-success/50 bg-success/5">
+          <CardHeader>
+            <div className="mx-auto mb-4 p-4 bg-success/10 rounded-full w-fit animate-scale-in">
+              <CheckCircle2 className="h-12 w-12 text-success" />
+            </div>
+            <CardTitle className="text-center text-2xl">
+              Career Intelligence Extracted!
+            </CardTitle>
+            <CardDescription className="text-center">
+              Your vault has been populated with {total} insights
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <AIThinkingIndicator
-              categories={[
-                {
-                  name: 'Power Phrases',
-                  status: progress > 25 ? 'complete' : progress > 0 ? 'processing' : 'queued',
-                  progress: Math.min(100, (progress / 25) * 100)
-                },
-                {
-                  name: 'Skills & Expertise',
-                  status: progress > 50 ? 'complete' : progress > 25 ? 'processing' : 'queued',
-                  progress: progress > 25 ? Math.min(100, ((progress - 25) / 25) * 100) : 0
-                },
-                {
-                  name: 'Competencies',
-                  status: progress > 75 ? 'complete' : progress > 50 ? 'processing' : 'queued',
-                  progress: progress > 50 ? Math.min(100, ((progress - 50) / 25) * 100) : 0
-                },
-                {
-                  name: 'Leadership & Values',
-                  status: progress === 100 ? 'complete' : progress > 75 ? 'processing' : 'queued',
-                  progress: progress > 75 ? Math.min(100, ((progress - 75) / 25) * 100) : 0
-                }
-              ]}
-              currentProgress={progress}
-              insightsExtracted={Math.floor(progress * 0.5)}
-              estimatedTimeRemaining={progress < 85 ? 90 - Math.floor(progress * 0.8) : Math.max(5, 30 - Math.floor((progress - 85) * 2))}
-            />
-          </CardContent>
-        </Card>
-      </>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <Card className="w-full border-destructive">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 p-4 bg-destructive/10 rounded-full w-fit">
-            <AlertCircle className="h-12 w-12 text-destructive" />
-          </div>
-          <CardTitle className="text-2xl">Auto-Population Failed</CardTitle>
-          <CardDescription>{errorMessage}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 bg-muted rounded-lg text-sm">
-            <p className="font-medium mb-2">What happened?</p>
-            <p className="text-muted-foreground">{errorMessage}</p>
-          </div>
-
-          <div className="flex gap-3">
-            <Button
-              onClick={handleRetry}
-              variant="outline"
-              className="flex-1"
-            >
-              Try Again
-            </Button>
-            <Button
-              onClick={() => onComplete({ useManualInterview: true })}
-              className="flex-1"
-            >
-              Use Manual Interview Instead
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Success state
-  return (
-    <Card className="w-full border-green-200 dark:border-green-800">
-      <CardHeader className="text-center">
-        <div className="mx-auto mb-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-full w-fit">
-          <CheckCircle2 className="h-12 w-12 text-green-600 animate-bounce" />
-        </div>
-        <CardTitle className="text-2xl">Vault Auto-Populated!</CardTitle>
-        <CardDescription>
-          AI successfully extracted comprehensive career intelligence
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-primary/5 rounded-lg border">
-            <p className="text-3xl font-bold text-primary">
-              {extractedData?.totalExtracted || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">Items Extracted</p>
-          </div>
-          <div className="text-center p-4 bg-primary/5 rounded-lg border">
-            <p className="text-3xl font-bold text-primary">
-              {extractedData?.categories?.length || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">Categories</p>
-          </div>
-          <div className="text-center p-4 bg-primary/5 rounded-lg border">
-            <p className="text-3xl font-bold text-primary">
-              {extractedData?.vaultCompletion || 85}%
-            </p>
-            <p className="text-sm text-muted-foreground">Complete</p>
-          </div>
-        </div>
-
-        {/* Categories Populated */}
-        {extractedData?.summary && (
-          <div className="space-y-3">
-            <p className="font-medium text-sm">Top Strength Areas:</p>
-            <div className="flex flex-wrap gap-2">
-              {extractedData.summary.strengthAreas?.map((area: string, idx: number) => (
-                <Badge key={idx} variant="secondary">{area}</Badge>
-              ))}
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(stats.powerPhrasesCount || 0) > 0 && (
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <Award className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats.powerPhrasesCount}</div>
+                  <div className="text-xs text-muted-foreground">Power Phrases</div>
+                </div>
+              )}
+              {(stats.skillsCount || 0) > 0 && (
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <Sparkles className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats.skillsCount}</div>
+                  <div className="text-xs text-muted-foreground">Skills</div>
+                </div>
+              )}
+              {(stats.competenciesCount || 0) > 0 && (
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats.competenciesCount}</div>
+                  <div className="text-xs text-muted-foreground">Competencies</div>
+                </div>
+              )}
+              {(stats.softSkillsCount || 0) > 0 && (
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <CheckCircle2 className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats.softSkillsCount}</div>
+                  <div className="text-xs text-muted-foreground">Soft Skills</div>
+                </div>
+              )}
             </div>
 
-            {extractedData.summary.uniqueDifferentiators && (
-              <>
-                <p className="font-medium text-sm mt-4">What Makes You Stand Out:</p>
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800 text-sm">
-                  <ul className="space-y-1">
-                    {extractedData.summary.uniqueDifferentiators.map((diff: string, idx: number) => (
-                      <li key={idx}>• {diff}</li>
-                    ))}
-                  </ul>
+            {/* Quality Breakdown */}
+            {extractedData.qualityBreakdown && (
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-semibold mb-3 text-sm">Quality Distribution</h4>
+                <div className="flex gap-2 flex-wrap">
+                  {(extractedData.qualityBreakdown.verified || 0) > 0 && (
+                    <Badge variant="default">
+                      {extractedData.qualityBreakdown.verified} Verified
+                    </Badge>
+                  )}
+                  {(extractedData.qualityBreakdown.needsReview || 0) > 0 && (
+                    <Badge variant="secondary">
+                      {extractedData.qualityBreakdown.needsReview} Needs Review
+                    </Badge>
+                  )}
+                  {(extractedData.qualityBreakdown.draft || 0) > 0 && (
+                    <Badge variant="outline">
+                      {extractedData.qualityBreakdown.draft} Draft
+                    </Badge>
+                  )}
                 </div>
-              </>
+              </div>
             )}
-          </div>
-        )}
 
-        {/* Next Steps */}
-        <div className="p-4 bg-muted/50 rounded-lg border text-sm">
-          <p className="font-medium mb-2">Next Step:</p>
-          <p className="text-muted-foreground">
-            Quick review: Approve, edit, or skip each extracted item. Takes just 5-10 minutes!
-          </p>
-        </div>
+            {/* Next Steps */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm">Next Steps:</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-success shrink-0" />
+                  <span>Review and enhance extracted intelligence</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-success shrink-0" />
+                  <span>Answer strategic questions to fill gaps</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-success shrink-0" />
+                  <span>Use your vault to build targeted resumes</span>
+                </li>
+              </ul>
+            </div>
 
-        <Button
-          onClick={handleContinue}
-          size="lg"
-          className="w-full"
-        >
-          Review Extracted Intelligence
-        </Button>
+            <Button 
+              onClick={handleContinue}
+              size="lg"
+              className="w-full"
+            >
+              Review Extracted Intelligence
+            </Button>
+          </CardContent>
+        </Card>
 
-        <p className="text-xs text-center text-muted-foreground">
-          You can skip review and start using your vault at 85% power
-        </p>
-      </CardContent>
-    </Card>
-  );
+        <NotificationCenter 
+          notifications={notifications}
+          onDismiss={dismissNotification}
+        />
+      </div>
+    );
+  }
+
+  return null;
 };
