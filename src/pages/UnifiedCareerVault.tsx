@@ -237,37 +237,45 @@ export default function UnifiedCareerVault() {
               </Button>
             </div>
 
-            {/* Simple Vault Stats Grid */}
+            {/* Vault Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <VaultStatCard
                 icon={Award}
-                title="Power Phrases"
+                title="Key Achievements"
+                description="Quantified accomplishments from your resume"
                 vaultId={vaultId}
                 table="vault_power_phrases"
+                columnName="power_phrase"
                 iconColor="text-indigo-600"
                 bgColor="bg-indigo-50"
               />
               <VaultStatCard
                 icon={Briefcase}
-                title="Skills"
+                title="Technical Skills"
+                description="Software, tools, and technologies you know"
                 vaultId={vaultId}
                 table="vault_transferable_skills"
+                columnName="stated_skill"
                 iconColor="text-purple-600"
                 bgColor="bg-purple-50"
               />
               <VaultStatCard
                 icon={Brain}
-                title="Competencies"
+                title="Soft Skills"
+                description="Leadership, communication, and other strengths"
                 vaultId={vaultId}
                 table="vault_hidden_competencies"
+                columnName="inferred_capability"
                 iconColor="text-green-600"
                 bgColor="bg-green-50"
               />
               <VaultStatCard
                 icon={TrendingUp}
                 title="Total Items"
+                description="Everything extracted from your resume"
                 vaultId={vaultId}
                 table="all"
+                columnName=""
                 iconColor="text-orange-600"
                 bgColor="bg-orange-50"
               />
@@ -326,29 +334,40 @@ export default function UnifiedCareerVault() {
   );
 }
 
-// Simple Stat Card Component
+// Interactive Stat Card Component with Data Preview
 function VaultStatCard({
   icon: Icon,
   title,
+  description,
   vaultId,
   table,
+  columnName,
   iconColor,
   bgColor
 }: {
   icon: any;
   title: string;
+  description: string;
   vaultId: string | null;
   table: string;
+  columnName: string;
   iconColor: string;
   bgColor: string;
 }) {
   const [count, setCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!vaultId) return;
+    if (!vaultId) {
+      console.log(`[VaultStatCard ${title}] No vaultId provided`);
+      setLoading(false);
+      return;
+    }
 
-    const fetchCount = async () => {
+    const fetchData = async () => {
+      console.log(`[VaultStatCard ${title}] Fetching data for vaultId:`, vaultId, 'table:', table);
       try {
         if (table === 'all') {
           // Count all items across all tables
@@ -357,38 +376,84 @@ function VaultStatCard({
             supabase.from('vault_transferable_skills').select('*', { count: 'exact', head: true }).eq('vault_id', vaultId),
             supabase.from('vault_hidden_competencies').select('*', { count: 'exact', head: true }).eq('vault_id', vaultId)
           ]);
-          setCount((powerPhrases.count || 0) + (skills.count || 0) + (competencies.count || 0));
+          const total = (powerPhrases.count || 0) + (skills.count || 0) + (competencies.count || 0);
+          console.log(`[VaultStatCard ${title}] Counts - phrases:`, powerPhrases.count, 'skills:', skills.count, 'competencies:', competencies.count, 'total:', total);
+          setCount(total);
         } else {
-          const { count: tableCount } = await supabase
+          const { data, count: tableCount, error } = await supabase
             .from(table as any)
-            .select('*', { count: 'exact', head: true })
-            .eq('vault_id', vaultId);
-          setCount(tableCount || 0);
+            .select('*', { count: 'exact' })
+            .eq('vault_id', vaultId)
+            .limit(5);
+
+          if (error) {
+            console.error(`[VaultStatCard ${title}] Query error:`, error);
+          } else {
+            console.log(`[VaultStatCard ${title}] Count result:`, tableCount, 'Sample data:', data);
+            setCount(tableCount || 0);
+            setItems(data || []);
+          }
         }
       } catch (error) {
-        console.error('Error fetching count:', error);
+        console.error(`[VaultStatCard ${title}] Error fetching data:`, error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCount();
-  }, [vaultId, table]);
+    fetchData();
+  }, [vaultId, table, title]);
+
+  const handleClick = () => {
+    if (count > 0 && table !== 'all') {
+      setExpanded(!expanded);
+    }
+  };
 
   return (
-    <Card>
+    <Card className={table !== 'all' && count > 0 ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} onClick={handleClick}>
       <CardContent className="pt-6">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-1">
             <p className="text-sm font-medium text-slate-600">{title}</p>
             <p className="text-3xl font-bold text-slate-900 mt-2">
               {loading ? '...' : count}
             </p>
+            <p className="text-xs text-slate-500 mt-1">{description}</p>
           </div>
-          <div className={`${bgColor} p-3 rounded-lg`}>
+          <div className={`${bgColor} p-3 rounded-lg shrink-0`}>
             <Icon className={`w-6 h-6 ${iconColor}`} />
           </div>
         </div>
+
+        {/* Expanded preview of items */}
+        {expanded && items.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+            <p className="text-xs font-semibold text-slate-700 mb-2">Sample items:</p>
+            {items.slice(0, 3).map((item, idx) => (
+              <div key={idx} className="text-sm text-slate-600 bg-slate-50 p-2 rounded">
+                {item[columnName]}
+              </div>
+            ))}
+            {count > 3 && (
+              <p className="text-xs text-slate-500 italic">+ {count - 3} more items...</p>
+            )}
+          </div>
+        )}
+
+        {/* Show helpful message when no data */}
+        {!loading && count === 0 && (
+          <div className="mt-2 text-xs text-slate-500 italic">
+            No items yet. Upload a resume to get started.
+          </div>
+        )}
+
+        {/* Click hint */}
+        {!loading && count > 0 && table !== 'all' && !expanded && (
+          <div className="mt-2 text-xs text-indigo-600">
+            Click to preview →
+          </div>
+        )}
       </CardContent>
     </Card>
   );
