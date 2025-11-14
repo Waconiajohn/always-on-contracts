@@ -1,10 +1,11 @@
 // Upload Resume Modal - Replaces onboarding step 1
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Loader2 } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 interface UploadResumeModalProps {
   open: boolean;
@@ -12,15 +13,60 @@ interface UploadResumeModalProps {
   onUploadComplete: (vaultId: string) => void;
 }
 
+interface ProgressUpdate {
+  phase: string;
+  percentage: number;
+  message: string;
+  items_extracted?: number;
+}
+
 export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadResumeModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [progress, setProgress] = useState<ProgressUpdate | null>(null);
+  const [currentVaultId, setCurrentVaultId] = useState<string | null>(null);
+
+  // Listen to realtime progress updates
+  useEffect(() => {
+    if (!currentVaultId) return;
+
+    const channel = supabase
+      .channel(`extraction-progress-${currentVaultId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT and UPDATE)
+          schema: 'public',
+          table: 'extraction_progress',
+          filter: `vault_id=eq.${currentVaultId}`
+        },
+        (payload) => {
+          console.log('Progress update received:', payload);
+          const newProgress = payload.new as ProgressUpdate;
+          setProgress(newProgress);
+          
+          if (newProgress.phase === 'complete') {
+            setTimeout(() => {
+              setCurrentVaultId(null);
+              setProgress(null);
+            }, 2000); // Keep complete message visible for 2s
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentVaultId]);
 
   // Reset file state when modal closes
   const handleClose = () => {
     if (!isUploading) {
       setFile(null);
+      setProgress(null);
+      setCurrentVaultId(null);
       onClose();
     }
   };
@@ -131,6 +177,10 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
       }
 
       console.log('Vault ready, triggering extraction for vaultId:', vaultId);
+      
+      // Set vault ID to start listening for progress updates
+      setCurrentVaultId(vaultId);
+      setProgress({ phase: 'initialization', percentage: 0, message: 'Starting extraction...' });
 
       // Step 3: Trigger extraction
       const { data: session } = await supabase.auth.getSession();
@@ -154,6 +204,8 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
       toast.error('Upload failed', {
         description: error instanceof Error ? error.message : 'Please try again'
       });
+      setCurrentVaultId(null);
+      setProgress(null);
     } finally {
       setIsUploading(false);
     }
@@ -220,6 +272,31 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
           )}
         </div>
 
+        {/* Progress indicator */}
+        {isUploading && progress && (
+          <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-slate-700">
+                {progress.phase === 'complete' ? (
+                  <span className="flex items-center gap-2 text-green-600">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Complete!
+                  </span>
+                ) : (
+                  progress.message
+                )}
+              </span>
+              <span className="text-slate-500">{progress.percentage}%</span>
+            </div>
+            <Progress value={progress.percentage} className="h-2" />
+            {progress.items_extracted && progress.items_extracted > 0 && (
+              <p className="text-xs text-slate-500">
+                Extracted {progress.items_extracted} items so far...
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={isUploading}>
             Cancel
@@ -232,7 +309,7 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
             {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
+                {progress?.phase === 'complete' ? 'Finalizing...' : 'Processing...'}
               </>
             ) : (
               'Upload & Extract'
