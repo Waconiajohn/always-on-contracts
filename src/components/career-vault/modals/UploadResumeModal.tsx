@@ -69,41 +69,12 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
       const { data: authSession } = await supabase.auth.getSession();
       const authToken = authSession.session?.access_token;
 
-      // Call process-resume with retry logic for network failures
-      let processData;
-      let processError;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (attempts < maxAttempts) {
-        attempts++;
-        console.log(`Attempt ${attempts} to process resume...`);
-        
-        try {
-          const response = await Promise.race([
-            supabase.functions.invoke('process-resume', {
-              body: formData,
-              headers: {
-                Authorization: `Bearer ${authToken}`
-              }
-            }),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Request timeout after 60s')), 60000)
-            )
-          ]);
-          
-          processData = (response as any).data;
-          processError = (response as any).error;
-          break; // Success, exit retry loop
-        } catch (error) {
-          console.error(`Attempt ${attempts} failed:`, error);
-          if (attempts >= maxAttempts) {
-            throw new Error('Failed to process resume after 3 attempts. Please try again.');
-          }
-          // Wait 2 seconds before retry
-          await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data: processData, error: processError } = await supabase.functions.invoke('process-resume', {
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${authToken}`
         }
-      }
+      });
 
       if (processError) {
         console.error('Process resume error:', processError);

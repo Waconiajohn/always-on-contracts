@@ -368,7 +368,7 @@ serve(async (req) => {
       console.log(`\n🔧 Processing ${technicalSkills.length} technical skills...`);
       
       technicalSkills.forEach((skill, index) => {
-        const quality_tier = skill.confidence > 90 ? 'verified' : skill.confidence > 75 ? 'needs_review' : 'draft';
+        const quality_tier = skill.confidence > 90 ? 'gold' : skill.confidence > 75 ? 'silver' : 'bronze';
         
         allExtracted.skills.push({
           stated_skill: skill.skill,
@@ -380,7 +380,7 @@ serve(async (req) => {
           quality_tier,
           section_source: 'skills',
           extraction_version: 'v3-ai-structured',
-          review_priority: quality_tier === 'verified' ? 80 : quality_tier === 'needs_review' ? 60 : 40,
+          review_priority: quality_tier === 'gold' ? 80 : quality_tier === 'silver' ? 60 : 40,
           equivalent_skills: [],
           evidence: `${skill.proficiencyLevel} proficiency with ${skill.yearsOfExperience || 'multiple'} years of experience`
         });
@@ -391,7 +391,7 @@ serve(async (req) => {
       console.log(`\n👔 Processing ${leadershipSkills.length} leadership skills...`);
       
       leadershipSkills.forEach((skill, index) => {
-        const quality_tier = skill.confidence > 80 ? 'needs_review' : 'draft';
+        const quality_tier = skill.confidence > 80 ? 'silver' : 'bronze';
         
         allExtracted.competencies.push({
           competency_area: 'Leadership',
@@ -413,7 +413,7 @@ serve(async (req) => {
       
       softSkills.forEach((skill, index) => {
         const hasEvidence = skill.evidence && skill.evidence.length > 50;
-        const quality_tier = skill.confidence > 80 && hasEvidence ? 'needs_review' : 'draft';
+        const quality_tier = skill.confidence > 80 && hasEvidence ? 'silver' : 'bronze';
         
         allExtracted.softSkills.push({
           soft_skill: skill.skill,
@@ -422,7 +422,7 @@ serve(async (req) => {
           quality_tier,
           section_source: 'experience',
           extraction_version: 'v3-ai-structured',
-          review_priority: quality_tier === 'needs_review' ? 50 : 30,
+          review_priority: quality_tier === 'silver' ? 50 : 30,
           examples: skill.evidence || 'Demonstrated through professional experience',
           behavioral_evidence: skill.evidence || ''
         });
@@ -477,13 +477,13 @@ serve(async (req) => {
 
       // Quality tier logic
       if (hasMetrics && hasCalculations && confidenceScore > 0.85) {
-        pp.quality_tier = 'verified'; // High confidence with enhancements
+        pp.quality_tier = 'gold'; // High confidence with enhancements
         pp.review_priority = index < 5 ? 80 : 50; // Top 5 get priority
       } else if (hasMetrics || hasCalculations) {
-        pp.quality_tier = 'needs_review'; // Has some enhancements, needs verification
+        pp.quality_tier = 'silver'; // Has some enhancements, needs verification
         pp.review_priority = index < 10 ? 60 : 30;
       } else {
-        pp.quality_tier = 'draft'; // Needs enhancement
+        pp.quality_tier = 'bronze'; // Needs enhancement
         pp.review_priority = 20;
       }
     });
@@ -493,22 +493,22 @@ serve(async (req) => {
       const confidenceScore = s.confidence_score || 0.7;
 
       if (hasEquivalents && confidenceScore > 0.8) {
-        s.quality_tier = 'verified';
+        s.quality_tier = 'gold';
         s.review_priority = index < 5 ? 70 : 40;
       } else {
-        s.quality_tier = 'draft';
+        s.quality_tier = 'bronze';
         s.review_priority = 20;
       }
     });
 
     allExtracted.competencies.forEach((c) => {
-      c.quality_tier = 'needs_review'; // Hidden competencies always need review
+      c.quality_tier = 'silver'; // Hidden competencies always need review
       c.review_priority = 60;
     });
 
     allExtracted.softSkills.forEach((ss) => {
       const hasEvidence = ss.examples && ss.examples.length > 50;
-      ss.quality_tier = hasEvidence ? 'needs_review' : 'draft';
+      ss.quality_tier = hasEvidence ? 'silver' : 'bronze';
       ss.review_priority = hasEvidence ? 50 : 20;
     });
 
@@ -647,7 +647,7 @@ serve(async (req) => {
         user_id: userId,
         power_phrase: pp.phrase || pp.power_phrase,
         category: pp.category || 'General',
-        confidence_score: pp.confidence_score || 0.8,
+        confidence_score: Math.round((pp.confidence_score || 0.8) * 100),
         quality_tier: pp.quality_tier,
         impact_metrics: pp.impact_metrics || {},
         keywords: pp.keywords || [],
@@ -666,9 +666,9 @@ serve(async (req) => {
         console.error('❌ Error inserting power phrases:', ppError);
       } else {
         console.log(`✅ Stored ${powerPhrasesInserts.length} power phrases`);
-        console.log(`   - Verified: ${powerPhrasesInserts.filter(p => p.quality_tier === 'verified').length}`);
-        console.log(`   - Needs Review: ${powerPhrasesInserts.filter(p => p.quality_tier === 'needs_review').length}`);
-        console.log(`   - Draft: ${powerPhrasesInserts.filter(p => p.quality_tier === 'draft').length}`);
+        console.log(`   - Gold: ${powerPhrasesInserts.filter(p => p.quality_tier === 'gold').length}`);
+        console.log(`   - Silver: ${powerPhrasesInserts.filter(p => p.quality_tier === 'silver').length}`);
+        console.log(`   - Bronze: ${powerPhrasesInserts.filter(p => p.quality_tier === 'bronze').length}`);
       }
     }
 
@@ -734,7 +734,7 @@ serve(async (req) => {
         user_id: userId,
         skill_name: ss.soft_skill || ss.skill_name || ss.skill,
         examples: ss.examples || ss.behavioral_evidence || 'Demonstrated through professional experience',
-        confidence_score: Math.round((ss.confidence_score || 0.75) * 100),
+        ai_confidence: (ss.confidence_score || 0.75),
         quality_tier: ss.quality_tier,
         section_source: ss.section_source,
         extraction_version: ss.extraction_version,
@@ -914,9 +914,9 @@ serve(async (req) => {
             total: totalItems,
           },
           qualityBreakdown: {
-            verified: allExtracted.powerPhrases.filter(p => p.quality_tier === 'verified').length,
-            needsReview: allExtracted.powerPhrases.filter(p => p.quality_tier === 'needs_review').length,
-            draft: allExtracted.powerPhrases.filter(p => p.quality_tier === 'draft').length,
+            gold: allExtracted.powerPhrases.filter(p => p.quality_tier === 'gold').length,
+            silver: allExtracted.powerPhrases.filter(p => p.quality_tier === 'silver').length,
+            bronze: allExtracted.powerPhrases.filter(p => p.quality_tier === 'bronze').length,
           },
           preExtractionContext: {
             role: roleInfo?.primaryRole,
