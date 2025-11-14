@@ -209,10 +209,19 @@ Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty.
 
     // Parse response
     const content = response.choices[0].message.content;
+    
+    // Debug: Log response length and preview
+    console.log('📊 Response length:', content.length, 'chars');
+    console.log('📄 Response preview (first 500 chars):', content.substring(0, 500));
+    console.log('📄 Response preview (last 500 chars):', content.substring(content.length - 500));
+    
     const parseResult = extractJSON(content);
 
     if (!parseResult.success || !parseResult.data) {
-      throw new Error('Failed to parse AI response into valid JSON');
+      console.error('❌ JSON parsing failed. Full response content:');
+      console.error(content);
+      console.error('Parse error:', parseResult.error);
+      throw new Error(`Failed to parse AI response into valid JSON: ${parseResult.error}`);
     }
 
     const structuredData = parseResult.data as StructuredResumeData;
