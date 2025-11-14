@@ -3,12 +3,12 @@ import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
-import { ResumeMatchScoreSchema } from '../_shared/ai-response-schemas.ts';
+import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 
 serve(createAIHandler({
   functionName: 'score-resume-match',
-  schema: ResumeMatchScoreSchema,
+  schema: GenericAIResponseSchema,
   requireAuth: true,
   rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
@@ -103,18 +103,20 @@ Return ONLY valid JSON with this structure:
 
     const content = cleanCitations(response.choices[0].message.content);
 
-    const result = extractJSON(content, ResumeMatchScoreSchema);
+    const result = extractJSON(content, GenericAIResponseSchema);
 
-    if (!result.success) {
+    if (!result.success || !result.data) {
       logger.error('Parsing failed', { error: result.error });
       throw new Error(`Invalid response: ${result.error}`);
     }
 
+    const responseData = JSON.parse(result.data.content || '{}');
+
     logger.info('Scoring complete', {
-      overallMatch: result.data.overallMatch,
-      gapsCount: result.data.gaps.length
+      overallMatch: responseData.overallMatch,
+      gapsCount: responseData.gaps?.length || 0
     });
 
-    return result.data;
+    return responseData;
   }
 }));

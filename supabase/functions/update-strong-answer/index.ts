@@ -5,12 +5,12 @@ import { callPerplexity } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
-import { QuestionResponseSchema } from '../_shared/ai-response-schemas.ts';
+import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 
 serve(createAIHandler({
   functionName: 'update-strong-answer',
-  schema: QuestionResponseSchema,
+  schema: GenericAIResponseSchema,
   requireAuth: true,
   rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
@@ -108,7 +108,7 @@ Keep the enhanced answer realistic and grounded in their actual experience. Don'
 
     const enhancedText = response.choices[0].message.content.trim();
 
-    const result = extractJSON(enhancedText, QuestionResponseSchema);
+    const result = extractJSON(enhancedText, GenericAIResponseSchema);
 
     if (!result.success) {
       logger.error('JSON extraction failed', {

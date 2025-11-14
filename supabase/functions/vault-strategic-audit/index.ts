@@ -244,36 +244,40 @@ Return JSON:
 
     const startTime = Date.now();
 
-    const aiResponse = await callPerplexity({
-      model: 'sonar-reasoning-pro',  // Deep thinking model
-      messages: [{
-        role: 'system',
-        content: 'You are an elite AI career strategist. Use deep reasoning and web search to enhance this vault strategically. Return only valid JSON, no markdown.'
-      }, {
-        role: 'user',
-        content: prompt
-      }],
-      temperature: 0.4,  // Higher for creative reasoning
-      max_tokens: 8000,
-    });
+    const aiResponse = await callPerplexity(
+      {
+        model: 'sonar-reasoning-pro',  // Deep thinking model
+        messages: [{
+          role: 'system',
+          content: 'You are an elite AI career strategist. Use deep reasoning and web search to enhance this vault strategically. Return only valid JSON, no markdown.'
+        }, {
+          role: 'user',
+          content: prompt
+        }],
+        temperature: 0.4,  // Higher for creative reasoning
+        max_tokens: 8000,
+      },
+      'vault-strategic-audit',
+      user.id
+    );
 
     const duration = Date.now() - startTime;
     console.log(`✅ Strategic enhancement analysis completed in ${duration}ms`);
 
     // Log AI usage
     await logAIUsage({
-      supabase,
-      userId: user.id,
+      user_id: user.id,
       model: 'sonar-reasoning-pro',
-      inputTokens: prompt.length / 4,
-      outputTokens: (aiResponse.content || '').length / 4,
-      cost: 0.05,
-      operation: 'vault-strategic-enhancement',
-      metadata: { vaultId, duration }
+      input_tokens: prompt.length / 4,
+      output_tokens: (aiResponse.response.choices[0]?.message?.content || '').length / 4,
+      cost_usd: aiResponse.metrics.cost_usd || 0.05,
+      function_name: 'vault-strategic-audit',
+      request_id: crypto.randomUUID(),
+      created_at: new Date().toISOString()
     });
 
     // Parse AI response
-    const resultText = aiResponse.content || '{"enhancements": [], "smartQuestionsToAsk": [], "strategicGapsDiscovered": [], "executiveSummary": "No analysis generated"}';
+    const resultText = aiResponse.response.choices[0]?.message?.content || '{"enhancements": [], "smartQuestionsToAsk": [], "strategicGapsDiscovered": [], "executiveSummary": "No analysis generated"}';
     const cleanedText = resultText.includes('```')
       ? resultText.split('```')[1].replace('json', '').trim()
       : resultText;

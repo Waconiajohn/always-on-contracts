@@ -4,12 +4,12 @@ import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
-import { InterviewValidationSchema } from '../_shared/ai-response-schemas.ts';
+import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 
 serve(createAIHandler({
   functionName: 'validate-interview-response',
-  schema: InterviewValidationSchema,
+  schema: GenericAIResponseSchema,
   requireAuth: false, // Can be called without auth for demo purposes
   rateLimit: { maxPerMinute: 20, maxPerHour: 200 },
 
@@ -169,7 +169,7 @@ CRITICAL VALIDATION RULES:
 
     const validationText = cleanCitations(aiResponse.choices[0].message.content).trim();
 
-    const result = extractJSON(validationText, InterviewValidationSchema);
+    const result = extractJSON(validationText, GenericAIResponseSchema);
 
     if (!result.success) {
       logger.error('Validation parsing failed', {
@@ -179,11 +179,17 @@ CRITICAL VALIDATION RULES:
       throw new Error(`Invalid validation response: ${result.error}`);
     }
 
+    if (!result.data) {
+      throw new Error('No validation data returned');
+    }
+
+    const responseData = JSON.parse(result.data.content || '{}');
+
     logger.info('Interview response validation complete', {
-      qualityScore: result.data.quality_score,
-      isSufficient: result.data.is_sufficient
+      qualityScore: responseData.quality_score,
+      isSufficient: responseData.is_sufficient
     });
 
-    return result.data;
+    return responseData;
   }
 }));
