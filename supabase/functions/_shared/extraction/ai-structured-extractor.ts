@@ -210,25 +210,38 @@ Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty.
     // Parse response
     const content = response.choices[0].message.content;
     
-    // Debug: Log response length and preview
+    // Debug: Log response details
     console.log('📊 Response length:', content.length, 'chars');
-    console.log('📄 Response preview (first 500 chars):', content.substring(0, 500));
+    console.log('📄 Response preview (first 800 chars):', content.substring(0, 800));
     console.log('📄 Response preview (last 500 chars):', content.substring(content.length - 500));
     
     const parseResult = extractJSON(content);
 
     if (!parseResult.success || !parseResult.data) {
-      console.error('❌ JSON parsing failed. Full response content:');
-      console.error(content);
+      console.error('❌ JSON parsing failed.');
+      console.error('📄 Full response (first 2000 chars):', content.substring(0, 2000));
       console.error('Parse error:', parseResult.error);
       throw new Error(`Failed to parse AI response into valid JSON: ${parseResult.error}`);
     }
 
     const structuredData = parseResult.data as StructuredResumeData;
+    
+    // Debug: Log what we got
+    console.log('✅ JSON parsed successfully. Top-level keys:', Object.keys(structuredData));
 
-    // Validation
-    if (!structuredData.education || !structuredData.experience || !structuredData.skills) {
-      throw new Error('AI response missing required sections');
+    // Detailed validation with helpful error messages
+    const missingFields: string[] = [];
+    if (!structuredData.education) missingFields.push('education');
+    if (!structuredData.experience) missingFields.push('experience');
+    if (!structuredData.skills) missingFields.push('skills');
+    if (!structuredData.achievements) missingFields.push('achievements');
+    if (!structuredData.professionalIdentity) missingFields.push('professionalIdentity');
+    if (!structuredData.extractionMetadata) missingFields.push('extractionMetadata');
+    
+    if (missingFields.length > 0) {
+      console.error('❌ Parsed JSON structure:', JSON.stringify(structuredData, null, 2).substring(0, 1000));
+      console.error('Missing required fields:', missingFields);
+      throw new Error(`AI response missing required sections: ${missingFields.join(', ')}`);
     }
 
     console.log('✅ [AI-STRUCTURED-EXTRACTION] Extraction complete:', {
