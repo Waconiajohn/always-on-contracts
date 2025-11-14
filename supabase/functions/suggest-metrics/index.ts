@@ -60,8 +60,7 @@ Be specific and realistic. If the phrase doesn't naturally support certain metri
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'short'
+          requiresReasoning: false
         }),
         temperature: 0.7,
         max_tokens: 800,

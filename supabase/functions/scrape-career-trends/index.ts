@@ -141,8 +141,7 @@ Provide 5-8 highly relevant, actionable trends with specific guidance for job se
         model: selectOptimalModel({
           taskType: 'research',
           complexity: 'medium',
-          requiresReasoning: false,
-          outputLength: 'medium'
+          requiresReasoning: false
         }),
         temperature: 0.4,
       },
