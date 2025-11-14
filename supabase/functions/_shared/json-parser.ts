@@ -17,9 +17,16 @@ export function extractJSON<T = any>(
   content: string,
   schema?: ZodSchema<T>
 ): ParseResult<T> {
+  // Pre-process: Remove <think> tags from reasoning models
+  let cleanedContent = content;
+  const thinkTagMatch = cleanedContent.match(/<think>[\s\S]*?<\/think>\s*/g);
+  if (thinkTagMatch) {
+    cleanedContent = cleanedContent.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+  }
+  
   // Strategy 1: Direct parse
   try {
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(cleanedContent);
     if (schema) {
       const validated = schema.safeParse(parsed);
       if (validated.success) {
@@ -33,7 +40,7 @@ export function extractJSON<T = any>(
   }
 
   // Strategy 2: Extract from markdown code blocks
-  const codeBlockMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  const codeBlockMatch = cleanedContent.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (codeBlockMatch) {
     try {
       const parsed = JSON.parse(codeBlockMatch[1].trim());
