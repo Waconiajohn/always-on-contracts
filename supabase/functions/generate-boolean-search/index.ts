@@ -65,14 +65,11 @@ Common Patterns:
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'low',
-          requiresReasoning: false,
-          outputLength: 'short'
+          requiresReasoning: false
         }),
         temperature: 0.5,
         max_tokens: 500,
-        return_citations: false,
-        tools,
-        tool_choice: { type: "function", function: { name: "suggest_job_titles" } }
+        return_citations: false
       },
       'generate-boolean-search'
     );

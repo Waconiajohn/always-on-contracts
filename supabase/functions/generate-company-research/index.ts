@@ -46,7 +46,7 @@ Format your response with clear section headers.`
         model: selectOptimalModel({
           taskType: 'research',
           complexity: 'medium',
-          requiresWebSearch: true,
+          requiresResearch: true,
           estimatedInputTokens: 600,
           estimatedOutputTokens: 800
         }),

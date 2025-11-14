@@ -387,9 +387,7 @@ Return ONLY valid JSON in the format above.`;
         ],
         model: selectOptimalModel({
           taskType: 'generation',
-          complexityLevel: 'medium',
-          requiresCreativity: true,
-          contextSize: 'medium'
+          complexity: 'medium'
         }),
         temperature: 0.7,
         max_tokens: 1500,

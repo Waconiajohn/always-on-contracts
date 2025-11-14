@@ -6,7 +6,7 @@ import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
-import { QuestionResponseSchema } from '../_shared/ai-response-schemas.ts';
+import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -101,8 +101,7 @@ Return ONLY a JSON object with this structure:
           model: selectOptimalModel({
             taskType: 'generation',
             complexity: 'low',
-            requiresReasoning: false,
-            outputLength: 'short'
+            requiresReasoning: false
           }),
           temperature: 0.7,
           max_tokens: 800,

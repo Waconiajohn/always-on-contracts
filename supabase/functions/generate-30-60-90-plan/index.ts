@@ -85,8 +85,7 @@ Return JSON with this structure:
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
+          requiresReasoning: true
         }),
         temperature: 0.7,
         max_tokens: 2000,

@@ -168,8 +168,7 @@ Return a JSON object with this structure:
       model: selectOptimalModel({
         taskType: 'generation',
         complexity: 'high',
-        requiresReasoning: true,
-        outputLength: 'long'
+        requiresReasoning: true
       }),
       temperature: 0.3,
     }, 'generate-executive-resume-pass1', user.id);
@@ -225,8 +224,7 @@ Return JSON:
       model: selectOptimalModel({
         taskType: 'analysis',
         complexity: 'medium',
-        requiresReasoning: true,
-        outputLength: 'medium'
+        requiresReasoning: true
       }),
       temperature: 0.2,
     }, 'generate-executive-resume-pass2', user.id);
@@ -276,8 +274,7 @@ Return JSON:
       model: selectOptimalModel({
         taskType: 'generation',
         complexity: 'medium',
-        requiresReasoning: false,
-        outputLength: 'long'
+        requiresReasoning: false
       }),
       temperature: 0.3,
     }, 'generate-executive-resume-pass3', user.id);

@@ -93,8 +93,7 @@ Each question should have:
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'medium',
-          requiresReasoning: true,
-          outputLength: 'medium'
+          requiresReasoning: true
         }),
         temperature: 0.7,
       },

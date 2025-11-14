@@ -150,8 +150,7 @@ Return ONLY the content, no explanations.`;
       model: selectOptimalModel({
         taskType: 'generation',
         complexity: 'medium',
-        requiresReasoning: false,
-        outputLength: 'medium'
+        requiresReasoning: false
       }),
       temperature: 0.6,
       max_tokens: 1500,
@@ -322,8 +321,7 @@ Return ONLY the content, no explanations.`;
       model: selectOptimalModel({
         taskType: 'generation',
         complexity: 'medium',
-        requiresReasoning: false,
-        outputLength: 'medium'
+        requiresReasoning: false
       }),
       temperature: 0.5,
       max_tokens: 1500,
@@ -424,8 +422,7 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
         model: selectOptimalModel({
           taskType: 'generation',
           complexity: 'medium',
-          requiresReasoning: false,
-          outputLength: 'medium'
+          requiresReasoning: false
         }),
         temperature: 0.6,
         max_tokens: 1500,
