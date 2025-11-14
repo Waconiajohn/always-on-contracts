@@ -158,26 +158,6 @@ serve(async (req) => {
 
     console.log('Vault data fetched successfully');
 
-    // Combine all requirements for matching
-    const allRequirements = [
-      ...(jobRequirements?.required || []),
-      ...(jobRequirements?.preferred || []),
-      ...(jobRequirements?.niceToHave || []),
-      ...(industryStandards || []).map((s: any) => ({
-        requirement: s.standard,
-        keywords: [s.category],
-        importance: s.commonInTopPerformers ? 8 : 6,
-        type: s.category
-      })),
-      ...(professionBenchmarks || []).map((b: any) => ({
-        requirement: b.standard,
-        keywords: [b.category],
-        importance: 9,
-        type: b.category,
-        isDifferentiator: true
-      }))
-    ];
-
     const matches: VaultMatch[] = [];
 
     // Process each vault category
