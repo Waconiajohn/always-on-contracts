@@ -44,7 +44,13 @@ export function SmartVaultPanel({ vaultSuggestions, onUseItem, isLoading }: Smar
   };
 
   const getTypeLabel = (type: VaultItem['type']) => {
-    return type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const labels = {
+      'power_phrase': 'Key Achievement',
+      'skill': 'Technical Skill',
+      'competency': 'Soft Skill',
+      'achievement': 'Achievement'
+    };
+    return labels[type] || type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   return (
