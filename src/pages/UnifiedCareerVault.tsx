@@ -506,9 +506,9 @@ function VaultItemsList({ vaultId }: { vaultId: string | null }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="w-5 h-5 text-indigo-600" />
-              Power Phrases
+              Key Achievements
             </CardTitle>
-            <CardDescription>High-impact achievements and results</CardDescription>
+            <CardDescription>Quantified accomplishments from your resume</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {powerPhrases.map((phrase) => (
@@ -530,9 +530,9 @@ function VaultItemsList({ vaultId }: { vaultId: string | null }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-purple-600" />
-              Transferable Skills
+              Technical Skills
             </CardTitle>
-            <CardDescription>Core capabilities across roles</CardDescription>
+            <CardDescription>Software, tools, and technologies you know</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -552,9 +552,9 @@ function VaultItemsList({ vaultId }: { vaultId: string | null }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-green-600" />
-              Hidden Competencies
+              Soft Skills
             </CardTitle>
-            <CardDescription>AI-discovered strategic capabilities</CardDescription>
+            <CardDescription>Leadership, communication, and other strengths</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {competencies.map((comp) => (
