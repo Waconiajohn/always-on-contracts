@@ -50,7 +50,58 @@ export function extractJSON<T = any>(
     }
   }
 
-  // Strategy 3: Find JSON object/array in text
+  // Strategy 3: Find JSON object/array in text (more aggressive)
+  // Try to find the largest JSON object first
+  const findLargestJson = (text: string): string | null => {
+    let largestJson: string | null = null;
+    let maxLength = 0;
+    
+    // Find all potential JSON objects (starting with { and ending with })
+    let braceCount = 0;
+    let startIdx = -1;
+    
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '{') {
+        if (braceCount === 0) startIdx = i;
+        braceCount++;
+      } else if (text[i] === '}') {
+        braceCount--;
+        if (braceCount === 0 && startIdx !== -1) {
+          const candidate = text.substring(startIdx, i + 1);
+          if (candidate.length > maxLength) {
+            try {
+              JSON.parse(candidate); // Verify it's valid
+              largestJson = candidate;
+              maxLength = candidate.length;
+            } catch {
+              // Invalid JSON, continue
+            }
+          }
+        }
+      }
+    }
+    
+    return largestJson;
+  };
+  
+  const largestJson = findLargestJson(content);
+  if (largestJson) {
+    try {
+      const parsed = JSON.parse(largestJson);
+      if (schema) {
+        const validated = schema.safeParse(parsed);
+        if (validated.success) {
+          return { success: true, data: validated.data };
+        }
+      } else {
+        return { success: true, data: parsed };
+      }
+    } catch {
+      // Continue to next strategy
+    }
+  }
+  
+  // Fallback: Original regex approach
   const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
   const jsonArrayMatch = content.match(/\[[\s\S]*\]/);
   
