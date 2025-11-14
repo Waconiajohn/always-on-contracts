@@ -369,7 +369,7 @@ export async function runValidation(
       allIssues.push({
         rule: rule.name,
         severity: 'warning',
-        message: `Validation rule failed: ${error.message}`,
+        message: `Validation rule failed: ${error instanceof Error ? error.message : String(error)}`,
         suggestedFix: 'skip_validation'
       });
     }

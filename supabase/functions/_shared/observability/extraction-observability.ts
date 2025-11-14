@@ -333,7 +333,7 @@ export class ExtractionObservability {
     const totalCost = this.calculateCost(aiResponses || []);
 
     const averageLatency = (aiResponses || []).length > 0
-      ? (aiResponses || []).reduce((sum, r) => sum + (r.latency_ms || 0), 0) / aiResponses.length
+      ? (aiResponses || []).reduce((sum, r) => sum + (r.latency_ms || 0), 0) / (aiResponses?.length || 1)
       : 0;
 
     const retryCount = (events || []).filter(e =>
@@ -341,7 +341,7 @@ export class ExtractionObservability {
     ).length;
 
     const averageConfidence = (aiResponses || []).length > 0
-      ? (aiResponses || []).reduce((sum, r) => sum + (r.confidence_score || 0), 0) / aiResponses.length
+      ? (aiResponses || []).reduce((sum, r) => sum + (r.confidence_score || 0), 0) / (aiResponses?.length || 1)
       : 0;
 
     // Collect all validation issues

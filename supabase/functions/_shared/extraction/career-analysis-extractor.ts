@@ -94,12 +94,7 @@ NO markdown, NO explanations, ONLY the JSON object.`;
     userId
   );
 
-  await logAIUsage({
-    model: 'sonar-pro',
-    tokens: result.response.usage?.total_tokens || 1500,
-    task: 'management_analysis',
-    userId,
-  });
+  await logAIUsage(result.metrics);
 
   const content = result.response.choices[0].message.content;
   const parseResult = extractJSON(content);
@@ -175,12 +170,7 @@ NO markdown, NO explanations, ONLY the JSON object.`;
     userId
   );
 
-  await logAIUsage({
-    model: 'sonar-pro',
-    tokens: result.response.usage?.total_tokens || 1500,
-    task: 'education_analysis',
-    userId,
-  });
+  await logAIUsage(result.metrics);
 
   const content = result.response.choices[0].message.content;
   const parseResult = extractJSON(content);
@@ -242,12 +232,7 @@ NO markdown, NO explanations, ONLY the JSON object.`;
     userId
   );
 
-  await logAIUsage({
-    model: 'sonar-pro',
-    tokens: result.response.usage?.total_tokens || 1500,
-    task: 'career_context_analysis',
-    userId,
-  });
+  await logAIUsage(result.metrics);
 
   const content = result.response.choices[0].message.content;
   const parseResult = extractJSON(content);

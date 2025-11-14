@@ -82,9 +82,7 @@ serve(async (req) => {
         ],
         model: selectOptimalModel({
           taskType: 'extraction',
-          complexity: 'moderate',
-          requiresAccuracy: true,
-          outputLength: 'medium'
+          complexity: 'medium',
         }),
       },
       'analyze-job-qualifications'

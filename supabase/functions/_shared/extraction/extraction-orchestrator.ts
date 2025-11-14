@@ -372,12 +372,12 @@ export async function orchestrateExtraction(
 
     if (sessionId) {
       await observability.logEvent(sessionId, 'extraction_failed', {
-        error: error.message,
-        stack: error.stack,
+            error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       await observability.endSession(sessionId, 'failed', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
 

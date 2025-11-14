@@ -164,7 +164,7 @@ Return JSON with:
             ],
             model: selectOptimalModel({
               taskType: 'extraction',
-              complexity: 'simple',
+              complexity: 'low',
               estimatedInputTokens: 1500,
               estimatedOutputTokens: 1000
             }),

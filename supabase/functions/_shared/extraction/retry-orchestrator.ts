@@ -250,7 +250,7 @@ export async function extractWithRetry(config: RetryConfig): Promise<RetryResult
 
       // Try recovery strategies
       const strategies = RETRY_STRATEGIES
-        .filter(s => s.shouldAttempt(lastError, attempt))
+        .filter(s => lastError && s.shouldAttempt(lastError, attempt))
         .sort((a, b) => a.cost - b.cost); // Cheapest first
 
       for (const strategy of strategies) {
@@ -301,7 +301,7 @@ export async function extractWithRetry(config: RetryConfig): Promise<RetryResult
       console.error(`❌ Extraction attempt ${attempt} failed:`, error);
       lastError = {
         type: 'extraction_failure',
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
 
       // Exponential backoff before retry

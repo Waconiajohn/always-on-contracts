@@ -132,9 +132,7 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
         ],
         model: selectOptimalModel({
           taskType: 'extraction',
-          complexity: 'moderate',
-          requiresAccuracy: true,
-          outputLength: 'medium'
+          complexity: 'medium',
         }),
         temperature: 0.3,
         max_tokens: 2000,
@@ -206,7 +204,7 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         userMessage: 'We encountered an issue analyzing your resume. Please try again or contact support.',
       }),
       {
