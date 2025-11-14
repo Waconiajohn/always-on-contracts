@@ -15,6 +15,7 @@ import { logger } from "@/lib/logger";
 import { SectionGenerationCard } from "./SectionGenerationCard";
 import { SectionReviewPanel } from "./SectionReviewPanel";
 import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
+import { formatResumeContent } from "@/lib/resumeFormatting";
 
 interface ResumeSection {
   id: string;
@@ -306,6 +307,7 @@ export const InteractiveResumeBuilder = ({
 
   const ResumeItemComponent = ({ item, sectionId }: { item: ResumeItem; sectionId: string }) => {
     const isEditing = editingItem === item.id;
+    const cleanedContent = formatResumeContent(item.content);
 
     return (
       <div className="group relative p-3 bg-card rounded border hover:border-primary transition-all">
@@ -328,7 +330,7 @@ export const InteractiveResumeBuilder = ({
                 autoFocus
               />
             ) : (
-              <p className="text-sm whitespace-pre-wrap text-foreground">{item.content}</p>
+              <p className="text-sm whitespace-pre-wrap text-foreground">{cleanedContent}</p>
             )}
 
             {item.atsKeywords && item.atsKeywords.length > 0 && (

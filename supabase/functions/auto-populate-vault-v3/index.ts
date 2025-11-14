@@ -1207,12 +1207,7 @@ Rules:
       max_tokens: 1000,
     }, 'extract_education', params.userId);
 
-    await logAIUsage({
-      model: 'sonar-pro',
-      input_tokens: result.response.usage?.prompt_tokens || 500,
-      output_tokens: result.response.usage?.completion_tokens || 500,
-      user_id: params.userId,
-    });
+    await logAIUsage(result.metrics);
 
     const content = result.response.choices[0].message.content;
     const parseResult = extractJSON(content);
