@@ -118,7 +118,12 @@ serve(async (req) => {
       supabase.from('vault_competitive_advantages').select('*').eq('vault_id', vaultId),
     ]);
 
-    const vaultStrengthBefore = vault.data?.vault_strength_after_qa || vault.data?.vault_strength_before_qa || 0;
+    // Safety check: ensure vault data exists
+    if (!vault.data) {
+      throw new Error('Vault not found');
+    }
+
+    const vaultStrengthBefore = vault.data.vault_strength_after_qa || vault.data.vault_strength_before_qa || 0;
 
     // Build creative AI strategic enhancement prompt
     const prompt = `You are an elite AI career strategist with deep reasoning capabilities. Use your creativity to strategically enhance THIS specific career vault.
