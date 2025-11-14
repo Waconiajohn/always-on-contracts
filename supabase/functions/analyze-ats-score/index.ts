@@ -57,7 +57,6 @@ Return ONLY valid JSON in this exact format:
       estimatedInputTokens: (resumeContent.length + jobDescription.length) / 4,
       estimatedOutputTokens: 800,
       requiresReasoning: false,
-      requiresLatestData: false
     });
 
     const { response, metrics } = await callPerplexity(

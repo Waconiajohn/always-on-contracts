@@ -106,8 +106,6 @@ Focus on positioning experience as premium value for executive and strategic opp
             model: selectOptimalModel({
               taskType: 'extraction',
               complexity: 'high',
-              requiresAccuracy: true,
-              outputLength: 'long'
             }),
             temperature: 0.3,
             max_tokens: 4000,

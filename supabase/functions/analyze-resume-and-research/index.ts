@@ -156,8 +156,6 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
         model: selectOptimalModel({
           taskType: 'extraction',
           complexity: 'high',
-          requiresAccuracy: true,
-          outputLength: 'long'
         }),
         temperature: 0.6,
         max_tokens: 4000,
@@ -288,9 +286,7 @@ Be concise but specific.`;
             model: selectOptimalModel({
               taskType: 'research',
               complexity: 'high',
-              requiresAccuracy: true,
-              needsSearch: true,
-              outputLength: 'medium'
+              requiresResearch: true,
             }),
             temperature: 0.2,
             max_tokens: 1500,

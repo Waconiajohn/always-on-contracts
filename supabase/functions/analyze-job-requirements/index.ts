@@ -150,9 +150,7 @@ Return ONLY valid JSON with this structure:
           messages: [{ role: 'user', content: jdAnalysisPrompt }],
           model: selectOptimalModel({
             taskType: 'extraction',
-            complexity: 'moderate',
-            requiresAccuracy: true,
-            outputLength: 'long'
+            complexity: 'medium',
           }),
           temperature: 0.3,
           max_tokens: 4096
@@ -210,9 +208,7 @@ Return ONLY valid JSON:
           }],
           model: selectOptimalModel({
             taskType: 'research',
-            complexity: 'moderate',
-            requiresAccuracy: true,
-            outputLength: 'medium'
+            complexity: 'medium',
           }),
           temperature: 0.3,
           max_tokens: 2000
@@ -274,8 +270,6 @@ Return ONLY valid JSON:
           model: selectOptimalModel({
             taskType: 'research',
             complexity: 'high',
-            requiresAccuracy: true,
-            outputLength: 'long'
           }),
           temperature: 0.3,
           max_tokens: 4096

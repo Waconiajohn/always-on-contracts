@@ -299,9 +299,8 @@ Analyze this match and respond with ONLY valid JSON in this exact format:
               ],
               model: selectOptimalModel({
                 taskType: 'analysis',
-                complexity: 'moderate',
+                complexity: 'medium',
                 requiresReasoning: true,
-                outputLength: 'short'
               }),
               temperature: 0.7,
               max_tokens: 1000,

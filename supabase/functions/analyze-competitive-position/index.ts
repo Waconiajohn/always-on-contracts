@@ -5,7 +5,6 @@ import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
-import { CompetitivePositionSchema } from '../_shared/ai-response-schemas.ts';
 import { analyzeCareerContextAI } from '../_shared/career-context-analyzer-ai.ts';
 
 /**
@@ -150,7 +149,7 @@ Deno.serve(async (req) => {
     // Step 4: Use Perplexity to analyze competitive position WITH AI career context
     const model = selectOptimalModel({
       taskType: 'analysis',
-      complexityLevel: 'medium',
+      complexity: 'medium',
       estimatedOutputTokens: 1500,
       requiresReasoning: true
     });
@@ -226,7 +225,7 @@ Return JSON with:
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
-    const result = extractJSON(content, CompetitivePositionSchema);
+    const result = extractJSON(content);
 
     if (!result.success) {
       logger.error('JSON parsing failed', { 

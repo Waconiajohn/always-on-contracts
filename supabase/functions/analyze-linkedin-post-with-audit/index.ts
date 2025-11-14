@@ -71,8 +71,7 @@ Provide specific suggestions to improve engagement.`;
         ],
         model: selectOptimalModel({
           taskType: 'analysis',
-          complexity: 'simple',
-          outputLength: 'medium'
+          complexity: 'low',
         }),
         temperature: 0.7,
         max_tokens: 800,
