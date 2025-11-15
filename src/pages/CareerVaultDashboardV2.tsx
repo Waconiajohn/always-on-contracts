@@ -17,6 +17,8 @@ import { AIPrimaryAction, determinePrimaryAction } from '@/components/career-vau
 import { PlainEnglishHero } from '@/components/career-vault/dashboard/PlainEnglishHero';
 import { Layer1FoundationsCard } from '@/components/career-vault/dashboard/Layer1FoundationsCard';
 import { Layer2IntelligenceCard } from '@/components/career-vault/dashboard/Layer2IntelligenceCard';
+import { MarketPositionCard } from '@/components/career-vault/dashboard/MarketPositionCard';
+import { useVaultAssessment } from '@/hooks/useVaultAssessment';
 import { ProfessionalResourcesQuestionnaire } from '@/components/career-vault/dashboard/ProfessionalResourcesQuestionnaire';
 import { LeadershipApproachQuestionnaire } from '@/components/career-vault/dashboard/LeadershipApproachQuestionnaire';
 import { StrategicImpactQuestionnaire } from '@/components/career-vault/dashboard/StrategicImpactQuestionnaire';
@@ -70,6 +72,7 @@ const VaultDashboardContent = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { assessment, assessVaultQuality, isAssessing } = useVaultAssessment();
 
   // State
   const [userId, setUserId] = useState<string | undefined>(undefined);
@@ -138,6 +141,19 @@ const VaultDashboardContent = () => {
   // Data hooks
   const { data: vaultData, isLoading, refetch } = useVaultData(userId);
   const stats = useVaultStats(vaultData);
+
+  // Trigger quality assessment when vault data loads (if not done recently)
+  useEffect(() => {
+    if (vaultData?.vault?.id && !assessment && !isAssessing) {
+      const lastAssessment = vaultData.vault.gap_analysis?.last_assessment;
+      const shouldAssess = !lastAssessment || 
+        (new Date().getTime() - new Date(lastAssessment).getTime()) > 24 * 60 * 60 * 1000; // 24 hours
+      
+      if (shouldAssess) {
+        assessVaultQuality(vaultData.vault.id);
+      }
+    }
+  }, [vaultData?.vault?.id, assessment, isAssessing, assessVaultQuality]);
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // This ensures React hook count remains consistent across renders
@@ -458,6 +474,17 @@ const VaultDashboardContent = () => {
             onSectionClick={handleSectionClick}
           />
         </div>
+
+        {/* Market Position Card - Shows competitive percentile and quick wins */}
+        {(assessment || vaultData?.vault?.gap_analysis) && (
+          <MarketPositionCard
+            competitivePercentile={assessment?.competitive_percentile ?? vaultData?.vault?.gap_analysis?.competitive_percentile}
+            overallScore={stats?.strengthScore.total}
+            targetRole={vaultData?.vault?.target_roles?.[0] || 'your target role'}
+            criticalGaps={assessment?.critical_gaps ?? vaultData?.vault?.gap_analysis?.critical_gaps ?? []}
+            quickWins={assessment?.quick_wins ?? vaultData?.vault?.gap_analysis?.quick_wins ?? []}
+          />
+        )}
 
         {/* ====================================================================
             OLD HERO (Hidden for now - will delete later)
