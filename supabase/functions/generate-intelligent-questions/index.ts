@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,18 +83,15 @@ Each question should have:
 - impact: 1-5 (how much this helps their vault)
 - options: (only for multiple_choice)`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are an expert career coach. Generate intelligent, targeted questions in valid JSON format.' },
           { role: 'user', content: prompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
+        response_format: { type: 'json_object' }
       },
       'generate-intelligent-questions',
       userId
