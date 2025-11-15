@@ -7,6 +7,7 @@ import type { VaultStats } from "@/hooks/useVaultStats";
 interface Layer1FoundationsCardProps {
   vaultData: VaultData | undefined;
   stats: VaultStats | null;
+  benchmark: any; // AI-generated benchmark from career_vault.benchmark_standard
   onSectionClick: (section: string) => void;
   onReextract?: () => void;
 }
@@ -21,8 +22,11 @@ interface SectionStatus {
   section: string;
 }
 
-export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReextract }: Layer1FoundationsCardProps) => {
+export const Layer1FoundationsCard = ({ vaultData, stats, benchmark, onSectionClick, onReextract }: Layer1FoundationsCardProps) => {
   if (!vaultData || !stats) return null;
+
+  // Extract AI-generated benchmarks (with fallbacks for when benchmark isn't ready)
+  const aiBenchmark = benchmark?.layer1_foundations || null;
 
   const calculateSectionStatus = (): SectionStatus[] => {
     const powerPhrasesCount = stats.categoryCounts.powerPhrases;
@@ -43,15 +47,19 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
       vaultData.vault.certifications.length > 0
     );
     
+    // Use AI benchmarks if available, otherwise fallback to simple calculations
+    const workExpTarget = aiBenchmark?.work_experience?.target || 10;
+    const skillsTarget = aiBenchmark?.skills?.target || 15;
+    const highlightsTarget = aiBenchmark?.highlights?.target || 5;
+
     // Work Experience - based on power phrases with metrics
-    // If no power phrases but we have resume text, extraction is incomplete
     const workExpPercentage = powerPhrasesCount > 0 
-      ? Math.min((powerPhrasesCount / 10) * 100, 100) 
+      ? Math.min((powerPhrasesCount / workExpTarget) * 100, 100) 
       : 0;
     
     // Skills & Expertise - based on transferable skills
     const skillsPercentage = skillsCount > 0 
-      ? Math.min((skillsCount / 15) * 100, 100) 
+      ? Math.min((skillsCount / skillsTarget) * 100, 100) 
       : 0;
     
     // Education & Credentials - based on extracted education data
@@ -60,7 +68,7 @@ export const Layer1FoundationsCard = ({ vaultData, stats, onSectionClick, onReex
     // Professional Highlights - based on gold-tier items
     const goldCount = stats.qualityDistribution.gold || 0;
     const highlightsPercentage = goldCount > 0 
-      ? Math.min((goldCount / 5) * 100, 100) 
+      ? Math.min((goldCount / highlightsTarget) * 100, 100) 
       : 0;
 
     // Determine if extraction is incomplete (have resume but missing data)
