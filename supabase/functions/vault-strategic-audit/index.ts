@@ -8,7 +8,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface StrategicAuditRequest {
@@ -244,9 +244,9 @@ Return JSON:
 
     const startTime = Date.now();
 
-    const aiResponse = await callPerplexity(
+    const aiResponse = await callLovableAI(
       {
-        model: 'sonar-reasoning-pro',  // Deep thinking model
+        model: LOVABLE_AI_MODELS.DEFAULT,
         messages: [{
           role: 'system',
           content: 'You are an elite AI career strategist. Use deep reasoning and web search to enhance this vault strategically. Return only valid JSON, no markdown.'
@@ -254,8 +254,9 @@ Return JSON:
           role: 'user',
           content: prompt
         }],
-        temperature: 0.4,  // Higher for creative reasoning
+        temperature: 0.8,
         max_tokens: 8000,
+        response_format: { type: 'json_object' },
       },
       'vault-strategic-audit',
       user.id

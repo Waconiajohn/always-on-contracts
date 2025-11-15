@@ -1,8 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
 import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
@@ -133,16 +132,7 @@ CRITICAL VALIDATION RULES:
 
     const startTime = Date.now();
 
-    const model = selectOptimalModel({
-      taskType: 'analysis',
-      complexity: 'medium',
-      requiresReasoning: true,
-      estimatedOutputTokens: 800
-    });
-
-    logger.info('Selected model', { model });
-
-    const { response: aiResponse, metrics } = await callPerplexity(
+    const { response: aiResponse, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -151,7 +141,10 @@ CRITICAL VALIDATION RULES:
           },
           { role: 'user', content: validationPrompt }
         ],
-        model,
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        temperature: 0.3,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' },
       },
       'validate-interview-response'
     );
@@ -167,7 +160,7 @@ CRITICAL VALIDATION RULES:
       success: true
     });
 
-    const validationText = cleanCitations(aiResponse.choices[0].message.content).trim();
+    const validationText = aiResponse.choices[0].message.content.trim();
 
     const result = extractJSON(validationText, GenericAIResponseSchema);
 

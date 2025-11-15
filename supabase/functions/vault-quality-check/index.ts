@@ -8,7 +8,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface QualityCheckRequest {
@@ -196,9 +196,9 @@ For EACH enhancement you want to make, return:
 
     const startTime = Date.now();
 
-    const aiResponse = await callPerplexity(
+    const aiResponse = await callLovableAI(
       {
-        model: 'sonar',  // Cheap, fast model
+        model: LOVABLE_AI_MODELS.DEFAULT,
         messages: [{
           role: 'system',
           content: 'You are a creative AI career enhancer. Use reasoning to discover enhancements. Return only valid JSON, no markdown.'
@@ -206,8 +206,9 @@ For EACH enhancement you want to make, return:
           role: 'user',
           content: prompt
         }],
-        temperature: 0.3,  // Slightly higher for creativity
-        max_tokens: 3000,  // More room for enhancements
+        temperature: 0.7,
+        max_tokens: 3000,
+        response_format: { type: 'json_object' },
       },
       'vault-quality-check',
       user.id

@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
 import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 
@@ -207,24 +206,15 @@ EXAMPLES OF BAD TOPICS:
 
     const startTime = Date.now();
 
-    const model = selectOptimalModel({
-      taskType: 'generation',
-      complexity: 'medium',
-      requiresReasoning: true,
-      estimatedOutputTokens: 800
-    });
-
-    logger.info('Selected model', { model });
-
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'user', content: prompt }
         ],
-        model,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 1500,
-        return_citations: false,
+        response_format: { type: 'json_object' },
       },
       'suggest-linkedin-topics-from-vault',
       user.id
@@ -241,7 +231,7 @@ EXAMPLES OF BAD TOPICS:
       success: true
     });
 
-    const aiContent = cleanCitations(response.choices[0].message.content);
+    const aiContent = response.choices[0].message.content;
 
     const result = extractArray<TopicSuggestion>(aiContent);
 

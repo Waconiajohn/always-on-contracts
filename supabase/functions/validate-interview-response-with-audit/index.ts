@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,17 +71,14 @@ Rate (1-10):
 
 Provide specific improvements for each component.`;
 
-    const { response: starData, metrics: starMetrics } = await callPerplexity(
+    const { response: starData, metrics: starMetrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are an interview coach expert.' },
           { role: 'user', content: starPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'medium',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        temperature: 0.3,
       },
       'validate-interview-response-with-audit',
       user.id
@@ -90,7 +86,7 @@ Provide specific improvements for each component.`;
 
     await logAIUsage(starMetrics);
 
-    const starAnalysis = cleanCitations(starData.choices[0].message.content);
+    const starAnalysis = starData.choices[0].message.content;
 
     // Update response
     if (responseId) {
