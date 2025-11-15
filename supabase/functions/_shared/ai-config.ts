@@ -28,12 +28,20 @@ export const PERPLEXITY_CONFIG = {
   DEFAULT_MAX_TOKENS: 4000,
   DEFAULT_TOP_P: 0.9,
   
-  // Pricing per 1M tokens (as of 2025) - updated for new Sonar models
+  // REAL Pricing per 1M tokens + per-request fees (as of 2025)
+  // Source: https://www.perplexity.ai/hub/pricing
   PRICING: {
-    'sonar': { input: 0.2, output: 0.2 },
-    'sonar-pro': { input: 1.0, output: 1.0 },
-    'sonar-reasoning-pro': { input: 5.0, output: 5.0 },
-    'sonar-deep-research': { input: 10.0, output: 10.0 },
+    // Sonar: $1 per 1M tokens + $5 per 1,000 requests
+    'sonar': { input: 1.0, output: 1.0, perRequest: 0.005 },
+    
+    // Sonar Pro: $3 input / $15 output per 1M tokens + $5 per 1,000 requests  
+    'sonar-pro': { input: 3.0, output: 15.0, perRequest: 0.005 },
+    
+    // Sonar Reasoning Pro: $2 input / $8 output per 1M tokens + $5 per 1,000 requests
+    'sonar-reasoning-pro': { input: 2.0, output: 8.0, perRequest: 0.005 },
+    
+    // Sonar Deep Research: $10 per 1M tokens + $5 per 1,000 requests
+    'sonar-deep-research': { input: 10.0, output: 10.0, perRequest: 0.005 },
   },
   
   // Retry configuration
@@ -98,6 +106,7 @@ export function validateModel(model: string): void {
 
 /**
  * Calculate cost in USD for a Perplexity API call
+ * Includes per-token costs AND per-request fees
  */
 export function calculateCost(
   model: string,
@@ -112,7 +121,9 @@ export function calculateCost(
   
   const inputCost = (inputTokens / 1_000_000) * pricing.input;
   const outputCost = (outputTokens / 1_000_000) * pricing.output;
-  return inputCost + outputCost;
+  const requestFee = pricing.perRequest; // $0.005 per request
+  
+  return inputCost + outputCost + requestFee;
 }
 
 /**

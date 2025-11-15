@@ -6,7 +6,7 @@
 // Replaces all regex-based extraction logic.
 // =====================================================
 
-import { callPerplexity } from '../ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../lovable-ai-config.ts';
 import { logAIUsage } from '../cost-tracking.ts';
 import { extractJSON } from '../json-parser.ts';
 
@@ -185,21 +185,21 @@ Return ONLY JSON (no markdown):
 Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty. NO markdown.`;
 
   try {
-    const { response, metrics } = await callPerplexity({
+    const { response, metrics } = await callLovableAI({
       messages: [
         {
           role: 'system',
-          content: 'You are an expert resume parser. Extract all information into structured JSON with confidence scores. Always return valid JSON.'
+          content: 'You are an expert resume parser. Extract all information into structured JSON with confidence scores. Always return valid JSON with no markdown formatting.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      model: 'sonar-reasoning-pro', // Best for structured JSON extraction with complex logic
+      model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash - excellent for structured extraction
       temperature: 0.1, // Very low for factual extraction
       max_tokens: 6000, // Sufficient for comprehensive structured output
-      return_citations: false,
+      response_format: { type: 'json_object' }, // Enforce JSON output
     }, 'ai-structured-extraction', userId, 120000); // 2 minute timeout for complex extraction
 
     // Log AI usage
@@ -441,21 +441,21 @@ Return STRICT JSON:
 }`;
 
   try {
-    const { response, metrics } = await callPerplexity({
+    const { response, metrics } = await callLovableAI({
       messages: [
         {
           role: 'system',
-          content: 'You are an expert career advisor analyzing resume data quality. Return valid JSON.'
+          content: 'You are an expert career advisor analyzing resume data quality. Return valid JSON with no markdown formatting.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      model: 'sonar-pro',
+      model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash - fast gap analysis
       temperature: 0.3,
       max_tokens: 4000,
-      return_citations: false,
+      response_format: { type: 'json_object' }, // Enforce JSON output
     }, 'ai-gap-analysis', userId);
 
     await logAIUsage(metrics);

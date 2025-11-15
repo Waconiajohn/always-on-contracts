@@ -1,9 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // Using pinned version to avoid dev environment type resolution issues
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS, cleanCitations } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 // Dual Resume Section Generator - generates both ideal and personalized versions
 const corsHeaders = {
