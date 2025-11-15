@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
@@ -86,7 +85,7 @@ Return ONLY a JSON object with this structure:
 }`;
 
     const { response, metrics } = await retryWithBackoff(
-      async () => await callPerplexity(
+      async () => await callLovableAI(
         {
           messages: [
             {
@@ -98,14 +97,10 @@ Return ONLY a JSON object with this structure:
               content: prompt,
             },
           ],
-          model: selectOptimalModel({
-            taskType: 'generation',
-            complexity: 'low',
-            requiresReasoning: false
-          }),
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.7,
           max_tokens: 800,
-          return_citations: false,
+          response_format: { type: 'json_object' }
         },
         'generate-requirement-questions',
         user.id
@@ -118,7 +113,7 @@ Return ONLY a JSON object with this structure:
 
     await logAIUsage(metrics);
 
-    const content = cleanCitations(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
     const result = extractJSON(content, GenericAIResponseSchema);
 
     if (!result.success) {
