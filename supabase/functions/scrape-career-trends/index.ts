@@ -131,25 +131,22 @@ KEYWORDS: ${keywords?.join(', ') || 'Broad career trends'}
 
 Provide 5-8 highly relevant, actionable trends with specific guidance for job seekers. Prioritize non-obvious insights over common knowledge.`;
 
-    const { response: data, metrics } = await callPerplexity(
+    const { response: data, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'research',
-          complexity: 'medium',
-          requiresReasoning: false
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.4,
+        response_format: { type: 'json_object' },
       },
       'scrape-career-trends'
     );
 
     await logAIUsage(metrics);
 
-    const researchResult = cleanCitations(data.choices[0].message.content);
+    const researchResult = data.choices[0].message.content;
 
     let parsedResult;
     try {

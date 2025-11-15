@@ -477,7 +477,7 @@ async function validateIsResume(text: string, userId?: string): Promise<{
 }> {
   try {
     const { response: data, metrics } = await circuitBreaker.call(() => 
-      callPerplexity({
+      callLovableAI({
         messages: [
           {
             role: "system",
@@ -504,8 +504,9 @@ Respond with JSON: { "isResume": boolean, "confidence": 0.0-1.0, "reason": "brie
 Be lenient - if you see resume content despite poor formatting, mark as true.`
           }
         ],
-        model: PERPLEXITY_MODELS.SMALL,
+        model: LOVABLE_AI_MODELS.FAST,
         max_tokens: 1024,
+        response_format: { type: 'json_object' },
       }, 'validate-resume', userId)
     );
 
@@ -618,7 +619,7 @@ async function multiPassAnalysis(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const { response: data, metrics } = await circuitBreaker.call(() =>
-        callPerplexity({
+        callLovableAI({
           messages: [
             {
               role: "system",
@@ -670,9 +671,10 @@ Return ONLY valid JSON in this exact structure:
 }`
             }
           ],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: LOVABLE_AI_MODELS.DEFAULT,
           max_tokens: 4096,
           temperature: 0.2,
+          response_format: { type: 'json_object' },
         }, 'multipass-analysis', userId)
       );
 

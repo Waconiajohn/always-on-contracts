@@ -168,8 +168,8 @@ Background: ${resumeAnalysis.keyAchievements.slice(0, 5).join('; ')}
 Suggest a DIVERSE range of career options. Show them possibilities they might not have considered.`;
     }
 
-    // Call Perplexity AI
-    const { response: aiData, metrics: aiMetrics } = await callPerplexity(
+    // Call Lovable AI
+    const { response: aiData, metrics: aiMetrics } = await callLovableAI(
       {
         messages: [
           {
@@ -220,13 +220,10 @@ NO MARKDOWN. ONLY JSON.`,
             content: userPrompt,
           },
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'high',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 3000,
+        response_format: { type: 'json_object' },
       },
       'suggest-career-paths',
       user.id
@@ -234,7 +231,7 @@ NO MARKDOWN. ONLY JSON.`,
 
     await logAIUsage(aiMetrics);
 
-    const aiContent = cleanCitations(aiData.choices[0].message.content);
+    const aiContent = aiData.choices[0].message.content;
 
     let suggestions: CareerPathResponse;
     try {

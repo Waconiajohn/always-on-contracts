@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
 
 Cite all sources with URLs.`;
 
-      const { response: perplexityResponse, metrics: perplexityMetrics } = await callPerplexity(
+      const { response: perplexityResponse, metrics: perplexityMetrics } = await callLovableAI(
         {
           messages: [
             {
@@ -108,17 +108,9 @@ Cite all sources with URLs.`;
               content: perplexityQuery
             }
           ],
-          model: selectOptimalModel({
-            taskType: 'research',
-            complexity: 'medium',
-            requiresResearch: true,
-            estimatedInputTokens: 400,
-            estimatedOutputTokens: 2000
-          }),
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.2,
           max_tokens: 2000,
-          return_citations: true,
-          search_recency_filter: 'month',
         },
         'generate-salary-report',
         user.id
@@ -127,7 +119,7 @@ Cite all sources with URLs.`;
       await logAIUsage(perplexityMetrics);
 
       const researchResults = perplexityResponse.choices[0].message.content;
-      const citations = perplexityResponse.citations || [];
+      const citations: string[] = [];
 
       // Step 5: Use Perplexity to extract structured salary data
       const extractionPrompt = `Extract from this research:
@@ -149,7 +141,7 @@ Return JSON with:
 }`;
 
       const { response: extractionResponse, metrics: extractionMetrics } = await retryWithBackoff(
-        async () => await callPerplexity(
+        async () => await callLovableAI(
           {
             messages: [
               {
@@ -161,15 +153,10 @@ Return JSON with:
                 content: extractionPrompt
               }
             ],
-            model: selectOptimalModel({
-              taskType: 'extraction',
-              complexity: 'low',
-              estimatedInputTokens: 1500,
-              estimatedOutputTokens: 1000
-            }),
+            model: LOVABLE_AI_MODELS.DEFAULT,
             temperature: 0.1,
             max_tokens: 1000,
-            return_citations: false,
+            response_format: { type: 'json_object' },
           },
           'generate-salary-report-extraction',
           user.id
@@ -251,7 +238,7 @@ Competitive Score: ${competitiveAnalysis.competitive_score || 'N/A'}/100
 
 Include: Opening statement, market data reference, value proposition from achievements, counter-offer recommendation, alternative compensation discussion.`;
 
-    const { response: scriptResponse, metrics: scriptMetrics } = await callPerplexity(
+    const { response: scriptResponse, metrics: scriptMetrics } = await callLovableAI(
       {
         messages: [
           {
@@ -263,15 +250,10 @@ Include: Opening statement, market data reference, value proposition from achiev
             content: scriptPrompt
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          estimatedInputTokens: 600,
-          estimatedOutputTokens: 1500
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 1500,
-        return_citations: false,
+        response_format: { type: 'json_object' },
       },
       'generate-salary-report-script',
       user.id

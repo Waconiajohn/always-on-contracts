@@ -115,9 +115,9 @@ Provide a comprehensive analysis in JSON format with the following structure:
 Focus on 2025 market data. Be specific and quantitative where possible.
 `;
 
-    // Call Perplexity API with retry logic for resilience
+    // Call Lovable AI with retry logic for resilience
     const { response: perplexityResponse, metrics } = await withRetry(() =>
-      callPerplexity(
+      callLovableAI(
         {
           messages: [
             {
@@ -129,13 +129,10 @@ Focus on 2025 market data. Be specific and quantitative where possible.
               content: researchQuery
             }
           ],
-        model: selectOptimalModel({
-          taskType: 'research',
-          complexity: 'high',
-          requiresReasoning: true
-        }),
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.2,
           max_tokens: 4000,
+          response_format: { type: 'json_object' },
         },
         'research-industry-standards'
       )
@@ -148,7 +145,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
     // Extract JSON from markdown code blocks if present
     let researchResults;
     try {
-      let cleanedContent = cleanCitations(researchContent);
+      let cleanedContent = researchContent;
       
       // Remove <think> tags from reasoning models
       cleanedContent = cleanedContent.replace(/<think>[\s\S]*?<\/think>/g, '');
@@ -168,10 +165,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
       };
     }
 
-    // Extract citations
-    const citations = perplexityResponse.citations || [];
-
-    // Store research in database
+    // Store research in database (citations removed as Lovable AI doesn't provide them)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -189,7 +183,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
         target_role: targetRole,
         target_industry: targetIndustry,
         research_results: researchResults,
-        perplexity_citations: citations
+        perplexity_citations: []
       })
     });
 
@@ -204,7 +198,6 @@ Focus on 2025 market data. Be specific and quantitative where possible.
       JSON.stringify({
         success: true,
         researchResults,
-        citations,
         metadata: {
           targetRole,
           targetIndustry,
@@ -214,7 +207,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
           message: `📊 Real-Time Market Intelligence Complete: We've researched live data on ${targetRole} roles in ${targetIndustry}.`,
           uniqueValue: `Unlike competitors using static templates, we used Perplexity AI to analyze current job postings, executive profiles, and industry trends—giving you intelligence that's accurate as of today.`,
           insightCount: `Found ${researchResults.mustHaveSkills?.length || 0} must-have skills, ${researchResults.competitiveAdvantages?.length || 0} competitive advantages, and ${researchResults.redFlags?.length || 0} red flags to avoid.`,
-          citationNote: citations.length > 0 ? `Research backed by ${citations.length} real sources.` : 'Research based on comprehensive market analysis.'
+          citationNote: 'Research based on comprehensive market analysis.'
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

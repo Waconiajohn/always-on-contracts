@@ -115,16 +115,16 @@ Return JSON with: { "recommendedPersona": "mentor|challenger|strategist", "reaso
 Return JSON with: { "recommendedPersona": "relationship_builder|strategic_connector|data_driven", "reasoning": "brief explanation", "confidence": 0-100 }`;
     }
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Job Description:\n\n${jobDescription}` }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.3,
         max_tokens: 1000,
-        return_citations: false,
+        response_format: { type: 'json_object' },
       },
       'recommend-persona'
     );
