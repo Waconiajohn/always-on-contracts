@@ -91,7 +91,7 @@ export function extractJSON<T = any>(
     return largestJson;
   };
   
-  const largestJson = findLargestJson(content);
+  const largestJson = findLargestJson(cleanedContent);
   if (largestJson) {
     try {
       const parsed = JSON.parse(largestJson);
@@ -109,8 +109,8 @@ export function extractJSON<T = any>(
   }
   
   // Fallback: Original regex approach
-  const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
-  const jsonArrayMatch = content.match(/\[[\s\S]*\]/);
+  const jsonObjectMatch = cleanedContent.match(/\{[\s\S]*\}/);
+  const jsonArrayMatch = cleanedContent.match(/\[[\s\S]*\]/);
   
   for (const match of [jsonObjectMatch, jsonArrayMatch]) {
     if (match) {
