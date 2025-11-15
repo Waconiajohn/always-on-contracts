@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,19 +62,15 @@ Rate on:
 
 Provide specific suggestions to improve engagement.`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are a LinkedIn content strategist.' },
           { role: 'user', content: engagementPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'low',
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 800,
-        return_citations: false,
       },
       'analyze-linkedin-post-with-audit',
       user.id
@@ -83,7 +78,7 @@ Provide specific suggestions to improve engagement.`;
 
     await logAIUsage(metrics);
 
-    const engagementAnalysis = cleanCitations(response.choices[0].message.content);
+    const engagementAnalysis = response.choices[0].message.content;
 
     // Update post with audit results
     if (postId) {
