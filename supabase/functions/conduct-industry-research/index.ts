@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +29,7 @@ Provide detailed information on:
 
 Focus on actionable, specific insights that would help someone build a competitive career profile.`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -42,11 +41,7 @@ Focus on actionable, specific insights that would help someone build a competiti
             content: researchPrompt
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'research',
-          complexity: 'high',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
         max_tokens: 2000
       },

@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +21,7 @@ serve(async (req) => {
 
     console.log(`[COMPANY-RESEARCH] Researching: ${companyName}`);
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -43,16 +42,8 @@ ${jobDescription ? `Context: The user is interviewing for this role: ${jobDescri
 Format your response with clear section headers.`
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'research',
-          complexity: 'medium',
-          requiresResearch: true,
-          estimatedInputTokens: 600,
-          estimatedOutputTokens: 800
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.3,
-        return_citations: false,
-        search_recency_filter: 'month',
       },
       'generate-company-research'
     );
