@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { createLogger } from '../_shared/logger.ts';
 
@@ -285,16 +284,13 @@ Return ONLY valid JSON:
   "unmatchedRequirements": ["Requirements with no vault coverage"]
 }`;
 
-      const { response, metrics } = await callPerplexity(
+      const { response, metrics } = await callLovableAI(
         {
           messages: [{ role: 'user', content: matchingPrompt }],
-          model: selectOptimalModel({
-            taskType: 'analysis',
-            complexity: 'high',
-            requiresReasoning: true
-          }),
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.4,
-          max_tokens: 4096
+          max_tokens: 4096,
+          response_format: { type: 'json_object' }
         },
         'match-vault-to-requirements',
         userId

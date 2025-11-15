@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 // Generate gap solutions using Perplexity AI
 const corsHeaders = {
@@ -181,26 +180,23 @@ RULES:
 - Each bullet must be 1-2 lines maximum
 - Focus on business impact and results`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Generate ${isEducation ? 'EDUCATION CREDENTIALS' : 'WORK EXPERIENCE BULLETS'} for this requirement: "${requirement}". DO NOT repeat this requirement text in your output. Return valid JSON only.` }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
-        max_tokens: 2000
+        max_tokens: 2000,
+        response_format: { type: 'json_object' }
       },
       'generate-gap-solutions'
     );
 
     await logAIUsage(metrics);
 
-    const content = cleanCitations(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
     const parsed = JSON.parse(content);
 
     console.log('AI Response:', JSON.stringify(parsed, null, 2));
