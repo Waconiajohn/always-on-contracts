@@ -13,9 +13,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { createLogger } from '../_shared/logger.ts';
 
@@ -75,7 +74,7 @@ serve(async (req) => {
 
     console.log('🔍 Starting initial resume analysis for user:', user.id);
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -108,35 +107,18 @@ Return ONLY valid JSON with this exact structure:
   ],
   "educationHighlights": ["degree/cert 1", "degree/cert 2"],
   "careerTrajectory": "steady_growth" | "rapid_advancement" | "specialist" | "career_change",
-  "executiveSummary": "2-3 sentence summary of their career story"
-}
-
-SENIORITY GUIDELINES:
-- entry: 0-3 years, junior/associate titles
-- mid: 3-8 years, manager/senior titles
-- senior: 8-15 years, director/senior manager titles
-- executive: 15+ years OR VP/C-suite titles
-
-CAREER TRAJECTORY:
-- steady_growth: Consistent progression within industry
-- rapid_advancement: Quick promotions, early leadership
-- specialist: Deep expertise in specific domain
-- career_change: Major industry/role shifts
-
-NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
+  "executiveSummary": "2-3 sentence summary"
+}`
           },
           {
             role: 'user',
-            content: `Analyze this resume and extract the key information:\n\n${resumeText}`,
-          },
+            content: `Analyze this resume:\n\n${resumeText}`
+          }
         ],
-        model: selectOptimalModel({
-          taskType: 'extraction',
-          complexity: 'medium',
-        }),
-        temperature: 0.3,
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        temperature: 0.2,
         max_tokens: 2000,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'analyze-resume-initial',
       user.id
@@ -144,7 +126,7 @@ NO MARKDOWN. NO EXPLANATIONS. ONLY JSON.`,
 
     await logAIUsage(metrics);
 
-    const rawContent = cleanCitations(response.choices[0].message.content);
+    const rawContent = response.choices[0].message.content;
     const parseResult = extractJSON(rawContent);
 
     if (!parseResult.success || !parseResult.data) {

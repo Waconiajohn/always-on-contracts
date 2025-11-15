@@ -13,7 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { parseResumeStructure, detectRoleAndIndustry, type ResumeSection, type RoleInfo } from '../_shared/extraction/pre-extraction-analyzer.ts';
 import { extractWithRetry } from '../_shared/extraction/retry-orchestrator.ts';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { extractStructuredResumeData, analyzeGapsWithAI, type StructuredResumeData } from '../_shared/extraction/ai-structured-extractor.ts';
@@ -968,26 +968,18 @@ async function extractWithEnhancement(params: ExtractionParams): Promise<any> {
   const prompt = buildEnhancedPrompt(sectionContent, sectionType, extractionType, roleInfo);
 
   // Call AI with retry logic (Phase 5)
-  const result = await callPerplexity(
+  const result = await callLovableAI(
     {
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
+      model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 4000,
+      response_format: { type: 'json_object' }
     },
     `extract_${extractionType}`,
     userId
   );
 
-  await logAIUsage({
-    function_name: 'auto-populate-vault-v3',
-    model: 'sonar-pro',
-    input_tokens: result.response.usage?.prompt_tokens || 1000,
-    output_tokens: result.response.usage?.completion_tokens || 1000,
-    cost_usd: 0,
-    request_id: crypto.randomUUID(),
-    user_id: userId,
-    created_at: new Date().toISOString(),
-  });
+  await logAIUsage(result.metrics);
 
   const content = result.response.choices[0].message.content;
   const parseResult = extractJSON(content);
@@ -1204,10 +1196,11 @@ Rules:
 `;
 
   try {
-    const result = await callPerplexity({
+    const result = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
+      model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 1000,
+      response_format: { type: 'json_object' }
     }, 'extract_education', params.userId);
 
     await logAIUsage(result.metrics);
@@ -1282,23 +1275,15 @@ Return STRICT JSON with this structure:
 }`;
 
   try {
-    const { response } = await callPerplexity({
+    const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
+      model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 2000,
       temperature: 0.3,
+      response_format: { type: 'json_object' }
     }, 'fetch_industry_benchmarks', params.userId);
 
-    await logAIUsage({
-      function_name: 'auto-populate-vault-v3',
-      model: 'sonar-pro',
-      input_tokens: response.usage?.prompt_tokens || 1000,
-      output_tokens: response.usage?.completion_tokens || 1000,
-      cost_usd: 0,
-      request_id: crypto.randomUUID(),
-      user_id: params.userId,
-      created_at: new Date().toISOString(),
-    });
+    await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
     const parseResult = extractJSON(content);
@@ -1389,23 +1374,15 @@ CRITICAL RULES:
 - Extract specific quotes as evidence`;
 
   try {
-    const { response } = await callPerplexity({
+    const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
+      model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 3000,
       temperature: 0.4,
+      response_format: { type: 'json_object' }
     }, 'compare_resume_benchmark', params.userId);
 
-    await logAIUsage({
-      function_name: 'auto-populate-vault-v3',
-      model: 'sonar-pro',
-      input_tokens: response.usage?.prompt_tokens || 1500,
-      output_tokens: response.usage?.completion_tokens || 1500,
-      cost_usd: 0,
-      request_id: crypto.randomUUID(),
-      user_id: params.userId,
-      created_at: new Date().toISOString(),
-    });
+    await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
     const parseResult = extractJSON(content);
@@ -1484,22 +1461,14 @@ Return ONLY valid JSON (no markdown):
 - Return valid JSON only, no markdown code blocks`;
 
   try {
-    const result = await callPerplexity({
+    const result = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
+      model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 1500,
+      response_format: { type: 'json_object' }
     }, 'extract_career_context', params.userId);
 
-    await logAIUsage({
-      function_name: 'auto-populate-vault-v3',
-      model: 'sonar-pro',
-      input_tokens: result.response.usage?.prompt_tokens || 750,
-      output_tokens: result.response.usage?.completion_tokens || 750,
-      cost_usd: 0,
-      request_id: crypto.randomUUID(),
-      user_id: params.userId,
-      created_at: new Date().toISOString(),
-    });
+    await logAIUsage(result.metrics);
 
     const content = result.response.choices[0].message.content;
     const parseResult = extractJSON(content);

@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { createLogger } from '../_shared/logger.ts';
 
@@ -145,15 +144,16 @@ Return ONLY valid JSON with this structure:
     };
 
     try {
-      const { response, metrics } = await callPerplexity(
+      const { response, metrics } = await callLovableAI(
         {
-          messages: [{ role: 'user', content: jdAnalysisPrompt }],
-          model: selectOptimalModel({
-            taskType: 'extraction',
-            complexity: 'medium',
-          }),
+          messages: [
+            { role: 'system', content: 'You are an expert at analyzing job descriptions. Return only valid JSON.' },
+            { role: 'user', content: jdAnalysisPrompt }
+          ],
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.3,
-          max_tokens: 4096
+          max_tokens: 4096,
+          response_format: { type: 'json_object' }
         },
         'analyze-job-requirements',
         userId
@@ -161,7 +161,7 @@ Return ONLY valid JSON with this structure:
 
       await logAIUsage(metrics);
 
-      const textContent = cleanCitations(response.choices?.[0]?.message?.content || '{}');
+      const textContent = response.choices?.[0]?.message?.content || '{}';
       const parseResult = extractJSON(textContent);
 
       if (parseResult.success && parseResult.data) {
@@ -200,27 +200,24 @@ Return ONLY valid JSON:
     let industryStandards: IndustryStandard[] = [];
 
     try {
-      const { response, metrics } = await callPerplexity(
+      const { response, metrics } = await callLovableAI(
         {
-          messages: [{
-            role: 'user',
-            content: industryPrompt
-          }],
-          model: selectOptimalModel({
-            taskType: 'research',
-            complexity: 'medium',
-          }),
+          messages: [
+            { role: 'system', content: 'You are an expert at identifying industry standards. Return only valid JSON.' },
+            { role: 'user', content: industryPrompt }
+          ],
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.3,
-          max_tokens: 2000
+          max_tokens: 2000,
+          response_format: { type: 'json_object' }
         },
-        'analyze-job-requirements',
+        'analyze-job-requirements-industry',
         userId
       );
 
       await logAIUsage(metrics);
 
-      const content = response.choices?.[0]?.message?.content || '{}';
-      const cleanedContent = cleanCitations(content);
+      const cleanedContent = response.choices?.[0]?.message?.content || '{}';
       const parseResult = extractJSON(cleanedContent);
 
       if (parseResult.success && parseResult.data) {
@@ -264,23 +261,24 @@ Return ONLY valid JSON:
     let gapAnalysis: any = { commonlyMissing: [], riskAreas: [] };
 
     try {
-      const { response, metrics } = await callPerplexity(
+      const { response, metrics } = await callLovableAI(
         {
-          messages: [{ role: 'user', content: benchmarkPrompt }],
-          model: selectOptimalModel({
-            taskType: 'research',
-            complexity: 'high',
-          }),
+          messages: [
+            { role: 'system', content: 'You are an expert at identifying top performer benchmarks. Return only valid JSON.' },
+            { role: 'user', content: benchmarkPrompt }
+          ],
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.3,
-          max_tokens: 4096
+          max_tokens: 4096,
+          response_format: { type: 'json_object' }
         },
-        'analyze-job-requirements',
+        'analyze-job-requirements-benchmarks',
         userId
       );
 
       await logAIUsage(metrics);
 
-      const textContent = cleanCitations(response.choices?.[0]?.message?.content || '{}');
+      const textContent = response.choices?.[0]?.message?.content || '{}';
       const parseResult = extractJSON(textContent);
 
       if (parseResult.success && parseResult.data) {

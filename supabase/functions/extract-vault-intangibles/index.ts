@@ -20,9 +20,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 
 interface IntangiblesRequest {
@@ -142,20 +141,20 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: leadershipResponse, metrics: leadershipMetrics } = await callPerplexity({
-      messages: [{ role: 'user', content: leadershipPrompt }],
-      model: selectOptimalModel({
-        taskType: 'extraction',
-        complexity: 'high',
-        requiresReasoning: true
-      }),
+    const { response: leadershipResponse, metrics: leadershipMetrics } = await callLovableAI({
+      messages: [
+        { role: 'system', content: 'You are an expert at inferring leadership philosophy from resume evidence. Return only valid JSON.' },
+        { role: 'user', content: leadershipPrompt }
+      ],
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.4,
       max_tokens: 2000,
+      response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-leadership', user.id);
 
     await logAIUsage(leadershipMetrics);
 
-    const leadershipContent = cleanCitations(leadershipResponse.choices[0].message.content);
+    const leadershipContent = leadershipResponse.choices[0].message.content;
     const cleanedLeadership = leadershipContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const leadershipItems = JSON.parse(cleanedLeadership).leadershipPhilosophy;
 
@@ -220,20 +219,20 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: presenceResponse, metrics: presenceMetrics } = await callPerplexity({
-      messages: [{ role: 'user', content: presencePrompt }],
-      model: selectOptimalModel({
-        taskType: 'extraction',
-        complexity: 'high',
-        requiresReasoning: true
-      }),
+    const { response: presenceResponse, metrics: presenceMetrics } = await callLovableAI({
+      messages: [
+        { role: 'system', content: 'You are an expert at identifying executive presence. Return only valid JSON.' },
+        { role: 'user', content: presencePrompt }
+      ],
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.4,
       max_tokens: 2000,
+      response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-presence', user.id);
 
     await logAIUsage(presenceMetrics);
 
-    const presenceContent = cleanCitations(presenceResponse.choices[0].message.content);
+    const presenceContent = presenceResponse.choices[0].message.content;
     const cleanedPresence = presenceContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const presenceItems = JSON.parse(cleanedPresence).executivePresence;
 
@@ -289,20 +288,20 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: personalityResponse, metrics: personalityMetrics } = await callPerplexity({
-      messages: [{ role: 'user', content: personalityPrompt }],
-      model: selectOptimalModel({
-        taskType: 'extraction',
-        complexity: 'medium',
-        requiresReasoning: true
-      }),
+    const { response: personalityResponse, metrics: personalityMetrics } = await callLovableAI({
+      messages: [
+        { role: 'system', content: 'You are an expert at identifying personality traits. Return only valid JSON.' },
+        { role: 'user', content: personalityPrompt }
+      ],
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.4,
       max_tokens: 2000,
+      response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-personality', user.id);
 
     await logAIUsage(personalityMetrics);
 
-    const personalityContent = cleanCitations(personalityResponse.choices[0].message.content);
+    const personalityContent = personalityResponse.choices[0].message.content;
     const cleanedPersonality = personalityContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const personalityItems = JSON.parse(cleanedPersonality).personalityTraits;
 
@@ -353,20 +352,20 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: workStyleResponse, metrics: workStyleMetrics } = await callPerplexity({
-      messages: [{ role: 'user', content: workStylePrompt }],
-      model: selectOptimalModel({
-        taskType: 'extraction',
-        complexity: 'low',
-        requiresReasoning: false
-      }),
+    const { response: workStyleResponse, metrics: workStyleMetrics } = await callLovableAI({
+      messages: [
+        { role: 'system', content: 'You are an expert at identifying work style preferences. Return only valid JSON.' },
+        { role: 'user', content: workStylePrompt }
+      ],
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.4,
       max_tokens: 1500,
+      response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-workstyle', user.id);
 
     await logAIUsage(workStyleMetrics);
 
-    const workStyleContent = cleanCitations(workStyleResponse.choices[0].message.content);
+    const workStyleContent = workStyleResponse.choices[0].message.content;
     const cleanedWorkStyle = workStyleContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const workStyleItems = JSON.parse(cleanedWorkStyle).workStyle;
 
@@ -416,20 +415,20 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: valuesResponse, metrics: valuesMetrics } = await callPerplexity({
-      messages: [{ role: 'user', content: valuesPrompt }],
-      model: selectOptimalModel({
-        taskType: 'extraction',
-        complexity: 'medium',
-        requiresReasoning: true
-      }),
+    const { response: valuesResponse, metrics: valuesMetrics } = await callLovableAI({
+      messages: [
+        { role: 'system', content: 'You are an expert at identifying values and motivations. Return only valid JSON.' },
+        { role: 'user', content: valuesPrompt }
+      ],
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.4,
       max_tokens: 1500,
+      response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-values', user.id);
 
     await logAIUsage(valuesMetrics);
 
-    const valuesContent = cleanCitations(valuesResponse.choices[0].message.content);
+    const valuesContent = valuesResponse.choices[0].message.content;
     const cleanedValues = valuesContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const valuesItems = JSON.parse(cleanedValues).valuesMotivations;
 
@@ -481,20 +480,20 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: behavioralResponse, metrics: behavioralMetrics } = await callPerplexity({
-      messages: [{ role: 'user', content: behavioralPrompt }],
-      model: selectOptimalModel({
-        taskType: 'extraction',
-        complexity: 'medium',
-        requiresReasoning: true
-      }),
+    const { response: behavioralResponse, metrics: behavioralMetrics } = await callLovableAI({
+      messages: [
+        { role: 'system', content: 'You are an expert at identifying behavioral indicators. Return only valid JSON.' },
+        { role: 'user', content: behavioralPrompt }
+      ],
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.4,
       max_tokens: 1500,
+      response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-behavioral', user.id);
 
     await logAIUsage(behavioralMetrics);
 
-    const behavioralContent = cleanCitations(behavioralResponse.choices[0].message.content);
+    const behavioralContent = behavioralResponse.choices[0].message.content;
     const cleanedBehavioral = behavioralContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const behavioralItems = JSON.parse(cleanedBehavioral).behavioralIndicators;
 
@@ -550,10 +549,11 @@ RETURN VALID JSON (or empty array if none found):
   ]
 }`;
 
-    const { response: thoughtResponse, metrics: thoughtMetrics } = await callPerplexity({
+    const { response: thoughtResponse, metrics: thoughtMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: thoughtLeadershipPrompt }],
-      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false }),
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.3,
+      response_format: { type: 'json_object' }
     }, 'extract-thought-leadership', user.id);
 
     await logAIUsage(thoughtMetrics);
@@ -620,10 +620,11 @@ RETURN VALID JSON (or empty array if none found):
   ]
 }`;
 
-    const { response: networkResponse, metrics: networkMetrics } = await callPerplexity({
+    const { response: networkResponse, metrics: networkMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: networkPrompt }],
-      model: selectOptimalModel({ taskType: 'extraction', complexity: 'medium', requiresReasoning: false }),
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.3,
+      response_format: { type: 'json_object' }
     }, 'extract-professional-network', user.id);
 
     await logAIUsage(networkMetrics);
@@ -689,10 +690,11 @@ RETURN VALID JSON with 3-5 strongest differentiators:
   ]
 }`;
 
-    const { response: advantagesResponse, metrics: advantagesMetrics } = await callPerplexity({
+    const { response: advantagesResponse, metrics: advantagesMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: advantagesPrompt }],
-      model: selectOptimalModel({ taskType: 'extraction', complexity: 'high', requiresReasoning: true }),
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.4,
+      response_format: { type: 'json_object' }
     }, 'extract-competitive-advantages', user.id);
 
     await logAIUsage(advantagesMetrics);
