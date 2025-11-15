@@ -14,9 +14,8 @@
 // =====================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

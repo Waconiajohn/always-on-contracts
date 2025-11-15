@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';

@@ -15,8 +15,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface CareerPathRequest {

@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
 import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
@@ -60,16 +59,9 @@ Return ONLY valid JSON with this structure:
 
     const startTime = Date.now();
 
-    const model = selectOptimalModel({
-      taskType: 'analysis',
-      complexity: 'medium',
-      requiresReasoning: true,
-      estimatedOutputTokens: 600
-    });
+    logger.info('Using Lovable AI model', { model: LOVABLE_AI_MODELS.DEFAULT });
 
-    logger.info('Selected model', { model });
-
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -81,10 +73,10 @@ Return ONLY valid JSON with this structure:
             content: prompt,
           },
         ],
-        model,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
         max_tokens: 2000,
-        return_citations: false,
+        response_format: { type: 'json_object' },
       },
       'score-resume-match',
       user.id
@@ -101,7 +93,7 @@ Return ONLY valid JSON with this structure:
       success: true
     });
 
-    const content = cleanCitations(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
 
     const result = extractJSON(content, GenericAIResponseSchema);
 
