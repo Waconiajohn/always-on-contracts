@@ -144,15 +144,27 @@ const VaultDashboardContent = () => {
 
   // Trigger quality assessment when vault data loads (if not done recently)
   useEffect(() => {
-    if (vaultData?.vault?.id && !assessment && !isAssessing) {
-      const lastAssessment = vaultData.vault.gap_analysis?.last_assessment;
-      const shouldAssess = !lastAssessment || 
-        (new Date().getTime() - new Date(lastAssessment).getTime()) > 24 * 60 * 60 * 1000; // 24 hours
-      
-      if (shouldAssess) {
-        assessVaultQuality(vaultData.vault.id);
+    const runAssessment = async () => {
+      if (vaultData?.vault?.id && !assessment && !isAssessing) {
+        const lastAssessment = vaultData.vault.gap_analysis?.last_assessment;
+        const now = Date.now();
+        const lastAssessmentTime = lastAssessment ? new Date(lastAssessment).getTime() : 0;
+        const hoursSinceLastAssessment = (now - lastAssessmentTime) / (1000 * 60 * 60);
+        
+        const shouldAssess = !lastAssessment || hoursSinceLastAssessment > 24;
+        
+        if (shouldAssess) {
+          try {
+            await assessVaultQuality(vaultData.vault.id);
+          } catch (error) {
+            console.error('Assessment failed:', error);
+            // Don't show error to user - assessment is optional background task
+          }
+        }
       }
-    }
+    };
+    
+    runAssessment();
   }, [vaultData?.vault?.id, assessment, isAssessing, assessVaultQuality]);
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
