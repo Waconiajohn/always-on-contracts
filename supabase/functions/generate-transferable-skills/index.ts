@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
 import { SkillsExtractionSchema } from '../_shared/ai-response-schemas.ts';
 import { extractArray } from '../_shared/json-parser.ts';
@@ -72,22 +71,14 @@ Return JSON array:
 
     const startTime = Date.now();
 
-    const model = selectOptimalModel({
-      taskType: 'extraction',
-      complexity: 'medium',
-      requiresReasoning: true,
-      estimatedOutputTokens: 1000
-    });
-
-    logger.info('Selected model', { model });
-
-    const { response, metrics } = await callPerplexity({
+    const { response, metrics } = await callLovableAI({
       messages: [
         { role: 'system', content: 'You are a career strategist specializing in skills translation and career pivoting. Return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
-      model,
+      model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.2,
+      response_format: { type: 'json_object' }
     }, 'generate-transferable-skills', vault.user_id);
 
     await logAIUsage(metrics);
@@ -101,7 +92,7 @@ Return JSON array:
       success: true
     });
 
-    const skillsText = cleanCitations(response.choices[0].message.content).trim();
+    const skillsText = response.choices[0].message.content.trim();
 
     const result = extractArray(skillsText);
 
