@@ -2,7 +2,7 @@
 // TIER 1: CREATIVE QUALITY ENHANCEMENT
 // =====================================================
 // Runs automatically after extraction to enhance vault
-// Model: sonar (cheap, fast) - $0.002 per enhancement
+// Model: Lovable AI (Gemini Flash)
 // Purpose: Use AI creativity to discover & fix issues
 // =====================================================
 
