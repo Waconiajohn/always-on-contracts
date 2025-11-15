@@ -9,6 +9,7 @@ import { AIUsageMetrics } from './ai-config.ts';
 
 /**
  * Log AI usage metrics to the database
+ * Automatically detects provider from model name
  */
 export async function logAIUsage(metrics: AIUsageMetrics): Promise<void> {
   try {
@@ -22,11 +23,14 @@ export async function logAIUsage(metrics: AIUsageMetrics): Promise<void> {
       return;
     }
 
+    // Detect provider from model name
+    const provider = metrics.model.startsWith('google/') ? 'lovable_ai' : 'perplexity';
+
     const { error } = await supabase
       .from('ai_usage_metrics')
       .insert({
         function_name: metrics.function_name,
-        provider: 'perplexity',
+        provider,
         model: metrics.model,
         input_tokens: metrics.input_tokens,
         output_tokens: metrics.output_tokens,
