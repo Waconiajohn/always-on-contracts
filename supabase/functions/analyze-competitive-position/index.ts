@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
@@ -146,16 +145,9 @@ Deno.serve(async (req) => {
       };
     }
 
-    // Step 4: Use Perplexity to analyze competitive position WITH AI career context
-    const model = selectOptimalModel({
-      taskType: 'analysis',
-      complexity: 'medium',
-      estimatedOutputTokens: 1500,
-      requiresReasoning: true
-    });
-
+    // Step 4: Use Lovable AI to analyze competitive position WITH AI career context
     const { response, metrics } = await retryWithBackoff(
-      async () => await callPerplexity(
+      async () => await callLovableAI(
         {
           messages: [
             {
@@ -211,7 +203,10 @@ Return JSON with:
 }`
             }
           ],
-          model,
+          model: LOVABLE_AI_MODELS.DEFAULT,
+          temperature: 0.4,
+          max_tokens: 2000,
+          response_format: { type: 'json_object' }
         },
         'analyze-competitive-position',
         user.id

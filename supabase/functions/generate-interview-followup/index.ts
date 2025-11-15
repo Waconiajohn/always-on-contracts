@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -121,20 +120,16 @@ Return a JSON object with:
 }
 `;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'low',
-          requiresReasoning: false
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 1000,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'generate-interview-followup',
       user.id
@@ -142,7 +137,7 @@ Return a JSON object with:
 
     await logAIUsage(metrics);
 
-    const content = cleanCitations(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
 
     // Parse JSON from response
     let generatedContent;
