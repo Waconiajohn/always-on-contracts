@@ -144,13 +144,9 @@ Create an INDUSTRY STANDARD version that:
 
 Return ONLY the content, no explanations.`;
 
-    const { response: idealResponse, metrics: idealMetrics } = await callPerplexity({
+    const { response: idealResponse, metrics: idealMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: idealPrompt }],
-      model: selectOptimalModel({
-        taskType: 'generation',
-        complexity: 'medium',
-        requiresReasoning: false
-      }),
+      model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for content generation
       temperature: 0.6,
       max_tokens: 1500,
     }, 'generate-dual-resume-section-ideal', user_id);
@@ -315,13 +311,9 @@ ${vault_items.length === 0 && !hasResumeData && !hasSkillsData ? 'NOTE: No candi
 
 Return ONLY the content, no explanations.`;
 
-    const { response: personalizedResponse, metrics: personalizedMetrics } = await callPerplexity({
+    const { response: personalizedResponse, metrics: personalizedMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: personalizedPrompt }],
-      model: selectOptimalModel({
-        taskType: 'generation',
-        complexity: 'medium',
-        requiresReasoning: false
-      }),
+      model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for content generation
       temperature: 0.5,
       max_tokens: 1500,
     }, 'generate-dual-resume-section-personalized', user_id);
@@ -416,13 +408,9 @@ Create a cohesive section that:
 
 Generate a single, cohesive result. Do NOT simply concatenate - intelligently weave together the strongest elements.`;
 
-      const { response: blendResponse, metrics: blendMetrics } = await callPerplexity({
+      const { response: blendResponse, metrics: blendMetrics } = await callLovableAI({
         messages: [{ role: 'user', content: blendPrompt }],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: false
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for content generation
         temperature: 0.6,
         max_tokens: 1500,
       }, 'generate-dual-resume-section-blend', user_id);

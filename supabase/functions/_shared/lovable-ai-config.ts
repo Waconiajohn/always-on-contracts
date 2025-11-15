@@ -178,3 +178,24 @@ export async function callLovableAI(
     throw new Error('Unknown error calling Lovable AI');
   }
 }
+
+/**
+ * Clean up citations and markdown from AI responses
+ */
+export function cleanCitations(text: string): string {
+  if (!text) return '';
+  
+  // Remove citation markers like [1], [2], etc.
+  let cleaned = text.replace(/\[\d+\]/g, '');
+  
+  // Remove "Sources:" or "Citations:" sections
+  cleaned = cleaned.replace(/\n\n(Sources|Citations):[\s\S]*$/i, '');
+  
+  // Remove any remaining markdown formatting
+  cleaned = cleaned.replace(/[*_~`#]/g, '');
+  
+  // Clean up extra whitespace
+  cleaned = cleaned.replace(/\n\n+/g, '\n\n').trim();
+  
+  return cleaned;
+}

@@ -68,23 +68,19 @@ Example:
 [Action: View Healthcare Matches]
 [Action: Adjust Filters]"`;
 
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error('PERPLEXITY_API_KEY is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const response = await fetch(PERPLEXITY_CONFIG.API_URL, {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'low',
-          requiresReasoning: false
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for chat
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
@@ -97,7 +93,22 @@ Example:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Perplexity API error:', response.status, errorText);
+      console.error('Lovable AI error:', response.status, errorText);
+      
+      // Handle rate limits and payment errors
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limits exceeded, please try again later.' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits depleted. Please add credits to your Lovable workspace.' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       return new Response(JSON.stringify({ error: 'AI service error' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -126,15 +137,14 @@ Example:
             if (done) {
               // Log usage after stream completes
               const estimatedOutputTokens = Math.ceil(outputText.length / 4);
-              const cost = ((estimatedInputTokens * 0.001) + (estimatedOutputTokens * 0.001)) / 1000; // HUGE model pricing
+              
+              // Calculate cost using Lovable AI pricing
+              const cost = ((estimatedInputTokens / 1_000_000) * 0.30) + 
+                          ((estimatedOutputTokens / 1_000_000) * 2.50);
               
               await logAIUsage({
                 function_name: 'job-search-assistant',
-                model: selectOptimalModel({
-                  taskType: 'generation',
-                  complexity: 'low',
-                  requiresReasoning: false
-                }),
+                model: LOVABLE_AI_MODELS.DEFAULT,
                 input_tokens: estimatedInputTokens,
                 output_tokens: estimatedOutputTokens,
                 cost_usd: cost,
