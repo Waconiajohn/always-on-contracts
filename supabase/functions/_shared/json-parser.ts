@@ -63,25 +63,49 @@ export function extractJSON<T = any>(
     let largestJson: string | null = null;
     let maxLength = 0;
     
-    // Find all potential JSON objects (starting with { and ending with })
+    // Find all potential JSON objects with proper string handling
     let braceCount = 0;
     let startIdx = -1;
+    let inString = false;
+    let escapeNext = false;
     
     for (let i = 0; i < text.length; i++) {
-      if (text[i] === '{') {
-        if (braceCount === 0) startIdx = i;
-        braceCount++;
-      } else if (text[i] === '}') {
-        braceCount--;
-        if (braceCount === 0 && startIdx !== -1) {
-          const candidate = text.substring(startIdx, i + 1);
-          if (candidate.length > maxLength) {
-            try {
-              JSON.parse(candidate); // Verify it's valid
-              largestJson = candidate;
-              maxLength = candidate.length;
-            } catch {
-              // Invalid JSON, continue
+      const char = text[i];
+      
+      // Handle escape sequences in strings
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        escapeNext = true;
+        continue;
+      }
+      
+      // Toggle string state on unescaped quotes
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      
+      // Only count braces outside of strings
+      if (!inString) {
+        if (char === '{') {
+          if (braceCount === 0) startIdx = i;
+          braceCount++;
+        } else if (char === '}') {
+          braceCount--;
+          if (braceCount === 0 && startIdx !== -1) {
+            const candidate = text.substring(startIdx, i + 1);
+            if (candidate.length > maxLength) {
+              try {
+                JSON.parse(candidate); // Verify it's valid
+                largestJson = candidate;
+                maxLength = candidate.length;
+              } catch {
+                // Invalid JSON, continue
+              }
             }
           }
         }
