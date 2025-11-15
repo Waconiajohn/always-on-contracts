@@ -155,8 +155,8 @@ export function extractJSON<T = any>(
   }
 
   // Strategy 4: Clean and retry
-  const cleaned = cleanAIFormatting(content);
-  if (cleaned !== content) {
+  const cleaned = cleanAIFormatting(cleanedContent);
+  if (cleaned !== cleanedContent) {
     try {
       const parsed = JSON.parse(cleaned);
       if (schema) {
@@ -169,6 +169,24 @@ export function extractJSON<T = any>(
       }
     } catch {
       // All strategies failed
+    }
+  }
+
+  // Strategy 5: Try to find JSON after any prefix text (e.g., "Here is the JSON:")
+  const jsonStartMatch = cleanedContent.match(/\{[\s\S]+\}[\s]*$/);
+  if (jsonStartMatch) {
+    try {
+      const parsed = JSON.parse(jsonStartMatch[0]);
+      if (schema) {
+        const validated = schema.safeParse(parsed);
+        if (validated.success) {
+          return { success: true, data: validated.data };
+        }
+      } else {
+        return { success: true, data: parsed };
+      }
+    } catch {
+      // Continue
     }
   }
 

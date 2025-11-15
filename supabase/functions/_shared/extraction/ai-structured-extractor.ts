@@ -189,16 +189,16 @@ Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty.
       messages: [
         {
           role: 'system',
-          content: 'You are an expert resume parser. Extract all information into structured JSON with confidence scores. Always return valid JSON.'
+          content: 'You are a JSON extraction system. You MUST respond with ONLY valid JSON. No explanations, no markdown, no additional text. Just pure JSON.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      model: 'sonar-reasoning-pro', // Best for structured JSON extraction with complex logic
-      temperature: 0.1, // Very low for factual extraction
-      max_tokens: 6000, // Sufficient for comprehensive structured output
+      model: 'sonar-pro', // Best for structured extraction without reasoning overhead
+      temperature: 0.0, // Zero temperature for deterministic extraction
+      max_tokens: 8000, // Sufficient for comprehensive structured output
       return_citations: false,
     }, 'ai-structured-extraction', userId, 120000); // 2 minute timeout for complex extraction
 
