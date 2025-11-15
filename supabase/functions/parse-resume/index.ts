@@ -164,7 +164,7 @@ serve(async (req) => {
       console.log('Parsing Word document with Perplexity AI...');
 
       try {
-        const { response: aiResponse, metrics } = await callPerplexity({
+        const { response: aiResponse, metrics } = await callLovableAI({
           messages: [
             {
               role: 'system',
@@ -175,13 +175,13 @@ serve(async (req) => {
               content: `Please extract all text from this Word document and return only the plain text content.\n\nBase64 data length: ${fileData.length} characters`
             }
           ],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: LOVABLE_AI_MODELS.DEFAULT,
           max_tokens: 4000,
         }, 'parse-resume-docx', 'system');
 
         await logAIUsage(metrics);
 
-        extractedText = cleanCitations(aiResponse.choices?.[0]?.message?.content || '');
+        extractedText = aiResponse.choices?.[0]?.message?.content || '';
 
         if (!extractedText || extractedText.length < 50) {
           return new Response(

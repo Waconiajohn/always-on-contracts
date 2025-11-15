@@ -154,7 +154,7 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
 
     console.log(`Perplexity research request: ${research_type}`);
     
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -166,11 +166,9 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
             content: researchQuery
           }
         ],
-        model: PERPLEXITY_MODELS.HUGE,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
         max_tokens: 3000,
-        return_related_questions: true,
-        search_recency_filter: 'month',
       },
       'perplexity-research',
       user.id
@@ -179,7 +177,7 @@ Use only recent data (last 3 months). Cite all salary data and market statistics
     await logAIUsage(metrics);
 
     const research_result = response.choices[0]?.message?.content;
-    const citations = response.citations || [];
+    const citations: string[] = [];
 
     // Store research result
     const { error: insertError } = await supabase
