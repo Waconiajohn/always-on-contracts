@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
@@ -138,21 +137,16 @@ ${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capabili
     const { response, metrics } = await retryWithBackoff(
       async () => {
         const aiStartTime = Date.now();
-        const result = await callPerplexity(
+        const result = await callLovableAI(
           {
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            model: selectOptimalModel({
-              taskType: 'generation',
-              complexity: 'medium',
-              estimatedInputTokens: 800,
-              estimatedOutputTokens: 1000
-            }),
+            model: LOVABLE_AI_MODELS.DEFAULT,
             temperature: 0.7,
             max_tokens: 1000,
-            return_citations: false,
+            response_format: { type: 'json_object' }
           },
           'generate-networking-email',
           user.id
@@ -177,7 +171,7 @@ ${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capabili
 
     await logAIUsage(metrics);
 
-    const generatedContent = cleanCitations(response.choices[0].message.content);
+    const generatedContent = response.choices[0].message.content;
 
     // Parse and validate JSON
     let parsedEmail;

@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS, cleanCitations } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { createLogger } from '../_shared/logger.ts';
 
@@ -379,19 +378,16 @@ Return ONLY valid JSON in the format above.`;
       ? `Start the Career Vault interview. Resume analysis: ${JSON.stringify(vault?.initial_analysis || {})}`
       : `Continue the interview. Conversation so far: ${JSON.stringify(conversationHistory || [])}`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium'
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 1500,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'generate-interview-question',
       user.id
@@ -399,7 +395,7 @@ Return ONLY valid JSON in the format above.`;
 
     await logAIUsage(metrics);
 
-    const aiResponse = cleanCitations(response.choices[0].message.content);
+    const aiResponse = response.choices[0].message.content;
 
     let parsedResult;
     const parseResult = extractJSON(aiResponse);
