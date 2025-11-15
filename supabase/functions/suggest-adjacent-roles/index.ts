@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,27 +54,23 @@ Return ONLY a JSON object with this structure:
 
 Be specific and realistic. Do not suggest complete career pivots.`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are a career transition expert who helps people identify realistic adjacent career paths based on transferable skills. Always return valid JSON.' },
           { role: 'user', content: prompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 1500,
-        return_citations: false,
+        response_format: { type: 'json_object' },
       },
       'suggest-adjacent-roles'
     );
 
     await logAIUsage(metrics);
 
-    const aiContent = cleanCitations(response.choices[0].message.content);
+    const aiContent = response.choices[0].message.content;
 
     console.log('[SUGGEST-ADJACENT-ROLES] Raw AI response:', aiContent);
 
