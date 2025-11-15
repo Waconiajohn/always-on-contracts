@@ -257,48 +257,33 @@ ${intelligence ? '✅ Uses Career Vault verified data where available' : ''}
 Return the same JSON structure with refined content.`;
     }
 
-    const { response, metrics } = await retryWithBackoff(
-      async () => {
-        const aiStartTime = Date.now();
-        const result = await callPerplexity(
-          {
-            messages: [
-              { 
-                role: 'system', 
-                content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Career Vault intelligence to ground stories in verified achievements.' : ''} Always respond with valid JSON matching the requested schema.` 
-              },
-              { role: 'user', content: prompt }
-            ],
-            model: selectOptimalModel({
-              taskType: 'generation',
-              complexity: 'medium',
-              estimatedInputTokens: 1500,
-              estimatedOutputTokens: 1500
-            }),
-            temperature: 0.7,
-            max_tokens: 1500,
-            return_citations: false,
+    const aiStartTime = Date.now();
+    const { response, metrics } = await callLovableAI(
+      {
+        messages: [
+          { 
+            role: 'system', 
+            content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Career Vault intelligence to ground stories in verified achievements.' : ''} Always respond with valid JSON matching the requested schema.` 
           },
-          'generate-star-story',
-          user.id
-        );
-
-        logger.logAICall({
-          model: result.metrics.model,
-          inputTokens: result.metrics.input_tokens,
-          outputTokens: result.metrics.output_tokens,
-          latencyMs: Date.now() - aiStartTime,
-          cost: result.metrics.cost_usd,
-          success: true
-        });
-
-        return result;
+          { role: 'user', content: prompt }
+        ],
+        model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for STAR stories
+        temperature: 0.7,
+        max_tokens: 1500,
+        response_format: { type: 'json_object' }, // Enforce JSON output
       },
-      3,
-      (attempt, error) => {
-        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
-      }
+      'generate-star-story',
+      user.id
     );
+
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - aiStartTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
     await logAIUsage(metrics);
 
@@ -330,20 +315,16 @@ Return the same JSON structure with refined content.`;
       }
     );
 
-  } catch (error) {
-    const aiError = handlePerplexityError(error);
-    logger.error('STAR story generation failed', error, {
-      code: aiError.code,
-      retryable: aiError.retryable
-    });
-
+  } catch (error: any) {
+    logger.error('Error generating STAR story', { error: error.message, stack: error.stack });
+    
     return new Response(
       JSON.stringify({ 
-        error: aiError.userMessage,
-        retryable: aiError.retryable
+        error: error.message || 'Failed to generate STAR story',
+        retryable: true
       }),
       {
-        status: aiError.statusCode,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

@@ -159,17 +159,14 @@ Return a JSON object with this structure:
   "strongWorkingKnowledge": ["string"]
 }`;
 
-    const { response: pass1Response, metrics: pass1Metrics } = await callPerplexity({
+    const { response: pass1Response, metrics: pass1Metrics } = await callLovableAI({
       messages: [
-        { role: 'system', content: 'You are an elite executive resume writer. Return only valid JSON.' },
+        { role: 'system', content: 'You are an elite executive resume writer. Return only valid JSON with no markdown formatting.' },
         { role: 'user', content: pass1Prompt }
       ],
-      model: selectOptimalModel({
-        taskType: 'generation',
-        complexity: 'high',
-        requiresReasoning: true
-      }),
+      model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for resume generation
       temperature: 0.3,
+      response_format: { type: 'json_object' }, // Enforce JSON output
     }, 'generate-executive-resume-pass1', user.id);
 
     await logAIUsage(pass1Metrics);
@@ -215,17 +212,14 @@ Return JSON:
   "overallFeedback": "string"
 }`;
 
-    const { response: pass2Response, metrics: pass2Metrics } = await callPerplexity({
+    const { response: pass2Response, metrics: pass2Metrics } = await callLovableAI({
       messages: [
-        { role: 'system', content: 'You are a critical hiring manager. Return only valid JSON.' },
+        { role: 'system', content: 'You are a critical hiring manager. Return only valid JSON with no markdown formatting.' },
         { role: 'user', content: pass2Prompt }
       ],
-      model: selectOptimalModel({
-        taskType: 'analysis',
-        complexity: 'medium',
-        requiresReasoning: true
-      }),
+      model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for analysis
       temperature: 0.2,
+      response_format: { type: 'json_object' }, // Enforce JSON output
     }, 'generate-executive-resume-pass2', user.id);
 
     await logAIUsage(pass2Metrics);
@@ -265,17 +259,14 @@ Return JSON:
   "strongWorkingKnowledge": ["string"]
 }`;
 
-    const { response: pass3Response, metrics: pass3Metrics } = await callPerplexity({
+    const { response: pass3Response, metrics: pass3Metrics } = await callLovableAI({
       messages: [
-        { role: 'system', content: 'You are refining a resume. Return only valid JSON.' },
+        { role: 'system', content: 'You are refining a resume. Return only valid JSON with no markdown formatting.' },
         { role: 'user', content: pass3Prompt }
       ],
-      model: selectOptimalModel({
-        taskType: 'generation',
-        complexity: 'medium',
-        requiresReasoning: false
-      }),
+      model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for refinement
       temperature: 0.3,
+      response_format: { type: 'json_object' }, // Enforce JSON output
     }, 'generate-executive-resume-pass3', user.id);
 
     await logAIUsage(pass3Metrics);
