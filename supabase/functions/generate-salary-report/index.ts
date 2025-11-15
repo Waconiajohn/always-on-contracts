@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
         .order('posted_date', { ascending: false })
         .limit(50);
 
-      // Step 4: Call Perplexity for real-time market research
-      const perplexityQuery = `Provide detailed salary data for ${job_title} position in ${location} with ${years_experience} years of experience. Include:
+      // Step 4: Call AI for real-time market research
+      const aiQuery = `Provide detailed salary data for ${job_title} position in ${location} with ${years_experience} years of experience. Include:
 1. Salary ranges from Glassdoor, Levels.fyi, LinkedIn Salary, Indeed
 2. 25th, 50th, 75th, and 90th percentile salaries
 3. Total compensation including bonus, equity, benefits
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
 
 Cite all sources with URLs.`;
 
-      const { response: perplexityResponse, metrics: perplexityMetrics } = await callLovableAI(
+      const { response: aiResponse, metrics: aiMetrics } = await callLovableAI(
         {
           messages: [
             {
@@ -105,7 +105,7 @@ Cite all sources with URLs.`;
             },
             {
               role: 'user',
-              content: perplexityQuery
+              content: aiQuery
             }
           ],
           model: LOVABLE_AI_MODELS.DEFAULT,
@@ -116,12 +116,12 @@ Cite all sources with URLs.`;
         user.id
       );
 
-      await logAIUsage(perplexityMetrics);
+      await logAIUsage(aiMetrics);
 
-      const researchResults = perplexityResponse.choices[0].message.content;
+      const researchResults = aiResponse.choices[0].message.content;
       const citations: string[] = [];
 
-      // Step 5: Use Perplexity to extract structured salary data
+      // Step 5: Use AI to extract structured salary data
       const extractionPrompt = `Extract from this research:
 
 ${researchResults}

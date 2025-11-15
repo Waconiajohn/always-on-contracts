@@ -2,7 +2,7 @@
 // TIER 2: DEEP STRATEGIC ENHANCEMENT
 // =====================================================
 // User-triggered deep AI reasoning to enhance vault
-// Model: sonar-reasoning-pro (deep thinking) - $0.05 per enhancement
+// Model: Lovable AI (Gemini Flash)
 // Purpose: Creative gap discovery, smart questions, vault optimization
 // =====================================================
 
