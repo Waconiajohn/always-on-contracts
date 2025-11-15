@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,17 +63,14 @@ Return JSON:
   "optimization_tips": ["tip1", "tip2", ...]
 }`;
 
-    const { response: optimizationResponse, metrics: optimizationMetrics } = await callPerplexity(
+    const { response: optimizationResponse, metrics: optimizationMetrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are a LinkedIn optimization expert.' },
           { role: 'user', content: optimizationPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        response_format: { type: 'json_object' }
       },
       'optimize-linkedin-with-audit',
       user.id
@@ -82,7 +78,7 @@ Return JSON:
 
     await logAIUsage(optimizationMetrics);
 
-    const optimizedContent = cleanCitations(optimizationResponse.choices[0].message.content);
+    const optimizedContent = optimizationResponse.choices[0].message.content;
 
     let optimizedProfile;
     try {

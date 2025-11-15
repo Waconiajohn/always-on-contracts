@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 const corsHeaders = {
@@ -77,13 +77,13 @@ Provide harsh, realistic feedback on:
 
 Be brutally honest.`;
 
-    const { response: pass2Response, metrics: pass2Metrics } = await callPerplexity(
+    const { response: pass2Response, metrics: pass2Metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are a critical hiring manager.' },
           { role: 'user', content: hiringManagerPrompt }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: LOVABLE_AI_MODELS.DEFAULT,
       },
       'optimize-resume-with-audit-pass2',
       user.id
@@ -91,7 +91,7 @@ Be brutally honest.`;
 
     await logAIUsage(pass2Metrics);
 
-    const hiringManagerFeedback = cleanCitations(pass2Response.choices[0].message.content);
+    const hiringManagerFeedback = pass2Response.choices[0].message.content;
 
     // Pass 3: Refinement based on feedback
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 3: Refinement');
@@ -108,13 +108,13 @@ ${JSON.stringify(vaultData)}
 
 Rewrite the resume addressing all feedback while maintaining authenticity.`;
 
-    const { response: pass3Response, metrics: pass3Metrics } = await callPerplexity(
+    const { response: pass3Response, metrics: pass3Metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are an expert resume writer.' },
           { role: 'user', content: refinementPrompt }
         ],
-        model: PERPLEXITY_MODELS.DEFAULT,
+        model: LOVABLE_AI_MODELS.DEFAULT,
       },
       'optimize-resume-with-audit-pass3',
       user.id
@@ -122,7 +122,7 @@ Rewrite the resume addressing all feedback while maintaining authenticity.`;
 
     await logAIUsage(pass3Metrics);
 
-    optimizedResume = cleanCitations(pass3Response.choices[0].message.content);
+    optimizedResume = pass3Response.choices[0].message.content;
 
     // Pass 4: DUAL AI AUDIT
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 4: Dual AI audit');
