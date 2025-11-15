@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
@@ -141,7 +140,7 @@ ${intelligence.projects.slice(0, 5).map((p: any) => `- ${p.project_name}: ${p.ou
     }
 
     const { response, metrics } = await retryWithBackoff(
-      async () => await callPerplexity(
+      async () => await callLovableAI(
         {
           messages: [
             {
@@ -250,13 +249,10 @@ ANALYSIS REQUIREMENTS:
 FORMAT: Return detailed JSON with complete scoring, gap classification, hidden strengths, transferable skill bridges, and strategic recommendations matching the schema (overallFit number, strengths array, gaps array, keywordAnalysis object, recommendations array, hiddenStrengths array, transferableSkillBridges array).`
             }
           ],
-          model: selectOptimalModel({
-            taskType: 'analysis',
-            complexity: 'high',
-            requiresReasoning: true
-          }),
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.5,
           max_tokens: 2000,
+          response_format: { type: 'json_object' }
         },
         'gap-analysis',
         user.id
