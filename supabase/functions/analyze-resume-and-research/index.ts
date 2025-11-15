@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -145,7 +144,7 @@ CRITICAL REQUIREMENTS:
 
 Aim for 25-30 total skills with hierarchical organization and evidence-based validation.`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -153,10 +152,7 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
             content: prompt,
           },
         ],
-        model: selectOptimalModel({
-          taskType: 'extraction',
-          complexity: 'high',
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.6,
         max_tokens: 4000,
       },
@@ -250,15 +246,12 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
       console.log('[ANALYZE-RESUME] Skills verified against Career Vault');
     }
 
-    console.log('[ANALYZE-RESUME] Now verifying with Perplexity...');
+    console.log('[ANALYZE-RESUME] Now verifying with AI...');
 
-    // Verify skills with Perplexity
-    const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
+    // Verify skills with AI
     let verification_result = null;
-    let citations = [];
 
-    if (perplexityKey) {
-      try {
+    try {
         const verificationPrompt = `Verify these ${skills.length} skills for ${rolesText} in ${industriesText}:
 
 ${skills.map((s: any) => `- ${s.skill_name} (${s.skill_category}, market freq: ${s.market_frequency}%)`).join('\n')}
@@ -271,7 +264,7 @@ Provide:
 
 Be concise but specific.`;
 
-        const { response, metrics } = await callPerplexity(
+        const { response, metrics } = await callLovableAI(
           {
             messages: [
               {
@@ -283,14 +276,9 @@ Be concise but specific.`;
                 content: verificationPrompt
               }
             ],
-            model: selectOptimalModel({
-              taskType: 'research',
-              complexity: 'high',
-              requiresResearch: true,
-            }),
+            model: LOVABLE_AI_MODELS.DEFAULT,
             temperature: 0.2,
             max_tokens: 1500,
-            search_recency_filter: 'month',
           },
           'analyze-resume-and-research',
           user.id
@@ -299,9 +287,8 @@ Be concise but specific.`;
         await logAIUsage(metrics);
 
         verification_result = response.choices[0]?.message?.content;
-        citations = response.citations || [];
           
-        console.log('Perplexity verification complete with', citations.length, 'citations');
+        console.log('AI verification complete');
 
         // Store verification
         await supabase
@@ -311,16 +298,12 @@ Be concise but specific.`;
             verification_type: 'skills',
             original_content: skills,
             verification_result,
-            citations,
             verified_at: new Date().toISOString(),
           });
       } catch (verifyError) {
-        console.error('Error during Perplexity verification:', verifyError);
+        console.error('Error during AI verification:', verifyError);
         // Continue without verification - not critical
       }
-    } else {
-      console.log('Perplexity API key not configured, skipping verification');
-    }
 
     // Delete existing taxonomy for this user
     await supabase
@@ -353,7 +336,6 @@ Be concise but specific.`;
         skills_count: skills.length,
         verified: !!verification_result,
         verification_summary: verification_result ? 'Skills verified with current market data' : 'Verification skipped',
-        citations_count: citations.length,
         vault_enhanced: !!intelligence,
         vault_verified_count: skills.filter((s: any) => s.source === 'resume_verified').length,
         breakdown: {
