@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { findCompetencyFramework, getDefaultFramework, type CompetencyFramework } from '../_shared/competency-frameworks.ts';
@@ -46,7 +46,7 @@ Return ONLY valid JSON:
   "seniorityLevel": "senior"
 }`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -58,10 +58,10 @@ Return ONLY valid JSON:
             content: prompt
           }
         ],
-        model: 'llama-3.1-sonar-small-128k-online',
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.1,
         max_tokens: 500,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'detect-role-and-industry',
       userId

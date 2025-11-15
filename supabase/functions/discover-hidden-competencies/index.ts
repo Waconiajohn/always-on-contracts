@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractArray } from '../_shared/json-parser.ts';
@@ -75,20 +74,16 @@ Return JSON array:
     console.log('Discovering hidden competencies for career vault:', vaultId);
 
     const { response, metrics } = await retryWithBackoff(
-      async () => await callPerplexity(
+      async () => await callLovableAI(
         {
           messages: [
-            { role: 'system', content: 'You are an expert career analyst specializing in discovering hidden capabilities and reframing experience. Return only valid JSON.' },
+            { role: 'system', content: 'You are an expert career analyst specializing in discovering hidden capabilities and reframing experience. Return only valid JSON array.' },
             { role: 'user', content: prompt }
           ],
-          model: selectOptimalModel({
-            taskType: 'analysis',
-            complexity: 'high',
-            requiresReasoning: true
-          }),
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.6,
           max_tokens: 2000,
-          return_citations: false,
+          response_format: { type: 'json_object' }
         },
         'discover-hidden-competencies'
       ),
@@ -100,7 +95,7 @@ Return JSON array:
 
     await logAIUsage(metrics);
 
-    const competenciesText = cleanCitations(response.choices[0].message.content.trim());
+    const competenciesText = response.choices[0].message.content.trim();
     const result = extractArray(competenciesText, HiddenCompetencySchema);
 
     if (!result.success) {

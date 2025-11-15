@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations, PERPLEXITY_MODELS } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { createLogger } from '../_shared/logger.ts';
 
@@ -51,15 +50,7 @@ Return ONLY valid JSON in this exact format:
   "recommendations": ["Add keyword Y 2-3 more times", "Quantify project Z impact"]
 }`;
 
-    const model = selectOptimalModel({
-      taskType: 'analysis',
-      complexity: 'low',
-      estimatedInputTokens: (resumeContent.length + jobDescription.length) / 4,
-      estimatedOutputTokens: 800,
-      requiresReasoning: false,
-    });
-
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
@@ -68,18 +59,17 @@ Return ONLY valid JSON in this exact format:
             content: `Job Description:\n${jobDescription}\n\nResume Content:\n${resumeContent}\n\nAnalyze and score this resume for ATS compatibility.`
           }
         ],
-        model,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.3,
         max_tokens: 2000,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'analyze-ats-score'
     );
 
     await logAIUsage(metrics);
 
-    const rawContent = cleanCitations(response.choices[0].message.content);
-    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const cleanedContent = response.choices[0].message.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     // Parse JSON from response with production-grade extraction
     const parseResult = extractJSON(cleanedContent);
