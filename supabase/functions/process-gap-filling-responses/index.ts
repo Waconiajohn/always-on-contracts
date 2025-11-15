@@ -21,7 +21,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, PERPLEXITY_MODELS, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 
 interface GapResponse {
@@ -212,12 +212,13 @@ NO MARKDOWN. ONLY JSON.`;
     // Call AI to process responses
     let aiData, aiMetrics;
     try {
-      const result = await callPerplexity(
+      const result = await callLovableAI(
         {
           messages: [{ role: 'user', content: processingPrompt }],
-          model: PERPLEXITY_MODELS.DEFAULT,
+          model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.3,
           max_tokens: 2500,
+          response_format: { type: 'json_object' }
         },
         'process-gap-filling-responses',
         user.id
@@ -227,8 +228,8 @@ NO MARKDOWN. ONLY JSON.`;
       
       await logAIUsage(aiMetrics);
     } catch (aiError) {
-      // Log detailed Perplexity error immediately with console.error
-      console.error('🚨 PERPLEXITY API CALL FAILED - DETAILED ERROR:', {
+      // Log detailed AI error immediately with console.error
+      console.error('🚨 AI API CALL FAILED - DETAILED ERROR:', {
         error: aiError instanceof Error ? aiError.message : String(aiError),
         errorName: aiError instanceof Error ? aiError.name : 'Unknown',
         errorStack: aiError instanceof Error ? aiError.stack?.substring(0, 500) : undefined,
@@ -245,7 +246,7 @@ NO MARKDOWN. ONLY JSON.`;
       throw new Error(`AI processing failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`);
     }
 
-    const aiContent = cleanCitations(aiData.choices[0].message.content);
+    const aiContent = aiData.choices[0].message.content;
 
     // Parse JSON response
     let processedData;
