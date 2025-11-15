@@ -14,7 +14,7 @@
  * - AI: Understands "stewarded", "orchestrated", "accountable for" without being told
  */
 
-import { callPerplexity, PERPLEXITY_MODELS } from './ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from './lovable-ai-config.ts';
 import { logAIUsage } from './cost-tracking.ts';
 
 export interface CareerContext {
@@ -248,14 +248,15 @@ ANALYSIS GUIDELINES:
 
 BE ACCURATE. Use the ACTUAL evidence from vault data. Don't assume or invent details.`;
 
-  const { response, metrics } = await callPerplexity(
+  const { response, metrics } = await callLovableAI(
     {
       messages: [{ role: 'user', content: prompt }],
-      model: PERPLEXITY_MODELS.DEFAULT,
-      temperature: 0.1, // Low temperature for consistent, factual analysis
+      model: LOVABLE_AI_MODELS.DEFAULT,
+      temperature: 0.1,
       max_tokens: 2000,
+      response_format: { type: 'json_object' },
     },
-    'career-context-analyzer-ai',
+    'career-context-analyzer',
     userId
   );
 

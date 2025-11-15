@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
 import { GenericAIResponseSchema } from '../_shared/ai-response-schemas.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
@@ -68,16 +67,7 @@ Keep the enhanced answer realistic and grounded in their actual experience. Don'
 
     const startTime = Date.now();
 
-    const model = selectOptimalModel({
-      taskType: 'generation',
-      complexity: 'medium',
-      requiresReasoning: false,
-      estimatedOutputTokens: 600
-    });
-
-    logger.info('Selected model', { model });
-
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -86,10 +76,10 @@ Keep the enhanced answer realistic and grounded in their actual experience. Don'
           },
           { role: 'user', content: enhancementPrompt }
         ],
-        model,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.5,
         max_tokens: 2000,
-        return_citations: false,
+        response_format: { type: 'json_object' },
       },
       'update-strong-answer',
       user.id

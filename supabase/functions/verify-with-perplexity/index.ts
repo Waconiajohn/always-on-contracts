@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -99,7 +98,7 @@ Provide factual verification with current sources.`;
 
     console.log('Calling Perplexity for verification...');
     
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -111,15 +110,9 @@ Provide factual verification with current sources.`;
             content: verificationPrompt
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'research',
-          complexity: 'high',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
         max_tokens: 2000,
-        return_related_questions: true,
-        search_recency_filter: 'month',
       },
       'verify-with-perplexity',
       user.id
@@ -128,7 +121,6 @@ Provide factual verification with current sources.`;
     await logAIUsage(metrics);
 
     const verification_result = response.choices[0]?.message?.content;
-    const citations = response.citations || [];
 
     // Store verification result
     const { error: insertError } = await supabase
@@ -138,7 +130,6 @@ Provide factual verification with current sources.`;
         verification_type,
         original_content: content_to_verify,
         verification_result,
-        citations,
         verified_at: new Date().toISOString(),
       });
 
@@ -150,7 +141,6 @@ Provide factual verification with current sources.`;
       JSON.stringify({
         success: true,
         verification_result,
-        citations,
         verified_at: new Date().toISOString(),
       }),
       {
