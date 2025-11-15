@@ -446,6 +446,7 @@ const VaultDashboardContent = () => {
           <Layer1FoundationsCard
             vaultData={vaultData}
             stats={stats}
+            benchmark={vaultData?.vault?.benchmark_standard}
             onSectionClick={handleSectionClick}
             onReextract={handleReanalyze}
           />
@@ -453,6 +454,7 @@ const VaultDashboardContent = () => {
           <Layer2IntelligenceCard
             vaultData={vaultData}
             stats={stats}
+            benchmark={vaultData?.vault?.benchmark_standard}
             onSectionClick={handleSectionClick}
           />
         </div>

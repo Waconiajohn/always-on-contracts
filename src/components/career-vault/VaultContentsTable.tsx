@@ -295,9 +295,9 @@ export const VaultContentsTable = ({
               
               <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Type</div>
               <SelectItem value="all|Career Achievement|recent">Career Achievements</SelectItem>
-              <SelectItem value="all|Skill|recent">Skills & Expertise</SelectItem>
-              <SelectItem value="all|Competency|recent">Strategic Capabilities</SelectItem>
-              <SelectItem value="all|Soft Skill|recent">Professional Strengths</SelectItem>
+              <SelectItem value="all|Skill & Expertise|recent">Skills & Expertise</SelectItem>
+              <SelectItem value="all|Strategic Capability|recent">Strategic Capabilities</SelectItem>
+              <SelectItem value="all|Professional Strength|recent">Professional Strengths</SelectItem>
               <SelectItem value="all|Leadership|recent">Leadership</SelectItem>
               
               <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Sort</div>

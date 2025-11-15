@@ -7,6 +7,7 @@ import type { VaultStats } from "@/hooks/useVaultStats";
 interface Layer2IntelligenceCardProps {
   vaultData: VaultData | undefined;
   stats: VaultStats | null;
+  benchmark: any; // AI-generated benchmark from career_vault.benchmark_standard
   onSectionClick: (section: string) => void;
 }
 
@@ -22,8 +23,11 @@ interface ExecutiveSection {
   benchmark: string;
 }
 
-export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Layer2IntelligenceCardProps) => {
+export const Layer2IntelligenceCard = ({ vaultData, stats, benchmark, onSectionClick }: Layer2IntelligenceCardProps) => {
   if (!vaultData || !stats) return null;
+
+  // Extract AI-generated benchmarks (with fallbacks for when benchmark isn't ready)
+  const aiBenchmark = benchmark?.layer2_intelligence || null;
 
   const calculateExecutiveSections = (): ExecutiveSection[] => {
     const leadershipCount = stats.categoryCounts.leadershipPhilosophy || 0;
@@ -33,19 +37,24 @@ export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Lay
     // Professional resources will come from future extraction
     const professionalResourcesCount = 0;
 
+    // Use AI benchmarks if available, otherwise fallback to simple calculations
+    const leadershipTarget = aiBenchmark?.leadership?.target || 3;
+    const strategicTarget = aiBenchmark?.strategic_impact?.target || 8;
+    const resourcesTarget = aiBenchmark?.professional_resources?.target || 1;
+
     // Leadership Approach - based on leadership_philosophy entries
     const leadershipPercentage = leadershipCount > 0 
-      ? Math.min((leadershipCount / 3) * 100, 100) 
+      ? Math.min((leadershipCount / leadershipTarget) * 100, 100) 
       : 0;
 
     // Strategic Impact - based on power phrases with metrics
     const strategicPercentage = powerPhrasesWithMetrics > 0 
-      ? Math.min((powerPhrasesWithMetrics / 8) * 100, 100) 
+      ? Math.min((powerPhrasesWithMetrics / strategicTarget) * 100, 100) 
       : 0;
 
     // Professional Development & Resources - NEW table
     const resourcesPercentage = professionalResourcesCount > 0 
-      ? Math.min((professionalResourcesCount / 1) * 100, 100) 
+      ? Math.min((professionalResourcesCount / resourcesTarget) * 100, 100) 
       : 0;
 
     // Professional Network - placeholder (could be enhanced later)
@@ -68,7 +77,7 @@ export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Lay
         status: getStatus(leadershipPercentage),
         ctaText: leadershipPercentage === 0 ? 'Start Building' : 'Enhance',
         section: 'leadership',
-        benchmark: 'Modern leadership: inclusive, data-driven, growth-focused'
+        benchmark: aiBenchmark?.leadership?.benchmark_rule || `Target: ${leadershipTarget} examples (you have ${leadershipCount}). ${aiBenchmark?.leadership?.focus_areas || 'Modern leadership: inclusive, data-driven, growth-focused'}`
       },
       {
         name: 'Strategic Impact',
@@ -79,7 +88,7 @@ export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Lay
         status: getStatus(strategicPercentage),
         ctaText: strategicPercentage === 0 ? 'Add Achievements' : 'Quantify More',
         section: 'strategic-impact',
-        benchmark: '80%+ of accomplishments should have numbers'
+        benchmark: aiBenchmark?.strategic_impact?.benchmark_rule || `Target: ${strategicTarget} quantified achievements (you have ${powerPhrasesWithMetrics}). 80%+ should have metrics.`
       },
       {
         name: 'Professional Development & Resources',
@@ -90,7 +99,7 @@ export const Layer2IntelligenceCard = ({ vaultData, stats, onSectionClick }: Lay
         status: getStatus(resourcesPercentage),
         ctaText: resourcesPercentage === 0 ? 'Start Now' : 'Add More',
         section: 'professional-resources',
-        benchmark: 'Enterprise-grade tools + $5K-$15K annual training investment'
+        benchmark: aiBenchmark?.professional_resources?.benchmark_rule || `Enterprise-grade tools + $5K-$15K annual training investment`
       },
       {
         name: 'Professional Network',

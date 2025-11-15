@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VaultContentsTable } from '../VaultContentsTable';
-import { VaultActivityFeed } from '../VaultActivityFeed';
 import { FreshnessManager } from '../FreshnessManager';
 import { AutoDuplicateCleanup } from '../AutoDuplicateCleanup';
 import { VaultNuclearReset } from '../VaultNuclearReset';
@@ -11,7 +10,6 @@ import { CategoryRegenerateButton } from '../CategoryRegenerateButton';
 import { Card } from '@/components/ui/card';
 import {
   VaultItemsTableSkeleton,
-  VaultActivityFeedSkeleton,
   VaultSettingsSkeleton
 } from './VaultTabsSkeleton';
 
@@ -35,9 +33,8 @@ interface VaultTabsProps {
 export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTab = 'items', onRefresh, onEdit, onView }: VaultTabsProps) => {
   return (
     <Tabs defaultValue={defaultTab} className="vault-tabs w-full">
-      <TabsList className="grid w-full grid-cols-3 mb-6">
+      <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="items">Items</TabsTrigger>
-        <TabsTrigger value="activity">Activity</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
 
@@ -67,12 +64,6 @@ export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTa
             onEdit={onEdit}
             onView={onView}
           />
-        </Suspense>
-      </TabsContent>
-
-      <TabsContent value="activity">
-        <Suspense fallback={<VaultActivityFeedSkeleton />}>
-          <VaultActivityFeed vaultId={vaultId} />
         </Suspense>
       </TabsContent>
 
