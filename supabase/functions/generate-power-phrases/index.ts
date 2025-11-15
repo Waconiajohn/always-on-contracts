@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,21 +67,16 @@ Return JSON array with format:
 
     console.log('Generating power phrases for Career Vault:', vaultId);
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: 'You are an expert resume writer specializing in quantified achievement statements. Return only valid JSON.' },
           { role: 'user', content: prompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'extraction',
-          complexity: 'medium',
-          estimatedInputTokens: 1200,
-          estimatedOutputTokens: 2000
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 2000,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'generate-power-phrases',
       vault.user_id
@@ -90,7 +84,7 @@ Return JSON array with format:
 
     await logAIUsage(metrics);
 
-    const powerPhrasesText = cleanCitations(response.choices[0].message.content.trim());
+    const powerPhrasesText = response.choices[0].message.content.trim();
     
     // Extract JSON from response
     const jsonMatch = powerPhrasesText.match(/\[[\s\S]*\]/);

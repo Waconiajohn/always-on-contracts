@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,10 +52,10 @@ serve(async (req) => {
 
     console.log(`[DUAL-AI-AUDIT] Starting audit for ${contentType}`);
 
-    // Step 1: Primary AI Analysis using Perplexity
+    // Step 1: Primary AI Analysis using Lovable AI
     const primaryPrompt = buildPrimaryPrompt(content, contentType, context);
     
-    const { response: primaryResponse, metrics: primaryMetrics } = await callPerplexity(
+    const { response: primaryResponse, metrics: primaryMetrics } = await callLovableAI(
       {
         messages: [
           {
@@ -68,11 +67,7 @@ serve(async (req) => {
             content: primaryPrompt
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'medium',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
       },
       'dual-ai-audit-primary'
@@ -84,10 +79,10 @@ serve(async (req) => {
 
     console.log('[DUAL-AI-AUDIT] Primary analysis complete');
 
-    // Step 2: Perplexity Fact-Checking
+    // Step 2: Verification Analysis using Lovable AI
     const verificationPrompt = buildVerificationPrompt(content, contentType, primaryAnalysis, context);
     
-    const { response: verificationResponse, metrics } = await callPerplexity(
+    const { response: verificationResponse, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -99,11 +94,7 @@ serve(async (req) => {
             content: verificationPrompt
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'high',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
       },
       'dual-ai-audit'
@@ -115,10 +106,10 @@ serve(async (req) => {
 
     console.log('[DUAL-AI-AUDIT] Verification complete');
 
-    // Step 3: Synthesize Results using Perplexity
+    // Step 3: Synthesize Results using Lovable AI
     const synthesisPrompt = buildSynthesisPrompt(primaryAnalysis, verificationAnalysis, contentType);
     
-    const { response: synthesisResponse, metrics: synthesisMetrics } = await callPerplexity(
+    const { response: synthesisResponse, metrics: synthesisMetrics } = await callLovableAI(
       {
         messages: [
           {
@@ -130,11 +121,7 @@ serve(async (req) => {
             content: synthesisPrompt
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: false
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.5,
       },
       'dual-ai-audit-synthesis'

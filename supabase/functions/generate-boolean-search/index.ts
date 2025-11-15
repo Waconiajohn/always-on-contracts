@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { extractToolCallJSON } from '../_shared/json-parser.ts';
 import { createLogger } from '../_shared/logger.ts';
 
@@ -56,20 +55,16 @@ Common Patterns:
       }
     }];
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'low',
-          requiresReasoning: false
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.5,
         max_tokens: 500,
-        return_citations: false
+        response_format: { type: 'json_object' }
       },
       'generate-boolean-search'
     );
@@ -87,7 +82,7 @@ Common Patterns:
     } else {
       logger.error('Tool call extraction failed', new Error(result.error));
       // Fallback to text response
-      reply = cleanCitations(response.choices[0].message.content) || 'I apologize, I could not generate a response.';
+      reply = response.choices[0].message.content || 'I apologize, I could not generate a response.';
       logger.warn('Using fallback text response');
     }
     

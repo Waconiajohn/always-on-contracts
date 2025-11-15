@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createAIHandler } from '../_shared/ai-function-wrapper.ts';
 import { extractArray } from '../_shared/json-parser.ts';
 
@@ -32,16 +31,9 @@ Return ONLY a JSON array of questions:
 
     const startTime = Date.now();
 
-    const model = selectOptimalModel({
-      taskType: 'generation',
-      complexity: 'low',
-      requiresReasoning: false,
-      estimatedOutputTokens: 300
-    });
+    logger.info('Generating questions', { category });
 
-    logger.info('Selected model', { model, category });
-
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -53,10 +45,10 @@ Return ONLY a JSON array of questions:
             content: prompt,
           },
         ],
-        model,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 600,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'generate-why-me-questions'
     );
@@ -72,7 +64,7 @@ Return ONLY a JSON array of questions:
       success: true
     });
 
-    const content = cleanCitations(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
 
     const result = extractArray<string>(content);
 
