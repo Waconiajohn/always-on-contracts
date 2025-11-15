@@ -5,7 +5,7 @@
  * for management experience, education, and other career attributes
  */
 
-import { callPerplexity } from '../ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../lovable-ai-config.ts';
 import { extractJSON } from '../json-parser.ts';
 import { logAIUsage } from '../cost-tracking.ts';
 
@@ -84,11 +84,13 @@ INSTRUCTIONS:
 
 NO markdown, NO explanations, ONLY the JSON object.`;
 
-  const result = await callPerplexity(
+  const result = await callLovableAI(
     {
+      model: LOVABLE_AI_MODELS.DEFAULT,
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
       max_tokens: 2000,
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
     },
     'analyze_management',
     userId
@@ -160,11 +162,13 @@ INSTRUCTIONS:
 
 NO markdown, NO explanations, ONLY the JSON object.`;
 
-  const result = await callPerplexity(
+  const result = await callLovableAI(
     {
+      model: LOVABLE_AI_MODELS.DEFAULT,
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
-      max_tokens: 2000,
+      max_tokens: 1500,
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
     },
     'analyze_education',
     userId
@@ -222,11 +226,13 @@ INSTRUCTIONS:
 
 NO markdown, NO explanations, ONLY the JSON object.`;
 
-  const result = await callPerplexity(
+  const result = await callLovableAI(
     {
+      model: LOVABLE_AI_MODELS.DEFAULT,
       messages: [{ role: 'user', content: prompt }],
-      model: 'sonar-pro',
       max_tokens: 2000,
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
     },
     'analyze_career_context',
     userId

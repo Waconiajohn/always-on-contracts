@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
+import { callLovableAI, LOVABLE_AI_MODELS, cleanCitations } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 import { SectionQualitySchema } from '../_shared/ai-response-schemas.ts';
@@ -104,22 +103,14 @@ Return ONLY a valid JSON object with this exact structure:
   "industryContext": "How this compares to industry standards for ${industry} ${seniority} professionals"
 }`;
 
-    // Use smart model selection
-    const model = selectOptimalModel({
-      taskType: 'analysis',
-      complexity: 'medium',
-      requiresReasoning: true,
-      estimatedInputTokens: Math.ceil(content.length / 4) + 300,
-      estimatedOutputTokens: 600
-    });
-
-    logger.info('Using model', { model });
+    logger.info('Calling Lovable AI model');
 
     // Use retry logic with exponential backoff
     const { response, metrics } = await retryWithBackoff(
       async () => {
-        return await callPerplexity(
+        return await callLovableAI(
           {
+            model: LOVABLE_AI_MODELS.DEFAULT,
             messages: [
               {
                 role: "system",
@@ -130,18 +121,13 @@ Return ONLY a valid JSON object with this exact structure:
                 content: prompt,
               },
             ],
-            model,
             temperature: 0.2,
             max_tokens: 1200,
-            return_citations: false,
+            response_format: { type: 'json_object' }
           },
           'analyze-section-quality',
           user.id
         );
-      },
-      3, // max retries
-      (attempt, error) => {
-        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
       }
     );
 
@@ -160,7 +146,7 @@ Return ONLY a valid JSON object with this exact structure:
     // Log metrics
     const latencyMs = Date.now() - startTime;
     logger.logAICall({
-      model,
+      model: metrics.model,
       inputTokens: metrics.input_tokens || 0,
       outputTokens: metrics.output_tokens || 0,
       latencyMs,

@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,24 +65,24 @@ serve(async (req) => {
       throw new Error('Job description must be at least 50 characters');
     }
 
-    console.log('Analyzing job description with Perplexity...');
+    console.log('Analyzing job description with Lovable AI...');
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
+        model: LOVABLE_AI_MODELS.DEFAULT,
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing job descriptions. Extract structured information using tool calling.'
+            content: 'You are an expert at analyzing job descriptions. Extract structured information as JSON.'
           },
           {
             role: 'user',
             content: `Analyze this job description:\n\n${jobDescriptionText}`
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'extraction',
-          complexity: 'medium',
-        }),
+        temperature: 0.3,
+        max_tokens: 3000,
+        response_format: { type: 'json_object' }
       },
       'analyze-job-qualifications'
     );
@@ -91,13 +90,13 @@ serve(async (req) => {
     await logAIUsage(metrics);
 
     if (!response.choices?.[0]?.message) {
-      console.error('Perplexity response error:', JSON.stringify(response));
-      throw new Error('Invalid Perplexity response');
+      console.error('Lovable AI response error:', JSON.stringify(response));
+      throw new Error('Invalid AI response');
     }
 
-    // Parse JSON from response content since Perplexity doesn't support tool calling
+    // Parse JSON from response content
     const content = response.choices[0].message.content;
-    console.log('Perplexity response:', content.substring(0, 200));
+    console.log('AI response:', content.substring(0, 200));
     
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);

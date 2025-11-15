@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { retryWithBackoff, handlePerplexityError } from '../_shared/error-handling.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
@@ -91,8 +90,9 @@ Focus on positioning experience as premium value for executive and strategic opp
     const { response, metrics } = await retryWithBackoff(
       async () => {
         const aiStartTime = Date.now();
-        const result = await callPerplexity(
+        const result = await callLovableAI(
           {
+            model: LOVABLE_AI_MODELS.DEFAULT,
             messages: [
               {
                 role: 'system',
@@ -103,13 +103,9 @@ Focus on positioning experience as premium value for executive and strategic opp
                 content: prompt
               }
             ],
-            model: selectOptimalModel({
-              taskType: 'extraction',
-              complexity: 'high',
-            }),
             temperature: 0.3,
             max_tokens: 4000,
-            return_citations: false,
+            response_format: { type: 'json_object' }
           },
           'analyze-resume',
           userId
