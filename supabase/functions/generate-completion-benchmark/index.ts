@@ -15,10 +15,9 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { analyzeCareerContextAI, getCareerLevelGuidance, type CareerContext } from '../_shared/career-context-analyzer-ai.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 interface BenchmarkRequest {
   vaultId: string;
@@ -407,24 +406,20 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 
 IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, no explanations.`;
 
-    // ===== STEP 5: CALL PERPLEXITY WITH DEEP REASONING =====
-    console.log('🧠 Calling Perplexity sonar-reasoning-pro (deep thinking mode)');
+    // ===== STEP 5: CALL LOVABLE AI =====
+    console.log('🧠 Calling Lovable AI (Gemini Flash)');
 
     const startTime = Date.now();
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [{ role: 'user', content: benchmarkPrompt }],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'high',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.3,
         max_tokens: 4500,
+        response_format: { type: 'json_object' }
       },
       'generate-completion-benchmark',
-      user.id,
-      300000 // 300 seconds (5 minutes) - ample time for deep reasoning
+      user.id
     );
 
     const executionTime = Date.now() - startTime;
@@ -519,11 +514,7 @@ IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, 
         meta: {
           cached: false,
           cost: `$${metrics.cost_usd.toFixed(4)}`,
-          model: selectOptimalModel({
-            taskType: 'analysis',
-            complexity: 'high',
-            requiresReasoning: true
-          }),
+          model: LOVABLE_AI_MODELS.DEFAULT,
           executionTime: `${Math.round(executionTime / 1000)}s`,
           careerContext: {
             seniority: careerContext.inferredSeniority,

@@ -22,9 +22,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -469,10 +468,10 @@ QUESTION TYPE GUIDELINES:
 - Use "scale" for rating/scoring questions
 `;
 
-    console.log('[generate-gap-filling-questions] Calling Perplexity...');
+    console.log('[generate-gap-filling-questions] Calling Lovable AI...');
 
-    // Call Perplexity via centralized config
-    const { response, metrics } = await callPerplexity(
+    // Call Lovable AI
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           {
@@ -484,15 +483,10 @@ QUESTION TYPE GUIDELINES:
             content: gapAnalysisPrompt
           }
         ],
-        model: selectOptimalModel({
-          taskType: 'analysis',
-          complexity: 'medium',
-          requiresReasoning: true,
-          estimatedOutputTokens: 4000
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.5,
         max_tokens: 4000,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'generate-gap-filling-questions',
       user.id
@@ -501,10 +495,10 @@ QUESTION TYPE GUIDELINES:
     // Log usage for cost tracking
     await logAIUsage(metrics);
 
-    console.log('[generate-gap-filling-questions] Perplexity response received');
+    console.log('[generate-gap-filling-questions] AI response received');
 
-    // Clean and parse response
-    const rawContent = cleanCitations(response.choices[0].message.content);
+    // Parse response
+    const rawContent = response.choices[0].message.content;
     
     let questionData;
     try {
