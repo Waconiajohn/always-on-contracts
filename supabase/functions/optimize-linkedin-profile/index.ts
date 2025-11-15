@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callPerplexity, cleanCitations } from '../_shared/ai-config.ts';
+import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { selectOptimalModel } from '../_shared/model-optimizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -193,20 +192,16 @@ ${vaultContext}
 
 Use the Career Vault achievements and metrics to create an EVIDENCE-BASED profile. Every claim should tie back to specific accomplishments.`;
 
-    const { response, metrics } = await callPerplexity(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: selectOptimalModel({
-          taskType: 'generation',
-          complexity: 'medium',
-          requiresReasoning: true
-        }),
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 2000,
-        return_citations: false,
+        response_format: { type: 'json_object' }
       },
       'optimize-linkedin-profile',
       userId
@@ -214,7 +209,7 @@ Use the Career Vault achievements and metrics to create an EVIDENCE-BASED profil
 
     await logAIUsage(metrics);
 
-    const optimizationResult = cleanCitations(response.choices[0].message.content);
+    const optimizationResult = response.choices[0].message.content;
 
     let parsedResult;
     try {
