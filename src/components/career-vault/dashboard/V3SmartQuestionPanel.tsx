@@ -138,7 +138,7 @@ export function V3SmartQuestionPanel({
   }
 
   return (
-    <Card className="shadow-sm">
+    <Card id="smart-question-panel" className="shadow-sm">
       <CardContent className="py-4 px-4 space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-blue-500" />
@@ -149,6 +149,11 @@ export function V3SmartQuestionPanel({
             <div className="text-sm font-medium">
               Question {activeIndex + 1} of {questions.length}
             </div>
+            {current.category && (
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                Focus area: {current.category}
+              </div>
+            )}
           </div>
         </div>
 
@@ -168,15 +173,26 @@ export function V3SmartQuestionPanel({
           placeholder="Type a brief answer here (2–6 sentences is perfect)."
         />
 
-        <div className="flex items-center justify-between gap-2 mt-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSkip}
-            disabled={loading}
-          >
-            Skip for now
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSkip}
+              disabled={loading}
+            >
+              Skip for now
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSkip}
+              disabled={loading}
+              className="text-xs"
+            >
+              Not relevant to my background
+            </Button>
+          </div>
           <Button
             size="sm"
             onClick={handleSubmit}
