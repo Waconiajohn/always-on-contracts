@@ -20,10 +20,10 @@ import { GenerationModeSelector } from "@/components/resume-builder/GenerationMo
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
-import { formatResumeContent } from "@/lib/resumeFormatting";
 import { builderStateToCanonicalResume, canonicalResumeToPlainText, canonicalResumeToHTML } from "@/lib/resumeSerialization";
 import { BuilderResumeSection } from "@/lib/resumeModel";
 import { injectOverlayIntoResumeSections } from "@/lib/resumeOverlayUtils";
+import { Badge } from "@/components/ui/badge";
 
 type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
 
@@ -724,7 +724,7 @@ const ResumeBuilderWizardContent = () => {
       return;
     }
     
-    if (!jobAnalysis?.originalJobDescription) {
+    if (!jobAnalysis) {
       toast({
         title: "Cannot analyze ATS score",
         description: "Job description is missing. Please re-analyze the job posting.",
@@ -750,21 +750,47 @@ const ResumeBuilderWizardContent = () => {
     setAnalyzingATS(true);
 
     try {
-      // Convert resume sections to plain text for analysis with formatting cleanup
-      const resumeContent = resumeSections.map(section => {
-        const items = Array.isArray(section.content) 
-          ? section.content
-              .map((item: any) => formatResumeContent(item.content || item))
-              .join('\n')
-          : formatResumeContent(section.content);
-        return `${section.title.toUpperCase()}\n${items}`;
-      }).join('\n\n');
+      // Build canonical resume for ATS analysis
+      const userProfileHeader = {
+        fullName: userProfile?.full_name || userProfile?.name || "",
+        headline: userProfile?.headline || jobAnalysis.roleProfile?.title || "",
+        contactLine: [
+          userProfile?.email,
+          userProfile?.phone,
+          userProfile?.location,
+          userProfile?.linkedin,
+        ]
+          .filter(Boolean)
+          .join(" • "),
+      };
+
+      const builderSections = hydratedSections.map((section: any) => ({
+        id: section.id ?? section.sectionId ?? crypto.randomUUID(),
+        type: section.type ?? section.sectionType ?? section.title ?? "Other",
+        title: section.title ?? section.type ?? "Section",
+        order: section.order ?? 0,
+        items: (section.content ?? []).map((item: any, idx: number) => ({
+          id: item.id ?? `${section.id ?? "section"}-item-${idx}`,
+          content: typeof item === "string" ? item : item.content ?? "",
+          order: item.order ?? idx,
+        })),
+      }));
+
+      const canonical = builderStateToCanonicalResume({
+        userProfile: userProfileHeader,
+        sections: builderSections,
+      });
+
+      const atsInput = {
+        jobTitle: jobAnalysis.roleProfile?.title || "",
+        jobDescription: jobAnalysis.originalJobDescription || jobAnalysis.jobText || displayJobText || "",
+        industry: jobAnalysis.roleProfile?.industry || "",
+        canonicalHeader: canonical.header,
+        canonicalSections: canonical.sections,
+      };
 
       const { data, error } = await supabase.functions.invoke('analyze-ats-score', {
-        body: {
-          resumeContent,
-          jobDescription: jobAnalysis.originalJobDescription
-        }
+        body: atsInput
       });
 
       if (error) {
@@ -796,7 +822,7 @@ const ResumeBuilderWizardContent = () => {
           .from('resumes')
           .update({
             ats_analysis: data,
-            ats_score: data.overallScore,
+            ats_score: data.summary?.overallScore || data.overallScore || 0,
             last_ats_analysis_at: new Date().toISOString()
           })
           .eq('id', resumeId);
@@ -804,7 +830,7 @@ const ResumeBuilderWizardContent = () => {
       
       toast({
         title: "ATS Analysis Complete",
-        description: `Overall score: ${data.overallScore}%`,
+        description: `Overall score: ${data.summary?.overallScore || data.overallScore || 0}%`,
       });
     } catch (error: any) {
       console.error('ATS analysis failed:', error);
@@ -1223,6 +1249,109 @@ const ResumeBuilderWizardContent = () => {
             {showVaultReview && (
               <div className="px-4 pb-4">
                 <VaultOverlayReviewPanel onClose={() => setShowVaultReview(false)} />
+              </div>
+            )}
+
+            {atsScoreData && (
+              <div className="px-4 pb-4 space-y-4">
+                <div className="grid gap-3 md:grid-cols-4 text-xs">
+                  <Card className="p-3 flex flex-col gap-1">
+                    <span className="font-semibold text-sm">Overall match</span>
+                    <span className="text-2xl font-bold">
+                      {Math.round(atsScoreData.summary?.overallScore || atsScoreData.overallScore || 0)}%
+                    </span>
+                    <span className="text-muted-foreground">
+                      Estimated alignment vs. this job posting.
+                    </span>
+                  </Card>
+
+                  <Card className="p-3">
+                    <div className="font-semibold text-xs mb-1">Must-have coverage</div>
+                    <div className="text-lg font-bold">
+                      {Math.round(atsScoreData.summary?.mustHaveCoverage || 0)}%
+                    </div>
+                    <div className="text-muted-foreground">
+                      Critical skills and requirements matched.
+                    </div>
+                  </Card>
+
+                  <Card className="p-3">
+                    <div className="font-semibold text-xs mb-1">Nice-to-have coverage</div>
+                    <div className="text-lg font-bold">
+                      {Math.round(atsScoreData.summary?.niceToHaveCoverage || 0)}%
+                    </div>
+                    <div className="text-muted-foreground">
+                      Extra skills that differentiate you.
+                    </div>
+                  </Card>
+
+                  <Card className="p-3">
+                    <div className="font-semibold text-xs mb-1">Industry language</div>
+                    <div className="text-lg font-bold">
+                      {Math.round(atsScoreData.summary?.industryCoverage || 0)}%
+                    </div>
+                    <div className="text-muted-foreground">
+                      Use of standard terms for this role.
+                    </div>
+                  </Card>
+                </div>
+
+                {atsScoreData.perSection && atsScoreData.perSection.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">
+                      Section-by-section keyword coverage
+                    </h3>
+                    <div className="space-y-2">
+                      {atsScoreData.perSection.map((sec: any) => (
+                        <Card key={sec.sectionId} className="p-3 text-xs">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold">{sec.sectionHeading}</span>
+                            <span className="font-mono">
+                              {Math.round(sec.coverageScore)}% coverage
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {sec.matchedKeywords?.slice(0, 6).map((kw: any, idx: number) => (
+                              <Badge
+                                key={`${kw.phrase}-${idx}`}
+                                variant="outline"
+                                className="text-[10px]"
+                              >
+                                {kw.phrase}
+                              </Badge>
+                            ))}
+                            {sec.matchedKeywords?.length > 6 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                +{sec.matchedKeywords.length - 6} more
+                              </span>
+                            )}
+                          </div>
+                          {sec.missingKeywords?.length > 0 && (
+                            <div className="mt-1">
+                              <span className="font-semibold text-[10px]">
+                                Missing (high priority):
+                              </span>
+                              <div className="flex flex-wrap gap-1 mt-0.5">
+                                {sec.missingKeywords
+                                  .filter((k: any) => k.priority === "must_have")
+                                  .slice(0, 4)
+                                  .map((kw: any, idx: number) => (
+                                    <Badge
+                                      key={`${kw.phrase}-${idx}`}
+                                      variant="destructive"
+                                      className="text-[10px]"
+                                    >
+                                      {kw.phrase}
+                                    </Badge>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
