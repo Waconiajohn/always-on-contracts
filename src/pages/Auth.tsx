@@ -155,7 +155,7 @@ const Auth = () => {
           description: "You've successfully signed in.",
         });
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -166,6 +166,23 @@ const Auth = () => {
           },
         });
         if (error) throw error;
+        
+        // Send welcome email for new signups
+        if (data?.user) {
+          try {
+            const { sendOnboardingEmail } = await import("@/services/onboardingEmailService");
+            await sendOnboardingEmail("welcome", {
+              userId: data.user.id,
+              email: data.user.email!,
+              firstName: fullName?.split(" ")[0] || null,
+              appUrl: window.location.origin,
+              senderName: "First Source Team",
+            });
+          } catch (emailError) {
+            console.error("Failed to send welcome email:", emailError);
+            // Don't block signup if email fails
+          }
+        }
         
         toast({
           title: "Account created!",
