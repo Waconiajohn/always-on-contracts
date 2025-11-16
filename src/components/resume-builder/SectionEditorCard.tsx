@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,12 +18,16 @@ interface SectionEditorCardProps {
     sectionTitle: string,
     previousCoverage: number | null
   ) => Promise<void>;
+  isFocused?: boolean;
+  onFocusHandled?: () => void;
 }
 
 export const SectionEditorCard = ({
   section,
   onUpdateSection,
   onReanalyzeAts,
+  isFocused,
+  onFocusHandled,
 }: SectionEditorCardProps) => {
   const { toast } = useToast();
   const { atsScoreData, jobAnalysis } = useResumeBuilderStore();
@@ -39,6 +43,31 @@ export const SectionEditorCard = ({
   const missingMustHaveCount = coverage?.missingKeywords?.filter(
     (k: AtsKeyword) => k.priority === "must_have"
   ).length || 0;
+
+  // Derive confidence band & label
+  const coverageScore = coverage?.coverageScore ?? null;
+  let coverageBand: "low" | "medium" | "high" | null = null;
+
+  if (typeof coverageScore === "number") {
+    if (coverageScore < 60) coverageBand = "low";
+    else if (coverageScore < 80) coverageBand = "medium";
+    else coverageBand = "high";
+  }
+
+  const coverageLabel =
+    coverageScore != null ? `${Math.round(coverageScore)}% ATS match` : "No ATS data";
+
+  // Auto-scroll when focused
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isFocused && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (onFocusHandled) {
+        onFocusHandled();
+      }
+    }
+  }, [isFocused, onFocusHandled]);
 
   const handleFixAtsGaps = async () => {
     if (!atsScoreData || !atsScoreData.perSection?.length) {
@@ -174,19 +203,28 @@ export const SectionEditorCard = ({
   };
 
   return (
-    <Card>
+    <Card ref={cardRef} className="mb-4">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">{section.title}</CardTitle>
-            {coverage && (
-              <Badge variant="outline" className="text-xs">
-                {Math.round(coverage.coverageScore)}% ATS match
+            {coverageScore != null && (
+              <Badge
+                variant="outline"
+                className={
+                  coverageBand === "high"
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                    : coverageBand === "medium"
+                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                    : "bg-red-100 text-red-800 border-red-300"
+                }
+              >
+                {coverageLabel}
               </Badge>
             )}
             {missingMustHaveCount > 0 && (
-              <Badge variant="destructive" className="text-xs">
-                {missingMustHaveCount} gaps
+              <Badge variant="outline" className="border-red-300 text-red-700">
+                {missingMustHaveCount} must-have gap{missingMustHaveCount > 1 ? "s" : ""}
               </Badge>
             )}
           </div>

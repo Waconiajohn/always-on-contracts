@@ -80,6 +80,7 @@ const ResumeBuilderWizardContent = () => {
   // ATS Score state
   const [atsScoreData, setAtsScoreData] = useState<any>(null);
   const [analyzingATS, setAnalyzingATS] = useState(false);
+  const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null);
 
   // Job text for display in JobInputSection
   const [displayJobText, setDisplayJobText] = useState<string>("");
@@ -904,6 +905,62 @@ const ResumeBuilderWizardContent = () => {
     setVaultMatches(null);
     setSelectedFormat(null);
     setResumeSections([]);
+    setAtsScoreData(null);
+    setFocusedSectionId(null);
+  };
+
+  // Helper to build readiness rows
+  type ReadinessRow = {
+    key: "summary" | "experience" | "skills";
+    label: string;
+    coverage: number | null;
+    mustHaveGaps: number;
+    sectionId?: string;
+  };
+
+  const computeReadinessSummary = (): ReadinessRow[] => {
+    if (!atsScoreData?.perSection || !hydratedSections?.length) return [];
+
+    const rows: Record<ReadinessRow["key"], ReadinessRow> = {
+      summary: { key: "summary", label: "Summary / Headline", coverage: null, mustHaveGaps: 0 },
+      experience: { key: "experience", label: "Experience", coverage: null, mustHaveGaps: 0 },
+      skills: { key: "skills", label: "Skills", coverage: null, mustHaveGaps: 0 },
+    };
+
+    for (const section of hydratedSections) {
+      const title = (section.title || section.type || "").toLowerCase();
+
+      let key: ReadinessRow["key"] | null = null;
+      if (title.includes("summary") || title.includes("profile")) key = "summary";
+      else if (title.includes("experience") || title.includes("achievements")) key = "experience";
+      else if (title.includes("skill") || title.includes("competenc")) key = "skills";
+
+      if (!key) continue;
+
+      const coverage = atsScoreData.perSection.find(
+        (s: any) => s.sectionId === section.id || s.sectionHeading === section.title
+      );
+      if (!coverage) continue;
+
+      const coverageScore = typeof coverage.coverageScore === "number"
+        ? coverage.coverageScore
+        : null;
+
+      const mustHaveGaps =
+        coverage.missingKeywords?.filter((k: any) => k.priority === "must_have").length || 0;
+
+      // Use highest coverage if multiple sections map to the same key
+      if (
+        rows[key].coverage == null ||
+        (coverageScore != null && coverageScore > (rows[key].coverage ?? 0))
+      ) {
+        rows[key].coverage = coverageScore;
+        rows[key].mustHaveGaps = mustHaveGaps;
+        rows[key].sectionId = section.id;
+      }
+    }
+
+    return Object.values(rows).filter((r) => r.coverage != null);
   };
 
   // Helper to convert builder state into canonical form for export
@@ -1349,6 +1406,74 @@ const ResumeBuilderWizardContent = () => {
                   </Card>
                 </div>
 
+                {(() => {
+                  const readinessRows = computeReadinessSummary();
+                  const overallMatch = atsScoreData?.summary?.overallScore ?? atsScoreData?.overallScore ?? null;
+                  
+                  return readinessRows.length > 0 && (
+                    <div className="rounded-lg border p-4 bg-muted/40">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold">ATS Readiness Summary</h3>
+                        {overallMatch != null && (
+                          <span className="text-xs text-muted-foreground">
+                            You're at {Math.round(overallMatch)}% overall vs our benchmark for this role.
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        {readinessRows.map((row: ReadinessRow) => {
+                          const band =
+                            row.coverage == null
+                              ? null
+                              : row.coverage < 60
+                              ? "low"
+                              : row.coverage < 80
+                              ? "medium"
+                              : "high";
+
+                          const bandLabel =
+                            band === "high"
+                              ? "Interview ready"
+                              : band === "medium"
+                              ? "Okay, but improvable"
+                              : "Needs work";
+
+                          return (
+                            <div
+                              key={row.key}
+                              className="flex items-center justify-between rounded-md bg-background p-2 border"
+                            >
+                              <div>
+                                <div className="text-sm font-medium">{row.label}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {row.coverage != null
+                                    ? `${Math.round(row.coverage)}% • ${bandLabel}`
+                                    : "No ATS data"}
+                                  {row.mustHaveGaps > 0 &&
+                                    ` • ${row.mustHaveGaps} must-have gap${
+                                      row.mustHaveGaps > 1 ? "s" : ""
+                                    } remaining`}
+                                </div>
+                              </div>
+
+                              {row.sectionId && row.mustHaveGaps > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setFocusedSectionId(row.sectionId!)}
+                                >
+                                  Jump to section
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {atsScoreData.perSection && atsScoreData.perSection.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold mb-2">
@@ -1374,6 +1499,8 @@ const ResumeBuilderWizardContent = () => {
                               );
                             }}
                             onReanalyzeAts={handleSectionAtsReanalyze}
+                            isFocused={focusedSectionId === section.id}
+                            onFocusHandled={() => setFocusedSectionId(null)}
                           />
                         );
                       })}
