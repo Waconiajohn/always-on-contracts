@@ -4,10 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Loader2, Edit2, Save, X, CheckCircle2, Lightbulb } from "lucide-react";
+import { Plus, Loader2, Edit2, Save, X, CheckCircle2, Lightbulb, Bookmark, BookmarkCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { invokeEdgeFunction, GenerateGapSolutionsSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface GapSolution {
   approach: 'pure_ai' | 'vault_based' | 'alternative';
@@ -24,21 +30,21 @@ interface GapSolutionsCardProps {
     industry: string;
     seniority: string;
   };
-  onAddToVault?: (solution: string) => void;
+  onUseSuggestion?: (solution: GapSolution, action: 'resume-only' | 'vault' | 'reject') => void;
 }
 
 export const GapSolutionsCard = ({
   requirement,
   vaultMatches,
   jobContext,
-  onAddToVault
+  onUseSuggestion
 }: GapSolutionsCardProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [solutions, setSolutions] = useState<GapSolution[]>([]);
   const [editingContent, setEditingContent] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
-  const [addedSolution, setAddedSolution] = useState<string | null>(null);
+  const [actionTaken, setActionTaken] = useState<Record<string, 'resume-only' | 'vault' | null>>({});
 
   const handleGenerateSolutions = async () => {
     setIsGenerating(true);
@@ -82,18 +88,17 @@ export const GapSolutionsCard = ({
     handleGenerateSolutions();
   }, [requirement]);
 
-  const handleAddToVault = (solution: GapSolution) => {
-    const contentToAdd = editingContent[solution.approach] || solution.content;
-    if (onAddToVault) {
-      onAddToVault(contentToAdd);
+  const handleUseSuggestion = (solution: GapSolution, action: 'resume-only' | 'vault' | 'reject') => {
+    const contentToUse = editingContent[solution.approach] || solution.content;
+    const solutionWithContent = { ...solution, content: contentToUse };
+    
+    if (onUseSuggestion) {
+      onUseSuggestion(solutionWithContent, action);
     }
     
-    setAddedSolution(solution.approach);
-    
-    toast({
-      title: "Added to vault",
-      description: "This solution has been saved to your Career Vault"
-    });
+    if (action !== 'reject') {
+      setActionTaken({ ...actionTaken, [solution.approach]: action });
+    }
   };
 
   const handleStartEdit = (approach: string, content: string) => {
@@ -161,7 +166,7 @@ export const GapSolutionsCard = ({
                         {getApproachLabel(solution.approach)}
                       </Badge>
                     </div>
-                    {!isEditing[solution.approach] && addedSolution !== solution.approach && (
+                    {!isEditing[solution.approach] && !actionTaken[solution.approach] && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -220,25 +225,73 @@ export const GapSolutionsCard = ({
                         </div>
                       </div>
 
-                      {addedSolution === solution.approach ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled
-                          className="w-full gap-2"
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-success" />
-                          Added to Career Vault
-                        </Button>
+                      {actionTaken[solution.approach] ? (
+                        <div className="flex items-center gap-2 p-3 bg-success/10 rounded-md border border-success/20">
+                          {actionTaken[solution.approach] === 'vault' ? (
+                            <>
+                              <BookmarkCheck className="h-4 w-4 text-success" />
+                              <span className="text-sm text-success font-medium">
+                                Queued for Career Vault
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 text-success" />
+                              <span className="text-sm text-success font-medium">
+                                Added to resume
+                              </span>
+                            </>
+                          )}
+                        </div>
                       ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddToVault(solution)}
-                          className="w-full gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add This to Career Vault
-                        </Button>
+                        <TooltipProvider>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={() => handleUseSuggestion(solution, 'resume-only')}
+                                    className="flex-1 gap-2"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    Use in resume only
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Use this for this resume without changing your Career Vault</p>
+                                </TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleUseSuggestion(solution, 'vault')}
+                                    className="flex-1 gap-2"
+                                  >
+                                    <Bookmark className="h-3 w-3" />
+                                    Add to Vault
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Save to Career Vault for future resumes</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleUseSuggestion(solution, 'reject')}
+                              className="w-full text-xs"
+                            >
+                              Not accurate
+                            </Button>
+                          </div>
+                        </TooltipProvider>
                       )}
                     </>
                   )}
