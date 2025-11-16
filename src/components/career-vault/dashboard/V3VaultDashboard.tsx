@@ -86,8 +86,8 @@ function V3VaultDashboardContent() {
       <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-3 border-t pt-4 text-sm">
         <span className="text-muted-foreground">
           {vaultStrength < 70
-            ? "Answer a few more quick questions to strengthen your Career Vault before generating targeted resumes."
-            : "Your Career Vault is strong enough to start generating targeted resumes and LinkedIn updates."}
+            ? "A few more quick answers will make your Career Vault even more compelling before you generate targeted resumes."
+            : "Your Career Vault is in strong shape. You're ready to generate targeted resumes and refresh LinkedIn."}
         </span>
         <div className="flex gap-2">
           <Button
@@ -95,7 +95,7 @@ function V3VaultDashboardContent() {
             size="sm"
             onClick={() => navigate("/resume-builder")}
           >
-            Create targeted resume
+            Build a targeted resume
           </Button>
           <Button
             variant="ghost"
@@ -106,7 +106,7 @@ function V3VaultDashboardContent() {
                 ?.scrollIntoView({ behavior: "smooth" });
             }}
           >
-            Improve vault
+            Strengthen my vault
           </Button>
         </div>
       </div>
