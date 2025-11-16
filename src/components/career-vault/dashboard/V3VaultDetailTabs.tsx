@@ -1,6 +1,9 @@
 import { useState } from "react";
 import type { VaultData } from "@/hooks/useVaultData";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { VaultItemViewModal } from "@/components/career-vault/VaultItemViewModal";
+import { VaultItemEditModal } from "@/components/career-vault/VaultItemEditModal";
 
 interface V3VaultDetailTabsProps {
   vault: VaultData;
@@ -51,6 +54,7 @@ export function V3VaultDetailTabs({ vault }: V3VaultDetailTabsProps) {
 function ExperienceTab({ vault }: { vault: VaultData }) {
   const context: any = vault.careerContext || {};
   const roles: any[] = context.roles || context.extracted_roles || [];
+  const [selectedRole, setSelectedRole] = useState<any | null>(null);
 
   if (!roles.length) {
     return (
@@ -63,53 +67,84 @@ function ExperienceTab({ vault }: { vault: VaultData }) {
   }
 
   return (
-    <div className="space-y-3">
-      {roles.map((role, index) => {
-        const title =
-          role.title ||
-          role.role_title ||
-          role.position ||
-          "Role";
-        const company =
-          role.company ||
-          role.organization ||
-          role.employer ||
-          "";
-        const start =
-          role.start_date || role.start || role.start_year || "";
-        const end =
-          role.end_date || role.end || role.end_year || "Present";
-        const location = role.location || role.city || role.region || "";
+    <>
+      <div className="space-y-3">
+        {roles.map((role, index) => {
+          const title =
+            role.title ||
+            role.role_title ||
+            role.position ||
+            "Role";
+          const company =
+            role.company ||
+            role.organization ||
+            role.employer ||
+            "";
+          const start =
+            role.start_date || role.start || role.start_year || "";
+          const end =
+            role.end_date || role.end || role.end_year || "Present";
+          const location = role.location || role.city || role.region || "";
 
-        return (
-          <div
-            key={role.id || index}
-            className="border rounded-md px-3 py-2"
-          >
-            <div className="text-sm font-medium">
-              {title}
-              {company && <> @ {company}</>}
+          return (
+            <div
+              key={role.id || index}
+              className="border rounded-md px-3 py-2 flex items-start justify-between gap-3"
+            >
+              <div>
+                <div className="text-sm font-medium">
+                  {title}
+                  {company && <> @ {company}</>}
+                </div>
+                {(start || end) && (
+                  <div className="text-xs text-muted-foreground">
+                    {start} – {end}
+                  </div>
+                )}
+                {location && (
+                  <div className="text-xs text-muted-foreground">
+                    {location}
+                  </div>
+                )}
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs shrink-0"
+                onClick={() => setSelectedRole(role)}
+              >
+                View
+              </Button>
             </div>
-            {(start || end) && (
-              <div className="text-xs text-muted-foreground">
-                {start} – {end}
-              </div>
-            )}
-            {location && (
-              <div className="text-xs text-muted-foreground">
-                {location}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+
+      {selectedRole && (
+        <VaultItemViewModal
+          item={{
+            id: selectedRole.id || "",
+            category: "Experience",
+            content: {
+              text: `${selectedRole.title || selectedRole.role_title || "Role"} @ ${selectedRole.company || selectedRole.organization || ""}`,
+              ...selectedRole,
+            },
+            quality_tier: "gold",
+          }}
+          open={!!selectedRole}
+          onOpenChange={(open) => !open && setSelectedRole(null)}
+        />
+      )}
+    </>
   );
 }
 
 function SkillsTab({ vault }: { vault: VaultData }) {
   const power = (vault.powerPhrases as any[]) || [];
   const transferable = (vault.transferableSkills as any[]) || [];
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [editItem, setEditItem] = useState<any | null>(null);
 
   if (!power.length && !transferable.length) {
     return (
@@ -122,38 +157,99 @@ function SkillsTab({ vault }: { vault: VaultData }) {
   }
 
   return (
-    <div className="space-y-3">
-      {!!power.length && (
-        <div>
-          <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
-            Power phrases
+    <>
+      <div className="space-y-3">
+        {!!power.length && (
+          <div>
+            <div className="text-xs font-semibold mb-2 uppercase text-muted-foreground flex items-center justify-between">
+              <span>Power phrases</span>
+              <span className="text-muted-foreground font-normal">{power.length} items</span>
+            </div>
+            <ul className="space-y-2">
+              {power.map((p, index) => (
+                <li key={p.id || index} className="flex items-start justify-between gap-3 text-sm border rounded-md px-3 py-2">
+                  <span>• {p.text || p.phrase || p.description}</span>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => setSelectedItem({ ...p, category: "Career Achievement" })}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => setEditItem({ ...p, category: "Career Achievement" })}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-1 text-sm">
-            {power.map((p, index) => (
-              <li key={p.id || index}>• {p.text || p.phrase || p.description}</li>
-            ))}
-          </ul>
-        </div>
+        )}
+
+        {!!transferable.length && (
+          <div>
+            <div className="text-xs font-semibold mb-2 uppercase text-muted-foreground flex items-center justify-between">
+              <span>Transferable skills</span>
+              <span className="text-muted-foreground font-normal">{transferable.length} items</span>
+            </div>
+            <ul className="flex flex-wrap gap-1">
+              {transferable.map((s, index) => (
+                <li
+                  key={s.id || index}
+                  className="text-xs rounded-full border px-2 py-1 bg-muted/40 cursor-pointer hover:bg-muted/60"
+                  onClick={() => setSelectedItem({ ...s, category: "Skill & Expertise" })}
+                >
+                  {s.name || s.label || s.skill || s.skill_name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {selectedItem && (
+        <VaultItemViewModal
+          item={{
+            id: selectedItem.id || "",
+            category: selectedItem.category,
+            content: {
+              text: selectedItem.text || selectedItem.phrase || selectedItem.description || selectedItem.name || selectedItem.label || selectedItem.skill || selectedItem.skill_name,
+              ...selectedItem,
+            },
+            quality_tier: selectedItem.quality_tier || "gold",
+          }}
+          open={!!selectedItem}
+          onOpenChange={(open) => !open && setSelectedItem(null)}
+        />
       )}
 
-      {!!transferable.length && (
-        <div>
-          <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
-            Transferable skills
-          </div>
-          <ul className="flex flex-wrap gap-1">
-            {transferable.map((s, index) => (
-              <li
-                key={s.id || index}
-                className="text-xs rounded-full border px-2 py-0.5 bg-muted/40"
-              >
-                {s.name || s.label || s.skill || s.skill_name}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {editItem && (
+        <VaultItemEditModal
+          item={{
+            id: editItem.id || "",
+            category: editItem.category,
+            content: {
+              text: editItem.text || editItem.phrase || editItem.description,
+              ...editItem,
+            },
+            quality_tier: editItem.quality_tier || "gold",
+          }}
+          open={!!editItem}
+          onOpenChange={(open) => !open && setEditItem(null)}
+          onSave={() => {
+            setEditItem(null);
+            // Could trigger vault refresh here if needed
+          }}
+        />
       )}
-    </div>
+    </>
   );
 }
 
