@@ -2,6 +2,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { VaultOverlayReviewPanel } from "@/components/resume-builder/VaultOverlayReviewPanel";
 import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { GapAnalysisView } from "@/components/resume-builder/GapAnalysisView";
 import { FormatSelector } from "@/components/resume-builder/FormatSelector";
@@ -31,6 +32,8 @@ const ResumeBuilderWizardContent = () => {
 
   // Use store for state management
   const store = useResumeBuilderStore();
+  const vaultOverlay = store.vaultOverlay;
+  const pendingVaultCount = vaultOverlay?.pendingVaultPromotions?.length || 0;
   const [resumeId, setResumeId] = useState<string | null>(null);
   
   // Fetch resume milestones
@@ -65,6 +68,7 @@ const ResumeBuilderWizardContent = () => {
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
   const [userProfile, setUserProfile] = useState<any>({});
   const [isBuilding, setIsBuilding] = useState(false);
+  const [showVaultReview, setShowVaultReview] = useState(false);
 
   // ATS Score state
   const [atsScoreData, setAtsScoreData] = useState<any>(null);
@@ -1181,46 +1185,81 @@ const ResumeBuilderWizardContent = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden">
-            <InteractiveResumeBuilder
-              sections={resumeSections}
-              jobAnalysis={jobAnalysis}
-              vaultMatches={vaultMatches?.matchedItems || []}
-              atsScoreData={atsScoreData}
-              analyzingATS={analyzingATS}
-              onReanalyzeATS={analyzeATSScore}
-              userProfile={userProfile}
-              isBuilding={isBuilding}
-              onUpdateSection={(sectionId, content) => {
-                setResumeSections(prev =>
-                  prev.map(s => s.id === sectionId ? { ...s, content } : s)
-                );
-              }}
-              onAddItem={(sectionType, item) => {
-                setResumeSections(prev =>
-                  prev.map(s =>
-                    s.type === sectionType
-                      ? { ...s, content: [...s.content, item] }
-                      : s
-                  )
-                );
-              }}
-              onRemoveItem={(sectionId, itemId) => {
-                setResumeSections(prev =>
-                  prev.map(s =>
-                    s.id === sectionId
-                      ? { ...s, content: s.content.filter((c: any) => c.id !== itemId) }
-                      : s
-                  )
-                );
-              }}
-              onReorderSections={(sections) => setResumeSections(sections)}
-              onExport={(format: string) => handleExport(format as 'pdf' | 'docx' | 'html' | 'txt')}
-              requirementCoverage={vaultMatches?.coverageScore || 0}
-              atsScore={atsScoreData?.overallScore || vaultMatches?.coverageScore || 0}
-              mode={resumeMode}
-              onModeChange={setResumeMode}
-            />
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {pendingVaultCount > 0 && (
+              <div className="p-4">
+                <Card className="border-amber-300 bg-amber-50/60 px-4 py-3 flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[13px] font-medium">
+                        You have {pendingVaultCount} item
+                        {pendingVaultCount > 1 ? "s" : ""} queued for your Career Vault
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        These came from this job&apos;s gap analysis when you chose
+                        &quot;Add to Career Vault.&quot; You can review them before they
+                        become part of your permanent record.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowVaultReview(true)}
+                    >
+                      Review Career Vault updates
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {showVaultReview && (
+              <div className="px-4 pb-4">
+                <VaultOverlayReviewPanel onClose={() => setShowVaultReview(false)} />
+              </div>
+            )}
+
+            <div className="flex-1 overflow-hidden">
+              <InteractiveResumeBuilder
+                sections={resumeSections}
+                jobAnalysis={jobAnalysis}
+                vaultMatches={vaultMatches?.matchedItems || []}
+                atsScoreData={atsScoreData}
+                analyzingATS={analyzingATS}
+                onReanalyzeATS={analyzeATSScore}
+                userProfile={userProfile}
+                isBuilding={isBuilding}
+                onUpdateSection={(sectionId, content) => {
+                  setResumeSections(prev =>
+                    prev.map(s => s.id === sectionId ? { ...s, content } : s)
+                  );
+                }}
+                onAddItem={(sectionType, item) => {
+                  setResumeSections(prev =>
+                    prev.map(s =>
+                      s.type === sectionType
+                        ? { ...s, content: [...s.content, item] }
+                        : s
+                    )
+                  );
+                }}
+                onRemoveItem={(sectionId, itemId) => {
+                  setResumeSections(prev =>
+                    prev.map(s =>
+                      s.id === sectionId
+                        ? { ...s, content: s.content.filter((c: any) => c.id !== itemId) }
+                        : s
+                    )
+                  );
+                }}
+                onReorderSections={(sections) => setResumeSections(sections)}
+                onExport={(format: string) => handleExport(format as 'pdf' | 'docx' | 'html' | 'txt')}
+                requirementCoverage={vaultMatches?.coverageScore || 0}
+                atsScore={atsScoreData?.overallScore || vaultMatches?.coverageScore || 0}
+                mode={resumeMode}
+                onModeChange={setResumeMode}
+              />
+            </div>
           </div>
         </div>
       );

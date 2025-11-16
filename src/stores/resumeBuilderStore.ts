@@ -12,6 +12,7 @@ import {
   rejectOverlayItem,
   VaultOverlayState,
 } from '@/lib/resumeVaultOverlay';
+import { invokeEdgeFunction, AddVaultItemSchema, safeValidateInput } from '@/lib/edgeFunction';
 
 export interface ResumeSection {
   id: string;
@@ -122,6 +123,7 @@ interface ResumeBuilderState {
   useSuggestionInResumeOnly: (itemId: string) => void;
   promoteSuggestionToVault: (itemId: string) => void;
   rejectSuggestion: (itemId: string) => void;
+  commitVaultPromotions: () => Promise<void>;
   
   // Persistence
   saveResume: () => Promise<void>;
@@ -211,6 +213,93 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
         set((state) => ({
           vaultOverlay: rejectOverlayItem(state.vaultOverlay, itemId),
         })),
+
+      // Commit queued promotions into Career Vault
+      commitVaultPromotions: async () => {
+        const state = get();
+        const pending = state.vaultOverlay.pendingVaultPromotions || [];
+
+        if (!pending.length) return;
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          logger.error("No user found when committing vault promotions");
+          throw new Error("Not signed in");
+        }
+
+        // Fetch or derive vault id
+        const { data: vault, error: vaultError } = await supabase
+          .from("career_vault")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (vaultError || !vault) {
+          logger.error("No career vault found for user", { error: vaultError });
+          throw new Error("No Career Vault found");
+        }
+
+        for (const item of pending) {
+          const payload: any = item.payload || {};
+          const type = payload.type || "impact_statement";
+          const text = payload.text || "";
+          const requirement = payload.requirementId || item.requirementId;
+
+          // Decide target category and payload shape
+          const category =
+            type === "transferable_skill"
+              ? "transferable_skills"
+              : type === "education"
+              ? "education"
+              : "power_phrases";
+
+          const itemData: any = {
+            quality_tier: payload.quality_tier || "bronze",
+            source: "gap_analysis",
+            satisfies_requirement: requirement,
+            confidence_score:
+              payload.quality_tier === "silver" ? 85 : 70,
+          };
+
+          if (category === "power_phrases") {
+            itemData.power_phrase = text;
+          } else if (category === "transferable_skills") {
+            itemData.stated_skill = text;
+          } else if (category === "education") {
+            itemData.content = text;
+          }
+
+          const edgePayload = {
+            vaultId: vault.id,
+            category,
+            itemData,
+          };
+
+          const validation = safeValidateInput(AddVaultItemSchema, edgePayload);
+          if (!validation.success) {
+            logger.warn("Invalid vault promotion payload", { error: validation.error });
+            continue;
+          }
+
+          const { error } = await invokeEdgeFunction(
+            "add-vault-item",
+            edgePayload
+          );
+
+          if (error) {
+            logger.error("Failed to commit vault item", { error });
+            // keep going; we don't want one failure to block everything
+          }
+        }
+
+        // Clear pending promotions once processed
+        set((state) => ({
+          vaultOverlay: {
+            ...state.vaultOverlay,
+            pendingVaultPromotions: [],
+          },
+        }));
+      },
       
       // Save resume to database
       saveResume: async () => {
