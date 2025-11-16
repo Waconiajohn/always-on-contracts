@@ -16,6 +16,7 @@ import { SectionGenerationCard } from "./SectionGenerationCard";
 import { SectionReviewPanel } from "./SectionReviewPanel";
 import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
 import { formatResumeContent } from "@/lib/resumeFormatting";
+import { CanonicalResumePreview } from "./CanonicalResumePreview";
 
 interface ResumeSection {
   id: string;
@@ -50,6 +51,8 @@ interface InteractiveResumeBuilderProps {
   jobAnalysis?: any;
   vaultMatches?: any[];
   resumeMilestones?: any[];
+  userProfile?: any;
+  isBuilding?: boolean;
 }
 
 export const InteractiveResumeBuilder = ({
@@ -67,7 +70,9 @@ export const InteractiveResumeBuilder = ({
   onModeChange,
   jobAnalysis,
   vaultMatches = [],
-  resumeMilestones = []
+  resumeMilestones = [],
+  userProfile = {},
+  isBuilding = false
 }: InteractiveResumeBuilderProps) => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [contactInfo, setContactInfo] = useState({
@@ -682,46 +687,12 @@ export const InteractiveResumeBuilder = ({
                 </div>
               </>
             ) : (
-              <div className="bg-card p-8 rounded shadow-lg min-h-[800px]">
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2 text-foreground">{contactInfo.name || "Your Name"}</h1>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    {contactInfo.email && <div>{contactInfo.email}</div>}
-                    {contactInfo.phone && <div>{contactInfo.phone}</div>}
-                    {contactInfo.location && <div>{contactInfo.location}</div>}
-                    {contactInfo.linkedin && <div>{contactInfo.linkedin}</div>}
-                  </div>
-                </div>
-
-                {sections
-                  .sort((a, b) => a.order - b.order)
-                  .map(section => (
-                    <div key={section.id} className="mb-6">
-                      <h2 className="text-xl font-bold mb-3 pb-2 border-b-2 border-primary text-foreground">
-                        {section.title}
-                      </h2>
-                      <div className="space-y-3">
-                        {section.type === 'skills' ? (
-                          <div className="grid grid-cols-3 gap-2">
-                            {section.content.flatMap(item =>
-                              item.content.split(',').map((skill, idx) => (
-                                <div key={`${item.id}-${idx}`} className="text-xs px-2 py-1 bg-primary/10 rounded text-foreground">
-                                  {skill.trim()}
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        ) : (
-                          section.content.map(item => (
-                            <div key={item.id} className="text-sm text-foreground">
-                              {item.content}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+              <CanonicalResumePreview
+                userProfile={userProfile}
+                resumeSections={sections}
+                jobTitle={jobAnalysis?.roleProfile?.title}
+                isLoading={isBuilding}
+              />
             )}
           </div>
         </ScrollArea>

@@ -63,6 +63,8 @@ const ResumeBuilderWizardContent = () => {
   // Resume content
   const [resumeSections, setResumeSections] = useState<any[]>([]);
   const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
+  const [userProfile, setUserProfile] = useState<any>({});
+  const [isBuilding, setIsBuilding] = useState(false);
 
   // ATS Score state
   const [atsScoreData, setAtsScoreData] = useState<any>(null);
@@ -70,6 +72,28 @@ const ResumeBuilderWizardContent = () => {
 
   // Job text for display in JobInputSection
   const [displayJobText, setDisplayJobText] = useState<string>("");
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserProfile({
+          email: user.email,
+          full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+          phone: user.user_metadata?.phone || '',
+          location: user.user_metadata?.location || '',
+          linkedin: user.user_metadata?.linkedin_url || '',
+        });
+      }
+    };
+    fetchUserProfile();
+  }, []);
+
+  // Track if currently building/generating
+  useEffect(() => {
+    setIsBuilding(!!store.generatingSection);
+  }, [store.generatingSection]);
 
 
   // Helper function to build enhanced job description with metadata
@@ -1165,6 +1189,8 @@ const ResumeBuilderWizardContent = () => {
               atsScoreData={atsScoreData}
               analyzingATS={analyzingATS}
               onReanalyzeATS={analyzeATSScore}
+              userProfile={userProfile}
+              isBuilding={isBuilding}
               onUpdateSection={(sectionId, content) => {
                 setResumeSections(prev =>
                   prev.map(s => s.id === sectionId ? { ...s, content } : s)
