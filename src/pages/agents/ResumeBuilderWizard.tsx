@@ -20,6 +20,8 @@ import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
 import { formatResumeContent } from "@/lib/resumeFormatting";
+import { builderStateToCanonicalResume, canonicalResumeToPlainText, canonicalResumeToHTML } from "@/lib/resumeSerialization";
+import { BuilderResumeSection } from "@/lib/resumeModel";
 
 type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
 
@@ -790,57 +792,114 @@ const ResumeBuilderWizardContent = () => {
     setResumeSections([]);
   };
 
+  // Helper to convert builder state into canonical form for export
+  const buildCanonicalResumeFromBuilderState = (params: {
+    userProfile: any;
+    resumeSections: any[];
+  }) => {
+    const { userProfile, resumeSections } = params;
+
+    // Map your existing resumeSections -> BuilderResumeSection[]
+    const builderSections: BuilderResumeSection[] = (resumeSections ?? []).map((section: any) => ({
+      id: section.id ?? section.sectionId ?? crypto.randomUUID(),
+      type: section.type ?? section.sectionType ?? section.title ?? "Other",
+      title: section.title ?? section.type ?? "Section",
+      order: section.order ?? 0,
+      items: (section.items ?? section.content ?? []).map((item: any, idx: number) => ({
+        id: item.id ?? `${section.id ?? "section"}-item-${idx}`,
+        content: typeof item === "string" ? item : item.content ?? "",
+        order: item.order ?? idx,
+      })),
+    }));
+
+    const canonical = builderStateToCanonicalResume({
+      userProfile,
+      sections: builderSections,
+    });
+
+    const asText = canonicalResumeToPlainText(canonical);
+    const asHtml = canonicalResumeToHTML(canonical);
+
+    return { canonical, asText, asHtml };
+  };
+
   const handleExport = async (format: 'pdf' | 'docx' | 'html' | 'txt') => {
     try {
-      const { exportFormats } = await import('@/lib/resumeExportUtils');
-      
       toast({
         title: "Generating export...",
         description: `Creating ${format.toUpperCase()} file`
       });
 
-      // Prepare structured data
-      const structuredData = {
-        name: jobAnalysis?.roleProfile?.title || 'Professional',
-        contact: {
-          email: 'your.email@example.com',
-          phone: '(555) 123-4567',
-          location: 'City, State',
-          linkedin: ''
-        },
-        sections: resumeSections.map(section => ({
-          title: section.title,
-          type: section.type,
-          content: Array.isArray(section.content)
-            ? section.content
-                .map((item: any) => formatResumeContent(item.content || item))
-                .join('\n')
-            : formatResumeContent(section.content)
-        }))
-      };
+      // Fetch user profile for canonical export
+      const { data: { user } } = await supabase.auth.getUser();
+      const userProfile = user ? {
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+        // Add more fields as needed from user metadata or profiles table
+      } : {};
+
+      const { asText, asHtml } = buildCanonicalResumeFromBuilderState({
+        userProfile,
+        resumeSections,
+      });
 
       const fileName = `Resume_${jobAnalysis?.roleProfile?.title?.replace(/\s+/g, '_') || 'Professional'}`;
 
-      switch(format) {
-        case 'pdf':
-          await exportFormats.atsPDF(structuredData, fileName);
-          break;
-        case 'docx':
-          await exportFormats.generateDOCX(structuredData, fileName);
-          break;
-        case 'html':
-          const htmlContent = generateHTMLContent(structuredData);
-          await exportFormats.htmlExport(htmlContent, fileName);
-          break;
-        case 'txt':
-          await exportFormats.txtExport(structuredData, fileName);
-          break;
+      if (format === 'txt') {
+        const blob = new Blob([asText], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${fileName}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Export successful!",
+          description: "TXT file downloaded"
+        });
+        return;
       }
 
-      toast({
-        title: "Export successful!",
-        description: `${format.toUpperCase()} file downloaded`
-      });
+      if (format === 'html') {
+        const blob = new Blob([asHtml], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${fileName}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Export successful!",
+          description: "HTML file downloaded"
+        });
+        return;
+      }
+
+      // For PDF / DOCX, temporarily export HTML
+      // Later this can be wired into proper PDF/DOCX generation
+      if (format === 'pdf' || format === 'docx') {
+        const blob = new Blob([asHtml], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = format === 'pdf' ? `${fileName}-for-pdf.html` : `${fileName}-for-docx.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Export successful!",
+          description: `HTML file downloaded (${format.toUpperCase()} generation coming soon)`
+        });
+        return;
+      }
     } catch (error) {
       console.error('Export error:', error);
       toast({
@@ -849,81 +908,6 @@ const ResumeBuilderWizardContent = () => {
         variant: "destructive"
       });
     }
-  };
-
-  const generateHTMLContent = (data: any): string => {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${data.name} - Resume</title>
-  <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      max-width: 8.5in; 
-      margin: 0 auto; 
-      padding: 0.5in; 
-      font-size: 11pt;
-      color: #000;
-    }
-    h1 { 
-      font-size: 24pt; 
-      margin-bottom: 8px; 
-      text-align: center;
-      font-weight: bold;
-    }
-    .contact { 
-      font-size: 10pt; 
-      text-align: center;
-      margin-bottom: 20px; 
-      border-bottom: 2px solid #000;
-      padding-bottom: 10px;
-    }
-    h2 { 
-      font-size: 12pt; 
-      text-transform: uppercase;
-      border-bottom: 1px solid #666; 
-      padding-bottom: 4px; 
-      margin-top: 16px; 
-      margin-bottom: 8px; 
-      font-weight: bold;
-    }
-    p, li { 
-      font-size: 11pt; 
-      line-height: 1.4; 
-      margin: 6px 0; 
-    }
-    ul { 
-      margin: 8px 0; 
-      padding-left: 20px; 
-    }
-    .skills {
-      font-size: 11pt;
-      line-height: 1.5;
-    }
-  </style>
-</head>
-<body>
-  <h1>${data.name}</h1>
-  <div class="contact">
-    ${data.contact.email} | ${data.contact.phone} | ${data.contact.location}
-    ${data.contact.linkedin ? `| ${data.contact.linkedin}` : ''}
-  </div>
-  
-  ${data.sections.map((section: any) => `
-    <h2>${section.title}</h2>
-    ${section.type === 'skills' ? `
-      <div class="skills">${section.content.join(', ')}</div>
-    ` : `
-      <ul>
-        ${section.content.map((item: string) => `<li>${item}</li>`).join('')}
-      </ul>
-    `}
-  `).join('')}
-</body>
-</html>
-    `;
   };
 
   // Render based on current step
