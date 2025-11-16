@@ -1,0 +1,322 @@
+import { useState } from "react";
+import type { VaultData } from "@/hooks/useVaultData";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface V3VaultDetailTabsProps {
+  vault: VaultData;
+}
+
+const TABS = [
+  { id: "experience", label: "Experience" },
+  { id: "skills", label: "Strengths & Skills" },
+  { id: "intangibles", label: "Leadership & Style" },
+  { id: "documents", label: "Documents" },
+];
+
+/**
+ * Calm tabbed view of what's in the vault.
+ * This gives the user a sense of "what the system knows about me".
+ */
+export function V3VaultDetailTabs({ vault }: V3VaultDetailTabsProps) {
+  const [activeTab, setActiveTab] = useState<string>("experience");
+
+  return (
+    <Card className="shadow-sm">
+      <CardContent className="pt-3">
+        <div className="flex gap-4 border-b mb-3 overflow-x-auto no-scrollbar">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`pb-2 text-xs md:text-sm font-medium border-b-2 whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "experience" && <ExperienceTab vault={vault} />}
+        {activeTab === "skills" && <SkillsTab vault={vault} />}
+        {activeTab === "intangibles" && <IntangiblesTab vault={vault} />}
+        {activeTab === "documents" && <DocumentsTab vault={vault} />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ExperienceTab({ vault }: { vault: VaultData }) {
+  const context: any = vault.careerContext || {};
+  const roles: any[] = context.roles || context.extracted_roles || [];
+
+  if (!roles.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        As we parse your resume and answers, we&apos;ll build a simple timeline
+        of your roles here. This helps us align you to the right seniority and
+        scope of responsibility.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {roles.map((role, index) => {
+        const title =
+          role.title ||
+          role.role_title ||
+          role.position ||
+          "Role";
+        const company =
+          role.company ||
+          role.organization ||
+          role.employer ||
+          "";
+        const start =
+          role.start_date || role.start || role.start_year || "";
+        const end =
+          role.end_date || role.end || role.end_year || "Present";
+        const location = role.location || role.city || role.region || "";
+
+        return (
+          <div
+            key={role.id || index}
+            className="border rounded-md px-3 py-2"
+          >
+            <div className="text-sm font-medium">
+              {title}
+              {company && <> @ {company}</>}
+            </div>
+            {(start || end) && (
+              <div className="text-xs text-muted-foreground">
+                {start} – {end}
+              </div>
+            )}
+            {location && (
+              <div className="text-xs text-muted-foreground">
+                {location}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SkillsTab({ vault }: { vault: VaultData }) {
+  const power = (vault.powerPhrases as any[]) || [];
+  const transferable = (vault.transferableSkills as any[]) || [];
+
+  if (!power.length && !transferable.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        As your Career Vault grows, we&apos;ll highlight your strongest phrases
+        and transferable skills here so it&apos;s easy to plug them into resumes,
+        LinkedIn, and interviews.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {!!power.length && (
+        <div>
+          <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
+            Power phrases
+          </div>
+          <ul className="space-y-1 text-sm">
+            {power.map((p, index) => (
+              <li key={p.id || index}>• {p.text || p.phrase || p.description}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!!transferable.length && (
+        <div>
+          <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
+            Transferable skills
+          </div>
+          <ul className="flex flex-wrap gap-1">
+            {transferable.map((s, index) => (
+              <li
+                key={s.id || index}
+                className="text-xs rounded-full border px-2 py-0.5 bg-muted/40"
+              >
+                {s.name || s.label || s.skill || s.skill_name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IntangiblesTab({ vault }: { vault: VaultData }) {
+  const leadership = (vault.leadershipPhilosophy as any[]) || [];
+  const presence = (vault.executivePresence as any[]) || [];
+  const traits = (vault.personalityTraits as any[]) || [];
+  const workStyle = (vault.workStyle as any[]) || [];
+  const values = (vault.values as any[]) || [];
+  const behavioral = (vault.behavioralIndicators as any[]) || [];
+
+  const hasAnything =
+    leadership.length ||
+    presence.length ||
+    traits.length ||
+    workStyle.length ||
+    values.length ||
+    behavioral.length;
+
+  if (!hasAnything) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        We&apos;ll summarize your leadership style, values, and executive
+        presence here as we learn more from your resume and answers.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3 text-sm">
+      {!!leadership.length && (
+        <Section
+          title="Leadership philosophy"
+          items={leadership}
+          getText={(l) => l.statement || l.text}
+        />
+      )}
+
+      {!!presence.length && (
+        <Section
+          title="Executive presence"
+          items={presence}
+          getText={(p) => p.statement || p.text}
+        />
+      )}
+
+      {!!traits.length && (
+        <ChipSection
+          title="Personality & work style"
+          items={traits}
+          getText={(t) => t.label || t.trait}
+        />
+      )}
+
+      {!!workStyle.length && (
+        <ChipSection
+          title="Work style"
+          items={workStyle}
+          getText={(w) => w.label || w.style || w.trait}
+        />
+      )}
+
+      {!!values.length && (
+        <ChipSection
+          title="Values & motivations"
+          items={values}
+          getText={(v) => v.label || v.value}
+        />
+      )}
+
+      {!!behavioral.length && (
+        <Section
+          title="Behavioral indicators"
+          items={behavioral}
+          getText={(b) => b.description || b.text}
+        />
+      )}
+    </div>
+  );
+}
+
+function DocumentsTab({ vault }: { vault: VaultData }) {
+  const rawVault: any = vault.vault || {};
+  const hasResume = !!rawVault.resume_raw_text;
+
+  if (!hasResume) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Once you upload a resume and any project lists or accomplishment
+        documents, we&apos;ll keep them here as the source for every targeted
+        resume we generate.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2 text-sm text-muted-foreground">
+      <p>
+        Your resume has been analyzed and stored in your Career Vault. We&apos;ve
+        extracted roles, achievements, and skills for use in resumes, LinkedIn,
+        and interview prep.
+      </p>
+      <p>
+        You can add additional documents over time (project lists,
+        accomplishments, portfolio items) and we&apos;ll fold them into your vault.
+      </p>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  items,
+  getText,
+}: {
+  title: string;
+  items: any[];
+  getText: (item: any) => string | undefined;
+}) {
+  return (
+    <div>
+      <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
+        {title}
+      </div>
+      <ul className="space-y-1">
+        {items.map((item, index) => {
+          const text = getText(item);
+          if (!text) return null;
+          return <li key={item.id || index}>• {text}</li>;
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function ChipSection({
+  title,
+  items,
+  getText,
+}: {
+  title: string;
+  items: any[];
+  getText: (item: any) => string | undefined;
+}) {
+  return (
+    <div>
+      <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
+        {title}
+      </div>
+      <ul className="flex flex-wrap gap-1">
+        {items.map((item, index) => {
+          const text = getText(item);
+          if (!text) return null;
+          return (
+            <li
+              key={item.id || index}
+              className="text-xs rounded-full border px-2 py-0.5 bg-muted/40"
+            >
+              {text}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
