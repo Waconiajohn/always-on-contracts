@@ -17,13 +17,13 @@ import { ArrowLeft, TrendingUp, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
 import { GenerationModeSelector } from "@/components/resume-builder/GenerationModeSelector";
+import { SectionEditorCard } from "@/components/resume-builder/SectionEditorCard";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
 import { builderStateToCanonicalResume, canonicalResumeToPlainText, canonicalResumeToHTML } from "@/lib/resumeSerialization";
 import { BuilderResumeSection } from "@/lib/resumeModel";
 import { injectOverlayIntoResumeSections } from "@/lib/resumeOverlayUtils";
-import { Badge } from "@/components/ui/badge";
 
 type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
 
@@ -714,7 +714,12 @@ const ResumeBuilderWizardContent = () => {
     }
   };
 
-  const analyzeATSScore = async () => {
+  const analyzeATSScore = async (opts?: {
+    sectionId?: string;
+    sectionTitle?: string;
+    previousCoverage?: number | null;
+    onDelta?: (prev: number | null, current: number | null) => void;
+  }) => {
     if (!resumeSections || resumeSections.length === 0) {
       toast({
         title: "Cannot analyze ATS score",
@@ -814,6 +819,7 @@ const ResumeBuilderWizardContent = () => {
         throw new Error('No data returned from ATS analysis');
       }
 
+      const previousData = atsScoreData;
       setAtsScoreData(data);
       
       // Save ATS score to database
@@ -827,7 +833,32 @@ const ResumeBuilderWizardContent = () => {
           })
           .eq('id', resumeId);
       }
-      
+
+      // If called for a specific section, compute and report delta
+      if (opts?.sectionId || opts?.sectionTitle) {
+        const secId = opts.sectionId;
+        const secTitle = opts.sectionTitle;
+
+        const prevSection = previousData?.perSection?.find(
+          (s: any) =>
+            (secId && s.sectionId === secId) ||
+            (secTitle && s.sectionHeading === secTitle)
+        );
+        const newSection = data.perSection?.find(
+          (s: any) =>
+            (secId && s.sectionId === secId) ||
+            (secTitle && s.sectionHeading === secTitle)
+        );
+
+        const prevCoverage =
+          opts.previousCoverage ?? prevSection?.coverageScore ?? null;
+        const currentCoverage = newSection?.coverageScore ?? null;
+
+        if (opts.onDelta) {
+          opts.onDelta(prevCoverage, currentCoverage);
+        }
+      }
+
       toast({
         title: "ATS Analysis Complete",
         description: `Overall score: ${data.summary?.overallScore || data.overallScore || 0}%`,
@@ -842,6 +873,28 @@ const ResumeBuilderWizardContent = () => {
     } finally {
       setAnalyzingATS(false);
     }
+  };
+
+  const handleSectionAtsReanalyze = async (
+    sectionId: string,
+    sectionTitle: string,
+    previousCoverage: number | null
+  ) => {
+    await analyzeATSScore({
+      sectionId,
+      sectionTitle,
+      previousCoverage,
+      onDelta: (prev, current) => {
+        if (prev == null || current == null) return;
+
+        toast({
+          title: "ATS coverage updated",
+          description: `Section improved from ${Math.round(
+            prev
+          )}% → ${Math.round(current)}% coverage.`,
+        });
+      },
+    });
   };
 
   const handleStartOver = () => {
@@ -1191,7 +1244,7 @@ const ResumeBuilderWizardContent = () => {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={analyzeATSScore}
+                onClick={() => analyzeATSScore()}
                 disabled={analyzingATS}
                 className="gap-2"
               >
@@ -1302,53 +1355,28 @@ const ResumeBuilderWizardContent = () => {
                       Section-by-section keyword coverage
                     </h3>
                     <div className="space-y-2">
-                      {atsScoreData.perSection.map((sec: any) => (
-                        <Card key={sec.sectionId} className="p-3 text-xs">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold">{sec.sectionHeading}</span>
-                            <span className="font-mono">
-                              {Math.round(sec.coverageScore)}% coverage
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mb-1">
-                            {sec.matchedKeywords?.slice(0, 6).map((kw: any, idx: number) => (
-                              <Badge
-                                key={`${kw.phrase}-${idx}`}
-                                variant="outline"
-                                className="text-[10px]"
-                              >
-                                {kw.phrase}
-                              </Badge>
-                            ))}
-                            {sec.matchedKeywords?.length > 6 && (
-                              <span className="text-[10px] text-muted-foreground">
-                                +{sec.matchedKeywords.length - 6} more
-                              </span>
-                            )}
-                          </div>
-                          {sec.missingKeywords?.length > 0 && (
-                            <div className="mt-1">
-                              <span className="font-semibold text-[10px]">
-                                Missing (high priority):
-                              </span>
-                              <div className="flex flex-wrap gap-1 mt-0.5">
-                                {sec.missingKeywords
-                                  .filter((k: any) => k.priority === "must_have")
-                                  .slice(0, 4)
-                                  .map((kw: any, idx: number) => (
-                                    <Badge
-                                      key={`${kw.phrase}-${idx}`}
-                                      variant="destructive"
-                                      className="text-[10px]"
-                                    >
-                                      {kw.phrase}
-                                    </Badge>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      ))}
+                      {hydratedSections.map((section: any) => {
+                        const secCoverage = atsScoreData.perSection.find(
+                          (s: any) => 
+                            s.sectionId === section.id || 
+                            s.sectionHeading === section.title
+                        );
+                        
+                        if (!secCoverage) return null;
+                        
+                        return (
+                          <SectionEditorCard
+                            key={section.id}
+                            section={section}
+                            onUpdateSection={(sectionId, content) => {
+                              setResumeSections(prev =>
+                                prev.map(s => s.id === sectionId ? { ...s, content } : s)
+                              );
+                            }}
+                            onReanalyzeAts={handleSectionAtsReanalyze}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
