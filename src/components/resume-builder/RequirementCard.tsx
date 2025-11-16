@@ -222,8 +222,8 @@ export const RequirementCard = ({
                 requirement={requirement.text}
                 vaultMatches={vaultMatches}
                 jobContext={jobContext}
-                onAddToVault={() => {
-                  toast.success('Solution added to your Career Vault');
+                onUseSuggestion={(_solution, action) => {
+                  toast.success(`Solution ${action === 'vault' ? 'queued for vault' : action === 'resume-only' ? 'added to resume' : 'dismissed'}`);
                 }}
               />
             )}

@@ -91,19 +91,6 @@ export const ResumeEditorWithVaultPanel = ({
     });
   };
 
-  const handleAddGapSolution = (solution: string) => {
-    // Add gap solution to achievements section
-    onAddItem('achievements', {
-      id: `gap-solution-${Date.now()}`,
-      content: solution
-    });
-
-    toast({
-      title: "Gap solution added",
-      description: "Added to achievements section"
-    });
-  };
-
   // Helper to get displayable content from vault item
   const getDisplayContent = (content: any): string => {
     if (typeof content === 'string') return content;
@@ -256,7 +243,9 @@ export const ResumeEditorWithVaultPanel = ({
                                     industry: jobAnalysis?.industry || '',
                                     seniority: jobAnalysis?.seniorityLevel || ''
                                   }}
-                                  onAddToVault={handleAddGapSolution}
+                                  onUseSuggestion={(_solution, _action) => {
+                                    // Handled by store
+                                  }}
                                 />
                               ))}
                             </>

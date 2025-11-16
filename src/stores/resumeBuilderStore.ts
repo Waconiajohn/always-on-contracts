@@ -4,6 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import type { ResumeMilestone } from '@/types/vault';
 import { showContextualError, showContextualSuccess } from '@/lib/utils/contextualErrors';
 import { logger } from '@/lib/logger';
+import {
+  createEmptyVaultOverlay,
+  addSuggestedOverlayItem,
+  markOverlayItemUsedInResume,
+  markOverlayItemForPromotion,
+  rejectOverlayItem,
+  VaultOverlayState,
+} from '@/lib/resumeVaultOverlay';
 
 export interface ResumeSection {
   id: string;
@@ -59,6 +67,9 @@ interface ResumeBuilderState {
   vaultMatches: any | null;
   resumeMilestones: ResumeMilestone[];
   
+  // Vault overlay (sandbox layer)
+  vaultOverlay: VaultOverlayState;
+  
   // Requirements
   categorizedRequirements: CategorizedRequirements;
   requirementResponses: RequirementResponse[];
@@ -106,6 +117,12 @@ interface ResumeBuilderState {
   setMatching: (matching: boolean) => void;
   setGeneratingSection: (section: string | null) => void;
   
+  // Vault overlay actions
+  addGapSuggestion: (payload: any, meta?: any) => void;
+  useSuggestionInResumeOnly: (itemId: string) => void;
+  promoteSuggestionToVault: (itemId: string) => void;
+  rejectSuggestion: (itemId: string) => void;
+  
   // Persistence
   saveResume: () => Promise<void>;
   loadResume: (resumeId: string) => Promise<void>;
@@ -124,6 +141,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       displayJobText: '',
       vaultMatches: null,
       resumeMilestones: [],
+      vaultOverlay: createEmptyVaultOverlay(),
       categorizedRequirements: {
         autoHandled: [],
         needsInput: [],
@@ -172,6 +190,27 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       setAnalyzing: (analyzing) => set({ analyzing }),
       setMatching: (matching) => set({ matching }),
       setGeneratingSection: (section) => set({ generatingSection: section }),
+      
+      // Vault overlay actions
+      addGapSuggestion: (payload, meta) =>
+        set((state) => ({
+          vaultOverlay: addSuggestedOverlayItem(state.vaultOverlay, payload, meta),
+        })),
+
+      useSuggestionInResumeOnly: (itemId) =>
+        set((state) => ({
+          vaultOverlay: markOverlayItemUsedInResume(state.vaultOverlay, itemId),
+        })),
+
+      promoteSuggestionToVault: (itemId) =>
+        set((state) => ({
+          vaultOverlay: markOverlayItemForPromotion(state.vaultOverlay, itemId),
+        })),
+
+      rejectSuggestion: (itemId) =>
+        set((state) => ({
+          vaultOverlay: rejectOverlayItem(state.vaultOverlay, itemId),
+        })),
       
       // Save resume to database
       saveResume: async () => {
