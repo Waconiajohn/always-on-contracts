@@ -215,9 +215,11 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md" key={file?.name || 'no-file'}>
         <DialogHeader>
-          <DialogTitle>Upload Your Resume</DialogTitle>
-          <DialogDescription>
-            Upload your resume to start building your Career Vault
+          <DialogTitle className="text-xl font-semibold">
+            Upload your most recent resume
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground mt-1">
+            We&apos;ll use your resume as the foundation for your Career Vault – a single, accurate record of your experience and achievements.
           </DialogDescription>
         </DialogHeader>
 
@@ -249,12 +251,12 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
             <div className="space-y-4">
               <Upload className="w-12 h-12 mx-auto text-slate-400" />
               <div>
-                <p className="text-sm text-slate-600 mb-2">
-                  Drag and drop your resume here, or
+                <p className="text-sm font-medium mb-2">
+                  Drag and drop your resume here, or click to browse.
                 </p>
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <span className="text-indigo-600 hover:text-indigo-700 font-medium">
-                    browse files
+                    Browse files
                   </span>
                   <input
                     id="file-upload"
@@ -265,12 +267,21 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
                   />
                 </label>
               </div>
-              <p className="text-xs text-slate-500">
-                Supports PDF, DOC, DOCX, TXT
+              <p className="text-xs text-muted-foreground mt-1">
+                Accepted formats: PDF, Word (.doc, .docx). You only need to do this once.
               </p>
             </div>
           )}
         </div>
+
+        {/* Reassurance block */}
+        {!file && (
+          <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+            <li>• We read your resume to identify roles, achievements, and skills.</li>
+            <li>• You stay in control – you can edit or remove anything later.</li>
+            <li>• Your details are used only to support your job search.</li>
+          </ul>
+        )}
 
         {/* Progress indicator */}
         {isUploading && progress && (
@@ -297,22 +308,24 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
           </div>
         )}
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isUploading}>
-            Cancel
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="ghost" onClick={onClose} disabled={isUploading}>
+            Not now
           </Button>
           <Button
             onClick={handleUpload}
             disabled={!file || isUploading}
-            className="bg-indigo-600 hover:bg-indigo-700"
           >
             {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {progress?.phase === 'complete' ? 'Finalizing...' : 'Processing...'}
+                Uploading…
               </>
             ) : (
-              'Upload & Extract'
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload and build my Career Vault
+              </>
             )}
           </Button>
         </div>
