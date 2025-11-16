@@ -2,6 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { ContentBlender } from "./ContentBlender";
 import type { BlendedSectionOption } from "@/lib/edgeFunction/schemas";
@@ -43,6 +49,10 @@ export const SectionEditorCard = ({
   const missingMustHaveCount = coverage?.missingKeywords?.filter(
     (k: AtsKeyword) => k.priority === "must_have"
   ).length || 0;
+
+  const missingNiceToHave = coverage?.missingKeywords
+    ?.filter((k: AtsKeyword) => k.priority === "nice_to_have")
+    .slice(0, 4) || [];
 
   // Derive confidence band & label
   const coverageScore = coverage?.coverageScore ?? null;
@@ -209,18 +219,30 @@ export const SectionEditorCard = ({
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">{section.title}</CardTitle>
             {coverageScore != null && (
-              <Badge
-                variant="outline"
-                className={
-                  coverageBand === "high"
-                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                    : coverageBand === "medium"
-                    ? "bg-amber-100 text-amber-800 border-amber-300"
-                    : "bg-red-100 text-red-800 border-red-300"
-                }
-              >
-                {coverageLabel}
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className={
+                        coverageBand === "high"
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                          : coverageBand === "medium"
+                          ? "bg-amber-100 text-amber-800 border-amber-300"
+                          : "bg-red-100 text-red-800 border-red-300"
+                      }
+                    >
+                      {coverageLabel}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p className="max-w-xs text-xs">
+                      Estimated keyword match for this section vs. the job's must-have and
+                      nice-to-have requirements.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {missingMustHaveCount > 0 && (
               <Badge variant="outline" className="border-red-300 text-red-700">
@@ -248,6 +270,37 @@ export const SectionEditorCard = ({
             </li>
           ))}
         </ul>
+
+        {(missingMustHaveCount > 0 || missingNiceToHave.length > 0) && (
+          <div className="mt-3 text-xs text-muted-foreground space-y-1">
+            {missingMustHaveCount > 0 && (
+              <div>
+                <span className="font-medium">High-priority gaps:</span>{" "}
+                <span>
+                  This section is still missing some must-have language for this job.
+                  Use "Fix my ATS gaps" to auto-rewrite with those terms.
+                </span>
+              </div>
+            )}
+
+            {missingNiceToHave.length > 0 && (
+              <div>
+                <span className="font-medium">Suggestions to strengthen this section:</span>{" "}
+                <span>
+                  Consider weaving in:{" "}
+                  {missingNiceToHave.map((k: AtsKeyword, idx: number) => (
+                    <span key={k.phrase}>
+                      <span className="underline decoration-dotted">
+                        {k.phrase}
+                      </span>
+                      {idx < missingNiceToHave.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {showBlender && (
           <div className="mt-4">
