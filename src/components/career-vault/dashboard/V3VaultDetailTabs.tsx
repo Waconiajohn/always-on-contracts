@@ -59,9 +59,9 @@ function ExperienceTab({ vault }: { vault: VaultData }) {
   if (!roles.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        As we parse your resume and answers, we&apos;ll build a simple timeline
-        of your roles here. This helps us align you to the right seniority and
-        scope of responsibility.
+        As we review your resume and answers, we&apos;ll build a clear timeline of
+        your roles here. This helps align you to the right level, scope, and
+        type of opportunity.
       </p>
     );
   }
@@ -149,9 +149,9 @@ function SkillsTab({ vault }: { vault: VaultData }) {
   if (!power.length && !transferable.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        As your Career Vault grows, we&apos;ll highlight your strongest phrases
-        and transferable skills here so it&apos;s easy to plug them into resumes,
-        LinkedIn, and interviews.
+        As your Career Vault grows, we&apos;ll highlight your most powerful
+        statements and transferable skills here so they can be quickly reused
+        in resumes, LinkedIn, and interviews.
       </p>
     );
   }
@@ -162,8 +162,10 @@ function SkillsTab({ vault }: { vault: VaultData }) {
         {!!power.length && (
           <div>
             <div className="text-xs font-semibold mb-2 uppercase text-muted-foreground flex items-center justify-between">
-              <span>Power phrases</span>
-              <span className="text-muted-foreground font-normal">{power.length} items</span>
+              <span>Impact statements</span>
+              <span className="text-muted-foreground font-normal text-[11px]">
+                ({power.length})
+              </span>
             </div>
             <ul className="space-y-2">
               {power.map((p, index) => (
@@ -275,8 +277,8 @@ function IntangiblesTab({ vault }: { vault: VaultData }) {
   if (!hasAnything) {
     return (
       <p className="text-sm text-muted-foreground">
-        We&apos;ll summarize your leadership style, values, and executive
-        presence here as we learn more from your resume and answers.
+        We&apos;ll capture your leadership style, values, and executive presence here
+        as we learn more from your background and examples.
       </p>
     );
   }
@@ -338,7 +340,7 @@ function IntangiblesTab({ vault }: { vault: VaultData }) {
 
         {!!behavioral.length && (
           <SectionWithActions
-            title="Behavioral indicators"
+            title="Behavioral examples"
             items={behavioral}
             getText={(b) => b.description || b.text}
             onView={setSelectedViewItem}
@@ -393,8 +395,8 @@ function DocumentsTab({ vault }: { vault: VaultData }) {
   if (!hasResume) {
     return (
       <p className="text-sm text-muted-foreground">
-        Once you upload a resume and any project lists or accomplishment
-        documents, we&apos;ll keep them here as the source for every targeted
+        Once you upload your resume and any project or accomplishment lists,
+        we&apos;ll store them here as the single source of truth for every targeted
         resume we generate.
       </p>
     );
@@ -404,12 +406,13 @@ function DocumentsTab({ vault }: { vault: VaultData }) {
     <div className="space-y-2 text-sm text-muted-foreground">
       <p>
         Your resume has been analyzed and stored in your Career Vault. We&apos;ve
-        extracted roles, achievements, and skills for use in resumes, LinkedIn,
-        and interview prep.
+        captured your roles, achievements, and skills for use in resumes,
+        LinkedIn, and interview preparation.
       </p>
       <p>
         You can add additional documents over time (project lists,
-        accomplishments, portfolio items) and we&apos;ll fold them into your vault.
+        accomplishment summaries, portfolio materials), and we&apos;ll incorporate
+        them into your vault automatically.
       </p>
     </div>
   );

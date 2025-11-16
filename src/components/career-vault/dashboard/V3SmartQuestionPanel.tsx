@@ -144,7 +144,7 @@ export function V3SmartQuestionPanel({
           <Sparkles className="h-4 w-4 text-blue-500" />
           <div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Next best improvement
+              Focused improvement
             </div>
             <div className="text-sm font-medium">
               Question {activeIndex + 1} of {questions.length}
@@ -170,7 +170,7 @@ export function V3SmartQuestionPanel({
           className="w-full rounded-md border px-3 py-2 text-sm"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          placeholder="Type a brief answer here (2–6 sentences is perfect)."
+          placeholder="A short, factual answer is ideal. Bullet points are fine."
         />
 
         <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
@@ -181,7 +181,7 @@ export function V3SmartQuestionPanel({
               onClick={handleSkip}
               disabled={loading}
             >
-              Skip for now
+              Answer later
             </Button>
             <Button
               variant="ghost"
@@ -190,7 +190,7 @@ export function V3SmartQuestionPanel({
               disabled={loading}
               className="text-xs"
             >
-              Not relevant to my background
+              Not relevant
             </Button>
           </div>
           <Button
@@ -201,12 +201,12 @@ export function V3SmartQuestionPanel({
             {loading && (
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
             )}
-            Save answer
+            Save and update vault
           </Button>
         </div>
 
         <p className="text-[11px] text-muted-foreground">
-          Each answer strengthens how we describe your experience, quantify your
+          Each answer helps us present your experience more clearly, quantify your
           impact, and match you to the right roles.
         </p>
       </CardContent>

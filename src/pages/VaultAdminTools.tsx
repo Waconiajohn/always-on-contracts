@@ -41,7 +41,8 @@ function VaultAdminToolsContent() {
       <div>
         <h1 className="text-2xl font-semibold mb-2">Career Vault Admin Tools</h1>
         <p className="text-sm text-muted-foreground">
-          Internal utilities for managing and maintaining Career Vault data. These tools are for development and admin use only.
+          Internal utilities for managing and maintaining vault data integrity.
+          These tools are for development and admin use only.
         </p>
       </div>
 
@@ -101,7 +102,8 @@ function VaultAdminToolsContent() {
         <CardHeader>
           <CardTitle className="text-red-900 dark:text-red-200">Danger Zone</CardTitle>
           <CardDescription className="text-red-800 dark:text-red-300">
-            Destructive operations that cannot be undone
+            Destructive operations that permanently change or delete vault data.
+            Use only when you fully understand the impact.
           </CardDescription>
         </CardHeader>
         <CardContent>

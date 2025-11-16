@@ -46,13 +46,15 @@ export function V3VaultOverview({ vault, stats, benchmarkMatch }: V3VaultOvervie
 
           {typeof benchmarkMatch === "number" && (
             <p className="text-xs text-emerald-700 dark:text-emerald-400">
-              Benchmark match: {Math.round(benchmarkMatch)}% vs ideal candidate profile for this role
+              Benchmark match: {Math.round(benchmarkMatch)}% compared to an
+              ideal candidate profile for this role.
             </p>
           )}
 
           <p className="text-xs text-muted-foreground max-w-xl">
-            Upload once, then strengthen your profile through quick questions.
-            Every resume, LinkedIn update, and interview prep pulls from this vault.
+            Your Career Vault is the master record of your experience, impact, and
+            leadership story. We use it behind the scenes for every resume, LinkedIn
+            update, and interview preparation.
           </p>
         </div>
 
@@ -67,17 +69,17 @@ export function V3VaultOverview({ vault, stats, benchmarkMatch }: V3VaultOvervie
               </div>
             </div>
             <span className="text-xs text-muted-foreground mt-1">
-              Vault strength
+              Overall vault strength
             </span>
           </div>
 
           <div className="border-l pl-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Overall rating
+              Readiness rating
             </div>
             <div className="font-semibold text-sm">{strengthLevel}</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {totalItems} items analyzed across achievements, skills, and intangibles.
+              {totalItems} career data points analyzed across roles, results, and strengths.
             </div>
           </div>
         </div>
