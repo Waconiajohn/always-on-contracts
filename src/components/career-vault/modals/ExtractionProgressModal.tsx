@@ -27,75 +27,44 @@ interface ExtractionPhase {
 
 const EXTRACTION_PHASES: ExtractionPhase[] = [
   {
-    id: 'parsing',
-    name: 'Parsing Resume Structure',
-    percentage: [0, 15],
+    id: 'reading',
+    name: 'Reading your resume',
+    percentage: [0, 20],
     messages: [
-      'Reading your resume structure...',
-      'Identifying key sections...',
-      'Understanding document layout...',
-      'Analyzing formatting patterns...'
+      'Reading your resume in full...',
+      'Understanding your document structure...',
+      'Identifying key sections...'
     ],
     color: 'from-blue-500 to-indigo-600'
   },
   {
     id: 'extracting',
-    name: 'Extracting Key Achievements',
-    percentage: [15, 35],
+    name: 'Identifying roles and achievements',
+    percentage: [20, 60],
     messages: [
-      'Finding your strongest accomplishments...',
-      'Analyzing impact statements...',
-      'Identifying quantified achievements...',
-      'Discovering hidden wins...',
-      'Extracting career highlights...'
+      'Identifying key roles, responsibilities, and achievements...',
+      'Analyzing your career progression...',
+      'Capturing quantified results...',
+      'Recognizing leadership examples...'
     ],
     color: 'from-indigo-500 to-purple-600'
   },
   {
-    id: 'mapping',
-    name: 'Mapping Skills & Competencies',
-    percentage: [35, 60],
+    id: 'building',
+    name: 'Creating your Career Vault',
+    percentage: [60, 90],
     messages: [
-      'Cataloging technical skills...',
-      'Discovering hidden competencies...',
-      'Mapping transferable skills...',
-      'Analyzing skill patterns...',
-      'Identifying expertise areas...'
+      'Creating your initial Career Vault so you don&apos;t have to retype it...',
+      'Organizing your experience data...',
+      'Structuring your achievements...'
     ],
     color: 'from-purple-500 to-pink-600'
   },
   {
-    id: 'context',
-    name: 'Building Career Context',
-    percentage: [60, 80],
-    messages: [
-      'Understanding your seniority level...',
-      'Analyzing leadership experience...',
-      'Mapping career trajectory...',
-      'Identifying industry patterns...',
-      'Building professional profile...'
-    ],
-    color: 'from-pink-500 to-rose-600'
-  },
-  {
-    id: 'enhancing',
-    name: 'AI Enhancement Layer',
-    percentage: [80, 95],
-    messages: [
-      'Enhancing with AI intelligence...',
-      'Cross-referencing industry data...',
-      'Optimizing for ATS systems...',
-      'Polishing career intelligence...',
-      'Finalizing strategic insights...'
-    ],
-    color: 'from-rose-500 to-red-600'
-  },
-  {
     id: 'complete',
-    name: 'Finalizing Your Vault',
-    percentage: [95, 100],
+    name: 'Finalizing',
+    percentage: [90, 100],
     messages: [
-      'Preparing your career vault...',
       'Almost ready...',
       'Final touches...'
     ],
@@ -308,13 +277,13 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl">
-            {isComplete ? '✨ Extraction Complete!' : 'Extracting Your Career Intelligence'}
+          <DialogTitle className="text-center text-xl font-semibold">
+            {isComplete ? 'Your Career Vault is ready' : 'Building your Career Vault'}
           </DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogDescription className="text-center text-sm text-muted-foreground mt-1">
             {isComplete 
-              ? 'Your Career Vault is ready with AI-powered insights'
-              : 'AI is analyzing your resume and building your career vault...'
+              ? 'We\'ve created your initial Career Vault from your resume. Next, we\'ll ask a few quick questions to sharpen your story and quantify your impact.'
+              : 'We\'re reviewing your resume and pulling out your roles, results, and strengths. This usually takes less than a minute.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -395,6 +364,13 @@ export function ExtractionProgressModal({ open, vaultId, onComplete }: Extractio
             >
               {currentMessage}
             </p>
+            
+            {/* Reassurance text */}
+            {!isComplete && (
+              <p className="text-xs text-muted-foreground text-center mt-3 max-w-md">
+                You don&apos;t need to do anything right now. Once we&apos;re finished, we&apos;ll show you a clear summary and ask a few focused questions to fill any gaps.
+              </p>
+            )}
             
             {/* Item count badge */}
             {itemCount > 0 && (
