@@ -14,54 +14,117 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { resumeContent, jobDescription } = await req.json();
+  const logger = createLogger('analyze-ats-score');
 
-    if (!resumeContent || !jobDescription) {
+  try {
+    const body = await req.json();
+    const { 
+      jobTitle, 
+      jobDescription, 
+      industry, 
+      canonicalHeader, 
+      canonicalSections,
+      // Legacy fallback
+      resumeContent 
+    } = body;
+
+    // Handle legacy API or new canonical API
+    let resumeText = '';
+    
+    if (canonicalSections && canonicalHeader) {
+      // New canonical format
+      resumeText = `HEADER:\n`;
+      if (canonicalHeader.fullName) resumeText += `Name: ${canonicalHeader.fullName}\n`;
+      if (canonicalHeader.headline) resumeText += `Headline: ${canonicalHeader.headline}\n`;
+      if (canonicalHeader.contactLine) resumeText += `Contact: ${canonicalHeader.contactLine}\n`;
+      
+      resumeText += `\nSECTIONS:\n`;
+      for (const section of canonicalSections) {
+        resumeText += `\n[${section.heading}]\n`;
+        if (section.paragraph) resumeText += `${section.paragraph}\n`;
+        for (const bullet of section.bullets) {
+          resumeText += `• ${bullet}\n`;
+        }
+      }
+    } else if (resumeContent) {
+      // Legacy format
+      resumeText = resumeContent;
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Resume content and job description are required' }),
+        JSON.stringify({ error: 'Resume content or canonical sections are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const systemPrompt = `You are an ATS (Applicant Tracking System) analyzer. Analyze the resume against the job description and provide detailed scoring.
+    if (!jobDescription) {
+      return new Response(
+        JSON.stringify({ error: 'Job description is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-Score the following categories on a scale of 0-100:
-1. Keyword Match - How well keywords from the job description appear in the resume
-2. Format Score - ATS-friendly formatting (no tables, images, proper headers)
-3. Experience Match - How well experience aligns with requirements
-4. Skills Match - How well listed skills match required skills
+    const systemPrompt = `You are an ATS and resume alignment engine.
 
-Also provide:
-- Overall score (weighted average)
-- Top 3-5 strengths
-- Top 3-5 warnings/issues
-- Top 3-5 actionable recommendations
+You receive a job description and a canonical resume (header + sections).
+Extract a keyword set with priority tiers:
+- "must_have": critical skills, tools, certifications, domains, and titles that strongly predict success.
+- "nice_to_have": valuable but not required.
+- "industry_standard": common language and patterns used for this role/industry.
 
-Return ONLY valid JSON in this exact format:
+Evaluate coverage per section and overall.
+
+Rules:
+- DO NOT fabricate content; only evaluate what appears in the resume.
+- When a keyword is only partially matched (e.g., "Salesforce" vs. "CRM"), count it as partially covered by including it with importanceScore lowered.
+- Score coverage 0–100.
+- Keep JSON tight and valid, no extra commentary.
+
+Return JSON matching this structure:
 {
-  "overallScore": 85,
-  "keywordMatch": 80,
-  "formatScore": 95,
-  "experienceMatch": 85,
-  "skillsMatch": 90,
-  "strengths": ["Strong keyword presence", "Clear quantified achievements"],
-  "warnings": ["Missing specific technical tool X", "Limited leadership examples"],
-  "recommendations": ["Add keyword Y 2-3 more times", "Quantify project Z impact"]
+  "summary": {
+    "overallScore": 85,
+    "mustHaveCoverage": 90,
+    "niceToHaveCoverage": 75,
+    "industryCoverage": 80
+  },
+  "perSection": [
+    {
+      "sectionId": "section-1",
+      "sectionHeading": "Professional Experience",
+      "coverageScore": 85,
+      "matchedKeywords": [
+        {"phrase": "project management", "priority": "must_have", "importanceScore": 95}
+      ],
+      "missingKeywords": [
+        {"phrase": "Agile", "priority": "must_have", "importanceScore": 90}
+      ]
+    }
+  ],
+  "allMatchedKeywords": [...],
+  "allMissingKeywords": [...],
+  "narrative": "Brief summary of alignment"
 }`;
+
+    const userPrompt = `JOB TITLE: ${jobTitle || 'Unknown'}
+INDUSTRY: ${industry || 'Unknown'}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+RESUME:
+${resumeText}
+
+Analyze keyword coverage and ATS compatibility.`;
 
     const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: `Job Description:\n${jobDescription}\n\nResume Content:\n${resumeContent}\n\nAnalyze and score this resume for ATS compatibility.`
-          }
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.3,
-        max_tokens: 2000,
+        max_tokens: 3000,
         response_format: { type: 'json_object' }
       },
       'analyze-ats-score'
@@ -75,7 +138,6 @@ Return ONLY valid JSON in this exact format:
     const parseResult = extractJSON(cleanedContent);
 
     if (!parseResult.success || !parseResult.data) {
-      const logger = createLogger('analyze-ats-score');
       logger.error('JSON parsing failed', {
         error: parseResult.error,
         content: cleanedContent.substring(0, 500)
@@ -85,9 +147,21 @@ Return ONLY valid JSON in this exact format:
 
     const scoreData = parseResult.data;
 
-    // Validate and ensure all required fields exist
+    // Ensure proper structure for new format
     const validatedData = {
-      overallScore: Math.min(100, Math.max(0, scoreData.overallScore || 0)),
+      summary: {
+        overallScore: Math.min(100, Math.max(0, scoreData.summary?.overallScore || scoreData.overallScore || 0)),
+        mustHaveCoverage: Math.min(100, Math.max(0, scoreData.summary?.mustHaveCoverage || 0)),
+        niceToHaveCoverage: Math.min(100, Math.max(0, scoreData.summary?.niceToHaveCoverage || 0)),
+        industryCoverage: Math.min(100, Math.max(0, scoreData.summary?.industryCoverage || 0)),
+      },
+      perSection: Array.isArray(scoreData.perSection) ? scoreData.perSection : [],
+      allMatchedKeywords: Array.isArray(scoreData.allMatchedKeywords) ? scoreData.allMatchedKeywords : [],
+      allMissingKeywords: Array.isArray(scoreData.allMissingKeywords) ? scoreData.allMissingKeywords : [],
+      narrative: scoreData.narrative || undefined,
+      
+      // Legacy fields for backwards compatibility
+      overallScore: Math.min(100, Math.max(0, scoreData.overallScore || scoreData.summary?.overallScore || 0)),
       keywordMatch: Math.min(100, Math.max(0, scoreData.keywordMatch || 0)),
       formatScore: Math.min(100, Math.max(0, scoreData.formatScore || 0)),
       experienceMatch: Math.min(100, Math.max(0, scoreData.experienceMatch || 0)),

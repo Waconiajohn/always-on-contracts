@@ -71,6 +71,10 @@ interface ResumeBuilderState {
   // Vault overlay (sandbox layer)
   vaultOverlay: VaultOverlayState;
   
+  // ATS scoring
+  atsScoreData?: any;
+  analyzingATS: boolean;
+  
   // Requirements
   categorizedRequirements: CategorizedRequirements;
   requirementResponses: RequirementResponse[];
@@ -118,6 +122,10 @@ interface ResumeBuilderState {
   setMatching: (matching: boolean) => void;
   setGeneratingSection: (section: string | null) => void;
   
+  // ATS scoring actions
+  setAtsScoreData: (data: any) => void;
+  setAnalyzingATS: (analyzing: boolean) => void;
+  
   // Vault overlay actions
   addGapSuggestion: (payload: any, meta?: any) => void;
   useSuggestionInResumeOnly: (itemId: string) => void;
@@ -164,6 +172,8 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       analyzing: false,
       matching: false,
       generatingSection: null,
+      atsScoreData: undefined,
+      analyzingATS: false,
       
       // Actions
       setCurrentStep: (step) => set({ currentStep: step }),
@@ -192,6 +202,10 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       setAnalyzing: (analyzing) => set({ analyzing }),
       setMatching: (matching) => set({ matching }),
       setGeneratingSection: (section) => set({ generatingSection: section }),
+      
+      // ATS scoring actions
+      setAtsScoreData: (data) => set({ atsScoreData: data }),
+      setAnalyzingATS: (analyzing) => set({ analyzingATS: analyzing }),
       
       // Vault overlay actions
       addGapSuggestion: (payload, meta) =>

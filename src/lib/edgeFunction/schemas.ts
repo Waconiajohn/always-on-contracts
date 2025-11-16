@@ -508,6 +508,62 @@ export const SuggestCareerPathsSchema = z.object({
   currentIndustry: z.string().optional()
 });
 
+// ============= ATS Analysis Schemas =============
+
+export const AtsKeywordSchema = z.object({
+  phrase: z.string(),
+  priority: z.enum(["must_have", "nice_to_have", "industry_standard"]),
+  importanceScore: z.number().min(0).max(100),
+});
+
+export const SectionCoverageSchema = z.object({
+  sectionId: z.string(),
+  sectionHeading: z.string(),
+  coverageScore: z.number().min(0).max(100),
+  matchedKeywords: z.array(AtsKeywordSchema),
+  missingKeywords: z.array(AtsKeywordSchema),
+});
+
+export const AtsScoreSummarySchema = z.object({
+  overallScore: z.number().min(0).max(100),
+  mustHaveCoverage: z.number().min(0).max(100),
+  niceToHaveCoverage: z.number().min(0).max(100),
+  industryCoverage: z.number().min(0).max(100),
+});
+
+export const AtsScoreDataSchema = z.object({
+  summary: AtsScoreSummarySchema,
+  perSection: z.array(SectionCoverageSchema),
+  allMatchedKeywords: z.array(AtsKeywordSchema),
+  allMissingKeywords: z.array(AtsKeywordSchema),
+  narrative: z.string().optional(),
+});
+
+export const AnalyzeAtsInputSchema = z.object({
+  jobTitle: z.string(),
+  jobDescription: z.string(),
+  industry: z.string().optional(),
+  canonicalHeader: z.object({
+    fullName: z.string().optional(),
+    headline: z.string().optional(),
+    contactLine: z.string().optional(),
+  }),
+  canonicalSections: z.array(
+    z.object({
+      id: z.string(),
+      type: z.string(),
+      heading: z.string(),
+      paragraph: z.string().optional(),
+      bullets: z.array(z.string()),
+    })
+  ),
+});
+
+export const AnalyzeAtsOutputSchema = AtsScoreDataSchema;
+
+export type AtsScoreData = z.infer<typeof AtsScoreDataSchema>;
+export type SectionCoverage = z.infer<typeof SectionCoverageSchema>;
+
 export const SubmitMicroAnswersSchema = z.object({
   vaultId: z.string().uuid('Invalid vault ID'),
   answers: z.array(z.object({
