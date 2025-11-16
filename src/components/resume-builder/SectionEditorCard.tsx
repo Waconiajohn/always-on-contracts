@@ -13,11 +13,17 @@ import { supabase } from "@/integrations/supabase/client";
 interface SectionEditorCardProps {
   section: ResumeSection;
   onUpdateSection: (sectionId: string, content: any[]) => void;
+  onReanalyzeAts?: (
+    sectionId: string,
+    sectionTitle: string,
+    previousCoverage: number | null
+  ) => Promise<void>;
 }
 
 export const SectionEditorCard = ({
   section,
   onUpdateSection,
+  onReanalyzeAts,
 }: SectionEditorCardProps) => {
   const { toast } = useToast();
   const { atsScoreData, jobAnalysis } = useResumeBuilderStore();
@@ -25,6 +31,14 @@ export const SectionEditorCard = ({
   const [showBlender, setShowBlender] = useState(false);
   const [blendOptions, setBlendOptions] = useState<BlendedSectionOption[]>([]);
   const [isRefining, setIsRefining] = useState(false);
+
+  const coverage = atsScoreData?.perSection?.find(
+    (sec: SectionCoverage) => sec.sectionId === section.id || sec.sectionHeading === section.title
+  );
+
+  const missingMustHaveCount = coverage?.missingKeywords?.filter(
+    (k: AtsKeyword) => k.priority === "must_have"
+  ).length || 0;
 
   const handleFixAtsGaps = async () => {
     if (!atsScoreData || !atsScoreData.perSection?.length) {
@@ -136,6 +150,8 @@ export const SectionEditorCard = ({
       source: selected.source,
     }));
 
+    const previousCoverage = coverage?.coverageScore ?? null;
+
     onUpdateSection(section.id, newContent);
     setShowBlender(false);
 
@@ -146,15 +162,16 @@ export const SectionEditorCard = ({
           ? "This section now uses an ATS-optimized version for this job."
           : "Section content updated.",
     });
+
+    // Automatically re-run ATS and show coverage delta
+    if (selected.source === "ats_optimized" && onReanalyzeAts) {
+      void onReanalyzeAts(
+        section.id,
+        section.title || section.type || "Section",
+        previousCoverage
+      );
+    }
   };
-
-  const coverage = atsScoreData?.perSection?.find(
-    (sec: SectionCoverage) => sec.sectionId === section.id || sec.sectionHeading === section.title
-  );
-
-  const missingMustHaveCount = coverage?.missingKeywords?.filter(
-    (k: AtsKeyword) => k.priority === "must_have"
-  ).length || 0;
 
   return (
     <Card>
