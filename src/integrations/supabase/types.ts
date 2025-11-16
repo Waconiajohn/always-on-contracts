@@ -3972,6 +3972,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_onboarding_emails: {
+        Row: {
+          created_at: string
+          id: string
+          sent_at: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sent_at?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sent_at?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_quotas: {
         Row: {
           created_at: string
