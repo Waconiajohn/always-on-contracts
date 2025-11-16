@@ -613,7 +613,7 @@ export const ProcessMilestoneResponsesSchema = z.object({
 
 // Resume section blending schemas
 export const BlendedSectionOptionSchema = z.object({
-  source: z.enum(["benchmark", "vault", "blended"]),
+  source: z.enum(["benchmark", "vault", "blended", "ats_optimized"]),
   label: z.string(),
   bullets: z.array(z.string()),
   rationale: z.string().optional(),
