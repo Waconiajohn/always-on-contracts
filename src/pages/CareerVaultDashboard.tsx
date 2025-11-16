@@ -1,3 +1,19 @@
+// =====================================================
+// LEGACY CAREER VAULT DASHBOARD - BEING PHASED OUT
+// =====================================================
+// This dashboard is being replaced by V3VaultDashboard
+// Located at: src/components/career-vault/dashboard/V3VaultDashboard.tsx
+//
+// V3 provides a calmer, more focused experience:
+// - One smart question at a time (no overwhelming flows)
+// - Simple vault overview
+// - Clean tabbed interface
+// - Direct modal access for editing
+//
+// This file is kept temporarily for reference but is no
+// longer used in production. Route /career-vault now uses V3.
+// =====================================================
+
 import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
