@@ -555,6 +555,24 @@ export const ProcessMilestoneResponsesSchema = z.object({
   jobDescription: z.string().min(10, "Job description required")
 });
 
+// Resume section blending schemas
+export const BlendedSectionOptionSchema = z.object({
+  source: z.enum(["benchmark", "vault", "blended"]),
+  label: z.string(),
+  bullets: z.array(z.string()),
+  rationale: z.string().optional(),
+});
+
+export const GenerateResumeSectionResponseSchema = z.object({
+  sectionType: z.string(),
+  sectionTitle: z.string(),
+  requirementId: z.string().optional(),
+  options: z.array(BlendedSectionOptionSchema),
+});
+
+export type BlendedSectionOption = z.infer<typeof BlendedSectionOptionSchema>;
+export type GenerateResumeSectionResult = z.infer<typeof GenerateResumeSectionResponseSchema>;
+
 // ============= LinkedIn & Content =============
 
 export const OptimizeLinkedInProfileSchema = z.object({
