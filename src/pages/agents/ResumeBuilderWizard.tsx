@@ -23,6 +23,7 @@ import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
 import { formatResumeContent } from "@/lib/resumeFormatting";
 import { builderStateToCanonicalResume, canonicalResumeToPlainText, canonicalResumeToHTML } from "@/lib/resumeSerialization";
 import { BuilderResumeSection } from "@/lib/resumeModel";
+import { injectOverlayIntoResumeSections } from "@/lib/resumeOverlayUtils";
 
 type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
 
@@ -69,6 +70,12 @@ const ResumeBuilderWizardContent = () => {
   const [userProfile, setUserProfile] = useState<any>({});
   const [isBuilding, setIsBuilding] = useState(false);
   const [showVaultReview, setShowVaultReview] = useState(false);
+
+  // Compute hydrated sections with overlay items injected
+  const hydratedSections = injectOverlayIntoResumeSections(
+    resumeSections,
+    vaultOverlay
+  );
 
   // ATS Score state
   const [atsScoreData, setAtsScoreData] = useState<any>(null);
@@ -868,7 +875,7 @@ const ResumeBuilderWizardContent = () => {
 
       const { asText, asHtml } = buildCanonicalResumeFromBuilderState({
         userProfile,
-        resumeSections,
+        resumeSections: hydratedSections,
       });
 
       const fileName = `Resume_${jobAnalysis?.roleProfile?.title?.replace(/\s+/g, '_') || 'Professional'}`;
@@ -1221,7 +1228,7 @@ const ResumeBuilderWizardContent = () => {
 
             <div className="flex-1 overflow-hidden">
               <InteractiveResumeBuilder
-                sections={resumeSections}
+                sections={hydratedSections as any}
                 jobAnalysis={jobAnalysis}
                 vaultMatches={vaultMatches?.matchedItems || []}
                 atsScoreData={atsScoreData}
