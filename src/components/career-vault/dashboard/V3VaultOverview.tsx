@@ -5,13 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 interface V3VaultOverviewProps {
   vault: VaultData;
   stats: VaultStats | null;
+  benchmarkMatch?: number | null;
 }
 
 /**
  * Simple, calm overview of the Career Vault.
  * Shows primary target role + overall strength/completeness.
  */
-export function V3VaultOverview({ vault, stats }: V3VaultOverviewProps) {
+export function V3VaultOverview({ vault, stats, benchmarkMatch }: V3VaultOverviewProps) {
   const targetRoles = ((vault.userProfile as any)?.target_roles || []) as any[];
   const primaryTarget = targetRoles[0];
 
@@ -40,6 +41,12 @@ export function V3VaultOverview({ vault, stats }: V3VaultOverviewProps) {
                   </span>
                 </>
               )}
+            </p>
+          )}
+
+          {typeof benchmarkMatch === "number" && (
+            <p className="text-xs text-emerald-700 dark:text-emerald-400">
+              Benchmark match: {Math.round(benchmarkMatch)}% vs ideal candidate profile for this role
             </p>
           )}
 

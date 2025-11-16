@@ -261,6 +261,9 @@ function IntangiblesTab({ vault }: { vault: VaultData }) {
   const values = (vault.values as any[]) || [];
   const behavioral = (vault.behavioralIndicators as any[]) || [];
 
+  const [selectedViewItem, setSelectedViewItem] = useState<any | null>(null);
+  const [selectedEditItem, setSelectedEditItem] = useState<any | null>(null);
+
   const hasAnything =
     leadership.length ||
     presence.length ||
@@ -279,55 +282,107 @@ function IntangiblesTab({ vault }: { vault: VaultData }) {
   }
 
   return (
-    <div className="space-y-3 text-sm">
-      {!!leadership.length && (
-        <Section
-          title="Leadership philosophy"
-          items={leadership}
-          getText={(l) => l.statement || l.text}
+    <>
+      <div className="space-y-3 text-sm">
+        {!!leadership.length && (
+          <SectionWithActions
+            title="Leadership philosophy"
+            items={leadership}
+            getText={(l) => l.statement || l.text}
+            onView={setSelectedViewItem}
+            onEdit={setSelectedEditItem}
+            category="Leadership"
+          />
+        )}
+
+        {!!presence.length && (
+          <SectionWithActions
+            title="Executive presence"
+            items={presence}
+            getText={(p) => p.statement || p.text}
+            onView={setSelectedViewItem}
+            onEdit={setSelectedEditItem}
+            category="Executive Presence"
+          />
+        )}
+
+        {!!traits.length && (
+          <ChipSectionWithActions
+            title="Personality & work style"
+            items={traits}
+            getText={(t) => t.label || t.trait}
+            onView={setSelectedViewItem}
+            category="Personality"
+          />
+        )}
+
+        {!!workStyle.length && (
+          <ChipSectionWithActions
+            title="Work style"
+            items={workStyle}
+            getText={(w) => w.label || w.style || w.trait}
+            onView={setSelectedViewItem}
+            category="Work Style"
+          />
+        )}
+
+        {!!values.length && (
+          <ChipSectionWithActions
+            title="Values & motivations"
+            items={values}
+            getText={(v) => v.label || v.value}
+            onView={setSelectedViewItem}
+            category="Values"
+          />
+        )}
+
+        {!!behavioral.length && (
+          <SectionWithActions
+            title="Behavioral indicators"
+            items={behavioral}
+            getText={(b) => b.description || b.text}
+            onView={setSelectedViewItem}
+            onEdit={setSelectedEditItem}
+            category="Behavioral"
+          />
+        )}
+      </div>
+
+      {selectedViewItem && (
+        <VaultItemViewModal
+          item={{
+            id: selectedViewItem.id || "",
+            category: selectedViewItem._category || "Leadership & Style",
+            content: {
+              text: selectedViewItem.statement || selectedViewItem.text || selectedViewItem.label || selectedViewItem.trait || selectedViewItem.description,
+              ...selectedViewItem,
+            },
+            quality_tier: selectedViewItem.quality_tier || "gold",
+          }}
+          open={!!selectedViewItem}
+          onOpenChange={(open) => !open && setSelectedViewItem(null)}
         />
       )}
 
-      {!!presence.length && (
-        <Section
-          title="Executive presence"
-          items={presence}
-          getText={(p) => p.statement || p.text}
+      {selectedEditItem && (
+        <VaultItemEditModal
+          item={{
+            id: selectedEditItem.id || "",
+            category: selectedEditItem._category || "Leadership & Style",
+            content: {
+              text: selectedEditItem.statement || selectedEditItem.text || selectedEditItem.description,
+              ...selectedEditItem,
+            },
+            quality_tier: selectedEditItem.quality_tier || "gold",
+          }}
+          open={!!selectedEditItem}
+          onOpenChange={(open) => !open && setSelectedEditItem(null)}
+          onSave={() => {
+            setSelectedEditItem(null);
+          }}
         />
       )}
-
-      {!!traits.length && (
-        <ChipSection
-          title="Personality & work style"
-          items={traits}
-          getText={(t) => t.label || t.trait}
-        />
-      )}
-
-      {!!workStyle.length && (
-        <ChipSection
-          title="Work style"
-          items={workStyle}
-          getText={(w) => w.label || w.style || w.trait}
-        />
-      )}
-
-      {!!values.length && (
-        <ChipSection
-          title="Values & motivations"
-          items={values}
-          getText={(v) => v.label || v.value}
-        />
-      )}
-
-      {!!behavioral.length && (
-        <Section
-          title="Behavioral indicators"
-          items={behavioral}
-          getText={(b) => b.description || b.text}
-        />
-      )}
-    </div>
+    </>
   );
 }
 
@@ -360,44 +415,85 @@ function DocumentsTab({ vault }: { vault: VaultData }) {
   );
 }
 
-function Section({
+function SectionWithActions({
   title,
   items,
   getText,
+  onView,
+  onEdit,
+  category,
 }: {
   title: string;
   items: any[];
   getText: (item: any) => string | undefined;
+  onView?: (item: any) => void;
+  onEdit?: (item: any) => void;
+  category: string;
 }) {
   return (
     <div>
-      <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
-        {title}
+      <div className="text-xs font-semibold mb-2 uppercase text-muted-foreground flex items-center justify-between">
+        <span>{title}</span>
+        <span className="text-muted-foreground font-normal">{items.length} items</span>
       </div>
-      <ul className="space-y-1">
+      <ul className="space-y-2">
         {items.map((item, index) => {
           const text = getText(item);
           if (!text) return null;
-          return <li key={item.id || index}>• {text}</li>;
+          return (
+            <li
+              key={item.id || index}
+              className="flex items-start justify-between gap-3 border rounded-md px-3 py-2"
+            >
+              <span>• {text}</span>
+              <div className="flex gap-2 shrink-0">
+                {onView && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => onView({ ...item, _category: category })}
+                  >
+                    View
+                  </Button>
+                )}
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => onEdit({ ...item, _category: category })}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+            </li>
+          );
         })}
       </ul>
     </div>
   );
 }
 
-function ChipSection({
+function ChipSectionWithActions({
   title,
   items,
   getText,
+  onView,
+  category,
 }: {
   title: string;
   items: any[];
   getText: (item: any) => string | undefined;
+  onView?: (item: any) => void;
+  category: string;
 }) {
   return (
     <div>
-      <div className="text-xs font-semibold mb-1 uppercase text-muted-foreground">
-        {title}
+      <div className="text-xs font-semibold mb-2 uppercase text-muted-foreground flex items-center justify-between">
+        <span>{title}</span>
+        <span className="text-muted-foreground font-normal">{items.length} items</span>
       </div>
       <ul className="flex flex-wrap gap-1">
         {items.map((item, index) => {
@@ -406,7 +502,8 @@ function ChipSection({
           return (
             <li
               key={item.id || index}
-              className="text-xs rounded-full border px-2 py-0.5 bg-muted/40"
+              className="text-xs rounded-full border px-2 py-1 bg-muted/40 cursor-pointer hover:bg-muted/60"
+              onClick={() => onView && onView({ ...item, _category: category })}
             >
               {text}
             </li>

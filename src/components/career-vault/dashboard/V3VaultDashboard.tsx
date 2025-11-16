@@ -2,8 +2,12 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { useVaultData } from "@/hooks/useVaultData";
 import { useVaultStats } from "@/hooks/useVaultStats";
+import { useVaultAssessment } from "@/hooks/useVaultAssessment";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 import { V3VaultOverview } from "./V3VaultOverview";
 import { V3SmartQuestionPanel } from "./V3SmartQuestionPanel";
@@ -22,6 +26,17 @@ function V3VaultDashboardContent() {
   const { user } = useAuth();
   const { data: vaultData, isLoading, refetch } = useVaultData(user?.id);
   const stats = useVaultStats(vaultData);
+  const { assessment, assessVaultQuality, isAssessing } = useVaultAssessment();
+  const navigate = useNavigate();
+
+  const vaultId = (vaultData?.vault as any)?.id;
+
+  // Fetch assessment on mount
+  useEffect(() => {
+    if (vaultId && !assessment && !isAssessing) {
+      void assessVaultQuality(vaultId);
+    }
+  }, [vaultId, assessment, isAssessing, assessVaultQuality]);
 
   if (isLoading) {
     return (
@@ -41,11 +56,16 @@ function V3VaultDashboardContent() {
     );
   }
 
-  const vaultId = (vaultData.vault as any)?.id;
+  const benchmarkMatch = assessment?.competitive_percentile;
+  const vaultStrength = stats?.strengthScore.total ?? 0;
 
   return (
     <div className="space-y-4 pb-8">
-      <V3VaultOverview vault={vaultData} stats={stats} />
+      <V3VaultOverview 
+        vault={vaultData} 
+        stats={stats} 
+        benchmarkMatch={benchmarkMatch}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
@@ -59,6 +79,35 @@ function V3VaultDashboardContent() {
               onVaultUpdated={() => refetch()}
             />
           )}
+        </div>
+      </div>
+
+      {/* Next-step CTA */}
+      <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-3 border-t pt-4 text-sm">
+        <span className="text-muted-foreground">
+          {vaultStrength < 70
+            ? "Answer a few more quick questions to strengthen your Career Vault before generating targeted resumes."
+            : "Your Career Vault is strong enough to start generating targeted resumes and LinkedIn updates."}
+        </span>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/resume-builder")}
+          >
+            Create targeted resume
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              document
+                .getElementById("smart-question-panel")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            Improve vault
+          </Button>
         </div>
       </div>
     </div>
