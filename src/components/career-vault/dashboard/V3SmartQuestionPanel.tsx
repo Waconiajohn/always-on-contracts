@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Sparkles, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +10,7 @@ import {
   submitSmartQuestionAnswer,
   type SmartQuestion,
 } from "@/lib/services/vaultStrategicAudit";
+import { trackSmartQuestion } from "@/lib/services/vaultTelemetry";
 
 interface V3SmartQuestionPanelProps {
   vaultId: string;
@@ -28,6 +30,7 @@ export function V3SmartQuestionPanel({
   const [initializing, setInitializing] = useState(true);
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState("");
+  const [snoozedUntil, setSnoozedUntil] = useState<Date | null>(null);
 
   useEffect(() => {
     void loadQuestions();
@@ -41,6 +44,16 @@ export function V3SmartQuestionPanel({
       const smart = audit.smartQuestions || [];
       setQuestions(smart);
       setActiveIndex(0);
+      
+      // Track that questions were viewed
+      if (smart.length > 0) {
+        await trackSmartQuestion({
+          action: 'viewed',
+          questionCategory: smart[0].category,
+          questionImpact: smart[0].impact,
+          vaultId
+        });
+      }
     } catch (error) {
       console.error("[V3SmartQuestionPanel] error loading questions", error);
       toast.error("Could not load improvement suggestions.");
@@ -69,6 +82,14 @@ export function V3SmartQuestionPanel({
         return;
       }
 
+      // Track successful answer
+      await trackSmartQuestion({
+        action: 'answered',
+        questionCategory: current.category,
+        questionImpact: current.impact,
+        vaultId
+      });
+
       toast.success("Answer saved and your Career Vault has been updated.");
 
       if (onVaultUpdated) {
@@ -92,6 +113,16 @@ export function V3SmartQuestionPanel({
   };
 
   const handleSkip = async () => {
+    // Track skip action
+    if (current) {
+      await trackSmartQuestion({
+        action: 'skipped',
+        questionCategory: current.category,
+        questionImpact: current.impact,
+        vaultId
+      });
+    }
+
     if (activeIndex < questions.length - 1) {
       setActiveIndex((idx) => idx + 1);
       setAnswer("");
@@ -101,12 +132,78 @@ export function V3SmartQuestionPanel({
     }
   };
 
+  const handleSnooze = async () => {
+    if (!current) return;
+
+    // Track snooze action
+    await trackSmartQuestion({
+      action: 'snoozed',
+      questionCategory: current.category,
+      questionImpact: current.impact,
+      vaultId
+    });
+
+    // Snooze for 24 hours
+    const snoozeUntil = new Date();
+    snoozeUntil.setHours(snoozeUntil.getHours() + 24);
+    setSnoozedUntil(snoozeUntil);
+
+    toast.success("Question snoozed for 24 hours");
+
+    // Move to next question
+    if (activeIndex < questions.length - 1) {
+      setActiveIndex((idx) => idx + 1);
+      setAnswer("");
+    } else {
+      await loadQuestions();
+      setAnswer("");
+    }
+  };
+
+  // Show snooze message if snoozed
+  if (snoozedUntil && snoozedUntil > new Date()) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            Questions Snoozed
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            You'll see new improvement questions in{' '}
+            {Math.ceil((snoozedUntil.getTime() - Date.now()) / (1000 * 60 * 60))} hours.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSnoozedUntil(null);
+              void loadQuestions();
+            }}
+          >
+            Show questions now
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (initializing) {
     return (
       <Card>
-        <CardContent className="py-6 flex items-center justify-center text-muted-foreground gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Finding your highest-impact questions…</span>
+        <CardHeader>
+          <Skeleton className="h-5 w-48" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-20 w-full" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 flex-1" />
+            <Skeleton className="h-9 flex-1" />
+          </div>
         </CardContent>
       </Card>
     );
@@ -115,19 +212,26 @@ export function V3SmartQuestionPanel({
   if (!current) {
     return (
       <Card>
-        <CardContent className="py-6 space-y-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2 font-medium">
-            <Sparkles className="h-4 w-4 text-blue-500" />
-            <span>Your Career Vault is in good shape</span>
-          </div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Career Vault Status: Strong
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            There are no urgent gaps right now. As you add roles, projects, or
-            change your target, we&apos;ll surface new quick questions here.
+            Your vault has no critical gaps right now. We'll automatically surface
+            targeted questions as you:
           </p>
+          <ul className="space-y-1 list-disc list-inside text-xs">
+            <li>Add new roles or projects</li>
+            <li>Update your career direction</li>
+            <li>Upload additional resumes</li>
+          </ul>
           <Button
             variant="outline"
             size="sm"
-            className="mt-2"
+            className="mt-2 w-full"
             onClick={loadQuestions}
           >
             Refresh suggestions
@@ -181,16 +285,17 @@ export function V3SmartQuestionPanel({
               onClick={handleSkip}
               disabled={loading}
             >
-              Answer later
+              Skip
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleSkip}
+              onClick={handleSnooze}
               disabled={loading}
               className="text-xs"
             >
-              Not relevant
+              <Clock className="h-3 w-3 mr-1" />
+              Snooze 24h
             </Button>
           </div>
           <Button
