@@ -9,7 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useJourneyState } from "@/hooks/useJourneyState";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { LaunchpadCard } from "@/components/home/LaunchpadCard";
+import { NextStepHero } from "@/components/home/NextStepHero";
+import { JourneyPhaseSection } from "@/components/home/JourneyPhaseSection";
+import { JOURNEY_PHASES, getPhaseStatus } from "@/lib/utils/journeyPhases";
 import { UniqueFeaturesShowcase } from "@/components/home/UniqueFeaturesShowcase";
 import { WebinarScheduleWidget } from "@/components/home/WebinarScheduleWidget";
 import { CoachingCalendarWidget } from "@/components/home/CoachingCalendarWidget";
@@ -194,6 +196,14 @@ const UnifiedHomeContent = () => {
   ];
 
   const orderedSections = [...allSections].sort((a, b) => a.order - b.order);
+  const vaultCompletion = vaultStats.vaultCompletion;
+
+  // Group sections by phase
+  const phaseCards = JOURNEY_PHASES.map(phase => ({
+    phase,
+    cards: orderedSections.filter(s => phase.featureIds.includes(s.id)),
+    status: getPhaseStatus(phase, vaultCompletion),
+  }));
 
   return (
     <ContentLayout
@@ -206,7 +216,7 @@ const UnifiedHomeContent = () => {
         </aside>
       }
     >
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -238,35 +248,24 @@ const UnifiedHomeContent = () => {
               </Badge>
             )}
           </div>
-
-          {/* Quick link to unique features */}
-          <div className="flex justify-center">
-            <button 
-              onClick={() => document.getElementById('unique-features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="group flex items-center gap-3 px-6 py-3 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all shadow-sm hover:shadow-md"
-            >
-              <span className="text-sm font-semibold text-primary">
-                💎 Find out why CareerIQ is different
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Features you won't find anywhere else
-              </span>
-            </button>
-          </div>
         </div>
 
-        {/* Main Launchpad Grid */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Your Career Launchpad</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orderedSections.map(section => (
-              <LaunchpadCard
-                key={section.id}
-                {...section}
-              />
-            ))}
-          </div>
-        </div>
+        {/* Next Step Hero */}
+        <NextStepHero 
+          vaultCompletion={vaultCompletion}
+        />
+
+        {/* Journey Phases */}
+        {phaseCards.map(({ phase, cards, status }) => (
+          <JourneyPhaseSection
+            key={phase.id}
+            title={phase.title}
+            subtitle={phase.subtitle}
+            cards={cards}
+            status={status}
+            vaultCompletion={vaultCompletion}
+          />
+        ))}
 
         {/* Activity Feed */}
         <div className="mt-8">
