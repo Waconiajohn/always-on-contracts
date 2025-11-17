@@ -1,19 +1,3 @@
-// =====================================================
-// LEGACY CAREER VAULT DASHBOARD - BEING PHASED OUT
-// =====================================================
-// This dashboard is being replaced by V3VaultDashboard
-// Located at: src/components/career-vault/dashboard/V3VaultDashboard.tsx
-//
-// V3 provides a calmer, more focused experience:
-// - One smart question at a time (no overwhelming flows)
-// - Simple vault overview
-// - Clean tabbed interface
-// - Direct modal access for editing
-//
-// This file is kept temporarily for reference but is no
-// longer used in production. Route /career-vault now uses V3.
-// =====================================================
-
 import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -27,27 +11,36 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-// New benchmark components
+// Benchmark components
 import { BenchmarkHeroCard } from '@/components/career-vault/dashboard/BenchmarkHeroCard';
 import { PrimaryGoalCard } from '@/components/career-vault/dashboard/PrimaryGoalCard';
 import { BenchmarkProgressCard } from '@/components/career-vault/dashboard/BenchmarkProgressCard';
 import { BenchmarkSetupCard } from '@/components/career-vault/dashboard/BenchmarkSetupCard';
 import { BenchmarkRevealCard } from '@/components/career-vault/dashboard/BenchmarkRevealCard';
-
-// Reused from V2
 import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/dashboard/BlockerAlert';
 
-// Reused from UnifiedCareerVault
+// Modals (with Claude's PDF parsing fixes)
 import { UploadResumeModal } from '@/components/career-vault/modals/UploadResumeModal';
 import { ExtractionProgressModal } from '@/components/career-vault/modals/ExtractionProgressModal';
 
-// Lazy loaded
+// ChatGPT's Smart Question Panel
+import { V3SmartQuestionPanel } from '@/components/career-vault/dashboard/V3SmartQuestionPanel';
+
+// Lazy loaded tabs
 const VaultTabs = lazy(() => import('@/components/career-vault/dashboard/VaultTabs').then(m => ({ default: m.VaultTabs })));
 
 /**
- * Unified Career Vault Dashboard - Production Grade
- * Combines the best of UnifiedCareerVault + CareerVaultDashboardV2
- * with AI-powered personalized benchmarks
+ * Enhanced Career Vault Dashboard
+ *
+ * Architecture:
+ * - Original benchmark-driven dashboard (proven, works)
+ * - Claude's modal fixes (PDF parsing, auth headers)
+ * - ChatGPT's Smart Question panel (calm improvement loop)
+ *
+ * Layout:
+ * - Hero: Benchmark progress
+ * - Main content (2/3): Benchmark breakdown + tabs
+ * - Right sidebar (1/3): Smart question panel
  */
 const CareerVaultDashboardContent = () => {
   const navigate = useNavigate();
@@ -55,7 +48,7 @@ const CareerVaultDashboardContent = () => {
   const [generatingBenchmark, setGeneratingBenchmark] = useState(false);
   const [showBenchmarkReveal, setShowBenchmarkReveal] = useState(false);
 
-  // Modal states (from UnifiedCareerVault)
+  // Modal states
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [extractionModalOpen, setExtractionModalOpen] = useState(false);
 
@@ -85,7 +78,7 @@ const CareerVaultDashboardContent = () => {
 
   const handleGenerateBenchmark = async () => {
     if (!vaultData?.vault?.id) return;
-    
+
     setGeneratingBenchmark(true);
     try {
       const { error } = await supabase.functions.invoke('generate-benchmark-standard', {
@@ -105,7 +98,7 @@ const CareerVaultDashboardContent = () => {
     }
   };
 
-  const handleUploadComplete = async () => {
+  const handleUploadComplete = async (vaultId: string) => {
     setUploadModalOpen(false);
     setExtractionModalOpen(true);
     await refetch();
@@ -118,7 +111,6 @@ const CareerVaultDashboardContent = () => {
 
   const handlePrimaryGoalStart = () => {
     // Navigate to appropriate modal/action based on goal
-    // TODO: Implement goal-specific routing
     toast.info('Feature coming soon!');
   };
 
@@ -233,9 +225,9 @@ const CareerVaultDashboardContent = () => {
   }
 
   const percentage = Math.round((benchmark.overall_current / benchmark.overall_target) * 100);
-  const nextMilestone = percentage < 60 
+  const nextMilestone = percentage < 60
     ? "Reach 60% to unlock Resume Builder"
-    : percentage < 85 
+    : percentage < 85
     ? "Reach 85% to be market ready"
     : "Ready to build custom resumes!";
 
@@ -256,9 +248,9 @@ const CareerVaultDashboardContent = () => {
       {blockers.length > 0 && (
         <div className="space-y-3">
           {blockers.map((blocker, i) => (
-            <BlockerAlert 
-              key={i} 
-              blocker={blocker} 
+            <BlockerAlert
+              key={i}
+              blocker={blocker}
               onAction={() => toast.info('Feature coming soon!')}
             />
           ))}
@@ -278,77 +270,93 @@ const CareerVaultDashboardContent = () => {
         />
       )}
 
-      {/* Benchmark Progress Breakdown */}
-      <BenchmarkProgressCard
-        layer1={{
-          total_current: benchmark.layer1_foundations.work_experience.current + 
-                        benchmark.layer1_foundations.skills.current,
-          total_target: benchmark.layer1_foundations.work_experience.target + 
-                       benchmark.layer1_foundations.skills.target,
-          sections: [
-            {
-              name: 'Work Experience',
-              target: benchmark.layer1_foundations.work_experience.target,
-              current: benchmark.layer1_foundations.work_experience.current,
-              percentage: benchmark.layer1_foundations.work_experience.percentage,
-              details: benchmark.layer1_foundations.work_experience.benchmark_rule,
-              missing: benchmark.layer1_foundations.work_experience.examples.slice(0, 3)
-            },
-            {
-              name: 'Skills & Expertise',
-              target: benchmark.layer1_foundations.skills.target,
-              current: benchmark.layer1_foundations.skills.current,
-              percentage: benchmark.layer1_foundations.skills.percentage,
-              missing: benchmark.layer1_foundations.skills.critical_missing
-            }
-          ]
-        }}
-        layer2={{
-          total_current: benchmark.layer2_intelligence.leadership.current + 
-                        benchmark.layer2_intelligence.strategic_impact.current + 
-                        benchmark.layer2_intelligence.professional_resources.current,
-          total_target: benchmark.layer2_intelligence.leadership.target + 
-                       benchmark.layer2_intelligence.strategic_impact.target + 
-                       benchmark.layer2_intelligence.professional_resources.target,
-          sections: [
-            {
-              name: 'Leadership Approach',
-              target: benchmark.layer2_intelligence.leadership.target,
-              current: benchmark.layer2_intelligence.leadership.current,
-              percentage: benchmark.layer2_intelligence.leadership.percentage,
-              missing: benchmark.layer2_intelligence.leadership.focus_areas
-            },
-            {
-              name: 'Strategic Impact',
-              target: benchmark.layer2_intelligence.strategic_impact.target,
-              current: benchmark.layer2_intelligence.strategic_impact.current,
-              percentage: benchmark.layer2_intelligence.strategic_impact.percentage,
-              missing: benchmark.layer2_intelligence.strategic_impact.missing_metrics
-            },
-            {
-              name: 'Professional Resources',
-              target: benchmark.layer2_intelligence.professional_resources.target,
-              current: benchmark.layer2_intelligence.professional_resources.current,
-              percentage: benchmark.layer2_intelligence.professional_resources.percentage,
-              missing: benchmark.layer2_intelligence.professional_resources.expected_tools
-            }
-          ]
-        }}
-      />
+      {/* Main Content Grid: Content (2/3) + Smart Questions (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Main Dashboard Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Benchmark Progress Breakdown */}
+          <BenchmarkProgressCard
+            layer1={{
+              total_current: benchmark.layer1_foundations.work_experience.current +
+                            benchmark.layer1_foundations.skills.current,
+              total_target: benchmark.layer1_foundations.work_experience.target +
+                           benchmark.layer1_foundations.skills.target,
+              sections: [
+                {
+                  name: 'Work Experience',
+                  target: benchmark.layer1_foundations.work_experience.target,
+                  current: benchmark.layer1_foundations.work_experience.current,
+                  percentage: benchmark.layer1_foundations.work_experience.percentage,
+                  details: benchmark.layer1_foundations.work_experience.benchmark_rule,
+                  missing: benchmark.layer1_foundations.work_experience.examples.slice(0, 3)
+                },
+                {
+                  name: 'Skills & Expertise',
+                  target: benchmark.layer1_foundations.skills.target,
+                  current: benchmark.layer1_foundations.skills.current,
+                  percentage: benchmark.layer1_foundations.skills.percentage,
+                  missing: benchmark.layer1_foundations.skills.critical_missing
+                }
+              ]
+            }}
+            layer2={{
+              total_current: benchmark.layer2_intelligence.leadership.current +
+                            benchmark.layer2_intelligence.strategic_impact.current +
+                            benchmark.layer2_intelligence.professional_resources.current,
+              total_target: benchmark.layer2_intelligence.leadership.target +
+                           benchmark.layer2_intelligence.strategic_impact.target +
+                           benchmark.layer2_intelligence.professional_resources.target,
+              sections: [
+                {
+                  name: 'Leadership Approach',
+                  target: benchmark.layer2_intelligence.leadership.target,
+                  current: benchmark.layer2_intelligence.leadership.current,
+                  percentage: benchmark.layer2_intelligence.leadership.percentage,
+                  missing: benchmark.layer2_intelligence.leadership.focus_areas
+                },
+                {
+                  name: 'Strategic Impact',
+                  target: benchmark.layer2_intelligence.strategic_impact.target,
+                  current: benchmark.layer2_intelligence.strategic_impact.current,
+                  percentage: benchmark.layer2_intelligence.strategic_impact.percentage,
+                  missing: benchmark.layer2_intelligence.strategic_impact.missing_metrics
+                },
+                {
+                  name: 'Professional Resources',
+                  target: benchmark.layer2_intelligence.professional_resources.target,
+                  current: benchmark.layer2_intelligence.professional_resources.current,
+                  percentage: benchmark.layer2_intelligence.professional_resources.percentage,
+                  missing: benchmark.layer2_intelligence.professional_resources.expected_tools
+                }
+              ]
+            }}
+          />
 
-      {/* Tabs: Items, Activity, Settings */}
-      <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin mx-auto" />}>
-        <VaultTabs
-          vaultId={vault.id}
-          vault={vault}
-          vaultData={vaultData}
-          onRefresh={refetch}
-          onEdit={() => {}}
-          onView={() => {}}
-        />
-      </Suspense>
+          {/* Tabs: Items, Activity, Settings */}
+          <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin mx-auto" />}>
+            <VaultTabs
+              vaultId={vault.id}
+              vault={vault}
+              vaultData={vaultData}
+              onRefresh={refetch}
+              onEdit={() => {}}
+              onView={() => {}}
+            />
+          </Suspense>
+        </div>
 
-      {/* Modals */}
+        {/* Right: Smart Question Panel (ChatGPT's calm improvement loop) */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6" id="smart-question-panel">
+            <V3SmartQuestionPanel
+              vaultId={vault.id}
+              onVaultUpdated={() => refetch()}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Modals (with Claude's fixes) */}
       <UploadResumeModal
         open={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
