@@ -1,8 +1,8 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const { currentHeadline, currentAbout, targetRole, industry, skills } = await req.json();
+    const { currentHeadline, currentAbout, targetRole, industry, seedKeywords, researchContext } = await req.json();
+
+    if (!targetRole || !industry) {
+      throw new Error('Target role and industry are required');
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -30,202 +34,121 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    let vaultContext = '';
-    const userId = user.id;
-        // Fetch ALL Career Vault data (10 intelligence categories)
-        const { data: vault } = await supabase
-          .from('career_vault')
-          .select(`
-            *,
-            vault_power_phrases(power_phrase, impact_metrics, category),
-            vault_transferable_skills(stated_skill, evidence, proficiency_level),
-            vault_hidden_competencies(competency_area, inferred_capability),
-            vault_soft_skills(skill_category, specific_skill),
-            vault_leadership_philosophy(philosophy_statement, leadership_style, core_principles),
-            vault_executive_presence(indicator_type, specific_behavior, context),
-            vault_personality_traits(trait_name, behavioral_evidence),
-            vault_work_style(style_category, specific_preference),
-            vault_values_motivations(value_name, manifestation, importance_level),
-            vault_behavioral_indicators(indicator_type, specific_behavior, outcome_pattern)
-          `)
-          .eq('user_id', user.id)
-          .single();
+    // Fetch Career Vault context
+    const { data: vault } = await supabase
+      .from('career_vault')
+      .select(`
+        *,
+        vault_power_phrases(power_phrase, impact_metrics, category)
+      `)
+      .eq('user_id', user.id)
+      .single();
 
-        // Fetch canonical employment from vault_resume_milestones
-        const { data: milestones } = await supabase
-          .from('vault_resume_milestones')
-          .select('company_name, job_title, start_date, end_date, milestone_type')
-          .eq('user_id', userId)
-          .eq('milestone_type', 'employment')
-          .order('start_date', { ascending: false });
+    // Fetch employment history from vault_resume_milestones
+    const { data: milestones } = await supabase
+      .from('vault_resume_milestones')
+      .select('company_name, job_title, start_date, end_date, milestone_type')
+      .eq('user_id', user.id)
+      .eq('milestone_type', 'employment')
+      .order('start_date', { ascending: false });
 
-        const knownEmployers = Array.from(new Set(
-          milestones?.map(m => m.company_name).filter(Boolean) || []
-        ));
+    const knownEmployers = Array.from(new Set(
+      milestones?.map(m => m.company_name).filter(Boolean) || []
+    ));
 
-        const knownRoles = Array.from(new Set(
-          milestones?.map(m => m.job_title).filter(Boolean) || []
-        ));
+    const knownRoles = Array.from(new Set(
+      milestones?.map(m => m.job_title).filter(Boolean) || []
+    ));
 
-        console.log(`[Fact-Check] Known employers: ${knownEmployers.join(', ')}`);
-        console.log(`[Fact-Check] Known roles: ${knownRoles.join(', ')}`);
+    console.log(`[Profile Optimizer] Known employers: ${knownEmployers.join(', ')}`);
+    console.log(`[Profile Optimizer] Known roles: ${knownRoles.join(', ')}`);
 
-        if (vault) {
-          vaultContext = `
+    const powerPhrases = vault?.vault_power_phrases?.slice(0, 8) || [];
+    const powerPhraseLines = powerPhrases
+      .map((p: any, idx: number) => 
+        `${idx + 1}. ${p.power_phrase ?? ""} ${p.impact_metrics ? `(${p.impact_metrics})` : ""}`
+      )
+      .join('\n');
 
-CRITICAL FACT-CHECK REQUIREMENTS:
-You MUST NOT invent or fabricate employers, job titles, or achievements.
+    const factCheckBlock = `
+KNOWN EMPLOYERS (only use these):
+${knownEmployers.length ? "- " + knownEmployers.join("\n- ") : "None listed"}
 
-KNOWN EMPLOYERS (only use these): ${knownEmployers.join(', ') || 'None on record'}
-KNOWN ROLES (only use these): ${knownRoles.join(', ') || 'None on record'}
+KNOWN ROLES (only use these):
+${knownRoles.length ? "- " + knownRoles.join("\n- ") : "None listed"}
 
-If you suggest content about employers or roles NOT in these lists, you MUST:
-1. Add a WARNING field: "⚠️ Verify: [Company/Role] not in career vault"
-2. Mark that section for user review
+CRITICAL: You MUST NOT invent employers or roles beyond this list.
+If you suggest content about employers/roles NOT in these lists, add a warning in the "warnings" field.
+`;
 
-CAREER VAULT INTELLIGENCE:
+    const atsKeywordBlock = seedKeywords?.length
+      ? `Suggested seed keywords: ${seedKeywords.join(", ")}`
+      : "Infer ATS keywords from role and industry.";
 
-TOP ACHIEVEMENTS (use these specific metrics in profile):
-${vault.vault_power_phrases?.slice(0, 10).map((p: any) => 
-  `- ${p.power_phrase} (Metrics: ${p.impact_metrics})`
-).join('\n') || 'None available'}
+    const researchBlock = researchContext
+      ? `\n\nEXTERNAL RESEARCH CONTEXT:\n${researchContext}\n`
+      : "";
 
-CORE COMPETENCIES (highlight these skills):
-${vault.vault_transferable_skills?.slice(0, 5).map((s: any) => 
-  `- ${s.stated_skill}: ${s.evidence} (${s.proficiency_level})`
-).join('\n') || 'None available'}
+    const systemPrompt = `You are an expert LinkedIn profile optimizer with deep ATS (Applicant Tracking System) awareness.
 
-SOFT SKILLS & INTERPERSONAL:
-${vault.vault_soft_skills?.slice(0, 5).map((s: any) => 
-  `- ${s.skill_category}: ${s.specific_skill}`
-).join('\n') || 'None available'}
+YOUR CORE JOB:
+- Rewrite the user's LinkedIn headline and About section
+- Make them compelling for recruiters AND optimized for search/ATS
+- Ground everything in the user's actual history from Career Vault (no fabrication)
 
-LEADERSHIP PHILOSOPHY:
-${vault.vault_leadership_philosophy?.slice(0, 2).map((l: any) => 
-  `- ${l.philosophy_statement} (Style: ${l.leadership_style})`
-).join('\n') || 'None available'}
+${factCheckBlock}
 
-EXECUTIVE PRESENCE INDICATORS:
-${vault.vault_executive_presence?.slice(0, 3).map((e: any) => 
-  `- ${e.indicator_type}: ${e.specific_behavior}`
-).join('\n') || 'None available'}
+TOP POWER PHRASES / ACHIEVEMENTS:
+${powerPhraseLines || "None provided."}
 
-PERSONALITY TRAITS (authentic humanization):
-${vault.vault_personality_traits?.slice(0, 3).map((p: any) => 
-  `- ${p.trait_name}: ${p.behavioral_evidence}`
-).join('\n') || 'None available'}
+ATS / KEYWORD GUIDANCE:
+- Target role: ${targetRole}
+- Industry: ${industry}
+${atsKeywordBlock}
+${researchBlock}
 
-WORK STYLE PREFERENCES:
-${vault.vault_work_style?.slice(0, 2).map((w: any) => 
-  `- ${w.style_category}: ${w.specific_preference}`
-).join('\n') || 'None available'}
+RULES:
+- Do NOT invent employers, job titles, dates, companies, or certifications.
+- Use quantified outcomes when clearly provided by vault; otherwise stay qualitative.
+- Avoid hype words: "rockstar", "guru", "world-class", "cutting-edge", "game-changing".
+- Headline must be <= 220 characters. About ideally 800–1800 characters (max 2600).
 
-VALUES & MOTIVATIONS:
-${vault.vault_values_motivations?.slice(0, 3).map((v: any) => 
-  `- ${v.value_name}: ${v.manifestation} (${v.importance_level})`
-).join('\n') || 'None available'}
-
-DIFFERENTIATORS (unique selling points):
-${vault.vault_hidden_competencies?.slice(0, 3).map((c: any) => 
-  `- ${c.competency_area}: ${c.inferred_capability}`
-).join('\n') || 'None available'}
-
-BEHAVIORAL PATTERNS (authentic humanization):
-${vault.vault_behavioral_indicators?.slice(0, 3).map((b: any) => 
-  `- ${b.indicator_type}: ${b.specific_behavior} → ${b.outcome_pattern}`
-).join('\n') || 'None available'}
-
-VAULT EMPLOYERS: ${knownEmployers.join(', ')}
-VAULT ROLES: ${knownRoles.join(', ')}`;
-        }
-
-    const systemPrompt = `You are an elite LinkedIn profile optimization expert specializing in executive branding and recruiter psychology.
-
-PROFILE OPTIMIZATION FRAMEWORK:
-
-HEADLINE OPTIMIZATION (120 characters):
-- Formula: [Role/Identity] | [Value Proposition] | [Unique Differentiator]
-- Include searchable keywords (avoid buzzwords)
-- Lead with impact, not job title
-- Example: "VP Product → 3 SaaS Unicorns | Building AI-First Teams | Ex-Google, Stanford MBA"
-
-ABOUT SECTION OPTIMIZATION (2600 characters max):
-Structure:
-1. HOOK (First 2 lines - visible without "see more"):
-   - Provocative statement or compelling question
-   - Pattern interruption for profile visitors
-
-2. CREDIBILITY STACK (Lines 3-6):
-   - Quantified achievements
-   - Brand-name experience
-   - Unique expertise intersection
-
-3. VALUE NARRATIVE (Main body):
-   - Problem you solve
-   - Approach/methodology
-   - Results delivered (with numbers)
-   - Client/company types you serve
-
-4. PERSONAL TOUCH:
-   - Authentic detail (hobby, passion, quirk)
-   - Humanizes expertise
-
-5. CALL-TO-ACTION:
-   - How to connect
-   - What collaboration looks like
-   - Contact preference
-
-KEYWORD OPTIMIZATION:
-- Identify top 15 recruiter search terms for target role
-- Natural integration (no keyword stuffing)
-- Front-load important terms
-- Include role variations and synonyms
-
-SKILLS PRIORITIZATION:
-- Top 3 skills weighted heavily by algorithm
-- Balance hard skills + leadership skills
-- Endorsement magnets (clear, specific)
-- Industry-standard terminology
-
-SCORING DIMENSIONS (0-100):
-- Keyword density and placement
-- Headline impact and clarity
-- About section storytelling
-- Skills relevance and endorsability
-- Overall recruiter appeal
-
-Return JSON:
+OUTPUT (strict JSON):
 {
-  "optimizedHeadline": "New headline",
-  "optimizedAbout": "Full about section with line breaks",
-  "prioritizedSkills": ["Skill 1", "Skill 2", ...],
-  "keywordStrategy": {
-    "primary": ["keyword1", "keyword2"],
-    "secondary": ["keyword3", "keyword4"],
-    "placement": "Where to emphasize keywords"
+  "headline": {
+    "current": "user's current headline or null",
+    "suggested": "new optimized headline with ATS keywords",
+    "rationale": "why this headline is better",
+    "atsKeywords": ["keyword1", "keyword2"],
+    "warnings": ["optional warning about unverified claims"]
   },
-  "optimizationScore": 0-100,
-  "improvements": [
-    { "area": "headline|about|skills", "change": "What changed", "impact": "Why it matters" }
-  ],
-  "recruiterAppeal": "Score with reasoning",
-  "beforeAfterComparison": {
-    "searchability": "Before: X/10, After: Y/10",
-    "clarity": "Assessment",
-    "memorability": "Assessment"
-  }
+  "about": {
+    "current": "user's current about or null",
+    "suggested": "new optimized About section",
+    "rationale": "why this is improved",
+    "atsKeywords": ["keyword1", "keyword2"],
+    "warnings": ["optional warning about unverified claims"]
+  },
+  "topKeywords": [
+    {
+      "keyword": "example keyword",
+      "priority": "critical | important | recommended",
+      "currentUsage": 0
+    }
+  ]
 }`;
 
-    const userPrompt = `Optimize this LinkedIn profile:
+    const userPrompt = `
+CURRENT LINKEDIN PROFILE TEXT:
 
-CURRENT HEADLINE: ${currentHeadline || 'Not provided'}
-CURRENT ABOUT: ${currentAbout || 'Not provided'}
-TARGET ROLE: ${targetRole}
-INDUSTRY: ${industry}
-CURRENT SKILLS: ${Array.isArray(skills) ? skills.join(', ') : 'Not provided'}
-${vaultContext}
+Headline:
+${currentHeadline || "None provided."}
 
-Use the Career Vault achievements and metrics to create an EVIDENCE-BASED profile. Every claim should tie back to specific accomplishments.`;
+About:
+${currentAbout || "None provided."}
+`;
+
+    console.log('[Profile Optimizer] Calling AI');
 
     const { response, metrics } = await callLovableAI(
       {
@@ -234,44 +157,42 @@ Use the Career Vault achievements and metrics to create an EVIDENCE-BASED profil
           { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
-        temperature: 0.7,
+        temperature: 0.5,
         max_tokens: 2000,
         response_format: { type: 'json_object' }
       },
       'optimize-linkedin-profile',
-      userId
+      user.id
     );
 
     await logAIUsage(metrics);
 
-    const optimizationResult = response.choices[0].message.content;
+    const content = response.choices[0].message.content;
+    const extracted = extractJSON(content);
 
-    let parsedResult;
-    try {
-      const jsonMatch = optimizationResult.match(/\{[\s\S]*\}/);
-      parsedResult = JSON.parse(jsonMatch ? jsonMatch[0] : optimizationResult);
-    } catch (e) {
-      console.error('Failed to parse AI response:', e);
-      parsedResult = {
-        optimizedHeadline: currentHeadline,
-        optimizedAbout: currentAbout,
-        prioritizedSkills: skills || [],
-        keywordStrategy: { primary: [], secondary: [], placement: "" },
-        optimizationScore: 50,
-        improvements: [],
-        recruiterAppeal: "Analysis unavailable"
-      };
+    if (!extracted.success) {
+      console.error('[Profile Optimizer] JSON parse failed');
+      throw new Error('Failed to parse AI response');
     }
 
-    return new Response(JSON.stringify(parsedResult), {
+    const result = {
+      ...extracted.data,
+      metadata: {
+        usedVaultSummary: !!vault,
+        employerCount: knownEmployers.length,
+        roleCount: knownRoles.length,
+      },
+    };
+
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in optimize-linkedin-profile:', error);
+    console.error('[Profile Optimizer] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: error instanceof Error && error.message === 'Unauthorized' ? 401 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
