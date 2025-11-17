@@ -1,181 +1,300 @@
+// supabase/functions/linkedin-networking-messages/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
-import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { z } from "https://deno.land/x/zod@v3.22.2/mod.ts";
+
+import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
+import { logAIUsage } from "../_shared/cost-tracking.ts";
+import { extractJSON } from "../_shared/json-parser.ts";
+import { createLogger } from "../_shared/logger.ts";
+
+const logger = createLogger("linkedin-networking-messages");
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-type NetworkingScenario = 
-  | 'cold_connection'
-  | 'warm_intro'
-  | 'recruiter_outreach'
-  | 'hiring_manager'
-  | 'post_application_followup'
-  | 'thank_you'
-  | 'informational_interview';
+const NetworkingScenarioSchema = z.enum([
+  "cold_connection",
+  "warm_intro",
+  "recruiter_outreach",
+  "hiring_manager",
+  "post_application_followup",
+  "thank_you",
+  "informational_interview",
+]);
+
+const TargetProfileSchema = z.object({
+  name: z.string().optional(),
+  title: z.string().optional(),
+  company: z.string().min(1),
+  sharedContext: z.string().optional(),
+  targetJobTitle: z.string().optional(),
+  jobRef: z.string().optional(), // e.g., job id, link or requisition number
+});
+
+const CandidateProfileSchema = z.object({
+  headline: z.string().optional(),
+  careerVaultSummary: z.string().optional(),
+  relevantAchievements: z.array(z.string()).optional(),
+});
+
+const ConstraintsSchema = z.object({
+  maxWords: z.number().int().positive().default(150),
+  tone: z.string().default("professional"),
+  avoid: z.array(z.string()).optional(),
+});
+
+const RequestSchema = z.object({
+  scenario: NetworkingScenarioSchema,
+  targetProfile: TargetProfileSchema,
+  candidateProfile: CandidateProfileSchema,
+  constraints: ConstraintsSchema.optional(),
+});
+
+function createSupabaseClientFromRequest(req: Request) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: { Authorization: authHeader },
+    },
+  });
+
+  return supabase;
+}
+
+async function getCurrentUser(req: Request) {
+  const supabase = createSupabaseClientFromRequest(req);
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    logger.error("Auth error or no user", { error });
+    throw new Error("AUTHENTICATION_REQUIRED");
+  }
+
+  return { supabase, user };
+}
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const {
-      scenario,
-      targetProfile,
-      candidateProfile,
-      constraints,
-      jobContext
-    } = await req.json();
+    const { user } = await getCurrentUser(req);
 
-    if (!scenario || !targetProfile || !candidateProfile) {
-      throw new Error('Scenario, target profile, and candidate profile are required');
+    const body = await req.json();
+    const parsed = RequestSchema.safeParse(body);
+
+    if (!parsed.success) {
+      logger.error("Invalid input for linkedin-networking-messages", {
+        issues: parsed.error.issues,
+      });
+      return new Response(
+        JSON.stringify({ error: "invalid_input", details: parsed.error.issues }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Auth with JWT
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: req.headers.get("Authorization")! },
-      },
-    });
+    const { scenario, targetProfile, candidateProfile, constraints } =
+      parsed.data;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const maxWords = constraints?.maxWords ?? 150;
+    const tone = constraints?.tone ?? "professional";
+    const avoidWords = constraints?.avoid ?? [
+      "synergy",
+      "paradigm",
+      "rockstar",
+      "guru",
+      "world-class",
+      "cutting-edge",
+      "game-changing",
+    ];
 
-    const maxWords = constraints?.maxWords || 150;
-    const tone = constraints?.tone || 'professional';
-    const avoid = constraints?.avoid || [];
+    const scenarioGuidelines: Record<z.infer<typeof NetworkingScenarioSchema>, string> =
+      {
+        cold_connection:
+          "Brief connection request. Establish authentic common ground. Show specific interest in their work or company. No hard asks.",
+        warm_intro:
+          "Reference mutual context or connection. Be specific about why you're reaching out. Make a small, easy next step (e.g., quick chat).",
+        recruiter_outreach:
+          "Highlight 1–2 relevant achievements. Express interest in roles that match your background. Optional: mention availability or location.",
+        hiring_manager:
+          "Reference a specific team or role. Demonstrate fit with 1–2 concise achievements. Ask for a short conversation or guidance.",
+        post_application_followup:
+          "Mention the role and application timing. Reaffirm interest. Add one new, relevant point (achievement or qualification). Be respectful, not pushy.",
+        thank_you:
+          "Reference specific points from the conversation. Express genuine appreciation. Suggest a light next step or simply close politely.",
+        informational_interview:
+          "Show that you've done your homework about their background. Request a 15–20 minute chat for advice. Acknowledge their time constraints.",
+      };
 
-    const scenarioGuidelines: Record<NetworkingScenario, string> = {
-      cold_connection: 'Brief connection request. Establish common ground. Show genuine interest. No hard asks.',
-      warm_intro: 'Reference mutual connection. Express specific interest. Suggest low-commitment next step.',
-      recruiter_outreach: 'Highlight relevant achievements. Express interest in opportunities. Include availability.',
-      hiring_manager: 'Reference specific role. Demonstrate fit. Show company knowledge. Request conversation.',
-      post_application_followup: 'Acknowledge application. Reiterate interest. Add one new insight. Respectful timing.',
-      thank_you: 'Express genuine gratitude. Reference specific discussion points. Suggest concrete next step.',
-      informational_interview: 'Show research on their work. Ask for 15-20 min call. Offer flexibility.'
-    };
+    const scenarioText = scenario.replace(/_/g, " ");
 
-    const systemPrompt = `You are an expert networking communication strategist focused on authentic, professional outreach.
+    const systemPrompt = `
+You are an expert networking and outreach strategist focused on authentic, professional LinkedIn communication.
 
-SCENARIO: ${scenario.replace('_', ' ')}
-Guidelines: ${scenarioGuidelines[scenario as NetworkingScenario]}
+SCENARIO: ${scenarioText}
+GUIDELINES:
+${scenarioGuidelines[scenario]}
 
-COMMUNICATION PRINCIPLES:
-- Be genuine and specific (no generic templates)
-- Lead with value or common ground
-- Respect their time (max ${maxWords} words)
+TONE & STYLE:
 - Tone: ${tone}
-- NEVER use these words: ${avoid.join(', ') || 'none'}
+- Professional, concise, human.
+- Avoid clichés and buzzwords (especially: ${avoidWords.join(", ")}).
+- Respect the max word count: ${maxWords} words.
+- Focus on being specific and relevant, not generic or templated.
 
-TARGET PROFILE:
-Name: ${targetProfile.name || 'Not provided'}
-Title: ${targetProfile.title || 'Not provided'}
-Company: ${targetProfile.company || 'Not provided'}
-${jobContext ? `
-JOB CONTEXT:
-Target Role: ${jobContext.jobTitle}
-Reference: ${jobContext.jobRef || 'N/A'}
-Source: ${jobContext.jobSource || 'Direct'}
-` : ''}
-Shared Context: ${targetProfile.sharedContext || 'None'}
+TARGET PERSON / COMPANY:
+- Name: ${targetProfile.name ?? "Not provided"}
+- Title: ${targetProfile.title ?? "Not provided"}
+- Company: ${targetProfile.company}
+- Shared context: ${
+      targetProfile.sharedContext ?? "None provided; infer lightly if needed."
+    }
+- Target job title: ${targetProfile.targetJobTitle ?? "Not specified"}
+- Job reference: ${targetProfile.jobRef ?? "Not specified"}
 
-CANDIDATE PROFILE:
-Headline: ${candidateProfile.headline}
-Background: ${candidateProfile.careerVaultSummary}
-Relevant Achievements:
-${candidateProfile.relevantAchievements?.map((a: string, i: number) => `${i + 1}. ${a}`).join('\n') || 'None provided'}
+CANDIDATE (USER) SUMMARY:
+- Headline: ${candidateProfile.headline ?? "Not provided"}
+- Career Vault summary: ${
+      candidateProfile.careerVaultSummary ??
+      "Not provided; assume experienced professional with relevant background."
+    }
+- Relevant achievements (for credibility; use at most 1–2 per message):
+${
+  candidateProfile.relevantAchievements?.length
+    ? candidateProfile.relevantAchievements
+      .slice(0, 3)
+      .map((a, i) => `${i + 1}. ${a}`)
+      .join("\n")
+    : "None specifically provided; keep achievements generic and plausible."
+}
 
-CRITICAL RULES:
-- Reference specific details about target (their work, company, shared context)
-- Mention 1 relevant achievement that shows credibility
-- Include clear, low-pressure CTA
-- Sound human, not templated
-- No buzzwords: synergy, rockstar, guru, world-class, cutting-edge
-- Max 4-6 sentences
+USE OF ACHIEVEMENTS:
+- You may reference concrete outcomes (e.g., "led a project that reduced X by Y%") but do NOT fabricate roles or companies.
+- If you generalize ("mid-market SaaS company", "Fortune 500 manufacturer"), do so plausibly without naming specifics.
 
-Return JSON with 3 message variants:
+MESSAGE VARIANTS REQUIRED:
+Return exactly 3 variants:
+1. direct  – straightforward and confident.
+2. warm    – more conversational and relational.
+3. brief   – ultra-short, under 100 words, even if global maxWords is higher.
+
+CHANNEL:
+- If this looks like a first contact or connection request, use channel "connection_request".
+- Otherwise use "message" (for LinkedIn DMs) or "inmail" (if it feels like a more formal InMail-style note).
+
+OUTPUT FORMAT (JSON):
 {
   "messages": [
     {
-      "variant": "direct",
-      "channel": "connection_request",
-      "subject": "Optional subject line",
-      "body": "The message text",
-      "rationale": "Why this approach works",
-      "followUpSuggestion": "Optional 2nd touchpoint idea"
+      "variant": "direct | warm | brief",
+      "channel": "connection_request | message | inmail",
+      "subject": "Optional subject line (for InMail/email-like channels)",
+      "body": "The exact message text.",
+      "rationale": "Why this approach works for the scenario.",
+      "followUpSuggestion": "Optional 2nd-touch idea if they do not respond."
     }
   ]
-}`;
+}
+`;
 
-    const userPrompt = `Generate 3 networking message variants for this scenario: ${scenario.replace('_', ' ')}
+    const userPrompt = `
+Generate 3 networking message variants for this scenario: ${scenarioText}.
 
-Requirements:
-- Max ${maxWords} words each
-- ${tone} tone
-- Reference: ${targetProfile.sharedContext || 'their work at ' + targetProfile.company}
-- Highlight relevant achievement without bragging
-${jobContext?.jobTitle ? `- Mention interest in: ${jobContext.jobTitle}` : ''}
+REQUIREMENTS:
+- 1 "direct" variant: straightforward and confident.
+- 1 "warm" variant: friendlier and more conversational.
+- 1 "brief" variant: ultra-short (under 100 words).
+- Each must be within ${maxWords} words or less.
+- The brief variant must be under 100 words even if ${maxWords} is larger.
+- Use subtle references to the target's work, company, or shared context so it doesn't feel generic.
+- Use at most 1–2 short achievement references to demonstrate credibility.
+`;
 
-Provide:
-1. Direct variant (straightforward, confident)
-2. Warm variant (friendly, conversational)
-3. Brief variant (ultra-concise, under 100 words)`;
-
-    console.log(`[Networking] Generating messages for scenario: ${scenario}`);
+    logger.info("Calling Lovable AI for linkedin-networking-messages", {
+      userId: user.id,
+      scenario,
+      company: targetProfile.company,
+    });
 
     const { response, metrics } = await callLovableAI(
       {
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
         model: LOVABLE_AI_MODELS.DEFAULT,
-        temperature: 0.8,
-        max_tokens: 1500
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+        response_format: { type: "json_object" },
       },
-      'linkedin-networking-messages',
+      "linkedin-networking-messages",
       user.id
     );
 
     await logAIUsage(metrics);
 
-    const content = response.choices[0].message.content;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    
-    if (!jsonMatch) {
-      throw new Error('No valid JSON found in response');
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("AI_GENERATION_FAILED");
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    const extracted = extractJSON(content);
+    const json = extracted.success ? extracted.data : {};
+    const messages = Array.isArray(json?.messages) ? json.messages : [];
 
-    console.log(`[Networking] Generated ${result.messages?.length || 0} message variants`);
+    logger.info("Generated networking messages", {
+      userId: user.id,
+      scenario,
+      count: messages.length,
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
-        ...result,
+        messages,
         metadata: {
           scenario,
           tone,
           maxWords,
-          targetCompany: targetProfile.company
-        }
+          targetCompany: targetProfile.company,
+        },
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
-
   } catch (error: any) {
-    console.error('[Networking Error]:', error);
+    logger.error("linkedin-networking-messages failed", {
+      error: error?.message,
+    });
+    const code = error?.message === "AUTHENTICATION_REQUIRED"
+      ? 401
+      : 500;
+
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: error.message === 'Unauthorized' ? 401 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error: error?.message || "AI_GENERATION_FAILED",
+      }),
+      {
+        status: code,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
