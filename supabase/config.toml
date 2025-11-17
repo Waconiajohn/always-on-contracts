@@ -135,6 +135,12 @@ verify_jwt = true
 [functions.optimize-linkedin-profile]
 verify_jwt = true
 
+[functions.generate-series-posts]
+verify_jwt = true
+
+[functions.linkedin-networking-messages]
+verify_jwt = true
+
 [functions.scrape-career-trends]
 verify_jwt = true
 

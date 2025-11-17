@@ -35,6 +35,7 @@ const MyResumes = lazy(() => import("./pages/MyResumes"));
 const InterviewPrepAgent = lazy(() => import("./pages/agents/InterviewPrepAgent"));
 const LinkedInBloggingAgent = lazy(() => import("./pages/agents/LinkedInBloggingAgent"));
 const LinkedInProfileBuilder = lazy(() => import("./pages/agents/LinkedInProfileBuilder"));
+const LinkedInNetworkingAgent = lazy(() => import("./pages/agents/LinkedInNetworkingAgent"));
 const NetworkingAgent = lazy(() => import("./pages/agents/NetworkingAgentComplete"));
 const CareerTrendsScout = lazy(() => import("./pages/agents/CareerTrendsScout"));
 const FinancialPlanningAssistant = lazy(() => import("./pages/agents/FinancialPlanningAssistant"));
