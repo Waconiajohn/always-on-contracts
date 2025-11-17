@@ -138,7 +138,6 @@ ${vault.vault_behavioral_indicators?.slice(0, 3).map((b: any) =>
 VAULT EMPLOYERS: ${knownEmployers.join(', ')}
 VAULT ROLES: ${knownRoles.join(', ')}`;
         }
-      }
 
     const systemPrompt = `You are an elite LinkedIn profile optimization expert specializing in executive branding and recruiter psychology.
 

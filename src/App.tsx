@@ -102,6 +102,7 @@ const AppContent = () => {
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-blogging" element={<ProtectedRoute><LinkedInBloggingAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-profile-builder" element={<ProtectedRoute><LinkedInProfileBuilder /></ProtectedRoute>} />
+        <Route path="/agents/linkedin-networking" element={<ProtectedRoute><LinkedInNetworkingAgent /></ProtectedRoute>} />
         <Route path="/agents/networking" element={<ProtectedRoute><NetworkingAgent /></ProtectedRoute>} />
         <Route path="/agents/career-trends-scout" element={<ProtectedRoute><CareerTrendsScout /></ProtectedRoute>} />
         <Route path="/agents/financial-planning-assistant" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
