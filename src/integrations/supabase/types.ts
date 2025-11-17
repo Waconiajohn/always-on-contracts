@@ -1658,9 +1658,11 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           salary_period: string | null
+          search_origin: string | null
           search_session_id: string | null
           source: string
           updated_at: string | null
+          vault_derived: boolean | null
         }
         Insert: {
           ai_analysis?: Json | null
@@ -1686,9 +1688,11 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           salary_period?: string | null
+          search_origin?: string | null
           search_session_id?: string | null
           source: string
           updated_at?: string | null
+          vault_derived?: boolean | null
         }
         Update: {
           ai_analysis?: Json | null
@@ -1714,9 +1718,11 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           salary_period?: string | null
+          search_origin?: string | null
           search_session_id?: string | null
           source?: string
           updated_at?: string | null
+          vault_derived?: boolean | null
         }
         Relationships: [
           {
@@ -1998,10 +2004,13 @@ export type Database = {
           error_message: string | null
           filters: Json | null
           id: string
+          metadata: Json | null
           results_count: number | null
+          search_origin: string | null
           search_query: string
           status: string | null
           user_id: string
+          vault_title_used: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -2009,10 +2018,13 @@ export type Database = {
           error_message?: string | null
           filters?: Json | null
           id?: string
+          metadata?: Json | null
           results_count?: number | null
+          search_origin?: string | null
           search_query: string
           status?: string | null
           user_id: string
+          vault_title_used?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -2020,10 +2032,13 @@ export type Database = {
           error_message?: string | null
           filters?: Json | null
           id?: string
+          metadata?: Json | null
           results_count?: number | null
+          search_origin?: string | null
           search_query?: string
           status?: string | null
           user_id?: string
+          vault_title_used?: string | null
         }
         Relationships: []
       }

@@ -3,8 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
 
+export interface TitleRecommendation {
+  title: string;
+  confidence: number; // 0-100
+  synonyms: string[];
+  reasoning: string;
+  suggestedBoolean?: string; // Pre-built boolean OR string
+  industryAlignment: 'high' | 'medium' | 'low';
+}
+
 interface JobTitleRecommendationsHook {
-  suggestedTitles: string[];
+  suggestedTitles: TitleRecommendation[];
   isLoading: boolean;
   error: string | null;
   refreshRecommendations: () => Promise<void>;
@@ -12,7 +21,7 @@ interface JobTitleRecommendationsHook {
 
 export const useJobTitleRecommendations = (userId: string | null): JobTitleRecommendationsHook => {
   const { toast } = useToast();
-  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [suggestedTitles, setSuggestedTitles] = useState<TitleRecommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +101,22 @@ export const useJobTitleRecommendations = (userId: string | null): JobTitleRecom
         throw new Error('No role suggestions generated');
       }
 
-      const titles = data.suggestions;
+      // Handle both old (string array) and new (rich object) formats
+      const titles: TitleRecommendation[] = data.suggestions.map((suggestion: any) => {
+        if (typeof suggestion === 'string') {
+          // Legacy format - convert to rich format
+          return {
+            title: suggestion,
+            confidence: 70,
+            synonyms: [],
+            reasoning: 'Based on career vault analysis',
+            industryAlignment: 'medium' as const
+          };
+        }
+        // New rich format
+        return suggestion as TitleRecommendation;
+      });
+
       setSuggestedTitles(titles);
 
       // Cache recommendations in career_vault

@@ -70,11 +70,18 @@ const JobSearchContent = () => {
   const [activeSavedSearchName, setActiveSavedSearchName] = useState<string | null>(null);
   const [basicSearchCount, setBasicSearchCount] = useState<number | null>(null);
   const [booleanSearchCount, setBooleanSearchCount] = useState<number | null>(null);
+  
+  // Phase 2: Vault integration state
+  const [searchOrigin, setSearchOrigin] = useState<'vault_title' | 'typed_query' | 'saved_search' | 'boolean_ai'>('typed_query');
+  const [selectedJobTitle, setSelectedJobTitle] = useState<string | null>(null);
+  const [autoRunFromVault, setAutoRunFromVault] = useState(false);
+  const [useTransferableSkills, setUseTransferableSkills] = useState(false);
 
   const handleApplyAISearch = async (booleanString: string) => {
     setBooleanString(booleanString);
     setShowAdvanced(true);
     setActiveSavedSearchName('AI Generated');
+    setSearchOrigin('boolean_ai');
     
     // Scroll to the advanced filters section with smooth animation
     setTimeout(() => {
@@ -172,6 +179,42 @@ const JobSearchContent = () => {
 
   // Removed: loadVaultData - now handled by useJobTitleRecommendations hook
 
+  // Phase 2: Vault title click handler
+  const handleVaultTitleClick = async (recommendation: any) => {
+    setSearchQuery(recommendation.title);
+    setSelectedJobTitle(recommendation.title);
+    setSearchOrigin('vault_title');
+    
+    // If has pre-built boolean, apply it
+    if (recommendation.suggestedBoolean) {
+      setBooleanString(recommendation.suggestedBoolean);
+      setShowAdvanced(true);
+      
+      toast({
+        title: "Smart Boolean Applied",
+        description: `Searching for "${recommendation.title}" and ${recommendation.synonyms?.length || 0} similar titles`,
+        duration: 5000,
+      });
+    }
+    
+    if (autoRunFromVault) {
+      // Use boolean search if available
+      const useBooleanSearch = !!recommendation.suggestedBoolean;
+      await handleSearch(useBooleanSearch, false);
+      
+      toast({
+        title: "Vault search started",
+        description: `Searching with ${recommendation.confidence}% confidence match for "${recommendation.title}"`,
+      });
+    } else {
+      toast({
+        title: "Title selected",
+        description: recommendation.reasoning || `"${recommendation.title}" added to search. Click Search to run.`,
+        duration: 5000,
+      });
+    }
+  };
+
   const handleSearch = async (isBooleanSearch = false, loadMore = false) => {
     if (!searchQuery.trim()) {
       toast({
@@ -213,6 +256,12 @@ const JobSearchContent = () => {
             employmentType,
             booleanString: booleanString.trim() || undefined,
             radiusMiles: location ? parseInt(radiusMiles) : undefined
+          },
+          metadata: {
+            searchOrigin,
+            vaultTitleUsed: selectedJobTitle,
+            userId: userId || undefined,
+            timestamp: new Date().toISOString()
           },
           userId: userId || undefined,
           sources: ['google_jobs', 'company_boards', 'usajobs', 'adzuna', 'jsearch']
@@ -591,6 +640,14 @@ const JobSearchContent = () => {
           <JobSearchSidebar
             appliedFiltersCount={appliedFiltersCount}
             onClearFilters={handleClearBoolean}
+            suggestedTitles={suggestedTitles}
+            useTransferableSkills={useTransferableSkills}
+            setUseTransferableSkills={setUseTransferableSkills}
+            onSelectTitle={handleVaultTitleClick}
+            autoRunFromVault={autoRunFromVault}
+            setAutoRunFromVault={setAutoRunFromVault}
+            loadingTitles={loadingTitles}
+            userId={userId}
           />
         </ContextSidebar>
       }
@@ -601,37 +658,6 @@ const JobSearchContent = () => {
           <h1 className="text-3xl font-bold mb-2">Search Jobs</h1>
           <p className="text-muted-foreground">Live results from 50+ sources</p>
         </div>
-
-        {/* Vault Suggestions */}
-        {(loadingTitles || suggestedTitles.length > 0) && (
-          <Card className="mb-6 border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <Label className="text-sm text-muted-foreground">AI-Recommended Roles from Your Career Vault</Label>
-              </div>
-              {loadingTitles ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Analyzing your vault to suggest relevant job titles...
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {suggestedTitles.map((title) => (
-                    <Badge
-                      key={title}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                      onClick={() => setSearchQuery(title)}
-                    >
-                      {title}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Search Bar */}
         <Card className="mb-6">
