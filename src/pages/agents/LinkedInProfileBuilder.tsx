@@ -13,6 +13,8 @@ import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
 import { SkillsTagInput } from "@/components/linkedin/SkillsTagInput";
 import { ProfileProgressTracker } from "@/components/linkedin/ProfileProgressTracker";
 import { RecruiterSearchSimulator } from "@/components/linkedin/RecruiterSearchSimulator";
+import { ProfileSectionCompare } from "@/components/linkedin/ProfileSectionCompare";
+import { trackLinkedInAction } from "@/lib/linkedinTelemetry";
 import { 
   safeValidateInput, 
   invokeEdgeFunction, 
@@ -311,11 +313,100 @@ export default function LinkedInProfileBuilder() {
         </div>
 
         {optimizationResult && (
+          <div className="md:col-span-3 space-y-6">
+            <ProfileSectionCompare
+              title="Headline"
+              current={currentHeadline}
+              suggested={optimizationResult.headline?.suggested || optimizationResult.optimizedHeadline}
+              rationale={optimizationResult.headline?.rationale}
+              warnings={optimizationResult.headline?.warnings}
+              atsKeywords={optimizationResult.headline?.atsKeywords}
+              onAccept={async (text) => {
+                setCurrentHeadline(text);
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  trackLinkedInAction({
+                    user_id: user.id,
+                    action_type: 'profile_section_accepted',
+                    content_type: 'headline',
+                    metadata: {
+                      hadWarnings: !!optimizationResult.headline?.warnings?.length,
+                      atsKeywordCount: optimizationResult.headline?.atsKeywords?.length || 0,
+                      characterLength: text.length
+                    }
+                  });
+                }
+                toast({ title: "Headline accepted", description: "Applied to your profile" });
+              }}
+              characterLimit={220}
+              minLength={10}
+            />
+
+            <ProfileSectionCompare
+              title="About Section"
+              current={currentAbout}
+              suggested={optimizationResult.about?.suggested || optimizationResult.optimizedAbout}
+              rationale={optimizationResult.about?.rationale}
+              warnings={optimizationResult.about?.warnings}
+              atsKeywords={optimizationResult.about?.atsKeywords}
+              onAccept={async (text) => {
+                setCurrentAbout(text);
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  trackLinkedInAction({
+                    user_id: user.id,
+                    action_type: 'profile_section_accepted',
+                    content_type: 'about',
+                    metadata: {
+                      hadWarnings: !!optimizationResult.about?.warnings?.length,
+                      atsKeywordCount: optimizationResult.about?.atsKeywords?.length || 0,
+                      characterLength: text.length
+                    }
+                  });
+                }
+                toast({ title: "About section accepted", description: "Applied to your profile" });
+              }}
+              characterLimit={2600}
+              minLength={100}
+            />
+
+            {optimizationResult.topKeywords && optimizationResult.topKeywords.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">ATS Keyword Analysis</CardTitle>
+                  <CardDescription>
+                    High-priority keywords for {targetRole} roles
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {optimizationResult.topKeywords.map((kw: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <span className="text-sm">{kw.keyword}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={
+                            kw.priority === 'critical' ? 'destructive' :
+                            kw.priority === 'important' ? 'default' : 'outline'
+                          }>
+                            {kw.priority}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Used {kw.currentUsage || 0}x
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {!optimizationResult && (
           <Card className="md:col-span-3">
             <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Optimized Profile - Copy & Paste Sections</CardTitle>
+              <CardTitle>Optimized Profile</CardTitle>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="default">Score: {optimizationResult.optimizationScore}/100</Badge>
                     <Badge variant="outline">{optimizationResult.recruiterAppeal}</Badge>

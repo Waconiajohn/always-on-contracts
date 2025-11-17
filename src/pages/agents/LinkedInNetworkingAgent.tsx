@@ -64,10 +64,12 @@ export default function LinkedInNetworkingAgent() {
         .eq('user_id', user.id)
         .single();
 
+      if (!vault) throw new Error("Career Vault not found");
+
       const { data: phrases } = await supabase
         .from('vault_power_phrases')
         .select('power_phrase')
-        .eq('vault_id', vault?.id)
+        .eq('vault_id', vault.id)
         .order('confidence_score', { ascending: false })
         .limit(3);
 
