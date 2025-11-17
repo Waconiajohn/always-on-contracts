@@ -123,6 +123,7 @@ serve(async (req) => {
       .from("career_vault")
       .select(
         `
+        id,
         analysis_summary,
         vault_power_phrases ( power_phrase, impact_metrics ),
         target_role,
@@ -255,34 +256,6 @@ NOTES:
 - "topKeywords" should list 5–12 important keywords for ATS / recruiter search.
 - "warnings" must include any suspected hallucinated employer/role with a clear "⚠️ Verify: ..." message.
 `;
-- Use quantified outcomes when clearly provided by vault; otherwise stay qualitative.
-- Avoid hype words: "rockstar", "guru", "world-class", "cutting-edge", "game-changing".
-- Headline must be <= 220 characters. About ideally 800–1800 characters (max 2600).
-
-OUTPUT (strict JSON):
-{
-  "headline": {
-    "current": "user's current headline or null",
-    "suggested": "new optimized headline with ATS keywords",
-    "rationale": "why this headline is better",
-    "atsKeywords": ["keyword1", "keyword2"],
-    "warnings": ["optional warning about unverified claims"]
-  },
-  "about": {
-    "current": "user's current about or null",
-    "suggested": "new optimized About section",
-    "rationale": "why this is improved",
-    "atsKeywords": ["keyword1", "keyword2"],
-    "warnings": ["optional warning about unverified claims"]
-  },
-  "topKeywords": [
-    {
-      "keyword": "example keyword",
-      "priority": "critical | important | recommended",
-      "currentUsage": 0
-    }
-  ]
-}`;
 
     const userPrompt = `
 CURRENT LINKEDIN PROFILE TEXT:
@@ -324,7 +297,7 @@ ${currentAbout || "None provided."}
     const result = {
       ...extracted.data,
       metadata: {
-        usedVaultSummary: !!vault,
+        usedVaultSummary: !!vaultSummary,
         employerCount: knownEmployers.length,
         roleCount: knownRoles.length,
       },

@@ -124,34 +124,60 @@ serve(async (req) => {
     const avoidWords = constraints.avoid ?? [];
 
     const avoidString = avoidWords.length ? avoidWords.join(", ") : "none specified";
-          "Brief connection request. Establish authentic common ground. Show specific interest in their work or company. No hard asks.",
-        warm_intro:
-          "Reference mutual context or connection. Be specific about why you're reaching out. Make a small, easy next step (e.g., quick chat).",
-        recruiter_outreach:
-          "Highlight 1–2 relevant achievements. Express interest in roles that match your background. Optional: mention availability or location.",
-        hiring_manager:
-          "Reference a specific team or role. Demonstrate fit with 1–2 concise achievements. Ask for a short conversation or guidance.",
-        post_application_followup:
-          "Mention the role and application timing. Reaffirm interest. Add one new, relevant point (achievement or qualification). Be respectful, not pushy.",
-        thank_you:
-          "Reference specific points from the conversation. Express genuine appreciation. Suggest a light next step or simply close politely.",
-        informational_interview:
-          "Show that you've done your homework about their background. Request a 15–20 minute chat for advice. Acknowledge their time constraints.",
-      };
 
     const scenarioText = scenario.replace(/_/g, " ");
 
-    const systemPrompt = `
-You are an expert networking and outreach strategist focused on authentic, professional LinkedIn communication.
+    const systemPrompt = `You are an expert networking and outreach copywriter focused on authentic, high-response LinkedIn messages.
 
 SCENARIO: ${scenarioText}
 GUIDELINES:
 ${scenarioGuidelines[scenario]}
 
-TONE & STYLE:
-- Tone: ${tone}
-- Professional, concise, human.
-- Avoid clichés and buzzwords (especially: ${avoidWords.join(", ")}).
+GLOBAL PRINCIPLES:
+- Max length: ${maxWords} words per message.
+- Tone: ${tone}. Human, specific, and respectful.
+- Avoid buzzwords and fluff. NEVER use these words: ${avoidString}.
+- Write as if you are a thoughtful professional, not a template.
+
+TARGET PERSON:
+- Name: ${targetProfile.name || "(not provided)"}
+- Title: ${targetProfile.title || "(not provided)"}
+- Company: ${targetProfile.company}
+- Shared context: ${targetProfile.sharedContext || "(none provided)"}
+- Role of interest: ${targetProfile.targetJobTitle || "(not specified)"}
+
+CANDIDATE (SENDER) PROFILE:
+- Headline: ${candidateProfile.headline || "(not provided)"}
+- Career Vault Summary: ${candidateProfile.careerVaultSummary || "Professional with relevant experience"}
+
+RELEVANT ACHIEVEMENTS:
+${(candidateProfile.relevantAchievements || [])
+  .map((a, i) => `${i + 1}. ${a}`)
+  .join("\n") || "(none listed)"}
+
+MESSAGE DESIGN:
+- Reference at least ONE specific detail about the target (company, role, work, or shared context).
+- Reference at least ONE concrete achievement or pattern from the candidate (lightly, not bragging).
+- End with a low-pressure CTA that makes it easy to respond.
+- Messages must sound like they were written one-off, not mass-blasted.
+
+DESIRED OUTPUT:
+Return JSON with:
+{
+  "messages": [
+    {
+      "variant": "direct" | "warm" | "brief",
+      "channel": "connection_request" | "inmail" | "message",
+      "subject": "optional short subject line",
+      "body": "the actual message text",
+      "rationale": "why this approach is effective",
+      "followUpSuggestion": "optional idea for a follow-up note"
+    }
+  ]
+}
+
+Only return JSON.`;
+
     const userPrompt = `Generate THREE message variants for this outreach:
 1. "direct" – more straightforward and confident.
 2. "warm" – more conversational and relationship-focused.
@@ -190,7 +216,7 @@ Ensure each message is under ${maxWords} words.`;
     const json = extracted.success ? extracted.data : {};
     const messages = Array.isArray(json?.messages) ? json.messages : [];
 
-    logger.info("Generated networking messages", {
+    console.log("Generated networking messages", {
       userId: user.id,
       scenario,
       count: messages.length,
@@ -213,7 +239,7 @@ Ensure each message is under ${maxWords} words.`;
       }
     );
   } catch (error: any) {
-    logger.error("linkedin-networking-messages failed", {
+    console.error("linkedin-networking-messages failed", {
       error: error?.message,
     });
     const code = error?.message === "AUTHENTICATION_REQUIRED"
