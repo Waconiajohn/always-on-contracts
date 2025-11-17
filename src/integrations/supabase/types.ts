@@ -2236,6 +2236,36 @@ export type Database = {
         }
         Relationships: []
       }
+      linkedin_usage_telemetry: {
+        Row: {
+          action_type: string
+          content_type: string
+          content_variant: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          content_type: string
+          content_variant?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          content_type?: string
+          content_variant?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       networking_contacts: {
         Row: {
           contact_company: string | null
