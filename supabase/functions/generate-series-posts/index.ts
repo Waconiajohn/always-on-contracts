@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { generateShortVaultSummary, formatSummaryForPrompt } from '../_shared/vault-summary.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,9 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    const { seriesMetadata, outline, allowedWordRange } = await req.json();
+    const { seriesMetadata, outline, careerVaultSummaryShort, allowedWordRange } = await req.json();
 
-    // Validation
     if (!seriesMetadata || !outline || outline.length === 0) {
       throw new Error('Series metadata and outline are required');
     }
@@ -26,7 +25,6 @@ serve(async (req) => {
       throw new Error('Maximum series length is 16 posts');
     }
 
-    // Auth with JWT
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     
@@ -39,72 +37,81 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
-    // Generate SHORT vault summary (not full analysis)
-    const vaultSummary = await generateShortVaultSummary(supabase, user.id);
-    console.log(`[Series Posts] Using ${vaultSummary.wordCount}-word vault summary`);
-
     const wordMin = allowedWordRange?.min || 180;
     const wordMax = allowedWordRange?.max || 260;
 
     const voiceGuidelines: Record<string, string> = {
-      executive: 'Strategic perspective. Organizational impact. Use "we" and "our team". Focus on ROI and decisions.',
-      practitioner: 'Tactical how-to. Step-by-step. Use "you should". Include tools and processes. Actionable.',
-      educator: 'Teaching mindset. Explain concepts. Use analogies. Build knowledge progressively. Mentor tone.'
+      executive: 'Strategic perspective. Focus on organizational impact, ROI, and leadership decisions. Use "we" and "our team" more than "I".',
+      practitioner: 'Tactical how-to. Step-by-step guidance. Use concrete examples, tools, and processes.',
+      educator: 'Teaching mindset. Explain concepts clearly, with analogies and progressive structure.'
     };
 
-    const systemPrompt = `You are an expert LinkedIn content creator for ${seriesMetadata.voice}-level posts.
+    const vaultSummaryBlock = careerVaultSummaryShort
+      ? `CAREER VAULT SUMMARY (SHORT):\n${careerVaultSummaryShort}\n`
+      : "CAREER VAULT SUMMARY: Not provided. Use generic but realistic examples.";
 
-VOICE: ${voiceGuidelines[seriesMetadata.voice]}
+    const systemPrompt = `You are an expert LinkedIn content creator specializing in multi-part series.
 
-CONTENT REQUIREMENTS:
-- Word count: ${wordMin}-${wordMax} words per post
-- Platform: ${seriesMetadata.platform}
+SERIES CONTEXT:
+- Title: ${seriesMetadata.seriesTitle}
 - Audience: ${seriesMetadata.audience}
-- Series: ${seriesMetadata.seriesTitle}
+- Voice: ${seriesMetadata.voice}
+- Platform: ${seriesMetadata.platform}
+- Word count per post: ${wordMin}-${wordMax} words
 
-${formatSummaryForPrompt(vaultSummary)}
+VOICE GUIDELINES:
+${voiceGuidelines[seriesMetadata.voice]}
 
-STRUCTURE:
-1. **Hook** (1-2 lines): Grab attention immediately
-2. **Body**: Deliver value
-   - Use vault achievements for credibility
-   - Include 1 specific example per post
-   - No generic advice
-3. **CTA**: Engagement question
+STRUCTURE FOR EACH POST:
+1. Hook (first 1–2 lines) - grab attention.
+2. Body - deliver on promise; 2–3 sentence paragraphs; practical and specific.
+3. CTA - a simple, authentic question or next step.
 
-BANNED WORDS:
-synergy, holistic, leverage, paradigm, rockstar, guru, world-class, cutting-edge, revolutionary
+${vaultSummaryBlock}
 
-Return JSON array:
+RULES:
+- Use Career Vault summary for credibility and examples, anonymized as needed.
+- Do NOT invent employers or confidential details.
+- Use numbers only if plausible for such roles; if unsupported, stay qualitative.
+- Avoid hype words: "rockstar", "guru", "world-class", "cutting-edge", "game-changing".
+- Each post must be self-contained and ready to publish.
+- Respect word count strictly.
+
+OUTPUT FORMAT (JSON array):
 [
   {
     "postNumber": 1,
-    "title": "Part 1: [Title]",
-    "body": "Full post text...",
-    "hook": "First 1-2 lines",
-    "cta": "Engagement question",
-    "wordCount": 245,
-    "vaultExamplesUsed": ["achievement from vault"]
+    "title": "Full post title",
+    "body": "Full post content with hook and CTA.",
+    "hook": "First 1–2 lines",
+    "cta": "Closing call to action",
+    "wordCount": 220,
+    "vaultExamplesUsed": ["vault-based example description"]
   }
 ]`;
 
-    const posts = [];
-
-    // Generate in batches of 4 to avoid timeout
+    const posts: any[] = [];
     const batchSize = 4;
+
     for (let i = 0; i < outline.length; i += batchSize) {
       const batch = outline.slice(i, i + batchSize);
       
-      const userPrompt = `Generate posts for parts ${i + 1} to ${Math.min(i + batchSize, outline.length)}:
+      const userPrompt = `Generate LinkedIn posts for these series parts:
 
-${batch.map((item: any) => `
-Part ${item.partNumber}: ${item.title}
+PARTS:
+${batch.map((item: any) => 
+  `Part ${item.partNumber}: ${item.title}
 Focus: ${item.focusStatement}
-`).join('\n')}
+Category: ${item.category ?? "general"}`
+).join('\n\n')}
 
-Each post must be ${wordMin}-${wordMax} words with vault-based example.`;
+REQUIREMENTS:
+- ${wordMin}-${wordMax} words per post.
+- Use specified voice and audience.
+- Include: strong hook, practical body, call to action.
+- Weave in one anonymized Career Vault example when possible.`;
 
-      console.log(`Generating posts ${i + 1} to ${Math.min(i + batchSize, outline.length)}`);
+      console.log(`[Series Posts] Generating batch ${i + 1} to ${Math.min(i + batchSize, outline.length)}`);
 
       const { response, metrics } = await callLovableAI(
         {
@@ -114,7 +121,8 @@ Each post must be ${wordMin}-${wordMax} words with vault-based example.`;
           ],
           model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.8,
-          max_tokens: 3000
+          max_tokens: 3200,
+          response_format: { type: 'json_object' }
         },
         'generate-series-posts',
         user.id
@@ -123,15 +131,23 @@ Each post must be ${wordMin}-${wordMax} words with vault-based example.`;
       await logAIUsage(metrics);
 
       const content = response.choices[0].message.content;
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      
-      if (jsonMatch) {
-        const batchPosts = JSON.parse(jsonMatch[0]);
-        posts.push(...batchPosts);
+      const extracted = extractJSON(content);
+
+      if (!extracted.success) {
+        console.error('[Series Posts] JSON parse failed');
+        throw new Error('Failed to parse AI response');
       }
+
+      const json = extracted.data;
+      if (!Array.isArray(json)) {
+        console.error('[Series Posts] Expected array, got:', typeof json);
+        throw new Error('Invalid AI response format');
+      }
+
+      posts.push(...json);
     }
 
-    console.log(`Generated ${posts.length} posts for series "${seriesMetadata.seriesTitle}"`);
+    console.log(`[Series Posts] Generated ${posts.length} posts for "${seriesMetadata.seriesTitle}"`);
 
     return new Response(
       JSON.stringify({
@@ -140,14 +156,15 @@ Each post must be ${wordMin}-${wordMax} words with vault-based example.`;
         metadata: {
           seriesTitle: seriesMetadata.seriesTitle,
           totalPosts: posts.length,
-          voice: seriesMetadata.voice
+          voice: seriesMetadata.voice,
+          audience: seriesMetadata.audience,
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('[Series Posts Error]:', error);
+    console.error('[Series Posts] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: error.message === 'Unauthorized' ? 401 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
