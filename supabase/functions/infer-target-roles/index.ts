@@ -57,16 +57,47 @@ Deno.serve(async (req) => {
 
     // Use Lovable AI with tool calling for structured output
     const systemPrompt = `You are an expert career advisor specializing in role targeting for experienced professionals. 
-Your task is to suggest highly relevant, industry-specific job titles based on detailed career information.
+Your task is to suggest highly relevant, industry-specific job titles with rich metadata to power an intelligent job search system.
+
+For each suggestion, you must provide:
+
+1. **title**: The primary job title that recruiters commonly use (e.g., "Senior Data Analyst")
+
+2. **confidence**: A 0-100 score indicating fit:
+   - 90-100: Perfect match (seniority, skills, industry all align)
+   - 75-89: Strong match (most factors align, minor gaps)
+   - 60-74: Good match (transferable skills, potential stretch)
+   - Below 60: Avoid suggesting
+
+3. **synonyms**: 2-4 alternative titles recruiters might use:
+   - Include variations (Senior/Lead/Principal)
+   - Include industry-specific variants
+   - Use actual job market terminology
+
+4. **reasoning**: 1-2 sentences explaining why this fits:
+   - Reference specific skills or experience
+   - Mention seniority alignment
+   - Note industry relevance
+
+5. **suggestedBoolean**: Pre-built OR string for job board searches:
+   - Format: ("Primary Title" OR "Synonym 1" OR "Synonym 2" OR "Synonym 3")
+   - Use exact quote marks
+   - Include all synonyms
+
+6. **industryAlignment**: Rate as 'high', 'medium', or 'low':
+   - high: Direct industry match
+   - medium: Transferable skills across industries
+   - low: Significant pivot required
 
 CRITICAL RULES:
 - Match seniority level accurately (Senior → Senior roles, not entry-level)
-- Use industry-specific terminology and actual job titles
-- Consider years of experience when suggesting roles
-- Provide 5-7 highly relevant job titles
-- Focus on roles that match the candidate's expertise and experience level`;
+- Use industry-specific terminology and actual job titles from real job boards
+- Consider years of experience when calculating confidence scores
+- Provide 5-7 highly relevant job titles only
+- Focus on roles that match the candidate's expertise and experience level
+- Ensure boolean strings are properly formatted with quotes and OR operators`;
 
-    const userPrompt = `Analyze this professional's career profile and suggest relevant target roles:
+    const userPrompt = `Analyze this professional's career profile and suggest 5-7 target roles with confidence scores and metadata:
 
 CURRENT POSITION:
 Role: ${analysis.current_role || 'Not specified'}
@@ -89,7 +120,13 @@ ${analysis.recommended_positions?.length ? `PREVIOUSLY IDENTIFIED ROLES:\n${anal
 
 ${analysis.management_capabilities?.length ? `MANAGEMENT CAPABILITIES:\n${analysis.management_capabilities.join(', ')}` : ''}
 
-Based on this ${analysis.seniority_level || 'experienced'} professional's background, suggest 5-7 appropriate target job titles.`;
+Based on this ${analysis.seniority_level || 'experienced'} professional's background, suggest 5-7 target job titles.
+
+IMPORTANT: For each suggestion, calculate confidence based on:
+- Seniority match: Does their level align with the role's typical requirements?
+- Skills alignment: How many of their key skills match this role?
+- Industry fit: Is this their current industry or a reasonable pivot?
+- Experience level: Do they have the right years of experience for this role?`;
 
     console.log('[infer-target-roles] Calling Lovable AI for role suggestions');
     
@@ -110,28 +147,62 @@ Based on this ${analysis.seniority_level || 'experienced'} professional's backgr
           {
             type: 'function',
             function: {
-              name: 'suggest_job_titles',
-              description: 'Returns a list of relevant job titles for the candidate',
+              name: 'suggest_target_roles',
+              description: 'Suggest highly relevant job titles with confidence scores and metadata for optimal job search targeting',
               parameters: {
                 type: 'object',
                 properties: {
-                  job_titles: {
+                  suggestions: {
                     type: 'array',
-                    description: 'Array of 5-7 relevant job titles matching the candidate\'s experience level and expertise',
+                    description: 'Array of 5-7 job title recommendations with rich metadata',
                     items: {
-                      type: 'string'
+                      type: 'object',
+                      properties: {
+                        title: {
+                          type: 'string',
+                          description: 'The primary job title (e.g., "Senior Data Analyst")'
+                        },
+                        confidence: {
+                          type: 'number',
+                          description: 'Confidence score 0-100 indicating how well this role fits the candidate. Consider seniority match, skills alignment, and industry relevance.',
+                          minimum: 0,
+                          maximum: 100
+                        },
+                        synonyms: {
+                          type: 'array',
+                          items: { type: 'string' },
+                          description: '2-4 alternative job titles or variations that recruiters might use (e.g., ["Data Analytics Lead", "Lead Data Analyst", "Analytics Manager"])',
+                          minItems: 2,
+                          maxItems: 4
+                        },
+                        reasoning: {
+                          type: 'string',
+                          description: 'Brief 1-2 sentence explanation of why this role is a good fit, highlighting key matching factors'
+                        },
+                        suggestedBoolean: {
+                          type: 'string',
+                          description: 'Pre-built boolean search string with OR clauses combining the title and all synonyms. Format: ("Title" OR "Synonym1" OR "Synonym2")'
+                        },
+                        industryAlignment: {
+                          type: 'string',
+                          enum: ['high', 'medium', 'low'],
+                          description: 'How well this role aligns with the candidate\'s industry experience. High = perfect match, Medium = transferable, Low = stretch role'
+                        }
+                      },
+                      required: ['title', 'confidence', 'synonyms', 'reasoning', 'industryAlignment'],
+                      additionalProperties: false
                     },
                     minItems: 5,
                     maxItems: 7
                   }
                 },
-                required: ['job_titles'],
+                required: ['suggestions'],
                 additionalProperties: false
               }
             }
           }
         ],
-        tool_choice: { type: 'function', function: { name: 'suggest_job_titles' } }
+        tool_choice: { type: 'function', function: { name: 'suggest_target_roles' } }
       }),
     });
 
@@ -154,22 +225,56 @@ Based on this ${analysis.seniority_level || 'experienced'} professional's backgr
     }
 
     const result = JSON.parse(toolCall.function.arguments);
-    const suggestions = result.job_titles;
+    const suggestions = result.suggestions;
 
     if (!suggestions || !Array.isArray(suggestions) || suggestions.length === 0) {
       throw new Error('Invalid suggestions format');
     }
 
-    console.log('[infer-target-roles] Generated suggestions:', suggestions);
-    
+    // Validate each suggestion has required fields
+    for (const suggestion of suggestions) {
+      if (!suggestion.title || typeof suggestion.confidence !== 'number' ||
+          !Array.isArray(suggestion.synonyms) || !suggestion.reasoning ||
+          !suggestion.industryAlignment) {
+        console.error('Invalid suggestion format:', suggestion);
+        throw new Error('Suggestion missing required fields');
+      }
+      
+      // Auto-generate boolean if missing
+      if (!suggestion.suggestedBoolean && suggestion.synonyms.length > 0) {
+        const allTitles = [suggestion.title, ...suggestion.synonyms];
+        suggestion.suggestedBoolean = `(${allTitles.map((t: string) => `"${t}"`).join(' OR ')})`;
+      }
+    }
+
+    console.log('[infer-target-roles] Generated suggestions with metadata:', 
+      suggestions.map((s: any) => ({ title: s.title, confidence: s.confidence }))
+    );
+
     // Validate suggestions match experience level
+    const avgConfidence = suggestions.reduce((sum: number, s: any) => sum + s.confidence, 0) / suggestions.length;
+
+    if (avgConfidence < 60) {
+      console.warn('[infer-target-roles] Low average confidence:', avgConfidence);
+    }
+
     if (analysis.seniority_level?.toLowerCase().includes('senior') || 
         (analysis.years_of_experience && analysis.years_of_experience > 7)) {
-      const hasJuniorRoles = suggestions.some((role: string) => 
-        role.toLowerCase().includes('junior') || role.toLowerCase().includes('entry')
+      const hasJuniorRoles = suggestions.some((s: any) => 
+        s.title.toLowerCase().includes('junior') || 
+        s.title.toLowerCase().includes('entry') ||
+        s.confidence < 50
       );
       if (hasJuniorRoles) {
-        console.warn('Warning: Junior roles suggested for senior candidate');
+        console.warn('[infer-target-roles] Warning: Low-confidence or junior roles suggested for senior candidate');
+      }
+    }
+
+    // Ensure boolean strings are valid
+    for (const suggestion of suggestions) {
+      if (!suggestion.suggestedBoolean.includes('OR') || 
+          !suggestion.suggestedBoolean.includes('"')) {
+        console.warn('[infer-target-roles] Invalid boolean format:', suggestion.suggestedBoolean);
       }
     }
 
@@ -190,6 +295,12 @@ Based on this ${analysis.seniority_level || 'experienced'} professional's backgr
       JSON.stringify({
         success: true,
         suggestions,
+        metadata: {
+          avgConfidence,
+          seniorityLevel: analysis.seniority_level,
+          suggestionsCount: suggestions.length,
+          model: aiData.model || 'google/gemini-2.5-flash'
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
