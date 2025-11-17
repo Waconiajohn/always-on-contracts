@@ -18,20 +18,20 @@ serve(async (req) => {
     const { currentHeadline, currentAbout, targetRole, industry, skills } = await req.json();
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: req.headers.get("Authorization")! },
+      },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('Unauthorized');
+    }
 
     let vaultContext = '';
-    let userId = undefined;
-
-    const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const { data: { user } } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-
-      if (user) {
-        userId = user.id;
+    const userId = user.id;
         // Fetch ALL Career Vault data (10 intelligence categories)
         const { data: vault } = await supabase
           .from('career_vault')
@@ -51,8 +51,37 @@ serve(async (req) => {
           .eq('user_id', user.id)
           .single();
 
+        // Fetch canonical employment from vault_resume_milestones
+        const { data: milestones } = await supabase
+          .from('vault_resume_milestones')
+          .select('company_name, job_title, start_date, end_date, milestone_type')
+          .eq('user_id', userId)
+          .eq('milestone_type', 'employment')
+          .order('start_date', { ascending: false });
+
+        const knownEmployers = Array.from(new Set(
+          milestones?.map(m => m.company_name).filter(Boolean) || []
+        ));
+
+        const knownRoles = Array.from(new Set(
+          milestones?.map(m => m.job_title).filter(Boolean) || []
+        ));
+
+        console.log(`[Fact-Check] Known employers: ${knownEmployers.join(', ')}`);
+        console.log(`[Fact-Check] Known roles: ${knownRoles.join(', ')}`);
+
         if (vault) {
           vaultContext = `
+
+CRITICAL FACT-CHECK REQUIREMENTS:
+You MUST NOT invent or fabricate employers, job titles, or achievements.
+
+KNOWN EMPLOYERS (only use these): ${knownEmployers.join(', ') || 'None on record'}
+KNOWN ROLES (only use these): ${knownRoles.join(', ') || 'None on record'}
+
+If you suggest content about employers or roles NOT in these lists, you MUST:
+1. Add a WARNING field: "⚠️ Verify: [Company/Role] not in career vault"
+2. Mark that section for user review
 
 CAREER VAULT INTELLIGENCE:
 
@@ -99,10 +128,17 @@ ${vault.vault_values_motivations?.slice(0, 3).map((v: any) =>
 DIFFERENTIATORS (unique selling points):
 ${vault.vault_hidden_competencies?.slice(0, 3).map((c: any) => 
   `- ${c.competency_area}: ${c.inferred_capability}`
-).join('\n') || 'None available'}`;
+).join('\n') || 'None available'}
+
+BEHAVIORAL PATTERNS (authentic humanization):
+${vault.vault_behavioral_indicators?.slice(0, 3).map((b: any) => 
+  `- ${b.indicator_type}: ${b.specific_behavior} → ${b.outcome_pattern}`
+).join('\n') || 'None available'}
+
+VAULT EMPLOYERS: ${knownEmployers.join(', ')}
+VAULT ROLES: ${knownRoles.join(', ')}`;
         }
       }
-    }
 
     const systemPrompt = `You are an elite LinkedIn profile optimization expert specializing in executive branding and recruiter psychology.
 
