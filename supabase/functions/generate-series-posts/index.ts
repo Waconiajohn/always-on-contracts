@@ -1,32 +1,67 @@
+// supabase/functions/generate-series-posts/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
-import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/json-parser.ts';
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
+import { logAIUsage } from "../_shared/cost-tracking.ts";
+import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
+// ---- Schemas (align with frontend types) ----
+
+const OutlineItemSchema = z.object({
+  partNumber: z.number(),
+  title: z.string(),
+  focusStatement: z.string().optional().default(""),
+  category: z.string().optional(),
+});
+
+const SeriesMetadataSchema = z.object({
+  seriesTitle: z.string().min(1),
+  audience: z.string().min(1),
+  voice: z.enum(["executive", "practitioner", "educator"]),
+  platform: z.enum(["LinkedIn", "Blog"]),
+});
+
+const WordRangeSchema = z.object({
+  min: z.number().int().positive().default(180),
+  max: z.number().int().positive().default(260),
+});
+
+const RequestSchema = z.object({
+  seriesMetadata: SeriesMetadataSchema,
+  outline: z.array(OutlineItemSchema).min(1).max(16),
+  careerVaultSummaryShort: z.string().optional().default(""),
+  allowedWordRange: WordRangeSchema.optional(),
+});
+
+const SeriesPostSchema = z.object({
+  postNumber: z.number(),
+  title: z.string(),
+  body: z.string().min(100),
+  hook: z.string(),
+  cta: z.string(),
+  wordCount: z.number(),
+  vaultExamplesUsed: z.array(z.string()).optional(),
+});
+
+type OutlineItem = z.infer<typeof OutlineItemSchema>;
+type SeriesMetadata = z.infer<typeof SeriesMetadataSchema>;
+type SeriesPost = z.infer<typeof SeriesPostSchema>;
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { seriesMetadata, outline, careerVaultSummaryShort, allowedWordRange } = await req.json();
-
-    if (!seriesMetadata || !outline || outline.length === 0) {
-      throw new Error('Series metadata and outline are required');
-    }
-
-    if (outline.length > 16) {
-      throw new Error('Maximum series length is 16 posts');
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
@@ -37,117 +72,155 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
-    const wordMin = allowedWordRange?.min || 180;
-    const wordMax = allowedWordRange?.max || 260;
+    const body = await req.json();
+    const parsed = RequestSchema.safeParse(body);
 
-    const voiceGuidelines: Record<string, string> = {
-      executive: 'Strategic perspective. Focus on organizational impact, ROI, and leadership decisions. Use "we" and "our team" more than "I".',
-      practitioner: 'Tactical how-to. Step-by-step guidance. Use concrete examples, tools, and processes.',
-      educator: 'Teaching mindset. Explain concepts clearly, with analogies and progressive structure.'
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({
+          error: "Invalid request payload",
+          details: parsed.error.flatten(),
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const {
+      seriesMetadata,
+      outline,
+      careerVaultSummaryShort,
+      allowedWordRange,
+    } = parsed.data;
+
+    const wordMin = allowedWordRange?.min ?? 180;
+    const wordMax = allowedWordRange?.max ?? 260;
+
+    const voiceGuidelines: Record<SeriesMetadata["voice"], string> = {
+      executive:
+        "Strategic perspective. Focus on decision-making, ROI, and organizational impact. Use 'we' and 'our team' to frame outcomes. Assume the reader is a VP-level or above.",
+      practitioner:
+        "Hands-on, step-by-step guidance. Translate concepts into concrete actions, tools, and frameworks. Ideal for managers and ICs trying to implement improvements.",
+      educator:
+        "Teaching mindset. Explain concepts clearly, with examples and analogies. Build knowledge across the series, from fundamentals to advanced insights.",
     };
 
-    const vaultSummaryBlock = careerVaultSummaryShort
-      ? `CAREER VAULT SUMMARY (SHORT):\n${careerVaultSummaryShort}\n`
-      : "CAREER VAULT SUMMARY: Not provided. Use generic but realistic examples.";
+    const platformHints: Record<SeriesMetadata["platform"], string> = {
+      LinkedIn:
+        "Write in short paragraphs (1–3 sentences). Use white space. Add light structure (numbered lists or bullets) but no markdown headings.",
+      Blog:
+        "You may use slightly longer paragraphs and more detailed explanations, but keep it scannable.",
+    };
 
-    const systemPrompt = `You are an expert LinkedIn content creator specializing in multi-part series.
+    const systemPrompt = `You are an expert content strategist and writer for ${seriesMetadata.platform}, creating a multi-part series.
 
-SERIES CONTEXT:
+SERIES:
 - Title: ${seriesMetadata.seriesTitle}
 - Audience: ${seriesMetadata.audience}
 - Voice: ${seriesMetadata.voice}
 - Platform: ${seriesMetadata.platform}
-- Word count per post: ${wordMin}-${wordMax} words
 
 VOICE GUIDELINES:
 ${voiceGuidelines[seriesMetadata.voice]}
 
+PLATFORM HINTS:
+${platformHints[seriesMetadata.platform]}
+
+WORD COUNT:
+- Each post must be between ${wordMin}-${wordMax} words.
+- You must return the word count for each post.
+
 STRUCTURE FOR EACH POST:
-1. Hook (first 1–2 lines) - grab attention.
-2. Body - deliver on promise; 2–3 sentence paragraphs; practical and specific.
-3. CTA - a simple, authentic question or next step.
+1. HOOK (first 1–2 lines)
+   - Immediately show why this matters to the reader.
+2. BODY
+   - Deliver on the promise of the title and focus statement.
+   - Use at least one specific example or scenario.
+   - Where appropriate, reference concrete metrics, outcomes, or achievements.
+3. CTA (Call to Action)
+   - End each post with a specific invitation: question, reflection, or next step.
 
-${vaultSummaryBlock}
+CAREER VAULT CONTEXT (USER BACKGROUND):
+${careerVaultSummaryShort || "Professional with measurable achievements and experience in their domain."}
 
-RULES:
-- Use Career Vault summary for credibility and examples, anonymized as needed.
-- Do NOT invent employers or confidential details.
-- Use numbers only if plausible for such roles; if unsupported, stay qualitative.
-- Avoid hype words: "rockstar", "guru", "world-class", "cutting-edge", "game-changing".
-- Each post must be self-contained and ready to publish.
-- Respect word count strictly.
+Use the Career Vault context to add credibility:
+- e.g., "In one transformation we led, cycle time dropped 35%..." (you can paraphrase or generalize if needed).
 
-OUTPUT FORMAT (JSON array):
+Return only a JSON array of posts, where each post has:
 [
   {
-    "postNumber": 1,
-    "title": "Full post title",
-    "body": "Full post content with hook and CTA.",
-    "hook": "First 1–2 lines",
-    "cta": "Closing call to action",
-    "wordCount": 220,
-    "vaultExamplesUsed": ["vault-based example description"]
+    "postNumber": number,
+    "title": "Part X title",
+    "body": "Full post content (hook + body + CTA) as one string",
+    "hook": "First 1–2 lines from the body",
+    "cta": "An engagement-driving call to action",
+    "wordCount": number,
+    "vaultExamplesUsed": ["optional list of examples you drew on"]
   }
-]`;
+]
+`;
 
-    const posts: any[] = [];
+    const posts: SeriesPost[] = [];
     const batchSize = 4;
 
     for (let i = 0; i < outline.length; i += batchSize) {
-      const batch = outline.slice(i, i + batchSize);
-      
-      const userPrompt = `Generate LinkedIn posts for these series parts:
+      const batch: OutlineItem[] = outline.slice(i, i + batchSize);
+
+      const userPrompt = `Generate ${batch.length} posts for the following parts of the series.
+
+For each part:
+- Use the title and focus statement as your north star.
+- Keep each post between ${wordMin}-${wordMax} words.
+- Include a clear hook and explicit CTA.
+- Use specific, believable examples that match the Career Vault context.
 
 PARTS:
-${batch.map((item: any) => 
-  `Part ${item.partNumber}: ${item.title}
-Focus: ${item.focusStatement}
-Category: ${item.category ?? "general"}`
-).join('\n\n')}
-
-REQUIREMENTS:
-- ${wordMin}-${wordMax} words per post.
-- Use specified voice and audience.
-- Include: strong hook, practical body, call to action.
-- Weave in one anonymized Career Vault example when possible.`;
-
-      console.log(`[Series Posts] Generating batch ${i + 1} to ${Math.min(i + batchSize, outline.length)}`);
+${batch
+        .map(
+          (item) =>
+            `Part ${item.partNumber}: ${item.title}
+Focus: ${item.focusStatement || "(none specified)"}
+Category: ${item.category || "general"}`,
+        )
+        .join("\n\n")}`;
 
       const { response, metrics } = await callLovableAI(
         {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
           model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.8,
-          max_tokens: 3200,
-          response_format: { type: 'json_object' }
+          max_tokens: 3500,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
         },
-        'generate-series-posts',
-        user.id
+        "generate-series-posts",
+        user.id,
       );
 
       await logAIUsage(metrics);
 
-      const content = response.choices[0].message.content;
-      const extracted = extractJSON(content);
+      const raw = response.choices[0]?.message?.content ?? "";
+      const extracted = extractJSON(raw);
 
-      if (!extracted.success) {
-        console.error('[Series Posts] JSON parse failed');
-        throw new Error('Failed to parse AI response');
+      if (!Array.isArray(extracted)) {
+        throw new Error("AI response did not return an array of posts");
       }
 
-      const json = extracted.data;
-      if (!Array.isArray(json)) {
-        console.error('[Series Posts] Expected array, got:', typeof json);
-        throw new Error('Invalid AI response format');
+      for (const p of extracted) {
+        const parsedPost = SeriesPostSchema.safeParse(p);
+        if (!parsedPost.success) {
+          console.error("Invalid post schema:", parsedPost.error.flatten());
+          throw new Error("AI post schema validation failed");
+        }
+        posts.push(parsedPost.data);
       }
-
-      posts.push(...json);
     }
 
-    console.log(`[Series Posts] Generated ${posts.length} posts for "${seriesMetadata.seriesTitle}"`);
+    // Basic sanity: ensure we didn't accidentally produce more posts than outline parts * 2 or something weird
+    if (posts.length === 0) {
+      throw new Error("No posts were generated");
+    }
 
     return new Response(
       JSON.stringify({
@@ -158,16 +231,17 @@ REQUIREMENTS:
           totalPosts: posts.length,
           voice: seriesMetadata.voice,
           audience: seriesMetadata.audience,
-        }
+        },
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
-  } catch (error: any) {
-    console.error('[Series Posts] Error:', error);
+  } catch (err: any) {
+    console.error("generate-series-posts error:", err);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: error.message === 'Unauthorized' ? 401 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error: err?.message || "Internal server error",
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
