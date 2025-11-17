@@ -10,6 +10,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { createCacheManager } from '../_shared/cache-manager.ts';
 
 interface StrategicAuditRequest {
   vaultId: string;
@@ -80,6 +81,32 @@ serve(async (req) => {
     const { vaultId }: StrategicAuditRequest = await req.json();
 
     console.log('🧠 STRATEGIC ENHANCEMENT: Starting deep AI reasoning for vault:', vaultId);
+
+    // Check cache first (5-minute TTL to reduce AI costs)
+    const cacheManager = createCacheManager();
+    const cacheKey = `strategic-audit:${vaultId}`;
+    
+    const cachedResult = await cacheManager.get<StrategicEnhancementResult>(
+      'strategic-audit',
+      { vaultId },
+      { ttlMinutes: 5 }
+    );
+
+    if (cachedResult) {
+      console.log('✅ Returning cached strategic audit result');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          smartQuestions: cachedResult.smartQuestionsToAsk || [],
+          strategicGaps: cachedResult.strategicGapsDiscovered || [],
+          enhancements: cachedResult.enhancements || [],
+          vaultStrengthBefore: cachedResult.vaultStrengthBefore || 0,
+          vaultStrengthAfter: cachedResult.vaultStrengthAfter || 0,
+          executiveSummary: cachedResult.executiveSummary || '',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch ALL vault data for comprehensive analysis
     const [
@@ -372,10 +399,18 @@ Return JSON:
       improvement: vaultStrengthAfter - vaultStrengthBefore
     });
 
+    // Cache the result for 5 minutes
+    await cacheManager.set('strategic-audit', { vaultId }, result, { ttlMinutes: 5 });
+
     return new Response(
       JSON.stringify({
         success: true,
-        data: result
+        smartQuestions: result.smartQuestionsToAsk || [],
+        strategicGaps: result.strategicGapsDiscovered || [],
+        enhancements: result.enhancements || [],
+        vaultStrengthBefore: result.vaultStrengthBefore || 0,
+        vaultStrengthAfter: result.vaultStrengthAfter || 0,
+        executiveSummary: result.executiveSummary || '',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -25,6 +25,7 @@ import { ExtractionProgressModal } from '@/components/career-vault/modals/Extrac
 
 // ChatGPT's Smart Question Panel
 import { V3SmartQuestionPanel } from '@/components/career-vault/dashboard/V3SmartQuestionPanel';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Lazy loaded tabs
 const VaultTabs = lazy(() => import('@/components/career-vault/dashboard/VaultTabs').then(m => ({ default: m.VaultTabs })));
@@ -98,7 +99,7 @@ const CareerVaultDashboardContent = () => {
     }
   };
 
-  const handleUploadComplete = async (vaultId: string) => {
+  const handleUploadComplete = async () => {
     setUploadModalOpen(false);
     setExtractionModalOpen(true);
     await refetch();
@@ -348,10 +349,12 @@ const CareerVaultDashboardContent = () => {
         {/* Right: Smart Question Panel (ChatGPT's calm improvement loop) */}
         <div className="lg:col-span-1">
           <div className="sticky top-6" id="smart-question-panel">
-            <V3SmartQuestionPanel
-              vaultId={vault.id}
-              onVaultUpdated={() => refetch()}
-            />
+            <ErrorBoundary>
+              <V3SmartQuestionPanel
+                vaultId={vault.id}
+                onVaultUpdated={() => refetch()}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       </div>

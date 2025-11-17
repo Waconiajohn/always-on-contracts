@@ -1,6 +1,10 @@
 import { invokeEdgeFunction } from "@/lib/edgeFunction";
 import { supabase } from "@/integrations/supabase/client";
 
+// Simple client-side cache with 5-minute TTL
+const auditCache = new Map<string, { data: StrategicAuditResult; expires: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export interface SmartQuestion {
   question: string;
   category: string;
@@ -37,10 +41,23 @@ export interface StrategicAuditResult {
 
 /**
  * Runs a strategic audit on a user's career vault to identify gaps and generate smart questions
+ * Results are cached for 5 minutes to avoid expensive AI calls on every page load
  */
 export async function runVaultStrategicAudit(
-  vaultId: string
+  vaultId: string,
+  options?: { forceRefresh?: boolean }
 ): Promise<StrategicAuditResult> {
+  // Check cache first (unless force refresh)
+  if (!options?.forceRefresh) {
+    const cached = auditCache.get(vaultId);
+    if (cached && cached.expires > Date.now()) {
+      console.log('[vaultStrategicAudit] Using cached result');
+      return cached.data;
+    }
+  }
+
+  console.log('[vaultStrategicAudit] Fetching fresh audit from edge function');
+  
   const { data, error } = await invokeEdgeFunction<StrategicAuditResult>(
     'vault-strategic-audit',
     { vaultId }
@@ -51,6 +68,12 @@ export async function runVaultStrategicAudit(
       error?.message || 'Failed to run strategic audit. Please try again.'
     );
   }
+
+  // Cache the result
+  auditCache.set(vaultId, {
+    data,
+    expires: Date.now() + CACHE_TTL_MS
+  });
 
   return data;
 }
