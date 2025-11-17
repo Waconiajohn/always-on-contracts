@@ -403,10 +403,12 @@ export default function LinkedInProfileBuilder() {
           </div>
         )}
 
-        {!optimizationResult && (
+        {optimizationResult && (
           <Card className="md:col-span-3">
             <CardHeader>
-              <CardTitle>Optimized Profile</CardTitle>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Optimized Profile</CardTitle>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="default">Score: {optimizationResult.optimizationScore}/100</Badge>
                     <Badge variant="outline">{optimizationResult.recruiterAppeal}</Badge>
