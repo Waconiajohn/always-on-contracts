@@ -133,13 +133,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.optimize-linkedin-profile]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-series-posts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.linkedin-networking-messages]
-verify_jwt = true
+verify_jwt = false
 
 [functions.scrape-career-trends]
 verify_jwt = true
