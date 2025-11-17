@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { FeaturePageWrapper } from "@/components/gates/FeaturePageWrapper";
 
 export default function ApplicationQueue() {
   const navigate = useNavigate();
@@ -113,7 +114,7 @@ export default function ApplicationQueue() {
   }
 
   return (
-    <div className="py-8 px-6 space-y-6 max-w-[1800px] mx-auto">
+    <FeaturePageWrapper showVaultReminder={true} vaultReminderContext="general">
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -132,8 +133,8 @@ export default function ApplicationQueue() {
           </Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
           <Card>
             <CardHeader className="pb-4">
               <CardDescription>Total Applications</CardDescription>
@@ -160,12 +161,12 @@ export default function ApplicationQueue() {
               </CardDescription>
               <CardTitle className="text-3xl text-primary">{stats.suggestions}</CardTitle>
             </CardHeader>
-          </Card>
+            </Card>
+          </div>
         </div>
-      </div>
 
-      {/* Main Tabs: My Queue vs AI Suggestions */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        {/* Main Tabs: My Queue vs AI Suggestions */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="my-queue">
             My Queue ({stats.total})
@@ -174,10 +175,10 @@ export default function ApplicationQueue() {
             <Sparkles className="h-4 w-4 mr-2" />
             AI Suggestions ({stats.suggestions})
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
 
-        {/* My Applications Tab */}
-        <TabsContent value="my-queue" className="space-y-4 mt-6">
+          {/* My Applications Tab */}
+          <TabsContent value="my-queue" className="space-y-4 mt-6">
           <div className="flex items-center justify-between mb-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]">
@@ -446,6 +447,6 @@ export default function ApplicationQueue() {
           </SubscriptionGate>
         </TabsContent>
       </Tabs>
-    </div>
+    </FeaturePageWrapper>
   );
 }
