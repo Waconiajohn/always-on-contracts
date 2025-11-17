@@ -37,7 +37,6 @@ const UnifiedHomeContent = () => {
   });
 
   const isPlatinum = subscription?.tier === 'concierge_elite';
-  const isVaultComplete = vaultStats.vaultCompletion === 100;
 
   useEffect(() => {
     fetchVaultStats();
@@ -77,7 +76,6 @@ const UnifiedHomeContent = () => {
       path: '/career-vault',
       progress: vaultStats.vaultCompletion,
       order: 1,
-      isLocked: false,
       isDualAI: true
     },
     {
@@ -87,8 +85,6 @@ const UnifiedHomeContent = () => {
       icon: Briefcase,
       path: '/job-search',
       order: 2,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first',
       isDualAI: true
     },
     {
@@ -98,8 +94,6 @@ const UnifiedHomeContent = () => {
       icon: FileText,
       path: '/agents/resume-builder-wizard',
       order: 3,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first',
       isDualAI: true
     },
     {
@@ -108,9 +102,7 @@ const UnifiedHomeContent = () => {
       description: 'Track applications, interviews & offers',
       icon: FileText,
       path: '/active-applications',
-      order: 4,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 4
     },
     {
       id: 'interview-prep',
@@ -119,8 +111,6 @@ const UnifiedHomeContent = () => {
       icon: MessageSquare,
       path: '/agents/interview-prep',
       order: 5,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first',
       isDualAI: true
     },
     {
@@ -129,9 +119,7 @@ const UnifiedHomeContent = () => {
       description: 'Optimize your professional presence',
       icon: Linkedin,
       path: '/agents/linkedin-profile-builder',
-      order: 6,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 6
     },
     {
       id: 'linkedin-content',
@@ -139,9 +127,7 @@ const UnifiedHomeContent = () => {
       description: 'Thought leadership and blogging',
       icon: Linkedin,
       path: '/agents/linkedin-blogging',
-      order: 7,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 7
     },
     {
       id: 'networking',
@@ -149,9 +135,7 @@ const UnifiedHomeContent = () => {
       description: 'Build strategic connections',
       icon: Users,
       path: '/agents/networking',
-      order: 8,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 8
     },
     {
       id: 'salary-negotiation',
@@ -159,9 +143,7 @@ const UnifiedHomeContent = () => {
       description: 'Market data and negotiation scripts',
       icon: DollarSign,
       path: '/salary-negotiation',
-      order: 9,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 9
     },
     {
       id: 'career-trends',
@@ -169,9 +151,7 @@ const UnifiedHomeContent = () => {
       description: 'Industry insights and market intelligence',
       icon: TrendingUp,
       path: '/agents/career-trends-scout',
-      order: 10,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 10
     },
     {
       id: 'agencies',
@@ -179,9 +159,7 @@ const UnifiedHomeContent = () => {
       description: 'Connect with top recruiters',
       icon: Building2,
       path: '/agencies',
-      order: 11,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 11
     },
     {
       id: 'financial-planning',
@@ -189,9 +167,7 @@ const UnifiedHomeContent = () => {
       description: 'Compensation and retirement analysis',
       icon: Calculator,
       path: '/agents/financial-planning-assistant',
-      order: 12,
-      isLocked: !isVaultComplete,
-      lockReason: 'Complete Career Vault first'
+      order: 12
     }
   ];
 
