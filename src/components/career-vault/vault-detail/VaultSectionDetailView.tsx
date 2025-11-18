@@ -9,12 +9,11 @@ import { VaultSearchFilter } from './VaultSearchFilter';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
-import type { PowerPhrase, TransferableSkill, HiddenCompetency } from '@/types/vault';
 
 interface VaultSectionDetailViewProps {
   sectionKey: string;
   sectionTitle: string;
-  items: (PowerPhrase | TransferableSkill | HiddenCompetency)[];
+  items: any[];
   benchmarkData: any;
   vaultId: string;
   onBack: () => void;
