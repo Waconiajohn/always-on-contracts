@@ -360,7 +360,6 @@ const CareerVaultDashboardContent = () => {
               <BenchmarkDrivenVaultBuilder
                 vaultId={vault.id}
                 benchmark={benchmark}
-                vaultData={vaultData}
                 onVaultUpdated={() => refetch()}
               />
             </ErrorBoundary>
