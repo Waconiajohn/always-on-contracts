@@ -23,8 +23,8 @@ import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/da
 import { UploadResumeModal } from '@/components/career-vault/modals/UploadResumeModal';
 import { ExtractionProgressModal } from '@/components/career-vault/modals/ExtractionProgressModal';
 
-// ChatGPT's Smart Question Panel
-import { V3SmartQuestionPanel } from '@/components/career-vault/dashboard/V3SmartQuestionPanel';
+// Benchmark-Driven Vault Builder
+import { BenchmarkDrivenVaultBuilder } from '@/components/career-vault/dashboard/BenchmarkDrivenVaultBuilder';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Lazy loaded tabs
@@ -34,14 +34,21 @@ const VaultTabs = lazy(() => import('@/components/career-vault/dashboard/VaultTa
  * Enhanced Career Vault Dashboard
  *
  * Architecture:
- * - Original benchmark-driven dashboard (proven, works)
- * - Claude's modal fixes (PDF parsing, auth headers)
- * - ChatGPT's Smart Question panel (calm improvement loop)
+ * - Benchmark-driven dashboard with Layer 1 (Foundations) and Layer 2 (Intelligence)
+ * - PDF parsing and resume extraction (working)
+ * - Section-by-section vault builder tied to benchmark gaps
  *
  * Layout:
- * - Hero: Benchmark progress
- * - Main content (2/3): Benchmark breakdown + tabs
- * - Right sidebar (1/3): Smart question panel
+ * - Hero: Overall benchmark progress (current/target)
+ * - Main content (2/3): Benchmark breakdown cards + detailed tabs
+ * - Right sidebar (1/3): Benchmark-driven vault builder (section-by-section)
+ *
+ * Vault Builder Approach:
+ * - Shows one section at a time (Work Experience → Skills → Leadership, etc.)
+ * - Each section displays: current vs. target, missing items, benchmark requirements
+ * - Simple fill-in-the-blank forms (no abstract questions)
+ * - Progressive unlock (Layer 2 sections unlock as foundations are completed)
+ * - Visual progress tracking per section and overall
  */
 const CareerVaultDashboardContent = () => {
   const navigate = useNavigate();
@@ -346,12 +353,14 @@ const CareerVaultDashboardContent = () => {
           </Suspense>
         </div>
 
-        {/* Right: Smart Question Panel (ChatGPT's calm improvement loop) */}
+        {/* Right: Benchmark-Driven Vault Builder */}
         <div className="lg:col-span-1">
-          <div className="sticky top-6" id="smart-question-panel">
+          <div className="sticky top-6">
             <ErrorBoundary>
-              <V3SmartQuestionPanel
+              <BenchmarkDrivenVaultBuilder
                 vaultId={vault.id}
+                benchmark={benchmark}
+                vaultData={vaultData}
                 onVaultUpdated={() => refetch()}
               />
             </ErrorBoundary>
