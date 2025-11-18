@@ -3,7 +3,7 @@
  * Enforces per-user rate limits and subscription quotas
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { AIError } from './error-handling.ts';
 
 interface QuotaLimits {
