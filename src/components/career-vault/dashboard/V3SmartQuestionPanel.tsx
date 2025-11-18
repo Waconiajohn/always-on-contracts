@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Clock, Loader2 } from "lucide-react";
+import { Sparkles, Clock, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -37,10 +37,10 @@ export function V3SmartQuestionPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vaultId]);
 
-  const loadQuestions = async () => {
+  const loadQuestions = async (forceRefresh = false) => {
     try {
       setInitializing(true);
-      const audit = await runVaultStrategicAudit(vaultId);
+      const audit = await runVaultStrategicAudit(vaultId, { forceRefresh });
       const smart = audit.smartQuestions || [];
       setQuestions(smart);
       setActiveIndex(0);
@@ -232,7 +232,7 @@ export function V3SmartQuestionPanel({
             variant="outline"
             size="sm"
             className="mt-2 w-full"
-            onClick={loadQuestions}
+            onClick={() => loadQuestions(true)}
           >
             Refresh suggestions
           </Button>
@@ -244,21 +244,33 @@ export function V3SmartQuestionPanel({
   return (
     <Card id="smart-question-panel" className="shadow-sm">
       <CardContent className="py-4 px-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-blue-500" />
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Focused improvement
-            </div>
-            <div className="text-sm font-medium">
-              Question {activeIndex + 1} of {questions.length}
-            </div>
-            {current.category && (
-              <div className="text-[11px] text-muted-foreground mt-0.5">
-                Focus area: {current.category}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-blue-500 mt-0.5" />
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                Focused improvement
               </div>
-            )}
+              <div className="text-sm font-medium">
+                Question {activeIndex + 1} of {questions.length}
+              </div>
+              {current.category && (
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  Focus area: {current.category}
+                </div>
+              )}
+            </div>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => loadQuestions(true)}
+            disabled={loading || initializing}
+            title="Get new questions"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </Button>
         </div>
 
         {current.reasoning && (

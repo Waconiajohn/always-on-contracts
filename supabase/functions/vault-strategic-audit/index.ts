@@ -14,6 +14,7 @@ import { createCacheManager } from '../_shared/cache-manager.ts';
 
 interface StrategicAuditRequest {
   vaultId: string;
+  forceRefresh?: boolean;
 }
 
 interface StrategicEnhancement {
@@ -78,18 +79,17 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { vaultId }: StrategicAuditRequest = await req.json();
+    const { vaultId, forceRefresh }: StrategicAuditRequest = await req.json();
 
-    console.log('🧠 STRATEGIC ENHANCEMENT: Starting deep AI reasoning for vault:', vaultId);
+    console.log('🧠 STRATEGIC ENHANCEMENT: Starting deep AI reasoning for vault:', vaultId, 'forceRefresh:', forceRefresh);
 
-    // Check cache first (5-minute TTL to reduce AI costs)
+    // Check cache first (5-minute TTL to reduce AI costs) unless forceRefresh is true
     const cacheManager = createCacheManager();
-    const cacheKey = `strategic-audit:${vaultId}`;
-    
+
     const cachedResult = await cacheManager.get<StrategicEnhancementResult>(
       'strategic-audit',
       { vaultId },
-      { ttlMinutes: 5 }
+      { ttlMinutes: 5, forceRefresh }
     );
 
     if (cachedResult) {
@@ -192,23 +192,18 @@ Don't follow a template - use deep thinking to discover:
    - What context or depth is missing?
    - Are there unexplored angles to their experience?
 
-2. **Smart Questions** - What questions, if answered, would unlock significantly more career intelligence?
-   - Generate 5-10 contextual, pointed questions
-   - Each question should be tailored to THEIR specific career trajectory
-   - Questions should uncover gaps you've identified through reasoning
-   - For each question, explain WHY it matters and where the answer would be stored
+2. **Smart Questions** - Generate simple, concrete questions that fill obvious gaps in their resume
+   - Questions should be EASY TO ANSWER and NON-INTIMIDATING
+   - Follow a logical section-by-section flow (work experience → skills → achievements)
+   - Ask for specific facts, numbers, tools, or concrete examples
+   - AVOID abstract questions like "describe a time when..." - those are scary and unhelpful
+   - Each question should make it clear what value it adds (e.g., "This helps quantify your impact")
 
 3. **Strategic Enhancements** - What can you infer and add with high confidence?
    - Use reasoning to infer strategic intelligence from existing data
    - Add thought leadership areas based on their expertise
    - Suggest competitive advantages based on their unique combination of skills
    - Enhance leadership philosophy based on their achievements
-
-Use Perplexity web search to:
-- Research their target roles to identify what's truly valued
-- Understand market positioning for their skill set
-- Discover emerging trends in their target industries
-- Find strategic intelligence that would enhance their vault
 
 Return JSON:
 {
@@ -230,11 +225,39 @@ Return JSON:
   ],
   "smartQuestionsToAsk": [
     {
-      "question": "Can you describe a time when you had to influence stakeholders without direct authority?",
-      "category": "Executive Presence",
-      "reasoning": "Gap: vault shows strong technical skills but lacks evidence of executive-level influence. This question would surface strategic relationship management abilities.",
+      "question": "How many people were on your team in your most recent leadership role?",
+      "category": "Work Experience",
+      "reasoning": "Adding team size quantifies your leadership scope and makes your management experience concrete.",
       "impact": "high",
-      "targetTable": "vault_executive_presence"
+      "targetTable": "vault_power_phrases"
+    },
+    {
+      "question": "What was your annual budget or project budget in your current/most recent role?",
+      "category": "Work Experience",
+      "reasoning": "Budget responsibility is a key indicator of seniority and scope. This helps position you for higher-level roles.",
+      "impact": "high",
+      "targetTable": "vault_power_phrases"
+    },
+    {
+      "question": "Which specific project management tools do you use regularly? (e.g., Jira, Asana, Monday.com)",
+      "category": "Technical Skills",
+      "reasoning": "Specific tool names make your skills more searchable by ATS systems and more credible to recruiters.",
+      "impact": "medium",
+      "targetTable": "vault_technical_skills"
+    },
+    {
+      "question": "What percentage improvement or growth did you achieve in your biggest win? (e.g., increased revenue 40%)",
+      "category": "Achievements",
+      "reasoning": "Quantified results are the most powerful resume elements. Numbers make your impact tangible.",
+      "impact": "high",
+      "targetTable": "vault_power_phrases"
+    },
+    {
+      "question": "What certifications or professional training have you completed? (if any)",
+      "category": "Education & Credentials",
+      "reasoning": "Certifications validate your expertise and are often used as filters by recruiters and ATS systems.",
+      "impact": "medium",
+      "targetTable": "vault_education"
     }
   ],
   "enhancements": [
@@ -254,9 +277,17 @@ Return JSON:
   ]
 }
 
-**CRITICAL RULES:**
+**CRITICAL RULES FOR SMART QUESTIONS:**
+- Questions MUST be simple, concrete, and easy to answer
+- Ask for SPECIFIC FACTS: numbers, dates, tools, team sizes, budget amounts, technologies
+- NEVER ask "describe a time when..." or "tell me about..." - too abstract and scary
+- Follow resume sections logically: Work Experience → Skills → Achievements → Education
+- Make it clear what value each answer adds (e.g., "This quantifies your impact" or "This helps ATS systems find you")
+- Generate 5-10 questions maximum, ordered by importance
+- Questions should feel HELPFUL, not like an interrogation
+
+**CRITICAL RULES FOR ENHANCEMENTS:**
 - Use DEEP REASONING - don't just check boxes
-- Generate questions that are CONTEXTUAL and SMART, not generic
 - Only add enhancements with confidence > 75%
 - Each enhancement must explain strategic value for their career
 - Maximum 15 enhancements total (focus on high strategic value)
@@ -276,12 +307,12 @@ Return JSON:
         model: LOVABLE_AI_MODELS.DEFAULT,
         messages: [{
           role: 'system',
-          content: 'You are an elite AI career strategist. Use deep reasoning and web search to enhance this vault strategically. Return only valid JSON, no markdown.'
+          content: 'You are a helpful career advisor. Generate simple, concrete questions that are easy to answer. NEVER ask abstract questions like "describe a time when...". Ask for specific facts: numbers, tools, team sizes, budget amounts, technologies. Make questions feel helpful, not intimidating. Return only valid JSON, no markdown.'
         }, {
           role: 'user',
           content: prompt
         }],
-        temperature: 0.8,
+        temperature: 0.7,
         max_tokens: 8000,
         response_format: { type: 'json_object' },
       },

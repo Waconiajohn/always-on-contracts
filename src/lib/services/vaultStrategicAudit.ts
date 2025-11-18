@@ -57,10 +57,10 @@ export async function runVaultStrategicAudit(
   }
 
   console.log('[vaultStrategicAudit] Fetching fresh audit from edge function');
-  
+
   const { data, error } = await invokeEdgeFunction<StrategicAuditResult>(
     'vault-strategic-audit',
-    { vaultId }
+    { vaultId, forceRefresh: options?.forceRefresh }
   );
 
   if (error || !data) {
