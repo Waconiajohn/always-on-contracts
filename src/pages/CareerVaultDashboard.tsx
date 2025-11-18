@@ -211,13 +211,16 @@ const CareerVaultDashboardContent = () => {
   return (
     <div className="space-y-6">
       {/* NEW: Main Vault Building Experience */}
-      <VaultBuilderMainView
-        vaultId={vault.id}
-        vault={vault}
-        benchmark={benchmark}
-        stats={stats}
-        onVaultUpdated={refetch}
-      />
+      {vaultData && (
+        <VaultBuilderMainView
+          vaultId={vault.id}
+          vault={vault}
+          benchmark={benchmark}
+          stats={stats}
+          vaultData={vaultData}
+          onVaultUpdated={refetch}
+        />
+      )}
 
       {/* Modals */}
       <UploadResumeModal
