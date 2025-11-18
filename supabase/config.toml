@@ -183,6 +183,22 @@ verify_jwt = true
 [functions.perplexity-research]
 verify_jwt = true
 
+[functions.enhance-vault-item]
+verify_jwt = true
+
+[functions.suggest-hidden-strengths]
+verify_jwt = true
+
+[functions.batch-enhance-items]
+verify_jwt = true
+
+[functions.generate-gap-roadmap]
+verify_jwt = true
+
+[functions.suggest-keywords]
+verify_jwt = true
+verify_jwt = true
+
 [functions.generate-resume-with-perplexity]
 verify_jwt = true
 

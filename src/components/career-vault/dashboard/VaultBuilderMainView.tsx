@@ -11,6 +11,7 @@ import {
   Award
 } from "lucide-react";
 import { VaultSectionBuilder } from './VaultSectionBuilder';
+import { VaultSectionDetailView } from '../vault-detail/VaultSectionDetailView';
 
 interface VaultBuilderMainViewProps {
   vaultId: string;
@@ -43,6 +44,7 @@ export function VaultBuilderMainView({
   onVaultUpdated
 }: VaultBuilderMainViewProps) {
   const [activeSection, setActiveSection] = useState<SectionKey>('work_experience');
+  const [detailViewSection, setDetailViewSection] = useState<string | null>(null);
 
   // Calculate overall progress
   const overallPercentage = Math.round(
@@ -126,6 +128,27 @@ export function VaultBuilderMainView({
   const activeData = sections.find(s => s.key === activeSection);
   const isLocked = activeData?.unlockThreshold && overallPercentage < activeData.unlockThreshold;
 
+  // If detail view is open, show it
+  if (detailViewSection) {
+    const detailSection = sections.find(s => s.key === detailViewSection);
+    if (!detailSection) {
+      setDetailViewSection(null);
+      return null;
+    }
+    
+    return (
+      <VaultSectionDetailView
+        sectionKey={detailViewSection}
+        sectionTitle={detailSection.title}
+        items={[]} // Will be loaded by the component
+        benchmarkData={detailSection.benchmarkData}
+        vaultId={vaultId}
+        onBack={() => setDetailViewSection(null)}
+        onItemUpdate={onVaultUpdated}
+      />
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Hero: Overall Progress - Current vs. Benchmark */}
@@ -208,7 +231,12 @@ export function VaultBuilderMainView({
           return (
             <button
               key={section.key}
-              onClick={() => !locked && setActiveSection(section.key)}
+              onClick={() => {
+                if (!locked) {
+                  setActiveSection(section.key);
+                  setDetailViewSection(section.key);
+                }
+              }}
               disabled={!!locked}
               className={`
                 relative p-4 rounded-lg border-2 text-left transition-all
