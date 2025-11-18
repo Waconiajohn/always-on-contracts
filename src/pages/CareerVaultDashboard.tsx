@@ -1,54 +1,42 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { useVaultData } from '@/hooks/useVaultData';
 import { useVaultStats } from '@/hooks/useVaultStats';
-import { useBenchmarkState, determinePrimaryGoal } from '@/hooks/useBenchmarkState';
+import { useBenchmarkState } from '@/hooks/useBenchmarkState';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 // Benchmark components
-import { BenchmarkHeroCard } from '@/components/career-vault/dashboard/BenchmarkHeroCard';
-import { PrimaryGoalCard } from '@/components/career-vault/dashboard/PrimaryGoalCard';
-import { BenchmarkProgressCard } from '@/components/career-vault/dashboard/BenchmarkProgressCard';
 import { BenchmarkSetupCard } from '@/components/career-vault/dashboard/BenchmarkSetupCard';
 import { BenchmarkRevealCard } from '@/components/career-vault/dashboard/BenchmarkRevealCard';
-import { BlockerAlert, detectCareerBlockers } from '@/components/career-vault/dashboard/BlockerAlert';
 
-// Modals (with Claude's PDF parsing fixes)
+// Modals
 import { UploadResumeModal } from '@/components/career-vault/modals/UploadResumeModal';
 import { ExtractionProgressModal } from '@/components/career-vault/modals/ExtractionProgressModal';
 
-// Benchmark-Driven Vault Builder
-import { BenchmarkDrivenVaultBuilder } from '@/components/career-vault/dashboard/BenchmarkDrivenVaultBuilder';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-// Lazy loaded tabs
-const VaultTabs = lazy(() => import('@/components/career-vault/dashboard/VaultTabs').then(m => ({ default: m.VaultTabs })));
+// NEW: Main Vault Building Experience
+import { VaultBuilderMainView } from '@/components/career-vault/dashboard/VaultBuilderMainView';
 
 /**
- * Enhanced Career Vault Dashboard
+ * Career Vault Dashboard - Complete Redesign
  *
- * Architecture:
- * - Benchmark-driven dashboard with Layer 1 (Foundations) and Layer 2 (Intelligence)
- * - PDF parsing and resume extraction (working)
- * - Section-by-section vault builder tied to benchmark gaps
+ * Philosophy:
+ * - Help users discover they're better than they think
+ * - Three-variable model: User Experience vs. Best-in-Class Benchmark (Job Description comes later)
+ * - Section-by-section vault building is PRIMARY experience
+ * - Creative questions to uncover hidden expertise
+ * - Simple, concrete, resume-native structure
  *
- * Layout:
- * - Hero: Overall benchmark progress (current/target)
- * - Main content (2/3): Benchmark breakdown cards + detailed tabs
- * - Right sidebar (1/3): Benchmark-driven vault builder (section-by-section)
- *
- * Vault Builder Approach:
- * - Shows one section at a time (Work Experience → Skills → Leadership, etc.)
- * - Each section displays: current vs. target, missing items, benchmark requirements
- * - Simple fill-in-the-blank forms (no abstract questions)
- * - Progressive unlock (Layer 2 sections unlock as foundations are completed)
- * - Visual progress tracking per section and overall
+ * Flow:
+ * 1. Upload resume → Extract
+ * 2. Generate benchmark (comparing user to best-in-class)
+ * 3. Reveal benchmark results
+ * 4. Main vault building: Section-by-section improvement with Current vs. Benchmark comparison
  */
 const CareerVaultDashboardContent = () => {
   const navigate = useNavigate();
@@ -115,11 +103,6 @@ const CareerVaultDashboardContent = () => {
   const handleExtractionComplete = async () => {
     setExtractionModalOpen(false);
     await refetch();
-  };
-
-  const handlePrimaryGoalStart = () => {
-    // Navigate to appropriate modal/action based on goal
-    toast.info('Feature coming soon!');
   };
 
   const handleBenchmarkRevealStart = () => {
@@ -213,16 +196,9 @@ const CareerVaultDashboardContent = () => {
     );
   }
 
-  // MAIN DASHBOARD: Building/Optimizing/Ready states
+  // MAIN DASHBOARD: Vault Building Experience
   const vault = vaultData?.vault;
   const benchmark = vault?.benchmark_standard;
-  const blockers = vaultData && stats ? detectCareerBlockers({
-    strengthScore: stats.strengthScore.total,
-    leadershipItems: stats.categoryCounts.leadershipPhilosophy,
-    budgetOwnership: false,
-    targetRoles: vault?.target_roles || []
-  }) : [];
-  const primaryGoal = determinePrimaryGoal(benchmark);
 
   if (!benchmark) {
     return (
@@ -232,142 +208,18 @@ const CareerVaultDashboardContent = () => {
     );
   }
 
-  const percentage = Math.round((benchmark.overall_current / benchmark.overall_target) * 100);
-  const nextMilestone = percentage < 60
-    ? "Reach 60% to unlock Resume Builder"
-    : percentage < 85
-    ? "Reach 85% to be market ready"
-    : "Ready to build custom resumes!";
-
   return (
     <div className="space-y-6">
-      {/* Hero: Benchmark Progress */}
-      <BenchmarkHeroCard
-        current={benchmark.overall_current}
-        target={benchmark.overall_target}
-        percentage={percentage}
-        status={dashboardState.message}
-        nextMilestone={nextMilestone}
-        level={benchmark.level}
-        role={benchmark.role}
+      {/* NEW: Main Vault Building Experience */}
+      <VaultBuilderMainView
+        vaultId={vault.id}
+        vault={vault}
+        benchmark={benchmark}
+        stats={stats}
+        onVaultUpdated={refetch}
       />
 
-      {/* Blockers (if any) */}
-      {blockers.length > 0 && (
-        <div className="space-y-3">
-          {blockers.map((blocker, i) => (
-            <BlockerAlert
-              key={i}
-              blocker={blocker}
-              onAction={() => toast.info('Feature coming soon!')}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Primary Goal */}
-      {primaryGoal && (
-        <PrimaryGoalCard
-          goal={primaryGoal.goal}
-          impact={primaryGoal.impact}
-          scoreGain={primaryGoal.scoreGain}
-          newScore={benchmark.overall_current + primaryGoal.scoreGain}
-          targetScore={benchmark.overall_target}
-          estimatedTime={primaryGoal.estimatedTime}
-          onStart={handlePrimaryGoalStart}
-        />
-      )}
-
-      {/* Main Content Grid: Content (2/3) + Smart Questions (1/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Main Dashboard Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Benchmark Progress Breakdown */}
-          <BenchmarkProgressCard
-            layer1={{
-              total_current: benchmark.layer1_foundations.work_experience.current +
-                            benchmark.layer1_foundations.skills.current,
-              total_target: benchmark.layer1_foundations.work_experience.target +
-                           benchmark.layer1_foundations.skills.target,
-              sections: [
-                {
-                  name: 'Work Experience',
-                  target: benchmark.layer1_foundations.work_experience.target,
-                  current: benchmark.layer1_foundations.work_experience.current,
-                  percentage: benchmark.layer1_foundations.work_experience.percentage,
-                  details: benchmark.layer1_foundations.work_experience.benchmark_rule,
-                  missing: benchmark.layer1_foundations.work_experience.examples.slice(0, 3)
-                },
-                {
-                  name: 'Skills & Expertise',
-                  target: benchmark.layer1_foundations.skills.target,
-                  current: benchmark.layer1_foundations.skills.current,
-                  percentage: benchmark.layer1_foundations.skills.percentage,
-                  missing: benchmark.layer1_foundations.skills.critical_missing
-                }
-              ]
-            }}
-            layer2={{
-              total_current: benchmark.layer2_intelligence.leadership.current +
-                            benchmark.layer2_intelligence.strategic_impact.current +
-                            benchmark.layer2_intelligence.professional_resources.current,
-              total_target: benchmark.layer2_intelligence.leadership.target +
-                           benchmark.layer2_intelligence.strategic_impact.target +
-                           benchmark.layer2_intelligence.professional_resources.target,
-              sections: [
-                {
-                  name: 'Leadership Approach',
-                  target: benchmark.layer2_intelligence.leadership.target,
-                  current: benchmark.layer2_intelligence.leadership.current,
-                  percentage: benchmark.layer2_intelligence.leadership.percentage,
-                  missing: benchmark.layer2_intelligence.leadership.focus_areas
-                },
-                {
-                  name: 'Strategic Impact',
-                  target: benchmark.layer2_intelligence.strategic_impact.target,
-                  current: benchmark.layer2_intelligence.strategic_impact.current,
-                  percentage: benchmark.layer2_intelligence.strategic_impact.percentage,
-                  missing: benchmark.layer2_intelligence.strategic_impact.missing_metrics
-                },
-                {
-                  name: 'Professional Resources',
-                  target: benchmark.layer2_intelligence.professional_resources.target,
-                  current: benchmark.layer2_intelligence.professional_resources.current,
-                  percentage: benchmark.layer2_intelligence.professional_resources.percentage,
-                  missing: benchmark.layer2_intelligence.professional_resources.expected_tools
-                }
-              ]
-            }}
-          />
-
-          {/* Tabs: Items, Activity, Settings */}
-          <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin mx-auto" />}>
-            <VaultTabs
-              vaultId={vault.id}
-              vault={vault}
-              vaultData={vaultData}
-              onRefresh={refetch}
-              onEdit={() => {}}
-              onView={() => {}}
-            />
-          </Suspense>
-        </div>
-
-        {/* Right: Benchmark-Driven Vault Builder */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-6">
-            <ErrorBoundary>
-              <BenchmarkDrivenVaultBuilder
-                vaultId={vault.id}
-                benchmark={benchmark}
-                onVaultUpdated={() => refetch()}
-              />
-            </ErrorBoundary>
-          </div>
-        </div>
-      </div>
-
-      {/* Modals (with Claude's fixes) */}
+      {/* Modals */}
       <UploadResumeModal
         open={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
