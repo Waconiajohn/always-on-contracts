@@ -3,7 +3,7 @@
  * Logs AI API calls for cost tracking and analytics
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 export interface AIUsageMetrics {
   model: string;
