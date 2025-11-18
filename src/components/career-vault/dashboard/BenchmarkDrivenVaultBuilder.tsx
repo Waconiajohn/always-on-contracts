@@ -32,7 +32,6 @@ interface BenchmarkSection {
 interface BenchmarkDrivenVaultBuilderProps {
   vaultId: string;
   benchmark: any;
-  vaultData: any;
   onVaultUpdated?: () => void;
 }
 
@@ -48,12 +47,10 @@ type SectionKey = 'work_experience' | 'skills' | 'leadership' | 'strategic_impac
 export function BenchmarkDrivenVaultBuilder({
   vaultId,
   benchmark,
-  vaultData,
   onVaultUpdated
 }: BenchmarkDrivenVaultBuilderProps) {
   const [expandedSection, setExpandedSection] = useState<SectionKey | null>('work_experience');
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<Record<string, any>>({});
 
   // Calculate overall progress
   const overallPercentage = Math.round(
@@ -130,7 +127,7 @@ export function BenchmarkDrivenVaultBuilder({
     setLoading(true);
     try {
       // Handle different section types
-      let table = '';
+      let table: 'vault_power_phrases' | 'vault_transferable_skills' | 'vault_leadership_philosophy' | 'vault_hidden_competencies' | 'vault_professional_network' | 'vault_technical_skills' = 'vault_power_phrases';
       let insertData: any = {
         vault_id: vaultId
       };
@@ -181,12 +178,11 @@ export function BenchmarkDrivenVaultBuilder({
           break;
       }
 
-      const { error } = await supabase.from(table).insert(insertData);
+      const { error } = await supabase.from(table as any).insert(insertData);
 
       if (error) throw error;
 
       toast.success('Added to your Career Vault!');
-      setFormData({});
 
       if (onVaultUpdated) {
         onVaultUpdated();
@@ -308,9 +304,13 @@ export function BenchmarkDrivenVaultBuilder({
                   )}
 
                   {/* Missing Items */}
-                  {(section.data.missing || section.data.critical_missing ||
-                    section.data.focus_areas || section.data.missing_metrics ||
-                    section.data.expected_tools)?.length > 0 && (
+                  {([
+                    ...(section.data.missing || []),
+                    ...(section.data.critical_missing || []),
+                    ...(section.data.focus_areas || []),
+                    ...(section.data.missing_metrics || []),
+                    ...(section.data.expected_tools || [])
+                  ].length > 0) && (
                     <div className="space-y-2">
                       <p className="text-xs font-medium">What's Missing:</p>
                       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
