@@ -1,14 +1,11 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
-  ChevronRight,
   Target,
   TrendingUp,
   CheckCircle2,
-  AlertCircle,
   Sparkles,
   Lock,
   Award
@@ -42,9 +39,7 @@ type SectionKey = 'work_experience' | 'skills' | 'leadership' | 'strategic_impac
  */
 export function VaultBuilderMainView({
   vaultId,
-  vault,
   benchmark,
-  stats,
   onVaultUpdated
 }: VaultBuilderMainViewProps) {
   const [activeSection, setActiveSection] = useState<SectionKey>('work_experience');
@@ -214,7 +209,7 @@ export function VaultBuilderMainView({
             <button
               key={section.key}
               onClick={() => !locked && setActiveSection(section.key)}
-              disabled={locked}
+              disabled={!!locked}
               className={`
                 relative p-4 rounded-lg border-2 text-left transition-all
                 ${isActive
