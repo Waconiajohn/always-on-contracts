@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import "https://deno.land/x/xhr@0.3.0/mod.ts";
 import { getDocumentProxy } from "https://esm.sh/unpdf@0.11.0";
 import JSZip from "https://esm.sh/jszip@3.10.1";

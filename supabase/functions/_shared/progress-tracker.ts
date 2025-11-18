@@ -1,4 +1,4 @@
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 /**
  * Real-time progress tracker for extraction operations

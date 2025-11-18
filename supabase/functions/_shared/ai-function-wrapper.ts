@@ -20,7 +20,7 @@
  * ```
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { ZodSchema } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { extractJSON, extractToolCallJSON, ParseResult } from './json-parser.ts';
 import { createLogger } from './logger.ts';

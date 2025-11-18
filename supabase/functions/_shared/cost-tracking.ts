@@ -4,7 +4,7 @@
  * Logs AI usage metrics to the database for observability and cost analysis
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { AIUsageMetrics } from './ai-config.ts';
 
 /**
