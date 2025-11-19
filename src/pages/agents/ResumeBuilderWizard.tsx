@@ -606,13 +606,19 @@ const ResumeBuilderWizardContent = () => {
       const requiredSections = sections.filter(s => s.required);
       const totalSections = requiredSections.length;
 
-      // Check if vault has work positions before generating
-      const { data: vaultCheck } = await supabase
-        .from('vault_work_positions')
-        .select('id')
-        .limit(1);
+      // Check if vault has ANY data before generating
+      const { data: vaultData } = await supabase
+        .from('career_vault')
+        .select('id, total_power_phrases, total_transferable_skills, total_hidden_competencies')
+        .single();
 
-      if (!vaultCheck || vaultCheck.length === 0) {
+      const hasVaultData = vaultData && (
+        (vaultData.total_power_phrases || 0) > 0 ||
+        (vaultData.total_transferable_skills || 0) > 0 ||
+        (vaultData.total_hidden_competencies || 0) > 0
+      );
+
+      if (!hasVaultData) {
         toast({
           title: "Career Vault Empty",
           description: "Please upload and analyze your resume first to populate your career vault.",
