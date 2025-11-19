@@ -63,10 +63,12 @@ serve(async (req) => {
         };
         const targetTier = tierProgression[currentTier];
 
-        const systemPrompt = `Enhance career items to higher quality tiers with metrics, strategic context, and strong language. Return JSON:
+        const systemPrompt = `Enhance career items to higher quality tiers with metrics, strategic context, and strong language. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
   "enhanced_content": "improved version",
-  "new_tier": "gold/silver/bronze",
+  "new_tier": "gold" | "silver" | "bronze",
   "suggested_keywords": ["kw1", "kw2", "kw3"]
 }`;
 
@@ -92,14 +94,24 @@ Add metrics, strategic impact, and stronger language. Include 3 ATS keywords.`;
 
         await logAIUsage(metrics);
 
-        const parseResult = extractJSON(response.choices[0].message.content);
+        const rawContent = response.choices[0].message.content;
+        console.log(`Raw AI response for item ${item.id}:`, rawContent.substring(0, 300));
+        
+        const parseResult = extractJSON(rawContent);
         
         if (!parseResult.success || !parseResult.data) {
           console.error(`Failed to parse enhancement for item ${item.id}:`, parseResult.error);
+          console.error('Full response:', rawContent);
           continue;
         }
 
         const enhancement = parseResult.data;
+        
+        // Validate required fields
+        if (!enhancement.enhanced_content || !enhancement.new_tier) {
+          console.error(`Missing required fields for item ${item.id}:`, enhancement);
+          continue;
+        }
 
         // Update the item
         await supabase
