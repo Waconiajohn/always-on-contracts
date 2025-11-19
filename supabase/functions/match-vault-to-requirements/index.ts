@@ -116,7 +116,7 @@ serve(async (req) => {
       });
     }
 
-    // Fetch all vault intelligence categories in parallel
+    // Fetch ALL vault intelligence categories in parallel (17 total)
     const [
       powerPhrases,
       transferableSkills,
@@ -127,7 +127,14 @@ serve(async (req) => {
       personalityTraits,
       workStyle,
       values,
-      behavioralIndicators
+      behavioralIndicators,
+      confirmedSkills,
+      education,
+      resumeMilestones,
+      competitiveAdvantages,
+      professionalResources,
+      careerContext,
+      interviewResponses
     ] = await Promise.all([
       supabase.from('vault_power_phrases').select('*').eq('vault_id', vault.id),
       supabase.from('vault_transferable_skills').select('*').eq('vault_id', vault.id),
@@ -138,8 +145,36 @@ serve(async (req) => {
       supabase.from('vault_personality_traits').select('*').eq('vault_id', vault.id),
       supabase.from('vault_work_style').select('*').eq('vault_id', vault.id),
       supabase.from('vault_values_motivations').select('*').eq('vault_id', vault.id),
-      supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id)
+      supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_confirmed_skills').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_education').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_resume_milestones').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_competitive_advantages').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_professional_resources').select('*').eq('vault_id', vault.id),
+      supabase.from('vault_career_context').select('*').eq('vault_id', vault.id).maybeSingle(),
+      supabase.from('vault_interview_responses').select('*').eq('vault_id', vault.id)
     ]);
+
+    // Log comprehensive vault data counts for debugging
+    console.log('[VAULT-QUERY] Fetched categories:', {
+      powerPhrases: powerPhrases.data?.length || 0,
+      transferableSkills: transferableSkills.data?.length || 0,
+      hiddenCompetencies: hiddenCompetencies.data?.length || 0,
+      softSkills: softSkills.data?.length || 0,
+      leadershipPhilosophy: leadershipPhilosophy.data?.length || 0,
+      executivePresence: executivePresence.data?.length || 0,
+      personalityTraits: personalityTraits.data?.length || 0,
+      workStyle: workStyle.data?.length || 0,
+      values: values.data?.length || 0,
+      behavioralIndicators: behavioralIndicators.data?.length || 0,
+      confirmedSkills: confirmedSkills.data?.length || 0,
+      education: education.data?.length || 0,
+      resumeMilestones: resumeMilestones.data?.length || 0,
+      competitiveAdvantages: competitiveAdvantages.data?.length || 0,
+      professionalResources: professionalResources.data?.length || 0,
+      careerContext: careerContext.data ? 'present' : 'missing',
+      interviewResponses: interviewResponses.data?.length || 0
+    });
 
     const vaultData = {
       ...vault,
@@ -152,14 +187,21 @@ serve(async (req) => {
       vault_personality_traits: personalityTraits.data || [],
       vault_work_style: workStyle.data || [],
       vault_values_motivations: values.data || [],
-      vault_behavioral_indicators: behavioralIndicators.data || []
+      vault_behavioral_indicators: behavioralIndicators.data || [],
+      vault_confirmed_skills: confirmedSkills.data || [],
+      vault_education: education.data || [],
+      vault_resume_milestones: resumeMilestones.data || [],
+      vault_competitive_advantages: competitiveAdvantages.data || [],
+      vault_professional_resources: professionalResources.data || [],
+      vault_career_context: careerContext.data || null,
+      vault_interview_responses: interviewResponses.data || []
     };
 
     console.log('Vault data fetched successfully');
 
     const matches: VaultMatch[] = [];
 
-    // Process each vault category
+    // Process ALL vault categories (17 total - comprehensive coverage)
     const vaultCategories = [
       { name: 'power_phrases', data: vaultData.vault_power_phrases, type: 'achievement' },
       { name: 'transferable_skills', data: vaultData.vault_transferable_skills, type: 'skill' },
@@ -171,7 +213,12 @@ serve(async (req) => {
       { name: 'work_style', data: vaultData.vault_work_style, type: 'cultural-fit' },
       { name: 'values_motivations', data: vaultData.vault_values_motivations, type: 'cultural-fit' },
       { name: 'behavioral_indicators', data: vaultData.vault_behavioral_indicators, type: 'evidence' },
+      { name: 'confirmed_skills', data: vaultData.vault_confirmed_skills, type: 'technical-skill' },
+      { name: 'education', data: vaultData.vault_education, type: 'credential' },
       { name: 'resume_milestones', data: vaultData.vault_resume_milestones, type: 'experience' },
+      { name: 'competitive_advantages', data: vaultData.vault_competitive_advantages, type: 'differentiator' },
+      { name: 'professional_resources', data: vaultData.vault_professional_resources, type: 'resource' },
+      { name: 'career_context', data: vaultData.vault_career_context ? [vaultData.vault_career_context] : [], type: 'context' },
       { name: 'interview_responses', data: vaultData.vault_interview_responses, type: 'expanded' }
     ];
 
@@ -250,7 +297,8 @@ For each vault item, determine:
 CRITICAL INSTRUCTION: You MUST use the EXACT vaultCategory name from the CAREER VAULT DATA above.
 Valid categories are: power_phrases, transferable_skills, hidden_competencies, soft_skills,
 leadership_philosophy, executive_presence, personality_traits, work_style, values_motivations,
-behavioral_indicators, resume_milestones, interview_responses
+behavioral_indicators, confirmed_skills, education, resume_milestones, competitive_advantages,
+professional_resources, career_context, interview_responses
 
 DO NOT make up category names. DO NOT use generic names like "achievement" or "skill".
 USE THE EXACT CATEGORY NAME from the vault data (e.g., "power_phrases", NOT "phrases").

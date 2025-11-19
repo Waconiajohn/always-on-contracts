@@ -101,32 +101,62 @@ export const exportFormats = {
   },
 
   async generateDOCX(structuredData: any, fileName: string) {
+    const children: any[] = [
+      new Paragraph({
+        text: structuredData.name || 'Resume',
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 }
+      }),
+      new Paragraph({
+        text: [
+          structuredData.contact?.email || '',
+          structuredData.contact?.phone || '',
+          structuredData.contact?.location || ''
+        ].filter(Boolean).join(' | '),
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 240 }
+      })
+    ];
+
+    // Add sections with proper formatting
+    (structuredData.sections || []).forEach((section: any) => {
+      // Section heading
+      children.push(
+        new Paragraph({
+          text: section.title.toUpperCase(),
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 240, after: 120 }
+        })
+      );
+
+      // Section content - split into bullets if contains bullet points
+      const content = section.content || '';
+      if (content.includes('•') || content.includes('\n')) {
+        const bullets = content.split('\n').filter((line: string) => line.trim());
+        bullets.forEach((bullet: string) => {
+          children.push(
+            new Paragraph({
+              text: bullet.replace(/^[•\-]\s*/, ''),
+              bullet: { level: 0 },
+              spacing: { after: 60 }
+            })
+          );
+        });
+      } else {
+        children.push(
+          new Paragraph({
+            text: content,
+            spacing: { after: 120 }
+          })
+        );
+      }
+    });
+
     const doc = new Document({
       sections: [{
         properties: {},
-        children: [
-          new Paragraph({
-            text: structuredData.name || 'Resume',
-            heading: HeadingLevel.HEADING_1,
-            alignment: AlignmentType.CENTER
-          }),
-          new Paragraph({
-            text: `${structuredData.contact?.email || ''} | ${structuredData.contact?.phone || ''}`,
-            alignment: AlignmentType.CENTER
-          }),
-          new Paragraph({ text: '' }),
-          ...(structuredData.sections || []).flatMap((section: any) => [
-            new Paragraph({
-              text: section.title.toUpperCase(),
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 240, after: 120 }
-            }),
-            new Paragraph({
-              text: section.content,
-              spacing: { after: 240 }
-            })
-          ])
-        ]
+        children
       }]
     });
 
