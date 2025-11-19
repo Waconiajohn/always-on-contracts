@@ -1197,39 +1197,52 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    console.error('[PROCESS-RESUME] ❌ CRITICAL ERROR:', error);
+    console.error('[PROCESS-RESUME] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorType = Object.keys(ERROR_MESSAGES).find(key =>
       errorMessage.toLowerCase().includes(key.replace(/_/g, ' '))
     ) || 'parsing_failed';
 
-    // Update queue status
+    // Update queue status (wrap in try-catch to prevent secondary errors)
     if (queueId) {
-      await supabase.from('resume_processing_queue')
-        .update({
-          status: 'failed',
-          error_message: errorMessage,
-          error_type: errorType,
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', queueId);
+      try {
+        await supabase.from('resume_processing_queue')
+          .update({
+            status: 'failed',
+            error_message: errorMessage,
+            error_type: errorType,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', queueId);
+      } catch (queueError) {
+        console.error('[PROCESS-RESUME] Failed to update queue:', queueError);
+      }
     }
 
-    // Log failure
+    // Log failure (wrap in try-catch to prevent secondary errors)
     if (userId) {
-      await supabase.from('processing_logs').insert({
-        user_id: userId,
-        queue_id: queueId,
-        file_name: 'unknown',
-        file_size: 0,
-        file_type: 'unknown',
-        processing_time_ms: Date.now() - startTime,
-        success: false,
-        error_type: errorType,
-        error_message: errorMessage
-      });
+      try {
+        await supabase.from('processing_logs').insert({
+          user_id: userId,
+          queue_id: queueId,
+          file_name: 'unknown',
+          file_size: 0,
+          file_type: 'unknown',
+          processing_time_ms: Date.now() - startTime,
+          success: false,
+          error_type: errorType,
+          error_message: errorMessage
+        });
+      } catch (logError) {
+        console.error('[PROCESS-RESUME] Failed to log error:', logError);
+      }
     }
 
     const errorMsg = ERROR_MESSAGES[errorType] || ERROR_MESSAGES['parsing_failed'] || 'Unable to process resume';
+
+    console.log('[PROCESS-RESUME] Returning error response:', { errorMsg, errorType, errorMessage });
 
     return new Response(JSON.stringify({
       success: false,
