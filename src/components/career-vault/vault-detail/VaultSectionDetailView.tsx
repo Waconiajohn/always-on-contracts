@@ -89,6 +89,12 @@ export function VaultSectionDetailView({
     setActiveRoadmapItem(null);
   };
 
+  // Handle item updates and ensure visibility
+  const handleItemUpdate = () => {
+    setActiveTab('all'); // Switch to "All" tab to show updated items
+    onItemUpdate();
+  };
+
   // Filter items relevant to active roadmap
   const getRelevantItems = () => {
     if (!activeRoadmapItem) return filteredItems;
@@ -151,7 +157,7 @@ export function VaultSectionDetailView({
               vaultId={vaultId}
               selectedItems={selectedItems}
               onClearSelection={() => setSelectedItems([])}
-              onComplete={onItemUpdate}
+              onComplete={handleItemUpdate}
             />
           )}
 
@@ -212,7 +218,7 @@ export function VaultSectionDetailView({
                                 : prev.filter(id => id !== item.id)
                             );
                           }}
-                          onUpdate={onItemUpdate}
+                          onUpdate={handleItemUpdate}
                         />
                       ))
                     )}
@@ -227,9 +233,9 @@ export function VaultSectionDetailView({
         <ResizableHandle withHandle />
 
         {/* Right Panel - Benchmark & Workspace */}
-        <ResizablePanel defaultSize={45} minSize={35}>
-          <ScrollArea className="h-[calc(100vh-280px)] pl-4">
-            <div className="space-y-4">
+        <ResizablePanel defaultSize={45} minSize={35} className="flex flex-col">
+          <div className="flex-1 overflow-y-auto pl-4">
+            <div className="space-y-4 pb-6">
           {!activeRoadmapItem ? (
             <>
               <BenchmarkComparisonPanel
@@ -244,7 +250,7 @@ export function VaultSectionDetailView({
                 vaultId={vaultId}
                 benchmarkData={benchmarkData}
                 currentItems={items}
-                onItemsAdded={onItemUpdate}
+                onItemsAdded={handleItemUpdate}
                 onStartWork={handleStartWork}
               />
             </>
@@ -255,11 +261,11 @@ export function VaultSectionDetailView({
               vaultId={vaultId}
               currentItems={items}
               onExit={handleExitFocus}
-              onItemAdded={onItemUpdate}
+              onItemAdded={handleItemUpdate}
             />
           )}
             </div>
-          </ScrollArea>
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
