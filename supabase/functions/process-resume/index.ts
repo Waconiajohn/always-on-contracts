@@ -880,36 +880,28 @@ serve(async (req) => {
       fileData = btoa(binary);
       console.log('[PROCESS-RESUME] Converted file to base64:', fileData.length, 'chars');
       
-      // Phase 1.1: Replace manual JWT parsing with Supabase auth
+      // Phase 1.1: Extract and validate JWT token
       const authHeader = req.headers.get('authorization');
-      console.log('[PROCESS-RESUME] Auth header present:', !!authHeader, authHeader?.substring(0, 20));
+      console.log('[PROCESS-RESUME] Auth header present:', !!authHeader);
       if (!authHeader) {
         throw new Error(ERROR_MESSAGES['authentication_failed']);
       }
+
+      // Extract the JWT token from "Bearer <token>"
+      const token = authHeader.replace('Bearer ', '');
       
-      // Create a Supabase client with the user's auth header
-      const supabaseClient = createClient(
+      // Create a Supabase client with service role to validate the token
+      const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_ANON_KEY')!,
-        {
-          global: { 
-            headers: { 
-              Authorization: authHeader 
-            } 
-          },
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-            detectSessionInUrl: false
-          }
-        }
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
       );
       
-      console.log('[PROCESS-RESUME] Created Supabase client, attempting to get user...');
+      console.log('[PROCESS-RESUME] Validating JWT token...');
 
-      // Validate and extract user
-      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-      console.log('[PROCESS-RESUME] getUser result:', { hasUser: !!user, error: authError?.message });
+      // Validate the token and get user
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      console.log('[PROCESS-RESUME] Validation result:', { hasUser: !!user, userId: user?.id, error: authError?.message });
+      
       if (authError) {
         console.error('[PROCESS-RESUME] Auth error:', authError);
         throw new Error(`${ERROR_MESSAGES['authentication_failed']}: ${authError.message}`);
