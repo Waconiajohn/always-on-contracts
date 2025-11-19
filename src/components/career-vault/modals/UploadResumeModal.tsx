@@ -124,8 +124,11 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
 
       if (processError) {
         console.error('Process resume error:', processError);
+        console.error('Full error object:', JSON.stringify(processError, null, 2));
         throw new Error(processError.message || 'Failed to process resume file');
       }
+
+      console.log('Process resume response:', processData);
 
       if (!processData?.success) {
         const errorMsg = processData?.error || processData?.details || 'Unable to process this resume file';
