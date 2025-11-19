@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/jsonParser.ts';
 
 // Generate gap solutions using Perplexity AI
 const corsHeaders = {
@@ -197,7 +198,7 @@ RULES:
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
-    const parsed = JSON.parse(content);
+    const parsed = extractJSON(content);
 
     console.log('AI Response:', JSON.stringify(parsed, null, 2));
 
