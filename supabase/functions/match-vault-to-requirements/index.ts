@@ -398,7 +398,8 @@ NOTE: The "unmatchedRequirements" field will be calculated automatically - DO NO
           allRequirements.forEach((req: any) => {
             if (req.keywords && Array.isArray(req.keywords)) {
               req.keywords.forEach((keyword: string) => {
-                if (itemText.includes(keyword.toLowerCase())) {
+                // Safety check: ensure keyword exists and is a valid string
+                if (keyword && typeof keyword === 'string' && itemText.includes(keyword.toLowerCase())) {
                   matchScore += req.importance || 5;
                   satisfiesReqs.push(req.requirement);
                   foundKeywords.push(keyword);
