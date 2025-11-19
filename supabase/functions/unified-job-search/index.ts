@@ -1875,7 +1875,9 @@ async function scoreWithVault(jobs: JobResult[], userId: string, supabaseClient:
       const jobText = `${job.title} ${job.description || ''}`.toLowerCase();
 
       // Title match (50 points)
-      if (targetRoles.some((role: string) => jobText.includes(role.toLowerCase()))) {
+      if (targetRoles.some((role: any) => 
+        typeof role === 'string' && jobText.includes(role.toLowerCase())
+      )) {
         score += 50;
       }
 
