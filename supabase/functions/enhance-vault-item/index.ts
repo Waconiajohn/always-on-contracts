@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callLovableAI } from "../_shared/lovableAI.ts";
-import { logAIUsage } from "../_shared/aiUsageLogger.ts";
-import { extractJSON } from "../_shared/jsonParser.ts";
+import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
+import { logAIUsage } from "../_shared/cost-tracking.ts";
+import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,29 +59,30 @@ Item Type: ${itemType}
 
 Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable metrics, and stronger language. Make it compelling and achievement-focused. Also suggest 3-5 relevant ATS keywords.`;
 
-    const startTime = Date.now();
-    const aiResponse = await callLovableAI(
-      [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      "google/gemini-2.5-pro", // Use advanced model
-      { temperature: 0.7, max_tokens: 1000 }
+    const { response, metrics } = await callLovableAI(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.7,
+        max_tokens: 1000,
+        response_format: { type: 'json_object' }
+      },
+      "enhance-vault-item",
+      undefined
     );
 
-    const latencyMs = Date.now() - startTime;
+    await logAIUsage(metrics);
 
-    // Log AI usage
-    await logAIUsage({
-      model: "google/gemini-2.5-pro",
-      provider: "lovable",
-      function_name: "enhance-vault-item",
-      input_tokens: aiResponse.usage?.prompt_tokens || 0,
-      output_tokens: aiResponse.usage?.completion_tokens || 0,
-      execution_time_ms: latencyMs
-    });
+    const parseResult = extractJSON(response.choices[0].message.content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
+    }
 
-    const enhancement = extractJSON(aiResponse.choices[0].message.content);
+    const enhancement = parseResult.data;
 
     return new Response(
       JSON.stringify({
