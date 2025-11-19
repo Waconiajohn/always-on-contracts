@@ -19,7 +19,9 @@ serve(async (req) => {
     console.log('Generating gap roadmap for:', sectionKey);
 
     // Create roadmap prompt
-    const systemPrompt = `You are a career development strategist. Create a personalized action roadmap to help users close gaps between their current career vault and benchmark standards.
+    const systemPrompt = `You are a career development strategist. Return ONLY valid JSON, no additional text or explanations.
+
+Create a personalized action roadmap to help users close gaps between their current career vault and benchmark standards.
 
 For each priority item, provide:
 1. Specific, actionable steps
@@ -27,11 +29,11 @@ For each priority item, provide:
 3. Impact on benchmark score
 4. Clear success criteria
 
-Return JSON array:
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
   "roadmap": [
     {
-      "priority": 1/2/3,
+      "priority": 1,
       "title": "Short action title",
       "description": "What this involves",
       "goal": "Specific target",
@@ -84,13 +86,24 @@ Focus on quick wins and high-impact actions first.`;
 
     await logAIUsage(metrics);
 
-    const parseResult = extractJSON(response.choices[0].message.content);
+    const rawContent = response.choices[0].message.content;
+    console.log('Raw AI response:', rawContent.substring(0, 500));
+    
+    const parseResult = extractJSON(rawContent);
     
     if (!parseResult.success || !parseResult.data) {
+      console.error('JSON parse failed:', parseResult.error);
+      console.error('Full response:', rawContent);
       throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
     const result = parseResult.data;
+    
+    // Validate required fields
+    if (!result.roadmap || !Array.isArray(result.roadmap)) {
+      console.error('Missing or invalid roadmap array:', result);
+      throw new Error('AI response missing required field: roadmap array');
+    }
 
     return new Response(
       JSON.stringify({
