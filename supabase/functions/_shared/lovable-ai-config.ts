@@ -42,7 +42,16 @@ export interface LovableAIRequest {
   model?: string;
   temperature?: number;
   max_tokens?: number;
-  response_format?: { type: 'json_object' };
+  response_format?: { type: 'json_object' }; // Legacy - prefer tools instead
+  tools?: Array<{
+    type: "function";
+    function: {
+      name: string;
+      description: string;
+      parameters: any;
+    };
+  }>;
+  tool_choice?: { type: "function"; function: { name: string } };
 }
 
 interface LovableAIResponse {
@@ -51,6 +60,14 @@ interface LovableAIResponse {
     message: {
       content: string;
       role: string;
+      tool_calls?: Array<{
+        id: string;
+        type: string;
+        function: {
+          name: string;
+          arguments: string;
+        };
+      }>;
     };
     finish_reason: string;
   }>;
@@ -126,7 +143,8 @@ export async function callLovableAI(
         messages: request.messages,
         temperature: request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE,
         max_tokens: request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS,
-        response_format: request.response_format,
+        ...(request.tools && { tools: request.tools }),
+        ...(request.tool_choice && { tool_choice: request.tool_choice }),
       }),
       signal: controller.signal,
     });
