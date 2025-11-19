@@ -143,6 +143,7 @@ export async function callLovableAI(
         messages: request.messages,
         temperature: request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE,
         max_tokens: request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS,
+        ...(request.response_format && { response_format: request.response_format }),
         ...(request.tools && { tools: request.tools }),
         ...(request.tool_choice && { tool_choice: request.tool_choice }),
       }),
