@@ -28,7 +28,7 @@ serve(async (req) => {
     const targetTier = tierProgression[currentTier || 'assumed'];
 
     // Create enhancement prompt
-    const systemPrompt = `You are an expert career coach and resume writer. Your job is to enhance career vault items to make them more impactful and professional.
+    const systemPrompt = `You are an expert career coach and resume writer. Return ONLY valid JSON, no additional text or explanations.
 
 Quality Tiers:
 - GOLD: Includes strategic context, measurable impact metrics, and strong action verbs. Shows enterprise-wide influence.
@@ -43,10 +43,10 @@ Guidelines for Enhancement:
 4. Show scope and scale (team size, project budget, geographic reach)
 5. Demonstrate impact beyond immediate role
 
-Return a JSON object with:
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
   "enhanced_content": "The improved version",
-  "new_tier": "gold/silver/bronze",
+  "new_tier": "gold" | "silver" | "bronze",
   "reasoning": "Why this is better (one sentence)",
   "suggested_keywords": ["keyword1", "keyword2", "keyword3"],
   "improvements_made": ["improvement1", "improvement2"]
@@ -76,13 +76,24 @@ Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable 
 
     await logAIUsage(metrics);
 
-    const parseResult = extractJSON(response.choices[0].message.content);
+    const rawContent = response.choices[0].message.content;
+    console.log('Raw AI response:', rawContent.substring(0, 500));
+    
+    const parseResult = extractJSON(rawContent);
     
     if (!parseResult.success || !parseResult.data) {
+      console.error('JSON parse failed:', parseResult.error);
+      console.error('Full response:', rawContent);
       throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
     const enhancement = parseResult.data;
+    
+    // Validate required fields
+    if (!enhancement.enhanced_content || !enhancement.new_tier) {
+      console.error('Missing required fields in enhancement:', enhancement);
+      throw new Error('AI response missing required fields: enhanced_content or new_tier');
+    }
 
     return new Response(
       JSON.stringify({
