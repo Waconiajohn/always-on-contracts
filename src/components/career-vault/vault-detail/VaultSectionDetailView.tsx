@@ -36,10 +36,23 @@ export function VaultSectionDetailView({
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [activeRoadmapItem, setActiveRoadmapItem] = useState<any>(null);
 
+  // Sort items by quality tier (gold > silver > bronze > assumed), then by confidence
+  const sortedItems = [...items].sort((a, b) => {
+    const tierPriority: Record<string, number> = { gold: 4, silver: 3, bronze: 2, assumed: 1 };
+    const tierA = tierPriority[a.quality_tier || 'assumed'] || 0;
+    const tierB = tierPriority[b.quality_tier || 'assumed'] || 0;
+    
+    if (tierB !== tierA) return tierB - tierA;
+    
+    const scoreA = a.confidence_score || a.ai_confidence || 0;
+    const scoreB = b.confidence_score || b.ai_confidence || 0;
+    return scoreB - scoreA;
+  });
+
   // Filter items by quality tier
   const filterByQuality = (quality: string) => {
-    if (quality === 'all') return items;
-    return items.filter(item => item.quality_tier === quality);
+    if (quality === 'all') return sortedItems;
+    return sortedItems.filter(item => item.quality_tier === quality);
   };
 
   // Apply search filter
@@ -50,11 +63,11 @@ export function VaultSectionDetailView({
 
   // Get quality distribution
   const qualityStats = {
-    gold: items.filter(i => i.quality_tier === 'gold').length,
-    silver: items.filter(i => i.quality_tier === 'silver').length,
-    bronze: items.filter(i => i.quality_tier === 'bronze').length,
-    assumed: items.filter(i => i.quality_tier === 'assumed').length,
-    needsReview: items.filter(i => !i.quality_tier || i.confidence_score && i.confidence_score < 0.7).length
+    gold: sortedItems.filter(i => i.quality_tier === 'gold').length,
+    silver: sortedItems.filter(i => i.quality_tier === 'silver').length,
+    bronze: sortedItems.filter(i => i.quality_tier === 'bronze').length,
+    assumed: sortedItems.filter(i => i.quality_tier === 'assumed').length,
+    needsReview: sortedItems.filter(i => !i.quality_tier || i.confidence_score && i.confidence_score < 0.7).length
   };
 
   function getItemContent(item: any): string {
@@ -110,7 +123,7 @@ export function VaultSectionDetailView({
               )}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {items.length} items • {qualityStats.gold} gold, {qualityStats.silver} silver
+              {sortedItems.length} items • {qualityStats.gold} gold, {qualityStats.silver} silver
             </p>
           </div>
         </div>
@@ -165,7 +178,7 @@ export function VaultSectionDetailView({
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-6">
-                  <TabsTrigger value="all">All ({items.length})</TabsTrigger>
+                  <TabsTrigger value="all">All ({sortedItems.length})</TabsTrigger>
                   <TabsTrigger value="gold">Gold ({qualityStats.gold})</TabsTrigger>
                   <TabsTrigger value="silver">Silver ({qualityStats.silver})</TabsTrigger>
                   <TabsTrigger value="bronze">Bronze ({qualityStats.bronze})</TabsTrigger>
