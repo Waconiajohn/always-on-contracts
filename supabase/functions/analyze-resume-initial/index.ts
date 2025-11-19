@@ -79,7 +79,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an elite executive career analyst with deep expertise across all industries. Return valid JSON only.
+            content: `You are an elite executive career analyst with deep expertise across all industries. Return ONLY valid JSON, no additional text or explanations.
 
 Your task is to perform INSTANT, INTELLIGENT analysis of resumes to extract:
 1. Current/most recent role and industry
@@ -95,7 +95,7 @@ CRITICAL INSTRUCTIONS:
 - Be ACHIEVEMENT-ORIENTED: Extract quantified results
 - Be PATTERN-AWARE: Identify career growth trajectory
 
-Return ONLY valid JSON with this exact structure:
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
   "detectedRole": "string (most recent job title)",
   "detectedIndustry": "string (primary industry)",
@@ -127,28 +127,38 @@ Return ONLY valid JSON with this exact structure:
     await logAIUsage(metrics);
 
     const rawContent = response.choices[0].message.content;
-    const parseResult = extractJSON(rawContent);
+    console.log('[analyze-resume-initial] Raw AI response:', rawContent.substring(0, 500));
 
+    const parseResult = extractJSON(rawContent);
+    
     if (!parseResult.success || !parseResult.data) {
+      console.error('[analyze-resume-initial] JSON parse failed:', parseResult.error);
+      console.error('[analyze-resume-initial] Full response:', rawContent);
       const logger = createLogger('analyze-resume-initial');
       logger.error('JSON parsing failed', {
         error: parseResult.error,
         content: rawContent.substring(0, 500)
       });
-      throw new Error('AI returned invalid JSON format');
+      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
     const analysisResult: InitialAnalysisResponse = parseResult.data;
 
-    if (!analysisResult.detectedRole || !analysisResult.detectedIndustry) {
-      throw new Error('AI failed to detect role or industry');
+    // Validate required fields
+    if (!analysisResult.detectedRole || 
+        !analysisResult.detectedIndustry || 
+        typeof analysisResult.yearsExperience !== 'number' ||
+        !analysisResult.seniorityLevel ||
+        !Array.isArray(analysisResult.keyAchievements)) {
+      console.error('[analyze-resume-initial] Missing required fields:', analysisResult);
+      throw new Error('AI response missing required fields');
     }
 
-    console.log('✅ Analysis complete:', {
+    console.log('[analyze-resume-initial] Analysis complete:', {
       role: analysisResult.detectedRole,
       industry: analysisResult.detectedIndustry,
       seniority: analysisResult.seniorityLevel,
-      achievements: analysisResult.keyAchievements.length,
+      achievements: analysisResult.keyAchievements.length
     });
 
     if (vaultId) {

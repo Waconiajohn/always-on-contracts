@@ -84,7 +84,45 @@ serve(async (req) => {
     const targetRole = vault.target_roles?.[0] || 'Professional';
     const targetLevel = vault.benchmark_role_level || 'Mid-Level';
 
-    const prompt = `You are an expert career coach analyzing a professional's Career Vault against industry benchmarks.
+    const systemPrompt = `You are an expert career coach analyzing Career Vaults against industry benchmarks. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
+{
+  "overall_score": "number (0-100)",
+  "competitive_percentile": "number (0-100)",
+  "critical_gaps": [
+    {
+      "category": "string",
+      "severity": "critical" | "important" | "nice_to_have",
+      "description": "string",
+      "impact": "string"
+    }
+  ],
+  "quick_wins": [
+    {
+      "action": "string",
+      "time_estimate": "string",
+      "impact_score": "number (1-10)",
+      "description": "string"
+    }
+  ],
+  "enhancement_suggestions": [
+    {
+      "item_id": "string",
+      "item_type": "string",
+      "current_text": "string",
+      "suggestion": "string",
+      "improvement_type": "add_metrics" | "add_context" | "strengthen_impact" | "clarify_role"
+    }
+  ],
+  "next_best_action": {
+    "title": "string",
+    "description": "string",
+    "why_now": "string"
+  }
+}`;
+
+    const userPrompt = `Analyze this Career Vault against industry benchmarks.
 
 TARGET PROFILE:
 - Role: ${targetRole}
@@ -155,32 +193,52 @@ Return your assessment in this EXACT JSON structure:
 
     console.log('🤖 Calling AI for quality assessment...');
     
-    const aiResult = await callLovableAI(
+    console.log('🤖 Calling AI for quality assessment...');
+    
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are an expert career coach. Return valid JSON only.' },
-          { role: 'user', content: prompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.DEFAULT, // Fast flash model for real-time assessment
-        temperature: 0.3,
-        max_tokens: 4000,
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.4,
+        max_tokens: 3000,
+        response_format: { type: 'json_object' }
       },
       'assess-vault-quality',
       vault.user_id
     );
 
-    console.log(`✅ AI assessment completed`);
+    await logAIUsage(metrics);
 
-    // Log usage automatically tracked by callLovableAI
-    await logAIUsage(aiResult.metrics);
+    const rawContent = response.choices[0].message.content;
+    console.log('[assess-vault-quality] Raw AI response:', rawContent.substring(0, 500));
 
-    const aiContent = aiResult.response.choices?.[0]?.message?.content || '';
-    const parsedResult = extractJSON(aiContent);
-    const assessment = parsedResult.success ? parsedResult.data as QualityAssessment : null;
+    const result = extractJSON(rawContent);
 
-    if (!assessment || typeof assessment.overall_score !== 'number') {
-      throw new Error('AI returned invalid assessment format');
+    if (!result.success || !result.data) {
+      console.error('[assess-vault-quality] JSON parse failed:', result.error);
+      console.error('[assess-vault-quality] Full response:', rawContent);
+      throw new Error(`Failed to parse AI response: ${result.error}`);
     }
+
+    const assessment: QualityAssessment = result.data;
+
+    // Validate required fields
+    if (typeof assessment.overall_score !== 'number' || 
+        typeof assessment.competitive_percentile !== 'number' ||
+        !Array.isArray(assessment.critical_gaps) ||
+        !Array.isArray(assessment.quick_wins)) {
+      console.error('[assess-vault-quality] Missing required fields:', assessment);
+      throw new Error('AI response missing required fields');
+    }
+
+    console.log('[assess-vault-quality] Assessment complete:', {
+      score: assessment.overall_score,
+      percentile: assessment.competitive_percentile,
+      gaps: assessment.critical_gaps.length
+    });
 
     // Cache the assessment in the vault
     await supabase
