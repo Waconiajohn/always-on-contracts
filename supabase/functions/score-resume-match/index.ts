@@ -28,7 +28,11 @@ serve(createAIHandler({
       hasExecutiveSummary: !!resumeContent.executive_summary
     });
 
-    const prompt = `Analyze this resume content against the required keywords and provide a detailed scoring:
+    const systemPrompt = `You are an expert ATS scoring specialist. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
+    const userPrompt = `Analyze this resume content against the required keywords and provide a detailed scoring:
 
 REQUIRED KEYWORDS: ${keywords.join(", ")}
 
@@ -44,7 +48,7 @@ TASK:
 4. Identify strengths and gaps
 5. Provide specific improvement recommendations
 
-Return ONLY valid JSON with this structure:
+Return this structure:
 {
   "overallMatch": 85,
   "categoryScores": {
@@ -64,14 +68,8 @@ Return ONLY valid JSON with this structure:
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: "system",
-            content: "You are an expert ATS scoring specialist. Return valid JSON only."
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
@@ -93,13 +91,16 @@ Return ONLY valid JSON with this structure:
       success: true
     });
 
-    const content = response.choices[0].message.content;
+    const rawContent = response.choices[0].message.content;
+    console.log('[score-resume-match] Raw AI response:', rawContent.substring(0, 500));
 
-    const result = extractJSON(content, GenericAIResponseSchema);
+    const result = extractJSON(rawContent, GenericAIResponseSchema);
 
     if (!result.success || !result.data) {
+      console.error('[score-resume-match] JSON parse failed:', result.error);
+      console.error('[score-resume-match] Full response:', rawContent);
       logger.error('Parsing failed', { error: result.error });
-      throw new Error(`Invalid response: ${result.error}`);
+      throw new Error(`Failed to parse AI response: ${result.error}`);
     }
 
     const responseData = JSON.parse(result.data.content || '{}');

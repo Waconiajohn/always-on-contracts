@@ -126,7 +126,7 @@ AVOID: Generic placeholders or estimated metrics when Career Vault has verified 
     let prompt = '';
     
     if (action === 'generate') {
-      prompt = `ROLE: You are an executive interview coach who has prepared 500+ candidates for behavioral interviews at FAANG, Fortune 500, and executive roles.
+      prompt = `ROLE: You are an executive interview coach who has prepared 500+ candidates for behavioral interviews at FAANG, Fortune 500, and executive roles. Return ONLY valid JSON, no additional text or explanations.
 
 USER'S RAW INPUT:
 "${rawStory}"
@@ -189,20 +189,20 @@ COMMON PITFALLS TO AVOID:
 ❌ Long-winded setup: Keep Situation tight, focus on Action/Result
 ${intelligence ? '❌ Generic metrics when Career Vault has verified data' : ''}
 
-Generate a JSON response with this structure:
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
-  "title": "Brief compelling title (5-8 words)",
-  "situation": "...",
-  "task": "...",
-  "action": "...",
-  "result": "...",
-  "skills": ["skill1", "skill2", "skill3"],
+  "title": "string - Brief compelling title (5-8 words)",
+  "situation": "string",
+  "task": "string",
+  "action": "string",
+  "result": "string",
+  "skills": ["array of strings"],
   "metrics": {
-    "primaryMetric": "X% increase/decrease in Y",
-    "secondaryMetrics": ["Additional quantifiable results"]
+    "primaryMetric": "string - X% increase/decrease in Y",
+    "secondaryMetrics": ["array of strings - Additional quantifiable results"]
   },
-  "industry": "Industry context",
-  "timeframe": "Duration or time period"${intelligence ? ',\n  "vaultSourced": "Brief note on which Career Vault data was used"' : ''}
+  "industry": "string - Industry context",
+  "timeframe": "string - Duration or time period"${intelligence ? ',\n  "vaultSourced": "string (optional) - Brief note on which Career Vault data was used"' : ''}
 }`;
     } else if (action === 'refine') {
       prompt = `ROLE: You are an executive interview coach refining a STAR story for maximum interview impact.
@@ -263,14 +263,14 @@ Return the same JSON structure with refined content.`;
         messages: [
           { 
             role: 'system', 
-            content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Career Vault intelligence to ground stories in verified achievements.' : ''} Always respond with valid JSON matching the requested schema.` 
+            content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Return ONLY valid JSON, no additional text or explanations. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Career Vault intelligence to ground stories in verified achievements.' : ''}` 
           },
           { role: 'user', content: prompt }
         ],
-        model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash for STAR stories
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 1500,
-        response_format: { type: 'json_object' }, // Enforce JSON output
+        response_format: { type: 'json_object' },
       },
       'generate-star-story',
       user.id
@@ -287,17 +287,34 @@ Return the same JSON structure with refined content.`;
 
     await logAIUsage(metrics);
 
-    const content = cleanCitations(response.choices[0].message.content);
+    const rawContent = cleanCitations(response.choices[0].message.content);
+    console.log('[generate-star-story] Raw AI response:', rawContent.substring(0, 500));
 
-    // Parse and validate JSON response
-    const extractResult = extractJSON(content, StarStorySchema);
+    const extractResult = extractJSON(rawContent, StarStorySchema);
     
     if (!extractResult.success || !extractResult.data) {
-      logger.error('Failed to extract STAR story JSON', { error: extractResult.error });
-      throw new Error('No valid JSON found in response');
+      console.error('[generate-star-story] JSON parse failed:', extractResult.error);
+      console.error('[generate-star-story] Full response:', rawContent);
+      logger.error('Failed to extract STAR story JSON', { 
+        error: extractResult.error,
+        content: rawContent.substring(0, 500)
+      });
+      throw new Error(`Failed to parse AI response: ${extractResult.error}`);
     }
 
     const starStory = extractResult.data;
+
+    // Validate required fields
+    if (!starStory.title || !starStory.situation || !starStory.task || 
+        !starStory.action || !starStory.result) {
+      console.error('[generate-star-story] Missing required STAR fields:', starStory);
+      throw new Error('AI response missing required STAR fields');
+    }
+
+    console.log('[generate-star-story] Story generated successfully:', {
+      title: starStory.title,
+      hasMetrics: !!starStory.metrics
+    });
 
     logger.info('STAR story generated successfully', {
       latencyMs: Date.now() - startTime,
