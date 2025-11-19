@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callLovableAI } from "../_shared/lovableAI.ts";
-import { logAIUsage } from "../_shared/aiUsageLogger.ts";
-import { extractJSON } from "../_shared/jsonParser.ts";
+import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
+import { logAIUsage } from "../_shared/cost-tracking.ts";
+import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,28 +54,30 @@ Provide 10-15 total keywords across categories that will:
 
 Focus on specificity and measurability.`;
 
-    const startTime = Date.now();
-    const aiResponse = await callLovableAI(
-      [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      "google/gemini-2.5-pro",
-      { temperature: 0.7, max_tokens: 1000 }
+    const { response, metrics } = await callLovableAI(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.7,
+        max_tokens: 1000,
+        response_format: { type: 'json_object' }
+      },
+      "suggest-keywords",
+      undefined
     );
 
-    const latencyMs = Date.now() - startTime;
+    await logAIUsage(metrics);
 
-    await logAIUsage({
-      model: "google/gemini-2.5-pro",
-      provider: "lovable",
-      function_name: "suggest-keywords",
-      input_tokens: aiResponse.usage?.prompt_tokens || 0,
-      output_tokens: aiResponse.usage?.completion_tokens || 0,
-      execution_time_ms: latencyMs
-    });
+    const parseResult = extractJSON(response.choices[0].message.content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
+    }
 
-    const keywords = extractJSON(aiResponse.choices[0].message.content);
+    const keywords = parseResult.data;
 
     return new Response(
       JSON.stringify({
