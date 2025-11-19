@@ -897,7 +897,12 @@ serve(async (req) => {
 
       // Validate and extract user
       const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-      if (authError || !user) {
+      if (authError) {
+        console.error('[PROCESS-RESUME] Auth error:', authError);
+        throw new Error(`${ERROR_MESSAGES['authentication_failed']}: ${authError.message}`);
+      }
+      if (!user) {
+        console.error('[PROCESS-RESUME] No user returned from auth');
         throw new Error(ERROR_MESSAGES['authentication_failed']);
       }
       reqUserId = user.id;
