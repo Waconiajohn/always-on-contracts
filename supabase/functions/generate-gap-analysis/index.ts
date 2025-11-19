@@ -106,7 +106,7 @@ Generate a gap analysis as JSON:
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are an expert career advisor. Provide detailed gap analysis in valid JSON format.' },
+          { role: 'system', content: 'You are an expert career advisor. Return ONLY valid JSON, no additional text or explanations.' },
           { role: 'user', content: prompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
@@ -132,6 +132,12 @@ Generate a gap analysis as JSON:
     }
 
     const gapAnalysis = parseResult.data;
+    
+    // Validate required fields
+    if (!gapAnalysis.strengths || !gapAnalysis.gaps || !gapAnalysis.opportunities) {
+      logger.error('Missing required fields in gap analysis:', gapAnalysis);
+      throw new Error('Gap analysis missing required fields: strengths, gaps, or opportunities');
+    }
 
     console.log('[GAP ANALYSIS] Analysis complete:', {
       strengths: gapAnalysis.strengths?.length || 0,

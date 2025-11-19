@@ -19,7 +19,7 @@ serve(async (req) => {
     console.log('Generating AI keyword suggestions for:', itemType);
 
     // Create keyword suggestion prompt
-    const systemPrompt = `You are an ATS (Applicant Tracking System) expert and recruiter. Your job is to suggest powerful keywords that will help a candidate's resume get noticed by ATS systems and recruiters.
+    const systemPrompt = `You are an ATS (Applicant Tracking System) expert and recruiter. Return ONLY valid JSON, no additional text or explanations.
 
 Generate keywords that are:
 1. Industry-relevant and current
@@ -28,7 +28,7 @@ Generate keywords that are:
 4. Specific to the candidate's achievements
 5. Aligned with target role requirements
 
-Return JSON:
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
   "primary_keywords": ["most important 3-5 keywords"],
   "secondary_keywords": ["supporting 3-5 keywords"],
@@ -71,13 +71,24 @@ Focus on specificity and measurability.`;
 
     await logAIUsage(metrics);
 
-    const parseResult = extractJSON(response.choices[0].message.content);
+    const rawContent = response.choices[0].message.content;
+    console.log('Raw AI response:', rawContent.substring(0, 500));
+    
+    const parseResult = extractJSON(rawContent);
     
     if (!parseResult.success || !parseResult.data) {
+      console.error('JSON parse failed:', parseResult.error);
+      console.error('Full response:', rawContent);
       throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
     const keywords = parseResult.data;
+    
+    // Validate required fields
+    if (!keywords.primary_keywords || !Array.isArray(keywords.primary_keywords)) {
+      console.error('Missing or invalid primary_keywords:', keywords);
+      throw new Error('AI response missing required field: primary_keywords array');
+    }
 
     return new Response(
       JSON.stringify({

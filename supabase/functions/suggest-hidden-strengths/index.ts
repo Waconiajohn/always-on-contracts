@@ -37,7 +37,7 @@ serve(async (req) => {
     ]);
 
     // Create analysis prompt
-    const systemPrompt = `You are an expert talent analyst. Your job is to identify hidden strengths and competencies that users may not realize they have based on their career achievements.
+    const systemPrompt = `You are an expert talent analyst. Return ONLY valid JSON, no additional text or explanations.
 
 Look for patterns in their achievements to identify:
 1. Skills they haven't explicitly listed
@@ -46,11 +46,11 @@ Look for patterns in their achievements to identify:
 4. Technical expertise implied by projects
 5. Soft skills evident in teamwork/coordination
 
-Return a JSON array of hidden strengths:
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
   "hidden_strengths": [
     {
-      "strength_type": "skill/leadership/strategic_impact",
+      "strength_type": "skill" | "leadership" | "strategic_impact",
       "title": "Short name",
       "description": "What you discovered",
       "evidence": "Specific examples from their vault",
@@ -98,13 +98,24 @@ Find 5-8 hidden strengths they haven't explicitly documented. Include AI-suggest
 
     await logAIUsage(metrics);
 
-    const parseResult = extractJSON(response.choices[0].message.content);
+    const rawContent = response.choices[0].message.content;
+    console.log('Raw AI response:', rawContent.substring(0, 500));
+    
+    const parseResult = extractJSON(rawContent);
     
     if (!parseResult.success || !parseResult.data) {
+      console.error('JSON parse failed:', parseResult.error);
+      console.error('Full response:', rawContent);
       throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
     const result = parseResult.data;
+    
+    // Validate required fields
+    if (!result.hidden_strengths || !Array.isArray(result.hidden_strengths)) {
+      console.error('Missing or invalid hidden_strengths array:', result);
+      throw new Error('AI response missing required field: hidden_strengths array');
+    }
 
     return new Response(
       JSON.stringify({
