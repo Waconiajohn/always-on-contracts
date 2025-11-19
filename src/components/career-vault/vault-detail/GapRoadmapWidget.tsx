@@ -12,6 +12,7 @@ interface GapRoadmapWidgetProps {
   benchmarkData: any;
   currentItems: any[];
   onItemsAdded: () => void;
+  onStartWork?: (item: RoadmapItem) => void;
 }
 
 interface RoadmapItem {
@@ -30,7 +31,8 @@ export function GapRoadmapWidget({
   sectionKey,
   vaultId,
   benchmarkData,
-  currentItems
+  currentItems,
+  onStartWork
 }: GapRoadmapWidgetProps) {
   const [roadmap, setRoadmap] = useState<RoadmapItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,7 +147,12 @@ export function GapRoadmapWidget({
               </p>
             </div>
 
-            <Button size="sm" className="w-full" variant="outline">
+            <Button 
+              size="sm" 
+              className="w-full" 
+              variant="outline"
+              onClick={() => onStartWork?.(item)}
+            >
               Start Working on This
             </Button>
           </div>
