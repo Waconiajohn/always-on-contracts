@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Check, ArrowRight, X } from 'lucide-react';
+import { Sparkles, Loader2, Check, ArrowRight, X, Pencil } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AIEnhancementPanelProps {
@@ -24,6 +25,8 @@ export function AIEnhancementPanel({
 }: AIEnhancementPanelProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhancement, setEnhancement] = useState<any>(null);
+  const [editedContent, setEditedContent] = useState<string>('');
+  const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
 
   const getCurrentContent = () => {
@@ -49,6 +52,8 @@ export function AIEnhancementPanel({
 
       if (data?.success) {
         setEnhancement(data.enhancement);
+        setEditedContent(data.enhancement.enhanced_content);
+        setIsEditing(false);
       } else {
         throw new Error('Enhancement failed');
       }
@@ -75,7 +80,7 @@ export function AIEnhancementPanel({
       const { error } = await supabase
         .from(tableName)
         .update({
-          [contentField]: enhancement.enhanced_content,
+          [contentField]: editedContent,
           quality_tier: enhancement.new_tier,
           confidence_score: 0.95,
           enhancement_notes: enhancement.reasoning,
@@ -180,11 +185,31 @@ export function AIEnhancementPanel({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Enhanced</span>
-                <Badge className="bg-yellow-500">{enhancement.new_tier}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-yellow-500">{enhancement.new_tier}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="h-6 px-2"
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    {isEditing ? 'Done' : 'Edit'}
+                  </Button>
+                </div>
               </div>
-              <div className="p-3 bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg text-sm border border-yellow-500/20">
-                {enhancement.enhanced_content}
-              </div>
+              {isEditing ? (
+                <Textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  className="min-h-[120px] text-sm"
+                  placeholder="Edit the enhancement..."
+                />
+              ) : (
+                <div className="p-3 bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg text-sm border border-yellow-500/20">
+                  {editedContent}
+                </div>
+              )}
             </div>
 
             <Alert>
@@ -195,7 +220,8 @@ export function AIEnhancementPanel({
 
             {enhancement.suggested_keywords && enhancement.suggested_keywords.length > 0 && (
               <div className="space-y-2">
-                <span className="text-sm font-medium">AI Suggested Keywords:</span>
+                <span className="text-sm font-medium">Suggested ATS Keywords:</span>
+                <p className="text-xs text-muted-foreground">These keywords can improve visibility in applicant tracking systems</p>
                 <div className="flex flex-wrap gap-1">
                   {enhancement.suggested_keywords.map((keyword: string, idx: number) => (
                     <Badge key={idx} variant="secondary" className="text-xs">
