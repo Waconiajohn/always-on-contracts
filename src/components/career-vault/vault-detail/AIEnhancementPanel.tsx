@@ -120,7 +120,7 @@ export function AIEnhancementPanel({
         .update({
           [contentField]: editedContent,
           quality_tier: enhancement.new_tier,
-          confidence_score: 0.95,
+          confidence_score: 95,
           enhancement_notes: enhancement.reasoning,
           last_updated_at: new Date().toISOString()
         })
