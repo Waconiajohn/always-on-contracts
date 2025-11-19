@@ -381,3 +381,12 @@ verify_jwt = true
 
 [functions.assess-vault-quality]
 verify_jwt = true
+
+[functions.generate-roadmap-suggestions]
+verify_jwt = true
+
+[functions.find-enhancement-opportunities]
+verify_jwt = true
+
+[functions.enhance-with-keywords]
+verify_jwt = true
