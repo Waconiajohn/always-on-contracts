@@ -816,19 +816,34 @@ function extractRoleAndIndustryFallback(text: string): { role: string | null; in
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const startTime = Date.now();
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  let queueId: string | null = null;
-  let userId: string | null = null;
-
+  // Top-level error wrapper to catch absolutely everything
   try {
+    if (req.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    const startTime = Date.now();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[PROCESS-RESUME] Missing Supabase credentials');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Server configuration error',
+        errorType: 'configuration_error'
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let queueId: string | null = null;
+    let userId: string | null = null;
+
+    try {
     console.log('[PROCESS-RESUME] Starting - content-type:', req.headers.get('content-type'));
     
     // Phase 3.3: Enhanced Structured Logging
@@ -1252,6 +1267,21 @@ serve(async (req) => {
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+  } catch (topLevelError) {
+    // Absolute last resort error handler
+    console.error('[PROCESS-RESUME] ❌❌❌ TOP-LEVEL ERROR:', topLevelError);
+    console.error('[PROCESS-RESUME] Stack:', topLevelError instanceof Error ? topLevelError.stack : 'No stack');
+
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'An unexpected error occurred',
+      errorType: 'unknown_error',
+      details: topLevelError instanceof Error ? topLevelError.message : String(topLevelError)
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
