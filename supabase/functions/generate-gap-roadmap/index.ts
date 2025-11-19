@@ -74,7 +74,7 @@ Focus on quick wins and high-impact actions first.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.8,
         max_tokens: 2000,
         tools: [
