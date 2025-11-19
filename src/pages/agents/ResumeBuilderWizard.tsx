@@ -97,6 +97,19 @@ const ResumeBuilderWizardContent = () => {
           location: user.user_metadata?.location || '',
           linkedin: user.user_metadata?.linkedin_url || '',
         });
+
+        // Check vault completeness and warn if insufficient data
+        const { checkVaultCompleteness } = await import('@/lib/vaultCompletenessChecker');
+        const completeness = await checkVaultCompleteness(user.id);
+        
+        if (!completeness.isReady) {
+          toast({
+            title: "Career Vault needs more data",
+            description: `${completeness.missingCategories.length} critical categories missing. This may affect resume quality and matching accuracy.`,
+            variant: "destructive",
+            duration: 10000
+          });
+        }
       }
     };
     fetchUserProfile();
@@ -1006,15 +1019,23 @@ const ResumeBuilderWizardContent = () => {
       const userProfile = user ? {
         email: user.email,
         full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-        // Add more fields as needed from user metadata or profiles table
+        phone: user.user_metadata?.phone || '',
+        location: user.user_metadata?.location || ''
       } : {};
 
-      const { asText, asHtml } = buildCanonicalResumeFromBuilderState({
+      const { canonical, asText, asHtml } = buildCanonicalResumeFromBuilderState({
         userProfile,
         resumeSections: hydratedSections,
       });
 
       const fileName = `Resume_${jobAnalysis?.roleProfile?.title?.replace(/\s+/g, '_') || 'Professional'}`;
+
+      // Apply template if selected
+      let styledHtml = asHtml;
+      if (selectedFormat) {
+        const { renderResumeWithTemplate } = await import('@/lib/resumeTemplateRenderer');
+        styledHtml = await renderResumeWithTemplate(canonical, selectedFormat);
+      }
 
       if (format === 'txt') {
         const blob = new Blob([asText], { type: "text/plain;charset=utf-8" });
@@ -1035,7 +1056,7 @@ const ResumeBuilderWizardContent = () => {
       }
 
       if (format === 'html') {
-        const blob = new Blob([asHtml], { type: "text/html;charset=utf-8" });
+        const blob = new Blob([styledHtml], { type: "text/html;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
@@ -1052,22 +1073,34 @@ const ResumeBuilderWizardContent = () => {
         return;
       }
 
-      // For PDF / DOCX, temporarily export HTML
-      // Later this can be wired into proper PDF/DOCX generation
-      if (format === 'pdf' || format === 'docx') {
-        const blob = new Blob([asHtml], { type: "text/html;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = format === 'pdf' ? `${fileName}-for-pdf.html` : `${fileName}-for-docx.html`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
+      if (format === 'pdf') {
+        const { exportFormats } = await import('@/lib/resumeExportUtils');
+        await exportFormats.standardPDF(styledHtml, fileName);
         toast({
           title: "Export successful!",
-          description: `HTML file downloaded (${format.toUpperCase()} generation coming soon)`
+          description: "PDF file downloaded"
+        });
+        return;
+      }
+
+      if (format === 'docx') {
+        const { exportFormats } = await import('@/lib/resumeExportUtils');
+        const structuredData = {
+          name: canonical.header.fullName,
+          contact: {
+            email: userProfile.email || '',
+            phone: userProfile.phone || '',
+            location: userProfile.location || ''
+          },
+          sections: canonical.sections.map(section => ({
+            title: section.heading,
+            content: section.paragraph || section.bullets.join('\n• ')
+          }))
+        };
+        await exportFormats.generateDOCX(structuredData, fileName);
+        toast({
+          title: "Export successful!",
+          description: "DOCX file downloaded"
         });
         return;
       }
