@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
 import { logAIUsage } from "../_shared/cost-tracking.ts";
-import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,7 +67,28 @@ Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable 
         model: LOVABLE_AI_MODELS.PREMIUM,
         temperature: 0.7,
         max_tokens: 1000,
-        response_mime_type: "application/json"
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "enhance_vault_item",
+              description: "Return the enhanced vault item with improvements",
+              parameters: {
+                type: "object",
+                properties: {
+                  enhanced_content: { type: "string" },
+                  new_tier: { type: "string", enum: ["gold", "silver", "bronze"] },
+                  reasoning: { type: "string" },
+                  suggested_keywords: { type: "array", items: { type: "string" } },
+                  improvements_made: { type: "array", items: { type: "string" } }
+                },
+                required: ["enhanced_content", "new_tier", "reasoning", "suggested_keywords", "improvements_made"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "enhance_vault_item" } }
       },
       "enhance-vault-item",
       undefined
@@ -76,18 +96,15 @@ Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable 
 
     await logAIUsage(metrics);
 
-    const rawContent = response.choices[0].message.content;
-    console.log('[enhance-vault-item] Raw AI response:', rawContent.substring(0, 500));
-    
-    const parseResult = extractJSON(rawContent);
-    
-    if (!parseResult.success || !parseResult.data) {
-      console.error('JSON parse failed:', parseResult.error);
-      console.error('Full response:', rawContent);
-      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
+    // Extract from tool call response
+    const toolCall = response.choices[0].message.tool_calls?.[0];
+    if (!toolCall) {
+      console.error('No tool call in response:', response);
+      throw new Error('AI did not return a tool call response');
     }
 
-    const enhancement = parseResult.data;
+    const enhancement = JSON.parse(toolCall.function.arguments);
+    console.log('[enhance-vault-item] Parsed enhancement:', enhancement);
     
     // Validate required fields
     if (!enhancement.enhanced_content || !enhancement.new_tier) {

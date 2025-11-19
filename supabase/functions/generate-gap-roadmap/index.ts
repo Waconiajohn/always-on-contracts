@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
 import { logAIUsage } from "../_shared/cost-tracking.ts";
-import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -78,7 +77,43 @@ Focus on quick wins and high-impact actions first.`;
         model: LOVABLE_AI_MODELS.PREMIUM,
         temperature: 0.8,
         max_tokens: 2000,
-        response_mime_type: "application/json"
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "generate_roadmap",
+              description: "Generate a personalized action roadmap to close gaps",
+              parameters: {
+                type: "object",
+                properties: {
+                  roadmap: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        priority: { type: "number" },
+                        title: { type: "string" },
+                        description: { type: "string" },
+                        goal: { type: "string" },
+                        impact: { type: "string" },
+                        estimatedTime: { type: "string" },
+                        current: { type: "number" },
+                        target: { type: "number" },
+                        suggestedActions: { type: "array", items: { type: "string" } },
+                        suggested_keywords: { type: "array", items: { type: "string" } }
+                      },
+                      required: ["priority", "title", "description", "goal", "impact", "estimatedTime", "current", "target", "suggestedActions", "suggested_keywords"],
+                      additionalProperties: false
+                    }
+                  }
+                },
+                required: ["roadmap"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "generate_roadmap" } }
       },
       "generate-gap-roadmap",
       undefined
@@ -86,18 +121,15 @@ Focus on quick wins and high-impact actions first.`;
 
     await logAIUsage(metrics);
 
-    const rawContent = response.choices[0].message.content;
-    console.log('Raw AI response:', rawContent.substring(0, 500));
-    
-    const parseResult = extractJSON(rawContent);
-    
-    if (!parseResult.success || !parseResult.data) {
-      console.error('JSON parse failed:', parseResult.error);
-      console.error('Full response:', rawContent);
-      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
+    // Extract from tool call response
+    const toolCall = response.choices[0].message.tool_calls?.[0];
+    if (!toolCall) {
+      console.error('No tool call in response:', response);
+      throw new Error('AI did not return a tool call response');
     }
 
-    const result = parseResult.data;
+    const result = JSON.parse(toolCall.function.arguments);
+    console.log('[generate-gap-roadmap] Parsed roadmap:', result);
     
     // Validate required fields
     if (!result.roadmap || !Array.isArray(result.roadmap)) {
