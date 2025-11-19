@@ -89,9 +89,13 @@ serve(async (req) => {
       }
     }
 
-    // PHASE 1: Extract requirements from job description using Perplexity AI
+    // PHASE 1: Extract requirements from job description using Lovable AI
 
-    const jdAnalysisPrompt = `Analyze this job description and extract detailed requirements:
+    const systemPrompt = `You are an expert job requirements analyzer. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
+    const userPrompt = `Analyze this job description and extract detailed requirements:
 
 JOB TITLE: ${jobTitle || 'Not specified'}
 COMPANY: ${companyName || 'Not specified'}
@@ -117,7 +121,7 @@ Also identify:
 - Primary function/department
 - Industry classification
 
-Return ONLY valid JSON with this structure:
+Return valid JSON with this structure:
 {
   "requirements": {
     "required": [{"type": "skill", "requirement": "...", "keywords": ["..."], "yearsExperience": 5, "importance": 9, "atsKeyword": true}],
@@ -144,11 +148,11 @@ Return ONLY valid JSON with this structure:
     };
 
     try {
-      const { response, metrics } = await callLovableAI(
+      const { response: jdResponse, metrics: jdMetrics } = await callLovableAI(
         {
           messages: [
-            { role: 'system', content: 'You are an expert at analyzing job descriptions. Return only valid JSON.' },
-            { role: 'user', content: jdAnalysisPrompt }
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
           ],
           model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.3,
@@ -159,18 +163,27 @@ Return ONLY valid JSON with this structure:
         userId
       );
 
-      await logAIUsage(metrics);
+      await logAIUsage(jdMetrics);
 
-      const textContent = response.choices?.[0]?.message?.content || '{}';
-      const parseResult = extractJSON(textContent);
+      const jdRawContent = jdResponse.choices?.[0]?.message?.content || '{}';
+      console.log('[analyze-job-requirements] Raw AI response (Phase 1):', jdRawContent.substring(0, 500));
+      const parseResult = extractJSON(jdRawContent);
 
       if (parseResult.success && parseResult.data) {
         jdAnalysis = parseResult.data;
-        console.log('Successfully parsed JD analysis');
+        console.log('[analyze-job-requirements] Successfully parsed Phase 1');
+
+        // Validate Phase 1 fields
+        if (!jdAnalysis.requirements || typeof jdAnalysis.requirements !== 'object') {
+          throw new Error('Missing or invalid requirements object');
+        }
+        if (!jdAnalysis.roleProfile || typeof jdAnalysis.roleProfile !== 'object') {
+          throw new Error('Missing or invalid roleProfile');
+        }
       } else {
         logger.error('JSON parsing failed for JD analysis', {
           error: parseResult.error,
-          content: textContent.substring(0, 500)
+          content: jdRawContent.substring(0, 500)
         });
       }
     } catch (parseError) {

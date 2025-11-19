@@ -77,8 +77,11 @@ ${achievementContext}
 `;
     }
 
-    // Use Perplexity AI to analyze resume and generate hierarchical skill taxonomy
-    const prompt = `Analyze this resume and generate a comprehensive hierarchical skill taxonomy.
+    const systemPrompt = `You are an expert resume analyzer specializing in skill taxonomy generation. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
+    const userPrompt = `Analyze this resume and generate a comprehensive hierarchical skill taxonomy.
 
 RESUME:
 ${resume_text}
@@ -147,10 +150,8 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.6,
@@ -162,18 +163,40 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
 
     await logAIUsage(metrics);
 
-    const content = response.choices[0]?.message?.content || '[]';
+    const rawContent = response.choices[0]?.message?.content || '[]';
+    console.log('[analyze-resume-and-research] Raw AI response:', rawContent.substring(0, 500));
     
     // Extract JSON from markdown code blocks if present
-    let jsonContent = content;
-    const jsonMatch = content.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+    let jsonContent = rawContent;
+    const jsonMatch = rawContent.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
     if (jsonMatch) {
       jsonContent = jsonMatch[1];
+    } else {
+      const arrayMatch = rawContent.match(/\[[\s\S]*?\]/);
+      if (arrayMatch) {
+        jsonContent = arrayMatch[0];
+      }
     }
 
-    const skills = JSON.parse(jsonContent);
+    let skillTaxonomy;
+    try {
+      skillTaxonomy = JSON.parse(jsonContent);
+      console.log('[analyze-resume-and-research] Successfully parsed AI response');
+    } catch (e) {
+      console.error('[analyze-resume-and-research] JSON parse failed:', e);
+      console.error('[analyze-resume-and-research] Full response:', rawContent);
+      throw new Error('Failed to parse AI response as JSON');
+    }
 
-    console.log('[ANALYZE-RESUME] AI generated', skills.length, 'skills');
+    // Validate that it's an array
+    if (!Array.isArray(skillTaxonomy)) {
+      throw new Error('AI response must be an array of skills');
+    }
+    if (skillTaxonomy.length === 0) {
+      throw new Error('AI response returned empty skills array');
+    }
+
+    console.log('[ANALYZE-RESUME] AI generated', skillTaxonomy.length, 'skills');
 
     // Fetch Career Vault intelligence for skill verification
     const { data: verificationData, error: verificationError } = await supabase.functions.invoke(
@@ -197,7 +220,7 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
       );
       
       // Enhance skills with Career Vault validation
-      skills.forEach((skill: any) => {
+      skillTaxonomy.forEach((skill: any) => {
         const skillLower = skill.skill_name.toLowerCase();
         
         // Check if skill is confirmed in Career Vault
@@ -252,9 +275,9 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
     let verification_result = null;
 
     try {
-        const verificationPrompt = `Verify these ${skills.length} skills for ${rolesText} in ${industriesText}:
+        const verificationPrompt = `Verify these ${skillTaxonomy.length} skills for ${rolesText} in ${industriesText}:
 
-${skills.map((s: any) => `- ${s.skill_name} (${s.skill_category}, market freq: ${s.market_frequency}%)`).join('\n')}
+${skillTaxonomy.map((s: any) => `- ${s.skill_name} (${s.skill_category}, market freq: ${s.market_frequency}%)`).join('\n')}
 
 Provide:
 1. Are these skills accurate and relevant for these target roles?
@@ -296,7 +319,7 @@ Be concise but specific.`;
           .insert({
             user_id: user.id,
             verification_type: 'skills',
-            original_content: skills,
+            original_content: skillTaxonomy,
             verification_result,
             verified_at: new Date().toISOString(),
           });
@@ -312,7 +335,7 @@ Be concise but specific.`;
       .eq('user_id', user.id);
 
     // Insert new skill taxonomy
-    const taxonomyData = skills.map((skill: any) => ({
+    const taxonomyData = skillTaxonomy.map((skill: any) => ({
       user_id: user.id,
       skill_name: skill.skill_name,
       skill_category: skill.skill_category,
@@ -333,15 +356,15 @@ Be concise but specific.`;
     return new Response(
       JSON.stringify({
         success: true,
-        skills_count: skills.length,
+        skills_count: skillTaxonomy.length,
         verified: !!verification_result,
         verification_summary: verification_result ? 'Skills verified with current market data' : 'Verification skipped',
         vault_enhanced: !!intelligence,
-        vault_verified_count: skills.filter((s: any) => s.source === 'resume_verified').length,
+        vault_verified_count: skillTaxonomy.filter((s: any) => s.source === 'resume_verified').length,
         breakdown: {
-          resume: skills.filter((s: any) => s.source === 'resume' || s.source === 'resume_verified').length,
-          inferred: skills.filter((s: any) => s.source === 'inferred').length,
-          growth: skills.filter((s: any) => s.source === 'growth').length,
+        resume: skillTaxonomy.filter((s: any) => s.source === 'resume' || s.source === 'resume_verified').length,
+        inferred: skillTaxonomy.filter((s: any) => s.source === 'inferred').length,
+        growth: skillTaxonomy.filter((s: any) => s.source === 'growth').length,
         },
       }),
       {

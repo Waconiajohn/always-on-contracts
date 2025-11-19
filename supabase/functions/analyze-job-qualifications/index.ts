@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,18 +68,18 @@ serve(async (req) => {
 
     console.log('Analyzing job description with Lovable AI...');
 
+    const systemPrompt = `You are an expert at analyzing job descriptions. Extract structured information. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
+    const userPrompt = `Analyze this job description:\n\n${jobDescriptionText}`;
+
     const { response, metrics } = await callLovableAI(
       {
         model: LOVABLE_AI_MODELS.DEFAULT,
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at analyzing job descriptions. Extract structured information as JSON.'
-          },
-          {
-            role: 'user',
-            content: `Analyze this job description:\n\n${jobDescriptionText}`
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
         max_tokens: 3000,
@@ -96,22 +97,25 @@ serve(async (req) => {
 
     // Parse JSON from response content
     const content = response.choices[0].message.content;
-    console.log('AI response:', content.substring(0, 200));
+    console.log('[analyze-job-qualifications] Raw AI response:', content.substring(0, 500));
     
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No valid JSON found in response');
-    }
+    const parseResult = extractJSON(content);
     
-    const analysisData = JSON.parse(jsonMatch[0]);
-    const toolCall = { function: { arguments: JSON.stringify(analysisData) } };
-    
-    if (!toolCall || !toolCall.function?.arguments) {
-      throw new Error('No analysis data returned from AI');
+    if (!parseResult.success || !parseResult.data) {
+      console.error('[analyze-job-qualifications] JSON parse failed:', parseResult.error);
+      console.error('[analyze-job-qualifications] Full response:', content);
+      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
-    const analysis = JSON.parse(toolCall.function.arguments);
+    const analysis = parseResult.data;
+
+    // Validate required fields
+    if (!analysis.professionalTitle || typeof analysis.professionalTitle !== 'string') {
+      throw new Error('Missing or invalid professionalTitle');
+    }
+    if (!analysis.standardizedQualifications || typeof analysis.standardizedQualifications !== 'object') {
+      throw new Error('Missing or invalid standardizedQualifications');
+    }
 
     const result: JobAnalysisResult = {
       success: true,

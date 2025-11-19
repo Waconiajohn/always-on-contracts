@@ -298,14 +298,23 @@ Return ONLY valid JSON:
 
       await logAIUsage(metrics);
 
-      const textContent = response.choices?.[0]?.message?.content || '{}';
-      const parsed = safeJSONParse(textContent);
+      const rawContent = response.choices?.[0]?.message?.content || '{}';
+      console.log('[match-vault-to-requirements] Raw AI response:', rawContent.substring(0, 500));
+      const parsed = safeJSONParse(rawContent);
 
       if (parsed?.matches && Array.isArray(parsed.matches)) {
         matches.push(...parsed.matches.slice(0, 50));
-        console.log(`AI matched ${parsed.matches.length} vault items`);
+        console.log(`[match-vault-to-requirements] AI matched ${parsed.matches.length} vault items`);
+
+        // Validate match fields
+        if (parsed.matches.length > 0) {
+          const firstMatch = parsed.matches[0];
+          if (!firstMatch.matchScore || typeof firstMatch.matchScore !== 'number') {
+            console.warn('[match-vault-to-requirements] Matches missing matchScore field');
+          }
+        }
       } else {
-        console.warn('AI response missing matches array, using fallback');
+        console.warn('[match-vault-to-requirements] AI response missing matches array, using fallback');
       }
     } catch (error) {
       console.error('Error in AI matching:', error);
