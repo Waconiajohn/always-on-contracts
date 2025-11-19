@@ -13,9 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { itemId, itemType, currentContent, currentTier, vaultId, additionalKeywords } = await req.json();
+    const { itemId, itemType, currentContent, currentTier, vaultId, additionalKeywords, itemSubtype } = await req.json();
 
-    console.log('Enhancing vault item:', { itemId, itemType, currentTier, additionalKeywords });
+    console.log('Enhancing vault item:', { itemId, itemType, currentTier, additionalKeywords, itemSubtype });
 
     // Determine target tier
     const tierProgression: Record<string, string> = {
@@ -29,6 +29,11 @@ serve(async (req) => {
     // Build keyword instruction
     const keywordInstruction = additionalKeywords && additionalKeywords.length > 0
       ? `\n\nIMPORTANT: Incorporate these specific keywords naturally: ${additionalKeywords.join(', ')}`
+      : '';
+
+    // Build format instruction based on item subtype
+    const formatInstruction = itemSubtype === 'skill'
+      ? `\n\nCRITICAL FORMAT REQUIREMENT: This is a SKILL (not expertise). Keep it SHORT - maximum 2-5 words. DO NOT write full sentences. Examples: "Lateral Drilling", "HPHT Operations", "Wellbore Design". Just refine the wording, don't expand it into a sentence.`
       : '';
 
     // Create enhancement prompt
@@ -59,9 +64,13 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
     const userPrompt = `Current Item (${currentTier} tier):
 "${currentContent}"
 
-Item Type: ${itemType}${keywordInstruction}
+Item Type: ${itemType}${formatInstruction}${keywordInstruction}
 
-Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable metrics, and stronger language. Make it compelling and achievement-focused. Also suggest 3-5 relevant ATS keywords.`;
+${itemSubtype === 'skill' 
+  ? `Enhance this SKILL name to ${targetTier} tier quality. Keep it SHORT (2-5 words max). Just refine the terminology - make it more precise, industry-standard, or impactful. DO NOT turn it into a sentence.` 
+  : `Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable metrics, and stronger language. Make it compelling and achievement-focused.`}
+
+Also suggest 3-5 relevant ATS keywords.`;
 
     const { response, metrics } = await callLovableAI(
       {
