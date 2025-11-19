@@ -27,6 +27,8 @@ export function AIEnhancementPanel({
   const [enhancement, setEnhancement] = useState<any>(null);
   const [editedContent, setEditedContent] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+  const [isRegeneratingWithKeywords, setIsRegeneratingWithKeywords] = useState(false);
   const { toast } = useToast();
 
   const getCurrentContent = () => {
@@ -70,10 +72,25 @@ export function AIEnhancementPanel({
     }
   };
 
-  const handleAddKeyword = async (keyword: string) => {
-    if (!enhancement) return;
-    
-    setIsEnhancing(true);
+  const toggleKeywordSelection = (keyword: string) => {
+    setSelectedKeywords(prev => 
+      prev.includes(keyword) 
+        ? prev.filter(k => k !== keyword)
+        : [...prev, keyword]
+    );
+  };
+
+  const handleRegenerateWithKeywords = async () => {
+    if (selectedKeywords.length === 0) {
+      toast({
+        title: 'No keywords selected',
+        description: 'Please select at least one keyword to regenerate',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsRegeneratingWithKeywords(true);
     try {
       const { data, error } = await supabase.functions.invoke('enhance-vault-item', {
         body: {
@@ -82,8 +99,8 @@ export function AIEnhancementPanel({
           currentContent: editedContent,
           currentTier: enhancement.new_tier,
           vaultId,
-          additionalKeywords: [keyword],
-          itemSubtype: item.item_subtype || 'expertise' // Pass subtype
+          additionalKeywords: selectedKeywords,
+          itemSubtype: item.item_subtype || 'expertise'
         }
       });
 
@@ -92,20 +109,21 @@ export function AIEnhancementPanel({
       if (data?.success) {
         setEnhancement(data.enhancement);
         setEditedContent(data.enhancement.enhanced_content);
+        setSelectedKeywords([]);
         toast({
-          title: 'Keyword Added',
-          description: `Enhanced with "${keyword}"`
+          title: 'Content regenerated!',
+          description: `Enhanced with ${selectedKeywords.length} keyword${selectedKeywords.length > 1 ? 's' : ''}`
         });
       }
     } catch (error) {
-      console.error('Error adding keyword:', error);
+      console.error('Error regenerating with keywords:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add keyword',
+        description: 'Failed to regenerate content',
         variant: 'destructive'
       });
     } finally {
-      setIsEnhancing(false);
+      setIsRegeneratingWithKeywords(false);
     }
   };
 
@@ -269,21 +287,53 @@ export function AIEnhancementPanel({
             </Alert>
 
             {enhancement.suggested_keywords && enhancement.suggested_keywords.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-sm font-medium">Add Keywords:</span>
-                <p className="text-xs text-muted-foreground">Click to incorporate a keyword - AI will regenerate the enhancement</p>
-                <div className="flex flex-wrap gap-1">
-                  {enhancement.suggested_keywords.map((keyword: string, idx: number) => (
-                    <Badge 
-                      key={idx} 
-                      variant="secondary" 
-                      className="text-xs cursor-pointer hover:bg-purple-500 hover:text-white transition-colors"
-                      onClick={() => handleAddKeyword(keyword)}
-                    >
-                      {keyword}
-                    </Badge>
-                  ))}
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm font-medium">Select Keywords to Add:</span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Choose one or more keywords, then click "Rewrite with Keywords" below
+                  </p>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {enhancement.suggested_keywords.map((keyword: string, idx: number) => {
+                    const isSelected = selectedKeywords.includes(keyword);
+                    return (
+                      <Badge 
+                        key={idx} 
+                        variant={isSelected ? "default" : "secondary"}
+                        className={`text-xs cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'bg-purple-500 text-white hover:bg-purple-600' 
+                            : 'hover:bg-purple-100 hover:border-purple-300'
+                        }`}
+                        onClick={() => toggleKeywordSelection(keyword)}
+                      >
+                        {isSelected && <Check className="h-3 w-3 mr-1" />}
+                        {keyword}
+                      </Badge>
+                    );
+                  })}
+                </div>
+                {selectedKeywords.length > 0 && (
+                  <Button
+                    onClick={handleRegenerateWithKeywords}
+                    disabled={isRegeneratingWithKeywords}
+                    variant="outline"
+                    className="w-full border-purple-500 hover:bg-purple-50"
+                  >
+                    {isRegeneratingWithKeywords ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Rewriting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Rewrite with {selectedKeywords.length} Keyword{selectedKeywords.length > 1 ? 's' : ''}
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             )}
 
