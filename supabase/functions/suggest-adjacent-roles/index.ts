@@ -145,17 +145,6 @@ Return your analysis in the required JSON format.`;
       rolesCount: suggestions.suggestedRoles.length,
       industriesCount: suggestions.suggestedIndustries.length
     });
-          reasoning: "These are common adjacent paths for experienced professionals."
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate response structure
-    if (!suggestions.suggestedRoles || !suggestions.suggestedIndustries) {
-      console.error('[SUGGEST-ADJACENT-ROLES] Invalid response structure:', suggestions);
-      throw new Error('Invalid AI response structure');
-    }
 
     console.log('[SUGGEST-ADJACENT-ROLES] Successfully generated suggestions');
     console.log('Suggested roles:', suggestions.suggestedRoles);

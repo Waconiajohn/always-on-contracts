@@ -143,26 +143,18 @@ Return your networking email in the required JSON format.`;
       user.id
     );
 
-        logger.logAICall({
-          model: result.metrics.model,
-          inputTokens: result.metrics.input_tokens,
-          outputTokens: result.metrics.output_tokens,
-          latencyMs: Date.now() - aiStartTime,
-          cost: result.metrics.cost_usd,
-          success: true
-        });
-
-        return result;
-      },
-      3,
-      (attempt, error) => {
-        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
-      }
-    );
+    logger.logAICall({
+      model: metrics.model,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens,
+      latencyMs: Date.now() - aiStartTime,
+      cost: metrics.cost_usd,
+      success: true
+    });
 
     await logAIUsage(metrics);
 
-    const generatedContent = response.choices[0].message.content;
+    const generatedContent = aiResponse.choices[0].message.content;
 
     // Parse and validate JSON
     let parsedEmail;
