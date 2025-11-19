@@ -75,12 +75,21 @@ Return ONLY the enhanced content, no explanation.`;
     const enhancedContent = aiData.choices[0].message.content.trim();
 
     // Update the item
+    // Handle confidence_score based on table type (some use integer 0-100, some use numeric 0.00-1.00)
+    const integerScoreTables = ['vault_power_phrases', 'vault_transferable_skills', 'vault_hidden_competencies'];
+    const useIntegerScore = integerScoreTables.includes(tableName);
+    
+    const currentScore = item.confidence_score || (useIntegerScore ? 70 : 0.7);
+    const increment = useIntegerScore ? 10 : 0.1;
+    const maxScore = useIntegerScore ? 95 : 0.95;
+    const newScore = Math.min(currentScore + increment, maxScore);
+    
     const { error: updateError } = await supabase
       .from(tableName)
       .update({
         [contentField]: enhancedContent,
         quality_tier: item.quality_tier === 'bronze' ? 'silver' : item.quality_tier === 'silver' ? 'gold' : item.quality_tier,
-        confidence_score: Math.min((item.confidence_score || 0.7) + 0.1, 0.95),
+        confidence_score: newScore,
         last_updated_at: new Date().toISOString()
       })
       .eq('id', itemId);
