@@ -18,41 +18,48 @@ serve(async (req) => {
 
     console.log('Generating AI keyword suggestions for:', itemType);
 
-    // Create keyword suggestion prompt
-    const systemPrompt = `You are an ATS (Applicant Tracking System) expert and recruiter. Return ONLY valid JSON, no additional text or explanations.
+    console.log('[suggest-keywords] Generating keyword suggestions for:', itemType);
 
-Generate keywords that are:
-1. Industry-relevant and current
-2. ATS-friendly (commonly searched terms)
-3. Action-oriented and impact-focused
-4. Specific to the candidate's achievements
-5. Aligned with target role requirements
+    // STANDARDIZED SYSTEM PROMPT
+    const systemPrompt = `You are an ATS (Applicant Tracking System) expert and recruiter specializing in keyword optimization.
 
-CRITICAL: Return ONLY this exact JSON structure, nothing else:
+Your task: Generate targeted keywords that maximize ATS visibility and recruiter attention.
+
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
 {
-  "primary_keywords": ["most important 3-5 keywords"],
-  "secondary_keywords": ["supporting 3-5 keywords"],
-  "skill_keywords": ["technical/tool keywords"],
-  "action_keywords": ["power verbs and phrases"],
-  "reasoning": "Why these keywords are effective"
-}`;
+  "primary_keywords": ["keyword1", "keyword2", "keyword3"],
+  "secondary_keywords": ["keyword4", "keyword5", "keyword6"],
+  "skill_keywords": ["technical1", "tool2", "framework3"],
+  "action_keywords": ["achieved", "implemented", "optimized"],
+  "reasoning": "Brief explanation of keyword strategy"
+}
 
-    const userPrompt = `Suggest ATS-optimized keywords for this career item:
+Requirements:
+- All arrays must be populated
+- Keywords must be industry-relevant and ATS-friendly
+- Focus on measurable achievements and current terminology
+- Avoid generic buzzwords without substance`;
 
-Content: "${content}"
+    // STANDARDIZED USER PROMPT
+    const userPrompt = `Analyze this career item and suggest ATS-optimized keywords:
 
-Item Type: ${itemType}
-Industry: ${industry || 'General'}
-Target Role: ${targetRole || 'Not specified'}
+CONTENT: "${content}"
 
-Provide 10-15 total keywords across categories that will:
-1. Match what recruiters search for
-2. Highlight technical expertise
-3. Emphasize leadership and impact
-4. Use current industry terminology
-5. Avoid buzzwords that lack substance
+CONTEXT:
+- Item Type: ${itemType}
+- Industry: ${industry || 'General'}
+- Target Role: ${targetRole || 'Not specified'}
 
-Focus on specificity and measurability.`;
+TASK: Provide 10-15 keywords across all categories that:
+1. Match what recruiters actively search for
+2. Highlight technical expertise and tools
+3. Emphasize leadership and measurable impact
+4. Use current industry-standard terminology
+5. Are specific and quantifiable (avoid vague terms)
+
+Return your analysis in the required JSON format.`;
+
+    console.log('[suggest-keywords] Calling Lovable AI with PREMIUM model');
 
     const { response, metrics } = await callLovableAI(
       {
@@ -72,23 +79,45 @@ Focus on specificity and measurability.`;
     await logAIUsage(metrics);
 
     const rawContent = response.choices[0].message.content;
-    console.log('Raw AI response:', rawContent.substring(0, 500));
+    console.log('[suggest-keywords] Raw AI response:', rawContent.substring(0, 500));
     
     const parseResult = extractJSON(rawContent);
     
     if (!parseResult.success || !parseResult.data) {
-      console.error('JSON parse failed:', parseResult.error);
-      console.error('Full response:', rawContent);
+      console.error('[suggest-keywords] JSON parse failed:', parseResult.error);
+      console.error('[suggest-keywords] Full response:', rawContent);
       throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
     const keywords = parseResult.data;
     
-    // Validate required fields
+    // EXPLICIT FIELD VALIDATION
     if (!keywords.primary_keywords || !Array.isArray(keywords.primary_keywords)) {
-      console.error('Missing or invalid primary_keywords:', keywords);
+      console.error('[suggest-keywords] Missing or invalid primary_keywords:', keywords);
       throw new Error('AI response missing required field: primary_keywords array');
     }
+    
+    if (!keywords.secondary_keywords || !Array.isArray(keywords.secondary_keywords)) {
+      console.error('[suggest-keywords] Missing or invalid secondary_keywords:', keywords);
+      throw new Error('AI response missing required field: secondary_keywords array');
+    }
+    
+    if (!keywords.skill_keywords || !Array.isArray(keywords.skill_keywords)) {
+      console.error('[suggest-keywords] Missing or invalid skill_keywords:', keywords);
+      throw new Error('AI response missing required field: skill_keywords array');
+    }
+    
+    if (!keywords.action_keywords || !Array.isArray(keywords.action_keywords)) {
+      console.error('[suggest-keywords] Missing or invalid action_keywords:', keywords);
+      throw new Error('AI response missing required field: action_keywords array');
+    }
+
+    console.log('[suggest-keywords] Successfully generated keywords:', {
+      primaryCount: keywords.primary_keywords.length,
+      secondaryCount: keywords.secondary_keywords.length,
+      skillCount: keywords.skill_keywords.length,
+      actionCount: keywords.action_keywords.length
+    });
 
     return new Response(
       JSON.stringify({

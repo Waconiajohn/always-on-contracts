@@ -36,50 +36,75 @@ serve(async (req) => {
       supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId)
     ]);
 
-    // Create analysis prompt
-    const systemPrompt = `You are an expert talent analyst. Return ONLY valid JSON, no additional text or explanations.
+    console.log('[suggest-hidden-strengths] Building analysis prompt');
 
-Look for patterns in their achievements to identify:
-1. Skills they haven't explicitly listed
-2. Leadership qualities shown through actions
-3. Strategic thinking demonstrated in results
-4. Technical expertise implied by projects
-5. Soft skills evident in teamwork/coordination
+    // STANDARDIZED SYSTEM PROMPT
+    const systemPrompt = `You are an expert talent analyst specializing in uncovering hidden strengths from career data.
 
-CRITICAL: Return ONLY this exact JSON structure, nothing else:
+Your task: Identify implicit skills, leadership qualities, and strategic impact that candidates haven't explicitly documented.
+
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
 {
   "hidden_strengths": [
     {
-      "strength_type": "skill" | "leadership" | "strategic_impact",
-      "title": "Short name",
-      "description": "What you discovered",
-      "evidence": "Specific examples from their vault",
-      "suggested_action": "How to add this to their vault",
-      "suggested_keywords": ["keyword1", "keyword2"]
+      "strength_type": "skill | leadership | strategic_impact",
+      "title": "Concise name of hidden strength",
+      "description": "What you discovered and why it matters",
+      "evidence": "Specific examples from their vault data",
+      "suggested_action": "How to add this to their career vault",
+      "suggested_keywords": ["keyword1", "keyword2", "keyword3"]
     }
   ]
-}`;
+}
+
+Analysis Guidelines:
+1. Look for patterns across multiple achievements
+2. Identify skills implied by projects but not explicitly stated
+3. Spot leadership qualities demonstrated through actions
+4. Recognize strategic thinking shown in results
+5. Detect soft skills evident in collaboration/coordination
+6. Focus on transferable strengths valuable across roles`;
 
     const vaultSummary = {
-      achievements: powerPhrases?.map((p: any) => p.power_phrase || p.phrase),
-      skills: transferableSkills?.map((s: any) => s.stated_skill || s.skill),
-      competencies: hiddenCompetencies?.map((c: any) => c.competency_area)
+      achievements: powerPhrases?.map((p: any) => p.power_phrase || p.phrase) || [],
+      skills: transferableSkills?.map((s: any) => s.stated_skill || s.skill) || [],
+      competencies: hiddenCompetencies?.map((c: any) => c.competency_area) || []
     };
 
-    const userPrompt = `Analyze this career vault and discover hidden strengths:
+    // STANDARDIZED USER PROMPT
+    const userPrompt = `Analyze this career vault to discover hidden strengths:
 
-Achievements (${powerPhrases?.length || 0} items):
-${vaultSummary.achievements?.slice(0, 20).join('\n')}
+CURRENT VAULT DATA:
 
-Current Skills (${transferableSkills?.length || 0} items):
-${vaultSummary.skills?.slice(0, 15).join(', ')}
+Documented Achievements (${vaultSummary.achievements.length} items):
+${vaultSummary.achievements.slice(0, 20).join('\n') || 'None documented'}
 
-Benchmark expects:
-- ${benchmarkData?.layer1_foundations?.skills?.target || 25} skills
-- ${benchmarkData?.layer2_intelligence?.leadership?.target || 4} leadership examples
-- ${benchmarkData?.layer2_intelligence?.strategic_impact?.target || 10} strategic impact items
+Explicit Skills (${vaultSummary.skills.length} items):
+${vaultSummary.skills.slice(0, 15).join(', ') || 'None documented'}
 
-Find 5-8 hidden strengths they haven't explicitly documented. Include AI-suggested keywords for each.`;
+Competency Areas (${vaultSummary.competencies.length} items):
+${vaultSummary.competencies.join(', ') || 'None documented'}
+
+BENCHMARK TARGETS:
+- Skills: ${benchmarkData?.layer1_foundations?.skills?.target || 25}
+- Leadership Examples: ${benchmarkData?.layer2_intelligence?.leadership?.target || 4}
+- Strategic Impact Items: ${benchmarkData?.layer2_intelligence?.strategic_impact?.target || 10}
+
+TASK: Find 5-8 hidden strengths by:
+1. Reading between the lines of their achievements
+2. Identifying skills they use but haven't named
+3. Spotting leadership patterns in their actions
+4. Recognizing strategic thinking in their results
+5. Detecting soft skills shown in their work
+
+For each hidden strength, provide:
+- Clear evidence from their vault
+- Specific action they can take to document it
+- 2-3 ATS-optimized keywords
+
+Return your analysis in the required JSON format.`;
+
+    console.log('[suggest-hidden-strengths] Calling Lovable AI with PREMIUM model');
 
     const { response, metrics } = await callLovableAI(
       {
@@ -99,23 +124,56 @@ Find 5-8 hidden strengths they haven't explicitly documented. Include AI-suggest
     await logAIUsage(metrics);
 
     const rawContent = response.choices[0].message.content;
-    console.log('Raw AI response:', rawContent.substring(0, 500));
+    console.log('[suggest-hidden-strengths] Raw AI response:', rawContent.substring(0, 500));
     
     const parseResult = extractJSON(rawContent);
     
     if (!parseResult.success || !parseResult.data) {
-      console.error('JSON parse failed:', parseResult.error);
-      console.error('Full response:', rawContent);
+      console.error('[suggest-hidden-strengths] JSON parse failed:', parseResult.error);
+      console.error('[suggest-hidden-strengths] Full response:', rawContent);
       throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
     const result = parseResult.data;
     
-    // Validate required fields
+    // EXPLICIT FIELD VALIDATION
     if (!result.hidden_strengths || !Array.isArray(result.hidden_strengths)) {
-      console.error('Missing or invalid hidden_strengths array:', result);
+      console.error('[suggest-hidden-strengths] Missing or invalid hidden_strengths array:', result);
       throw new Error('AI response missing required field: hidden_strengths array');
     }
+    
+    // Validate each hidden strength object
+    result.hidden_strengths.forEach((strength: any, index: number) => {
+      if (!strength.strength_type || !['skill', 'leadership', 'strategic_impact'].includes(strength.strength_type)) {
+        console.error(`[suggest-hidden-strengths] Invalid strength_type at index ${index}:`, strength);
+        throw new Error(`Hidden strength ${index} has invalid strength_type`);
+      }
+      
+      if (!strength.title || typeof strength.title !== 'string') {
+        console.error(`[suggest-hidden-strengths] Missing title at index ${index}:`, strength);
+        throw new Error(`Hidden strength ${index} missing required field: title`);
+      }
+      
+      if (!strength.description || typeof strength.description !== 'string') {
+        console.error(`[suggest-hidden-strengths] Missing description at index ${index}:`, strength);
+        throw new Error(`Hidden strength ${index} missing required field: description`);
+      }
+      
+      if (!strength.evidence || typeof strength.evidence !== 'string') {
+        console.error(`[suggest-hidden-strengths] Missing evidence at index ${index}:`, strength);
+        throw new Error(`Hidden strength ${index} missing required field: evidence`);
+      }
+      
+      if (!Array.isArray(strength.suggested_keywords)) {
+        console.error(`[suggest-hidden-strengths] Invalid suggested_keywords at index ${index}:`, strength);
+        throw new Error(`Hidden strength ${index} missing required field: suggested_keywords array`);
+      }
+    });
+
+    console.log('[suggest-hidden-strengths] Successfully found hidden strengths:', {
+      count: result.hidden_strengths.length,
+      types: result.hidden_strengths.map((s: any) => s.strength_type)
+    });
 
     return new Response(
       JSON.stringify({

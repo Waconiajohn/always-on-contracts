@@ -35,46 +35,60 @@ serve(createAIHandler({
       .eq('user_id', user.id)
       .single();
 
-    const enhancementPrompt = `You are helping improve an interview answer by providing an enhanced example.
+    logger.info('Building enhancement prompt with vault context');
 
-QUESTION:
+    // STANDARDIZED SYSTEM PROMPT
+    const systemPrompt = `You are an expert interview coach specializing in STAR method answer enhancement.
+
+Your task: Transform basic interview answers into compelling, detailed responses using the candidate's actual career achievements.
+
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
+{
+  "enhanced_answer": "The complete STAR-formatted answer with specific details",
+  "what_was_added": "Brief explanation of enhancements made",
+  "resume_details_used": ["detail1", "detail2", "detail3"]
+}
+
+Requirements:
+- Build upon the user's existing answer (never ignore their input)
+- Incorporate specific details from their resume/vault
+- Follow STAR format: Situation → Task → Action → Result
+- Add quantifiable metrics where possible
+- Keep the enhanced answer authentic to their experience
+- Do NOT fabricate information`;
+
+    // STANDARDIZED USER PROMPT
+    const userPrompt = `Enhance this interview answer using the candidate's career vault data:
+
+INTERVIEW QUESTION:
 ${question}
 
-USER'S CURRENT ANSWER:
+CANDIDATE'S CURRENT ANSWER:
 ${currentAnswer}
 
 VALIDATION FEEDBACK:
-${JSON.stringify(validationFeedback || {})}
+${JSON.stringify(validationFeedback || {}, null, 2)}
 
-RESUME CONTEXT:
-${JSON.stringify(vault?.initial_analysis || {})}
+CAREER VAULT CONTEXT:
+${JSON.stringify(vault?.initial_analysis || {}, null, 2)}
 
-Your task: Create an ENHANCED version of their answer that:
-1. BUILDS ON what they already said (don't ignore their input)
-2. Adds specific details from their resume where relevant
-3. Includes the missing elements (specificity, quantification, context, impact)
-4. Uses STAR format (Situation, Task, Action, Result)
-5. Feels natural and authentic to their career story
+TASK: Create an enhanced version that:
+1. Preserves the candidate's original intent and voice
+2. Adds specific details from their career vault (metrics, technologies, outcomes)
+3. Fills in missing elements: specificity, quantification, context, impact
+4. Follows complete STAR structure
+5. Remains authentic to their actual experience
 
-Return JSON with:
-{
-  "enhanced_answer": "The improved answer with specific details",
-  "what_was_added": "Brief explanation of what you enhanced",
-  "resume_details_used": ["List of specific resume details incorporated"]
-}
+Return your enhancement in the required JSON format.`;
 
-Keep the enhanced answer realistic and grounded in their actual experience. Don't fabricate - enhance.`;
-
+    logger.debug('Calling Lovable AI for answer enhancement');
     const startTime = Date.now();
 
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert interview coach creating enhanced answer examples. Return only valid JSON.'
-          },
-          { role: 'user', content: enhancementPrompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.5,
@@ -97,10 +111,14 @@ Keep the enhanced answer realistic and grounded in their actual experience. Don'
     });
 
     const enhancedText = response.choices[0].message.content.trim();
+    logger.debug('Received AI response', { 
+      responseLength: enhancedText.length,
+      preview: enhancedText.substring(0, 200)
+    });
 
     const result = extractJSON(enhancedText, GenericAIResponseSchema);
 
-    if (!result.success) {
+    if (!result.success || !result.data) {
       logger.error('JSON extraction failed', {
         error: result.error,
         response: enhancedText.substring(0, 300)
@@ -108,8 +126,30 @@ Keep the enhanced answer realistic and grounded in their actual experience. Don'
       throw new Error(`Invalid enhancement response: ${result.error}`);
     }
 
-    logger.info('Answer enhancement complete');
+    // Parse the content field which contains the actual JSON
+    const enhancementData = JSON.parse(result.data.content || '{}');
+    
+    // EXPLICIT FIELD VALIDATION
+    if (!enhancementData.enhanced_answer || typeof enhancementData.enhanced_answer !== 'string') {
+      logger.error('Missing or invalid enhanced_answer field', { data: enhancementData });
+      throw new Error('AI response missing required field: enhanced_answer');
+    }
+    
+    if (!enhancementData.what_was_added || typeof enhancementData.what_was_added !== 'string') {
+      logger.error('Missing or invalid what_was_added field', { data: enhancementData });
+      throw new Error('AI response missing required field: what_was_added');
+    }
+    
+    if (!Array.isArray(enhancementData.resume_details_used)) {
+      logger.error('Missing or invalid resume_details_used array', { data: enhancementData });
+      throw new Error('AI response missing required field: resume_details_used array');
+    }
 
-    return result.data;
+    logger.info('Answer enhancement complete', {
+      answerLength: enhancementData.enhanced_answer.length,
+      detailsUsed: enhancementData.resume_details_used.length
+    });
+
+    return enhancementData;
   }
 }));
