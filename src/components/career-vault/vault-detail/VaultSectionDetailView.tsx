@@ -10,6 +10,7 @@ import { VaultSearchFilter } from './VaultSearchFilter';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 interface VaultSectionDetailViewProps {
   sectionKey: string;
@@ -121,9 +122,10 @@ export function VaultSectionDetailView({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
+      <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)]">
         {/* Left Panel - Item List */}
-        <div className="space-y-4">
+        <ResizablePanel defaultSize={55} minSize={40}>
+          <div className="space-y-4 pr-4">
           <VaultSearchFilter
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -173,7 +175,7 @@ export function VaultSectionDetailView({
                   </TabsTrigger>
                 </TabsList>
 
-                <ScrollArea className="h-[600px] mt-4">
+                <ScrollArea className="h-[calc(100vh-420px)] mt-4">
                   <div className="space-y-3">
                     {displayItems.length === 0 ? (
                       <div className="text-center py-12 text-muted-foreground">
@@ -206,10 +208,15 @@ export function VaultSectionDetailView({
               </Tabs>
             </CardContent>
           </Card>
-        </div>
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
 
         {/* Right Panel - Benchmark & Workspace */}
-        <div className="space-y-4">
+        <ResizablePanel defaultSize={45} minSize={35}>
+          <ScrollArea className="h-[calc(100vh-280px)] pl-4">
+            <div className="space-y-4">
           {!activeRoadmapItem ? (
             <>
               <BenchmarkComparisonPanel
@@ -238,8 +245,10 @@ export function VaultSectionDetailView({
               onItemAdded={onItemUpdate}
             />
           )}
-        </div>
-      </div>
+            </div>
+          </ScrollArea>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }
