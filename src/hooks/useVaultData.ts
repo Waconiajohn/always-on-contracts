@@ -101,7 +101,7 @@ export const useVaultData = (userId: string | undefined) => {
     },
     enabled: !!userId,
     staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache
+    gcTime: 5 * 60 * 1000, // Keep cache for 5 minutes to prevent data disappearing during refetch
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     // Retry logic with exponential backoff for extraction process
