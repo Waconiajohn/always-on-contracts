@@ -78,7 +78,7 @@ Focus on quick wins and high-impact actions first.`;
         model: LOVABLE_AI_MODELS.PREMIUM,
         temperature: 0.8,
         max_tokens: 2000,
-        response_format: { type: 'json_object' }
+        response_mime_type: "application/json"
       },
       "generate-gap-roadmap",
       undefined

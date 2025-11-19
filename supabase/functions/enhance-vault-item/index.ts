@@ -68,7 +68,7 @@ Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable 
         model: LOVABLE_AI_MODELS.PREMIUM,
         temperature: 0.7,
         max_tokens: 1000,
-        response_format: { type: 'json_object' }
+        response_mime_type: "application/json"
       },
       "enhance-vault-item",
       undefined
