@@ -42,7 +42,18 @@ serve(async (req) => {
 
     if (!vault) throw new Error('Career Vault not found');
 
-    const prompt = `You are an expert at discovering hidden competencies and reframing experience with modern terminology.
+    const systemPrompt = `You are an expert at discovering hidden competencies and reframing experience with modern terminology. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY a JSON array with this exact structure, nothing else:
+[{
+  "competency_area": "string - the hidden competency name",
+  "supporting_evidence": ["array of strings - specific evidence from resume"],
+  "inferred_capability": "string - the broader capability this implies",
+  "confidence_score": "number (0-100) - confidence in this inference",
+  "certification_equivalent": "string (optional) - certifications they could pass"
+}]`;
+
+    const userPrompt = `Discover hidden competencies from this career data.
 
 Resume: ${vault.resume_raw_text}
 Hidden Gems Interview: ${JSON.stringify(responses)}
@@ -60,16 +71,7 @@ Discover 8-12 hidden competencies like:
 - Trained in Kaizen in Japan → Six Sigma Black Belt equivalent knowledge, Process optimization expert (even without certification)
 - Managed IT infrastructure projects → Qualified to lead cloud migration, DevOps transformation, AI implementation (knows engineering, project management, IT)
 - Created Excel macros for 10 years → RPA candidate, Python automation ready, process improvement expert
-- "Coordinated between sales and engineering" → Product management capable, stakeholder management expert
-
-Return JSON array:
-[{
-  "competency_area": "AI Implementation Leadership",
-  "supporting_evidence": ["Worked on large language models 2018-2020", "Led ML infrastructure projects", "Managed data science teams", "Understands model deployment and scaling"],
-  "inferred_capability": "Qualified to lead enterprise AI transformation initiatives despite not having explicit 'AI experience' job title. Understands both technical and business aspects of AI.",
-  "confidence_score": 85,
-  "certification_equivalent": "AI/ML Professional (practical experience) - could pass AI certifications"
-}]`;
+- "Coordinated between sales and engineering" → Product management capable, stakeholder management expert`;
 
     console.log('Discovering hidden competencies for career vault:', vaultId);
 
@@ -77,15 +79,16 @@ Return JSON array:
       async () => await callLovableAI(
         {
           messages: [
-            { role: 'system', content: 'You are an expert career analyst specializing in discovering hidden capabilities and reframing experience. Return only valid JSON array.' },
-            { role: 'user', content: prompt }
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
           ],
-          model: LOVABLE_AI_MODELS.DEFAULT,
-          temperature: 0.6,
+          model: LOVABLE_AI_MODELS.PREMIUM,
+          temperature: 0.7,
           max_tokens: 2000,
           response_format: { type: 'json_object' }
         },
-        'discover-hidden-competencies'
+        'discover-hidden-competencies',
+        undefined
       ),
       3,
       (attempt, error) => {
@@ -95,16 +98,30 @@ Return JSON array:
 
     await logAIUsage(metrics);
 
-    const competenciesText = response.choices[0].message.content.trim();
-    const result = extractArray(competenciesText, HiddenCompetencySchema);
+    const rawContent = response.choices[0].message.content || '{}';
+    console.log('[discover-hidden-competencies] Raw AI response:', rawContent.substring(0, 500));
 
-    if (!result.success) {
-      logger.error('JSON parsing failed', { 
+    const result = extractArray(rawContent, HiddenCompetencySchema);
+
+    if (!result.success || !result.data) {
+      console.error('[discover-hidden-competencies] JSON parse failed:', result.error);
+      console.error('[discover-hidden-competencies] Full response:', rawContent);
+      logger.error('JSON parsing failed', {
         error: result.error,
-        content: competenciesText.substring(0, 500)
+        content: rawContent.substring(0, 500)
       });
       throw new Error(`Invalid AI response: ${result.error}`);
     }
+
+    // Validate array has items
+    if (!Array.isArray(result.data) || result.data.length === 0) {
+      console.error('[discover-hidden-competencies] Empty or invalid competencies array');
+      throw new Error('AI response returned no competencies');
+    }
+
+    console.log('[discover-hidden-competencies] Discovery complete:', {
+      competenciesFound: result.data.length
+    });
 
     const competencies = result.data;
 
