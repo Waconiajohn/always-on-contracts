@@ -1,12 +1,14 @@
 // src/components/resume-builder/CanonicalResumePreview.tsx
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   builderStateToCanonicalResume,
   canonicalResumeToHTML,
 } from "@/lib/resumeSerialization";
 import { BuilderResumeSection } from "@/lib/resumeModel";
+import { renderResumeWithTemplate } from "@/lib/resumeTemplateRenderer";
+import { getFormat } from "@/lib/resumeFormats";
 
 interface CanonicalResumePreviewProps {
   /**
@@ -26,6 +28,10 @@ interface CanonicalResumePreviewProps {
    * If the builder is still loading / generating content.
    */
   isLoading?: boolean;
+  /**
+   * Selected format ID to apply template styling
+   */
+  selectedFormatId?: string;
 }
 
 /**
@@ -63,45 +69,83 @@ export const CanonicalResumePreview: React.FC<CanonicalResumePreviewProps> = ({
   resumeSections,
   jobTitle,
   isLoading,
+  selectedFormatId,
 }) => {
-  const { bodyHtml, headerSummary } = useMemo(() => {
+  const [templateHtml, setTemplateHtml] = useState<string>("");
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
+
+  const canonical = useMemo(() => {
     if (!resumeSections || resumeSections.length === 0) {
-      return { bodyHtml: "", headerSummary: "" };
+      return null;
     }
 
     const builderSections = mapToBuilderSections(resumeSections);
-
-    const canonical = builderStateToCanonicalResume({
+    return builderStateToCanonicalResume({
       userProfile,
       sections: builderSections,
     });
+  }, [userProfile, resumeSections]);
 
-    const fullHtml = canonicalResumeToHTML(canonical);
-    const bodyOnly = extractBody(fullHtml);
+  useEffect(() => {
+    const loadTemplate = async () => {
+      if (!canonical) {
+        setTemplateHtml("");
+        return;
+      }
 
+      // If no format selected or format doesn't have templateId, use default HTML
+      if (!selectedFormatId) {
+        const fullHtml = canonicalResumeToHTML(canonical);
+        setTemplateHtml(extractBody(fullHtml));
+        return;
+      }
+
+      const format = getFormat(selectedFormatId);
+      if (!format || !format.templateId) {
+        const fullHtml = canonicalResumeToHTML(canonical);
+        setTemplateHtml(extractBody(fullHtml));
+        return;
+      }
+
+      // Apply template
+      setIsLoadingTemplate(true);
+      try {
+        const styledHtml = await renderResumeWithTemplate(canonical, format.templateId);
+        setTemplateHtml(extractBody(styledHtml));
+      } catch (error) {
+        console.error('[PREVIEW] Error rendering template:', error);
+        const fullHtml = canonicalResumeToHTML(canonical);
+        setTemplateHtml(extractBody(fullHtml));
+      } finally {
+        setIsLoadingTemplate(false);
+      }
+    };
+
+    loadTemplate();
+  }, [canonical, selectedFormatId]);
+
+  const headerSummary = useMemo(() => {
+    if (!canonical) return "";
     const name = canonical.header.fullName || "";
     const headline = canonical.header.headline || "";
     const contact = canonical.header.contactLine || "";
+    return [name, headline, contact].filter(Boolean).join(" • ");
+  }, [canonical]);
 
-    const headerSummary = [name, headline, contact].filter(Boolean).join(" • ");
-
-    return { bodyHtml: bodyOnly, headerSummary };
-  }, [userProfile, resumeSections]);
-
-  if (isLoading) {
+  if (isLoading || isLoadingTemplate) {
     return (
       <Card className="h-full">
         <CardHeader>
           <CardTitle>Resume preview</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Generating your resume layout…
+          {isLoadingTemplate ? 'Applying template styling…' : 'Generating your resume layout…'}
         </CardContent>
       </Card>
     );
   }
 
-  if (!resumeSections || resumeSections.length === 0) {
+  if (!canonical) {
     return (
       <Card className="h-full">
         <CardHeader>
@@ -138,7 +182,7 @@ export const CanonicalResumePreview: React.FC<CanonicalResumePreviewProps> = ({
              so preview == exported result. */}
           <div
             className="text-[12px] leading-snug"
-            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+            dangerouslySetInnerHTML={{ __html: templateHtml }}
           />
         </div>
       </CardContent>

@@ -13,6 +13,7 @@ export interface ResumeSection {
 
 export interface ResumeFormat {
   id: string;
+  templateId: string; // UUID from resume_templates table
   name: string;
   description: string;
   bestFor: string[];
@@ -23,6 +24,7 @@ export interface ResumeFormat {
 export const RESUME_FORMATS: ResumeFormat[] = [
   {
     id: 'executive',
+    templateId: '96ac1200-0e4e-4584-b1ec-5f93c2b94376',
     name: 'Executive Format',
     description: 'Best for senior leadership, C-suite, VP, and director-level positions. Emphasizes strategic impact and results.',
     bestFor: ['C-Suite', 'VP', 'Senior Director', 'Executive', 'President', 'COO', 'CFO', 'CMO'],
@@ -125,6 +127,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
   },
   {
     id: 'technical',
+    templateId: '2269b438-5876-4658-8980-ae8c62374676',
     name: 'Technical Format',
     description: 'Optimized for engineers, developers, architects, and technical specialists. Emphasizes technical skills and projects.',
     bestFor: ['Software Engineer', 'Developer', 'Architect', 'DevOps', 'Data Scientist', 'Technical Lead'],
@@ -209,6 +212,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
   },
   {
     id: 'functional',
+    templateId: 'ba535a3f-af9e-4a04-aef1-3ca959651c42', // Using modern template for functional
     name: 'Functional Format',
     description: 'Skills-based format for career changers, gaps in employment, or diverse experience. Emphasizes capabilities over chronology.',
     bestFor: ['Career Changer', 'Returning to Workforce', 'Diverse Experience', 'Consultant'],
@@ -289,6 +293,7 @@ export const RESUME_FORMATS: ResumeFormat[] = [
   },
   {
     id: 'hybrid',
+    templateId: 'ba535a3f-af9e-4a04-aef1-3ca959651c42', // Using modern template for hybrid
     name: 'Hybrid Format',
     description: 'Combines skills highlight with chronological experience. Versatile format for most professional roles.',
     bestFor: ['Manager', 'Analyst', 'Specialist', 'Coordinator', 'Mid-Level Professional'],

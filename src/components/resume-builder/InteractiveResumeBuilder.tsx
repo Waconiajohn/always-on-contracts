@@ -692,6 +692,7 @@ export const InteractiveResumeBuilder = ({
                 resumeSections={sections}
                 jobTitle={jobAnalysis?.roleProfile?.title}
                 isLoading={isBuilding}
+                selectedFormatId={undefined}
               />
             )}
           </div>

@@ -69,16 +69,25 @@ function renderSection(section: CanonicalResumeSection, _template: any): string 
   }
 
   // Handle bullet-point sections
-  const bullets = section.bullets
-    .map(bullet => `<li class="section-bullet">${escapeHtml(bullet)}</li>`)
-    .join('\n');
+  if (section.bullets && section.bullets.length > 0) {
+    const bullets = section.bullets
+      .map(bullet => `<li class="section-bullet">${escapeHtml(bullet)}</li>`)
+      .join('\n');
 
+    return `
+      <div class="resume-section">
+        <h2 class="section-heading">${heading}</h2>
+        <ul class="section-bullets">
+          ${bullets}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Empty section
   return `
     <div class="resume-section">
       <h2 class="section-heading">${heading}</h2>
-      <ul class="section-bullets">
-        ${bullets}
-      </ul>
     </div>
   `;
 }
