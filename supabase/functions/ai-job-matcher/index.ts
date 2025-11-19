@@ -259,7 +259,18 @@ serve(async (req) => {
       
       for (const job of batch) {
         try {
-          const prompt = `You are an expert career matching AI. Analyze if this job is a good match for the candidate.
+          const systemPrompt = `You are an expert career matching AI. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
+{
+  "match_score": "number (0-100)",
+  "matching_skills": ["array of strings - skills that match"],
+  "ai_recommendation": "string - 2-3 sentence explanation",
+  "hidden_strengths": ["array of strings - unique angles"],
+  "gap_analysis": ["array of strings - missing requirements"]
+}`;
+
+          const userPrompt = `Analyze if this job is a good match for the candidate.
 
 CANDIDATE PROFILE:
 - Target Roles: ${compactVault.target_roles.join(', ')}
@@ -279,22 +290,13 @@ Title: ${job.job_title}
 Location: ${job.location}
 Salary: $${job.hourly_rate_min}-${job.hourly_rate_max}/hr
 Description: ${job.job_description?.substring(0, 1000)}
-Required Skills: ${(job.required_skills || []).join(', ')}
-
-Analyze this match and respond with ONLY valid JSON in this exact format:
-{
-  "match_score": <number 0-100>,
-  "matching_skills": ["skill1", "skill2"],
-  "ai_recommendation": "2-3 sentence explanation",
-  "hidden_strengths": ["unique angle 1", "unique angle 2"],
-  "gap_analysis": ["missing requirement 1", "missing requirement 2"]
-}`;
+Required Skills: ${(job.required_skills || []).join(', ')}`;
 
           const { response, metrics } = await callLovableAI(
             {
               messages: [
-                { role: 'system', content: 'You are a career matching expert. Always respond with valid JSON.' },
-                { role: 'user', content: prompt }
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
               ],
               model: LOVABLE_AI_MODELS.DEFAULT,
               temperature: 0.7,
@@ -307,20 +309,31 @@ Analyze this match and respond with ONLY valid JSON in this exact format:
 
           await logAIUsage(metrics);
 
-          const content = response.choices[0].message.content;
+          const rawContent = response.choices[0].message.content;
+          console.log(`[ai-job-matcher] Raw AI response for job ${job.id}:`, rawContent.substring(0, 300));
 
-          // Parse JSON response with production-grade extraction
-          const parseResult = extractJSON(content);
+          const parseResult = extractJSON(rawContent);
           if (!parseResult.success || !parseResult.data) {
+            console.error(`[ai-job-matcher] JSON parse failed for job ${job.id}:`, parseResult.error);
+            console.error(`[ai-job-matcher] Full response:`, rawContent);
             logger.error('JSON parsing failed for job match', {
               error: parseResult.error,
               jobId: job.id,
-              content: content.substring(0, 500)
+              content: rawContent.substring(0, 500)
             });
             continue;
           }
 
           const matchData = parseResult.data;
+
+          // Validate required fields
+          if (typeof matchData.match_score !== 'number' ||
+              !Array.isArray(matchData.matching_skills) ||
+              !matchData.ai_recommendation) {
+            console.error(`[ai-job-matcher] Missing required fields for job ${job.id}:`, matchData);
+            continue;
+          }
+
           totalAnalyzed++;
 
           // Only save matches with score >= 70%

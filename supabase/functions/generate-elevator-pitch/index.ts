@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,7 +44,23 @@ serve(async (req) => {
 
     console.log('[ELEVATOR-PITCH] Generating pitch for vault:', vaultId);
 
-    const prompt = `Job Description:
+    const systemPrompt = `You are a career coach helping candidates create elevator pitches and requirement-matching narratives. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
+{
+  "requirements": [
+    {
+      "requirement": "string - the job requirement",
+      "description": "string - what this requirement means",
+      "first_person_story": "string - first-person narrative showing this capability"
+    }
+  ],
+  "elevator_pitch": "string - 30-60 second elevator pitch summarizing perfect fit"
+}`;
+
+    const userPrompt = `Create an elevator pitch and requirement-matching stories.
+
+Job Description:
 ${jobDescription}
 
 Career Background:
@@ -51,31 +68,13 @@ Career Background:
 - Transferable Skills: ${vault.vault_transferable_skills?.slice(0, 10).map((s: any) => s.stated_skill).join('; ') || 'None'}
 - Hidden Competencies: ${vault.vault_hidden_competencies?.slice(0, 5).map((c: any) => c.competency_area).join('; ') || 'None'}
 
-Extract the top 4-6 job requirements and create first-person stories for each requirement using the career data provided.
-
-Return JSON with this structure:
-{
-  "requirements": [
-    {
-      "requirement": "...",
-      "description": "...",
-      "first_person_story": "..."
-    }
-  ],
-  "elevator_pitch": "30-60 second elevator pitch summarizing perfect fit"
-}`;
+Extract the top 4-6 job requirements and create first-person stories for each requirement using the career data provided.`;
 
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'system',
-            content: 'You are a career coach helping candidates create elevator pitches and requirement-matching narratives. Return valid JSON only.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
@@ -87,16 +86,28 @@ Return JSON with this structure:
 
     await logAIUsage(metrics);
 
-    const content = response.choices[0].message.content;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const rawContent = response.choices[0].message.content;
+    console.log('[generate-elevator-pitch] Raw AI response:', rawContent.substring(0, 500));
     
-    if (!jsonMatch) {
-      throw new Error('No pitch data generated');
+    const parseResult = extractJSON(rawContent);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('[generate-elevator-pitch] JSON parse failed:', parseResult.error);
+      console.error('[generate-elevator-pitch] Full response:', rawContent);
+      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
 
-    const pitchData = JSON.parse(jsonMatch[0]);
+    const pitchData = parseResult.data;
 
-    console.log('[ELEVATOR-PITCH] Generated successfully');
+    // Validate required fields
+    if (!Array.isArray(pitchData.requirements) || !pitchData.elevator_pitch) {
+      console.error('[generate-elevator-pitch] Missing required fields:', pitchData);
+      throw new Error('AI response missing required fields');
+    }
+
+    console.log('[generate-elevator-pitch] Generated successfully:', {
+      requirements: pitchData.requirements.length
+    });
 
     return new Response(
       JSON.stringify({

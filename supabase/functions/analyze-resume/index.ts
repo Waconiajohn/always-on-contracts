@@ -31,33 +31,9 @@ serve(async (req) => {
 
     logger.info('Starting resume analysis', { userId });
 
-    const prompt = `ROLE: You are an elite resume analysis AI specializing in executive career positioning and contract/freelance work optimization.
+    const systemPrompt = `You are an elite resume analysis AI specializing in executive career positioning and contract/freelance work optimization. Return ONLY valid JSON, no additional text or explanations.
 
-RESUME TEXT:
-${resumeText}
-
-EXTRACTION RULES:
-1. DATES: Extract ALL employment dates in YYYY-MM format. If year-only, use YYYY-01. Mark ongoing roles as "Present".
-2. ACHIEVEMENTS: Quantify everything. Extract numbers, percentages, dollar amounts, team sizes, timelines.
-3. CONTRACT IDENTIFICATION: Flag any indicators of contract/freelance work (keywords: contractor, consultant, freelance, project-based, temporary, contract, 1099, W2).
-4. WORK HISTORY: Identify gaps >3 months. Calculate total experience excluding gaps.
-5. RATES: If hourly/daily rates mentioned, extract and convert to annual equivalent.
-6. SKILLS: Separate technical skills, soft skills, and certifications/tools.
-7. INDUSTRY SIGNALS: Identify primary and secondary industries from company names, role titles, and project descriptions.
-
-MANDATORY EXTRACTION:
-- Extract detailed work history for last 10-15 years minimum
-- For each position: exact dates, company, title, responsibilities, achievements with metrics
-- Calculate years_experience accurately from employment dates
-- Identify contractor vs employee status from job type keywords
-- Extract or estimate hourly rates based on role level and industry
-
-ERROR HANDLING:
-- If data is ambiguous, provide best estimate based on context
-- Never leave required fields empty - use reasonable defaults
-- Flag any data quality concerns
-
-Return ONLY valid JSON matching this structure exactly:
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
   "years_experience": number,
   "key_achievements": string[],
@@ -83,7 +59,33 @@ Return ONLY valid JSON matching this structure exactly:
       "budget_managed": string
     }
   ]
-}
+}`;
+
+    const userPrompt = `Analyze this resume with elite-level extraction.
+
+RESUME TEXT:
+${resumeText}
+
+EXTRACTION RULES:
+1. DATES: Extract ALL employment dates in YYYY-MM format. If year-only, use YYYY-01. Mark ongoing roles as "Present".
+2. ACHIEVEMENTS: Quantify everything. Extract numbers, percentages, dollar amounts, team sizes, timelines.
+3. CONTRACT IDENTIFICATION: Flag any indicators of contract/freelance work (keywords: contractor, consultant, freelance, project-based, temporary, contract, 1099, W2).
+4. WORK HISTORY: Identify gaps >3 months. Calculate total experience excluding gaps.
+5. RATES: If hourly/daily rates mentioned, extract and convert to annual equivalent.
+6. SKILLS: Separate technical skills, soft skills, and certifications/tools.
+7. INDUSTRY SIGNALS: Identify primary and secondary industries from company names, role titles, and project descriptions.
+
+MANDATORY EXTRACTION:
+- Extract detailed work history for last 10-15 years minimum
+- For each position: exact dates, company, title, responsibilities, achievements with metrics
+- Calculate years_experience accurately from employment dates
+- Identify contractor vs employee status from job type keywords
+- Extract or estimate hourly rates based on role level and industry
+
+ERROR HANDLING:
+- If data is ambiguous, provide best estimate based on context
+- Never leave required fields empty - use reasonable defaults
+- Flag any data quality concerns
 
 Focus on positioning experience as premium value for executive and strategic opportunities.`;
 
@@ -94,14 +96,8 @@ Focus on positioning experience as premium value for executive and strategic opp
           {
             model: LOVABLE_AI_MODELS.DEFAULT,
             messages: [
-              {
-                role: 'system',
-                content: 'You are an expert resume analyzer who returns structured JSON. Always respond with valid JSON matching the tool schema exactly.'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
             ],
             temperature: 0.3,
             max_tokens: 4000,
@@ -130,16 +126,36 @@ Focus on positioning experience as premium value for executive and strategic opp
 
     await logAIUsage(metrics);
 
-    // Extract JSON from response
-    const content = response.choices[0].message.content;
-    const extractResult = extractJSON(content);
+    const rawContent = response.choices[0].message.content;
+    console.log('[analyze-resume] Raw AI response:', rawContent.substring(0, 500));
+
+    const extractResult = extractJSON(rawContent);
     
     if (!extractResult.success || !extractResult.data) {
-      logger.error('Failed to extract analysis JSON', { error: extractResult.error });
-      throw new Error("No analysis returned from AI");
+      console.error('[analyze-resume] JSON parse failed:', extractResult.error);
+      console.error('[analyze-resume] Full response:', rawContent);
+      logger.error('Failed to extract analysis JSON', { 
+        error: extractResult.error,
+        content: rawContent.substring(0, 500)
+      });
+      throw new Error(`Failed to parse AI response: ${extractResult.error}`);
     }
 
     const analysis = extractResult.data;
+
+    // Validate required fields
+    if (typeof analysis.years_experience !== 'number' ||
+        !Array.isArray(analysis.key_achievements) ||
+        !Array.isArray(analysis.work_history)) {
+      console.error('[analyze-resume] Missing required fields:', analysis);
+      throw new Error('AI response missing required fields');
+    }
+
+    console.log('[analyze-resume] Analysis complete:', {
+      yearsExp: analysis.years_experience,
+      achievements: analysis.key_achievements.length,
+      workHistory: analysis.work_history.length
+    });
 
     // Extract work_history separately and exclude from database insert
     const { work_history, ...analysisForDb } = analysis;
