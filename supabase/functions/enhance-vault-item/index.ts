@@ -69,7 +69,7 @@ Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable 
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM,
+        model: LOVABLE_AI_MODELS.BALANCED,
         temperature: 0.7,
         max_tokens: 1000,
         tools: [
