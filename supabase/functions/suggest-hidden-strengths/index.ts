@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { callLovableAI } from "../_shared/lovableAI.ts";
-import { logAIUsage } from "../_shared/aiUsageLogger.ts";
-import { extractJSON } from "../_shared/jsonParser.ts";
+import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
+import { logAIUsage } from "../_shared/cost-tracking.ts";
+import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,28 +81,30 @@ Benchmark expects:
 
 Find 5-8 hidden strengths they haven't explicitly documented. Include AI-suggested keywords for each.`;
 
-    const startTime = Date.now();
-    const aiResponse = await callLovableAI(
-      [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      "google/gemini-2.5-pro",
-      { temperature: 0.8, max_tokens: 2000 }
+    const { response, metrics } = await callLovableAI(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.8,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' }
+      },
+      "suggest-hidden-strengths",
+      undefined
     );
 
-    const latencyMs = Date.now() - startTime;
+    await logAIUsage(metrics);
 
-    await logAIUsage({
-      model: "google/gemini-2.5-pro",
-      provider: "lovable",
-      function_name: "suggest-hidden-strengths",
-      input_tokens: aiResponse.usage?.prompt_tokens || 0,
-      output_tokens: aiResponse.usage?.completion_tokens || 0,
-      execution_time_ms: latencyMs
-    });
+    const parseResult = extractJSON(response.choices[0].message.content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
+    }
 
-    const result = extractJSON(aiResponse.choices[0].message.content);
+    const result = parseResult.data;
 
     return new Response(
       JSON.stringify({
