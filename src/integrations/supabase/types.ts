@@ -5677,6 +5677,7 @@ export type Database = {
           id: string
           industry_context: Json | null
           inferred_from: string | null
+          item_subtype: string | null
           last_updated_at: string | null
           needs_user_review: boolean | null
           quality_tier: string | null
@@ -5697,6 +5698,7 @@ export type Database = {
           id?: string
           industry_context?: Json | null
           inferred_from?: string | null
+          item_subtype?: string | null
           last_updated_at?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null
@@ -5717,6 +5719,7 @@ export type Database = {
           id?: string
           industry_context?: Json | null
           inferred_from?: string | null
+          item_subtype?: string | null
           last_updated_at?: string | null
           needs_user_review?: boolean | null
           quality_tier?: string | null

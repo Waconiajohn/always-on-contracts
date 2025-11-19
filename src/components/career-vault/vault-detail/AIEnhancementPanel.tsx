@@ -44,7 +44,8 @@ export function AIEnhancementPanel({
           itemType,
           currentContent: getCurrentContent(),
           currentTier: item.quality_tier,
-          vaultId
+          vaultId,
+          itemSubtype: item.item_subtype || 'expertise' // Pass subtype for skills vs expertise
         }
       });
 
@@ -81,7 +82,8 @@ export function AIEnhancementPanel({
           currentContent: editedContent,
           currentTier: enhancement.new_tier,
           vaultId,
-          additionalKeywords: [keyword]
+          additionalKeywords: [keyword],
+          itemSubtype: item.item_subtype || 'expertise' // Pass subtype
         }
       });
 
@@ -168,10 +170,17 @@ export function AIEnhancementPanel({
     <Card className="border-purple-500/50 bg-gradient-to-br from-purple-500/5 to-blue-500/5">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-500" />
-            AI Enhancement
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              AI Enhancement
+            </CardTitle>
+            {itemType === 'transferable_skills' && item.item_subtype && (
+              <Badge variant={item.item_subtype === 'skill' ? 'default' : 'secondary'} className="text-xs">
+                {item.item_subtype === 'skill' ? 'Skill' : 'Expertise'}
+              </Badge>
+            )}
+          </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
@@ -182,8 +191,11 @@ export function AIEnhancementPanel({
           <>
             <Alert>
               <AlertDescription className="text-sm">
-                AI will analyze your item and suggest improvements to upgrade it to a higher quality tier.
-                This includes adding strategic context, quantified metrics, and stronger language.
+                AI will analyze your {itemType === 'transferable_skills' && item.item_subtype === 'skill' ? 'skill name' : 'item'} and suggest improvements to upgrade it to a higher quality tier.
+                {itemType === 'transferable_skills' && item.item_subtype === 'skill' 
+                  ? ' Skills will stay concise (2-5 words), with refined industry terminology.' 
+                  : ' This includes adding strategic context, quantified metrics, and stronger language.'
+                }
               </AlertDescription>
             </Alert>
             <Button
