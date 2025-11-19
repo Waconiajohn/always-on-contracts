@@ -189,7 +189,7 @@ Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty.
       messages: [
         {
           role: 'system',
-          content: 'You are an expert resume parser. Extract all information into structured JSON with confidence scores.'
+          content: 'You are an expert resume parser. Extract all information into structured JSON with confidence scores. Return ONLY valid JSON, no markdown or code blocks.'
         },
         {
           role: 'user',
@@ -199,26 +199,7 @@ Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty.
       model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash - excellent for structured extraction
       temperature: 0.1, // Very low for factual extraction
       max_tokens: 6000, // Sufficient for comprehensive structured output
-      tools: [{
-        type: "function",
-        function: {
-          name: "extract_resume_data",
-          description: "Extract structured resume data with confidence scores",
-          parameters: {
-            type: "object",
-            properties: {
-              education: { type: "object" },
-              experience: { type: "object" },
-              skills: { type: "object" },
-              achievements: { type: "object" },
-              professionalIdentity: { type: "object" },
-              extractionMetadata: { type: "object" }
-            },
-            required: ["education", "experience", "skills", "achievements", "professionalIdentity", "extractionMetadata"]
-          }
-        }
-      }],
-      tool_choice: { type: "function", function: { name: "extract_resume_data" } }
+      response_format: { type: 'json_object' }
     }, 'ai-structured-extraction', userId, 120000); // 2 minute timeout for complex extraction
 
     // Log AI usage
@@ -226,16 +207,7 @@ Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty.
 
     console.log('🤖 [AI-STRUCTURED-EXTRACTION] AI response received');
 
-    // Parse response
-    let content: string;
-    
-    // Check if response used tool calling
-    if (response.choices[0].message.tool_calls && response.choices[0].message.tool_calls.length > 0) {
-      console.log('🔧 Tool calling response detected');
-      content = response.choices[0].message.tool_calls[0].function.arguments;
-    } else {
-      content = response.choices[0].message.content;
-    }
+    const content = response.choices[0].message.content;
     
     // Debug: Log response details
     console.log('📊 Response length:', content.length, 'chars');
