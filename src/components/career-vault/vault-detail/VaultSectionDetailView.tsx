@@ -9,6 +9,7 @@ import { VaultSearchFilter } from './VaultSearchFilter';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface VaultSectionDetailViewProps {
   sectionKey: string;
@@ -32,6 +33,7 @@ export function VaultSectionDetailView({
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const { toast } = useToast();
 
   // Filter items by quality tier
   const filterByQuality = (quality: string) => {
@@ -64,6 +66,15 @@ export function VaultSectionDetailView({
     return 'hidden_competency';
   }
 
+  const handleStartWork = (roadmapItem: any) => {
+    toast({
+      title: "Ready to work on this goal",
+      description: `Focus: ${roadmapItem.title}. Review the items below and add what's missing to reach your target.`,
+    });
+    // Scroll to items list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with back button */}
@@ -85,7 +96,7 @@ export function VaultSectionDetailView({
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
         {/* Left Panel - Item List */}
         <div className="space-y-4">
           <VaultSearchFilter
@@ -184,6 +195,7 @@ export function VaultSectionDetailView({
             benchmarkData={benchmarkData}
             currentItems={items}
             onItemsAdded={onItemUpdate}
+            onStartWork={handleStartWork}
           />
         </div>
       </div>
