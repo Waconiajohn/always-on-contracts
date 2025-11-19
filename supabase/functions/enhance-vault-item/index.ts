@@ -13,9 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { itemId, itemType, currentContent, currentTier, vaultId } = await req.json();
+    const { itemId, itemType, currentContent, currentTier, vaultId, additionalKeywords } = await req.json();
 
-    console.log('Enhancing vault item:', { itemId, itemType, currentTier });
+    console.log('Enhancing vault item:', { itemId, itemType, currentTier, additionalKeywords });
 
     // Determine target tier
     const tierProgression: Record<string, string> = {
@@ -25,6 +25,11 @@ serve(async (req) => {
       'gold': 'gold'
     };
     const targetTier = tierProgression[currentTier || 'assumed'];
+
+    // Build keyword instruction
+    const keywordInstruction = additionalKeywords && additionalKeywords.length > 0
+      ? `\n\nIMPORTANT: Incorporate these specific keywords naturally: ${additionalKeywords.join(', ')}`
+      : '';
 
     // Create enhancement prompt
     const systemPrompt = `You are an expert career coach and resume writer. Return ONLY valid JSON, no additional text or explanations.
@@ -54,7 +59,7 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
     const userPrompt = `Current Item (${currentTier} tier):
 "${currentContent}"
 
-Item Type: ${itemType}
+Item Type: ${itemType}${keywordInstruction}
 
 Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable metrics, and stronger language. Make it compelling and achievement-focused. Also suggest 3-5 relevant ATS keywords.`;
 
