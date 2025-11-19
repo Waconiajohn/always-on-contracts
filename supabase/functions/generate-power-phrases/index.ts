@@ -35,7 +35,9 @@ serve(async (req) => {
 
     if (!vault) throw new Error('Career Vault not found');
 
-    const prompt = `You are an expert resume writer. Convert weak resume statements into powerful, quantified achievement statements.
+    const systemPrompt = `You are an expert resume writer specializing in quantified achievement statements. Convert weak resume statements into powerful, metric-driven power phrases. Return valid JSON only.`;
+
+    const userPrompt = `Convert weak resume statements into powerful, quantified achievement statements.
 
 Resume Text: ${vault.resume_raw_text}
 
@@ -70,8 +72,8 @@ Return JSON array with format:
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are an expert resume writer specializing in quantified achievement statements. Return only valid JSON.' },
-          { role: 'user', content: prompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
@@ -85,10 +87,19 @@ Return JSON array with format:
     await logAIUsage(metrics);
 
     const powerPhrasesText = response.choices[0].message.content.trim();
+    console.log('[generate-power-phrases] Raw AI response:', powerPhrasesText.substring(0, 500));
     
     // Extract JSON from response
     const jsonMatch = powerPhrasesText.match(/\[[\s\S]*\]/);
-    const powerPhrases = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    if (!jsonMatch) {
+      throw new Error('No valid JSON array found in response');
+    }
+    const powerPhrases = JSON.parse(jsonMatch[0]);
+    
+    // Validate array
+    if (!Array.isArray(powerPhrases)) {
+      throw new Error('Power phrases must be an array');
+    }
 
     // Insert power phrases into database
     const insertPromises = powerPhrases.map((phrase: any) =>

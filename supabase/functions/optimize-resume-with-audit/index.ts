@@ -61,7 +61,10 @@ serve(async (req) => {
 
     // Pass 2: Hiring Manager Review
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 2: Hiring manager review');
-    const hiringManagerPrompt = `You are a hiring manager for this position. Review this resume critically:
+    
+    const systemPrompt2 = `You are a critical hiring manager. Provide harsh, realistic feedback on resumes including whether you would interview the candidate and what improvements would make the resume stand out.`;
+
+    const userPrompt2 = `You are a hiring manager for this position. Review this resume critically:
 
 JOB DESCRIPTION:
 ${jobDescription}
@@ -80,8 +83,8 @@ Be brutally honest.`;
     const { response: pass2Response, metrics: pass2Metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are a critical hiring manager.' },
-          { role: 'user', content: hiringManagerPrompt }
+          { role: 'system', content: systemPrompt2 },
+          { role: 'user', content: userPrompt2 }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
       },
@@ -92,10 +95,14 @@ Be brutally honest.`;
     await logAIUsage(pass2Metrics);
 
     const hiringManagerFeedback = pass2Response.choices[0].message.content;
+    console.log('[optimize-resume-with-audit] Pass 2 raw response:', hiringManagerFeedback.substring(0, 500));
 
     // Pass 3: Refinement based on feedback
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 3: Refinement');
-    const refinementPrompt = `Refine this resume based on hiring manager feedback:
+    
+    const systemPrompt3 = `You are an expert resume writer. Refine resumes based on hiring manager feedback while maintaining authenticity and addressing all critique points.`;
+
+    const userPrompt3 = `Refine this resume based on hiring manager feedback:
 
 ORIGINAL RESUME:
 ${optimizedResume}
@@ -111,8 +118,8 @@ Rewrite the resume addressing all feedback while maintaining authenticity.`;
     const { response: pass3Response, metrics: pass3Metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are an expert resume writer.' },
-          { role: 'user', content: refinementPrompt }
+          { role: 'system', content: systemPrompt3 },
+          { role: 'user', content: userPrompt3 }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
       },
@@ -123,6 +130,7 @@ Rewrite the resume addressing all feedback while maintaining authenticity.`;
     await logAIUsage(pass3Metrics);
 
     optimizedResume = pass3Response.choices[0].message.content;
+    console.log('[optimize-resume-with-audit] Pass 3 raw response:', optimizedResume.substring(0, 500));
 
     // Pass 4: DUAL AI AUDIT
     console.log('[OPTIMIZE-RESUME-AUDIT] Pass 4: Dual AI audit');

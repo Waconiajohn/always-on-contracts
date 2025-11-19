@@ -51,7 +51,9 @@ serve(async (req) => {
       );
     }
 
-    const prompt = `You are a resume expert helping generate clarifying questions.
+    const systemPrompt = `You are a resume expert helping generate clarifying questions. Generate 2-4 multiple choice questions to help users provide context for resume requirements. Return valid JSON only.`;
+
+    const userPrompt = `Generate clarifying questions for this requirement:
 
 REQUIREMENT: ${requirement}
 MATCH STATUS: ${matchStatus}
@@ -90,11 +92,11 @@ Return ONLY a JSON object with this structure:
           messages: [
             {
               role: "system",
-              content: "You are an expert resume advisor. Return valid JSON only."
+              content: systemPrompt
             },
             {
               role: "user",
-              content: prompt,
+              content: userPrompt,
             },
           ],
           model: LOVABLE_AI_MODELS.DEFAULT,
@@ -114,7 +116,17 @@ Return ONLY a JSON object with this structure:
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
+    logger.info('Raw AI response received', { length: content.length });
+    console.log('[generate-requirement-questions] Raw AI response:', content.substring(0, 500));
+    
     const result = extractJSON(content, GenericAIResponseSchema);
+    
+    // Validate questions array
+    if (result.success && result.data?.questions) {
+      if (!Array.isArray(result.data.questions)) {
+        throw new Error('questions must be an array');
+      }
+    }
 
     if (!result.success) {
       logger.error('JSON parsing failed', { 

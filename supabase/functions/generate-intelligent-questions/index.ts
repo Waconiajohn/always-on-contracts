@@ -44,7 +44,9 @@ serve(async (req) => {
       .eq('vault_id', vaultId);
 
     // Generate targeted questions using AI
-    const prompt = `You are an expert career coach conducting an intelligent interview. Based on the resume and industry research, generate 15-20 targeted questions organized into 3-4 batches.
+    const systemPrompt = `You are an expert career coach conducting intelligent interviews. Generate targeted questions to uncover achievements, metrics, leadership philosophy, and transferable skills. Return valid JSON only.`;
+
+    const userPrompt = `Based on the resume and industry research, generate 15-20 targeted questions organized into 3-4 batches.
 
 **Resume Summary**: ${resumeData.resumeText.substring(0, 500)}...
 **Target Role**: ${targetRole}
@@ -86,8 +88,8 @@ Each question should have:
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are an expert career coach. Generate intelligent, targeted questions in valid JSON format.' },
-          { role: 'user', content: prompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
@@ -100,14 +102,21 @@ Each question should have:
     await logAIUsage(metrics);
 
     const aiData = response;
+    const content = aiData.choices[0].message.content;
+    console.log('[generate-intelligent-questions] Raw AI response:', content.substring(0, 500));
+    
     let questionBatches;
     
     try {
-      const content = aiData.choices[0].message.content;
       const parsed = JSON.parse(content);
       questionBatches = parsed.batches || parsed.questionBatches || parsed;
+      
+      // Validate structure
+      if (!Array.isArray(questionBatches)) {
+        throw new Error('Invalid batches structure');
+      }
     } catch (parseError) {
-      console.error('[INTELLIGENT QUESTIONS] Failed to parse AI response, using fallback');
+      console.error('[generate-intelligent-questions] Parse error:', parseError, 'Raw:', content.substring(0, 300));
       // Fallback questions
       questionBatches = generateFallbackQuestions(targetRole);
     }
