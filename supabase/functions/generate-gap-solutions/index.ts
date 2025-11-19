@@ -206,9 +206,13 @@ RULES:
     if (!isEducation) {
       // For skill/experience gaps, check if AI incorrectly echoed the requirement
       const hasEchoedRequirement = parsed.solutions.some((sol: any) => {
-        const contentLower = (sol.content || '').toLowerCase();
-        return contentLower.includes('working knowledge of') || 
-               contentLower.startsWith(reqLower.substring(0, 20));
+        // Handle both string and array content formats
+        const contentStr = Array.isArray(sol.content) 
+          ? sol.content.join(' ').toLowerCase()
+          : (sol.content || '').toLowerCase();
+        
+        return contentStr.includes('working knowledge of') || 
+               contentStr.startsWith(reqLower.substring(0, 20));
       });
       
       if (hasEchoedRequirement) {
