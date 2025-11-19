@@ -121,14 +121,8 @@ Return ONLY a JSON object with this structure:
     
     const result = extractJSON(content, GenericAIResponseSchema);
     
-    // Validate questions array
-    if (result.success && result.data?.questions) {
-      if (!Array.isArray(result.data.questions)) {
-        throw new Error('questions must be an array');
-      }
-    }
-
-    if (!result.success) {
+    // Validate that we got valid data back
+    if (!result.success || !result.data) {
       logger.error('JSON parsing failed', { 
         error: result.error,
         content: content.substring(0, 500)

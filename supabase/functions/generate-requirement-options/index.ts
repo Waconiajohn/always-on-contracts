@@ -131,14 +131,8 @@ Return JSON:
     
     const result = extractJSON(content, GenericAIResponseSchema);
     
-    // Validate options array
-    if (result.success && result.data?.options) {
-      if (!Array.isArray(result.data.options) || result.data.options.length === 0) {
-        throw new Error('options must be a non-empty array');
-      }
-    }
-
-    if (!result.success) {
+    // Validate that we got valid data back
+    if (!result.success || !result.data) {
       logger.error('JSON parsing failed', { 
         error: result.error,
         content: content.substring(0, 500)
