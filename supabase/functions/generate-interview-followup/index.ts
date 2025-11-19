@@ -64,61 +64,67 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    // Build AI prompt based on communication type
-    let systemPrompt = '';
+    // Define timing based on communication type
     let timing = '';
-
     switch (communicationType) {
       case 'thank_you':
-        systemPrompt = `You are an expert career coach writing a professional thank you email after a job interview. 
-The email should be warm, genuine, and reference specific discussion points from the interview.`;
         timing = 'Send within 24 hours of interview';
         break;
       case 'follow_up':
-        systemPrompt = `You are an expert career coach writing a professional follow-up email to check on interview status.
-The email should be polite, express continued interest, and not sound desperate.`;
         timing = 'Send 5-7 days after last contact';
         break;
       case 'check_in':
-        systemPrompt = `You are an expert career coach writing a professional check-in email to maintain rapport.
-The email should be brief, value-adding, and keep the relationship warm.`;
         timing = 'Send 2 weeks after interview if no response';
         break;
     }
 
-    const userPrompt = `
-Generate a professional ${communicationType.replace('_', ' ')} email for:
+    // STANDARDIZED SYSTEM PROMPT
+    const systemPrompt = `You are an expert career coach writing professional follow-up communications after job interviews.
 
-**Job Details:**
+Your task: Create ${communicationType.replace('_', ' ')} emails that are warm, professional, and reference specific discussion points.
+
+CRITICAL RULES:
+- Professional but warm tone
+- Reference specific competencies that align with the role
+- Keep under 150 words
+- Include specific call-to-action
+- ${timing}
+
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
+{
+  "subject": "Email subject line",
+  "body": "Email body text",
+  "sendingTips": ["timing tip", "personalization tip"],
+  "followUpTimeline": "When to send next communication"
+}`;
+
+    // STANDARDIZED USER PROMPT
+    const userPrompt = `Generate a professional ${communicationType.replace('_', ' ')} email:
+
+JOB DETAILS:
 - Position: ${project.job_title}
 - Company: ${project.company_name}
 - Interview Date: ${project.interview_date || 'Recent'}
 - Interview Stage: ${project.interview_stage || 'Not specified'}
 - Interviewer: ${project.interviewer_name || 'Hiring team'}
 
-**Candidate Info:**
+CANDIDATE INFO:
 - Name: ${profile?.full_name || 'The candidate'}
 - Key Competencies: ${vault?.vault_hidden_competencies?.map((c: any) => c.competency_area).join(', ') || 'N/A'}
 - Notable Skills: ${vault?.vault_transferable_skills?.slice(0, 5).map((s: any) => s.stated_skill).join(', ') || 'N/A'}
 
-**Custom Instructions:** ${customInstructions || 'None'}
+CUSTOM INSTRUCTIONS: ${customInstructions || 'None'}
 
-**Requirements:**
+REQUIREMENTS:
 1. Professional but warm tone
-2. Reference specific competencies that align with the role
-3. ${communicationType === 'thank_you' ? 'Express gratitude and reiterate interest' : 'Politely inquire about status'}
-4. Keep under 200 words
-5. Include a clear call-to-action
-6. Use STAR method highlights if applicable
+2. Reference specific competencies
+3. Keep under 150 words
+4. Include specific call-to-action
+5. ${timing}
 
-Return a JSON object with:
-{
-  "subject": "Email subject line",
-  "body": "Email body with proper formatting (use \\n for line breaks)",
-  "timing": "Recommended send time",
-  "tips": ["Tip 1", "Tip 2", "Tip 3"]
-}
-`;
+Return your email in the required JSON format.`;
+
+    console.log('[GENERATE-INTERVIEW-FOLLOWUP] Calling Lovable AI');
 
     const { response, metrics } = await callLovableAI(
       {

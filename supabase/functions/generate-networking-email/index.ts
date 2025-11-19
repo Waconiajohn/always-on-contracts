@@ -71,86 +71,77 @@ serve(async (req) => {
     const topSkills = vault?.vault_transferable_skills?.slice(0, 5) || [];
     const keyCompetencies = vault?.vault_hidden_competencies?.slice(0, 3) || [];
 
+    // STANDARDIZED SYSTEM PROMPT
     const systemPrompt = `You are an elite networking strategist and executive outreach specialist.
 
+Your task: Create professional networking emails that build genuine connections.
+
 NETWORKING EMAIL FRAMEWORK:
-
-SUBJECT LINE:
-- Personalized (mention their work/company)
-- Curiosity-driven (not salesy)
-- Under 50 characters
-
-EMAIL STRUCTURE:
-1. OPENING (1-2 sentences):
-   - Genuine compliment or shared connection
-   - Reference specific work/achievement
-   
-2. CREDIBILITY (2-3 sentences):
-   - Brief, quantified achievement
-   - Relevant expertise intersection
-   - Value you can potentially offer
-   
-3. PURPOSE (1-2 sentences):
-   - Clear ask (informational interview, advice, introduction)
-   - Respect their time (15-20 min)
-   
-4. CLOSE:
-   - Specific call-to-action
-   - Flexibility in timing
-   - Professional sign-off
+- Subject: Personalized, curiosity-driven, under 50 characters
+- Opening (1-2 sentences): Genuine compliment, reference specific work
+- Credibility (2-3 sentences): Quantified achievement, expertise intersection, value offering
+- Purpose (1-2 sentences): Clear ask, respect time (15-20 min)
+- Close: Specific CTA, flexibility, professional sign-off
 
 TONE: ${persona || 'Professional but warm, respectful, authentic'}
 
 CRITICAL RULES:
-- Keep under 150 words total
+- Under 150 words total
 - NO generic templates or buzzwords
-- Include ONE specific achievement from user's background
-- Mention WHY this person specifically
-- Make it easy to say yes (suggest 2-3 time options)
+- Include ONE specific achievement
+- Explain WHY this person specifically
+- Easy to say yes (suggest 2-3 time options)
 
-Return JSON:
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
 {
   "subject": "Email subject line",
   "body": "Email body (use \\n for line breaks)",
-  "vaultItemsUsed": ["List of vault items referenced"],
-  "personalizationTips": ["Tip 1 for customizing", "Tip 2"],
-  "followUpSuggestions": ["Follow-up strategy 1", "Follow-up strategy 2"]
+  "vaultItemsUsed": ["vault item 1", "vault item 2"],
+  "personalizationTips": ["tip 1", "tip 2"],
+  "followUpSuggestions": ["suggestion 1", "suggestion 2"]
 }`;
 
-    const userPrompt = `Generate a networking email:
+    // STANDARDIZED USER PROMPT
+    const userPrompt = `Generate a networking email for:
 
-CONTEXT: ${context}
-TARGET PERSON: ${targetPerson || 'Industry professional'}
-COMPANY: ${companyName || 'Their company'}
-JOB TITLE: ${jobTitle || 'Target role'}
-PURPOSE: ${purpose || 'informational_interview'}
+TARGET PERSON:
+- Name: ${targetPerson || 'Not specified'}
+- Company: ${companyName || 'Not specified'}
+- Title: ${jobTitle || 'Not specified'}
 
-USER'S KEY ACHIEVEMENTS:
-${topAchievements.map((a: any) => `- ${a.power_phrase} (${a.impact_metrics})`).join('\n')}
+PURPOSE: ${purpose}
 
-USER'S EXPERTISE:
-${topSkills.map((s: any) => `- ${s.stated_skill}: ${s.evidence}`).join('\n')}
+CONTEXT: ${context || 'No specific context provided'}
 
-USER'S DIFFERENTIATORS:
-${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capability}`).join('\n')}`;
+CANDIDATE'S CAREER VAULT DATA:
+Top Achievements:
+${topAchievements.map((a: any) => `- ${a.power_phrase}`).join('\n') || 'No achievements available'}
 
-    const { response, metrics } = await retryWithBackoff(
-      async () => {
-        const aiStartTime = Date.now();
-        const result = await callLovableAI(
-          {
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            model: LOVABLE_AI_MODELS.DEFAULT,
-            temperature: 0.7,
-            max_tokens: 1000,
-            response_format: { type: 'json_object' }
-          },
-          'generate-networking-email',
-          user.id
-        );
+Top Skills:
+${topSkills.map((s: any) => `- ${s.stated_skill} (${s.proficiency_level || 'proficient'})`).join('\n') || 'No skills available'}
+
+Key Competencies:
+${keyCompetencies.map((c: any) => `- ${c.competency_area}: ${c.inferred_capability}`).join('\n') || 'No competencies available'}
+
+Return your networking email in the required JSON format.`;
+
+    logger.info('Calling Lovable AI for networking email generation');
+    const aiStartTime = Date.now();
+
+    const { response: aiResponse, metrics } = await callLovableAI(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 1000,
+        response_format: { type: 'json_object' }
+      },
+      'generate-networking-email',
+      user.id
+    );
 
         logger.logAICall({
           model: result.metrics.model,

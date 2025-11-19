@@ -85,8 +85,42 @@ Deno.serve(async (req) => {
         .order('posted_date', { ascending: false })
         .limit(50);
 
-      // Step 4: Call AI for real-time market research
-      const aiQuery = `Provide detailed salary data for ${job_title} position in ${location} with ${years_experience} years of experience. Include:
+    // STANDARDIZED SYSTEM PROMPT
+    const systemPrompt = `You are an expert salary research specialist providing comprehensive market data analysis.
+
+Your task: Provide accurate, cited salary data with specific numbers and sources from industry-leading platforms.
+
+DATA SOURCES TO CITE:
+- Glassdoor
+- Levels.fyi
+- LinkedIn Salary
+- Indeed Salary
+- Payscale
+- Bureau of Labor Statistics
+
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
+{
+  "market_research": "Comprehensive analysis with cited sources",
+  "percentiles": {
+    "p25": number,
+    "p50": number,
+    "p75": number,
+    "p90": number
+  },
+  "total_compensation": "Details including bonus, equity, benefits",
+  "regional_adjustments": "Cost of living considerations",
+  "in_demand_skills": ["skill1", "skill2"],
+  "recent_trends": "Salary trends from last 6 months",
+  "sources_cited": ["https://url1", "https://url2"]
+}`;
+
+    const userPrompt = `Provide detailed salary data for:
+
+POSITION: ${job_title}
+LOCATION: ${location}
+EXPERIENCE: ${years_experience} years
+
+REQUIRED ANALYSIS:
 1. Salary ranges from Glassdoor, Levels.fyi, LinkedIn Salary, Indeed
 2. 25th, 50th, 75th, and 90th percentile salaries
 3. Total compensation including bonus, equity, benefits
@@ -94,20 +128,21 @@ Deno.serve(async (req) => {
 5. In-demand skills that command premium pay
 6. Recent salary trends (last 6 months)
 
-Cite all sources with URLs.`;
+${rateHistory && rateHistory.length > 0 ? `INTERNAL RATE HISTORY DATA:
+${JSON.stringify(rateHistory.slice(0, 10), null, 2)}` : ''}
 
-      const { response: aiResponse, metrics: aiMetrics } = await callLovableAI(
-        {
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a salary research specialist. Provide accurate, cited salary data with specific numbers and sources.'
-            },
-            {
-              role: 'user',
-              content: aiQuery
-            }
-          ],
+${jobOpps && jobOpps.length > 0 ? `RECENT JOB POSTINGS DATA:
+${JSON.stringify(jobOpps.slice(0, 10), null, 2)}` : ''}
+
+Cite all sources with URLs. Return your analysis in the required JSON format.`;
+
+    logger.info('Calling Lovable AI for market research');
+    const { response: aiResponse, metrics: aiMetrics } = await callLovableAI(
+      {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
           model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.2,
           max_tokens: 2000,
