@@ -190,8 +190,8 @@ Category: ${item.category || "general"}`,
           max_tokens: 3500,
           response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
+            { role: "system", content: systemMessage },
+            { role: "user", content: userMessage },
           ],
         },
         "generate-series-posts",
@@ -200,9 +200,27 @@ Category: ${item.category || "general"}`,
 
       await logAIUsage(metrics);
 
-      const raw = response.choices[0]?.message?.content ?? "";
-      const extracted = extractJSON(raw);
+      const rawContent = response.choices[0]?.message?.content ?? "";
+      console.log(`[generate-series-posts] Raw AI response part ${partNumber}:`, rawContent.substring(0, 500));
+      
+      const parseResult = extractJSON(rawContent);
+      
+      // Validate required fields
+      if (parseResult.success && parseResult.data) {
+        const post = parseResult.data;
+        if (!post.title || typeof post.title !== 'string') {
+          throw new Error('Missing or invalid title');
+        }
+        if (!post.body || typeof post.body !== 'string' || post.body.length < 100) {
+          throw new Error('Missing or invalid body (min 100 chars)');
+        }
+        if (!post.hook || typeof post.hook !== 'string') {
+          throw new Error('Missing or invalid hook');
+        }
+      }
 
+      const extracted = parseResult.success ? parseResult.data : {};
+      
       if (!Array.isArray(extracted)) {
         throw new Error("AI response did not return an array of posts");
       }

@@ -55,9 +55,9 @@ serve(async (req) => {
       return `- ${content.stated_skill || content.skill || content.text || ''}: ${content.evidence || content.description || ''}`.substring(0, 200);
     }).join('\n') || 'No vault data';
 
-    const prompt = `You are a professional resume writer creating ACTUAL RESUME BULLETS (not advice or coaching suggestions).
+    const systemPrompt = `You are a professional resume writer creating ACTUAL RESUME BULLETS (not advice or coaching suggestions). Output must be copy-paste ready resume content using action verbs, metrics, and outcomes. Return valid JSON only.`;
 
-CRITICAL: Output must be copy-paste ready resume content using action verbs, metrics, and outcomes. DO NOT write coaching like "Highlight X" or "Emphasize Y".
+    const userPrompt = `Create copy-paste ready resume bullets addressing this requirement. DO NOT write coaching like "Highlight X" or "Emphasize Y".
 
 REQUIREMENT: ${requirement}
 MATCH STATUS: ${matchStatus}
@@ -105,9 +105,13 @@ Return JSON:
     const { response, metrics } = await retryWithBackoff(
       async () => await callLovableAI(
         {
-          messages: [{ role: "user", content: prompt }],
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
           model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.7,
+          max_tokens: 1200,
           response_format: { type: 'json_object' }
         },
         'generate-requirement-options',
@@ -122,7 +126,17 @@ Return JSON:
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
+    logger.info('Raw AI response received', { length: content.length });
+    console.log('[generate-requirement-options] Raw AI response:', content.substring(0, 500));
+    
     const result = extractJSON(content, GenericAIResponseSchema);
+    
+    // Validate options array
+    if (result.success && result.data?.options) {
+      if (!Array.isArray(result.data.options) || result.data.options.length === 0) {
+        throw new Error('options must be a non-empty array');
+      }
+    }
 
     if (!result.success) {
       logger.error('JSON parsing failed', { 

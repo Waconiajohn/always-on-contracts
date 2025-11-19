@@ -143,7 +143,7 @@ IMPORTANT: For each suggestion, calculate confidence based on:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        tools: [
+        tools:
           {
             type: 'function',
             function: {

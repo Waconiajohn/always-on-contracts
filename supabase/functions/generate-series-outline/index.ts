@@ -75,6 +75,7 @@ Generate titles that sound practical and problem-focused, not theoretical.`;
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
+    console.log('[generate-series-outline] Raw AI response:', content.substring(0, 500));
     
     // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -83,6 +84,14 @@ Generate titles that sound practical and problem-focused, not theoretical.`;
     }
 
     const outline = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (!outline.seriesTitle || typeof outline.seriesTitle !== 'string') {
+      throw new Error('Missing or invalid seriesTitle');
+    }
+    if (!Array.isArray(outline.parts) || outline.parts.length === 0) {
+      throw new Error('Missing or invalid parts array');
+    }
 
     return new Response(JSON.stringify(outline), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

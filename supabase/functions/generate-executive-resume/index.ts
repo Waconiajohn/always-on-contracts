@@ -71,7 +71,9 @@ serve(async (req) => {
     console.log('[GENERATE-RESUME] Job analysis complete, starting AI generation');
 
     // Step 4: PASS 1 - Initial Resume Generation
-    const pass1Prompt = `You are an elite executive resume writer specializing in $100K-$500K roles.
+    const systemPrompt = `You are an elite executive resume writer specializing in $100K-$500K roles. Create powerful, ATS-optimized resumes that demonstrate strategic value and quantifiable impact. Return plain text resumes.`;
+    
+    const pass1Prompt = `Generate an executive resume:
 
 **JOB REQUIREMENTS:**
 Title: ${jobAnalysis.professionalTitle}
@@ -80,7 +82,7 @@ Required: ${jobAnalysis.standardizedQualifications.required.join(', ')}
 Preferred: ${jobAnalysis.standardizedQualifications.preferred.join(', ')}
 Technical: ${jobAnalysis.standardizedQualifications.technical.join(', ')}
 Soft Skills: ${jobAnalysis.standardizedQualifications.soft.join(', ')}
-ATS Keywords: ${jobAnalysis.atsKeywords.join(', ')}
+ATS Keywords: ${jobAnalysis.atsKeywords.join(', ')}`;
 
 **HIRING MANAGER PRIORITIES:**
 ${jobAnalysis.hiringManagerPerspective.keyPriorities.map((p: string) => `- ${p}`).join('\n')}

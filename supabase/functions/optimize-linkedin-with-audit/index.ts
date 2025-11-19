@@ -37,7 +37,9 @@ serve(async (req) => {
     const vaultData = vaultResponse.data?.intelligence || {};
 
     // Generate optimized profile
-    const optimizationPrompt = `Optimize this LinkedIn profile:
+    const systemPrompt = `You are a LinkedIn optimization expert. Create optimized LinkedIn profiles with compelling headlines, story-driven about sections, and strategic skill positioning. Return valid JSON only.`;
+
+    const userPrompt = `Optimize this LinkedIn profile:
 
 CURRENT PROFILE:
 Headline: ${currentProfile.headline || ''}
@@ -66,8 +68,8 @@ Return JSON:
     const { response: optimizationResponse, metrics: optimizationMetrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are a LinkedIn optimization expert.' },
-          { role: 'user', content: optimizationPrompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         response_format: { type: 'json_object' }
@@ -79,12 +81,25 @@ Return JSON:
     await logAIUsage(optimizationMetrics);
 
     const optimizedContent = optimizationResponse.choices[0].message.content;
+    console.log('[optimize-linkedin-with-audit] Raw AI response:', optimizedContent.substring(0, 500));
 
     let optimizedProfile;
     try {
       const jsonMatch = optimizedContent.match(/\{[\s\S]*\}/);
       optimizedProfile = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(optimizedContent);
+      
+      // Validate required fields
+      if (!optimizedProfile.headline || typeof optimizedProfile.headline !== 'string') {
+        throw new Error('Missing or invalid headline');
+      }
+      if (!optimizedProfile.about || typeof optimizedProfile.about !== 'string') {
+        throw new Error('Missing or invalid about');
+      }
+      if (!Array.isArray(optimizedProfile.featured_skills)) {
+        throw new Error('Missing or invalid featured_skills array');
+      }
     } catch (e) {
+      console.error('[optimize-linkedin-with-audit] Parse error:', e, 'Raw:', optimizedContent.substring(0, 300));
       throw new Error('Failed to parse optimization response');
     }
 
