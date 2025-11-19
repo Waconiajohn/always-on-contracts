@@ -42,7 +42,8 @@ export interface LovableAIRequest {
   model?: string;
   temperature?: number;
   max_tokens?: number;
-  response_format?: { type: 'json_object' }; // Legacy - prefer tools instead
+  response_format?: { type: 'json_object' }; // For OpenAI models
+  response_mime_type?: string; // For Gemini models (use "application/json")
   tools?: Array<{
     type: "function";
     function: {
@@ -132,21 +133,51 @@ export async function callLovableAI(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    // Determine if this is a Gemini model
+    const isGeminiModel = model.includes('gemini');
+    
+    // Build the request body with proper JSON mode for each model type
+    const requestBody: any = {
+      model,
+      messages: request.messages,
+      temperature: request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE,
+      max_tokens: request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS,
+    };
+
+    // Handle JSON output mode based on model type
+    if (request.response_mime_type) {
+      // Gemini-style JSON mode
+      if (isGeminiModel) {
+        requestBody.response_mime_type = request.response_mime_type;
+      } else {
+        // Convert to OpenAI format if OpenAI model
+        requestBody.response_format = { type: 'json_object' };
+      }
+    } else if (request.response_format) {
+      // OpenAI-style JSON mode (legacy)
+      if (isGeminiModel) {
+        // Convert to Gemini format
+        requestBody.response_mime_type = "application/json";
+      } else {
+        requestBody.response_format = request.response_format;
+      }
+    }
+
+    // Add tools if provided
+    if (request.tools) {
+      requestBody.tools = request.tools;
+    }
+    if (request.tool_choice) {
+      requestBody.tool_choice = request.tool_choice;
+    }
+
     const response = await fetch(LOVABLE_AI_CONFIG.API_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model,
-        messages: request.messages,
-        temperature: request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE,
-        max_tokens: request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS,
-        ...(request.response_format && { response_format: request.response_format }),
-        ...(request.tools && { tools: request.tools }),
-        ...(request.tool_choice && { tool_choice: request.tool_choice }),
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
