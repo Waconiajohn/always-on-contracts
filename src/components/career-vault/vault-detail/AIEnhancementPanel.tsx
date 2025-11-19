@@ -32,6 +32,7 @@ export function AIEnhancementPanel({
   const { toast } = useToast();
 
   const getCurrentContent = () => {
+    if (!item) return '';
     return item.power_phrase || item.phrase || item.stated_skill || item.skill || 
            item.competency_area || item.inferred_capability || '';
   };
@@ -128,7 +129,7 @@ export function AIEnhancementPanel({
   };
 
   const handleAccept = async () => {
-    if (!enhancement) return;
+    if (!enhancement || !item) return;
 
     setIsEnhancing(true);
     try {
@@ -153,7 +154,13 @@ export function AIEnhancementPanel({
         description: `Upgraded to ${enhancement.new_tier} tier`
       });
 
-      onEnhanced();
+      setIsEnhancing(false);
+      
+      // Close panel and trigger refresh
+      // Using setTimeout to ensure state updates complete before unmounting
+      setTimeout(() => {
+        onEnhanced();
+      }, 100);
     } catch (error) {
       console.error('Error applying enhancement:', error);
       toast({
@@ -161,7 +168,6 @@ export function AIEnhancementPanel({
         description: 'Failed to apply enhancement',
         variant: 'destructive'
       });
-    } finally {
       setIsEnhancing(false);
     }
   };
