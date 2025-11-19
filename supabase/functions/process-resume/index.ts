@@ -969,19 +969,30 @@ serve(async (req) => {
         .eq('id', queueId);
 
       // Parse the file
+      console.log('[PROCESS-RESUME] About to parse file:', { fileType, dataLength: fileData.length });
       try {
         const parseStart = Date.now();
         extractedText = await parseFile(fileData, fileType || '');
         metrics.parseTime = Date.now() - parseStart;
         logMetrics(metrics, 'File parsing');
+        console.log('[PROCESS-RESUME] Parse successful, extracted length:', extractedText.length);
       } catch (error: any) {
-        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
+        // Preserve specific error message from parseFile
+        console.error('[PROCESS-RESUME] File parsing failed:', error.message);
+        await supabase.from('resume_processing_queue')
+          .update({ 
+            status: 'failed',
+            error_message: error.message,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', queueId);
+        throw error; // Let specific errors bubble up instead of generic message
       }
     } else if (fileText) {
       // Legacy method: Check if text is actually binary data
       const binaryCheck = detectBinaryData(fileText);
       if (binaryCheck.isBinary) {
-        throw new Error(ERROR_MESSAGES['parsing_failed'] || 'Unable to read document content');
+        throw new Error(`This file appears to be a ${binaryCheck.type || 'binary'} document. Please upload it as a file instead of text.`);
       }
       extractedText = fileText;
     }
