@@ -199,7 +199,7 @@ Missing data: Set to null/0 with confidence 0. Include ALL fields even if empty.
       model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash - excellent for structured extraction
       temperature: 0.1, // Very low for factual extraction
       max_tokens: 6000, // Sufficient for comprehensive structured output
-      response_format: { type: 'json_object' }
+      response_mime_type: "application/json" // Gemini JSON mode
     }, 'ai-structured-extraction', userId, 120000); // 2 minute timeout for complex extraction
 
     // Log AI usage
@@ -454,7 +454,7 @@ Return STRICT JSON:
       model: LOVABLE_AI_MODELS.DEFAULT, // Gemini Flash - fast gap analysis
       temperature: 0.3,
       max_tokens: 4000,
-      response_format: { type: 'json_object' }, // Enforce JSON output
+      response_mime_type: "application/json" // Gemini JSON mode
     }, 'ai-gap-analysis', userId);
 
     await logAIUsage(metrics);

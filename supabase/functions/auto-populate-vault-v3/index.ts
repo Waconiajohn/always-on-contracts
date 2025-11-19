@@ -973,7 +973,7 @@ async function extractWithEnhancement(params: ExtractionParams): Promise<any> {
       messages: [{ role: 'user', content: prompt }],
       model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 4000,
-      response_format: { type: 'json_object' }
+      response_mime_type: "application/json"
     },
     `extract_${extractionType}`,
     userId
@@ -1200,7 +1200,7 @@ Rules:
       messages: [{ role: 'user', content: prompt }],
       model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 1000,
-      response_format: { type: 'json_object' }
+      response_mime_type: "application/json"
     }, 'extract_education', params.userId);
 
     await logAIUsage(result.metrics);
@@ -1280,7 +1280,7 @@ Return STRICT JSON with this structure:
       model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 2000,
       temperature: 0.3,
-      response_format: { type: 'json_object' }
+      response_mime_type: "application/json"
     }, 'fetch_industry_benchmarks', params.userId);
 
     await logAIUsage(metrics);
@@ -1379,7 +1379,7 @@ CRITICAL RULES:
       model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 3000,
       temperature: 0.4,
-      response_format: { type: 'json_object' }
+      response_mime_type: "application/json"
     }, 'compare_resume_benchmark', params.userId);
 
     await logAIUsage(metrics);
@@ -1465,7 +1465,7 @@ Return ONLY valid JSON (no markdown):
       messages: [{ role: 'user', content: prompt }],
       model: LOVABLE_AI_MODELS.DEFAULT,
       max_tokens: 1500,
-      response_format: { type: 'json_object' }
+      response_mime_type: "application/json"
     }, 'extract_career_context', params.userId);
 
     await logAIUsage(result.metrics);
