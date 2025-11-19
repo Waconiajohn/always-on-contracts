@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { AIEnhancementPanel } from './AIEnhancementPanel';
 
 interface RoadmapWorkspaceProps {
   roadmapItem: any;
@@ -56,6 +57,7 @@ export function RoadmapWorkspace({
   const [itemsAdded, setItemsAdded] = useState(0);
   const [manualContent, setManualContent] = useState('');
   const [isAddingManual, setIsAddingManual] = useState(false);
+  const [enhancingItem, setEnhancingItem] = useState<EnhancementOpportunity | null>(null);
 
   const targetGap = roadmapItem.target - roadmapItem.current;
   const progressPercentage = (itemsAdded / targetGap) * 100;
@@ -149,33 +151,20 @@ export function RoadmapWorkspace({
     }
   };
 
-  const handleEnhanceItem = async (opportunity: EnhancementOpportunity) => {
-    try {
-      const { error } = await supabase.functions.invoke('enhance-with-keywords', {
-        body: {
-          itemId: opportunity.itemId,
-          sectionKey,
-          suggestedKeywords: opportunity.suggestedKeywords
-        }
-      });
-
-      if (error) throw error;
-
-      setEnhancements(prev => prev.filter(e => e.itemId !== opportunity.itemId));
-      onItemAdded();
-
-      toast({
-        title: "Item enhanced!",
-        description: "Keywords added successfully"
-      });
-    } catch (error) {
-      console.error('Error enhancing item:', error);
-      toast({
-        title: "Couldn't enhance item",
-        description: "Please try again",
-        variant: "destructive"
-      });
-    }
+  const getItemTypeFromSection = (section: string): string => {
+    const map: Record<string, string> = {
+      power_phrases: 'power_phrase',
+      transferable_skills: 'transferable_skill',
+      hidden_competencies: 'hidden_competency',
+      soft_skills: 'soft_skill',
+      behavioral_indicators: 'behavioral_indicator',
+      executive_presence: 'executive_presence',
+      leadership_philosophy: 'leadership_philosophy',
+      personality_traits: 'personality_trait',
+      values_motivations: 'value',
+      work_style: 'work_style'
+    };
+    return map[section] || 'power_phrase';
   };
 
   const handleManualAdd = async () => {
@@ -404,10 +393,10 @@ export function RoadmapWorkspace({
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handleEnhanceItem(opportunity)}
+                        onClick={() => setEnhancingItem(opportunity)}
                       >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Enhance Now
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        Enhance with AI
                       </Button>
                     </div>
                   ))}
@@ -477,6 +466,24 @@ export function RoadmapWorkspace({
           </Card>
         </div>
       </ScrollArea>
+
+      {enhancingItem && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <AIEnhancementPanel
+              item={currentItems.find(i => i.id === enhancingItem.itemId) || { id: enhancingItem.itemId }}
+              itemType={getItemTypeFromSection(sectionKey)}
+              vaultId={vaultId}
+              onClose={() => setEnhancingItem(null)}
+              onEnhanced={() => {
+                setEnhancingItem(null);
+                setEnhancements(prev => prev.filter(e => e.itemId !== enhancingItem.itemId));
+                onItemAdded();
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
