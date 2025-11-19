@@ -50,22 +50,20 @@ serve(async (req) => {
   try {
     const { content, contentType, context }: AuditRequest = await req.json();
 
-    console.log(`[DUAL-AI-AUDIT] Starting audit for ${contentType}`);
+    console.log('[DUAL-AI-AUDIT] Starting audit for', contentType);
 
     // Step 1: Primary AI Analysis using Lovable AI
+    const primarySystemPrompt = `You are an expert career coach and content strategist. Provide detailed, actionable analysis. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
     const primaryPrompt = buildPrimaryPrompt(content, contentType, context);
     
     const { response: primaryResponse, metrics: primaryMetrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert career coach and content strategist. Provide detailed, actionable analysis.'
-          },
-          {
-            role: 'user',
-            content: primaryPrompt
-          }
+          { role: 'system', content: primarySystemPrompt },
+          { role: 'user', content: primaryPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
@@ -76,23 +74,22 @@ serve(async (req) => {
     await logAIUsage(primaryMetrics);
     
     const primaryAnalysis = primaryResponse.choices[0].message.content;
+    console.log('[dual-ai-audit] Raw primary AI response:', primaryAnalysis.substring(0, 500));
 
     console.log('[DUAL-AI-AUDIT] Primary analysis complete');
 
     // Step 2: Verification Analysis using Lovable AI
+    const verificationSystemPrompt = `You are a fact-checking AI. Verify claims using current market data and industry standards. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
     const verificationPrompt = buildVerificationPrompt(content, contentType, primaryAnalysis, context);
     
     const { response: verificationResponse, metrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'system',
-            content: 'You are a fact-checking AI. Verify claims using current market data and industry standards.'
-          },
-          {
-            role: 'user',
-            content: verificationPrompt
-          }
+          { role: 'system', content: verificationSystemPrompt },
+          { role: 'user', content: verificationPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
@@ -103,23 +100,22 @@ serve(async (req) => {
     await logAIUsage(metrics);
 
     const verificationAnalysis = verificationResponse.choices[0].message.content;
+    console.log('[dual-ai-audit] Raw verification AI response:', verificationAnalysis.substring(0, 500));
 
     console.log('[DUAL-AI-AUDIT] Verification complete');
 
     // Step 3: Synthesize Results using Lovable AI
+    const synthesisSystemPrompt = `You are synthesizing two AI analyses. Provide a balanced, actionable consensus. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
     const synthesisPrompt = buildSynthesisPrompt(primaryAnalysis, verificationAnalysis, contentType);
     
     const { response: synthesisResponse, metrics: synthesisMetrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'system',
-            content: 'You are synthesizing two AI analyses. Provide a balanced, actionable consensus.'
-          },
-          {
-            role: 'user',
-            content: synthesisPrompt
-          }
+          { role: 'system', content: synthesisSystemPrompt },
+          { role: 'user', content: synthesisPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.5,

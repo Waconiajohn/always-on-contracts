@@ -77,7 +77,7 @@ Enhance this to ${targetTier} tier quality. Add strategic context, quantifiable 
     await logAIUsage(metrics);
 
     const rawContent = response.choices[0].message.content;
-    console.log('Raw AI response:', rawContent.substring(0, 500));
+    console.log('[enhance-vault-item] Raw AI response:', rawContent.substring(0, 500));
     
     const parseResult = extractJSON(rawContent);
     

@@ -27,7 +27,11 @@ serve(async (req) => {
     logger.info('Detecting role and industry', { userId });
 
     // Extract role and industry from resume using AI
-    const prompt = `Analyze this resume and extract the PRIMARY job title and industry.
+    const systemPrompt = `You are an expert at analyzing resumes and extracting job titles and industries. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
+    const userPrompt = `Analyze this resume and extract the PRIMARY job title and industry.
 
 RESUME:
 ${resumeText}
@@ -38,7 +42,7 @@ EXTRACTION RULES:
 3. Identify the primary industry (Oil & Gas, Technology, Marketing, Finance, Healthcare, etc.)
 4. Extract years of experience in this role
 
-Return ONLY valid JSON:
+Return valid JSON:
 {
   "jobTitle": "Drilling Engineering Supervisor",
   "industry": "Oil & Gas",
@@ -49,14 +53,8 @@ Return ONLY valid JSON:
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at analyzing resumes and extracting job titles and industries. Return only valid JSON.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.1,
@@ -68,13 +66,25 @@ Return ONLY valid JSON:
     );
 
     const content = response.choices[0].message.content;
+    console.log('[detect-role-and-industry] Raw AI response:', content.substring(0, 300));
+    
     const extractResult = extractJSON(content);
     
     if (!extractResult.success || !extractResult.data) {
+      logger.error('JSON parse failed', { error: extractResult.error });
+      logger.error('Full response', { content });
       throw new Error("Failed to extract role information");
     }
 
     const roleData = extractResult.data;
+    
+    // Validate required fields
+    if (!roleData.jobTitle || typeof roleData.jobTitle !== 'string') {
+      throw new Error('Missing or invalid jobTitle');
+    }
+    if (!roleData.industry || typeof roleData.industry !== 'string') {
+      throw new Error('Missing or invalid industry');
+    }
     
     // Find matching competency framework
     const framework = findCompetencyFramework(roleData.jobTitle, roleData.industry) || getDefaultFramework();

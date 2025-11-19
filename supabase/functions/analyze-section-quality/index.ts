@@ -50,7 +50,11 @@ serve(async (req) => {
       throw new Error("Missing content parameter");
     }
 
-    const prompt = `You are a Certified Professional Resume Writer analyzing a resume section.
+    const systemPrompt = `You are a Certified Professional Resume Writer analyzing a resume section. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
+    const userPrompt = `Analyze this resume section:
 
 SECTION CONTENT:
 ${content}
@@ -83,7 +87,7 @@ CRITICAL INSTRUCTIONS:
 - ${seniority} professionals use different language than entry-level candidates
 - Focus on AUTHENTICITY and BUSINESS IMPACT, not arbitrary rules
 
-Return ONLY a valid JSON object with this exact structure:
+Return valid JSON object with this exact structure:
 {
   "overallScore": 85,
   "atsMatchPercentage": 90,
@@ -112,14 +116,8 @@ Return ONLY a valid JSON object with this exact structure:
           {
             model: LOVABLE_AI_MODELS.DEFAULT,
             messages: [
-              {
-                role: "system",
-                content: "You are a Certified Professional Resume Writer with expertise in ATS optimization and executive career positioning. Return valid JSON only."
-              },
-              {
-                role: "user",
-                content: prompt,
-              },
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
             ],
             temperature: 0.2,
             max_tokens: 1200,

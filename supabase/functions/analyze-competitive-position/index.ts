@@ -146,44 +146,27 @@ Deno.serve(async (req) => {
     }
 
     // Step 4: Use Lovable AI to analyze competitive position WITH AI career context
-    const { response, metrics } = await retryWithBackoff(
-      async () => await callLovableAI(
-        {
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a career positioning analyst. Analyze candidate strength vs market requirements. Return valid JSON only.'
-            },
-            {
-              role: 'user',
-              content: `Analyze competitive position:
+    const systemPrompt = `You are an executive career strategist. Analyze competitive positioning against market standards. Return ONLY valid JSON, no additional text or explanations.
 
-TARGET ROLE: ${job_title}
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
 
-MARKET DATA:
+    const userPrompt = `Analyze competitive positioning for this professional:
+
+**CAREER CONTEXT:**
+${JSON.stringify(careerContext, null, 2)}
+
+**TARGET ROLE:** ${job_title}
+
+**MARKET DATA:**
 ${JSON.stringify(market_data, null, 2)}
 
-CANDIDATE PROFILE:
+**CANDIDATE PROFILE:**
 - Current Title: ${profile?.current_title || 'N/A'}
 - Years Experience: ${profile?.years_experience || careerContext.yearsOfExperience}
 - Core Skills: ${profile?.core_skills?.join(', ') || 'N/A'}
 - Key Achievements: ${profile?.key_achievements?.join(', ') || 'N/A'}
 
-AI-DETECTED CAREER CONTEXT (CRITICAL - USE THIS):
-- Management Experience: ${careerContext.hasManagementExperience ? 'YES' : 'NO'}
-${careerContext.hasManagementExperience ? `- Management Details: ${careerContext.managementDetails}
-- Team Sizes Managed: ${careerContext.teamSizesManaged.join(', ')}` : ''}
-- Budget Ownership: ${careerContext.hasBudgetOwnership ? 'YES' : 'NO'}
-${careerContext.hasBudgetOwnership ? `- Budget Details: ${careerContext.budgetDetails}
-- Budget Amounts: ${careerContext.budgetSizesManaged.map((b: number) => `$${(b/1000000).toFixed(0)}MM`).join(', ')}` : ''}
-- Executive Exposure: ${careerContext.hasExecutiveExposure ? 'YES' : 'NO'}
-- Career Level: ${careerContext.inferredSeniority}
-- Career Archetype: ${careerContext.careerArchetype}
-- Leadership Depth: ${careerContext.leadershipDepth}/100
-- Technical Depth: ${careerContext.technicalDepth}/100
-- Strategic Depth: ${careerContext.strategicDepth}/100
-
-CAREER VAULT INTELLIGENCE:
+**CAREER VAULT INTELLIGENCE:**
 - Total Vault Strength: ${vaultData.overall_strength_score || 0}/100
 - Power Phrases: ${vaultData.total_power_phrases || 0}
 - Hidden Competencies: ${vaultData.total_hidden_competencies || 0}
@@ -191,6 +174,13 @@ CAREER VAULT INTELLIGENCE:
 
 DETAILED INTELLIGENCE:
 ${JSON.stringify(vaultIntelligence, null, 2)}
+
+Provide analysis:
+1. Strengths vs market (specific evidence)
+2. Gaps vs benchmarks (prioritized)
+3. Differentiators (unique value)
+4. Strategic positioning recommendations
+5. Career velocity assessment
 
 Return JSON with:
 {
@@ -200,8 +190,14 @@ Return JSON with:
   "potential_gaps": [],
   "recommended_positioning": "",
   "salary_range_recommendation": { "minimum_acceptable": 0, "target": 0, "stretch": 0 }
-}`
-            }
+}`;
+
+    const { response, metrics } = await retryWithBackoff(
+      async () => await callLovableAI(
+        {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
           ],
           model: LOVABLE_AI_MODELS.DEFAULT,
           temperature: 0.4,
@@ -219,18 +215,31 @@ Return JSON with:
 
     await logAIUsage(metrics);
 
-    const content = response.choices[0].message.content;
-    const result = extractJSON(content);
-
+    const rawContent = response.choices[0].message.content;
+    console.log('[analyze-competitive-position] Raw AI response:', rawContent.substring(0, 500));
+    
+    const result = extractJSON(rawContent);
+    
     if (!result.success) {
       logger.error('JSON parsing failed', { 
         error: result.error,
-        content: content.substring(0, 500)
+        content: rawContent.substring(0, 500)
       });
       throw new Error(`Invalid AI response: ${result.error}`);
     }
 
     const analysis = result.data;
+
+    // Validate required fields
+    if (typeof analysis.competitive_score !== 'number') {
+      throw new Error('Missing or invalid competitive_score');
+    }
+    if (!analysis.above_market_strengths || !Array.isArray(analysis.above_market_strengths)) {
+      throw new Error('Missing or invalid above_market_strengths array');
+    }
+    if (!analysis.potential_gaps || !Array.isArray(analysis.potential_gaps)) {
+      throw new Error('Missing or invalid potential_gaps array');
+    }
 
     logger.logAICall({
       model: metrics.model,
