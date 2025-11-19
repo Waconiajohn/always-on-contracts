@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { vaultId, itemIds } = await req.json();
+    const { vaultId, itemIds, userId } = await req.json();
 
     console.log(`Batch enhancing ${itemIds.length} items for vault:`, vaultId);
 
@@ -24,6 +24,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Create batch operation record for progress tracking
+    const { data: batchOp, error: batchOpError } = await supabase
+      .from('batch_operations')
+      .insert({
+        user_id: userId,
+        vault_id: vaultId,
+        operation_type: 'enhance',
+        status: 'processing',
+        total_items: itemIds.length,
+        processed_items: 0,
+        successful_items: 0,
+        failed_items: 0
+      })
+      .select()
+      .single();
+
+    if (batchOpError) {
+      console.error('Failed to create batch operation record:', batchOpError);
+    }
+
+    const batchOperationId = batchOp?.id;
 
     // Fetch all items (from all tables)
     const [
@@ -44,26 +66,51 @@ serve(async (req) => {
 
     console.log(`Found ${allItems.length} items to enhance`);
 
-    // Enhance each item
+    // Filter out already-gold items
+    const itemsToEnhance = allItems.filter(item => (item.quality_tier || 'assumed') !== 'gold');
+    console.log(`${itemsToEnhance.length} items need enhancement (${allItems.length - itemsToEnhance.length} already gold)`);
+
+    // Enhance items in parallel batches for 5x speed improvement
     let enhanced_count = 0;
+    let failed_count = 0;
+    const BATCH_SIZE = 5; // Process 5 items concurrently (adjust based on rate limits)
 
-    for (const item of allItems) {
-      try {
-        const currentContent = item[item.field] || '';
-        const currentTier = item.quality_tier || 'assumed';
+    // Helper function with retry logic and exponential backoff
+    const retryWithBackoff = async <T>(
+      fn: () => Promise<T>,
+      maxRetries = 3,
+      baseDelay = 1000
+    ): Promise<T> => {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          return await fn();
+        } catch (error) {
+          const isLastAttempt = attempt === maxRetries - 1;
+          if (isLastAttempt) throw error;
 
-        // Skip if already gold
-        if (currentTier === 'gold') continue;
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = baseDelay * Math.pow(2, attempt);
+          console.log(`[batch-enhance-items] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+      throw new Error('Max retries exceeded');
+    };
 
-        // Determine target tier
-        const tierProgression: Record<string, string> = {
-          'assumed': 'bronze',
-          'bronze': 'silver',
-          'silver': 'gold'
-        };
-        const targetTier = tierProgression[currentTier];
+    // Helper function to enhance a single item
+    const enhanceItem = async (item: any) => {
+      const currentContent = item[item.field] || '';
+      const currentTier = item.quality_tier || 'assumed';
 
-        const systemPrompt = `Enhance career items to higher quality tiers with metrics, strategic context, and strong language. Return ONLY valid JSON, no additional text or explanations.
+      // Determine target tier
+      const tierProgression: Record<string, string> = {
+        'assumed': 'bronze',
+        'bronze': 'silver',
+        'silver': 'gold'
+      };
+      const targetTier = tierProgression[currentTier];
+
+      const systemPrompt = `Enhance career items to higher quality tiers with metrics, strategic context, and strong language. Return ONLY valid JSON, no additional text or explanations.
 
 CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
@@ -72,12 +119,14 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
   "suggested_keywords": ["kw1", "kw2", "kw3"]
 }`;
 
-        const userPrompt = `Enhance this ${currentTier} tier item to ${targetTier}:
+      const userPrompt = `Enhance this ${currentTier} tier item to ${targetTier}:
 "${currentContent}"
 
 Add metrics, strategic impact, and stronger language. Include 3 ATS keywords.`;
 
-        const { response, metrics } = await callLovableAI(
+      // Call AI with retry logic for resilience
+      const { response, metrics } = await retryWithBackoff(async () => {
+        return await callLovableAI(
           {
             messages: [
               { role: "system", content: systemPrompt },
@@ -91,63 +140,110 @@ Add metrics, strategic impact, and stronger language. Include 3 ATS keywords.`;
           "batch-enhance-items",
           undefined
         );
+      });
 
-        await logAIUsage(metrics);
+      await logAIUsage(metrics);
 
-        const rawContent = response.choices[0].message.content;
-        console.log(`[batch-enhance-items] Raw AI response for item ${item.id}:`, rawContent.substring(0, 300));
-        
-        const parseResult = extractJSON(rawContent);
-        
-        if (!parseResult.success || !parseResult.data) {
-          console.error(`[batch-enhance-items] Failed to parse enhancement for item ${item.id}:`, parseResult.error);
-          console.error('[batch-enhance-items] Full response:', rawContent);
-          continue;
-        }
+      const rawContent = response.choices[0].message.content;
+      console.log(`[batch-enhance-items] Raw AI response for item ${item.id}:`, rawContent.substring(0, 300));
 
-        const enhancement = parseResult.data;
+      const parseResult = extractJSON(rawContent);
 
-        // Validate required fields
-        if (!enhancement.enhanced_content || typeof enhancement.enhanced_content !== 'string') {
-          console.error(`[batch-enhance-items] Missing enhanced_content for item ${item.id}`);
-          continue;
-        }
-        if (!enhancement.new_tier) {
-          console.error(`[batch-enhance-items] Missing new_tier for item ${item.id}`);
-          continue;
-        }
-        
-        // Validate required fields
-        if (!enhancement.enhanced_content || !enhancement.new_tier) {
-          console.error(`Missing required fields for item ${item.id}:`, enhancement);
-          continue;
-        }
-
-        // Update the item
-        await supabase
-          .from(item.table)
-          .update({
-            [item.field]: enhancement.enhanced_content,
-            quality_tier: enhancement.new_tier,
-            confidence_score: 0.95,
-            keywords: enhancement.suggested_keywords,
-            last_updated_at: new Date().toISOString()
-          })
-          .eq('id', item.id);
-
-        enhanced_count++;
-
-      } catch (itemError) {
-        console.error(`Error enhancing item ${item.id}:`, itemError);
-        // Continue with next item
+      if (!parseResult.success || !parseResult.data) {
+        console.error(`[batch-enhance-items] Failed to parse enhancement for item ${item.id}:`, parseResult.error);
+        throw new Error(`Parse failed: ${parseResult.error}`);
       }
+
+      const enhancement = parseResult.data;
+
+      // Validate required fields
+      if (!enhancement.enhanced_content || typeof enhancement.enhanced_content !== 'string') {
+        throw new Error('Missing or invalid enhanced_content');
+      }
+      if (!enhancement.new_tier) {
+        throw new Error('Missing new_tier');
+      }
+
+      // Update the item
+      await supabase
+        .from(item.table)
+        .update({
+          [item.field]: enhancement.enhanced_content,
+          quality_tier: enhancement.new_tier,
+          confidence_score: 0.95,
+          keywords: enhancement.suggested_keywords,
+          last_updated_at: new Date().toISOString()
+        })
+        .eq('id', item.id);
+
+      return { success: true, itemId: item.id, newTier: enhancement.new_tier };
+    };
+
+    // Rate limiting: delay between batches to prevent API throttling
+    const BATCH_DELAY_MS = 500; // 500ms delay between batches
+
+    // Process items in parallel batches
+    for (let i = 0; i < itemsToEnhance.length; i += BATCH_SIZE) {
+      const batch = itemsToEnhance.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(itemsToEnhance.length / BATCH_SIZE);
+
+      console.log(`[batch-enhance-items] Processing batch ${batchNumber}/${totalBatches} (${batch.length} items)`);
+
+      // Process all items in this batch concurrently
+      const promises = batch.map(item => enhanceItem(item));
+      const results = await Promise.allSettled(promises);
+
+      // Count successes and failures
+      results.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          enhanced_count++;
+          console.log(`[batch-enhance-items] ✓ Enhanced item ${batch[idx].id} → ${result.value.newTier}`);
+        } else {
+          failed_count++;
+          console.error(`[batch-enhance-items] ✗ Failed item ${batch[idx].id}:`, result.reason);
+        }
+      });
+
+      console.log(`[batch-enhance-items] Batch ${batchNumber} complete: ${enhanced_count} enhanced, ${failed_count} failed`);
+
+      // Update progress in database
+      if (batchOperationId) {
+        await supabase
+          .from('batch_operations')
+          .update({
+            processed_items: enhanced_count + failed_count,
+            successful_items: enhanced_count,
+            failed_items: failed_count
+          })
+          .eq('id', batchOperationId);
+      }
+
+      // Rate limiting: add delay between batches (except for the last batch)
+      if (batchNumber < totalBatches) {
+        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+      }
+    }
+
+    // Mark batch operation as completed
+    if (batchOperationId) {
+      await supabase
+        .from('batch_operations')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', batchOperationId);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
+        batch_operation_id: batchOperationId,
         enhanced_count,
-        total_items: allItems.length
+        failed_count,
+        total_items: allItems.length,
+        already_gold: allItems.length - itemsToEnhance.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
