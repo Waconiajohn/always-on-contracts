@@ -216,9 +216,14 @@ export const GapAnalysisView = ({
 
             {/* Gap Cards Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {unmatchedRequirements.map((requirement, index) => {
+              {unmatchedRequirements.filter(req => req && req.trim()).map((requirement, index) => {
                 const isExpanded = expandedGaps[index];
                 const isAddressed = addressedGaps[index];
+
+                // Safety check for empty requirements
+                if (!requirement || !requirement.trim()) {
+                  return null;
+                }
 
                 return (
                   <Collapsible

@@ -84,6 +84,10 @@ serve(async (req) => {
       }))
     ];
 
+    // Create requirement index for matching - store both text and normalized version
+    const requirementTexts = allRequirements.map((r: any) => r.requirement);
+    console.log('[MATCH] Total requirements to match:', requirementTexts.length);
+
     // Fetch vault
     const { data: vault, error: vaultError } = await supabase
       .from('career_vault')
@@ -294,14 +298,21 @@ For each vault item, determine:
 5. ATS keywords present in this content
 6. Differentiator score (0-100) - how much this sets candidate apart from others
 
-CRITICAL INSTRUCTION: You MUST use the EXACT vaultCategory name from the CAREER VAULT DATA above.
-Valid categories are: power_phrases, transferable_skills, hidden_competencies, soft_skills,
-leadership_philosophy, executive_presence, personality_traits, work_style, values_motivations,
-behavioral_indicators, confirmed_skills, education, resume_milestones, competitive_advantages,
-professional_resources, career_context, interview_responses
+CRITICAL INSTRUCTIONS:
+1. You MUST use the EXACT vaultCategory name from the CAREER VAULT DATA above.
+   Valid categories are: power_phrases, transferable_skills, hidden_competencies, soft_skills,
+   leadership_philosophy, executive_presence, personality_traits, work_style, values_motivations,
+   behavioral_indicators, confirmed_skills, education, resume_milestones, competitive_advantages,
+   professional_resources, career_context, interview_responses
+   
+   DO NOT make up category names. DO NOT use generic names like "achievement" or "skill".
+   USE THE EXACT CATEGORY NAME from the vault data (e.g., "power_phrases", NOT "phrases").
 
-DO NOT make up category names. DO NOT use generic names like "achievement" or "skill".
-USE THE EXACT CATEGORY NAME from the vault data (e.g., "power_phrases", NOT "phrases").
+2. For "satisfiesRequirements", you MUST use the EXACT requirement text from the list below.
+   DO NOT paraphrase or summarize. Copy the exact text even if it's long.
+   
+   EXACT REQUIREMENTS TO MATCH:
+   ${requirementTexts.map((r: string, i: number) => `${i + 1}. "${r}"`).join('\n   ')}
 
 Prioritize:
 1. GOLD tier items (quiz-verified) - use these first
@@ -322,15 +333,16 @@ Return ONLY valid JSON:
       "matchReasons": ["Addresses leadership requirement", "Contains ATS keyword 'agile'", "Gold tier - quiz verified"],
       "suggestedPlacement": "experience",
       "enhancedLanguage": "Led cross-functional agile teams of 15+ engineers...",
-      "satisfiesRequirements": ["5+ years leadership", "Agile methodology"],
+      "satisfiesRequirements": ["EXACT text from requirements list above - e.g., '5+ years of leadership experience managing engineering teams'"],
       "atsKeywords": ["leadership", "agile", "cross-functional"],
       "differentiatorScore": 85,
       "qualityTier": "gold",
       "freshnessScore": 100
     }
-  ],
-  "unmatchedRequirements": ["Requirements with no vault coverage"]
-}`;
+  ]
+}
+
+NOTE: The "unmatchedRequirements" field will be calculated automatically - DO NOT include it in your response.`;
 
       const { response, metrics } = await callLovableAI(
         {
@@ -444,7 +456,7 @@ Return ONLY valid JSON:
       return bTier - aTier;
     });
 
-    // Calculate coverage score based on UNIQUE requirements satisfied
+    // Calculate which requirements were satisfied by matches (with threshold)
     const uniqueRequirementsCovered = new Set<string>();
     matches.forEach(m => {
       if (m.matchScore >= 70) {
@@ -452,20 +464,38 @@ Return ONLY valid JSON:
       }
     });
 
+    // Also track ALL satisfied requirements regardless of score (for unmatched calculation)
+    const allSatisfiedRequirements = new Set<string>();
+    matches.forEach(match => {
+      if (match.satisfiesRequirements && Array.isArray(match.satisfiesRequirements)) {
+        match.satisfiesRequirements.forEach((satisfied: string) => {
+          allSatisfiedRequirements.add(satisfied);
+        });
+      }
+    });
+
+    // Find unmatched requirements
+    const unmatchedReqs = requirementTexts.filter((req: string) => !allSatisfiedRequirements.has(req));
+    
+    console.log('[MATCH] Satisfied requirements (score >= 70):', uniqueRequirementsCovered.size);
+    console.log('[MATCH] All satisfied requirements:', allSatisfiedRequirements.size);
+    console.log('[MATCH] Unmatched requirements count:', unmatchedReqs.length);
+    if (unmatchedReqs.length > 0 && unmatchedReqs.length <= 5) {
+      console.log('[MATCH] All unmatched requirements:', unmatchedReqs);
+    } else if (unmatchedReqs.length > 5) {
+      console.log('[MATCH] Sample unmatched requirements:', unmatchedReqs.slice(0, 5));
+    }
+
     const result: MatchingResult = {
       success: true,
       totalVaultItems: vaultCategories.reduce((sum, cat) =>
         sum + (Array.isArray(cat.data) ? cat.data.length : (cat.data ? 1 : 0)), 0
       ),
       matchedItems: matches,
-      unmatchedRequirements: allRequirements
-        .map((r: any) => r.requirement)
-        .filter((req: string) =>
-          !matches.some(m => m.satisfiesRequirements.includes(req))
-        ),
+      unmatchedRequirements: unmatchedReqs,
       coverageScore: Math.round(
-        (allRequirements.length > 0 ?
-          uniqueRequirementsCovered.size / allRequirements.length : 0
+        (requirementTexts.length > 0 ?
+          allSatisfiedRequirements.size / requirementTexts.length : 0
         ) * 100
       ),
       differentiatorStrength: Math.round(
