@@ -69,6 +69,44 @@ export function AIEnhancementPanel({
     }
   };
 
+  const handleAddKeyword = async (keyword: string) => {
+    if (!enhancement) return;
+    
+    setIsEnhancing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-vault-item', {
+        body: {
+          itemId: item.id,
+          itemType,
+          currentContent: editedContent,
+          currentTier: enhancement.new_tier,
+          vaultId,
+          additionalKeywords: [keyword]
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setEnhancement(data.enhancement);
+        setEditedContent(data.enhancement.enhanced_content);
+        toast({
+          title: 'Keyword Added',
+          description: `Enhanced with "${keyword}"`
+        });
+      }
+    } catch (error) {
+      console.error('Error adding keyword:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add keyword',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const handleAccept = async () => {
     if (!enhancement) return;
 
@@ -220,11 +258,16 @@ export function AIEnhancementPanel({
 
             {enhancement.suggested_keywords && enhancement.suggested_keywords.length > 0 && (
               <div className="space-y-2">
-                <span className="text-sm font-medium">Suggested ATS Keywords:</span>
-                <p className="text-xs text-muted-foreground">These keywords can improve visibility in applicant tracking systems</p>
+                <span className="text-sm font-medium">Add Keywords:</span>
+                <p className="text-xs text-muted-foreground">Click to incorporate a keyword - AI will regenerate the enhancement</p>
                 <div className="flex flex-wrap gap-1">
                   {enhancement.suggested_keywords.map((keyword: string, idx: number) => (
-                    <Badge key={idx} variant="secondary" className="text-xs">
+                    <Badge 
+                      key={idx} 
+                      variant="secondary" 
+                      className="text-xs cursor-pointer hover:bg-purple-500 hover:text-white transition-colors"
+                      onClick={() => handleAddKeyword(keyword)}
+                    >
                       {keyword}
                     </Badge>
                   ))}
