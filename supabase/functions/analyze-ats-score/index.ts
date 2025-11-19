@@ -63,7 +63,9 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `You are an ATS and resume alignment engine.
+    const systemPrompt = `You are an ATS and resume alignment engine. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:
 
 You receive a job description and a canonical resume (header + sections).
 Extract a keyword set with priority tiers:
@@ -132,7 +134,10 @@ Analyze keyword coverage and ATS compatibility.`;
 
     await logAIUsage(metrics);
 
-    const cleanedContent = response.choices[0].message.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const rawContent = response.choices[0].message.content;
+    logger.debug('Raw AI response', { preview: rawContent.substring(0, 500) });
+
+    const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     // Parse JSON from response with production-grade extraction
     const parseResult = extractJSON(cleanedContent);
@@ -146,6 +151,17 @@ Analyze keyword coverage and ATS compatibility.`;
     }
 
     const scoreData = parseResult.data;
+
+    // Validate required fields
+    if (!scoreData.summary || typeof scoreData.summary !== 'object') {
+      throw new Error('Missing or invalid summary object');
+    }
+    if (typeof scoreData.summary.overallScore !== 'number') {
+      throw new Error('Missing or invalid overallScore');
+    }
+    if (!Array.isArray(scoreData.perSection)) {
+      throw new Error('Missing or invalid perSection array');
+    }
 
     // Ensure proper structure for new format
     const validatedData = {

@@ -17,8 +17,12 @@ serve(async (req) => {
     const { targetRole, targetIndustry } = await req.json();
     console.log('[INDUSTRY RESEARCH] Starting research for:', { targetRole, targetIndustry });
 
-    // Conduct comprehensive industry research using Perplexity
-    const researchPrompt = `You are an expert career intelligence researcher. Conduct comprehensive research on ${targetRole} positions in the ${targetIndustry} industry.
+    // Conduct comprehensive industry research using Lovable AI
+    const systemPrompt = `You are an expert career intelligence researcher. Provide detailed, actionable research based on current market data. Return ONLY valid JSON with structured research insights.
+
+CRITICAL: Focus on actionable, specific insights for building a competitive career profile.`;
+
+    const userPrompt = `Conduct comprehensive research on ${targetRole} positions in the ${targetIndustry} industry.
 
 Provide detailed information on:
 1. **Common Skills & Competencies**: What skills do top performers in this role typically have?
@@ -32,14 +36,8 @@ Focus on actionable, specific insights that would help someone build a competiti
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert career intelligence researcher. Provide detailed, actionable research based on current market data.'
-          },
-          {
-            role: 'user',
-            content: researchPrompt
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
@@ -51,6 +49,7 @@ Focus on actionable, specific insights that would help someone build a competiti
     await logAIUsage(metrics);
 
     const researchContent = response.choices[0].message.content;
+    console.log('[conduct-industry-research] Raw AI response:', researchContent.substring(0, 500));
 
     console.log('[INDUSTRY RESEARCH] Research completed successfully');
 

@@ -48,7 +48,11 @@ serve(async (req) => {
     const audit = auditData.audit;
 
     // Generate engagement analysis
-    const engagementPrompt = `Analyze this LinkedIn post for engagement potential:
+    const systemPrompt = `You are a LinkedIn content strategist. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
+
+    const userPrompt = `Analyze this LinkedIn post for engagement potential:
 
 POST:
 ${postContent}
@@ -65,8 +69,8 @@ Provide specific suggestions to improve engagement.`;
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are a LinkedIn content strategist.' },
-          { role: 'user', content: engagementPrompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
@@ -79,6 +83,7 @@ Provide specific suggestions to improve engagement.`;
     await logAIUsage(metrics);
 
     const engagementAnalysis = response.choices[0].message.content;
+    console.log('[analyze-linkedin-post-with-audit] Raw AI response:', engagementAnalysis.substring(0, 300));
 
     // Update post with audit results
     if (postId) {

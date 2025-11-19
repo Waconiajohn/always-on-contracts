@@ -95,17 +95,27 @@ Add metrics, strategic impact, and stronger language. Include 3 ATS keywords.`;
         await logAIUsage(metrics);
 
         const rawContent = response.choices[0].message.content;
-        console.log(`Raw AI response for item ${item.id}:`, rawContent.substring(0, 300));
+        console.log(`[batch-enhance-items] Raw AI response for item ${item.id}:`, rawContent.substring(0, 300));
         
         const parseResult = extractJSON(rawContent);
         
         if (!parseResult.success || !parseResult.data) {
-          console.error(`Failed to parse enhancement for item ${item.id}:`, parseResult.error);
-          console.error('Full response:', rawContent);
+          console.error(`[batch-enhance-items] Failed to parse enhancement for item ${item.id}:`, parseResult.error);
+          console.error('[batch-enhance-items] Full response:', rawContent);
           continue;
         }
 
         const enhancement = parseResult.data;
+
+        // Validate required fields
+        if (!enhancement.enhanced_content || typeof enhancement.enhanced_content !== 'string') {
+          console.error(`[batch-enhance-items] Missing enhanced_content for item ${item.id}`);
+          continue;
+        }
+        if (!enhancement.new_tier) {
+          console.error(`[batch-enhance-items] Missing new_tier for item ${item.id}`);
+          continue;
+        }
         
         // Validate required fields
         if (!enhancement.enhanced_content || !enhancement.new_tier) {
