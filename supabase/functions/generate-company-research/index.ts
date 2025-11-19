@@ -21,26 +21,47 @@ serve(async (req) => {
 
     console.log(`[COMPANY-RESEARCH] Researching: ${companyName}`);
 
-    const { response, metrics } = await callLovableAI(
-      {
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a business research analyst. Provide factual, current information about companies in a structured format. Focus on recent (2024-2025) information.'
-          },
-          {
-            role: 'user',
-            content: `Research ${companyName}. Provide:
+    // STANDARDIZED SYSTEM PROMPT
+    const systemPrompt = `You are a business research analyst providing factual, current information about companies.
 
+Your task: Research companies and provide structured intelligence for job seekers and interview preparation.
+
+CRITICAL OUTPUT FORMAT - Return structured text with clear section headers:
+
+**COMPANY OVERVIEW:**
+[Company description, revenue sources, main products/services, industry]
+
+**GROWTH PLANS:**
+[Where the company intends to expand, innovate, or focus in the next year]
+
+**POTENTIAL RISKS:**
+[Major risks: market disruption, regulatory issues, talent gaps, etc.]
+
+**COMPETITOR LANDSCAPE:**
+[List 3-5 main competitors and what sets each apart]
+
+Focus on recent (2024-2025) information where possible.`;
+
+    const userPrompt = `Research ${companyName} and provide comprehensive intelligence:
+
+REQUIRED SECTIONS:
 1) COMPANY OVERVIEW: Describe the company, primary revenue sources, main products/services, and industry
 2) GROWTH PLANS: Where does the company intend to expand, innovate, or focus efforts in the next year?
 3) POTENTIAL RISKS: Major risks facing the business (market disruption, regulatory issues, talent gaps, etc.)
 4) COMPETITOR LANDSCAPE: List 3-5 main competitors and briefly explain what sets each apart
 
-${jobDescription ? `Context: The user is interviewing for this role: ${jobDescription.slice(0, 500)}` : ''}
+${jobDescription ? `CONTEXT: The user is interviewing for this role:
+${jobDescription.slice(0, 500)}` : ''}
 
-Format your response with clear section headers.`
-          }
+Format your response with clear section headers as specified above.`;
+
+    console.log(`[COMPANY-RESEARCH] Calling Lovable AI for: ${companyName}`);
+
+    const { response, metrics } = await callLovableAI(
+      {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.3,
@@ -51,6 +72,7 @@ Format your response with clear section headers.`
     await logAIUsage(metrics);
 
     const researchContent = response.choices[0].message.content;
+    console.log('[COMPANY-RESEARCH] Raw AI response:', researchContent.substring(0, 500));
 
     // Parse sections
     const sections = {
@@ -60,7 +82,33 @@ Format your response with clear section headers.`
       competitors: extractSection(researchContent, 'COMPETITOR LANDSCAPE', null)
     };
 
-    console.log('[COMPANY-RESEARCH] Research completed successfully');
+    // EXPLICIT VALIDATION
+    if (!sections.overview || sections.overview.length < 50) {
+      console.error('[COMPANY-RESEARCH] Missing or insufficient overview section');
+      throw new Error('AI response missing required section: COMPANY OVERVIEW');
+    }
+    
+    if (!sections.growth_plans || sections.growth_plans.length < 20) {
+      console.error('[COMPANY-RESEARCH] Missing or insufficient growth plans section');
+      throw new Error('AI response missing required section: GROWTH PLANS');
+    }
+    
+    if (!sections.risks || sections.risks.length < 20) {
+      console.error('[COMPANY-RESEARCH] Missing or insufficient risks section');
+      throw new Error('AI response missing required section: POTENTIAL RISKS');
+    }
+    
+    if (!sections.competitors || sections.competitors.length < 20) {
+      console.error('[COMPANY-RESEARCH] Missing or insufficient competitors section');
+      throw new Error('AI response missing required section: COMPETITOR LANDSCAPE');
+    }
+
+    console.log('[COMPANY-RESEARCH] Research completed successfully', {
+      overviewLength: sections.overview.length,
+      growthPlansLength: sections.growth_plans.length,
+      risksLength: sections.risks.length,
+      competitorsLength: sections.competitors.length
+    });
 
     return new Response(
       JSON.stringify({

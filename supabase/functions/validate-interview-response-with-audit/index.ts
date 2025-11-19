@@ -56,26 +56,36 @@ serve(async (req) => {
     const auditData = await auditResponse.json();
     const audit = auditData.audit;
 
-    // Specific STAR analysis
-    const starPrompt = `Analyze this interview answer for STAR structure:
+    // STANDARDIZED STAR ANALYSIS PROMPT
+    const systemPrompt = `You are an expert interview coach specializing in STAR methodology validation.
+
+Your task: Rate interview answers on STAR structure completeness and authenticity.
+
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
+{
+  "situation_clarity": { "score": number (1-10), "feedback": "specific improvement" },
+  "task_specificity": { "score": number (1-10), "feedback": "specific improvement" },
+  "action_detail": { "score": number (1-10), "feedback": "specific improvement" },
+  "result_quantification": { "score": number (1-10), "feedback": "specific improvement" },
+  "overall_authenticity": { "score": number (1-10), "feedback": "specific improvement" },
+  "overall_score": number (1-10),
+  "key_improvements": ["improvement1", "improvement2"]
+}`;
+
+    const userPrompt = `Analyze this interview answer using STAR methodology:
 
 QUESTION: ${question}
 ANSWER: ${answer}
 
-Rate (1-10):
-1. Situation clarity
-2. Task specificity
-3. Action detail
-4. Result quantification
-5. Overall authenticity
+Rate each component (1-10 scale) and provide specific, actionable feedback for improvement.`;
 
-Provide specific improvements for each component.`;
-
+    console.log('[validate-interview-response-with-audit] Calling Lovable AI for STAR analysis');
+    
     const { response: starData, metrics: starMetrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are an interview coach expert.' },
-          { role: 'user', content: starPrompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.3,
@@ -86,7 +96,10 @@ Provide specific improvements for each component.`;
 
     await logAIUsage(starMetrics);
 
-    const starAnalysis = starData.choices[0].message.content;
+    const starAnalysisRaw = starData.choices[0].message.content;
+    console.log('[validate-interview-response-with-audit] Raw STAR analysis:', starAnalysisRaw.substring(0, 500));
+    
+    const starAnalysis = starAnalysisRaw; // Keep as string for backward compatibility
 
     // Update response
     if (responseId) {

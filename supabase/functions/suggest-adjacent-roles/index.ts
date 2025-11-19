@@ -26,39 +26,58 @@ serve(async (req) => {
     console.log('[SUGGEST-ADJACENT-ROLES] Analyzing resume for adjacent paths...');
     console.log(`Current role: ${currentRole}, Current industry: ${currentIndustry}`);
 
-    const prompt = `You are a career transition expert. Analyze this resume and suggest ADJACENT career paths.
+    // STANDARDIZED SYSTEM PROMPT
+    const systemPrompt = `You are a career transition expert specializing in identifying realistic adjacent career paths.
 
-Current Role: ${currentRole}
-Current Industry: ${currentIndustry}
+Your task: Analyze transferable skills and suggest ADJACENT career opportunities (not complete pivots).
 
-Resume:
+ANALYSIS FOCUS:
+- Similar leadership/management skills
+- Transferable technical or domain expertise
+- Adjacent market sectors (e.g., SaaS → FinTech, Healthcare → MedTech)
+- Roles that value specific experience (e.g., VP Engineering → VP Product)
+
+CRITICAL RULES:
+- Focus on REALISTIC transitions leveraging existing experience
+- Do NOT suggest complete career pivots
+- Be specific and practical
+- Consider market demand and transferability
+
+CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
+{
+  "suggestedRoles": ["Role 1", "Role 2", "Role 3", "Role 4", "Role 5"],
+  "suggestedIndustries": ["Industry 1", "Industry 2", "Industry 3", "Industry 4", "Industry 5"],
+  "reasoning": "Brief 1-2 sentence explanation of why these are good fits"
+}`;
+
+    const userPrompt = `Analyze this resume and suggest adjacent career paths:
+
+CURRENT ROLE: ${currentRole}
+CURRENT INDUSTRY: ${currentIndustry}
+
+RESUME:
 ${resumeText.substring(0, 3000)}
 
-Based on this person's transferable skills, management experience, technical expertise, and domain knowledge, suggest:
+TASK: Based on transferable skills, management experience, technical expertise, and domain knowledge, suggest:
 
-1. 3-5 adjacent ROLES where their skills would translate well (not complete career pivots, but realistic next steps)
-2. 3-5 adjacent INDUSTRIES where their expertise would be valuable (related sectors, not unrelated fields)
+1. 3-5 adjacent ROLES where skills would translate well (realistic next steps)
+2. 3-5 adjacent INDUSTRIES where expertise would be valuable (related sectors)
 
-Focus on REALISTIC transitions that leverage existing experience. Think about:
+Think about:
 - Similar leadership/management skills
 - Transferable technical or domain expertise
 - Adjacent market sectors (e.g., SaaS → FinTech, Healthcare → MedTech)
 - Roles that value their specific experience (e.g., VP Engineering → VP Product)
 
-Return ONLY a JSON object with this structure:
-{
-  "suggestedRoles": ["Role 1", "Role 2", "Role 3", "Role 4", "Role 5"],
-  "suggestedIndustries": ["Industry 1", "Industry 2", "Industry 3", "Industry 4", "Industry 5"],
-  "reasoning": "Brief 1-2 sentence explanation of why these are good fits"
-}
+Return your analysis in the required JSON format.`;
 
-Be specific and realistic. Do not suggest complete career pivots.`;
+    console.log('[SUGGEST-ADJACENT-ROLES] Calling Lovable AI');
 
     const { response, metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: 'You are a career transition expert who helps people identify realistic adjacent career paths based on transferable skills. Always return valid JSON.' },
-          { role: 'user', content: prompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
@@ -71,13 +90,11 @@ Be specific and realistic. Do not suggest complete career pivots.`;
     await logAIUsage(metrics);
 
     const aiContent = response.choices[0].message.content;
-
     console.log('[SUGGEST-ADJACENT-ROLES] Raw AI response:', aiContent);
 
     // Parse JSON from response
     let suggestions;
     try {
-      // Try to extract JSON from markdown code blocks if present
       const jsonMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       const jsonStr = jsonMatch ? jsonMatch[1] : aiContent;
       suggestions = JSON.parse(jsonStr);
@@ -102,6 +119,32 @@ Be specific and realistic. Do not suggest complete career pivots.`;
             "Technology Consulting",
             "Healthcare Tech"
           ],
+          reasoning: "Based on your leadership and technical background, these roles and industries represent natural transitions."
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // EXPLICIT FIELD VALIDATION
+    if (!Array.isArray(suggestions.suggestedRoles) || suggestions.suggestedRoles.length === 0) {
+      console.error('[SUGGEST-ADJACENT-ROLES] Missing or invalid suggestedRoles');
+      throw new Error('AI response missing required field: suggestedRoles array');
+    }
+    
+    if (!Array.isArray(suggestions.suggestedIndustries) || suggestions.suggestedIndustries.length === 0) {
+      console.error('[SUGGEST-ADJACENT-ROLES] Missing or invalid suggestedIndustries');
+      throw new Error('AI response missing required field: suggestedIndustries array');
+    }
+    
+    if (!suggestions.reasoning || typeof suggestions.reasoning !== 'string') {
+      console.error('[SUGGEST-ADJACENT-ROLES] Missing or invalid reasoning');
+      throw new Error('AI response missing required field: reasoning');
+    }
+
+    console.log('[SUGGEST-ADJACENT-ROLES] Suggestions generated successfully', {
+      rolesCount: suggestions.suggestedRoles.length,
+      industriesCount: suggestions.suggestedIndustries.length
+    });
           reasoning: "These are common adjacent paths for experienced professionals."
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
