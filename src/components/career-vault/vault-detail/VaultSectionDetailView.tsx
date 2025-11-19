@@ -5,11 +5,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { VaultItemCard } from './VaultItemCard';
 import { BenchmarkComparisonPanel } from './BenchmarkComparisonPanel';
 import { GapRoadmapWidget } from './GapRoadmapWidget';
+import { RoadmapWorkspace } from './RoadmapWorkspace';
 import { VaultSearchFilter } from './VaultSearchFilter';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface VaultSectionDetailViewProps {
   sectionKey: string;
@@ -33,7 +33,7 @@ export function VaultSectionDetailView({
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const { toast } = useToast();
+  const [activeRoadmapItem, setActiveRoadmapItem] = useState<any>(null);
 
   // Filter items by quality tier
   const filterByQuality = (quality: string) => {
@@ -67,13 +67,29 @@ export function VaultSectionDetailView({
   }
 
   const handleStartWork = (roadmapItem: any) => {
-    toast({
-      title: "Ready to work on this goal",
-      description: `Focus: ${roadmapItem.title}. Review the items below and add what's missing to reach your target.`,
-    });
-    // Scroll to items list
+    setActiveRoadmapItem(roadmapItem);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handleExitFocus = () => {
+    setActiveRoadmapItem(null);
+  };
+
+  // Filter items relevant to active roadmap
+  const getRelevantItems = () => {
+    if (!activeRoadmapItem) return filteredItems;
+    
+    // Filter items that contain keywords from roadmap
+    const keywords = activeRoadmapItem.suggestedActions || [];
+    return filteredItems.filter(item => {
+      const content = getItemContent(item).toLowerCase();
+      return keywords.some((keyword: string) => 
+        content.includes(keyword.toLowerCase())
+      );
+    });
+  };
+
+  const displayItems = activeRoadmapItem ? getRelevantItems() : filteredItems;
 
   return (
     <div className="space-y-6">
@@ -84,16 +100,25 @@ export function VaultSectionDetailView({
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold">{sectionTitle}</h2>
+            <h2 className="text-2xl font-bold">
+              {sectionTitle}
+              {activeRoadmapItem && (
+                <span className="ml-3 text-sm font-normal text-primary">
+                  • Focus Mode: {activeRoadmapItem.title}
+                </span>
+              )}
+            </h2>
             <p className="text-sm text-muted-foreground">
               {items.length} items • {qualityStats.gold} gold, {qualityStats.silver} silver
             </p>
           </div>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </Button>
+        {!activeRoadmapItem && (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
@@ -150,12 +175,15 @@ export function VaultSectionDetailView({
 
                 <ScrollArea className="h-[600px] mt-4">
                   <div className="space-y-3">
-                    {filteredItems.length === 0 ? (
+                    {displayItems.length === 0 ? (
                       <div className="text-center py-12 text-muted-foreground">
-                        No items found
+                        {activeRoadmapItem 
+                          ? "No items match this focus area yet. Add some using the workspace on the right!"
+                          : "No items found"
+                        }
                       </div>
                     ) : (
-                      filteredItems.map((item) => (
+                      displayItems.map((item) => (
                         <VaultItemCard
                           key={item.id}
                           item={item}
@@ -180,23 +208,36 @@ export function VaultSectionDetailView({
           </Card>
         </div>
 
-        {/* Right Panel - Benchmark & Gaps */}
+        {/* Right Panel - Benchmark & Workspace */}
         <div className="space-y-4">
-          <BenchmarkComparisonPanel
-            sectionTitle={sectionTitle}
-            current={benchmarkData.current}
-            target={benchmarkData.target}
-            percentage={benchmarkData.percentage}
-          />
+          {!activeRoadmapItem ? (
+            <>
+              <BenchmarkComparisonPanel
+                sectionTitle={sectionTitle}
+                current={benchmarkData.current}
+                target={benchmarkData.target}
+                percentage={benchmarkData.percentage}
+              />
 
-          <GapRoadmapWidget
-            sectionKey={sectionKey}
-            vaultId={vaultId}
-            benchmarkData={benchmarkData}
-            currentItems={items}
-            onItemsAdded={onItemUpdate}
-            onStartWork={handleStartWork}
-          />
+              <GapRoadmapWidget
+                sectionKey={sectionKey}
+                vaultId={vaultId}
+                benchmarkData={benchmarkData}
+                currentItems={items}
+                onItemsAdded={onItemUpdate}
+                onStartWork={handleStartWork}
+              />
+            </>
+          ) : (
+            <RoadmapWorkspace
+              roadmapItem={activeRoadmapItem}
+              sectionKey={sectionKey}
+              vaultId={vaultId}
+              currentItems={items}
+              onExit={handleExitFocus}
+              onItemAdded={onItemUpdate}
+            />
+          )}
         </div>
       </div>
     </div>
