@@ -1034,7 +1034,11 @@ const ResumeBuilderWizardContent = () => {
       let styledHtml = asHtml;
       if (selectedFormat) {
         const { renderResumeWithTemplate } = await import('@/lib/resumeTemplateRenderer');
-        styledHtml = await renderResumeWithTemplate(canonical, selectedFormat);
+        const { getFormat } = await import('@/lib/resumeFormats');
+        const format = getFormat(selectedFormat);
+        if (format && format.templateId) {
+          styledHtml = await renderResumeWithTemplate(canonical, format.templateId);
+        }
       }
 
       if (format === 'txt') {
@@ -1094,7 +1098,8 @@ const ResumeBuilderWizardContent = () => {
           },
           sections: canonical.sections.map(section => ({
             title: section.heading,
-            content: section.paragraph || section.bullets.join('\n• ')
+            content: section.paragraph,
+            bullets: section.bullets
           }))
         };
         await exportFormats.generateDOCX(structuredData, fileName);

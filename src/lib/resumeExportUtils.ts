@@ -130,26 +130,27 @@ export const exportFormats = {
         })
       );
 
-      // Section content - split into bullets if contains bullet points
-      const content = section.content || '';
-      if (content.includes('•') || content.includes('\n')) {
-        const bullets = content.split('\n').filter((line: string) => line.trim());
-        bullets.forEach((bullet: string) => {
+      // Handle paragraph content
+      if (section.content) {
+        children.push(
+          new Paragraph({
+            text: section.content,
+            spacing: { after: 120 }
+          })
+        );
+      }
+
+      // Handle bullet points
+      if (section.bullets && Array.isArray(section.bullets) && section.bullets.length > 0) {
+        section.bullets.forEach((bullet: string) => {
           children.push(
             new Paragraph({
-              text: bullet.replace(/^[•\-]\s*/, ''),
+              text: bullet,
               bullet: { level: 0 },
               spacing: { after: 60 }
             })
           );
         });
-      } else {
-        children.push(
-          new Paragraph({
-            text: content,
-            spacing: { after: 120 }
-          })
-        );
       }
     });
 
