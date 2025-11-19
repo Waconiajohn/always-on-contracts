@@ -190,8 +190,8 @@ Category: ${item.category || "general"}`,
           max_tokens: 3500,
           response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: systemMessage },
-            { role: "user", content: userMessage },
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
           ],
         },
         "generate-series-posts",
@@ -201,7 +201,7 @@ Category: ${item.category || "general"}`,
       await logAIUsage(metrics);
 
       const rawContent = response.choices[0]?.message?.content ?? "";
-      console.log(`[generate-series-posts] Raw AI response part ${partNumber}:`, rawContent.substring(0, 500));
+      console.log(`[generate-series-posts] Raw AI response batch ${i / batchSize + 1}:`, rawContent.substring(0, 500));
       
       const parseResult = extractJSON(rawContent);
       

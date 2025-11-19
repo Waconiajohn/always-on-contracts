@@ -82,7 +82,7 @@ Required: ${jobAnalysis.standardizedQualifications.required.join(', ')}
 Preferred: ${jobAnalysis.standardizedQualifications.preferred.join(', ')}
 Technical: ${jobAnalysis.standardizedQualifications.technical.join(', ')}
 Soft Skills: ${jobAnalysis.standardizedQualifications.soft.join(', ')}
-ATS Keywords: ${jobAnalysis.atsKeywords.join(', ')}`;
+ATS Keywords: ${jobAnalysis.atsKeywords.join(', ')}
 
 **HIRING MANAGER PRIORITIES:**
 ${jobAnalysis.hiringManagerPerspective.keyPriorities.map((p: string) => `- ${p}`).join('\n')}
