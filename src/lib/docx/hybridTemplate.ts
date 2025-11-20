@@ -221,6 +221,9 @@ export class HybridDocxGenerator {
         .flatMap(s => s.split(',').map(item => item.trim()))
         .filter(Boolean);
     }
+    
+    // Limit to top 16 skills (2 columns x 8 rows)
+    cleanSkills = cleanSkills.slice(0, 16);
         
     // Create a 2-column grid
     const rows = [];

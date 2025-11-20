@@ -264,6 +264,9 @@ export class ExecutiveDocxGenerator {
         .flatMap(s => s.split(',').map(item => item.trim()))
         .filter(Boolean);
     }
+    
+    // Limit to top 18 skills (3 columns x 6 rows)
+    cleanSkills = cleanSkills.slice(0, 18);
         
     // Create a 3-column grid
     const rows = [];
