@@ -369,10 +369,16 @@ export const SectionWizard = ({
       vault_items_used: relevantMatches.length
     });
 
+    // Convert content to array format if needed
+    const contentArray = Array.isArray(finalContent)
+      ? finalContent
+      : [{ id: crypto.randomUUID(), content: finalContent }];
+
     onSectionComplete({
+      sectionId: section.id,
       type: section.type,
-      content: finalContent,
-      vaultItemsUsed: relevantMatches.map(m => m.vaultItemId)
+      content: contentArray,
+      vaultItemsUsed: vaultItemsUsed
     });
   };
 
