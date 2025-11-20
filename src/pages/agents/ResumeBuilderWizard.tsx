@@ -525,12 +525,27 @@ const ResumeBuilderWizardContent = () => {
     setResumeSections(prev => {
       const updated = prev.map(s => {
         if (s.id === sectionData.sectionId) {
+          const sectionTitle = s.title?.toLowerCase().trim() || '';
+          const sectionType = s.type?.toLowerCase().replace(/_/g, ' ').trim() || '';
+          
           const items = Array.isArray(sectionData.content) 
-            ? sectionData.content.map((item: any) => ({
-                id: item.id || crypto.randomUUID(),
-                content: typeof item === 'string' ? item : item.content || '',
-                order: item.order || 0
-              }))
+            ? sectionData.content
+                .map((item: any) => ({
+                  id: item.id || crypto.randomUUID(),
+                  content: typeof item === 'string' ? item : item.content || '',
+                  order: item.order || 0
+                }))
+                .filter((item: any) => {
+                  const content = item.content.toLowerCase().trim();
+                  // Filter out items that match the section title or type
+                  return content && 
+                         content !== sectionTitle && 
+                         content !== sectionType &&
+                         content !== 'education' &&
+                         content !== 'experience' &&
+                         content !== 'professional experience' &&
+                         content !== 'work experience';
+                })
             : [];
           
           console.log('[DEBUG] Updated section:', {
@@ -709,13 +724,28 @@ const ResumeBuilderWizardContent = () => {
 
           // Use personalized version by default, extract metadata
           const content = sectionData?.personalizedVersion?.content || sectionData?.content || [];
+          const sectionTitle = section.title?.toLowerCase().trim() || '';
+          const sectionType = section.type?.toLowerCase().replace(/_/g, ' ').trim() || '';
+          
           const contentArray = typeof content === 'string' 
             ? content.split('\n').filter(Boolean).map(line => ({ id: Date.now() + Math.random(), content: line }))
             : Array.isArray(content) ? content : [];
+          
+          // Filter out duplicate section titles/types
+          const filteredContent = contentArray.filter((item: any) => {
+            const itemContent = (typeof item === 'string' ? item : item.content || '').toLowerCase().trim();
+            return itemContent &&
+                   itemContent !== sectionTitle &&
+                   itemContent !== sectionType &&
+                   itemContent !== 'education' &&
+                   itemContent !== 'experience' &&
+                   itemContent !== 'professional experience' &&
+                   itemContent !== 'work experience';
+          });
 
           return {
             ...section,
-            content: contentArray,
+            content: filteredContent,
             vaultItemsUsed: sectionData?.vaultItemsUsed || [],
             atsKeywords: sectionData?.atsKeywords || [],
             requirementsCovered: sectionData?.requirementsCovered || []
