@@ -102,7 +102,7 @@ Be brutally honest.`;
     
     const systemPrompt3 = `You are an expert resume writer. Refine resumes based on hiring manager feedback while maintaining authenticity and addressing all critique points.`;
 
-    const userPrompt3 = `Refine this resume based on hiring manager feedback:
+    const userPrompt3 = `Refine this resume based on hiring manager feedback.
 
 ORIGINAL RESUME:
 ${optimizedResume}
@@ -113,7 +113,44 @@ ${hiringManagerFeedback}
 CAREER VAULT DATA:
 ${JSON.stringify(vaultData)}
 
-Rewrite the resume addressing all feedback while maintaining authenticity.`;
+Create a refined resume with this EXACT STRUCTURE:
+
+PROFESSIONAL SUMMARY
+[3-4 sentence paragraph - no bullets, focus on value proposition and key differentiators]
+
+TECHNICAL SKILLS
+[Comma-separated list of 12-18 skills, no bullets]
+
+KEY ACHIEVEMENTS
+• [Achievement 1 with specific metrics and impact]
+• [Achievement 2 with specific metrics and impact]
+• [Achievement 3 with specific metrics and impact]
+• [Achievement 4 with specific metrics and impact]
+
+PROFESSIONAL EXPERIENCE
+
+[Job Title] | [Company] | [Location] | [Dates]
+• [Bullet with metrics and specific accomplishments]
+• [Bullet with metrics and specific accomplishments]
+• [Bullet with metrics and specific accomplishments]
+
+[Next job with same format]
+
+EDUCATION
+[Degree] | [Institution] | [Location]
+
+CRITICAL FORMATTING RULES:
+- NO bullets in Professional Summary section - write as a paragraph
+- NO bullets in section headers (remove all ● from headers)
+- Technical Skills must be comma-separated, not bulleted
+- Each job MUST have: Title | Company | Location | Dates on ONE line
+- Job bullets start on new lines with • prefix only
+- Separate each major section with double line break
+- NO "CORE CAPABILITIES" or other redundant sections
+- NO repetition between Key Achievements and Professional Experience
+- Use specific metrics and quantifiable results throughout
+- Keep total resume to 2 pages maximum`;
+
 
     const { response: pass3Response, metrics: pass3Metrics } = await callLovableAI(
       {

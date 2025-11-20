@@ -139,89 +139,235 @@ export function ResumeOptimizer() {
   const formatResumeAsHTML = (resumeText: string): string => {
     const sections = parseResumeText(resumeText);
     
-    return `
-<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Calibri', 'Arial', sans-serif; line-height: 1.6; color: #333; max-width: 8.5in; margin: 0 auto; padding: 0.5in; }
-    .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #2563eb; padding-bottom: 16px; }
-    .header h1 { font-size: 28px; font-weight: 700; color: #1e40af; margin-bottom: 8px; }
-    .header .contact { font-size: 11px; color: #666; }
-    .section { margin-bottom: 24px; }
-    .section-title { font-size: 14px; font-weight: 700; color: #1e40af; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 12px; }
-    .summary { font-size: 11px; line-height: 1.7; text-align: justify; }
-    .skills-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 16px; font-size: 10px; }
-    .skill-item { padding: 2px 0; }
-    .job { margin-bottom: 16px; page-break-inside: avoid; }
-    .job-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
-    .job-title { font-size: 12px; font-weight: 600; color: #1e40af; }
-    .job-meta { font-size: 10px; color: #666; }
-    .job-company { font-size: 11px; font-weight: 500; color: #4b5563; margin-bottom: 6px; }
-    .job-bullets { margin-left: 20px; }
-    .job-bullets li { font-size: 10px; margin-bottom: 4px; line-height: 1.5; }
-    .education-item { margin-bottom: 12px; }
-    .education-item .degree { font-size: 11px; font-weight: 600; }
-    .education-item .school { font-size: 10px; color: #666; }
-    @media print { body { padding: 0; } }
+    body { 
+      font-family: 'Calibri', 'Arial', sans-serif; 
+      line-height: 1.5; 
+      color: #1f2937; 
+      max-width: 8.5in; 
+      margin: 0 auto; 
+      padding: 0.75in; 
+      font-size: 11pt;
+    }
+    
+    /* Header */
+    .header { 
+      text-align: center; 
+      margin-bottom: 28px; 
+      border-bottom: 3px solid #2563eb; 
+      padding-bottom: 18px; 
+    }
+    .header h1 { 
+      font-size: 26pt; 
+      font-weight: 700; 
+      color: #1e3a8a; 
+      margin-bottom: 10px; 
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .header .contact { 
+      font-size: 10pt; 
+      color: #64748b; 
+      line-height: 1.6;
+    }
+    
+    /* Section Titles */
+    .section-title { 
+      font-size: 13pt; 
+      font-weight: 700; 
+      color: #1e3a8a; 
+      text-transform: uppercase; 
+      border-bottom: 2px solid #cbd5e1; 
+      padding-bottom: 5px; 
+      margin: 22px 0 14px 0; 
+      letter-spacing: 1px;
+    }
+    
+    /* Summary */
+    .summary { 
+      font-size: 11pt; 
+      line-height: 1.65; 
+      text-align: justify; 
+      margin-bottom: 18px;
+      color: #374151;
+    }
+    
+    /* Skills Grid - 3 columns */
+    .skills-grid { 
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 8px 14px; 
+      margin-bottom: 18px;
+    }
+    .skill-item { 
+      font-size: 10pt; 
+      padding: 6px 10px;
+      background: #f1f5f9;
+      border-left: 3px solid #3b82f6;
+      border-radius: 3px;
+      transition: background 0.2s;
+    }
+    
+    /* Achievements */
+    .achievements { 
+      margin-bottom: 18px; 
+    }
+    .achievement-item { 
+      font-size: 10.5pt; 
+      margin-bottom: 10px; 
+      padding-left: 18px;
+      line-height: 1.6;
+      position: relative;
+      color: #374151;
+    }
+    .achievement-item:before {
+      content: '▶';
+      position: absolute;
+      left: 0;
+      color: #3b82f6;
+      font-size: 9pt;
+      top: 2px;
+    }
+    
+    /* Experience */
+    .job { 
+      margin-bottom: 20px; 
+      page-break-inside: avoid; 
+    }
+    .job-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-start;
+      margin-bottom: 8px;
+      background: #f8fafc;
+      padding: 10px 14px;
+      border-left: 4px solid #2563eb;
+      border-radius: 2px;
+    }
+    .job-title { 
+      font-size: 12pt; 
+      font-weight: 700; 
+      color: #1e3a8a; 
+      line-height: 1.3;
+    }
+    .job-company { 
+      font-size: 10.5pt; 
+      color: #475569; 
+      font-weight: 500;
+      margin-top: 3px;
+    }
+    .job-meta { 
+      font-size: 10pt; 
+      color: #64748b; 
+      text-align: right;
+      font-style: italic;
+      white-space: nowrap;
+    }
+    .job-bullets { 
+      margin: 10px 0 0 22px; 
+      padding: 0;
+    }
+    .job-bullets li { 
+      font-size: 10pt; 
+      margin-bottom: 7px; 
+      line-height: 1.55;
+      list-style-type: disc;
+      color: #374151;
+    }
+    
+    /* Education */
+    .education-item { 
+      margin-bottom: 10px; 
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-left: 4px solid #2563eb;
+      border-radius: 2px;
+    }
+    .education-item .degree { 
+      font-size: 11pt; 
+      font-weight: 600; 
+      color: #1e3a8a;
+      margin-bottom: 3px;
+    }
+    .education-item .school { 
+      font-size: 10pt; 
+      color: #64748b; 
+    }
+    
+    @media print { 
+      body { padding: 0.5in; } 
+      .job, .education-item { page-break-inside: avoid; }
+      .skill-item { background: #f9fafb; }
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>${escapeHtml(sections.name)}</h1>
-    <div class="contact">${escapeHtml(sections.contact)}</div>
+    <h1>${escapeHtml(sections.name || 'Professional Resume')}</h1>
+    <div class="contact">${escapeHtml(sections.contact || '')}</div>
   </div>
 
   ${sections.summary ? `
-  <div class="section">
-    <div class="section-title">Professional Summary</div>
-    <div class="summary">${escapeHtml(sections.summary)}</div>
-  </div>
+  <div class="section-title">Professional Summary</div>
+  <div class="summary">${escapeHtml(sections.summary)}</div>
   ` : ''}
 
   ${sections.skills.length > 0 ? `
-  <div class="section">
-    <div class="section-title">Technical Skills</div>
-    <div class="skills-grid">
-      ${sections.skills.map((skill: string) => `<div class="skill-item">• ${escapeHtml(skill)}</div>`).join('')}
-    </div>
+  <div class="section-title">Technical Skills</div>
+  <div class="skills-grid">
+    ${sections.skills.map((skill: string) => 
+      `<div class="skill-item">${escapeHtml(skill)}</div>`
+    ).join('')}
+  </div>
+  ` : ''}
+
+  ${sections.achievements.length > 0 ? `
+  <div class="section-title">Key Achievements</div>
+  <div class="achievements">
+    ${sections.achievements.map((achievement: string) => 
+      `<div class="achievement-item">${escapeHtml(achievement)}</div>`
+    ).join('')}
   </div>
   ` : ''}
 
   ${sections.experience.length > 0 ? `
-  <div class="section">
-    <div class="section-title">Professional Experience</div>
-    ${sections.experience.map((job: any) => `
-      <div class="job">
-        <div class="job-header">
+  <div class="section-title">Professional Experience</div>
+  ${sections.experience.map((job: any) => `
+    <div class="job">
+      <div class="job-header">
+        <div>
           <div class="job-title">${escapeHtml(job.title)}</div>
-          <div class="job-meta">${escapeHtml(job.dates)}</div>
+          <div class="job-company">${escapeHtml(job.company)}${job.location ? ' | ' + escapeHtml(job.location) : ''}</div>
         </div>
-        <div class="job-company">${escapeHtml(job.company)} | ${escapeHtml(job.location)}</div>
-        <ul class="job-bullets">
-          ${job.bullets.map((bullet: string) => `<li>${escapeHtml(bullet)}</li>`).join('')}
-        </ul>
+        <div class="job-meta">${escapeHtml(job.dates)}</div>
       </div>
-    `).join('')}
-  </div>
+      ${job.bullets && job.bullets.length > 0 ? `
+        <ul class="job-bullets">
+          ${job.bullets.map((bullet: string) => 
+            `<li>${escapeHtml(bullet)}</li>`
+          ).join('')}
+        </ul>
+      ` : ''}
+    </div>
+  `).join('')}
   ` : ''}
 
   ${sections.education.length > 0 ? `
-  <div class="section">
-    <div class="section-title">Education</div>
-    ${sections.education.map((edu: any) => `
-      <div class="education-item">
-        <div class="degree">${escapeHtml(edu.degree)}</div>
-        <div class="school">${escapeHtml(edu.school)} | ${escapeHtml(edu.location)}</div>
-      </div>
-    `).join('')}
-  </div>
+  <div class="section-title">Education</div>
+  ${sections.education.map((edu: any) => `
+    <div class="education-item">
+      <div class="degree">${escapeHtml(edu.degree)}</div>
+      ${edu.school ? `<div class="school">${escapeHtml(edu.school)}${edu.location ? ' | ' + escapeHtml(edu.location) : ''}</div>` : ''}
+    </div>
+  `).join('')}
   ` : ''}
 </body>
-</html>
-    `.trim();
+</html>`.trim();
   };
 
   const parseResumeText = (text: string) => {
@@ -230,65 +376,106 @@ export function ResumeOptimizer() {
       contact: '',
       summary: '',
       skills: [],
+      achievements: [],
       experience: [],
       education: []
     };
 
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-    let currentSection = '';
-    let currentJob: any = null;
+    // Remove all ● bullets from section headers
+    text = text.replace(/^●\s*(PROFESSIONAL SUMMARY|TECHNICAL SKILLS|KEY ACHIEVEMENTS|PROFESSIONAL EXPERIENCE|EDUCATION)/gmi, '$1');
+    
+    // Extract Professional Summary
+    const summaryMatch = text.match(/PROFESSIONAL SUMMARY\s*\n([\s\S]*?)(?=\n\n[A-Z]{2,}|TECHNICAL SKILLS)/i);
+    if (summaryMatch) {
+      sections.summary = summaryMatch[1]
+        .trim()
+        .replace(/^[●•]\s*/gm, '') // Remove any bullets
+        .replace(/\n+/g, ' '); // Join multi-line summaries
+    }
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lowerLine = line.toLowerCase();
+    // Extract Technical Skills (comma-separated)
+    const skillsMatch = text.match(/TECHNICAL SKILLS\s*\n([\s\S]*?)(?=\n\n[A-Z]{2,}|KEY ACHIEVEMENTS)/i);
+    if (skillsMatch) {
+      const skillText = skillsMatch[1].trim().replace(/^[●•]\s*/gm, '');
+      sections.skills = skillText
+        .split(/[,\n]+/)
+        .map(s => s.trim())
+        .filter(s => s && s.length > 1 && !s.match(/^[A-Z\s]{10,}$/)); // Filter out headers
+    }
 
-      // Detect section headers
-      if (lowerLine.includes('professional summary') || lowerLine.includes('summary')) {
-        currentSection = 'summary';
-        continue;
-      } else if (lowerLine.includes('technical skills') || lowerLine.includes('skills')) {
-        currentSection = 'skills';
-        continue;
-      } else if (lowerLine.includes('professional experience') || lowerLine.includes('experience')) {
-        currentSection = 'experience';
-        continue;
-      } else if (lowerLine.includes('education')) {
-        currentSection = 'education';
-        continue;
-      }
+    // Extract Key Achievements
+    const achievementsMatch = text.match(/KEY ACHIEVEMENTS\s*\n([\s\S]*?)(?=\n\n[A-Z]{2,}|PROFESSIONAL EXPERIENCE)/i);
+    if (achievementsMatch) {
+      sections.achievements = achievementsMatch[1]
+        .split(/\n/)
+        .filter(line => line.trim().match(/^[●•]\s/))
+        .map(line => line.replace(/^[●•]\s*/, '').trim())
+        .filter(a => a.length > 10);
+    }
 
-      // Parse based on current section
-      if (!currentSection && i < 3) {
-        // First few lines are header
-        if (i === 0) sections.name = line;
-        else sections.contact += (sections.contact ? ' | ' : '') + line;
-      } else if (currentSection === 'summary') {
-        sections.summary += (sections.summary ? ' ' : '') + line;
-      } else if (currentSection === 'skills') {
-        // Parse skills (handle both bullet and comma-separated)
-        if (line.startsWith('●') || line.startsWith('•')) {
-          const skillText = line.substring(1).trim();
-          // Split by commas and clean
-          const skills = skillText.split(/,\s*/).map(s => s.trim()).filter(s => s);
-          sections.skills.push(...skills);
-        }
-      } else if (currentSection === 'experience') {
-        // Detect job title line (has dates)
-        if (line.includes('|') && (line.includes('20') || line.includes('Present'))) {
-          if (currentJob) sections.experience.push(currentJob);
-          
-          const parts = line.split('|').map(p => p.trim());
-          currentJob = {
-            title: parts[0] || '',
-            company: parts[1] || '',
-            location: parts[2] || '',
-            dates: parts[3] || parts[2] || '',
-            bullets: []
+    // Extract Professional Experience
+    const experienceMatch = text.match(/PROFESSIONAL EXPERIENCE\s*\n([\s\S]*?)(?=\n\n[A-Z]{2,}|EDUCATION|$)/i);
+    if (experienceMatch) {
+      const expText = experienceMatch[1];
+      const jobBlocks = expText.split(/\n\s*\n/);
+      
+      jobBlocks.forEach(block => {
+        const lines = block.trim().split('\n').filter(l => l.trim());
+        if (lines.length === 0) return;
+        
+        // First line should be: Title | Company | Location | Dates
+        const headerLine = lines[0].replace(/^[●•]\s*/, '');
+        if (!headerLine.includes('|')) return;
+        
+        const parts = headerLine.split('|').map(p => p.trim());
+        
+        // Handle various pipe configurations
+        let job: any = {};
+        if (parts.length >= 4) {
+          job = {
+            title: parts[0],
+            company: parts[1],
+            location: parts[2],
+            dates: parts[3]
           };
-        } else if (currentJob && (line.startsWith('●') || line.startsWith('•') || line.startsWith('-'))) {
-          currentJob.bullets.push(line.substring(1).trim());
+        } else if (parts.length === 3) {
+          // Could be: Title | Company | Dates (no location)
+          job = {
+            title: parts[0],
+            company: parts[1],
+            location: '',
+            dates: parts[2]
+          };
+        } else if (parts.length === 2) {
+          job = {
+            title: parts[0],
+            company: parts[1],
+            location: '',
+            dates: ''
+          };
         }
-      } else if (currentSection === 'education') {
+        
+        // Extract bullets
+        job.bullets = lines
+          .slice(1)
+          .filter(l => l.trim().match(/^[●•-]\s/))
+          .map(l => l.replace(/^[●•-]\s*/, '').trim())
+          .filter(b => b.length > 5);
+        
+        if (job.title) sections.experience.push(job);
+      });
+    }
+
+    // Extract Education
+    const educationMatch = text.match(/EDUCATION\s*\n([\s\S]*?)$/i);
+    if (educationMatch) {
+      const eduLines = educationMatch[1]
+        .trim()
+        .split('\n')
+        .map(l => l.replace(/^[●•]\s*/, '').trim())
+        .filter(l => l);
+      
+      eduLines.forEach(line => {
         if (line.includes('|')) {
           const parts = line.split('|').map(p => p.trim());
           sections.education.push({
@@ -296,12 +483,24 @@ export function ResumeOptimizer() {
             school: parts[1] || '',
             location: parts[2] || ''
           });
+        } else if (line.length > 5) {
+          // Single line education
+          sections.education.push({
+            degree: line,
+            school: '',
+            location: ''
+          });
         }
-      }
+      });
     }
 
-    // Add last job if exists
-    if (currentJob) sections.experience.push(currentJob);
+    // Extract name from first line if not found
+    if (!sections.name) {
+      const firstLine = text.split('\n')[0];
+      if (firstLine && !firstLine.match(/^[A-Z\s]{10,}$/)) {
+        sections.name = firstLine.trim();
+      }
+    }
 
     return sections;
   };
