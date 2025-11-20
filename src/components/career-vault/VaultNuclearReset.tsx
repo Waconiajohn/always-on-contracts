@@ -104,7 +104,19 @@ export const VaultNuclearReset = ({
         supabase.from('vault_competitive_advantages').delete().eq('vault_id', vaultId),
       ]);
 
-      // 5. Reset career_vault metadata to zero state
+      // 5. Delete structured resume data (work positions, education, milestones)
+      console.log('🧹 Deleting work positions, education, and milestones...');
+      await Promise.all([
+        supabase.from('vault_work_positions').delete().eq('vault_id', vaultId),
+        supabase.from('vault_education').delete().eq('vault_id', vaultId),
+        supabase.from('vault_resume_milestones').delete().eq('vault_id', vaultId),
+      ]);
+
+      // 6. Delete verification results
+      console.log('🧹 Deleting verification results...');
+      await supabase.from('resume_verification_results').delete().eq('vault_id', vaultId);
+
+      // 7. Reset career_vault metadata to zero state
       console.log('♻️ Resetting career_vault metadata to zero...');
       const { error: resetError } = await supabase
         .from('career_vault')
