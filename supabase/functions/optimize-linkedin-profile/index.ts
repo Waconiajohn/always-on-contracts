@@ -126,6 +126,8 @@ serve(async (req) => {
         id,
         analysis_summary,
         vault_power_phrases ( power_phrase, impact_metrics ),
+        vault_work_positions ( company_name, job_title, start_date, end_date, is_current, description ),
+        vault_education ( institution_name, degree_type, field_of_study, graduation_year ),
         target_role,
         target_industry
       `,
@@ -137,26 +139,30 @@ serve(async (req) => {
     const powerPhrases: string[] =
       vaultData?.vault_power_phrases?.map((p: any) => p.power_phrase) ?? [];
 
-    // 2) Canonical resume for fact-checking employers/roles (best effort)
+    // 2) CRITICAL FIX: Use actual work positions from vault
+    const workPositions = vaultData?.vault_work_positions || [];
+    const educationRecords = vaultData?.vault_education || [];
+
+    const knownEmployers: string[] = workPositions.map((wp: any) => wp.company_name).filter(Boolean);
+    const knownRoles: string[] = workPositions.map((wp: any) => wp.job_title).filter(Boolean);
+    const knownDegrees: string[] = educationRecords.map((ed: any) => 
+      `${ed.degree_type} in ${ed.field_of_study || 'N/A'} from ${ed.institution_name}`
+    ).filter(Boolean);
+
+    // 3) Milestones for additional achievements
     const { data: milestones } = await supabase
       .from("vault_resume_milestones")
-      .select("employer, job_title")
+      .select("milestone_title, description, metric_value")
       .eq("vault_id", vaultData?.id)
       .limit(20);
 
-    const knownEmployers: string[] = [];
-    const knownRoles: string[] = [];
-
-    if (milestones) {
-      for (const m of milestones) {
-        if (m.employer && !knownEmployers.includes(m.employer)) {
-          knownEmployers.push(m.employer);
-        }
-        if (m.job_title && !knownRoles.includes(m.job_title)) {
-          knownRoles.push(m.job_title);
-        }
-      }
-    }
+    // Work positions and education already provide employers/roles/degrees
+    console.log('[OPTIMIZE-LINKEDIN] Fact check data loaded:', {
+      employers: knownEmployers.length,
+      roles: knownRoles.length,
+      degrees: knownDegrees.length,
+      milestones: milestones?.length || 0
+    });
 
     const factCheckContext = `
 FACT-CHECK AGAINST CAREER VAULT & RESUME
