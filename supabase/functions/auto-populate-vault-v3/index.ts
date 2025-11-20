@@ -751,6 +751,115 @@ serve(async (req) => {
     }
 
     // ========================================================================
+    // CRITICAL FIX: Store Work Positions (Previously Missing!)
+    // ========================================================================
+    console.log('\n💼 Storing work positions...');
+    if (structuredData!.experience.roles.length > 0) {
+      const workPositions = structuredData!.experience.roles.map(role => ({
+        vault_id: vaultId,
+        user_id: userId,
+        company_name: role.company,
+        job_title: role.title,
+        start_date: role.startYear ? `${role.startYear}-01-01` : null,
+        end_date: role.isCurrent ? null : (role.endYear ? `${role.endYear}-12-31` : null),
+        is_current: role.isCurrent,
+        description: role.description,
+        confidence_score: role.confidence / 100,
+        quality_tier: role.confidence > 85 ? 'silver' : 'bronze',
+        extraction_source: 'ai-structured-v3'
+      }));
+      
+      const { error: wpError } = await supabase
+        .from('vault_work_positions')
+        .insert(workPositions);
+      
+      if (wpError) {
+        console.error('❌ Error inserting work positions:', wpError);
+      } else {
+        console.log(`✅ Stored ${workPositions.length} work positions`);
+        console.log(`   Companies: ${workPositions.map(w => w.company_name).join(', ')}`);
+      }
+    }
+
+    // ========================================================================
+    // CRITICAL FIX: Store Education (Previously Missing!)
+    // ========================================================================
+    console.log('\n🎓 Storing education records...');
+    if (structuredData!.education.degrees.length > 0) {
+      const educationRecords = structuredData!.education.degrees.map(deg => ({
+        vault_id: vaultId,
+        user_id: userId,
+        institution_name: deg.institution,
+        degree_type: deg.level,
+        field_of_study: deg.field,
+        graduation_year: deg.graduationYear,
+        confidence_score: deg.confidence / 100,
+        quality_tier: deg.confidence > 85 ? 'silver' : 'bronze',
+        extraction_source: 'ai-structured-v3'
+      }));
+      
+      const { error: eduError } = await supabase
+        .from('vault_education')
+        .insert(educationRecords);
+      
+      if (eduError) {
+        console.error('❌ Error inserting education:', eduError);
+      } else {
+        console.log(`✅ Stored ${educationRecords.length} education records`);
+        console.log(`   Degrees: ${educationRecords.map(e => `${e.degree_type} in ${e.field_of_study}`).join(', ')}`);
+      }
+    }
+
+    // ========================================================================
+    // CRITICAL FIX: Store Milestones/Achievements (Previously Missing!)
+    // ========================================================================
+    console.log('\n🏆 Storing achievements as milestones...');
+    const milestones: any[] = [];
+    
+    // Add quantified achievements
+    structuredData!.achievements.quantified.forEach(ach => {
+      milestones.push({
+        vault_id: vaultId,
+        user_id: userId,
+        milestone_title: ach.achievement,
+        description: ach.achievement,
+        metric_type: ach.metric,
+        metric_value: ach.impact,
+        context: ach.context,
+        confidence_score: ach.confidence / 100,
+        quality_tier: ach.confidence > 85 ? 'gold' : 'silver',
+        extraction_source: 'ai-structured-v3'
+      });
+    });
+    
+    // Add strategic achievements
+    structuredData!.achievements.strategic.forEach(ach => {
+      milestones.push({
+        vault_id: vaultId,
+        user_id: userId,
+        milestone_title: ach.achievement,
+        description: `${ach.achievement}\n\nScope: ${ach.scope}\nImpact: ${ach.impact}`,
+        confidence_score: ach.confidence / 100,
+        quality_tier: ach.confidence > 80 ? 'silver' : 'bronze',
+        extraction_source: 'ai-structured-v3'
+      });
+    });
+    
+    if (milestones.length > 0) {
+      const { error: mlError } = await supabase
+        .from('vault_resume_milestones')
+        .insert(milestones);
+      
+      if (mlError) {
+        console.error('❌ Error inserting milestones:', mlError);
+      } else {
+        console.log(`✅ Stored ${milestones.length} milestones`);
+        console.log(`   Gold: ${milestones.filter(m => m.quality_tier === 'gold').length}`);
+        console.log(`   Silver: ${milestones.filter(m => m.quality_tier === 'silver').length}`);
+      }
+    }
+
+    // ========================================================================
     // PHASE 6: STORE AI-FIRST STRUCTURED DATA
     // ========================================================================
     logger.info('Phase 6: Starting career context storage');
@@ -883,6 +992,47 @@ serve(async (req) => {
     }
 
     // ========================================================================
+    // CRITICAL FIX: Update Career Vault Counters (Previously Missing!)
+    // ========================================================================
+    console.log('\n📊 Updating career vault counters...');
+    
+    // Get actual counts from database using get_vault_statistics RPC
+    const { data: vaultStats, error: statsError } = await supabase
+      .rpc('get_vault_statistics', { p_vault_id: vaultId });
+    
+    if (statsError) {
+      console.error('❌ Error getting vault statistics:', statsError);
+    } else {
+      const stats = vaultStats as any;
+      
+      // Update career_vault with correct counts and mark as completed
+      const { error: updateError } = await supabase
+        .from('career_vault')
+        .update({
+          auto_populated: true,
+          onboarding_step: 'completed',
+          total_power_phrases: stats.categoryBreakdown?.power_phrases || 0,
+          total_transferable_skills: stats.categoryBreakdown?.transferable_skills || 0,
+          total_hidden_competencies: stats.categoryBreakdown?.hidden_competencies || 0,
+          total_soft_skills: stats.categoryBreakdown?.soft_skills || 0,
+          extraction_item_count: stats.totalItems || 0,
+          overall_strength_score: stats.vaultStrength || 0,
+          last_updated_at: new Date().toISOString(),
+          extraction_timestamp: new Date().toISOString()
+        })
+        .eq('id', vaultId);
+      
+      if (updateError) {
+        console.error('❌ Error updating career vault counters:', updateError);
+      } else {
+        console.log('✅ Career vault counters updated successfully');
+        console.log(`   Total items: ${stats.totalItems}`);
+        console.log(`   Vault strength: ${stats.vaultStrength}`);
+        console.log(`   Onboarding step: completed`);
+      }
+    }
+
+    // ========================================================================
     // COMPLETE
     // ========================================================================
     await tracker.complete(totalItems);
@@ -896,6 +1046,9 @@ serve(async (req) => {
       skills: allExtracted.skills.length,
       competencies: allExtracted.competencies.length,
       softSkills: allExtracted.softSkills.length,
+      workPositions: structuredData!.experience.roles.length,
+      education: structuredData!.education.degrees.length,
+      milestones: structuredData!.achievements.quantified.length + structuredData!.achievements.strategic.length,
       role: roleInfo?.primaryRole,
       industry: roleInfo?.industry
     });
