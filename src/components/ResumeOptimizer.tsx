@@ -91,9 +91,228 @@ export function ResumeOptimizer() {
       if (error) return;
 
       setResult(data);
+      
+      // Save the optimized resume to database
+      await saveOptimizedResume(data);
     } finally {
       setIsOptimizing(false);
     }
+  };
+
+  const saveOptimizedResume = async (optimizationResult: ResumeOptimizationResult) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        logger.warn('Cannot save resume: user not authenticated');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('resume_versions')
+        .insert({
+          user_id: user.id,
+          version_name: `Optimized - ${new Date().toLocaleDateString()}`,
+          content: {
+            resumeText: optimizationResult.optimizedResume,
+            jobDescription,
+            analysis: optimizationResult.analysis,
+            improvements: optimizationResult.improvements,
+            missingKeywords: optimizationResult.missingKeywords,
+            recommendations: optimizationResult.recommendations
+          },
+          html_content: formatResumeAsHTML(optimizationResult.optimizedResume),
+          match_score: optimizationResult.analysis.overallScore
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Resume saved successfully');
+      logger.info('Optimized resume saved', { versionId: data.id });
+    } catch (error) {
+      logger.error('Failed to save optimized resume', error);
+      toast.error('Failed to save resume');
+    }
+  };
+
+  const formatResumeAsHTML = (resumeText: string): string => {
+    const sections = parseResumeText(resumeText);
+    
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Calibri', 'Arial', sans-serif; line-height: 1.6; color: #333; max-width: 8.5in; margin: 0 auto; padding: 0.5in; }
+    .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #2563eb; padding-bottom: 16px; }
+    .header h1 { font-size: 28px; font-weight: 700; color: #1e40af; margin-bottom: 8px; }
+    .header .contact { font-size: 11px; color: #666; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 14px; font-weight: 700; color: #1e40af; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 12px; }
+    .summary { font-size: 11px; line-height: 1.7; text-align: justify; }
+    .skills-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 16px; font-size: 10px; }
+    .skill-item { padding: 2px 0; }
+    .job { margin-bottom: 16px; page-break-inside: avoid; }
+    .job-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .job-title { font-size: 12px; font-weight: 600; color: #1e40af; }
+    .job-meta { font-size: 10px; color: #666; }
+    .job-company { font-size: 11px; font-weight: 500; color: #4b5563; margin-bottom: 6px; }
+    .job-bullets { margin-left: 20px; }
+    .job-bullets li { font-size: 10px; margin-bottom: 4px; line-height: 1.5; }
+    .education-item { margin-bottom: 12px; }
+    .education-item .degree { font-size: 11px; font-weight: 600; }
+    .education-item .school { font-size: 10px; color: #666; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${escapeHtml(sections.name)}</h1>
+    <div class="contact">${escapeHtml(sections.contact)}</div>
+  </div>
+
+  ${sections.summary ? `
+  <div class="section">
+    <div class="section-title">Professional Summary</div>
+    <div class="summary">${escapeHtml(sections.summary)}</div>
+  </div>
+  ` : ''}
+
+  ${sections.skills.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Technical Skills</div>
+    <div class="skills-grid">
+      ${sections.skills.map((skill: string) => `<div class="skill-item">• ${escapeHtml(skill)}</div>`).join('')}
+    </div>
+  </div>
+  ` : ''}
+
+  ${sections.experience.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Professional Experience</div>
+    ${sections.experience.map((job: any) => `
+      <div class="job">
+        <div class="job-header">
+          <div class="job-title">${escapeHtml(job.title)}</div>
+          <div class="job-meta">${escapeHtml(job.dates)}</div>
+        </div>
+        <div class="job-company">${escapeHtml(job.company)} | ${escapeHtml(job.location)}</div>
+        <ul class="job-bullets">
+          ${job.bullets.map((bullet: string) => `<li>${escapeHtml(bullet)}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  ${sections.education.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Education</div>
+    ${sections.education.map((edu: any) => `
+      <div class="education-item">
+        <div class="degree">${escapeHtml(edu.degree)}</div>
+        <div class="school">${escapeHtml(edu.school)} | ${escapeHtml(edu.location)}</div>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+</body>
+</html>
+    `.trim();
+  };
+
+  const parseResumeText = (text: string) => {
+    const sections: any = {
+      name: '',
+      contact: '',
+      summary: '',
+      skills: [],
+      experience: [],
+      education: []
+    };
+
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    let currentSection = '';
+    let currentJob: any = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lowerLine = line.toLowerCase();
+
+      // Detect section headers
+      if (lowerLine.includes('professional summary') || lowerLine.includes('summary')) {
+        currentSection = 'summary';
+        continue;
+      } else if (lowerLine.includes('technical skills') || lowerLine.includes('skills')) {
+        currentSection = 'skills';
+        continue;
+      } else if (lowerLine.includes('professional experience') || lowerLine.includes('experience')) {
+        currentSection = 'experience';
+        continue;
+      } else if (lowerLine.includes('education')) {
+        currentSection = 'education';
+        continue;
+      }
+
+      // Parse based on current section
+      if (!currentSection && i < 3) {
+        // First few lines are header
+        if (i === 0) sections.name = line;
+        else sections.contact += (sections.contact ? ' | ' : '') + line;
+      } else if (currentSection === 'summary') {
+        sections.summary += (sections.summary ? ' ' : '') + line;
+      } else if (currentSection === 'skills') {
+        // Parse skills (handle both bullet and comma-separated)
+        if (line.startsWith('●') || line.startsWith('•')) {
+          const skillText = line.substring(1).trim();
+          // Split by commas and clean
+          const skills = skillText.split(/,\s*/).map(s => s.trim()).filter(s => s);
+          sections.skills.push(...skills);
+        }
+      } else if (currentSection === 'experience') {
+        // Detect job title line (has dates)
+        if (line.includes('|') && (line.includes('20') || line.includes('Present'))) {
+          if (currentJob) sections.experience.push(currentJob);
+          
+          const parts = line.split('|').map(p => p.trim());
+          currentJob = {
+            title: parts[0] || '',
+            company: parts[1] || '',
+            location: parts[2] || '',
+            dates: parts[3] || parts[2] || '',
+            bullets: []
+          };
+        } else if (currentJob && (line.startsWith('●') || line.startsWith('•') || line.startsWith('-'))) {
+          currentJob.bullets.push(line.substring(1).trim());
+        }
+      } else if (currentSection === 'education') {
+        if (line.includes('|')) {
+          const parts = line.split('|').map(p => p.trim());
+          sections.education.push({
+            degree: parts[0] || '',
+            school: parts[1] || '',
+            location: parts[2] || ''
+          });
+        }
+      }
+    }
+
+    // Add last job if exists
+    if (currentJob) sections.experience.push(currentJob);
+
+    return sections;
+  };
+
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   };
 
   const handleStartAnalysis = () => {
