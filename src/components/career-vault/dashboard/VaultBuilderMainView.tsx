@@ -18,6 +18,8 @@ import {
 import { VaultSectionBuilder } from './VaultSectionBuilder';
 import { VaultSectionDetailView } from '../vault-detail/VaultSectionDetailView';
 import { VaultNuclearReset } from '../VaultNuclearReset';
+import { VaultQuickStats } from '../VaultQuickStats';
+import { WorkHistoryTimeline } from '../WorkHistoryTimeline';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +52,7 @@ export function VaultBuilderMainView({
   vaultId,
   benchmark,
   vaultData,
+  stats,
   onVaultUpdated
 }: VaultBuilderMainViewProps) {
   const [activeSection, setActiveSection] = useState<SectionKey>('work_experience');
@@ -192,6 +195,19 @@ export function VaultBuilderMainView({
 
   return (
     <div className="space-y-8">
+      {/* Quick Stats Overview */}
+      <VaultQuickStats 
+        totalItems={stats.totalItems}
+        interviewProgress={vaultData.vault?.interview_completion_percentage || 0}
+        strengthScore={stats.strengthScore.total}
+        lastUpdated={vaultData.vault?.last_updated_at}
+        workPositionsCount={stats.workPositionsCount}
+        educationCount={stats.educationCount}
+      />
+
+      {/* Work History Timeline */}
+      <WorkHistoryTimeline workPositions={vaultData.workPositions} />
+
       {/* Nuclear Reset Dialog */}
       {showResetDialog && (
         <VaultNuclearReset
