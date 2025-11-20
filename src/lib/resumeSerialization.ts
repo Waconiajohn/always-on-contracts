@@ -125,7 +125,19 @@ export function builderStateToCanonicalResume(params: {
         .slice()
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((item) => item.content.trim())
-        .filter(Boolean);
+        .filter(content => {
+          if (!content) return false;
+          const lower = content.toLowerCase();
+          const headingLower = heading.toLowerCase();
+          const typeLower = section.type.toLowerCase().replace(/_/g, ' ');
+          // Filter out bullets that match the section heading, type, or common duplicates
+          return lower !== headingLower && 
+                 lower !== typeLower && 
+                 lower !== 'education' && 
+                 lower !== 'experience' &&
+                 lower !== 'professional experience' &&
+                 lower !== 'work experience';
+        });
 
       return {
         id: section.id,
