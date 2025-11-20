@@ -20,6 +20,8 @@ import { VaultSectionDetailView } from '../vault-detail/VaultSectionDetailView';
 import { VaultNuclearReset } from '../VaultNuclearReset';
 import { VaultQuickStats } from '../VaultQuickStats';
 import { WorkHistoryTimeline } from '../WorkHistoryTimeline';
+import { EducationTimeline } from '../EducationTimeline';
+import { MilestonesList } from '../MilestonesList';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -206,6 +208,12 @@ export function VaultBuilderMainView({
 
       {/* Work History Timeline */}
       <WorkHistoryTimeline workPositions={vaultData.workPositions} />
+
+      {/* Education Timeline */}
+      <EducationTimeline education={vaultData.education} />
+
+      {/* Career Milestones */}
+      <MilestonesList milestones={vaultData.milestones} />
 
       {/* Nuclear Reset Dialog */}
       {showResetDialog && (
