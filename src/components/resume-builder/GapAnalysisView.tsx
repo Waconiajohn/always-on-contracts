@@ -263,7 +263,11 @@ export const GapAnalysisView = ({
                         <Button
                           size="sm"
                           variant={isAddressed ? "outline" : "default"}
-                          className="w-full mt-3 pointer-events-none"
+                          className="w-full mt-3"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleGap(index);
+                          }}
                         >
                           {isAddressed ? 'Review Solution' : 'Address This'}
                         </Button>
