@@ -108,6 +108,50 @@ serve(async (req) => {
     const targetRoles = vault.target_roles || ['Professional'];
     const targetRole = Array.isArray(targetRoles) ? targetRoles[0] : 'Professional';
     
+    // STEP 1: REALITY CHECK - Fetch live market data
+    console.log(`Fetching live market data for: ${targetRole}`);
+    let marketContext = "";
+    try {
+      // Invoke unified-job-search to get real job descriptions
+      const { data: jobData, error: jobError } = await supabase.functions.invoke('unified-job-search', {
+        body: {
+          query: targetRole,
+          location: 'Remote', // Default to remote to get broad scope, or omit
+          filters: {
+            datePosted: '30d',
+            limit: 5 // We only need a few samples
+          },
+          sources: ['google_jobs', 'jsearch'] // Use reliable aggregators
+        }
+      });
+
+      if (!jobError && jobData?.jobs && jobData.jobs.length > 0) {
+        console.log(`Successfully fetched ${jobData.jobs.length} live jobs for benchmarking`);
+        
+        const jobs = jobData.jobs.slice(0, 5); // Take top 5
+        const jobSummaries = jobs.map((job: any, index: number) => {
+            // Truncate description to avoid token limits (approx 500 chars per job)
+            const desc = job.description ? job.description.substring(0, 800) + "..." : "No description";
+            return `JOB ${index + 1}: ${job.title} at ${job.company}\nREQ SKILLS: ${job.required_skills?.join(', ') || 'N/A'}\nEXCERPT: ${desc}`;
+        }).join('\n\n');
+
+        marketContext = `
+REAL-TIME MARKET DATA (Use this to ground your benchmark):
+The following are ACTUAL live job postings for this role found right now. 
+Use these specific requirements to define the "Target" level.
+If the market is asking for specific certifications or skills (e.g. PMP, Python, Agile), ensure they are in the benchmark.
+
+${jobSummaries}
+        `;
+      } else {
+        console.log('No live jobs found or error fetching, proceeding with internal knowledge');
+        if (jobError) console.error('Job fetch error:', jobError);
+      }
+    } catch (err) {
+      console.error('Failed to fetch live jobs:', err);
+      // Fail gracefully and proceed with internal knowledge
+    }
+
     const vaultContext = {
       target_roles: vault.target_roles,
       target_industries: vault.target_industries,
@@ -125,6 +169,8 @@ serve(async (req) => {
 
 CRITICAL RULES:
 1. Benchmarks must be achievable but challenging (aim for 85/100 as "ready for market")
+2. **GROUND YOUR BENCHMARK IN REALITY**: Use the provided "REAL-TIME MARKET DATA" to set specific expectations.
+3. Senior/Executive roles require higher standards than Entry/Mid-level
 2. Senior/Executive roles require higher standards than Entry/Mid-level
 3. Technical roles need 25-30 skills, non-technical need 15-20
 4. Leadership roles need 3-5 leadership examples, IC roles need 1-2
@@ -149,6 +195,8 @@ ROLE CATEGORIES:
 
 Target Role: ${targetRole}
 Target Industries: ${vault.target_industries?.join(', ') || 'Not specified'}
+
+${marketContext}
 
 Current Vault Data:
 - Power Phrases (quantified achievements): ${vaultContext.power_phrases_count}

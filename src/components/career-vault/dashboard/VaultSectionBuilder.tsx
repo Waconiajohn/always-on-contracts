@@ -11,10 +11,12 @@ import {
   Plus,
   Target,
   TrendingUp,
-  CheckCircle2
+  CheckCircle2,
+  Calculator
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { MetricCalculator } from "../MetricCalculator";
 
 type SectionKey = 'work_experience' | 'skills' | 'leadership' | 'strategic_impact' | 'professional_resources';
 
@@ -58,6 +60,7 @@ export function VaultSectionBuilder({
 }: VaultSectionBuilderProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [showCalculator, setShowCalculator] = useState(false);
 
   const pointsNeeded = target - current;
   const isComplete = percentage >= 100;
@@ -178,6 +181,16 @@ export function VaultSectionBuilder({
   };
 
   const missingItems = getMissingItems();
+
+  const handleMetricSave = (metricText: string) => {
+    const field = sectionKey === 'work_experience' ? 'phrase_text' : 'impact_statement';
+    const currentText = formData[field] || '';
+    const newText = currentText ? `${currentText} ${metricText}` : metricText;
+    
+    setFormData({ ...formData, [field]: newText });
+    setShowCalculator(false);
+    toast.success("Metric added to your statement!");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -399,6 +412,7 @@ export function VaultSectionBuilder({
                   sectionKey={sectionKey}
                   formData={formData}
                   setFormData={setFormData}
+                  onOpenCalculator={() => setShowCalculator(true)}
                 />
 
                 <div className="flex gap-2 pt-2">
@@ -425,6 +439,12 @@ export function VaultSectionBuilder({
           </Card>
         </div>
       </div>
+      
+      <MetricCalculator
+        open={showCalculator}
+        onClose={() => setShowCalculator(false)}
+        onSave={handleMetricSave}
+      />
     </div>
   );
 }
@@ -435,20 +455,34 @@ export function VaultSectionBuilder({
 function SectionForm({
   sectionKey,
   formData,
-  setFormData
+  setFormData,
+  onOpenCalculator
 }: {
   sectionKey: SectionKey;
   formData: Record<string, any>;
   setFormData: (data: Record<string, any>) => void;
+  onOpenCalculator: () => void;
 }) {
   switch (sectionKey) {
     case 'work_experience':
       return (
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium mb-2 block">
-              Achievement or Responsibility
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm font-medium">
+                Achievement or Responsibility
+              </label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={onOpenCalculator}
+                className="h-6 gap-1 text-xs px-2"
+              >
+                <Calculator className="h-3 w-3" />
+                Calculate Impact
+              </Button>
+            </div>
             <Textarea
               placeholder="Led 8-person team with $1.2M budget, increased customer satisfaction by 25%"
               value={formData.phrase_text || ''}
@@ -525,9 +559,21 @@ function SectionForm({
       return (
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium mb-2 block">
-              Strategic Achievement
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm font-medium">
+                Strategic Achievement
+              </label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={onOpenCalculator}
+                className="h-6 gap-1 text-xs px-2"
+              >
+                <Calculator className="h-3 w-3" />
+                Calculate Impact
+              </Button>
+            </div>
             <Textarea
               placeholder="Reduced operational costs by 30% ($450K annually) through automation and process redesign"
               value={formData.impact_statement || ''}

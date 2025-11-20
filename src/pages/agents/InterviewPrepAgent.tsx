@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import { usePersonaRecommendation } from "@/hooks/usePersonaRecommendation";
+import { useVaultData } from "@/hooks/useVaultData";
 import { 
   safeValidateInput, 
   invokeEdgeFunction, 
@@ -29,9 +30,11 @@ import { STARStoryGenerator } from "@/components/interview/STARStoryGenerator";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("select-job");
-  const [vaultData, setVaultData] = useState<any>(null);
+  // Use the unified hook for data access
+  const [userId, setUserId] = useState<string | undefined>();
+  const { data: vaultFullData, isLoading: loading } = useVaultData(userId);
+  
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [jobDescription, setJobDescription] = useState("");
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -40,34 +43,29 @@ const InterviewPrepAgentContent = () => {
   const { recommendation, loading: personaLoading, getRecommendation } = usePersonaRecommendation('interview');
 
   useEffect(() => {
-    fetchVaultData();
+    const getUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUserId();
   }, []);
 
-  const fetchVaultData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: vault } = await supabase
-      .from('career_vault')
-      .select(`
-        *,
-        vault_power_phrases(*),
-        vault_transferable_skills(*),
-        vault_hidden_competencies(*),
-        vault_soft_skills(*),
-        vault_personality_traits(*),
-        vault_leadership_philosophy(*),
-        vault_executive_presence(*),
-        vault_work_style(*),
-        vault_values_motivations(*),
-        vault_behavioral_indicators(*)
-      `)
-      .eq('user_id', user.id)
-      .single();
-
-    setVaultData(vault);
-    setLoading(false);
-  };
+  // Flatten data structure for compatibility with existing components
+  const vaultData = vaultFullData ? {
+    ...vaultFullData.vault,
+    vault_power_phrases: vaultFullData.powerPhrases,
+    vault_transferable_skills: vaultFullData.transferableSkills,
+    vault_hidden_competencies: vaultFullData.hiddenCompetencies,
+    vault_soft_skills: vaultFullData.softSkills,
+    vault_personality_traits: vaultFullData.personalityTraits,
+    vault_leadership_philosophy: vaultFullData.leadershipPhilosophy,
+    vault_executive_presence: vaultFullData.executivePresence,
+    vault_work_style: vaultFullData.workStyle,
+    vault_values_motivations: vaultFullData.values,
+    vault_behavioral_indicators: vaultFullData.behavioralIndicators
+  } : null;
 
   const handleGetRecommendation = () => {
     if (!jobDescription.trim()) {
