@@ -100,7 +100,7 @@ export function VerificationStatus({ vaultId }: VerificationStatusProps) {
         <Shield className="h-4 w-4" />
         <AlertDescription>
           <div className="flex items-center justify-between">
-            <span>No verification has been run yet. Verification runs automatically after resume extraction.</span>
+            <span>Verification is in progress or hasn't completed yet. Check back in a moment.</span>
             <Button
               variant="outline"
               size="sm"

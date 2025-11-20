@@ -21,9 +21,6 @@ import { VaultSectionBuilder } from './VaultSectionBuilder';
 import { VaultSectionDetailView } from '../vault-detail/VaultSectionDetailView';
 import { VaultNuclearReset } from '../VaultNuclearReset';
 import { VaultQuickStats } from '../VaultQuickStats';
-import { WorkHistoryTimeline } from '../WorkHistoryTimeline';
-import { EducationTimeline } from '../EducationTimeline';
-import { MilestonesList } from '../MilestonesList';
 import { VerificationStatus } from '../VerificationStatus';
 import {
   DropdownMenu,
@@ -225,15 +222,6 @@ export function VaultBuilderMainView({
 
       {/* Verification Status */}
       <VerificationStatus vaultId={vaultId} />
-
-      {/* Work History Timeline */}
-      <WorkHistoryTimeline workPositions={vaultData.workPositions} />
-
-      {/* Education Timeline */}
-      <EducationTimeline education={vaultData.education} />
-
-      {/* Career Milestones */}
-      <MilestonesList milestones={vaultData.milestones} />
 
       {/* Nuclear Reset Dialog */}
       {showResetDialog && (
