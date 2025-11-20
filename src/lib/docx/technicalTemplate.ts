@@ -6,6 +6,10 @@ import {
   AlignmentType,
   BorderStyle,
   TabStopType,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
   convertInchesToTwip,
 } from "docx";
 import { formatResumeContent } from "../resumeFormatting";
@@ -207,48 +211,76 @@ export class TechnicalDocxGenerator {
   }
 
   private createTechnicalSkills(skills: string[]): any[] {
-    // Technical skills are often "Category: Skill, Skill, Skill"
-    // We'll try to detect that pattern or just list them compactly
-    const elements: any[] = [];
+    // Convert to 3-column grid for technical skills
+    let cleanSkills = skills
+        .map(s => formatResumeContent(s).replace(/^[-•]\s*/, "").trim())
+        .filter(Boolean);
     
-    // First, check if we need to split comma-separated skills
-    let processedSkills = skills;
-    if (processedSkills.length < 5 && processedSkills.some(s => s.includes(','))) {
-      processedSkills = processedSkills
+    // Split comma-separated if needed
+    if (cleanSkills.length < 5 && cleanSkills.some(s => s.includes(','))) {
+      cleanSkills = cleanSkills
         .flatMap(s => s.split(',').map(item => item.trim()))
         .filter(Boolean);
     }
     
-    processedSkills.forEach(skillLine => {
-        const cleanLine = formatResumeContent(skillLine).replace(/^[-•]\s*/, "").trim();
-        const parts = cleanLine.split(':');
-        
-        if (parts.length > 1) {
-            // Category: Skills format
-            elements.push(
+    // Limit to top 18 skills (3 columns x 6 rows)
+    cleanSkills = cleanSkills.slice(0, 18);
+    
+    // Create 3-column grid
+    const elements: any[] = [];
+    const rows = [];
+    
+    for (let i = 0; i < cleanSkills.length; i += 3) {
+      const rowCells = [];
+      for (let j = 0; j < 3; j++) {
+        if (i + j < cleanSkills.length) {
+          rowCells.push(
+            new TableCell({
+              children: [
                 new Paragraph({
-                    children: [
-                        new TextRun({
-                            text: parts[0] + ":",
-                            bold: true,
-                        }),
-                        new TextRun({
-                            text: parts.slice(1).join(':'),
-                        })
-                    ],
-                    spacing: { after: 60 }
+                  text: `• ${cleanSkills[i + j]}`,
+                  spacing: { after: 60 }
                 })
-            );
+              ],
+              width: { size: 33, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              }
+            })
+          );
         } else {
-            // Just a list item
-            elements.push(
-                new Paragraph({
-                    text: `• ${cleanLine}`,
-                    spacing: { after: 60 }
-                })
-            );
+          rowCells.push(
+            new TableCell({
+              children: [],
+              width: { size: 33, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              }
+            })
+          );
         }
-    });
+      }
+      rows.push(new TableRow({ children: rowCells }));
+    }
+    
+    elements.push(
+      new Table({
+        rows: rows,
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        },
+      })
+    );
     
     return elements;
   }

@@ -5,6 +5,10 @@ import {
   HeadingLevel,
   AlignmentType,
   BorderStyle,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
   convertInchesToTwip,
 } from "docx";
 import { formatResumeContent } from "../resumeFormatting";
@@ -206,46 +210,77 @@ export class FunctionalDocxGenerator {
   }
 
   private createSkillGroups(bullets: string[]): any[] {
-    // Skill groups often look like:
-    // "Category Name"
-    // - bullet
-    // - bullet
+    // Convert to 3-column grid for skills
+    let cleanSkills = bullets
+        .map(s => formatResumeContent(s).replace(/^[-•]\s*/, "").trim())
+        .filter(Boolean);
     
-    // But data might just be bullets. We need to guess structure or just list them.
-    // Assuming standard bullet list for now as the parser flattens it.
-    // If the input has "Category:" prefix, we can bold it.
-    
-    const elements: any[] = [];
-    
-    // First, check if we need to split comma-separated skills
-    let processedBullets = bullets;
-    if (processedBullets.length < 5 && processedBullets.some(s => s.includes(','))) {
-      processedBullets = processedBullets
+    // Split comma-separated if needed
+    if (cleanSkills.length < 5 && cleanSkills.some(s => s.includes(','))) {
+      cleanSkills = cleanSkills
         .flatMap(s => s.split(',').map(item => item.trim()))
         .filter(Boolean);
     }
     
-    processedBullets.forEach(b => {
-        const cleanBullet = formatResumeContent(b).replace(/^[-•]\s*/, "").trim();
-        // Check if it looks like a header: "Project Management:"
-        if (cleanBullet.endsWith(':') || (cleanBullet.includes(':') && cleanBullet.length < 50)) {
-             elements.push(
+    // Limit to top 18 skills (3 columns x 6 rows)
+    cleanSkills = cleanSkills.slice(0, 18);
+    
+    // Create 3-column grid
+    const elements: any[] = [];
+    const rows = [];
+    
+    for (let i = 0; i < cleanSkills.length; i += 3) {
+      const rowCells = [];
+      for (let j = 0; j < 3; j++) {
+        if (i + j < cleanSkills.length) {
+          rowCells.push(
+            new TableCell({
+              children: [
                 new Paragraph({
-                    children: [new TextRun({ text: cleanBullet, bold: true })],
-                    spacing: { before: 120, after: 60 }
+                  text: `• ${cleanSkills[i + j]}`,
+                  spacing: { after: 60 }
                 })
-            );
+              ],
+              width: { size: 33, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              }
+            })
+          );
         } else {
-            elements.push(
-                new Paragraph({
-                    text: cleanBullet,
-                    bullet: { level: 0 },
-                    spacing: { after: 60 }
-                })
-            );
+          rowCells.push(
+            new TableCell({
+              children: [],
+              width: { size: 33, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              }
+            })
+          );
         }
-    });
-
+      }
+      rows.push(new TableRow({ children: rowCells }));
+    }
+    
+    elements.push(
+      new Table({
+        rows: rows,
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        },
+      })
+    );
+    
     return elements;
   }
 
