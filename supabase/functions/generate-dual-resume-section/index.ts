@@ -90,6 +90,35 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // CRITICAL FIX: Fetch work positions, education, and milestones for all sections
+    let workPositions: any[] = [];
+    let education: any[] = [];
+    let vaultMilestones: any[] = [];
+    
+    if (user_id) {
+      console.log(`🔍 Fetching complete vault data for user: ${user_id}`);
+      
+      const { data: vaultRecord } = await supabase
+        .from('career_vault')
+        .select('id')
+        .eq('user_id', user_id)
+        .maybeSingle();
+
+      if (vaultRecord) {
+        const [workPos, edu, miles] = await Promise.all([
+          supabase.from('vault_work_positions').select('*').eq('vault_id', vaultRecord.id).order('start_date', { ascending: false }),
+          supabase.from('vault_education').select('*').eq('vault_id', vaultRecord.id).order('graduation_year', { ascending: false }),
+          supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultRecord.id).order('created_at', { ascending: false })
+        ]);
+
+        workPositions = workPos.data || [];
+        education = edu.data || [];
+        vaultMilestones = miles.data || [];
+
+        console.log(`✅ Loaded structural data: ${workPositions.length} positions, ${education.length} degrees, ${vaultMilestones.length} milestones`);
+      }
+    }
+
     // Fetch user's vault skills if generating skills section
     let vaultSkills: any[] = [];
     if ((section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills') && user_id) {
@@ -111,6 +140,33 @@ serve(async (req) => {
     } else if ((section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills')) {
       console.log(`⚠️ Skills section requested but user_id is missing! Skills generation will use generic approach.`);
     }
+
+    // Build context strings for prompts
+    const workHistoryContext = workPositions.length > 0 
+      ? `ACTUAL WORK HISTORY (${workPositions.length} positions):
+${workPositions.map((wp: any) => `- ${wp.job_title} at ${wp.company_name} (${wp.start_date || '?'} to ${wp.end_date || 'Present'})
+  ${wp.description || ''}`).join('\n')}
+`
+      : '';
+
+    const educationContext = education.length > 0
+      ? `EDUCATION:
+${education.map((ed: any) => `- ${ed.degree_type} in ${ed.field_of_study || 'N/A'} from ${ed.institution_name} (${ed.graduation_year || 'N/A'})`).join('\n')}
+`
+      : '';
+
+    const milestonesContext = vaultMilestones.length > 0
+      ? `VERIFIED ACHIEVEMENTS WITH METRICS:
+${vaultMilestones.slice(0, 15).map((m: any) => `- ${m.milestone_title || m.description}: ${m.metric_value || ''} ${m.context || ''}`).join('\n')}
+`
+      : '';
+
+    // Define section type arrays for conditional logic
+    const experienceSections = ['experience', 'employment_history', 'professional_timeline'];
+    const educationSections = ['education'];
+    const skillsSections = ['skills', 'skills_list', 'technical_skills', 'additional_skills', 'core_competencies', 'key_skills'];
+    const needsBothContexts = ['skills_groups', 'core_capabilities'].includes(section_type);
+    const hasSkillsData = vaultSkills.length > 0;
 
     // Step 1: Generate IDEAL version (Pure AI, no vault)
     console.log('Generating ideal version...');
@@ -249,16 +305,16 @@ ${job_analysis_research}
 SECTION GUIDANCE:
 ${section_guidance}
 
-${hasResumeData ? `CANDIDATE'S ACTUAL ${section_type.toUpperCase()} FROM UPLOADED RESUME:
+${workHistoryContext}
+${educationContext}
 ${milestonesContext}
 
-CRITICAL: Use the ACTUAL experiences above. Enhance the language and formatting, but do NOT fabricate new jobs or education.` 
-: hasSkillsData ? `CANDIDATE'S ACTUAL SKILLS FROM CAREER VAULT:
-${skillsContext}
+CANDIDATE'S CAREER VAULT INTELLIGENCE:
+${JSON.stringify(vault_items.slice(0, 30), null, 2)}
 
-CRITICAL: Use these REAL skills from the candidate's vault. You may add related ATS keywords, but base the list primarily on their actual skills.`
-: `CANDIDATE'S CAREER VAULT DATA:
-${primaryContext}`}
+${hasSkillsData ? `CANDIDATE'S VAULT SKILLS:
+${vaultSkills.map((s: any) => s.skill).join(', ')}
+` : ''}
 
 CRITICAL ATS KEYWORDS (MUST include naturally):
 ${ats_keywords.critical.join(', ')}
@@ -271,6 +327,7 @@ ${requirements.slice(0, 10).join('\n- ')}
 ${skillsSections.includes(section_type) ? `
 CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
 Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
+Base the list on their ACTUAL vault skills above.
 ` : needsBothContexts ? `
 CRITICAL: For capability groups, create 3-4 themed categories with supporting bullet points.
 Format each as: 
@@ -280,34 +337,32 @@ Format each as:
 ` : ''}
 
 Create a PERSONALIZED version that:
-${hasResumeData ? `
-1. Uses the EXACT companies, titles, dates, and schools from the resume milestones above
-2. Enhances the language and bullet points for ATS optimization
-3. Includes ALL critical ATS keywords naturally in the descriptions
-4. Adds quantification and impact where possible (but stay truthful to the original)
-5. Improves formatting and action verbs
-CRITICAL: Do NOT add fake jobs, fake degrees, or fake experience. Only enhance what's already there.` 
+${experienceSections.includes(section_type) && workPositions.length > 0 ? `
+1. Uses the EXACT companies and titles from the work history above
+2. Uses ACTUAL dates from work positions (${workPositions[0]?.start_date || '?'} to ${workPositions[0]?.end_date || 'Present'})
+3. Enhances the language with power verbs and ATS keywords
+4. Includes quantified achievements from milestones
+5. Maintains factual accuracy - NO fabricated positions
+CRITICAL: Do NOT add fake jobs. Only enhance what's in the work history.`
+: educationSections.includes(section_type) && education.length > 0 ? `
+1. Uses EXACT institutions and degrees from education records above
+2. Includes graduation years: ${education.map((e: any) => e.graduation_year).filter(Boolean).join(', ')}
+3. Adds relevant coursework or honors if applicable
+4. Formats professionally for ATS
+CRITICAL: Do NOT add fake degrees. Only use actual education data.`
 : hasSkillsData ? `
-1. Starts with the candidate's ACTUAL vault skills listed above
-2. Adds critical ATS keywords from the job requirements
+1. Starts with the candidate's ACTUAL vault skills
+2. Adds critical ATS keywords from job requirements
 3. Orders skills strategically (most relevant first)
-4. Ensures comma-separated format with no descriptions
-5. Includes both technical and soft skills as appropriate
-CRITICAL: Do NOT fabricate skills. Base the list on their actual vault data and required ATS keywords.`
-: needsBothContexts ? `
-1. Creates capability groups using the candidate's ACTUAL skills and experience
-2. Supports each capability with specific examples from their resume milestones
-3. Includes ALL critical ATS keywords naturally
-4. Uses quantified achievements where possible
-5. Groups related skills logically
-CRITICAL: Only use real data from the candidate's vault and milestones.`
+4. Ensures comma-separated format
+CRITICAL: Base on actual vault data.`
 : `
-1. Uses ACTUAL achievements from the candidate's vault
+1. Uses ACTUAL achievements and context from vault data
 2. Includes ALL critical ATS keywords naturally
-3. Leverages candidate's unique strengths and metrics
-4. Addresses the core problem from research
-5. Demonstrates competitive advantage through real accomplishments
-${vault_items.length === 0 && !hasResumeData && !hasSkillsData ? 'NOTE: No candidate data available. Create based on industry standards.' : 'Use ONLY information from the data provided. Do not fabricate.'}`}
+3. Quantifies impact where candidate has metrics
+4. Demonstrates value proposition clearly
+5. Maintains truthfulness to vault data
+`}
 
 Return ONLY the content, no explanations.`;
 

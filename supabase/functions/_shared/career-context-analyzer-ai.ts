@@ -16,6 +16,14 @@
 
 import { callLovableAI, LOVABLE_AI_MODELS } from './lovable-ai-config.ts';
 import { logAIUsage } from './cost-tracking.ts';
+import { 
+  calculateYearsOfExperience, 
+  inferSeniorityLevel, 
+  hasManagementExperience,
+  extractBudgetOwnership,
+  inferCompanySizes,
+  type WorkPosition 
+} from './career-calculations.ts';
 
 export interface CareerContext {
   // Core demographics
@@ -63,6 +71,9 @@ interface VaultData {
   leadership: any[];
   executivePresence: any[];
   certifications?: any[];
+  workPositions?: WorkPosition[];
+  education?: any[];
+  milestones?: any[];
 }
 
 /**
@@ -73,15 +84,75 @@ interface VaultData {
  */
 export async function analyzeCareerContextAI(vaultData: VaultData, userId: string): Promise<CareerContext> {
 
-  // Validate vault data exists
+  // CRITICAL FIX: Use actual work positions data instead of guessing
   console.log('[CAREER CONTEXT] Analyzing vault data:', {
     powerPhrases: vaultData.powerPhrases?.length || 0,
     skills: vaultData.skills?.length || 0,
-    competencies: vaultData.competencies?.length || 0,
-    softSkills: vaultData.softSkills?.length || 0,
-    leadership: vaultData.leadership?.length || 0,
-    executivePresence: vaultData.executivePresence?.length || 0,
+    workPositions: vaultData.workPositions?.length || 0,
+    education: vaultData.education?.length || 0,
+    milestones: vaultData.milestones?.length || 0,
   });
+
+  // Calculate factual career metrics from work positions
+  const workPositions = vaultData.workPositions || [];
+  const milestones = vaultData.milestones || [];
+
+  // FACT 1: Years of experience from actual work history
+  const yearsOfExperience = calculateYearsOfExperience(workPositions);
+  console.log(`[CAREER CONTEXT] ✅ FACT: ${yearsOfExperience} years of experience from ${workPositions.length} positions`);
+
+  // FACT 2: Seniority from actual job titles
+  const seniorityResult = inferSeniorityLevel(workPositions);
+  console.log(`[CAREER CONTEXT] ✅ FACT: ${seniorityResult.seniority} (${seniorityResult.confidence}% confidence)`);
+
+  // FACT 3: Management experience from titles and team sizes
+  const managementResult = hasManagementExperience(workPositions, milestones);
+  console.log(`[CAREER CONTEXT] ✅ FACT: Management=${managementResult.hasManagement}, Teams=${managementResult.teamSizes.join(', ')}`);
+
+  // FACT 4: Budget ownership from milestones
+  const budgetResult = extractBudgetOwnership(milestones);
+  console.log(`[CAREER CONTEXT] ✅ FACT: Budget=${budgetResult.hasBudget}, Sizes=$${budgetResult.budgetSizes.map(b => (b/1_000_000).toFixed(1) + 'M').join(', ')}`);
+
+  // FACT 5: Company sizes from work history
+  const companySizes = inferCompanySizes(workPositions);
+  console.log(`[CAREER CONTEXT] ✅ FACT: Company sizes=${companySizes.join(', ')}`);
+
+  // If work positions exist, use factual data and minimal AI
+  if (workPositions.length > 0) {
+    console.log('[CAREER CONTEXT] ✅ Using FACTUAL data from work positions (no guessing)');
+    
+    return {
+      inferredSeniority: seniorityResult.seniority,
+      seniorityConfidence: seniorityResult.confidence,
+      yearsOfExperience,
+      hasManagementExperience: managementResult.hasManagement,
+      managementDetails: managementResult.details,
+      teamSizesManaged: managementResult.teamSizes,
+      hasExecutiveExposure: seniorityResult.seniority === 'C-Level' || seniorityResult.seniority === 'VP',
+      executiveDetails: seniorityResult.seniority === 'C-Level' || seniorityResult.seniority === 'VP' 
+        ? `${seniorityResult.seniority} title from work history`
+        : 'No executive-level titles in work history',
+      hasBudgetOwnership: budgetResult.hasBudget,
+      budgetDetails: budgetResult.details,
+      budgetSizesManaged: budgetResult.budgetSizes,
+      companySizes,
+      technicalDepth: workPositions.some(wp => /engineer|developer|architect|technical/i.test(wp.job_title)) ? 75 : 50,
+      leadershipDepth: managementResult.hasManagement ? 70 : 30,
+      strategicDepth: seniorityResult.seniority.includes('Director') || seniorityResult.seniority.includes('VP') || seniorityResult.seniority === 'C-Level' ? 70 : 40,
+      primaryResponsibilities: workPositions.slice(0, 1).map(wp => wp.description?.split('.')[0] || wp.job_title).filter(Boolean),
+      impactScale: seniorityResult.seniority.includes('C-Level') || seniorityResult.seniority.includes('VP') ? 'company' :
+                   seniorityResult.seniority.includes('Director') ? 'organization' :
+                   managementResult.hasManagement ? 'department' :
+                   seniorityResult.seniority.includes('Senior') ? 'team' : 'individual',
+      nextLikelyRole: `Next level from ${seniorityResult.seniority}`,
+      careerArchetype: managementResult.hasManagement ? 'people_management' :
+                       seniorityResult.seniority.includes('Staff') || seniorityResult.seniority.includes('Principal') ? 'deep_technical' : 'tech_leadership',
+      aiReasoning: `FACTUAL ANALYSIS: ${yearsOfExperience}yrs experience, ${seniorityResult.reasoning}. ${managementResult.details}. ${budgetResult.details}.`
+    };
+  }
+
+  // FALLBACK: If no work positions, fall back to AI inference from power phrases
+  console.warn('[CAREER CONTEXT] ⚠️ No work positions found - falling back to AI inference (less accurate)');
 
   // If vault is completely empty, return minimal context
   const totalItems = (vaultData.powerPhrases?.length || 0) + 

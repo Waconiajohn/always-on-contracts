@@ -12,6 +12,21 @@ const corsHeaders = {
 
 const logger = createLogger('ai-job-matcher');
 
+// Helper: Calculate years of experience from work positions
+function calculateWorkExperience(positions: any[]): number {
+  let totalDays = 0;
+  const now = new Date();
+  
+  for (const pos of positions) {
+    if (!pos.start_date) continue;
+    const start = new Date(pos.start_date);
+    const end = pos.is_current || !pos.end_date ? now : new Date(pos.end_date);
+    totalDays += (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+  }
+  
+  return Math.floor(totalDays / 365);
+}
+
 interface VaultData {
   power_phrases: any[];
   transferable_skills: any[];
@@ -115,7 +130,7 @@ serve(async (req) => {
       );
     }
 
-    // 3. Fetch Career Vault Data (ALL 10 vault tables)
+    // 3. Fetch Career Vault Data (ALL categories + CRITICAL: work positions, education, milestones)
     const { data: vaultData, error: vaultError } = await supabase
       .from('career_vault')
       .select(`
@@ -132,7 +147,10 @@ serve(async (req) => {
         vault_personality_traits (id, trait_name, trait_category, professional_context),
         vault_work_style (id, style_category, preference_description),
         vault_values_motivations (id, value_name, value_category, manifestation),
-        vault_behavioral_indicators (id, indicator_type, behavior_description, evidence)
+        vault_behavioral_indicators (id, indicator_type, behavior_description, evidence),
+        vault_work_positions (company_name, job_title, start_date, end_date, is_current, description, team_size),
+        vault_education (institution_name, degree_type, field_of_study, graduation_year),
+        vault_resume_milestones (milestone_title, description, metric_type, metric_value, context)
       `)
       .eq('user_id', user.id)
       .single();
@@ -273,6 +291,9 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
           const userPrompt = `Analyze if this job is a good match for the candidate.
 
 CANDIDATE PROFILE:
+- Years of Experience: ${vaultData.vault_work_positions?.length > 0 ? `${calculateWorkExperience(vaultData.vault_work_positions)} years (from ${vaultData.vault_work_positions.length} positions)` : 'Unknown'}
+- Education: ${vaultData.vault_education?.map((e: any) => `${e.degree_type} in ${e.field_of_study}`).join(', ') || 'Not specified'}
+- Current/Recent Roles: ${vaultData.vault_work_positions?.slice(0, 2).map((wp: any) => `${wp.job_title} at ${wp.company_name}`).join(', ') || 'Not specified'}
 - Target Roles: ${compactVault.target_roles.join(', ')}
 - Target Industries: ${compactVault.target_industries.join(', ')}
 - Key Achievements: ${compactVault.key_phrases.join(' | ')}
@@ -284,6 +305,21 @@ CANDIDATE PROFILE:
 - Personality Traits: ${compactVault.personality.join(', ')}
 - Work Style: ${compactVault.work_style.join(', ')}
 - Values: ${compactVault.values.join(', ')}${learningContext}
+
+// Helper function to calculate years from work positions
+function calculateWorkExperience(positions: any[]): number {
+  let totalDays = 0;
+  const now = new Date();
+  
+  for (const pos of positions) {
+    if (!pos.start_date) continue;
+    const start = new Date(pos.start_date);
+    const end = pos.is_current || !pos.end_date ? now : new Date(pos.end_date);
+    totalDays += (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+  }
+  
+  return Math.floor(totalDays / 365);
+}
 
 JOB POSTING:
 Title: ${job.job_title}
