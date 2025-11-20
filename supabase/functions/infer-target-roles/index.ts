@@ -47,6 +47,56 @@ Deno.serve(async (req) => {
 
     const analysis: ResumeAnalysis = resume_analysis;
 
+    // Fetch actual work positions for factual career progression
+    const { data: vaultRecord } = await supabase
+      .from('career_vault')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    let workPositions: any[] = [];
+    let currentRole = analysis.current_role || 'Not specified';
+    let actualYears = analysis.years_of_experience;
+    let careerProgression = '';
+
+    if (vaultRecord) {
+      const { data: positions } = await supabase
+        .from('vault_work_positions')
+        .select('*')
+        .eq('vault_id', vaultRecord.id)
+        .order('start_date', { ascending: false });
+      
+      workPositions = positions || [];
+      
+      // Use most recent work position for current role
+      if (workPositions.length > 0) {
+        const mostRecent = workPositions[0];
+        currentRole = mostRecent.job_title || currentRole;
+        
+        // Calculate actual years from work history
+        const totalDays = workPositions.reduce((sum, wp) => {
+          if (!wp.start_date) return sum;
+          const start = new Date(wp.start_date);
+          const end = wp.end_date ? new Date(wp.end_date) : new Date();
+          return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+        }, 0);
+        
+        actualYears = Math.floor(totalDays / 365);
+        
+        // Build career progression context
+        careerProgression = `CAREER PROGRESSION (most recent first):
+${workPositions.slice(0, 5).map((wp: any, idx: number) => 
+  `${idx + 1}. ${wp.job_title} at ${wp.company_name} (${wp.start_date || '?'} to ${wp.end_date || 'Present'})`
+).join('\n')}`;
+        
+        console.log('[infer-target-roles] Using actual work history:', {
+          currentRole,
+          actualYears,
+          positionsCount: workPositions.length
+        });
+      }
+    }
+
     // Build industry context
     const industryContext = analysis.industry_expertise?.length 
       ? analysis.industry_expertise.join(', ')
@@ -99,9 +149,16 @@ CRITICAL RULES:
 
     const userPrompt = `Analyze this professional's career profile and suggest 5-7 target roles with confidence scores and metadata:
 
-CURRENT POSITION:
-Role: ${analysis.current_role || 'Not specified'}
-Years of Experience: ${analysis.years_of_experience || 'Not specified'}
+${careerProgression || `CURRENT POSITION:
+Role: ${currentRole}
+Years of Experience: ${actualYears || 'Not specified'}`}
+
+Seniority Level: ${analysis.seniority_level || 'Not specified'}
+Industry Expertise: ${industryContext}
+Key Skills: ${analysis.key_skills?.join(', ') || 'Not specified'}
+
+KEY ACHIEVEMENTS:
+• ${achievementsContext}
 Seniority Level: ${analysis.seniority_level || 'Not specified'}
 
 INDUSTRY EXPERTISE:

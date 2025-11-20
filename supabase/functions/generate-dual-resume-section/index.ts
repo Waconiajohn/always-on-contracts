@@ -155,7 +155,7 @@ ${education.map((ed: any) => `- ${ed.degree_type} in ${ed.field_of_study || 'N/A
 `
       : '';
 
-    const milestonesContext = vaultMilestones.length > 0
+    const vaultMilestonesContext = vaultMilestones.length > 0
       ? `VERIFIED ACHIEVEMENTS WITH METRICS:
 ${vaultMilestones.slice(0, 15).map((m: any) => `- ${m.milestone_title || m.description}: ${m.metric_value || ''} ${m.context || ''}`).join('\n')}
 `
@@ -164,9 +164,13 @@ ${vaultMilestones.slice(0, 15).map((m: any) => `- ${m.milestone_title || m.descr
     // Define section type arrays for conditional logic
     const experienceSections = ['experience', 'employment_history', 'professional_timeline'];
     const educationSections = ['education'];
+    const accomplishmentsSections = ['accomplishments', 'achievements', 'selected_accomplishments'];
+    const summarySections = ['summary', 'opening_paragraph'];
+    const projectSections = ['projects'];
     const skillsSections = ['skills', 'skills_list', 'technical_skills', 'additional_skills', 'core_competencies', 'key_skills'];
-    const needsBothContexts = ['skills_groups', 'core_capabilities'].includes(section_type);
+    const skillsGroupSections = ['skills_groups', 'core_capabilities'];
     const hasSkillsData = vaultSkills.length > 0;
+    const needsBothContexts = skillsGroupSections.includes(section_type);
 
     // Step 1: Generate IDEAL version (Pure AI, no vault)
     console.log('Generating ideal version...');
@@ -220,7 +224,7 @@ Return ONLY the content, no explanations.`;
     console.log('Generating personalized version...');
     
     // Prepare resume milestones context (prioritize for experience/education)
-    const milestonesContext = resume_milestones.length > 0
+    const resumeMilestonesContext = resume_milestones.length > 0
       ? resume_milestones.map((milestone: any, idx: number) => {
           if (milestone.milestone_type === 'job') {
             return `
@@ -266,15 +270,6 @@ Keywords: ${item.atsKeywords.join(', ')}
 `).join('\n')
       : '';
     
-    // Determine primary data source based on section type
-    const experienceSections = ['experience', 'employment_history', 'professional_timeline'];
-    const educationSections = ['education'];
-    const accomplishmentsSections = ['accomplishments', 'achievements', 'selected_accomplishments'];
-    const summarySections = ['summary', 'opening_paragraph'];
-    const projectSections = ['projects'];
-    const skillsSections = ['skills', 'skills_list', 'technical_skills', 'additional_skills', 'core_competencies', 'key_skills'];
-    const skillsGroupSections = ['skills_groups', 'core_capabilities'];
-    
     // Check if we have resume data for this section type
     const hasResumeData = resume_milestones.length > 0 && (
       experienceSections.includes(section_type) ||
@@ -284,17 +279,9 @@ Keywords: ${item.atsKeywords.join(', ')}
       projectSections.includes(section_type)
     );
     
-    // Check if we have skills data for this section type  
-    const hasSkillsData = vaultSkills.length > 0 && (
-      skillsSections.includes(section_type)
-    );
-    
-    // Skills groups need both skills and experience context
-    const needsBothContexts = skillsGroupSections.includes(section_type);
-    
-    const primaryContext = hasResumeData ? milestonesContext 
+    const primaryContext = hasResumeData ? resumeMilestonesContext 
                          : hasSkillsData ? skillsContext
-                         : needsBothContexts ? `${skillsContext}\n\n${milestonesContext}`
+                         : needsBothContexts ? `${skillsContext}\n\n${resumeMilestonesContext}`
                          : vaultContext;
 
     const personalizedPrompt = `You are an expert resume writer. Create a PERSONALIZED ${section_type} section for THIS SPECIFIC CANDIDATE.
@@ -305,9 +292,9 @@ ${job_analysis_research}
 SECTION GUIDANCE:
 ${section_guidance}
 
-${workHistoryContext}
-${educationContext}
-${milestonesContext}
+    ${workHistoryContext}
+    ${educationContext}
+    ${vaultMilestonesContext}
 
 CANDIDATE'S CAREER VAULT INTELLIGENCE:
 ${JSON.stringify(vault_items.slice(0, 30), null, 2)}

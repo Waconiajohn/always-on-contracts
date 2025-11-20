@@ -70,11 +70,20 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    const { data: milestonesData } = await supabase
-      .from('vault_resume_milestones')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('start_date', { ascending: false });
+    let workPositions: any[] = [];
+    let milestonesData: any[] = [];
+
+    if (vaultData) {
+      const [workPos, miles] = await Promise.all([
+        supabase.from('vault_work_positions').select('*').eq('vault_id', vaultData.id).order('start_date', { ascending: false }),
+        supabase.from('vault_resume_milestones').select('*').eq('user_id', user.id).order('start_date', { ascending: false })
+      ]);
+      
+      workPositions = workPos.data || [];
+      milestonesData = miles.data || [];
+      
+      console.log('[GENERATE-INTERVIEW-QUESTION] Loaded', workPositions.length, 'positions,', milestonesData.length, 'milestones');
+    }
 
     // Get full Career Vault intelligence
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
@@ -214,12 +223,20 @@ serve(async (req) => {
         `Q: ${r.question_text}\nA: ${r.response_text?.substring(0, 150)}...`
       ).join('\n\n');
 
+      const workHistoryContext = workPositions.length > 0
+        ? `\nACTUAL WORK HISTORY (use these real companies and titles in questions):
+${workPositions.slice(0, 5).map((wp: any) => 
+  `- ${wp.job_title} at ${wp.company_name} (${wp.start_date || '?'} to ${wp.end_date || 'Present'})`
+).join('\n')}`
+        : '';
+
       vaultContext = `
 EXISTING CAREER VAULT INTELLIGENCE:
 - Power Phrases: ${intelligence.counts.powerPhrases}
 - Business Impacts: ${intelligence.counts.businessImpacts}
 - Projects: ${intelligence.counts.projects}
 - Topics Covered: ${askedTopics.join(', ')}
+${workHistoryContext}
 
 RECENT RESPONSES:
 ${recentResponses}
