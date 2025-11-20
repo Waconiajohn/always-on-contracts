@@ -5475,19 +5475,25 @@ export type Database = {
           company_name: string | null
           completion_percentage: number | null
           confidence_score: number | null
+          context: string | null
           created_at: string | null
           date_display_preference: string | null
           description: string | null
           end_date: string | null
           extracted_from_resume: boolean | null
+          extraction_source: string | null
           hidden_from_resume: boolean | null
           hide_dates: boolean | null
           id: string
           intelligence_extracted: number | null
           job_title: string | null
           key_achievements: string[] | null
+          metric_type: string | null
+          metric_value: string | null
+          milestone_title: string | null
           milestone_type: string
           privacy_notes: string | null
+          quality_tier: string | null
           questions_answered: number | null
           questions_asked: number | null
           start_date: string | null
@@ -5499,19 +5505,25 @@ export type Database = {
           company_name?: string | null
           completion_percentage?: number | null
           confidence_score?: number | null
+          context?: string | null
           created_at?: string | null
           date_display_preference?: string | null
           description?: string | null
           end_date?: string | null
           extracted_from_resume?: boolean | null
+          extraction_source?: string | null
           hidden_from_resume?: boolean | null
           hide_dates?: boolean | null
           id?: string
           intelligence_extracted?: number | null
           job_title?: string | null
           key_achievements?: string[] | null
+          metric_type?: string | null
+          metric_value?: string | null
+          milestone_title?: string | null
           milestone_type: string
           privacy_notes?: string | null
+          quality_tier?: string | null
           questions_answered?: number | null
           questions_asked?: number | null
           start_date?: string | null
@@ -5523,19 +5535,25 @@ export type Database = {
           company_name?: string | null
           completion_percentage?: number | null
           confidence_score?: number | null
+          context?: string | null
           created_at?: string | null
           date_display_preference?: string | null
           description?: string | null
           end_date?: string | null
           extracted_from_resume?: boolean | null
+          extraction_source?: string | null
           hidden_from_resume?: boolean | null
           hide_dates?: boolean | null
           id?: string
           intelligence_extracted?: number | null
           job_title?: string | null
           key_achievements?: string[] | null
+          metric_type?: string | null
+          metric_value?: string | null
+          milestone_title?: string | null
           milestone_type?: string
           privacy_notes?: string | null
+          quality_tier?: string | null
           questions_answered?: number | null
           questions_asked?: number | null
           start_date?: string | null

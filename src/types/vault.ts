@@ -285,8 +285,8 @@ export interface ResumeMilestone {
   id: string;
   vault_id?: string;
   user_id?: string;
-  milestone_title?: string;
-  title?: string;
+  milestone_title?: string | null;
+  title?: string | null;
   organization?: string;
   company_name?: string | null;
   date_start?: string | null;
