@@ -1,6 +1,5 @@
 import {
   Document,
-  Packer,
   Paragraph,
   TextRun,
   HeadingLevel,
@@ -10,7 +9,6 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  TabStopPosition,
   TabStopType,
   convertInchesToTwip,
 } from "docx";

@@ -1,16 +1,10 @@
 import {
   Document,
-  Packer,
   Paragraph,
   TextRun,
   HeadingLevel,
   AlignmentType,
   BorderStyle,
-  Table,
-  TableRow,
-  TableCell,
-  WidthType,
-  TabStopPosition,
   TabStopType,
   convertInchesToTwip,
 } from "docx";
