@@ -10,7 +10,10 @@ import type {
   PersonalityTrait,
   WorkStyle,
   CoreValue,
-  BehavioralIndicator
+  BehavioralIndicator,
+  WorkPosition,
+  Education,
+  ResumeMilestone
 } from '@/types/vault';
 
 export interface VaultData {
@@ -25,6 +28,9 @@ export interface VaultData {
   workStyle: WorkStyle[];
   values: CoreValue[];
   behavioralIndicators: BehavioralIndicator[];
+  workPositions: WorkPosition[];
+  education: Education[];
+  milestones: ResumeMilestone[];
   userProfile: any;
   careerContext: any;
 }
@@ -66,6 +72,9 @@ export const useVaultData = (userId: string | undefined) => {
         { data: workStyle },
         { data: values },
         { data: behavioralIndicators },
+        { data: workPositions },
+        { data: education },
+        { data: milestones },
         { data: userProfile },
         { data: careerContext },
       ] = await Promise.all([
@@ -79,6 +88,9 @@ export const useVaultData = (userId: string | undefined) => {
         supabase.from('vault_work_style').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
         supabase.from('vault_values_motivations').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
         supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_work_positions').select('*').eq('vault_id', vaultId).order('start_date', { ascending: false }),
+        supabase.from('vault_education').select('*').eq('vault_id', vaultId).order('graduation_year', { ascending: false }),
+        supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
         supabase.from('profiles').select('target_roles').eq('user_id', userId).maybeSingle(),
         supabase.from('vault_career_context').select('*').eq('vault_id', vaultId).maybeSingle(),
       ]);
@@ -95,6 +107,9 @@ export const useVaultData = (userId: string | undefined) => {
         workStyle: workStyle || [],
         values: values || [],
         behavioralIndicators: behavioralIndicators || [],
+        workPositions: workPositions || [],
+        education: education || [],
+        milestones: milestones || [],
         userProfile: userProfile || null,
         careerContext: careerContext || null,
       };

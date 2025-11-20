@@ -211,6 +211,9 @@ export interface VaultData {
   workStyle: WorkStyle[];
   values: CoreValue[];
   behavioralIndicators: BehavioralIndicator[];
+  workPositions: WorkPosition[];
+  education: Education[];
+  milestones: ResumeMilestone[];
 }
 
 export interface VaultMatch {
@@ -230,16 +233,75 @@ export interface VaultMatchWithQuality extends VaultMatch {
   };
 }
 
+// Critical structural data types matching database schema
+export interface WorkPosition {
+  id: string;
+  vault_id: string;
+  user_id: string;
+  company_name: string;
+  job_title: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_current?: boolean | null;
+  description?: string | null;
+  responsibilities?: string[] | null;
+  achievements?: string[] | null;
+  technologies_used?: string[] | null;
+  team_size?: number | null;
+  confidence_score?: number | null;
+  quality_tier?: string | null;
+  extraction_source?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  [key: string]: any;
+}
+
+export interface Education {
+  id: string;
+  vault_id: string;
+  user_id: string;
+  institution_name: string;
+  degree_type?: string;
+  degree_name?: string | null;
+  field_of_study?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  graduation_year?: number | null;
+  is_in_progress?: boolean | null;
+  gpa?: number | null;
+  honors?: string | null;
+  relevant_coursework?: string[] | null;
+  thesis_title?: string | null;
+  description?: string | null;
+  confidence_score?: number | null;
+  quality_tier?: string | null;
+  extraction_source?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  [key: string]: any;
+}
+
 export interface ResumeMilestone {
   id: string;
+  vault_id?: string;
+  user_id?: string;
+  milestone_title?: string;
   title?: string;
   organization?: string;
-  date_start?: string;
-  date_end?: string;
-  description?: string;
-  achievements?: string[];
-  skills_used?: string[];
-  metrics?: MilestoneMetric[];
+  company_name?: string | null;
+  date_start?: string | null;
+  date_end?: string | null;
+  description?: string | null;
+  achievements?: string[] | null;
+  skills_used?: string[] | null;
+  metrics?: MilestoneMetric[] | null;
+  metric_type?: string | null;
+  metric_value?: string | null;
+  context?: string | null;
+  confidence_score?: number | null;
+  quality_tier?: string | null;
+  extraction_source?: string | null;
+  created_at?: string | null;
   [key: string]: any;
 }
 

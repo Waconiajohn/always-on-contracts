@@ -18,6 +18,7 @@ export interface CompleteVaultIntelligence {
   vault_values_motivations: any[];
   vault_behavioral_indicators: any[];
   vault_confirmed_skills: any[];
+  vault_work_positions: any[];
   vault_education: any[];
   vault_resume_milestones: any[];
   vault_competitive_advantages: any[];
@@ -61,7 +62,7 @@ export async function getCompleteVaultIntelligence(
 
   const vaultIdToUse = vault.id;
 
-  // Query all 17 intelligence categories in parallel
+  // Query all 18 intelligence categories in parallel (ADDED: vault_work_positions)
   const [
     powerPhrases,
     transferableSkills,
@@ -74,6 +75,7 @@ export async function getCompleteVaultIntelligence(
     values,
     behavioralIndicators,
     confirmedSkills,
+    workPositions,
     education,
     resumeMilestones,
     competitiveAdvantages,
@@ -92,6 +94,7 @@ export async function getCompleteVaultIntelligence(
     supabase.from('vault_values_motivations').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_confirmed_skills').select('*').eq('vault_id', vaultIdToUse),
+    supabase.from('vault_work_positions').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_education').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_competitive_advantages').select('*').eq('vault_id', vaultIdToUse),
@@ -105,6 +108,7 @@ export async function getCompleteVaultIntelligence(
     powerPhrases: powerPhrases.data?.length || 0,
     transferableSkills: transferableSkills.data?.length || 0,
     hiddenCompetencies: hiddenCompetencies.data?.length || 0,
+    workPositions: workPositions.data?.length || 0,
     softSkills: softSkills.data?.length || 0,
     leadershipPhilosophy: leadershipPhilosophy.data?.length || 0,
     executivePresence: executivePresence.data?.length || 0,
@@ -134,6 +138,7 @@ export async function getCompleteVaultIntelligence(
     vault_values_motivations: values.data || [],
     vault_behavioral_indicators: behavioralIndicators.data || [],
     vault_confirmed_skills: confirmedSkills.data || [],
+    vault_work_positions: workPositions.data || [],
     vault_education: education.data || [],
     vault_resume_milestones: resumeMilestones.data || [],
     vault_competitive_advantages: competitiveAdvantages.data || [],
