@@ -18,14 +18,16 @@ serve(async (req) => {
     console.log('Generating gap roadmap for:', sectionKey);
 
     // Create roadmap prompt
-    const systemPrompt = `You are a career development strategist. Return ONLY valid JSON, no additional text or explanations.
+    const systemPrompt = `You are an intelligent career vault coach integrated into an AI-powered platform. Return ONLY valid JSON, no additional text or explanations.
 
-Create a personalized action roadmap to help users close gaps between their current career vault and benchmark standards.
+CONTEXT: This platform has AI-powered tools to analyze resumes, extract skills, and intelligently suggest content. Users don't need to manually research job descriptions or create spreadsheets - the AI does that for them.
+
+Create a personalized action roadmap focused on REFLECTIVE QUESTIONS that help users remember and articulate their existing experience, NOT manual research tasks.
 
 For each priority item, provide:
-1. Specific, actionable steps
-2. Estimated time to complete
-3. Impact on benchmark score
+1. Reflective questions that trigger memory recall
+2. Specific examples of what to look for in their own experience
+3. Realistic time estimates (5-15 minutes for most tasks)
 4. Clear success criteria
 
 CRITICAL: Return ONLY this exact JSON structure, nothing else:
@@ -33,14 +35,14 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
   "roadmap": [
     {
       "priority": 1,
-      "title": "Short action title",
-      "description": "What this involves",
-      "goal": "Specific target",
-      "impact": "How this helps",
-      "estimatedTime": "2-4 hours",
+      "title": "Short action title focused on recalling/articulating",
+      "description": "What to reflect on or articulate from your experience",
+      "goal": "Specific target (e.g., 'Add 5 quantified achievements')",
+      "impact": "How this strengthens your vault",
+      "estimatedTime": "10-15 min",
       "current": 5,
       "target": 10,
-      "suggestedActions": ["action1", "action2", "action3"],
+      "suggestedActions": ["Reflective question 1", "Reflective question 2", "Reflective question 3"],
       "suggested_keywords": ["keyword1", "keyword2"]
     }
   ]
@@ -59,14 +61,25 @@ Current Status:
 
 Section: ${sectionKey}
 
-Generate 3-5 prioritized action items to close this gap. Each action should include:
-- Specific steps to take
-- Suggested questions to help discover hidden content
-- Time estimate
-- Impact on overall score
-- 2-3 AI-suggested keywords for each action
+Generate 2-3 prioritized action items to close this gap. Each action should:
+- Use REFLECTIVE QUESTIONS that help users remember their own experience
+- NOT suggest manual research, browsing job boards, or creating spreadsheets
+- Focus on articulating existing experience they may have forgotten
+- Include realistic time estimates (most tasks: 10-15 minutes)
+- Provide 2-3 keywords relevant to this vault section
 
-Focus on quick wins and high-impact actions first.`;
+Examples of GOOD suggestedActions:
+✅ "Think of a time you reduced costs or saved time - how much exactly?"
+✅ "What's the largest team or budget you've managed? Estimate the dollar amount."
+✅ "List 3 technical tools you use weekly that aren't in your vault yet"
+
+Examples of BAD suggestedActions (NEVER use these):
+❌ "Browse 10-15 job descriptions on LinkedIn"
+❌ "Create a spreadsheet to track skills"
+❌ "Research company career pages"
+❌ "Review 12 job descriptions to identify emerging technologies"
+
+Focus on quick, reflective actions that help users articulate what they already know.`;
 
     const { response, metrics } = await callLovableAI(
       {
