@@ -32,29 +32,24 @@ export const Layer1FoundationsCard = ({ vaultData, stats, benchmark, onSectionCl
     const powerPhrasesCount = stats.categoryCounts.powerPhrases;
     const skillsCount = stats.categoryCounts.transferableSkills;
     
+    // PHASE 2 FIX: Use actual work positions and education counts
+    const workPositionsCount = vaultData.workPositions?.length || 0;
+    const educationCount = vaultData.education?.length || 0;
+    const milestonesCount = vaultData.milestones?.length || 0;
+    
     // Check if we have resume text (indicates work experience exists)
     const hasResumeText = vaultData.vault?.resume_raw_text && 
                          vaultData.vault.resume_raw_text.length > 500;
-    
-    // Check for education data in career_vault (stored as JSON fields by V3)
-    const hasEducation = (
-      vaultData.vault?.formal_education && 
-      Array.isArray(vaultData.vault.formal_education) && 
-      vaultData.vault.formal_education.length > 0
-    ) || (
-      vaultData.vault?.certifications && 
-      Array.isArray(vaultData.vault.certifications) && 
-      vaultData.vault.certifications.length > 0
-    );
     
     // Use AI benchmarks if available, otherwise fallback to simple calculations
     const workExpTarget = aiBenchmark?.work_experience?.target || 10;
     const skillsTarget = aiBenchmark?.skills?.target || 15;
     const highlightsTarget = aiBenchmark?.highlights?.target || 5;
 
-    // Work Experience - based on power phrases with metrics
-    const workExpPercentage = powerPhrasesCount > 0 
-      ? Math.min((powerPhrasesCount / workExpTarget) * 100, 100) 
+    // Work Experience - based on actual work positions + power phrases with metrics
+    const workExpScore = workPositionsCount * 5 + powerPhrasesCount;
+    const workExpPercentage = workExpScore > 0 
+      ? Math.min((workExpScore / workExpTarget) * 100, 100) 
       : 0;
     
     // Skills & Expertise - based on transferable skills
@@ -62,30 +57,31 @@ export const Layer1FoundationsCard = ({ vaultData, stats, benchmark, onSectionCl
       ? Math.min((skillsCount / skillsTarget) * 100, 100) 
       : 0;
     
-    // Education & Credentials - based on extracted education data
-    const educationPercentage = hasEducation ? 100 : 0;
+    // Education & Credentials - based on actual education records
+    const educationPercentage = educationCount > 0 ? 100 : 0;
     
-    // Professional Highlights - based on gold-tier items
+    // Professional Highlights - based on milestones + gold-tier items
     const goldCount = stats.qualityDistribution.gold || 0;
-    const highlightsPercentage = goldCount > 0 
-      ? Math.min((goldCount / highlightsTarget) * 100, 100) 
+    const highlightsScore = milestonesCount * 2 + goldCount;
+    const highlightsPercentage = highlightsScore > 0 
+      ? Math.min((highlightsScore / highlightsTarget) * 100, 100) 
       : 0;
 
     // Determine if extraction is incomplete (have resume but missing data)
-    const extractionIncomplete = hasResumeText && (powerPhrasesCount === 0 || stats.categoryCounts.softSkills === 0);
+    const extractionIncomplete = hasResumeText && (workPositionsCount === 0 || powerPhrasesCount === 0 || stats.categoryCounts.softSkills === 0);
 
     return [
       {
         name: 'Work Experience',
         percentage: workExpPercentage,
         status: workExpPercentage >= 80 ? 'complete' : workExpPercentage > 0 ? 'incomplete' : 'empty',
-        count: powerPhrasesCount,
+        count: workPositionsCount,
         benchmark: extractionIncomplete
           ? '⚠️ Extraction incomplete - some data is missing from your resume'
-          : powerPhrasesCount === 0 
+          : workPositionsCount === 0 
           ? 'Upload your resume to extract work experience automatically'
-          : 'Industry standard: 60%+ of bullets should have metrics',
-        ctaText: extractionIncomplete ? 'Complete Extraction' : powerPhrasesCount === 0 ? 'Upload Resume' : workExpPercentage >= 80 ? 'Review' : 'Add Details',
+          : `${workPositionsCount} positions, ${powerPhrasesCount} achievements | Target: ${workExpTarget}`,
+        ctaText: extractionIncomplete ? 'Complete Extraction' : workPositionsCount === 0 ? 'Upload Resume' : workExpPercentage >= 80 ? 'Review' : 'Add Details',
         section: 'work-experience'
       },
       {
@@ -101,7 +97,7 @@ export const Layer1FoundationsCard = ({ vaultData, stats, benchmark, onSectionCl
         name: 'Education & Credentials',
         percentage: educationPercentage,
         status: educationPercentage === 100 ? 'complete' : 'empty',
-        count: hasEducation ? 1 : 0,
+        count: educationCount,
         benchmark: '65% of senior roles require bachelor\'s degree',
         ctaText: educationPercentage === 100 ? 'View' : 'Add Education',
         section: 'education'
