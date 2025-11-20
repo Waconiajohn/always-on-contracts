@@ -1033,9 +1033,37 @@ serve(async (req) => {
     }
 
     // ========================================================================
-    // COMPLETE
+    // COMPLETE & VERIFY
     // ========================================================================
     await tracker.complete(totalItems);
+    
+    // Trigger automatic verification after extraction completes
+    try {
+      console.log('🔍 Triggering automatic resume data verification...');
+      const verifyResponse = await supabase.functions.invoke('verify-resume-data', {
+        body: {
+          vaultId,
+          sessionId: null, // Session tracking not implemented in this version
+          userId
+        }
+      });
+      
+      if (verifyResponse.error) {
+        console.error('⚠️ Verification failed:', verifyResponse.error);
+      } else {
+        const verifyData = verifyResponse.data;
+        console.log(`✅ Verification complete: ${verifyData.status} (${verifyData.discrepanciesCount} discrepancies)`);
+        
+        // If discrepancies found, trigger remediation assessment
+        if (verifyData.requiresRemediation) {
+          console.log('🔧 Triggering remediation assessment...');
+          // Note: Remediation will be triggered automatically by the verification result
+        }
+      }
+    } catch (verifyError) {
+      console.error('⚠️ Error during verification:', verifyError);
+      // Don't fail the whole extraction if verification fails
+    }
     
     const totalDuration = Date.now() - overallStartTime;
     logger.info('Extraction complete', {
