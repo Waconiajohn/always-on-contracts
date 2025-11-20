@@ -12,16 +12,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, ArrowRight, Sparkles } from 'lucide-react';
+import { Calculator, Sparkles } from 'lucide-react';
 
 interface MetricCalculatorProps {
   open: boolean;
   onClose: () => void;
   onSave: (metricText: string, metricType: string) => void;
-  initialText?: string;
 }
 
-export function MetricCalculator({ open, onClose, onSave, initialText = '' }: MetricCalculatorProps) {
+export function MetricCalculator({ open, onClose, onSave }: MetricCalculatorProps) {
   const [activeTab, setActiveTab] = useState('improvement');
   
   // Improvement State
@@ -32,13 +31,10 @@ export function MetricCalculator({ open, onClose, onSave, initialText = '' }: Me
   // Scale State
   const [teamSize, setTeamSize] = useState('');
   const [budget, setBudget] = useState('');
-  const [volume, setVolume] = useState('');
-  const [frequency, setFrequency] = useState('Annual');
 
   // Efficiency State
   const [hoursSaved, setHoursSaved] = useState('');
   const [peopleCount, setPeopleCount] = useState('');
-  const [hourlyRate, setHourlyRate] = useState('50'); // Default assume $50/hr
 
   const generateResult = () => {
     switch (activeTab) {
@@ -60,7 +56,6 @@ export function MetricCalculator({ open, onClose, onSave, initialText = '' }: Me
         const parts = [];
         if (teamSize) parts.push(`managed a team of ${teamSize}`);
         if (budget) parts.push(`oversaw a $${budget} budget`);
-        if (volume) parts.push(`handled ${volume} transactions ${frequency.toLowerCase()}`);
         
         if (parts.length === 0) return null;
         return `Scaled operations: ${parts.join(', ')}`;
@@ -69,7 +64,7 @@ export function MetricCalculator({ open, onClose, onSave, initialText = '' }: Me
         if (!hoursSaved || !peopleCount) return null;
         const hours = parseFloat(hoursSaved);
         const people = parseFloat(peopleCount);
-        const rate = parseFloat(hourlyRate);
+        const rate = 50; // Assume $50/hr
         
         const totalHours = hours * people * 52; // Annual
         const savings = (totalHours * rate).toLocaleString();
