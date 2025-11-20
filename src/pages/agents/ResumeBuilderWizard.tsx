@@ -489,7 +489,23 @@ const ResumeBuilderWizardContent = () => {
       // Full generation - skip to generation
       generateCompleteResume();
     } else {
-      // Section-by-section - start wizard
+      // Section-by-section - initialize empty sections from format
+      const format = getFormat(selectedFormat || 'executive');
+      if (format) {
+        const sections = format.sections.map(section => ({
+          id: section.id,
+          type: section.type,
+          title: section.title,
+          content: [],
+          order: section.order,
+          required: section.required,
+          vaultItemsUsed: [],
+          atsKeywords: [],
+          requirementsCovered: []
+        }));
+        setResumeSections(sections);
+      }
+      
       setCurrentSectionIndex(0);
       setCurrentStep('section-wizard');
     }
