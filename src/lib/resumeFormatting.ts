@@ -12,6 +12,23 @@ export function removeCitations(text: string): string {
 }
 
 /**
+ * Decode HTML entities to proper characters
+ */
+export function decodeHtmlEntities(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x26;/g, '&')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&#(\d+);/g, (_: string, dec: string) => String.fromCharCode(parseInt(dec)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+/**
  * Convert markdown formatting to plain text with proper emphasis
  */
 export function cleanMarkdown(text: string): string {
@@ -38,6 +55,7 @@ export function cleanMarkdown(text: string): string {
 export function formatResumeContent(content: any): string {
   if (typeof content === 'string') {
     let cleaned = removeCitations(content);
+    cleaned = decodeHtmlEntities(cleaned);
     cleaned = cleanMarkdown(cleaned);
     return cleaned;
   }

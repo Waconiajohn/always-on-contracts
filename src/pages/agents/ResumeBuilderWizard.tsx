@@ -512,10 +512,20 @@ const ResumeBuilderWizardContent = () => {
   };
 
   const handleSectionComplete = (sectionData: any) => {
-    // Save section content
+    // Save section content - convert to items format for BuilderResumeSection
     setResumeSections(prev => prev.map(s => 
       s.id === sectionData.sectionId 
-        ? { ...s, content: sectionData.content, vaultItemsUsed: sectionData.vaultItemsUsed }
+        ? { 
+            ...s, 
+            items: Array.isArray(sectionData.content) 
+              ? sectionData.content.map((item: any) => ({
+                  id: item.id || crypto.randomUUID(),
+                  content: typeof item === 'string' ? item : item.content || '',
+                  order: item.order || 0
+                }))
+              : [],
+            vaultItemsUsed: sectionData.vaultItemsUsed 
+          }
         : s
     ));
 
@@ -769,13 +779,20 @@ const ResumeBuilderWizardContent = () => {
     
     // Check if sections have actual content
     const hasContent = resumeSections.some(s => 
-      Array.isArray(s.content) && s.content.length > 0
+      Array.isArray(s.items) && s.items.length > 0
     );
     
     if (!hasContent) {
+      console.error('[ATS] No section content found. Section structure:', resumeSections.map(s => ({
+        id: s.id,
+        type: s.type,
+        hasItems: Array.isArray(s.items),
+        itemsLength: s.items?.length || 0
+      })));
+      
       toast({
         title: "Cannot analyze ATS score",
-        description: "Resume sections are empty. This may indicate your career vault needs to be populated first.",
+        description: "Resume sections are empty. Please complete at least one section first.",
         variant: "destructive"
       });
       return;
