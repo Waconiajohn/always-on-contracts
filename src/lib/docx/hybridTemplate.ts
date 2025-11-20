@@ -176,7 +176,17 @@ export class HybridDocxGenerator {
           );
         }
         if (section.bullets) {
-          section.bullets.forEach((bullet) => {
+          // Filter out bullets that match the section title or type
+          const sectionTitle = cleanTitle.toLowerCase().trim();
+          const sectionType = section.type.toLowerCase().replace(/_/g, ' ').trim();
+          
+          const filteredBullets = section.bullets.filter(bullet => {
+            const cleanBullet = formatResumeContent(bullet).toLowerCase().trim();
+            return cleanBullet !== sectionTitle && cleanBullet !== sectionType && 
+                   cleanBullet !== 'education' && cleanBullet !== 'experience';
+          });
+          
+          filteredBullets.forEach((bullet) => {
             children.push(
               new Paragraph({
                 text: formatResumeContent(bullet),
