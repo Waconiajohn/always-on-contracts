@@ -158,7 +158,7 @@ export class FunctionalDocxGenerator {
         })
       );
 
-      if (section.type === "skills_groups" || section.type === "core_capabilities") {
+      if (section.type === "skills" || section.type === "skills_list" || section.type === "skills_groups" || section.type === "core_capabilities" || section.type === "technical_skills" || section.type === "core_competencies") {
         children.push(...this.createSkillGroups(section.bullets || []));
       } else if (section.type === "employment_history") {
         children.push(...this.createSimpleHistory(section.bullets || []));
@@ -217,7 +217,15 @@ export class FunctionalDocxGenerator {
     
     const elements: any[] = [];
     
-    bullets.forEach(b => {
+    // First, check if we need to split comma-separated skills
+    let processedBullets = bullets;
+    if (processedBullets.length < 5 && processedBullets.some(s => s.includes(','))) {
+      processedBullets = processedBullets
+        .flatMap(s => s.split(',').map(item => item.trim()))
+        .filter(Boolean);
+    }
+    
+    processedBullets.forEach(b => {
         const cleanBullet = formatResumeContent(b).replace(/^[-•]\s*/, "").trim();
         // Check if it looks like a header: "Project Management:"
         if (cleanBullet.endsWith(':') || (cleanBullet.includes(':') && cleanBullet.length < 50)) {
