@@ -3,6 +3,10 @@ import html2canvas from 'html2canvas';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import { formatResumeContent } from './resumeFormatting';
+import { ExecutiveDocxGenerator } from './docx/executiveTemplate';
+import { TechnicalDocxGenerator } from './docx/technicalTemplate';
+import { FunctionalDocxGenerator } from './docx/functionalTemplate';
+import { HybridDocxGenerator } from './docx/hybridTemplate';
 
 export const exportFormats = {
   async standardPDF(htmlContent: string, fileName: string) {
@@ -111,7 +115,51 @@ export const exportFormats = {
     return text;
   },
 
-  async generateDOCX(structuredData: any, fileName: string) {
+  async generateDOCX(structuredData: any, fileName: string, templateId?: string) {
+    console.log('[EXPORT] generateDOCX called with templateId:', templateId);
+
+    const resumeData = {
+      header: {
+        fullName: structuredData.name,
+        email: structuredData.contact.email,
+        phone: structuredData.contact.phone,
+        location: structuredData.contact.location,
+        linkedin: structuredData.contact.linkedin,
+        headline: structuredData.contact.headline
+      },
+      sections: structuredData.sections
+    };
+
+    try {
+      let doc;
+      
+      if (templateId === 'executive') {
+        console.log('[EXPORT] Using Executive generator');
+        const generator = new ExecutiveDocxGenerator(resumeData);
+        doc = generator.generate();
+      } else if (templateId === 'technical') {
+        console.log('[EXPORT] Using Technical generator');
+        const generator = new TechnicalDocxGenerator(resumeData);
+        doc = generator.generate();
+      } else if (templateId === 'functional') {
+        console.log('[EXPORT] Using Functional generator');
+        const generator = new FunctionalDocxGenerator(resumeData);
+        doc = generator.generate();
+      } else if (templateId === 'hybrid') {
+        console.log('[EXPORT] Using Hybrid generator');
+        const generator = new HybridDocxGenerator(resumeData);
+        doc = generator.generate();
+      }
+
+      if (doc) {
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `${fileName}.docx`);
+        return;
+      }
+    } catch (error) {
+      console.error(`[EXPORT] ${templateId} generation failed, falling back to standard:`, error);
+    }
+
     // Helper to decode HTML entities
     const decodeHtmlEntities = (text: string): string => {
       if (!text) return '';
@@ -321,9 +369,10 @@ export const exportFormats = {
   },
 
   // Alias for generateDOCX with validation
-  async docxExport(structuredData: any, fileName: string) {
+  async docxExport(structuredData: any, fileName: string, templateId?: string) {
     console.log('[EXPORT] docxExport called with:', {
       fileName,
+      templateId,
       hasSections: !!structuredData?.sections,
       sectionsCount: structuredData?.sections?.length || 0,
       sectionsDetail: structuredData?.sections?.map((s: any) => ({
@@ -351,7 +400,7 @@ export const exportFormats = {
     }
 
     console.log('[EXPORT] Validation passed, generating DOCX...');
-    return this.generateDOCX(structuredData, fileName);
+    return this.generateDOCX(structuredData, fileName, templateId);
   },
 
   // HTML export

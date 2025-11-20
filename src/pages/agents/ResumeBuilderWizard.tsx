@@ -1104,7 +1104,8 @@ const ResumeBuilderWizardContent = () => {
         email: user.email,
         full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
         phone: user.user_metadata?.phone || '',
-        location: user.user_metadata?.location || ''
+        location: user.user_metadata?.location || '',
+        linkedin: user.user_metadata?.linkedin_url || ''
       } : {};
 
       const { canonical, asText, asHtml } = buildCanonicalResumeFromBuilderState({
@@ -1178,15 +1179,18 @@ const ResumeBuilderWizardContent = () => {
           contact: {
             email: userProfile.email || '',
             phone: userProfile.phone || '',
-            location: userProfile.location || ''
+            location: userProfile.location || '',
+            linkedin: userProfile.linkedin || '',
+            headline: canonical.header.headline || ''
           },
           sections: canonical.sections.map(section => ({
             title: section.heading,
+            type: section.type,
             content: section.paragraph,
             bullets: section.bullets
           }))
         };
-        await exportFormats.generateDOCX(structuredData, fileName);
+        await exportFormats.generateDOCX(structuredData, fileName, selectedFormat || undefined);
         toast({
           title: "Export successful!",
           description: "DOCX file downloaded"
