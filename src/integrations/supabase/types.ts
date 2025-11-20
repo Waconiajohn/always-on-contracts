@@ -3199,6 +3199,66 @@ export type Database = {
         }
         Relationships: []
       }
+      resume_verification_results: {
+        Row: {
+          auto_remediation_attempted: boolean | null
+          created_at: string
+          discrepancies_found: number | null
+          id: string
+          remediation_notes: string | null
+          remediation_status: string | null
+          results: Json
+          session_id: string | null
+          updated_at: string
+          user_id: string
+          vault_id: string
+          verification_status: string
+        }
+        Insert: {
+          auto_remediation_attempted?: boolean | null
+          created_at?: string
+          discrepancies_found?: number | null
+          id?: string
+          remediation_notes?: string | null
+          remediation_status?: string | null
+          results: Json
+          session_id?: string | null
+          updated_at?: string
+          user_id: string
+          vault_id: string
+          verification_status: string
+        }
+        Update: {
+          auto_remediation_attempted?: boolean | null
+          created_at?: string
+          discrepancies_found?: number | null
+          id?: string
+          remediation_notes?: string | null
+          remediation_status?: string | null
+          results?: Json
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string
+          vault_id?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_verification_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "extraction_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_verification_results_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_versions: {
         Row: {
           content: Json

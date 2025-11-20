@@ -24,6 +24,7 @@ import { VaultQuickStats } from '../VaultQuickStats';
 import { WorkHistoryTimeline } from '../WorkHistoryTimeline';
 import { EducationTimeline } from '../EducationTimeline';
 import { MilestonesList } from '../MilestonesList';
+import { VerificationStatus } from '../VerificationStatus';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -221,6 +222,9 @@ export function VaultBuilderMainView({
           Verify Data
         </Button>
       </div>
+
+      {/* Verification Status */}
+      <VerificationStatus vaultId={vaultId} />
 
       {/* Work History Timeline */}
       <WorkHistoryTimeline workPositions={vaultData.workPositions} />
