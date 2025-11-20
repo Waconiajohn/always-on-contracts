@@ -158,7 +158,7 @@ export class TechnicalDocxGenerator {
         })
       );
 
-      if (section.type === "technical_skills" || section.type === "skills_list") {
+      if (section.type === "skills" || section.type === "technical_skills" || section.type === "skills_list" || section.type === "core_competencies") {
         // Render as compact list or grouped if possible
         children.push(...this.createTechnicalSkills(section.bullets || []));
       } else if (section.type === "experience" || section.type === "professional_experience" || section.type === "projects") {
@@ -211,7 +211,15 @@ export class TechnicalDocxGenerator {
     // We'll try to detect that pattern or just list them compactly
     const elements: any[] = [];
     
-    skills.forEach(skillLine => {
+    // First, check if we need to split comma-separated skills
+    let processedSkills = skills;
+    if (processedSkills.length < 5 && processedSkills.some(s => s.includes(','))) {
+      processedSkills = processedSkills
+        .flatMap(s => s.split(',').map(item => item.trim()))
+        .filter(Boolean);
+    }
+    
+    processedSkills.forEach(skillLine => {
         const cleanLine = formatResumeContent(skillLine).replace(/^[-•]\s*/, "").trim();
         const parts = cleanLine.split(':');
         

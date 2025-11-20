@@ -200,7 +200,7 @@ export class ExecutiveDocxGenerator {
         })
       );
 
-      if (section.type === "skills_list" || section.type === "core_competencies") {
+      if (section.type === "skills" || section.type === "skills_list" || section.type === "core_competencies" || section.type === "technical_skills") {
         children.push(this.createSkillsGrid(section.bullets || []));
       } else if (section.type === "experience" || section.type === "professional_experience") {
         children.push(...this.createExperienceContent(section.bullets || []));
@@ -253,10 +253,17 @@ export class ExecutiveDocxGenerator {
   }
 
   private createSkillsGrid(skills: string[]): Table {
-    // Filter empty skills and clean them
-    const cleanSkills = skills
+    // Filter empty skills, clean them, and split comma-separated skills
+    let cleanSkills = skills
         .map(s => formatResumeContent(s).replace(/^[-•]\s*/, "").trim())
         .filter(Boolean);
+    
+    // If we have very few items with commas, split them
+    if (cleanSkills.length < 5 && cleanSkills.some(s => s.includes(','))) {
+      cleanSkills = cleanSkills
+        .flatMap(s => s.split(',').map(item => item.trim()))
+        .filter(Boolean);
+    }
         
     // Create a 3-column grid
     const rows = [];
