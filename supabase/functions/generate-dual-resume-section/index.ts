@@ -202,7 +202,9 @@ Create an INDUSTRY STANDARD version that:
 4. Uses quantified achievements (use realistic industry benchmarks)
 5. Demonstrates competitive strength
 
-Return ONLY the content, no explanations.`;
+CRITICAL: Return ONLY the actual content bullets/text. DO NOT include the section heading or title (like "Experience", "Education", "Skills", etc.) in your response. Start directly with the content.
+
+Return ONLY the content, no explanations or headings.`;
 
     const { response: idealResponse, metrics: idealMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: idealPrompt }],
@@ -351,7 +353,9 @@ CRITICAL: Base on actual vault data.`
 5. Maintains truthfulness to vault data
 `}
 
-Return ONLY the content, no explanations.`;
+CRITICAL: Return ONLY the actual content bullets/text. DO NOT include the section heading or title (like "Experience", "Education", "Skills", etc.) in your response. Start directly with the content.
+
+Return ONLY the content, no explanations or headings.`;
 
     const { response: personalizedResponse, metrics: personalizedMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: personalizedPrompt }],
