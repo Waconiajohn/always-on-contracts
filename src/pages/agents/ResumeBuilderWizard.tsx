@@ -1067,22 +1067,64 @@ const ResumeBuilderWizardContent = () => {
   }) => {
     const { userProfile, resumeSections } = params;
 
+    console.log('[EXPORT] Building canonical resume from sections:', {
+      sectionCount: resumeSections?.length || 0,
+      sections: resumeSections?.map(s => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        hasItems: !!s.items,
+        itemsCount: s.items?.length || 0,
+        hasContent: !!s.content,
+        contentCount: s.content?.length || 0,
+        contentSample: s.content?.[0] || s.items?.[0]
+      }))
+    });
+
     // Map your existing resumeSections -> BuilderResumeSection[]
-    const builderSections: BuilderResumeSection[] = (resumeSections ?? []).map((section: any) => ({
-      id: section.id ?? section.sectionId ?? crypto.randomUUID(),
-      type: section.type ?? section.sectionType ?? section.title ?? "Other",
-      title: section.title ?? section.type ?? "Section",
-      order: section.order ?? 0,
-      items: (section.items ?? section.content ?? []).map((item: any, idx: number) => ({
+    const builderSections: BuilderResumeSection[] = (resumeSections ?? []).map((section: any) => {
+      // CRITICAL: Prefer 'items' if it exists, otherwise use 'content'
+      // Both might be arrays of objects with {id, content} or just strings
+      const sourceArray = section.items?.length > 0 ? section.items : section.content ?? [];
+      
+      const items = sourceArray.map((item: any, idx: number) => ({
         id: item.id ?? `${section.id ?? "section"}-item-${idx}`,
-        content: typeof item === "string" ? item : item.content ?? "",
+        content: typeof item === "string" ? item : (item.content ?? ""),
         order: item.order ?? idx,
-      })),
-    }));
+      }));
+
+      console.log('[EXPORT] Mapped section:', {
+        id: section.id,
+        type: section.type,
+        sourceArrayLength: sourceArray.length,
+        itemsLength: items.length,
+        itemsSample: items[0]
+      });
+
+      return {
+        id: section.id ?? section.sectionId ?? crypto.randomUUID(),
+        type: section.type ?? section.sectionType ?? section.title ?? "Other",
+        title: section.title ?? section.type ?? "Section",
+        order: section.order ?? 0,
+        items,
+      };
+    });
 
     const canonical = builderStateToCanonicalResume({
       userProfile,
       sections: builderSections,
+    });
+
+    console.log('[EXPORT] Canonical resume created:', {
+      headerName: canonical.header.fullName,
+      sectionsCount: canonical.sections.length,
+      sections: canonical.sections.map(s => ({
+        heading: s.heading,
+        type: s.type,
+        hasParagraph: !!s.paragraph,
+        bulletsCount: s.bullets.length,
+        bulletsSample: s.bullets[0]
+      }))
     });
 
     const asText = canonicalResumeToPlainText(canonical);
