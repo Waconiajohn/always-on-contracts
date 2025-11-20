@@ -148,9 +148,12 @@ export class TechnicalDocxGenerator {
 
     // Sections
     this.data.sections.forEach((section) => {
+      // Clean section title
+      const cleanTitle = this.cleanSectionTitle(section.title);
+      
       children.push(
         new Paragraph({
-          text: section.title.toUpperCase(),
+          text: cleanTitle.toUpperCase(),
           heading: HeadingLevel.HEADING_2,
         })
       );
@@ -187,6 +190,20 @@ export class TechnicalDocxGenerator {
     });
 
     return children;
+  }
+
+  private cleanSectionTitle(title: string): string {
+    if (!title) return 'SECTION';
+    
+    let clean = title.trim().replace(/\s+/g, ' ');
+    clean = clean.split(/[.,;]|and/i)[0].trim();
+    
+    if (clean.length > 30) {
+      const words = clean.split(' ');
+      clean = words.slice(0, 2).join(' ');
+    }
+    
+    return clean;
   }
 
   private createTechnicalSkills(skills: string[]): any[] {
