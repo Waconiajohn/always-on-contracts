@@ -519,7 +519,13 @@ Generate a single, cohesive result. Do NOT simply concatenate - intelligently we
         personalizedVersion: {
           content: personalizedContent,
           quality: personalizedQuality,
-          vaultItemsUsed: vault_items.length
+          vaultItemsUsed: vault_items.map((item: any) => ({
+            id: item.id || item.item_id,
+            type: item.type || item.item_type || 'vault_item',
+            content: item.content || item.stated_skill || item.power_phrase || item.inferred_capability || '',
+            qualityTier: item.quality_tier || item.qualityTier,
+            matchScore: item.matchScore || item.match_score || 0
+          }))
         },
         blendVersion: {
           content: blendContent,
