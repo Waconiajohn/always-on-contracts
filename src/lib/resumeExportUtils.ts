@@ -110,48 +110,72 @@ export const exportFormats = {
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&#x26;/g, '&')
+        .replace(/&#x27;/g, "'")
+        .replace(/&#x2F;/g, '/')
         .replace(/&#(\d+);/g, (_: string, dec: string) => String.fromCharCode(parseInt(dec)))
         .replace(/&#x([0-9a-fA-F]+);/g, (_: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
     };
 
+    // Recursively decode HTML entities in all string values
+    const deepDecodeEntities = (obj: any): any => {
+      if (typeof obj === 'string') {
+        return decodeHtmlEntities(obj);
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(deepDecodeEntities);
+      }
+      if (obj && typeof obj === 'object') {
+        const decoded: any = {};
+        for (const key in obj) {
+          decoded[key] = deepDecodeEntities(obj[key]);
+        }
+        return decoded;
+      }
+      return obj;
+    };
+
+    // Pre-process all data to decode entities
+    const cleanedData = deepDecodeEntities(structuredData);
+
     const children: any[] = [
       new Paragraph({
-        text: decodeHtmlEntities(structuredData.name || 'Resume'),
+        text: cleanedData.name || 'Resume',
         heading: HeadingLevel.HEADING_1,
         alignment: AlignmentType.CENTER,
         spacing: { after: 120 }
       }),
       new Paragraph({
-        text: decodeHtmlEntities([
-          structuredData.contact?.email || '',
-          structuredData.contact?.phone || '',
-          structuredData.contact?.location || ''
-        ].filter(Boolean).join(' | ')),
+        text: [
+          cleanedData.contact?.email || '',
+          cleanedData.contact?.phone || '',
+          cleanedData.contact?.location || ''
+        ].filter(Boolean).join(' | '),
         alignment: AlignmentType.CENTER,
         spacing: { after: 240 }
       })
     ];
 
     // Add sections with proper formatting
-    (structuredData.sections || []).forEach((section: any) => {
+    (cleanedData.sections || []).forEach((section: any) => {
       const isExperienceSection = section.title.toLowerCase().includes('experience');
       const isSkillsSection = section.title.toLowerCase().includes('skill');
 
       // Section heading
       children.push(
         new Paragraph({
-          text: decodeHtmlEntities(section.title.toUpperCase()),
+          text: section.title.toUpperCase(),
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 240, after: 120 },
           thematicBreak: false
         })
       );
 
-      // Handle paragraph content (e.g., Summary)
-      if (section.content) {
+      // Handle paragraph content (e.g., Summary) - but skip for Experience sections
+      // as they use bullets for job entries
+      if (section.content && !isExperienceSection) {
         children.push(
           new Paragraph({
-            text: decodeHtmlEntities(section.content),
+            text: section.content,
             spacing: { after: 120 }
           })
         );
@@ -164,10 +188,8 @@ export const exportFormats = {
           let currentJob: { title?: string; company?: string; bullets: string[] } | null = null;
 
           section.bullets.forEach((bullet: string) => {
-            const decoded = decodeHtmlEntities(bullet);
-            
             // Check if this is a job title (starts with # or is all caps)
-            if (decoded.startsWith('#')) {
+            if (bullet.startsWith('#')) {
               // Flush previous job if exists
               if (currentJob) {
                 const job: { title?: string; company?: string; bullets: string[] } = currentJob;
@@ -195,22 +217,22 @@ export const exportFormats = {
 
               // Start new job
               currentJob = {
-                title: decoded.replace(/^#+\s*/, '').trim(),
+                title: bullet.replace(/^#+\s*/, '').trim(),
                 company: undefined,
                 bullets: []
               };
-            } else if (currentJob && decoded.includes('|') && !decoded.startsWith('-') && !decoded.startsWith('•')) {
+            } else if (currentJob && bullet.includes('|') && !bullet.startsWith('-') && !bullet.startsWith('•')) {
               // This is likely a company | date line
-              currentJob.company = decoded;
+              currentJob.company = bullet;
             } else if (currentJob) {
               // This is a bullet for the current job
-              const cleanBullet = decoded.replace(/^[-•]\s*/, '').trim();
+              const cleanBullet = bullet.replace(/^[-•]\s*/, '').trim();
               if (cleanBullet) {
                 currentJob.bullets.push(cleanBullet);
               }
             } else {
               // No current job context, just add as bullet
-              const cleanBullet = decoded.replace(/^[-•]\s*/, '').trim();
+              const cleanBullet = bullet.replace(/^[-•]\s*/, '').trim();
               if (cleanBullet) {
                 children.push(new Paragraph({
                   text: cleanBullet,
@@ -248,7 +270,7 @@ export const exportFormats = {
         } else if (isSkillsSection) {
           // Format skills in a more compact way
           const skillsText = section.bullets
-            .map((b: string) => decodeHtmlEntities(b).replace(/^[-•]\s*/, '').trim())
+            .map((b: string) => b.replace(/^[-•]\s*/, '').trim())
             .filter(Boolean)
             .join(' • ');
           
@@ -259,8 +281,7 @@ export const exportFormats = {
         } else {
           // Regular bullets for other sections
           section.bullets.forEach((bullet: string) => {
-            const decoded = decodeHtmlEntities(bullet);
-            const cleanBullet = decoded.replace(/^[-•]\s*/, '').trim();
+            const cleanBullet = bullet.replace(/^[-•]\s*/, '').trim();
             if (cleanBullet) {
               children.push(new Paragraph({
                 text: cleanBullet,
