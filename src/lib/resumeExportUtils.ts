@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
+import { formatResumeContent } from './resumeFormatting';
 
 export const exportFormats = {
   async standardPDF(htmlContent: string, fileName: string) {
@@ -188,11 +189,16 @@ export const exportFormats = {
           let currentJob: { title?: string; company?: string; bullets: string[] } | null = null;
 
           section.bullets.forEach((bullet: string) => {
-            // Check if this is a job title (starts with # or is all caps)
-            if (bullet.startsWith('#')) {
+            // Clean HTML entities and markdown from bullet
+            const cleanedBullet = formatResumeContent(bullet);
+            
+            // Check if this is a job title (contains pipe separator for company|dates)
+            const jobTitleMatch = cleanedBullet.match(/^(.+?)\s*[|–]\s*(.+?)(?:\s*\(([^)]+)\))?$/);
+            
+            if (jobTitleMatch && !cleanedBullet.startsWith('-') && !cleanedBullet.startsWith('•')) {
               // Flush previous job if exists
-              if (currentJob) {
-                const job: { title?: string; company?: string; bullets: string[] } = currentJob;
+              if (currentJob && currentJob.bullets.length > 0) {
+                const job = currentJob;
                 if (job.title) {
                   children.push(new Paragraph({
                     text: job.title,
@@ -208,37 +214,34 @@ export const exportFormats = {
                 }
                 job.bullets.forEach((b: string) => {
                   children.push(new Paragraph({
-                    text: b,
+                    text: formatResumeContent(b),
                     bullet: { level: 0 },
                     spacing: { after: 60 }
                   }));
                 });
               }
 
-              // Start new job
+              // Start new job - parse title and company/dates
+              const [, jobTitle, companyInfo] = jobTitleMatch;
               currentJob = {
-                title: bullet.replace(/^#+\s*/, '').trim(),
-                company: undefined,
+                title: jobTitle.trim(),
+                company: companyInfo.trim(),
                 bullets: []
               };
-            } else if (currentJob && bullet.includes('|') && !bullet.startsWith('-') && !bullet.startsWith('•')) {
-              // This is likely a company | date line
-              currentJob.company = bullet;
-            } else if (currentJob) {
-              // This is a bullet for the current job
-              const cleanBullet = bullet.replace(/^[-•]\s*/, '').trim();
-              if (cleanBullet) {
-                currentJob.bullets.push(cleanBullet);
-              }
             } else {
-              // No current job context, just add as bullet
-              const cleanBullet = bullet.replace(/^[-•]\s*/, '').trim();
-              if (cleanBullet) {
-                children.push(new Paragraph({
-                  text: cleanBullet,
-                  bullet: { level: 0 },
-                  spacing: { after: 60 }
-                }));
+              // This is a bullet point
+              const bulletText = cleanedBullet.replace(/^[-•#]\s*/, '').trim();
+              if (bulletText) {
+                if (currentJob) {
+                  currentJob.bullets.push(bulletText);
+                } else {
+                  // No job context, add as standalone bullet
+                  children.push(new Paragraph({
+                    text: formatResumeContent(bulletText),
+                    bullet: { level: 0 },
+                    spacing: { after: 60 }
+                  }));
+                }
               }
             }
           });
@@ -246,31 +249,33 @@ export const exportFormats = {
           // Flush last job if exists
           if (currentJob) {
             const job: { title?: string; company?: string; bullets: string[] } = currentJob;
-            if (job.title) {
-              children.push(new Paragraph({
-                text: job.title,
-                heading: HeadingLevel.HEADING_3,
-                spacing: { before: 180, after: 60 }
-              }));
+            if (job.bullets.length > 0) {
+              if (job.title) {
+                children.push(new Paragraph({
+                  text: job.title,
+                  heading: HeadingLevel.HEADING_3,
+                  spacing: { before: 180, after: 60 }
+                }));
+              }
+              if (job.company) {
+                children.push(new Paragraph({
+                  children: [new TextRun({ text: job.company, italics: true })],
+                  spacing: { after: 60 }
+                }));
+              }
+              job.bullets.forEach((b: string) => {
+                children.push(new Paragraph({
+                  text: formatResumeContent(b),
+                  bullet: { level: 0 },
+                  spacing: { after: 60 }
+                }));
+              });
             }
-            if (job.company) {
-              children.push(new Paragraph({
-                children: [new TextRun({ text: job.company, italics: true })],
-                spacing: { after: 60 }
-              }));
-            }
-            job.bullets.forEach((b: string) => {
-              children.push(new Paragraph({
-                text: b,
-                bullet: { level: 0 },
-                spacing: { after: 60 }
-              }));
-            });
           }
         } else if (isSkillsSection) {
-          // Format skills in a more compact way
+          // Format skills in a more compact way, clean HTML entities
           const skillsText = section.bullets
-            .map((b: string) => b.replace(/^[-•]\s*/, '').trim())
+            .map((b: string) => formatResumeContent(b.replace(/^[-•]\s*/, '').trim()))
             .filter(Boolean)
             .join(' • ');
           
