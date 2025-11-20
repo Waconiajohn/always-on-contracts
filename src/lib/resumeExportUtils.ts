@@ -6,6 +6,16 @@ import { formatResumeContent } from './resumeFormatting';
 
 export const exportFormats = {
   async standardPDF(htmlContent: string, fileName: string) {
+    console.log('[EXPORT] standardPDF called with:', {
+      fileName,
+      contentLength: htmlContent?.length || 0,
+      hasContent: !!htmlContent && htmlContent.trim().length > 0
+    });
+
+    if (!htmlContent || htmlContent.trim().length === 0) {
+      throw new Error('Cannot export: Resume content is empty. Please generate your resume sections first.');
+    }
+
     const container = createContainer(htmlContent, {
       width: '8.5in',
       padding: '0.75in',
@@ -310,8 +320,37 @@ export const exportFormats = {
     saveAs(blob, `${fileName}.docx`);
   },
 
-  // Alias for generateDOCX
+  // Alias for generateDOCX with validation
   async docxExport(structuredData: any, fileName: string) {
+    console.log('[EXPORT] docxExport called with:', {
+      fileName,
+      hasSections: !!structuredData?.sections,
+      sectionsCount: structuredData?.sections?.length || 0,
+      sectionsDetail: structuredData?.sections?.map((s: any) => ({
+        type: s.type,
+        heading: s.heading,
+        hasBullets: !!s.bullets,
+        bulletsCount: s.bullets?.length || 0,
+        hasParagraph: !!s.paragraph,
+        firstBullet: s.bullets?.[0]?.substring(0, 50) || 'N/A'
+      }))
+    });
+
+    if (!structuredData || !structuredData.sections || structuredData.sections.length === 0) {
+      throw new Error('Cannot export: Resume data is empty. Please generate your resume sections first.');
+    }
+
+    const hasAnyContent = structuredData.sections.some((s: any) => 
+      (s.bullets && s.bullets.length > 0 && s.bullets.some((b: string) => b && b.trim().length > 0)) ||
+      (s.paragraph && s.paragraph.trim().length > 0)
+    );
+
+    if (!hasAnyContent) {
+      console.error('[EXPORT] No content found in sections:', structuredData.sections);
+      throw new Error('Cannot export: Resume sections have no content. Please generate content for your sections first.');
+    }
+
+    console.log('[EXPORT] Validation passed, generating DOCX...');
     return this.generateDOCX(structuredData, fileName);
   },
 

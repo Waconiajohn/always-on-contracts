@@ -512,22 +512,51 @@ const ResumeBuilderWizardContent = () => {
   };
 
   const handleSectionComplete = (sectionData: any) => {
+    console.log('[DEBUG] handleSectionComplete called with:', {
+      sectionId: sectionData.sectionId,
+      contentType: typeof sectionData.content,
+      isArray: Array.isArray(sectionData.content),
+      contentLength: Array.isArray(sectionData.content) ? sectionData.content.length : 0,
+      firstItem: Array.isArray(sectionData.content) ? sectionData.content[0] : null,
+      vaultItemsCount: sectionData.vaultItemsUsed?.length || 0
+    });
+
     // Save section content - convert to items format for BuilderResumeSection
-    setResumeSections(prev => prev.map(s => 
-      s.id === sectionData.sectionId 
-        ? { 
+    setResumeSections(prev => {
+      const updated = prev.map(s => {
+        if (s.id === sectionData.sectionId) {
+          const items = Array.isArray(sectionData.content) 
+            ? sectionData.content.map((item: any) => ({
+                id: item.id || crypto.randomUUID(),
+                content: typeof item === 'string' ? item : item.content || '',
+                order: item.order || 0
+              }))
+            : [];
+          
+          console.log('[DEBUG] Updated section:', {
+            sectionId: s.id,
+            sectionType: s.type,
+            itemsCount: items.length,
+            hasContent: items.some((item: any) => item.content && item.content.trim().length > 0)
+          });
+
+          return { 
             ...s, 
-            items: Array.isArray(sectionData.content) 
-              ? sectionData.content.map((item: any) => ({
-                  id: item.id || crypto.randomUUID(),
-                  content: typeof item === 'string' ? item : item.content || '',
-                  order: item.order || 0
-                }))
-              : [],
+            items,
             vaultItemsUsed: sectionData.vaultItemsUsed 
-          }
-        : s
-    ));
+          };
+        }
+        return s;
+      });
+
+      console.log('[DEBUG] All sections after update:', updated.map(s => ({
+        id: s.id,
+        type: s.type,
+        itemsCount: s.items?.length || 0
+      })));
+
+      return updated;
+    });
 
     const format = getFormat(selectedFormat || 'executive');
     if (!format) return;
@@ -777,26 +806,49 @@ const ResumeBuilderWizardContent = () => {
       return;
     }
     
-    // Check if sections have actual content
-    const hasContent = resumeSections.some(s => 
-      Array.isArray(s.items) && s.items.length > 0
-    );
-    
-    if (!hasContent) {
-      console.error('[ATS] No section content found. Section structure:', resumeSections.map(s => ({
+    // Check if sections have actual content with detailed logging
+    console.log('[ATS] Checking resume sections:', {
+      sectionsCount: resumeSections.length,
+      sections: resumeSections.map(s => ({
         id: s.id,
         type: s.type,
         hasItems: Array.isArray(s.items),
-        itemsLength: s.items?.length || 0
+        itemsLength: s.items?.length || 0,
+        firstItemContent: s.items?.[0]?.content?.substring(0, 100) || 'N/A',
+        itemsWithContent: s.items?.filter((i: any) => i.content && i.content.trim().length > 0).length || 0
+      }))
+    });
+
+    const hasContent = resumeSections.some(s => 
+      Array.isArray(s.items) && 
+      s.items.length > 0 && 
+      s.items.some((item: any) => item.content && item.content.trim().length > 0)
+    );
+    
+    if (!hasContent) {
+      console.error('[ATS] No section content found. Detailed structure:', resumeSections.map(s => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        hasItems: Array.isArray(s.items),
+        itemsLength: s.items?.length || 0,
+        itemsDetail: s.items?.map((item: any) => ({
+          id: item.id,
+          hasContent: !!item.content,
+          contentLength: item.content?.length || 0,
+          contentPreview: item.content?.substring(0, 50) || ''
+        }))
       })));
       
       toast({
         title: "Cannot analyze ATS score",
-        description: "Resume sections are empty. Please complete at least one section first.",
+        description: "Resume sections are empty. Please generate content for your sections first.",
         variant: "destructive"
       });
       return;
     }
+
+    console.log('[ATS] Content validation passed, proceeding with analysis');
 
     setAnalyzingATS(true);
 
