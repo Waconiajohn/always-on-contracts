@@ -116,7 +116,20 @@ export const exportFormats = {
   },
 
   async generateDOCX(structuredData: any, fileName: string, templateId?: string) {
-    console.log('[EXPORT] generateDOCX called with templateId:', templateId);
+    console.log('[EXPORT] generateDOCX called with:', {
+      templateId,
+      name: structuredData.name,
+      sectionsCount: structuredData.sections?.length || 0,
+      sections: structuredData.sections?.map((s: any) => ({
+        title: s.title,
+        type: s.type,
+        hasContent: !!s.content,
+        contentLength: s.content?.length || 0,
+        hasBullets: !!s.bullets,
+        bulletsCount: s.bullets?.length || 0,
+        bulletsSample: s.bullets?.[0]?.substring(0, 50)
+      }))
+    });
 
     const resumeData = {
       header: {
@@ -152,6 +165,7 @@ export const exportFormats = {
       }
 
       if (doc) {
+        console.log('[EXPORT] Template generator succeeded, creating blob');
         const blob = await Packer.toBlob(doc);
         saveAs(blob, `${fileName}.docx`);
         return;

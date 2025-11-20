@@ -152,6 +152,19 @@ export class ExecutiveDocxGenerator {
   private buildContent(): any[] {
     const children: any[] = [];
 
+    console.log('[ExecutiveTemplate] buildContent called with:', {
+      fullName: this.data.header.fullName,
+      sectionsCount: this.data.sections.length,
+      sections: this.data.sections.map(s => ({
+        title: s.title,
+        type: s.type,
+        hasContent: !!s.content,
+        hasBullets: !!s.bullets,
+        bulletsCount: s.bullets?.length || 0,
+        bulletsSample: s.bullets?.[0]?.substring(0, 50)
+      }))
+    });
+
     // Header
     children.push(
       new Paragraph({
