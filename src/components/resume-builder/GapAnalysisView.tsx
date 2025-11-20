@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { GapSolutionsCard } from "./GapSolutionsCard";
 import { VisualResumePreview } from "./VisualResumePreview";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface GapAnalysisViewProps {
@@ -226,69 +225,66 @@ export const GapAnalysisView = ({
                 }
 
                 return (
-                  <Collapsible
+                  <div
                     key={index}
-                    open={isExpanded}
-                    onOpenChange={() => toggleGap(index)}
                     className={`border rounded-lg transition-all ${
                       isExpanded ? 'col-span-full' : ''
                     }`}
                   >
-                    <CollapsibleTrigger asChild>
-                      <Card className={`p-4 cursor-pointer hover:shadow-md transition-all ${
+                    <Card 
+                      className={`p-4 cursor-pointer hover:shadow-md hover:border-primary/50 transition-all ${
                         isAddressed ? 'border-success/50 bg-success/5' : 'border-border'
-                      }`}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              {isAddressed ? (
-                                <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
-                              ) : (
-                                <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
-                              )}
-                              <Badge variant="outline" className="text-xs">
-                                {isAddressed ? 'Addressed' : 'Needs Attention'}
-                              </Badge>
-                            </div>
-                            <p className="text-sm font-medium line-clamp-3">
-                              {requirement}
-                            </p>
+                      }`}
+                      onClick={() => toggleGap(index)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            {isAddressed ? (
+                              <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
+                            )}
+                            <Badge variant="outline" className="text-xs">
+                              {isAddressed ? 'Addressed' : 'Needs Attention'}
+                            </Badge>
                           </div>
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                          )}
+                          <p className="text-sm font-medium line-clamp-3">
+                            {requirement}
+                          </p>
                         </div>
-                        {!isExpanded && (
-                          <Button
-                            size="sm"
-                            variant={isAddressed ? "outline" : "default"}
-                            className="w-full mt-3"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleGap(index);
-                            }}
-                          >
-                            {isAddressed ? 'Review Solution' : 'Address This'}
-                          </Button>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                         )}
-                      </Card>
-                    </CollapsibleTrigger>
+                      </div>
+                      {!isExpanded && (
+                        <Button
+                          size="sm"
+                          variant={isAddressed ? "outline" : "default"}
+                          className="w-full mt-3 pointer-events-none"
+                        >
+                          {isAddressed ? 'Review Solution' : 'Address This'}
+                        </Button>
+                      )}
+                    </Card>
                     
-                    <CollapsibleContent className="mt-4">
-                      <GapSolutionsCard
-                        requirement={requirement}
-                        vaultMatches={vaultMatches}
-                        jobContext={{
-                          title: jobAnalysis?.roleProfile?.title || 'this role',
-                          industry: jobAnalysis?.roleProfile?.industry || 'your industry',
-                          seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level'
-                        }}
-                        onUseSuggestion={(solution, action) => handleUseSuggestion(index, solution, action)}
-                      />
-                    </CollapsibleContent>
-                  </Collapsible>
+                    {isExpanded && (
+                      <div className="mt-4 animate-in slide-in-from-top-2">
+                        <GapSolutionsCard
+                          requirement={requirement}
+                          vaultMatches={vaultMatches}
+                          jobContext={{
+                            title: jobAnalysis?.roleProfile?.title || 'this role',
+                            industry: jobAnalysis?.roleProfile?.industry || 'your industry',
+                            seniority: jobAnalysis?.roleProfile?.seniority || 'mid-level'
+                          }}
+                          onUseSuggestion={(solution, action) => handleUseSuggestion(index, solution, action)}
+                        />
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
