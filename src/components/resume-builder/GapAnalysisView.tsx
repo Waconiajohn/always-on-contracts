@@ -48,6 +48,27 @@ export const GapAnalysisView = ({
   const matchedCount = totalRequirements - unmatchedRequirements.length;
   const gapCount = unmatchedRequirements.length;
   
+  // Log gap analysis data for debugging
+  console.log('[GAP ANALYSIS] Rendering with:', {
+    totalRequirements,
+    matchedCount,
+    gapCount,
+    unmatchedRequirementsCount: unmatchedRequirements.length,
+    firstFiveRequirements: unmatchedRequirements.slice(0, 5),
+    allRequirementsValid: unmatchedRequirements.every(r => r && typeof r === 'string' && r.trim().length > 0),
+    emptyRequirementsCount: unmatchedRequirements.filter(r => !r || typeof r !== 'string' || r.trim() === '').length
+  });
+  
+  // Log gap analysis data for debugging
+  console.log('[GAP ANALYSIS] Rendering with:', {
+    totalRequirements,
+    matchedCount,
+    gapCount,
+    unmatchedRequirementsCount: unmatchedRequirements.length,
+    unmatchedRequirements: unmatchedRequirements.slice(0, 5), // First 5 for debugging
+    allRequirements: unmatchedRequirements
+  });
+  
   // Track which gaps are expanded and addressed
   const [expandedGaps, setExpandedGaps] = useState<Record<number, boolean>>({});
   const [addressedGaps, setAddressedGaps] = useState<Record<number, boolean>>({});
