@@ -190,9 +190,12 @@ export class ExecutiveDocxGenerator {
 
     // Sections
     this.data.sections.forEach((section) => {
+      // Clean section title - take only the first line/word that's capitalized
+      const cleanTitle = this.cleanSectionTitle(section.title);
+      
       children.push(
         new Paragraph({
-          text: section.title.toUpperCase(),
+          text: cleanTitle.toUpperCase(),
           heading: HeadingLevel.HEADING_2,
         })
       );
@@ -229,6 +232,24 @@ export class ExecutiveDocxGenerator {
     });
 
     return children;
+  }
+
+  private cleanSectionTitle(title: string): string {
+    if (!title) return 'SECTION';
+    
+    // Remove extra whitespace and newlines
+    let clean = title.trim().replace(/\s+/g, ' ');
+    
+    // Take only the first sentence/clause before punctuation or "and"
+    clean = clean.split(/[.,;]|and/i)[0].trim();
+    
+    // If it's more than 30 chars, it's probably corrupted - take first 1-2 words
+    if (clean.length > 30) {
+      const words = clean.split(' ');
+      clean = words.slice(0, 2).join(' ');
+    }
+    
+    return clean;
   }
 
   private createSkillsGrid(skills: string[]): Table {
