@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 
 export const exportFormats = {
@@ -101,19 +101,32 @@ export const exportFormats = {
   },
 
   async generateDOCX(structuredData: any, fileName: string) {
+    // Helper to decode HTML entities
+    const decodeHtmlEntities = (text: string): string => {
+      if (!text) return '';
+      return text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#x26;/g, '&')
+        .replace(/&#(\d+);/g, (_: string, dec: string) => String.fromCharCode(parseInt(dec)))
+        .replace(/&#x([0-9a-fA-F]+);/g, (_: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    };
+
     const children: any[] = [
       new Paragraph({
-        text: structuredData.name || 'Resume',
+        text: decodeHtmlEntities(structuredData.name || 'Resume'),
         heading: HeadingLevel.HEADING_1,
         alignment: AlignmentType.CENTER,
         spacing: { after: 120 }
       }),
       new Paragraph({
-        text: [
+        text: decodeHtmlEntities([
           structuredData.contact?.email || '',
           structuredData.contact?.phone || '',
           structuredData.contact?.location || ''
-        ].filter(Boolean).join(' | '),
+        ].filter(Boolean).join(' | ')),
         alignment: AlignmentType.CENTER,
         spacing: { after: 240 }
       })
@@ -121,20 +134,24 @@ export const exportFormats = {
 
     // Add sections with proper formatting
     (structuredData.sections || []).forEach((section: any) => {
+      const isExperienceSection = section.title.toLowerCase().includes('experience');
+      const isSkillsSection = section.title.toLowerCase().includes('skill');
+
       // Section heading
       children.push(
         new Paragraph({
-          text: section.title.toUpperCase(),
+          text: decodeHtmlEntities(section.title.toUpperCase()),
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 240, after: 120 }
+          spacing: { before: 240, after: 120 },
+          thematicBreak: false
         })
       );
 
-      // Handle paragraph content
+      // Handle paragraph content (e.g., Summary)
       if (section.content) {
         children.push(
           new Paragraph({
-            text: section.content,
+            text: decodeHtmlEntities(section.content),
             spacing: { after: 120 }
           })
         );
@@ -142,15 +159,117 @@ export const exportFormats = {
 
       // Handle bullet points
       if (section.bullets && Array.isArray(section.bullets) && section.bullets.length > 0) {
-        section.bullets.forEach((bullet: string) => {
-          children.push(
-            new Paragraph({
-              text: bullet,
-              bullet: { level: 0 },
-              spacing: { after: 60 }
-            })
-          );
-        });
+        if (isExperienceSection) {
+          // Parse experience bullets which may contain job entries
+          let currentJob: { title?: string; company?: string; bullets: string[] } | null = null;
+
+          section.bullets.forEach((bullet: string) => {
+            const decoded = decodeHtmlEntities(bullet);
+            
+            // Check if this is a job title (starts with # or is all caps)
+            if (decoded.startsWith('#')) {
+              // Flush previous job if exists
+              if (currentJob) {
+                const job: { title?: string; company?: string; bullets: string[] } = currentJob;
+                if (job.title) {
+                  children.push(new Paragraph({
+                    text: job.title,
+                    heading: HeadingLevel.HEADING_3,
+                    spacing: { before: 180, after: 60 }
+                  }));
+                }
+                if (job.company) {
+                  children.push(new Paragraph({
+                    children: [new TextRun({ text: job.company, italics: true })],
+                    spacing: { after: 60 }
+                  }));
+                }
+                job.bullets.forEach((b: string) => {
+                  children.push(new Paragraph({
+                    text: b,
+                    bullet: { level: 0 },
+                    spacing: { after: 60 }
+                  }));
+                });
+              }
+
+              // Start new job
+              currentJob = {
+                title: decoded.replace(/^#+\s*/, '').trim(),
+                company: undefined,
+                bullets: []
+              };
+            } else if (currentJob && decoded.includes('|') && !decoded.startsWith('-') && !decoded.startsWith('•')) {
+              // This is likely a company | date line
+              currentJob.company = decoded;
+            } else if (currentJob) {
+              // This is a bullet for the current job
+              const cleanBullet = decoded.replace(/^[-•]\s*/, '').trim();
+              if (cleanBullet) {
+                currentJob.bullets.push(cleanBullet);
+              }
+            } else {
+              // No current job context, just add as bullet
+              const cleanBullet = decoded.replace(/^[-•]\s*/, '').trim();
+              if (cleanBullet) {
+                children.push(new Paragraph({
+                  text: cleanBullet,
+                  bullet: { level: 0 },
+                  spacing: { after: 60 }
+                }));
+              }
+            }
+          });
+
+          // Flush last job if exists
+          if (currentJob) {
+            const job: { title?: string; company?: string; bullets: string[] } = currentJob;
+            if (job.title) {
+              children.push(new Paragraph({
+                text: job.title,
+                heading: HeadingLevel.HEADING_3,
+                spacing: { before: 180, after: 60 }
+              }));
+            }
+            if (job.company) {
+              children.push(new Paragraph({
+                children: [new TextRun({ text: job.company, italics: true })],
+                spacing: { after: 60 }
+              }));
+            }
+            job.bullets.forEach((b: string) => {
+              children.push(new Paragraph({
+                text: b,
+                bullet: { level: 0 },
+                spacing: { after: 60 }
+              }));
+            });
+          }
+        } else if (isSkillsSection) {
+          // Format skills in a more compact way
+          const skillsText = section.bullets
+            .map((b: string) => decodeHtmlEntities(b).replace(/^[-•]\s*/, '').trim())
+            .filter(Boolean)
+            .join(' • ');
+          
+          children.push(new Paragraph({
+            text: skillsText,
+            spacing: { after: 120 }
+          }));
+        } else {
+          // Regular bullets for other sections
+          section.bullets.forEach((bullet: string) => {
+            const decoded = decodeHtmlEntities(bullet);
+            const cleanBullet = decoded.replace(/^[-•]\s*/, '').trim();
+            if (cleanBullet) {
+              children.push(new Paragraph({
+                text: cleanBullet,
+                bullet: { level: 0 },
+                spacing: { after: 60 }
+              }));
+            }
+          });
+        }
       }
     });
 
