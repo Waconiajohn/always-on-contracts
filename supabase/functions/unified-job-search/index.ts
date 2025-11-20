@@ -182,8 +182,8 @@ serve(async (req) => {
           .then(result => {
             googleJobsNextPageToken = result.nextPageToken;
             sourceStats.google_jobs = { count: result.jobs.length, status: 'success' };
-            // Mark jobs as coming from location-aware source
-            return result.jobs.map(job => ({ ...job, _source: 'google_jobs', _locationAware: true }));
+            // Mark source for debugging
+            return result.jobs.map(job => ({ ...job, _source: 'google_jobs' }));
           })
           .catch(error => {
             console.error('[Google Jobs] ❌ CRITICAL ERROR:', error);
@@ -382,17 +382,28 @@ serve(async (req) => {
       const beforeLocationFilter = uniqueJobs.length;
       const locationLower = location.toLowerCase().trim();
       
-      // Extract city and state from location string (e.g., "Minneapolis, MN")
-      const locationParts = locationLower.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
+      // Extract city and state from location string (e.g., "Minneapolis, MN" or "Denver Colorado")
+      // Split by comma first, then try to identify city/state pattern
+      let locationParts: string[] = [];
+      if (locationLower.includes(',')) {
+        // Standard format: "City, State"
+        locationParts = locationLower.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
+      } else {
+        // No comma format: "Denver Colorado" - split by space and take last word as state
+        const words = locationLower.split(/\s+/).filter((w: string) => w.length > 0);
+        if (words.length >= 2) {
+          const possibleState = words[words.length - 1];
+          const possibleCity = words.slice(0, -1).join(' ');
+          locationParts = [possibleCity, possibleState];
+        } else {
+          // Single word - treat as city or state
+          locationParts = words;
+        }
+      }
+      
+      console.log(`[Location Filter] Parsed "${location}" into parts:`, locationParts);
       
       locationFilteredJobs = uniqueJobs.filter(job => {
-        // Skip location filtering for jobs from location-aware sources (like Google Jobs)
-        // These sources already filtered by location correctly
-        if ((job as any)._locationAware) {
-          console.log(`[Location Filter] ✅ Keeping "${job.title}" - from location-aware source (Google Jobs)`);
-          return true;
-        }
-        
         // If no location specified, filter out unless explicitly remote and user wants remote
         if (!job.location || job.location.trim() === '') {
           const isRemoteJob = job.remote_type && job.remote_type.toLowerCase() === 'remote';
