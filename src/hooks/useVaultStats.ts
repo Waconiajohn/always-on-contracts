@@ -17,6 +17,9 @@ export interface VaultStats {
   strengthScore: StrengthScore;
   qualityDistribution: QualityDistribution;
   totalItems: number;
+  workPositionsCount: number;
+  educationCount: number;
+  milestonesCount: number;
   categoryCounts: {
     powerPhrases: number;
     transferableSkills: number;
@@ -50,6 +53,9 @@ export const useVaultStats = (vaultData: VaultData | undefined): VaultStats | nu
       workStyle,
       values,
       behavioralIndicators,
+      workPositions,
+      education,
+      milestones,
     } = vaultData;
 
     // Calculate quality distribution
@@ -148,6 +154,9 @@ export const useVaultStats = (vaultData: VaultData | undefined): VaultStats | nu
       strengthScore,
       qualityDistribution,
       totalItems: allItems.length,
+      workPositionsCount: workPositions.length,
+      educationCount: education.length,
+      milestonesCount: milestones.length,
       categoryCounts: {
         powerPhrases: powerPhrases.length,
         transferableSkills: transferableSkills.length,
