@@ -772,8 +772,11 @@ export type Database = {
           career_direction: string | null
           created_at: string
           excluded_industries: string[] | null
+          extraction_completeness_score: number | null
           extraction_item_count: number | null
+          extraction_quality: string | null
           extraction_run_id: string | null
+          extraction_status: string | null
           extraction_timestamp: string | null
           focus_set_at: string | null
           gap_analysis: Json | null
@@ -818,8 +821,11 @@ export type Database = {
           career_direction?: string | null
           created_at?: string
           excluded_industries?: string[] | null
+          extraction_completeness_score?: number | null
           extraction_item_count?: number | null
+          extraction_quality?: string | null
           extraction_run_id?: string | null
+          extraction_status?: string | null
           extraction_timestamp?: string | null
           focus_set_at?: string | null
           gap_analysis?: Json | null
@@ -864,8 +870,11 @@ export type Database = {
           career_direction?: string | null
           created_at?: string
           excluded_industries?: string[] | null
+          extraction_completeness_score?: number | null
           extraction_item_count?: number | null
+          extraction_quality?: string | null
           extraction_run_id?: string | null
+          extraction_status?: string | null
           extraction_timestamp?: string | null
           focus_set_at?: string | null
           gap_analysis?: Json | null
