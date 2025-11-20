@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Loader2, Edit2, Save, X, CheckCircle2, Lightbulb, Bookmark, BookmarkCheck } from "lucide-react";
+import { Plus, Loader2, Edit2, Save, X, CheckCircle2, Lightbulb, Bookmark, BookmarkCheck, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { invokeEdgeFunction, GenerateGapSolutionsSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
@@ -42,12 +42,14 @@ export const GapSolutionsCard = ({
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [solutions, setSolutions] = useState<GapSolution[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
   const [actionTaken, setActionTaken] = useState<Record<string, 'resume-only' | 'vault' | null>>({});
 
   const handleGenerateSolutions = async () => {
     setIsGenerating(true);
+    setError(null);
     
     try {
       const payload = {
@@ -58,8 +60,12 @@ export const GapSolutionsCard = ({
         seniority: jobContext.seniority
       };
 
+      console.log('[GapSolutions] Generating solutions for:', requirement.substring(0, 50) + '...');
+
       const validation = safeValidateInput(GenerateGapSolutionsSchema, payload);
       if (!validation.success) {
+        console.error('[GapSolutions] Validation failed:', validation.error);
+        setError('Invalid request data. Please try again.');
         setIsGenerating(false);
         return;
       }
@@ -70,15 +76,27 @@ export const GapSolutionsCard = ({
       );
 
       if (error) {
+        console.error('[GapSolutions] Edge function error:', error);
         logger.error('Failed to generate gap solutions', error);
+        setError(error.message || 'Failed to generate solutions. Please try again.');
         setIsGenerating(false);
         return;
       }
 
-      setSolutions(data?.solutions || []);
+      if (!data || !data.solutions || data.solutions.length === 0) {
+        console.warn('[GapSolutions] No solutions returned');
+        setError('No solutions were generated. Please try again or skip this requirement.');
+        setIsGenerating(false);
+        return;
+      }
 
-    } catch (error) {
+      console.log('[GapSolutions] Generated', data.solutions.length, 'solutions');
+      setSolutions(data.solutions);
+
+    } catch (error: any) {
+      console.error('[GapSolutions] Unexpected error:', error);
       logger.error('Error generating gap solutions', error);
+      setError(error?.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -135,6 +153,29 @@ export const GapSolutionsCard = ({
           <div className="flex flex-col items-center justify-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Generating AI solutions...</p>
+          </div>
+        </Card>
+      ) : error ? (
+        <Card className="p-6 border-destructive/50 bg-destructive/5">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="rounded-full bg-destructive/10 p-3">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+            </div>
+            <div className="space-y-2">
+              <p className="font-medium text-destructive">Failed to Generate Solutions</p>
+              <p className="text-sm text-muted-foreground max-w-md">
+                {error}
+              </p>
+            </div>
+            <Button 
+              onClick={handleGenerateSolutions}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Loader2 className="h-4 w-4" />
+              Try Again
+            </Button>
           </div>
         </Card>
       ) : solutions.length > 0 ? (
@@ -300,7 +341,30 @@ export const GapSolutionsCard = ({
             </TabsContent>
           ))}
         </Tabs>
-      ) : null}
+      ) : (
+        <Card className="p-6 border-muted">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Lightbulb className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <p className="font-medium">No Solutions Available</p>
+              <p className="text-sm text-muted-foreground max-w-md">
+                We couldn't generate solutions for this requirement yet.
+              </p>
+            </div>
+            <Button 
+              onClick={handleGenerateSolutions}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Loader2 className="h-4 w-4" />
+              Generate Solutions
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
