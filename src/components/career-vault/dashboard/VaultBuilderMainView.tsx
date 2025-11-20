@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,8 @@ import {
   Settings,
   AlertTriangle,
   Info,
-  Zap
+  Zap,
+  Shield
 } from "lucide-react";
 import { VaultSectionBuilder } from './VaultSectionBuilder';
 import { VaultSectionDetailView } from '../vault-detail/VaultSectionDetailView';
@@ -56,6 +58,7 @@ export function VaultBuilderMainView({
   stats,
   onVaultUpdated
 }: VaultBuilderMainViewProps) {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<SectionKey>('work_experience');
   const [detailViewSection, setDetailViewSection] = useState<string | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
@@ -197,14 +200,27 @@ export function VaultBuilderMainView({
   return (
     <div className="space-y-8">
       {/* Quick Stats Overview */}
-      <VaultQuickStats 
-        totalItems={stats.totalItems}
-        interviewProgress={vaultData.vault?.interview_completion_percentage || 0}
-        strengthScore={stats.strengthScore.total}
-        lastUpdated={vaultData.vault?.last_updated_at}
-        workPositionsCount={stats.workPositionsCount}
-        educationCount={stats.educationCount}
-      />
+      <div className="flex items-center justify-between">
+        <VaultQuickStats 
+          totalItems={stats.totalItems}
+          interviewProgress={vaultData.vault?.interview_completion_percentage || 0}
+          strengthScore={stats.strengthScore.total}
+          lastUpdated={vaultData.vault?.last_updated_at}
+          workPositionsCount={stats.workPositionsCount}
+          educationCount={stats.educationCount}
+        />
+        
+        {/* Admin/Dev Tool: Data Verification */}
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => navigate('/resume-data-audit')}
+          className="gap-2"
+        >
+          <Shield className="h-4 w-4" />
+          Verify Data
+        </Button>
+      </div>
 
       {/* Work History Timeline */}
       <WorkHistoryTimeline workPositions={vaultData.workPositions} />
