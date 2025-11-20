@@ -5474,6 +5474,7 @@ export type Database = {
         Row: {
           company_name: string | null
           completion_percentage: number | null
+          confidence_score: number | null
           created_at: string | null
           date_display_preference: string | null
           description: string | null
@@ -5497,6 +5498,7 @@ export type Database = {
         Insert: {
           company_name?: string | null
           completion_percentage?: number | null
+          confidence_score?: number | null
           created_at?: string | null
           date_display_preference?: string | null
           description?: string | null
@@ -5520,6 +5522,7 @@ export type Database = {
         Update: {
           company_name?: string | null
           completion_percentage?: number | null
+          confidence_score?: number | null
           created_at?: string | null
           date_display_preference?: string | null
           description?: string | null
