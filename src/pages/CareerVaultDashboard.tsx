@@ -214,7 +214,6 @@ const CareerVaultDashboardContent = () => {
       {vaultData && (
         <VaultBuilderMainView
           vaultId={vault.id}
-          vault={vault}
           benchmark={benchmark}
           stats={stats}
           vaultData={vaultData}
