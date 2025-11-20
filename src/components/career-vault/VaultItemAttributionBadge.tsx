@@ -52,21 +52,36 @@ export const VaultItemAttributionBadge = ({
     }
   };
 
+  const getCategoryDisplay = (category: string) => {
+    const categoryMap: Record<string, string> = {
+      'power_phrases': 'Power Phrase',
+      'work_positions': 'Work Experience',
+      'technical_skills': 'Technical Skill',
+      'soft_skills': 'Soft Skill',
+      'leadership': 'Leadership',
+      'achievements': 'Achievement',
+      'certifications': 'Certification',
+      'projects': 'Project',
+      'education': 'Education'
+    };
+    return categoryMap[category] || category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   if (compact) {
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge className={`${getQualityColor(vaultItem.qualityTier)} cursor-help text-xs`}>
+            <Badge className={`${getQualityColor(vaultItem.qualityTier)} cursor-help text-xs max-w-full`}>
               {getQualityIcon(vaultItem.qualityTier)}
-              <span className="ml-1">{vaultItem.category}</span>
+              <span className="ml-1 truncate">{vaultItem.excerpt.substring(0, 50)}...</span>
             </Badge>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent className="max-w-xs">
             <div className="text-xs space-y-1">
-              <p className="font-semibold">From: {vaultItem.category}</p>
-              <p className="text-muted-foreground">{vaultItem.excerpt.substring(0, 60)}...</p>
-              <p className="text-xs">Quality: {vaultItem.qualityTier}</p>
+              <p className="font-semibold">{getCategoryDisplay(vaultItem.category)}</p>
+              <p className="text-muted-foreground">{vaultItem.excerpt.substring(0, 120)}...</p>
+              <p className="text-xs capitalize">Quality: {vaultItem.qualityTier}</p>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -82,7 +97,7 @@ export const VaultItemAttributionBadge = ({
       </Badge>
       
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium">{vaultItem.category}</p>
+        <p className="text-xs font-medium">{getCategoryDisplay(vaultItem.category)}</p>
         <p className="text-xs text-muted-foreground truncate">
           {vaultItem.excerpt}
         </p>
