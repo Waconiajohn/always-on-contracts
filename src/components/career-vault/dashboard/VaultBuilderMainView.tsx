@@ -36,7 +36,6 @@ import type { VaultData } from '@/hooks/useVaultData';
 
 interface VaultBuilderMainViewProps {
   vaultId: string;
-  vault: any;
   benchmark: any;
   stats: any;
   vaultData: VaultData;
