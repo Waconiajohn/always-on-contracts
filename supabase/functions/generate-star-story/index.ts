@@ -63,6 +63,30 @@ serve(async (req) => {
     });
 
     // Fetch Career Vault intelligence
+    const { data: vaultRecord } = await supabase
+      .from('career_vault')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    let workPositions: any[] = [];
+    let resumeMilestones: any[] = [];
+    
+    if (vaultRecord) {
+      const [workPos, miles] = await Promise.all([
+        supabase.from('vault_work_positions').select('*').eq('vault_id', vaultRecord.id).order('start_date', { ascending: false }),
+        supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultRecord.id).order('created_at', { ascending: false })
+      ]);
+      
+      workPositions = workPos.data || [];
+      resumeMilestones = miles.data || [];
+      
+      logger.info('Work history loaded', {
+        positions: workPositions.length,
+        milestones: resumeMilestones.length
+      });
+    }
+
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
       'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
@@ -77,6 +101,23 @@ serve(async (req) => {
         leadershipEvidence: intelligence.counts.leadershipExamples
       });
     }
+
+    // Build Work History context for grounding stories
+    const workHistoryContext = workPositions.length > 0 
+      ? `ACTUAL WORK HISTORY (use these real companies and titles):
+${workPositions.slice(0, 5).map((wp: any) => 
+  `- ${wp.job_title} at ${wp.company_name} (${wp.start_date || '?'} to ${wp.end_date || 'Present'})`
+).join('\n')}
+`
+      : '';
+
+    const milestonesContext = resumeMilestones.length > 0
+      ? `VERIFIED ACHIEVEMENTS WITH METRICS:
+${resumeMilestones.slice(0, 10).map((m: any) => 
+  `- ${m.milestone_title || m.description}: ${m.metric_value || ''} ${m.context || ''}`
+).join('\n')}
+`
+      : '';
 
     // Build Career Vault context
     let vaultContext = '';
@@ -99,6 +140,9 @@ serve(async (req) => {
 
       vaultContext = `
 CAREER VAULT INTELLIGENCE (Ground Your Story in Real Achievements):
+
+${workHistoryContext}
+${milestonesContext}
 
 REAL PROJECTS (${intelligence.counts.projects} total):
 ${projects}

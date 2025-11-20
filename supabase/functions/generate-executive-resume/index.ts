@@ -47,7 +47,31 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    // Step 2: Get ALL vault intelligence (get-vault-data fetches all 10 tables)
+    // Step 2: Get career vault ID
+    const { data: vaultRecord } = await supabase
+      .from('career_vault')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!vaultRecord) {
+      throw new Error('Career Vault not found. Please complete vault setup first.');
+    }
+
+    // Fetch work positions, education, and milestones
+    const [workPositionsData, educationData, milestonesData] = await Promise.all([
+      supabase.from('vault_work_positions').select('*').eq('vault_id', vaultRecord.id),
+      supabase.from('vault_education').select('*').eq('vault_id', vaultRecord.id),
+      supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultRecord.id)
+    ]);
+
+    const workPositions = workPositionsData.data || [];
+    const education = educationData.data || [];
+    const resumeMilestones = milestonesData.data || [];
+
+    console.log(`[GENERATE-EXECUTIVE] Found ${workPositions.length} positions, ${education.length} education, ${resumeMilestones.length} milestones`);
+
+    // Step 3: Get ALL vault intelligence (get-vault-data fetches all 10 tables)
     const { data: vaultData, error: vaultError } = await supabase.functions.invoke('get-vault-data', {
       body: { userId: user.id },
       headers: { Authorization: authHeader }
@@ -59,7 +83,7 @@ serve(async (req) => {
 
     const intelligence = vaultData.data.intelligence;
 
-    // Step 3: Analyze job description
+    // Step 4: Analyze job description
     const { data: jobAnalysis, error: analysisError } = await supabase.functions.invoke('analyze-job-qualifications', {
       body: { jobDescription }
     });
@@ -68,9 +92,29 @@ serve(async (req) => {
       throw new Error('Failed to analyze job description');
     }
 
-    console.log('[GENERATE-RESUME] Job analysis complete, starting AI generation');
+    console.log('[GENERATE-EXECUTIVE] Job analysis complete, starting AI generation');
 
-    // Step 4: PASS 1 - Initial Resume Generation
+    // Build structured context from work positions, education, and milestones
+    const workHistoryContext = workPositions.length > 0 
+      ? `ACTUAL WORK HISTORY (${workPositions.length} positions):
+${workPositions.map((wp: any) => `- ${wp.job_title} at ${wp.company_name} (${wp.start_date || '?'} to ${wp.end_date || 'Present'})
+  ${wp.description || ''}`).join('\n')}
+`
+      : '';
+
+    const educationContext = education.length > 0
+      ? `EDUCATION:
+${education.map((ed: any) => `- ${ed.degree_type} in ${ed.field_of_study || 'N/A'} from ${ed.institution_name} (${ed.graduation_year || 'N/A'})`).join('\n')}
+`
+      : '';
+
+    const milestonesContext = resumeMilestones.length > 0
+      ? `VERIFIED ACHIEVEMENTS WITH METRICS:
+${resumeMilestones.slice(0, 20).map((m: any) => `- ${m.milestone_title || m.description}: ${m.metric_value || ''} ${m.context || ''}`).join('\n')}
+`
+      : '';
+
+    // Step 5: PASS 1 - Initial Resume Generation
     const systemPrompt = `You are an elite executive resume writer specializing in $100K-$500K roles. Create powerful, ATS-optimized resumes that demonstrate strategic value and quantifiable impact. Return plain text resumes.`;
     
     const pass1Prompt = `Generate an executive resume:
@@ -88,6 +132,10 @@ ATS Keywords: ${jobAnalysis.atsKeywords.join(', ')}
 ${jobAnalysis.hiringManagerPerspective.keyPriorities.map((p: string) => `- ${p}`).join('\n')}
 
 Ideal Candidate: ${jobAnalysis.hiringManagerPerspective.idealCandidate}
+
+${workHistoryContext}
+${educationContext}
+${milestonesContext}
 
 **CANDIDATE INTELLIGENCE (ALL 20 CATEGORIES):**
 
