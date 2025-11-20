@@ -496,7 +496,7 @@ const ResumeBuilderWizardContent = () => {
           id: section.id,
           type: section.type,
           title: section.title,
-          content: [],
+          items: [],  // Use 'items' instead of 'content' to match BuilderResumeSection
           order: section.order,
           required: section.required,
           vaultItemsUsed: [],
@@ -617,7 +617,7 @@ const ResumeBuilderWizardContent = () => {
         id: section.id,
         type: section.type,
         title: section.title,
-        content: [],
+        items: [],  // Use 'items' instead of 'content' to match BuilderResumeSection
         order: section.order,
         required: section.required,
         vaultItemsUsed: [],
@@ -820,7 +820,7 @@ const ResumeBuilderWizardContent = () => {
         type: section.type ?? section.sectionType ?? section.title ?? "Other",
         title: section.title ?? section.type ?? "Section",
         order: section.order ?? 0,
-        items: (section.content ?? []).map((item: any, idx: number) => ({
+        items: (section.items ?? section.content ?? []).map((item: any, idx: number) => ({
           id: item.id ?? `${section.id ?? "section"}-item-${idx}`,
           content: typeof item === "string" ? item : item.content ?? "",
           order: item.order ?? idx,
