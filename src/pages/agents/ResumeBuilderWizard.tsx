@@ -64,6 +64,13 @@ const ResumeBuilderWizardContent = () => {
   const [resumeSections, setResumeSections] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>({});
 
+  // Sync local sections to store for ResumeWorkspace
+  useEffect(() => {
+    if (resumeSections.length > 0) {
+      store.setResumeSections(resumeSections);
+    }
+  }, [resumeSections]);
+
   // Compute hydrated sections with overlay items injected
   const hydratedSections = injectOverlayIntoResumeSections(
     resumeSections,
