@@ -18,7 +18,6 @@ import { GenerationModeSelector } from "@/components/resume-builder/GenerationMo
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
-import { injectOverlayIntoResumeSections } from "@/lib/resumeOverlayUtils";
 import { ResumeWorkspace } from "@/components/resume-builder/v2/ResumeWorkspace";
 
 type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
@@ -29,7 +28,6 @@ const ResumeBuilderWizardContent = () => {
 
   // Use store for state management
   const store = useResumeBuilderStore();
-  const vaultOverlay = store.vaultOverlay;
   const [resumeId, setResumeId] = useState<string | null>(null);
   
   // Fetch resume milestones
@@ -39,7 +37,7 @@ const ResumeBuilderWizardContent = () => {
   const [currentStep, setCurrentStep] = useState<WizardStep>('job-input');
   const [currentRequirementIndex, setCurrentRequirementIndex] = useState(0);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [categorizedRequirements, setCategorizedRequirements] = useState<any>({
+  const [categorizedRequirements] = useState<any>({
     autoHandled: [],
     needsInput: [],
     optionalEnhancement: []

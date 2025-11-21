@@ -16,8 +16,6 @@ import {
   ChevronUp
 } from "lucide-react";
 import { GapSolutionsCard } from "./GapSolutionsCard";
-import { VisualResumePreview } from "./VisualResumePreview";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface GapAnalysisViewProps {
   unmatchedRequirements: string[];
@@ -144,20 +142,8 @@ export const GapAnalysisView = ({
 
   const addressedCount = Object.values(addressedGaps).filter(Boolean).length;
 
-  // Prepare preview sections (placeholder for now)
-  const previewSections = [
-    { id: '1', type: 'summary', title: 'Executive Summary', content: [], order: 1, status: 'needs_attention' as const },
-    { id: '2', type: 'experience', title: 'Professional Experience', content: [], order: 2, status: 'needs_attention' as const },
-    { id: '3', type: 'skills', title: 'Core Competencies', content: [], order: 3, status: 'needs_attention' as const },
-    { id: '4', type: 'education', title: 'Education', content: [], order: 4, status: 'needs_attention' as const },
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
-      <ResizablePanelGroup direction="horizontal" className="min-h-screen">
-        {/* Left Panel: Gap Analysis */}
-        <ResizablePanel defaultSize={50} minSize={40}>
-          <div className="h-full overflow-auto p-6 space-y-6">
+    <div className="min-h-screen bg-background p-6 space-y-6">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-3">Gap Analysis Complete</h1>
@@ -378,24 +364,6 @@ export const GapAnalysisView = ({
             </div>
           </div>
         </Card>
-          </div>
-        </ResizablePanel>
-
-        {/* Resizable Handle */}
-        <ResizableHandle withHandle />
-
-        {/* Right Panel: Live Resume Preview */}
-        <ResizablePanel defaultSize={50} minSize={30}>
-          <div className="h-full p-6">
-            <VisualResumePreview
-              sections={previewSections}
-              addressedGaps={Object.keys(addressedGaps).filter(k => addressedGaps[Number(k)])}
-              vaultMatches={vaultMatches}
-              atsKeywords={jobAnalysis?.atsKeywords || { critical: [], important: [], nice_to_have: [] }}
-            />
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
     </div>
   );
 };

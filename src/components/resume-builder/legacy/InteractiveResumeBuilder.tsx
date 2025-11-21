@@ -16,7 +16,7 @@ import { SectionGenerationCard } from "./SectionGenerationCard";
 import { SectionReviewPanel } from "./SectionReviewPanel";
 import { ATSScoreCard } from "@/components/resume/ATSScoreCard";
 import { formatResumeContent } from "@/lib/resumeFormatting";
-import { CanonicalResumePreview } from "./CanonicalResumePreview";
+import { CanonicalResumePreview } from "../CanonicalResumePreview";
 
 interface ResumeSection {
   id: string;
