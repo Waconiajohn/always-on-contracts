@@ -327,18 +327,24 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
         
         const resumeData = {
           user_id: user.id,
-          job_title: state.jobAnalysis?.roleProfile?.title || 'Untitled Resume',
-          job_company: state.jobAnalysis?.roleProfile?.company || null,
-          job_description: state.displayJobText,
-          job_analysis: state.jobAnalysis,
-          selected_format: state.selectedFormat || 'executive',
-          coverage_score: state.jobAnalysis?.coverageScore || null,
-          ats_score: state.jobAnalysis?.atsScore || null,
-          contact_info: state.contactInfo,
-          sections: state.resumeSections,
-          vault_matches: state.vaultMatches,
-          gap_analysis: state.categorizedRequirements,
-          requirement_responses: state.requirementResponses,
+          version_name: state.jobAnalysis?.roleProfile?.title || 'Untitled Resume',
+          job_project_id: null, // Could be linked to job_projects if needed
+          template_id: null, // Could be linked to resume_templates if needed
+          content: {
+            job_title: state.jobAnalysis?.roleProfile?.title,
+            job_company: state.jobAnalysis?.roleProfile?.company,
+            job_description: state.displayJobText,
+            contact_info: state.contactInfo,
+            sections: state.resumeSections
+          } as any,
+          customizations: {
+            job_analysis: state.jobAnalysis,
+            selected_format: state.selectedFormat || 'executive',
+            vault_matches: state.vaultMatches,
+            gap_analysis: state.categorizedRequirements,
+            requirement_responses: state.requirementResponses
+          } as any,
+          match_score: state.jobAnalysis?.coverageScore || null,
           updated_at: new Date().toISOString()
         };
         
@@ -346,7 +352,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
           if (state.resumeId) {
             // Update existing resume
             const { error } = await supabase
-              .from('saved_resumes' as any)
+              .from('resume_versions')
               .update(resumeData)
               .eq('id', state.resumeId);
             
@@ -354,7 +360,7 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
           } else {
             // Insert new resume
             const { data, error } = await supabase
-              .from('saved_resumes' as any)
+              .from('resume_versions')
               .insert(resumeData)
               .select()
               .single();
