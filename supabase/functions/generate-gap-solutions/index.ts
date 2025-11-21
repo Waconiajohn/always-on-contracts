@@ -147,9 +147,9 @@ Generate 3 SPECIFIC resume bullet point sets:
    - Use their real evidence and accomplishments
    - Reframe their experience to highlight this specific capability
 
-3. **alternative** - Transferable Approach:
-   - Write 2-3 resume bullets showing adjacent experience or rapid learning ability
-   - Emphasize adaptability and related skills that transfer to this requirement
+3. **alternative** - Strategic Blend:
+   - Write 2-3 resume bullets that strategically blend industry-standard phrasing with their actual vault accomplishments
+   - Combine what top performers typically showcase with their real experience to create a compelling narrative
 
 Return JSON:
 {
@@ -168,9 +168,9 @@ Return JSON:
     },
     {
       "approach": "alternative",
-      "title": "Transferable Skills",
-      "content": "• [Bullet emphasizing adaptability]...",
-      "reasoning": "1-sentence on why this works for ${seniority} roles"
+      "title": "Strategic Blend",
+      "content": "• [Bullet combining industry best practices with vault experience]...",
+      "reasoning": "1-sentence on how this approach positions them effectively"
     }
   ]
 }
@@ -228,7 +228,7 @@ RULES:
     } else {
       parsed.solutions[0].title = "Industry Standard";
       parsed.solutions[1].title = "Your Experience Reframed";
-      parsed.solutions[2].title = "Transferable Skills";
+      parsed.solutions[2].title = "Strategic Blend";
     }
 
     return new Response(JSON.stringify(parsed), {
