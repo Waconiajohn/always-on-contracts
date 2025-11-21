@@ -284,6 +284,8 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
                                 matchScore={matchScore}
                                 matchedKeywords={matchedKeywords}
                                 missingKeywords={missingKeywords}
+                                requirements={store.jobAnalysis?.requirements || []}
+                                sectionContent={sectionContentStr}
                             />
                         </TabsContent>
                     </Tabs>
