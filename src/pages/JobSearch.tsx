@@ -14,7 +14,6 @@ import { useJobTitleRecommendations } from "@/hooks/useJobTitleRecommendations";
 // V2 Components
 import { SearchHeader } from "@/components/job-search/v2/SearchHeader";
 import { SearchControls } from "@/components/job-search/v2/SearchControls";
-import { BooleanBuilderTool } from "@/components/job-search/v2/BooleanBuilderTool";
 import { SearchResults } from "@/components/job-search/v2/SearchResults";
 
 interface JobResult {
@@ -59,11 +58,9 @@ const JobSearchContent = () => {
   const [basicSearchCount, setBasicSearchCount] = useState<number | null>(null);
   const [booleanSearchCount, setBooleanSearchCount] = useState<number | null>(null);
   
-  // Phase 2: Vault integration state
-  const [searchOrigin, setSearchOrigin] = useState<'vault_title' | 'typed_query' | 'saved_search' | 'boolean_ai'>('typed_query');
-  const [selectedJobTitle, setSelectedJobTitle] = useState<string | null>(null);
-  const [autoRunFromVault, setAutoRunFromVault] = useState(false);
-  const [useTransferableSkills, setUseTransferableSkills] = useState(false);
+  // Phase 2: Vault integration state (for metadata tracking)
+  const [searchOrigin] = useState<'vault_title' | 'typed_query' | 'saved_search' | 'boolean_ai'>('typed_query');
+  const [selectedJobTitle] = useState<string | null>(null);
 
   // handleApplyAISearch removed as it was tightly coupled to old UI structure
   
@@ -97,7 +94,7 @@ const JobSearchContent = () => {
   };
   
   // Use hook for AI-powered job title recommendations
-  const { suggestedTitles, isLoading: loadingTitles } = useJobTitleRecommendations(userId);
+  const { suggestedTitles } = useJobTitleRecommendations(userId);
   
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -130,42 +127,6 @@ const JobSearchContent = () => {
   };
 
   // Removed: loadVaultData - now handled by useJobTitleRecommendations hook
-
-  // Phase 2: Vault title click handler
-  const handleVaultTitleClick = async (recommendation: any) => {
-    setSearchQuery(recommendation.title);
-    setSelectedJobTitle(recommendation.title);
-    setSearchOrigin('vault_title');
-    
-    // If has pre-built boolean, apply it
-    if (recommendation.suggestedBoolean) {
-      setBooleanString(recommendation.suggestedBoolean);
-      setShowAdvanced(true);
-      
-      toast({
-        title: "Smart Boolean Applied",
-        description: `Searching for "${recommendation.title}" and ${recommendation.synonyms?.length || 0} similar titles`,
-        duration: 5000,
-      });
-    }
-    
-    if (autoRunFromVault) {
-      // Use boolean search if available
-      const useBooleanSearch = !!recommendation.suggestedBoolean;
-      await handleSearch(useBooleanSearch, false);
-      
-      toast({
-        title: "Vault search started",
-        description: `Searching with ${recommendation.confidence}% confidence match for "${recommendation.title}"`,
-      });
-    } else {
-      toast({
-        title: "Title selected",
-        description: recommendation.reasoning || `"${recommendation.title}" added to search. Click Search to run.`,
-        duration: 5000,
-      });
-    }
-  };
 
   const handleSearch = async (isBooleanSearch = false, loadMore = false) => {
     if (!searchQuery.trim()) {
@@ -571,18 +532,14 @@ const JobSearchContent = () => {
           side="left"
           collapsed={leftSidebarCollapsed}
           onToggle={toggleLeftSidebar}
+          width="lg"
         >
           <JobSearchSidebar
             appliedFiltersCount={appliedFiltersCount}
             onClearFilters={handleClearBoolean}
-            suggestedTitles={suggestedTitles}
-            useTransferableSkills={useTransferableSkills}
-            setUseTransferableSkills={setUseTransferableSkills}
-            onSelectTitle={handleVaultTitleClick}
-            autoRunFromVault={autoRunFromVault}
-            setAutoRunFromVault={setAutoRunFromVault}
-            loadingTitles={loadingTitles}
             userId={userId}
+            booleanString={booleanString}
+            setBooleanString={setBooleanString}
           />
         </ContextSidebar>
       }
@@ -617,11 +574,6 @@ const JobSearchContent = () => {
           currentBooleanString={booleanString}
           currentSearchQuery={searchQuery}
           currentLocation={location}
-        />
-
-        <BooleanBuilderTool 
-          booleanString={booleanString}
-          setBooleanString={setBooleanString}
         />
 
         <SearchResults 

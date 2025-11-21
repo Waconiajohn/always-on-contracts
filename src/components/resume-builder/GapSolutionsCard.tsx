@@ -141,7 +141,7 @@ export const GapSolutionsCard = ({
     switch (approach) {
       case 'pure_ai': return 'Industry Standard';
       case 'vault_based': return 'Your Experience';
-      case 'alternative': return 'Alternative Angle';
+      case 'alternative': return 'Strategic Blend';
       default: return approach;
     }
   };
@@ -314,11 +314,16 @@ export const GapSolutionsCard = ({
                                     className="flex-1 gap-2"
                                   >
                                     <Bookmark className="h-3 w-3" />
-                                    Add to Vault
+                                    {solution.approach === 'vault_based' ? 'Refine in Vault' : 'Add to Vault'}
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Save to Career Vault for future resumes</p>
+                                  <p>
+                                    {solution.approach === 'vault_based' 
+                                      ? 'Refine your existing vault content with this polished version'
+                                      : 'Save to Career Vault for future resumes'
+                                    }
+                                  </p>
                                 </TooltipContent>
                               </Tooltip>
                             </div>
