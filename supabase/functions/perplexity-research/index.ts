@@ -99,15 +99,53 @@ Use job posting data from the last 2 months.`;
         break;
 
       case 'resume_job_analysis':
-        researchQuery = `Analyze this job posting for world-class resume optimization:
+        // Step 1: Fetch live market data to ground the research
+        console.log(`[Perplexity] Fetching live market data for: ${query_params.job_title}`);
+        let marketContext = "";
+        try {
+          const { data: jobData, error: jobError } = await supabase.functions.invoke('unified-job-search', {
+            body: {
+              query: query_params.job_title,
+              location: query_params.location || 'Remote',
+              filters: {
+                datePosted: '30d',
+                limit: 5
+              },
+              sources: ['google_jobs', 'jsearch']
+            }
+          });
+
+          if (!jobError && jobData?.jobs && jobData.jobs.length > 0) {
+            console.log(`[Perplexity] Successfully fetched ${jobData.jobs.length} live jobs`);
+            const jobs = jobData.jobs.slice(0, 5);
+            const jobSummaries = jobs.map((job: any, index: number) => {
+                const desc = job.description ? job.description.substring(0, 600) + "..." : "No description";
+                return `MARKET JOB ${index + 1}: ${job.title} at ${job.company}\nREQ SKILLS: ${job.required_skills?.join(', ') || 'N/A'}\nEXCERPT: ${desc}`;
+            }).join('\n\n');
+
+            marketContext = `
+REAL-TIME MARKET DATA (Use this to define the Industry Standard):
+The following are ACTUAL live job postings for this role found right now. 
+Use these to validate what "Best in Class" really means for this specific role.
+
+${jobSummaries}
+            `;
+          }
+        } catch (err) {
+          console.error('[Perplexity] Failed to fetch live jobs:', err);
+        }
+
+        researchQuery = `Analyze this job posting for world-class resume optimization.
 
 JOB TITLE: ${query_params.job_title}
 COMPANY: ${query_params.company || 'Not specified'}
 INDUSTRY: ${query_params.industry || 'Not specified'}
 LOCATION: ${query_params.location || 'Not specified'}
 
-JOB DESCRIPTION:
+TARGET JOB DESCRIPTION:
 ${query_params.job_description}
+
+${marketContext}
 
 Provide comprehensive analysis:
 

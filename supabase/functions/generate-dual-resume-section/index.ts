@@ -190,9 +190,13 @@ Important keywords: ${ats_keywords.important.join(', ')}
 REQUIREMENTS TO ADDRESS:
 ${requirements.slice(0, 10).join('\n- ')}
 
-${section_type === 'skills' ? `
+${section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills' ? `
 CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
 Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
+` : ''}
+
+${section_type === 'summary' || section_type === 'opening_paragraph' ? `
+CRITICAL: Do NOT list technical skills or competencies as a list. Weave them into the narrative. Keep it to 3-4 powerful sentences.
 ` : ''}
 
 Create an INDUSTRY STANDARD version that:
@@ -317,6 +321,8 @@ ${skillsSections.includes(section_type) ? `
 CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
 Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
 Base the list on their ACTUAL vault skills above.
+` : section_type === 'summary' || section_type === 'opening_paragraph' ? `
+CRITICAL: Do NOT list technical skills or competencies as a list. Weave them into the narrative. Keep it to 3-4 powerful sentences.
 ` : needsBothContexts ? `
 CRITICAL: For capability groups, create 3-4 themed categories with supporting bullet points.
 Format each as: 

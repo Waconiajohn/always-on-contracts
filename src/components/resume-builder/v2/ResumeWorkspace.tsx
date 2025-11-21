@@ -15,7 +15,7 @@ import { exportFormats } from "@/lib/resumeExportUtils";
 import { CanonicalResume } from "@/lib/resumeModel";
 import { SectionEditorPanel } from "./SectionEditorPanel";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
-import { ChevronLeft, LayoutTemplate, Download, TrendingUp, Loader2 } from "lucide-react";
+import { ChevronLeft, LayoutTemplate, Download, TrendingUp, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { invokeEdgeFunction } from "@/lib/edgeFunction";
 
@@ -68,6 +68,17 @@ export function ResumeWorkspace() {
 
   const handleSectionClick = (sectionId: string) => {
     setActiveSectionKey(sectionId);
+  };
+
+  const handleMoveSection = (index: number, direction: 'up' | 'down', e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSections = [...store.resumeSections];
+    if (direction === 'up' && index > 0) {
+      [newSections[index], newSections[index - 1]] = [newSections[index - 1], newSections[index]];
+    } else if (direction === 'down' && index < newSections.length - 1) {
+      [newSections[index], newSections[index + 1]] = [newSections[index + 1], newSections[index]];
+    }
+    store.setResumeSections(newSections);
   };
 
   const handleTemplateSelect = (templateId: string) => {
@@ -243,13 +254,33 @@ export function ResumeWorkspace() {
              <div className="p-4">
                <h2 className="font-bold mb-4">Resume Overview</h2>
                <div className="space-y-2">
-                 {store.resumeSections.map(section => (
+                 {store.resumeSections.map((section, index) => (
                    <div 
                     key={section.id} 
-                    className="p-3 bg-card border rounded cursor-pointer hover:border-primary"
+                    className="p-3 bg-card border rounded cursor-pointer hover:border-primary flex justify-between items-center group"
                     onClick={() => setActiveSectionKey(section.id)}
                    >
-                     {section.title}
+                     <span className="font-medium text-sm">{section.title}</span>
+                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6"
+                          disabled={index === 0}
+                          onClick={(e) => handleMoveSection(index, 'up', e)}
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6"
+                          disabled={index === store.resumeSections.length - 1}
+                          onClick={(e) => handleMoveSection(index, 'down', e)}
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </Button>
+                     </div>
                    </div>
                  ))}
                </div>
