@@ -3,6 +3,16 @@ import { LiveResumeCanvas } from "./LiveResumeCanvas";
 import { Button } from "@/components/ui/button";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { builderStateToCanonicalResume } from "@/lib/resumeSerialization";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { renderResumeWithTemplate } from "@/lib/resumeTemplateRenderer";
+import { exportFormats } from "@/lib/resumeExportUtils";
 import { CanonicalResume } from "@/lib/resumeModel";
 import { SectionEditorPanel } from "./SectionEditorPanel";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
@@ -11,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 
 export function ResumeWorkspace() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const store = useResumeBuilderStore();
   const [activeSectionKey, setActiveSectionKey] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("96ac1200-0e4e-4584-b1ec-5f93c2b94376"); // Default Executive
@@ -47,6 +58,64 @@ export function ResumeWorkspace() {
     setActiveSectionKey(sectionId);
   };
 
+  const handleExport = async (format: 'pdf' | 'docx' | 'html' | 'txt') => {
+    if (!canonicalData) return;
+    
+    try {
+      toast({
+        title: "Generating export...",
+        description: `Creating ${format.toUpperCase()} file`
+      });
+
+      // 1. Prepare Data
+      const fileName = `Resume_${store.jobAnalysis?.roleProfile?.title?.replace(/\s+/g, '_') || 'Professional'}`;
+      
+      // 2. Render Content
+      let styledHtml = '';
+      if (format === 'pdf' || format === 'html') {
+        styledHtml = await renderResumeWithTemplate(canonicalData, selectedTemplateId);
+      }
+
+      // 3. Export
+      if (format === 'pdf') {
+        await exportFormats.standardPDF(styledHtml, fileName);
+      } else if (format === 'docx') {
+        // Convert canonical to structured data for DOCX
+        const structuredData = {
+          name: canonicalData.header.fullName,
+          contact: {
+            email: store.contactInfo.email,
+            phone: store.contactInfo.phone,
+            location: store.contactInfo.location,
+            linkedin: store.contactInfo.linkedin,
+            headline: canonicalData.header.headline
+          },
+          sections: canonicalData.sections.map(s => ({
+            title: s.heading,
+            type: s.type,
+            content: s.paragraph,
+            bullets: s.bullets
+          }))
+        };
+        await exportFormats.generateDOCX(structuredData, fileName, selectedTemplateId);
+      } else if (format === 'html') {
+        await exportFormats.htmlExport(styledHtml, fileName);
+      } else if (format === 'txt') {
+         // TODO: Implement TXT export if needed, or remove option
+      }
+
+      toast({ title: "Export successful!" });
+
+    } catch (error: any) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Top Bar */}
@@ -64,10 +133,25 @@ export function ResumeWorkspace() {
             <LayoutTemplate className="h-4 w-4" />
             Templates
           </Button>
-          <Button size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="gap-2">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('docx')}>
+                Export as Word (DOCX)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('html')}>
+                Export as HTML
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

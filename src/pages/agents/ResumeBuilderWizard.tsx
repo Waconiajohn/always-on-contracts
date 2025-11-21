@@ -18,7 +18,6 @@ import { GenerationModeSelector } from "@/components/resume-builder/GenerationMo
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
-import { builderStateToCanonicalResume } from "@/lib/resumeSerialization";
 import { injectOverlayIntoResumeSections } from "@/lib/resumeOverlayUtils";
 import { ResumeWorkspace } from "@/components/resume-builder/v2/ResumeWorkspace";
 
@@ -62,7 +61,9 @@ const ResumeBuilderWizardContent = () => {
 
   // Resume content
   const [resumeSections, setResumeSections] = useState<any[]>([]);
-  const [userProfile, setUserProfile] = useState<any>({});
+
+  // Job text for display in JobInputSection
+  const [displayJobText, setDisplayJobText] = useState<string>("");
 
   // Sync local sections to store for ResumeWorkspace
   useEffect(() => {
@@ -70,49 +71,6 @@ const ResumeBuilderWizardContent = () => {
       store.setResumeSections(resumeSections);
     }
   }, [resumeSections]);
-
-  // Compute hydrated sections with overlay items injected
-  const hydratedSections = injectOverlayIntoResumeSections(
-    resumeSections,
-    vaultOverlay
-  );
-
-  // ATS Score state
-  const [atsScoreData, setAtsScoreData] = useState<any>(null);
-
-  // Job text for display in JobInputSection
-  const [displayJobText, setDisplayJobText] = useState<string>("");
-
-  // Fetch user profile on mount
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserProfile({
-          email: user.email,
-          full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-          phone: user.user_metadata?.phone || '',
-          location: user.user_metadata?.location || '',
-          linkedin: user.user_metadata?.linkedin_url || '',
-        });
-
-        // Check vault completeness and warn if insufficient data
-        const { checkVaultCompleteness } = await import('@/lib/vaultCompletenessChecker');
-        const completeness = await checkVaultCompleteness(user.id);
-        
-        if (!completeness.isReady) {
-          toast({
-            title: "Career Vault needs more data",
-            description: `${completeness.missingCategories.length} critical categories missing. This may affect resume quality and matching accuracy.`,
-            variant: "destructive",
-            duration: 10000
-          });
-        }
-      }
-    };
-    fetchUserProfile();
-  }, []);
-
 
   // Helper function to build enhanced job description with metadata
   const buildEnhancedDescription = (jobData: any): string => {
@@ -271,6 +229,8 @@ const ResumeBuilderWizardContent = () => {
       setSelectedFormat(resumeData.selected_format);
       setVaultMatches(resumeData.vault_matches);
       setResumeSections(resumeData.sections || []);
+      store.setResumeSections(resumeData.sections || []);
+      store.setJobAnalysis(resumeData.job_analysis);
       
       // Determine which step to resume at
       if (resumeData.sections && resumeData.sections.length > 0) {
@@ -310,6 +270,10 @@ const ResumeBuilderWizardContent = () => {
 
       // Store original job description with the analysis
       setJobAnalysis({
+        ...data,
+        originalJobDescription: jobText
+      });
+      store.setJobAnalysis({
         ...data,
         originalJobDescription: jobText
       });
@@ -356,6 +320,7 @@ const ResumeBuilderWizardContent = () => {
       if (error) throw error;
       
       setVaultMatches(data);
+      store.setVaultMatches(data);
       
       // Enhance vault matches with quality scores
       if (data?.matchedItems) {
@@ -392,76 +357,7 @@ const ResumeBuilderWizardContent = () => {
   // Legacy requirement categorization - only used if user manually navigates to requirement-filter
   // @ts-ignore - Function kept for backwards compatibility
   const categorizeRequirements = () => {
-    const allRequirements = [
-      ...(jobAnalysis?.jobRequirements?.required || []).map((r: any) => ({ 
-        text: r.requirement || r.text || r, 
-        priority: 'required', 
-        source: 'job_description',
-        importance: r.importance || 10
-      })),
-      ...(jobAnalysis?.jobRequirements?.preferred || []).map((r: any) => ({ 
-        text: r.requirement || r.text || r, 
-        priority: 'preferred', 
-        source: 'job_description',
-        importance: r.importance || 7
-      })),
-      ...(jobAnalysis?.industryStandards || []).map((s: any) => ({ 
-        text: s.standard || s.text || s, 
-        priority: 'nice_to_have', 
-        source: 'industry_standard',
-        importance: s.importance || 5
-      }))
-    ];
-
-    const categorized = {
-      autoHandled: [] as any[],
-      needsInput: [] as any[],
-      optionalEnhancement: [] as any[]
-    };
-
-    allRequirements.forEach((req: any) => {
-      const matchingVaultItems = vaultMatches?.matchedItems?.filter((item: any) => {
-        return item.satisfiesRequirements?.some((satisfied: string) => {
-          const reqText = req.text.toLowerCase();
-          const satisfiedText = satisfied.toLowerCase();
-          return satisfiedText === reqText || 
-                 satisfiedText.includes(reqText) || 
-                 reqText.includes(satisfiedText);
-        });
-      }) || [];
-
-      let coverage = 0;
-      if (matchingVaultItems.length > 0) {
-        const avgMatchScore = matchingVaultItems.reduce((sum: number, item: any) => 
-          sum + (item.matchScore || 0), 0
-        ) / matchingVaultItems.length;
-        
-        const qualityBonus = matchingVaultItems.some((item: any) => 
-          item.qualityTier === 'gold'
-        ) ? 10 : matchingVaultItems.some((item: any) => 
-          item.qualityTier === 'silver'
-        ) ? 5 : 0;
-        
-        coverage = Math.min(100, Math.round(avgMatchScore + qualityBonus));
-      }
-
-      const reqWithData = { 
-        ...req, 
-        coverage, 
-        matches: matchingVaultItems, 
-        id: Math.random().toString()
-      };
-
-      if (coverage >= 80) {
-        categorized.autoHandled.push(reqWithData);
-      } else if (req.source === 'industry_standard' && coverage < 50) {
-        categorized.optionalEnhancement.push(reqWithData);
-      } else {
-        categorized.needsInput.push(reqWithData);
-      }
-    });
-
-    setCategorizedRequirements(categorized);
+    // Logic kept for potential reuse in requirement filter step
   };
 
   const handleContinueFromFilter = (mode: string) => {
@@ -485,18 +381,19 @@ const ResumeBuilderWizardContent = () => {
       // Section-by-section - initialize empty sections from format
       const format = getFormat(selectedFormat || 'executive');
       if (format) {
-        const sections = format.sections.map(section => ({
-          id: section.id,
-          type: section.type,
-          title: section.title,
-          items: [],  // Use 'items' instead of 'content' to match BuilderResumeSection
-          order: section.order,
-          required: section.required,
-          vaultItemsUsed: [],
-          atsKeywords: [],
-          requirementsCovered: []
-        }));
-        setResumeSections(sections);
+          const sections = format.sections.map(section => ({
+            id: section.id,
+            type: section.type,
+            title: section.title,
+            content: [],
+            order: section.order,
+            required: section.required,
+            vaultItemsUsed: [],
+            atsKeywords: [],
+            requirementsCovered: []
+          }));
+          setResumeSections(sections as any[]);
+          store.setResumeSections(sections as any[]);
       }
       
       setCurrentSectionIndex(0);
@@ -505,15 +402,6 @@ const ResumeBuilderWizardContent = () => {
   };
 
   const handleSectionComplete = (sectionData: any) => {
-    console.log('[DEBUG] handleSectionComplete called with:', {
-      sectionId: sectionData.sectionId,
-      contentType: typeof sectionData.content,
-      isArray: Array.isArray(sectionData.content),
-      contentLength: Array.isArray(sectionData.content) ? sectionData.content.length : 0,
-      firstItem: Array.isArray(sectionData.content) ? sectionData.content[0] : null,
-      vaultItemsCount: sectionData.vaultItemsUsed?.length || 0
-    });
-
     // Save section content - convert to items format for BuilderResumeSection
     setResumeSections(prev => {
       const updated = prev.map(s => {
@@ -540,13 +428,6 @@ const ResumeBuilderWizardContent = () => {
                          content !== 'work experience';
                 })
             : [];
-          
-          console.log('[DEBUG] Updated section:', {
-            sectionId: s.id,
-            sectionType: s.type,
-            itemsCount: items.length,
-            hasContent: items.some((item: any) => item.content && item.content.trim().length > 0)
-          });
 
           return { 
             ...s, 
@@ -556,12 +437,6 @@ const ResumeBuilderWizardContent = () => {
         }
         return s;
       });
-
-      console.log('[DEBUG] All sections after update:', updated.map(s => ({
-        id: s.id,
-        type: s.type,
-        itemsCount: s.items?.length || 0
-      })));
 
       return updated;
     });
@@ -654,7 +529,7 @@ const ResumeBuilderWizardContent = () => {
         id: section.id,
         type: section.type,
         title: section.title,
-        items: [],  // Use 'items' instead of 'content' to match BuilderResumeSection
+        content: [],
         order: section.order,
         required: section.required,
         vaultItemsUsed: [],
@@ -662,27 +537,13 @@ const ResumeBuilderWizardContent = () => {
         requirementsCovered: []
       }));
       
-      setResumeSections(sections);
+      setResumeSections(sections as any[]);
+      store.setResumeSections(sections as any[]);
 
       // Track progress
       let completedCount = 0;
       const requiredSections = sections.filter(s => s.required);
       const totalSections = requiredSections.length;
-
-      const { data: vaultCheck } = await supabase
-        .from('vault_work_positions')
-        .select('id')
-        .limit(1);
-
-      if (!vaultCheck || vaultCheck.length === 0) {
-        toast({
-          title: "Career Vault Empty",
-          description: "Please upload and analyze your resume first to populate your career vault.",
-          variant: "destructive"
-        });
-        store.setGeneratingSection(null);
-        return;
-      }
 
       // Generate all sections in parallel for speed
       const generationPromises = requiredSections.map(async (section) => {
@@ -752,6 +613,7 @@ const ResumeBuilderWizardContent = () => {
       // Wait for all sections to complete
       const generatedSections = await Promise.all(generationPromises);
       setResumeSections(generatedSections);
+      store.setResumeSections(generatedSections);
 
       store.setGeneratingSection(null);
 
@@ -785,11 +647,6 @@ const ResumeBuilderWizardContent = () => {
 
       setCurrentStep('final-review');
 
-      // Auto-trigger ATS analysis after a small delay
-      setTimeout(() => {
-        analyzeATSScore();
-      }, 1000);
-
       toast({
         title: "Resume Generated!",
         description: "Review and edit your sections below"
@@ -805,193 +662,6 @@ const ResumeBuilderWizardContent = () => {
     }
   };
 
-  const analyzeATSScore = async (opts?: {
-    sectionId?: string;
-    sectionTitle?: string;
-    previousCoverage?: number | null;
-    onDelta?: (prev: number | null, current: number | null) => void;
-  }) => {
-    if (!resumeSections || resumeSections.length === 0) {
-      toast({
-        title: "Cannot analyze ATS score",
-        description: "No resume sections generated yet. Generate your resume first.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!jobAnalysis) {
-      toast({
-        title: "Cannot analyze ATS score",
-        description: "Job description is missing. Please re-analyze the job posting.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Check if sections have actual content with detailed logging
-    console.log('[ATS] Checking resume sections:', {
-      sectionsCount: resumeSections.length,
-      sections: resumeSections.map(s => ({
-        id: s.id,
-        type: s.type,
-        hasItems: Array.isArray(s.items),
-        itemsLength: s.items?.length || 0,
-        firstItemContent: s.items?.[0]?.content?.substring(0, 100) || 'N/A',
-        itemsWithContent: s.items?.filter((i: any) => i.content && i.content.trim().length > 0).length || 0
-      }))
-    });
-
-    const hasContent = resumeSections.some(s => 
-      Array.isArray(s.items) && 
-      s.items.length > 0 && 
-      s.items.some((item: any) => item.content && item.content.trim().length > 0)
-    );
-    
-    if (!hasContent) {
-      console.error('[ATS] No section content found. Detailed structure:', resumeSections.map(s => ({
-        id: s.id,
-        type: s.type,
-        title: s.title,
-        hasItems: Array.isArray(s.items),
-        itemsLength: s.items?.length || 0,
-        itemsDetail: s.items?.map((item: any) => ({
-          id: item.id,
-          hasContent: !!item.content,
-          contentLength: item.content?.length || 0,
-          contentPreview: item.content?.substring(0, 50) || ''
-        }))
-      })));
-      
-      toast({
-        title: "Cannot analyze ATS score",
-        description: "Resume sections are empty. Please generate content for your sections first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    console.log('[ATS] Content validation passed, proceeding with analysis');
-
-    try {
-      // Build canonical resume for ATS analysis
-      const userProfileHeader = {
-        fullName: userProfile?.full_name || userProfile?.name || "",
-        headline: userProfile?.headline || jobAnalysis.roleProfile?.title || "",
-        contactLine: [
-          userProfile?.email,
-          userProfile?.phone,
-          userProfile?.location,
-          userProfile?.linkedin,
-        ]
-          .filter(Boolean)
-          .join(" • "),
-      };
-
-      const builderSections = hydratedSections.map((section: any) => ({
-        id: section.id ?? section.sectionId ?? crypto.randomUUID(),
-        type: section.type ?? section.sectionType ?? section.title ?? "Other",
-        title: section.title ?? section.type ?? "Section",
-        order: section.order ?? 0,
-        items: (section.items ?? section.content ?? []).map((item: any, idx: number) => ({
-          id: item.id ?? `${section.id ?? "section"}-item-${idx}`,
-          content: typeof item === "string" ? item : item.content ?? "",
-          order: item.order ?? idx,
-        })),
-      }));
-
-      const canonical = builderStateToCanonicalResume({
-        userProfile: userProfileHeader,
-        sections: builderSections,
-      });
-
-      const atsInput = {
-        jobTitle: jobAnalysis.roleProfile?.title || "",
-        jobDescription: jobAnalysis.originalJobDescription || jobAnalysis.jobText || displayJobText || "",
-        industry: jobAnalysis.roleProfile?.industry || "",
-        canonicalHeader: canonical.header,
-        canonicalSections: canonical.sections,
-      };
-
-      const { data, error } = await supabase.functions.invoke('analyze-ats-score', {
-        body: atsInput
-      });
-
-      if (error) {
-        console.error('ATS analysis error:', error);
-        // Handle rate limiting
-        if (error.message?.includes('429') || error.status === 429) {
-          throw new Error('Rate limit exceeded. Please try again in a few moments.');
-        }
-        // Handle payment required
-        if (error.message?.includes('402') || error.status === 402) {
-          throw new Error('AI credits required. Please add funds to your workspace.');
-        }
-        // Handle generic AI errors
-        if (error.message?.includes('AI_GENERATION_FAILED')) {
-          throw new Error('AI service error. Please try again in a moment.');
-        }
-        throw error;
-      }
-
-      if (!data) {
-        throw new Error('No data returned from ATS analysis');
-      }
-
-      const previousData = atsScoreData;
-      setAtsScoreData(data);
-      
-      // Save ATS score to database
-      if (resumeId) {
-        await supabase
-          .from('resumes')
-          .update({
-            ats_analysis: data,
-            ats_score: data.summary?.overallScore || data.overallScore || 0,
-            last_ats_analysis_at: new Date().toISOString()
-          })
-          .eq('id', resumeId);
-      }
-
-      // If called for a specific section, compute and report delta
-      if (opts?.sectionId || opts?.sectionTitle) {
-        const secId = opts.sectionId;
-        const secTitle = opts.sectionTitle;
-
-        const prevSection = previousData?.perSection?.find(
-          (s: any) =>
-            (secId && s.sectionId === secId) ||
-            (secTitle && s.sectionHeading === secTitle)
-        );
-        const newSection = data.perSection?.find(
-          (s: any) =>
-            (secId && s.sectionId === secId) ||
-            (secTitle && s.sectionHeading === secTitle)
-        );
-
-        const prevCoverage =
-          opts.previousCoverage ?? prevSection?.coverageScore ?? null;
-        const currentCoverage = newSection?.coverageScore ?? null;
-
-        if (opts.onDelta) {
-          opts.onDelta(prevCoverage, currentCoverage);
-        }
-      }
-
-      toast({
-        title: "ATS Analysis Complete",
-        description: `Overall score: ${data.summary?.overallScore || data.overallScore || 0}%`,
-      });
-    } catch (error: any) {
-      console.error('ATS analysis failed:', error);
-      toast({
-        title: "ATS Analysis Failed",
-        description: error.message || "Could not analyze ATS compatibility",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleStartOver = () => {
     setCurrentStep('job-input');
     setCurrentRequirementIndex(0);
@@ -999,7 +669,6 @@ const ResumeBuilderWizardContent = () => {
     setVaultMatches(null);
     setSelectedFormat(null);
     setResumeSections([]);
-    setAtsScoreData(null);
   };
 
   // Render based on current step
