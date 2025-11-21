@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CanonicalResume } from "@/lib/resumeModel";
 import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface LiveResumeCanvasProps {
   resumeData: CanonicalResume;
@@ -147,9 +146,9 @@ export function LiveResumeCanvas({
 
 function escapeHtml(unsafe: string): string {
   return unsafe
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, """)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
