@@ -55,8 +55,6 @@ const JobSearchContent = () => {
   const [employmentType, setEmploymentType] = useState<string>('any');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [booleanString, setBooleanString] = useState('');
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [showBooleanBuilder, setShowBooleanBuilder] = useState(false);
   const [activeSavedSearchName, setActiveSavedSearchName] = useState<string | null>(null);
   const [basicSearchCount, setBasicSearchCount] = useState<number | null>(null);
   const [booleanSearchCount, setBooleanSearchCount] = useState<number | null>(null);
@@ -101,7 +99,6 @@ const JobSearchContent = () => {
   // Use hook for AI-powered job title recommendations
   const { suggestedTitles, isLoading: loadingTitles } = useJobTitleRecommendations(userId);
   
-  const [sourceStats, setSourceStats] = useState<Record<string, { count: number; status: string }>>({});
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -185,7 +182,6 @@ const JobSearchContent = () => {
     } else {
       setIsSearching(true);
       setJobs([]);
-      setSourceStats({});
       setNextPageToken(null);
     }
     
@@ -234,7 +230,6 @@ const JobSearchContent = () => {
       }
       
       setSearchTime(data.executionTimeMs);
-      setSourceStats(data.sources || {});
       
       // Store pagination info
       if (data.pagination?.nextPageToken) {
@@ -557,21 +552,6 @@ const JobSearchContent = () => {
       }
       return next;
     });
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600 dark:text-green-400";
-    if (score >= 60) return "text-blue-600 dark:text-blue-400";
-    if (score >= 40) return "text-yellow-600 dark:text-yellow-400";
-    return "text-muted-foreground";
-  };
-
-  const formatSalary = (min?: number | null, max?: number | null) => {
-    if (!min && !max) return null;
-    if (min && max) return `$${(min / 1000).toFixed(0)}k-$${(max / 1000).toFixed(0)}k`;
-    if (min) return `$${(min / 1000).toFixed(0)}k+`;
-    if (max) return `Up to $${(max / 1000).toFixed(0)}k`;
-    return null;
   };
 
   const appliedFiltersCount = useMemo(() => {

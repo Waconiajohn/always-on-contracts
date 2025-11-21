@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, DollarSign, Briefcase, Clock, FileText, Star, StarOff, ChevronDown, ChevronUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
 
 interface JobCardProps {
   job: any;
@@ -28,8 +27,6 @@ export function JobCard({
   isSaved,
   contractOnly
 }: JobCardProps) {
-  const [imageError, setImageError] = useState(false);
-
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600 dark:text-green-400 border-green-200 bg-green-50";
     if (score >= 60) return "text-blue-600 dark:text-blue-400 border-blue-200 bg-blue-50";
