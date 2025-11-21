@@ -314,13 +314,20 @@ export const GapSolutionsCard = ({
                                     className="flex-1 gap-2"
                                   >
                                     <Bookmark className="h-3 w-3" />
-                                    {solution.approach === 'vault_based' ? 'Refine in Vault' : 'Add to Vault'}
+                                    {solution.approach === 'vault_based' 
+                                      ? 'Refine in Vault'
+                                      : solution.approach === 'alternative'
+                                      ? 'Add & Refine in Vault'
+                                      : 'Add to Vault'
+                                    }
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>
                                     {solution.approach === 'vault_based' 
                                       ? 'Refine your existing vault content with this polished version'
+                                      : solution.approach === 'alternative'
+                                      ? 'Save this strategic blend to your Career Vault for future use'
                                       : 'Save to Career Vault for future resumes'
                                     }
                                   </p>
