@@ -261,14 +261,26 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
                 {vaultStrength.score < 50 && (
                   <Alert variant="default" className="border-warning bg-warning/10">
                     <AlertTriangle className="h-4 w-4 text-warning" />
-                    <AlertTitle className="text-sm">Limited Career Vault Data</AlertTitle>
-                    <AlertDescription className="text-xs">
-                      Your vault is {vaultStrength.score}% complete. Consider:
-                      <ul className="list-disc ml-4 mt-1 space-y-0.5">
-                        <li>Adding quantified achievements</li>
-                        <li>Completing more vault categories</li>
-                        <li>Using Industry Standard version for now</li>
+                    <AlertTitle className="text-sm">Career Vault Incomplete</AlertTitle>
+                    <AlertDescription className="text-xs space-y-2">
+                      <p>Your Career Vault has no data yet. The personalized version cannot pull from your work history.</p>
+                      <p className="font-medium">To use personalization:</p>
+                      <ul className="list-disc ml-4 space-y-0.5">
+                        <li>Upload your resume in the Career Vault</li>
+                        <li>Complete the vault onboarding interview</li>
+                        <li>Then return to build your resume</li>
                       </ul>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="mt-2"
+                        onClick={() => window.location.href = '/career-vault'}
+                      >
+                        Complete Career Vault
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        For now, use the <span className="font-medium">Industry Standard</span> version which doesn't require vault data.
+                      </p>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -388,13 +400,22 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
               </div>
 
               {vaultStrength.score < 50 && (
-                <Alert variant="default" className="border-warning">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Limited Personalization</AlertTitle>
-                  <AlertDescription>
-                    Your Career Vault is {vaultStrength.score}% complete. For stronger
-                    personalization, consider completing more vault categories or using
-                    the Industry Standard version.
+                <Alert variant="default" className="border-warning bg-warning/10">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  <AlertTitle>Career Vault Incomplete</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <p>Your Career Vault is empty. The blended version cannot personalize content without your work history.</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => window.location.href = '/career-vault'}
+                    >
+                      Complete Career Vault First
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Use the <span className="font-medium">Industry Standard</span> tab for now.
+                    </p>
                   </AlertDescription>
                 </Alert>
               )}
