@@ -34,7 +34,11 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
   
   // Derived Data
   const atsKeywords = store.jobAnalysis?.atsKeywords || { critical: [], important: [], nice_to_have: [] };
-  const allKeywords = [...atsKeywords.critical, ...atsKeywords.important, ...atsKeywords.nice_to_have];
+  const allKeywords = [
+    ...(atsKeywords.critical || []), 
+    ...(atsKeywords.important || []), 
+    ...(atsKeywords.nice_to_have || [])
+  ];
   const sectionContentStr = Array.isArray(section?.content) 
       ? section?.content.map((i: any) => i.content || i).join(' ') 
       : typeof section?.content === 'string' ? section?.content : '';

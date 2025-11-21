@@ -228,19 +228,27 @@ export const SectionWizard = ({
       setBlendContent(dualData.blendVersion?.content || dualData.idealVersion.content);
       
       // Store vault items used for attribution - ensure proper structure
-      const formattedVaultItems = dualData.personalizedVersion?.vaultItemsUsed?.map((item: any) => ({
-        id: item.id || crypto.randomUUID(),
-        category: item.type || 'vault_item',
-        qualityTier: item.qualityTier || 'gold',
-        excerpt: typeof item.content === 'string' 
-          ? item.content.substring(0, 100) 
-          : JSON.stringify(item.content).substring(0, 100)
-      })) || relevantMatches.map(m => ({
-        id: m.vaultItemId,
-        category: m.vaultCategory,
-        qualityTier: m.qualityTier || 'gold',
-        excerpt: typeof m.content === 'string' ? m.content.substring(0, 100) : JSON.stringify(m.content).substring(0, 100)
-      }));
+      const formattedVaultItems = (dualData.personalizedVersion?.vaultItemsUsed || [])
+        .map((item: any) => {
+          // Handle if item is already a string (corrupted state)
+          if (typeof item === 'string') {
+            try {
+              item = JSON.parse(item);
+            } catch {
+              return null;
+            }
+          }
+          
+          return {
+            id: item.id || crypto.randomUUID(),
+            category: item.type || item.category || 'vault_item',
+            qualityTier: item.qualityTier || item.quality_tier || 'gold',
+            excerpt: typeof item.content === 'string' 
+              ? item.content.substring(0, 100) 
+              : (item.excerpt || JSON.stringify(item.content || {}).substring(0, 100))
+          };
+        })
+        .filter(Boolean); // Remove any null entries
       
       setVaultItemsUsed(formattedVaultItems);
 
@@ -560,13 +568,30 @@ export const SectionWizard = ({
               <AlertTitle>Career Vault Items Used</AlertTitle>
               <AlertDescription>
                 <div className="space-y-2 mt-3">
-                  {vaultItemsUsed.slice(0, 5).map((item, idx) => (
-                    <VaultItemAttributionBadge
-                      key={idx}
-                      vaultItem={item}
-                      compact
-                    />
-                  ))}
+                  {vaultItemsUsed.slice(0, 5).map((item, idx) => {
+                    // If item is somehow still a string, try to parse it
+                    let safeItem = item;
+                    if (typeof item === 'string') {
+                      try {
+                        safeItem = JSON.parse(item);
+                      } catch {
+                        return <p key={idx} className="text-xs text-destructive">Invalid vault item data</p>;
+                      }
+                    }
+                    
+                    // Ensure required fields exist
+                    if (!safeItem.id || !safeItem.category || !safeItem.excerpt) {
+                      return null;
+                    }
+                    
+                    return (
+                      <VaultItemAttributionBadge
+                        key={idx}
+                        vaultItem={safeItem}
+                        compact
+                      />
+                    );
+                  })}
                   {vaultItemsUsed.length > 5 && (
                     <p className="text-xs text-muted-foreground">
                       +{vaultItemsUsed.length - 5} more vault items used

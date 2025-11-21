@@ -51,12 +51,12 @@ export function ResumeWorkspace() {
       linkedin: "linkedin.com/in/johndoe"
     };
 
-    const sections = store.resumeSections.map((s: any) => ({
+    const sections = (store.resumeSections || []).map((s: any) => ({
       id: s.id,
       type: s.type,
       title: s.title,
       order: s.order,
-      items: s.content || [] // Map content to items
+      items: Array.isArray(s.content) ? s.content : []
     }));
 
     const canonical = builderStateToCanonicalResume({
@@ -72,6 +72,16 @@ export function ResumeWorkspace() {
 
   const handleMoveSection = (index: number, direction: 'up' | 'down', e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    if (!store.resumeSections || !Array.isArray(store.resumeSections)) {
+      toast({
+        title: "Error",
+        description: "Resume sections data is invalid",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const newSections = [...store.resumeSections];
     if (direction === 'up' && index > 0) {
       [newSections[index], newSections[index - 1]] = [newSections[index - 1], newSections[index]];
