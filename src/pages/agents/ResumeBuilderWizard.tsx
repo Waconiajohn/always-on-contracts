@@ -2,27 +2,23 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { VaultOverlayReviewPanel } from "@/components/resume-builder/VaultOverlayReviewPanel";
 import { JobInputSection } from "@/components/resume-builder/JobInputSection";
 import { GapAnalysisView } from "@/components/resume-builder/GapAnalysisView";
 import { FormatSelector } from "@/components/resume-builder/FormatSelector";
 import { RequirementFilterView } from "@/components/resume-builder/RequirementFilterView";
 import { RequirementCard } from "@/components/resume-builder/RequirementCard";
-import { InteractiveResumeBuilder } from "@/components/resume-builder/InteractiveResumeBuilder";
 import { GenerationProgress } from "@/components/resume-builder/GenerationProgress";
 import { supabase } from "@/integrations/supabase/client";
 import { getFormat } from "@/lib/resumeFormats";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, TrendingUp, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SectionWizard } from "@/components/resume-builder/SectionWizard";
 import { GenerationModeSelector } from "@/components/resume-builder/GenerationModeSelector";
-import { SectionEditorCard } from "@/components/resume-builder/SectionEditorCard";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
-import { builderStateToCanonicalResume, canonicalResumeToPlainText, canonicalResumeToHTML } from "@/lib/resumeSerialization";
-import { BuilderResumeSection } from "@/lib/resumeModel";
+import { builderStateToCanonicalResume } from "@/lib/resumeSerialization";
 import { injectOverlayIntoResumeSections } from "@/lib/resumeOverlayUtils";
 import { ResumeWorkspace } from "@/components/resume-builder/v2/ResumeWorkspace";
 
@@ -35,7 +31,6 @@ const ResumeBuilderWizardContent = () => {
   // Use store for state management
   const store = useResumeBuilderStore();
   const vaultOverlay = store.vaultOverlay;
-  const pendingVaultCount = vaultOverlay?.pendingVaultPromotions?.length || 0;
   const [resumeId, setResumeId] = useState<string | null>(null);
   
   // Fetch resume milestones
@@ -67,10 +62,7 @@ const ResumeBuilderWizardContent = () => {
 
   // Resume content
   const [resumeSections, setResumeSections] = useState<any[]>([]);
-  const [resumeMode, setResumeMode] = useState<'edit' | 'preview'>('edit');
   const [userProfile, setUserProfile] = useState<any>({});
-  const [isBuilding, setIsBuilding] = useState(false);
-  const [showVaultReview, setShowVaultReview] = useState(false);
 
   // Compute hydrated sections with overlay items injected
   const hydratedSections = injectOverlayIntoResumeSections(
@@ -80,8 +72,6 @@ const ResumeBuilderWizardContent = () => {
 
   // ATS Score state
   const [atsScoreData, setAtsScoreData] = useState<any>(null);
-  const [analyzingATS, setAnalyzingATS] = useState(false);
-  const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null);
 
   // Job text for display in JobInputSection
   const [displayJobText, setDisplayJobText] = useState<string>("");
@@ -115,11 +105,6 @@ const ResumeBuilderWizardContent = () => {
     };
     fetchUserProfile();
   }, []);
-
-  // Track if currently building/generating
-  useEffect(() => {
-    setIsBuilding(!!store.generatingSection);
-  }, [store.generatingSection]);
 
 
   // Helper function to build enhanced job description with metadata
@@ -881,8 +866,6 @@ const ResumeBuilderWizardContent = () => {
 
     console.log('[ATS] Content validation passed, proceeding with analysis');
 
-    setAnalyzingATS(true);
-
     try {
       // Build canonical resume for ATS analysis
       const userProfileHeader = {
@@ -999,31 +982,7 @@ const ResumeBuilderWizardContent = () => {
         description: error.message || "Could not analyze ATS compatibility",
         variant: "destructive"
       });
-    } finally {
-      setAnalyzingATS(false);
     }
-  };
-
-  const handleSectionAtsReanalyze = async (
-    sectionId: string,
-    sectionTitle: string,
-    previousCoverage: number | null
-  ) => {
-    await analyzeATSScore({
-      sectionId,
-      sectionTitle,
-      previousCoverage,
-      onDelta: (prev, current) => {
-        if (prev == null || current == null) return;
-
-        toast({
-          title: "ATS coverage updated",
-          description: `Section improved from ${Math.round(
-            prev
-          )}% → ${Math.round(current)}% coverage.`,
-        });
-      },
-    });
   };
 
   const handleStartOver = () => {
@@ -1034,250 +993,6 @@ const ResumeBuilderWizardContent = () => {
     setSelectedFormat(null);
     setResumeSections([]);
     setAtsScoreData(null);
-    setFocusedSectionId(null);
-  };
-
-  // Helper to build readiness rows
-  type ReadinessRow = {
-    key: "summary" | "experience" | "skills";
-    label: string;
-    coverage: number | null;
-    mustHaveGaps: number;
-    sectionId?: string;
-  };
-
-  const computeReadinessSummary = (): ReadinessRow[] => {
-    if (!atsScoreData?.perSection || !hydratedSections?.length) return [];
-
-    const rows: Record<ReadinessRow["key"], ReadinessRow> = {
-      summary: { key: "summary", label: "Summary / Headline", coverage: null, mustHaveGaps: 0 },
-      experience: { key: "experience", label: "Experience", coverage: null, mustHaveGaps: 0 },
-      skills: { key: "skills", label: "Skills", coverage: null, mustHaveGaps: 0 },
-    };
-
-    for (const section of hydratedSections) {
-      const title = (section.title || section.type || "").toLowerCase();
-
-      let key: ReadinessRow["key"] | null = null;
-      if (title.includes("summary") || title.includes("profile")) key = "summary";
-      else if (title.includes("experience") || title.includes("achievements")) key = "experience";
-      else if (title.includes("skill") || title.includes("competenc")) key = "skills";
-
-      if (!key) continue;
-
-      const coverage = atsScoreData.perSection.find(
-        (s: any) => s.sectionId === section.id || s.sectionHeading === section.title
-      );
-      if (!coverage) continue;
-
-      const coverageScore = typeof coverage.coverageScore === "number"
-        ? coverage.coverageScore
-        : null;
-
-      const mustHaveGaps =
-        coverage.missingKeywords?.filter((k: any) => k.priority === "must_have").length || 0;
-
-      // Use highest coverage if multiple sections map to the same key
-      if (
-        rows[key].coverage == null ||
-        (coverageScore != null && coverageScore > (rows[key].coverage ?? 0))
-      ) {
-        rows[key].coverage = coverageScore;
-        rows[key].mustHaveGaps = mustHaveGaps;
-        rows[key].sectionId = section.id;
-      }
-    }
-
-    return Object.values(rows).filter((r) => r.coverage != null);
-  };
-
-  // Helper to convert builder state into canonical form for export
-  const buildCanonicalResumeFromBuilderState = (params: {
-    userProfile: any;
-    resumeSections: any[];
-  }) => {
-    const { userProfile, resumeSections } = params;
-
-    console.log('[EXPORT] Building canonical resume from sections:', {
-      sectionCount: resumeSections?.length || 0,
-      sections: resumeSections?.map(s => ({
-        id: s.id,
-        type: s.type,
-        title: s.title,
-        hasItems: !!s.items,
-        itemsCount: s.items?.length || 0,
-        hasContent: !!s.content,
-        contentCount: s.content?.length || 0,
-        contentSample: s.content?.[0] || s.items?.[0]
-      }))
-    });
-
-    // Map your existing resumeSections -> BuilderResumeSection[]
-    const builderSections: BuilderResumeSection[] = (resumeSections ?? []).map((section: any) => {
-      // CRITICAL: Prefer 'items' if it exists, otherwise use 'content'
-      // Both might be arrays of objects with {id, content} or just strings
-      const sourceArray = section.items?.length > 0 ? section.items : section.content ?? [];
-      
-      const items = sourceArray.map((item: any, idx: number) => ({
-        id: item.id ?? `${section.id ?? "section"}-item-${idx}`,
-        content: typeof item === "string" ? item : (item.content ?? ""),
-        order: item.order ?? idx,
-      }));
-
-      console.log('[EXPORT] Mapped section:', {
-        id: section.id,
-        type: section.type,
-        sourceArrayLength: sourceArray.length,
-        itemsLength: items.length,
-        itemsSample: items[0]
-      });
-
-      return {
-        id: section.id ?? section.sectionId ?? crypto.randomUUID(),
-        type: section.type ?? section.sectionType ?? section.title ?? "Other",
-        title: section.title ?? section.type ?? "Section",
-        order: section.order ?? 0,
-        items,
-      };
-    });
-
-    const canonical = builderStateToCanonicalResume({
-      userProfile,
-      sections: builderSections,
-    });
-
-    console.log('[EXPORT] Canonical resume created:', {
-      headerName: canonical.header.fullName,
-      sectionsCount: canonical.sections.length,
-      sections: canonical.sections.map(s => ({
-        heading: s.heading,
-        type: s.type,
-        hasParagraph: !!s.paragraph,
-        bulletsCount: s.bullets.length,
-        bulletsSample: s.bullets[0]
-      }))
-    });
-
-    const asText = canonicalResumeToPlainText(canonical);
-    const asHtml = canonicalResumeToHTML(canonical);
-
-    return { canonical, asText, asHtml };
-  };
-
-  const handleExport = async (format: 'pdf' | 'docx' | 'html' | 'txt') => {
-    try {
-      toast({
-        title: "Generating export...",
-        description: `Creating ${format.toUpperCase()} file`
-      });
-
-      // Fetch user profile for canonical export
-      const { data: { user } } = await supabase.auth.getUser();
-      const userProfile = user ? {
-        email: user.email,
-        full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-        phone: user.user_metadata?.phone || '',
-        location: user.user_metadata?.location || '',
-        linkedin: user.user_metadata?.linkedin_url || ''
-      } : {};
-
-      const { canonical, asText, asHtml } = buildCanonicalResumeFromBuilderState({
-        userProfile,
-        resumeSections: hydratedSections,
-      });
-
-      const fileName = `Resume_${jobAnalysis?.roleProfile?.title?.replace(/\s+/g, '_') || 'Professional'}`;
-
-      // Apply template if selected
-      let styledHtml = asHtml;
-      if (selectedFormat) {
-        const { renderResumeWithTemplate } = await import('@/lib/resumeTemplateRenderer');
-        const { getFormat } = await import('@/lib/resumeFormats');
-        const format = getFormat(selectedFormat);
-        if (format && format.templateId) {
-          styledHtml = await renderResumeWithTemplate(canonical, format.templateId);
-        }
-      }
-
-      if (format === 'txt') {
-        const blob = new Blob([asText], { type: "text/plain;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${fileName}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        toast({
-          title: "Export successful!",
-          description: "TXT file downloaded"
-        });
-        return;
-      }
-
-      if (format === 'html') {
-        const blob = new Blob([styledHtml], { type: "text/html;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${fileName}.html`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        toast({
-          title: "Export successful!",
-          description: "HTML file downloaded"
-        });
-        return;
-      }
-
-      if (format === 'pdf') {
-        const { exportFormats } = await import('@/lib/resumeExportUtils');
-        await exportFormats.standardPDF(styledHtml, fileName);
-        toast({
-          title: "Export successful!",
-          description: "PDF file downloaded"
-        });
-        return;
-      }
-
-      if (format === 'docx') {
-        const { exportFormats } = await import('@/lib/resumeExportUtils');
-        const structuredData = {
-          name: canonical.header.fullName,
-          contact: {
-            email: userProfile.email || '',
-            phone: userProfile.phone || '',
-            location: userProfile.location || '',
-            linkedin: userProfile.linkedin || '',
-            headline: canonical.header.headline || ''
-          },
-          sections: canonical.sections.map(section => ({
-            title: section.heading,
-            type: section.type,
-            content: section.paragraph,
-            bullets: section.bullets
-          }))
-        };
-        await exportFormats.generateDOCX(structuredData, fileName, selectedFormat || undefined);
-        toast({
-          title: "Export successful!",
-          description: "DOCX file downloaded"
-        });
-        return;
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "Export failed",
-        description: "Please try again",
-        variant: "destructive"
-      });
-    }
   };
 
   // Render based on current step

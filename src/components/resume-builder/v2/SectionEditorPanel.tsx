@@ -5,20 +5,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Lightbulb,
   Sparkles,
   Loader2,
-  RotateCcw,
-  Check,
   Edit3,
   Maximize2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction, PerplexityResearchSchema, GenerateDualResumeSectionSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { invokeEdgeFunction } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
 import { DualGenerationComparison } from "@/components/resume-builder/DualGenerationComparison";
-import { calculateVaultStrength } from "@/lib/resumeAnalytics";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { VaultSourcingPanel } from "./VaultSourcingPanel";
 import { JDMatchPanel } from "./JDMatchPanel";

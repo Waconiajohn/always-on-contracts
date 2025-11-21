@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { LiveResumeCanvas } from "./LiveResumeCanvas";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { builderStateToCanonicalResume } from "@/lib/resumeSerialization";
 import { CanonicalResume } from "@/lib/resumeModel";
