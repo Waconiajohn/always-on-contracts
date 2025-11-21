@@ -63,23 +63,62 @@ serve(async (req) => {
       throw new Error(`Invalid category: ${category}`);
     }
 
-    // Insert item
+    // Insert item - merge itemData first, then override with required fields
+    const insertData = {
+      ...itemData,
+      vault_id: vaultId,
+      user_id: user.id,
+      quality_tier: itemData.quality_tier || 'gold', // Use provided tier or default to gold
+      needs_user_review: false, // User explicitly added it
+      ai_confidence: itemData.confidence_score || 1.0, // Use provided confidence or default to 1.0
+      last_updated_at: new Date().toISOString(),
+      inferred_from: itemData.source || 'user_manual_entry',
+    };
+
     const { data, error } = await supabaseClient
       .from(tableName)
-      .insert({
-        vault_id: vaultId,
-        user_id: user.id,
-        quality_tier: 'gold', // User-added items are gold tier
-        needs_user_review: false, // User explicitly added it
-        ai_confidence: 1.0, // User input is 100% confident
-        last_updated_at: new Date().toISOString(),
-        inferred_from: 'user_manual_entry',
-        ...itemData
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) throw error;
+
+    // Update career_vault statistics
+    const statColumnMap: Record<string, string> = {
+      'vault_power_phrases': 'total_power_phrases',
+      'vault_transferable_skills': 'total_transferable_skills',
+      'vault_hidden_competencies': 'total_hidden_competencies',
+      'vault_soft_skills': 'total_soft_skills',
+      'vault_leadership_philosophy': 'total_leadership_philosophy',
+      'vault_executive_presence': 'total_executive_presence',
+      'vault_personality_traits': 'total_personality_traits',
+      'vault_work_style': 'total_work_style',
+      'vault_values_motivations': 'total_values',
+      'vault_behavioral_indicators': 'total_behavioral_indicators'
+    };
+
+    const statColumn = statColumnMap[tableName];
+    if (statColumn) {
+      // Count total items of this type
+      const { count } = await supabaseClient
+        .from(tableName)
+        .select('*', { count: 'exact', head: true })
+        .eq('vault_id', vaultId);
+
+      // Update the career_vault table with new count
+      const { error: updateError } = await supabaseClient
+        .from('career_vault')
+        .update({ 
+          [statColumn]: count || 0,
+          last_updated_at: new Date().toISOString()
+        })
+        .eq('id', vaultId);
+
+      if (updateError) {
+        console.error('[ADD-VAULT-ITEM] Failed to update vault stats:', updateError);
+        // Don't throw - item was added successfully, stats update is secondary
+      }
+    }
 
     return new Response(JSON.stringify({ 
       success: true,
