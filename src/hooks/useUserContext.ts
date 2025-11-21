@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubscription } from "@/hooks/useSubscription";
 
 export interface UserContext {
   userId: string | null;
@@ -22,8 +21,6 @@ export function useUserContext(): UserContext {
     offers: 0,
     loading: true
   });
-
-  const { subscription } = useSubscription();
 
   useEffect(() => {
     fetchContext();
