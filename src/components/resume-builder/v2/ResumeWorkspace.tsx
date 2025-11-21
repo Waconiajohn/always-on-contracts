@@ -16,18 +16,31 @@ import { exportFormats } from "@/lib/resumeExportUtils";
 import { CanonicalResume } from "@/lib/resumeModel";
 import { SectionEditorPanel } from "./SectionEditorPanel";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
-import { ChevronLeft, LayoutTemplate, Download } from "lucide-react";
+import { ChevronLeft, LayoutTemplate, Download, TrendingUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { invokeEdgeFunction } from "@/lib/edgeFunction";
 
 export function ResumeWorkspace() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const store = useResumeBuilderStore();
   const [activeSectionKey, setActiveSectionKey] = useState<string | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("96ac1200-0e4e-4584-b1ec-5f93c2b94376"); // Default Executive
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(store.selectedFormat || "96ac1200-0e4e-4584-b1ec-5f93c2b94376"); 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [canonicalData, setCanonicalData] = useState<CanonicalResume | null>(null);
+  const [isAnalyzingATS, setIsAnalyzingATS] = useState(false);
   
+  // Auto-save effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (store.resumeSections.length > 0) {
+        store.saveResume().catch(err => console.error("Auto-save failed", err));
+      }
+    }, 2000); // Debounce 2s
+
+    return () => clearTimeout(timeoutId);
+  }, [store.resumeSections, store.selectedFormat]);
+
   // Sync store data to canonical format for the canvas
   useEffect(() => {
     // Mock user profile for now - in real app, fetch from auth
@@ -56,6 +69,50 @@ export function ResumeWorkspace() {
 
   const handleSectionClick = (sectionId: string) => {
     setActiveSectionKey(sectionId);
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    store.setSelectedFormat(templateId);
+    // Save will be triggered by auto-save effect
+  };
+
+  const handleAnalyzeATS = async () => {
+    if (!canonicalData || !store.jobAnalysis) return;
+    
+    setIsAnalyzingATS(true);
+    try {
+      const atsInput = {
+        jobTitle: store.jobAnalysis.roleProfile?.title || "",
+        jobDescription: store.displayJobText || "",
+        industry: store.jobAnalysis.roleProfile?.industry || "",
+        canonicalHeader: canonicalData.header,
+        canonicalSections: canonicalData.sections,
+      };
+
+      const { data, error } = await invokeEdgeFunction('analyze-ats-score', atsInput);
+
+      if (error) throw error;
+
+      store.setAtsScoreData(data);
+      toast({
+        title: "ATS Analysis Complete",
+        description: `Overall Score: ${data.overallScore}%`
+      });
+      
+      // Save result
+      store.saveResume();
+      
+    } catch (error: any) {
+      console.error("ATS Analysis failed", error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzingATS(false);
+    }
   };
 
   const handleExport = async (format: 'pdf' | 'docx' | 'html' | 'txt') => {
@@ -129,6 +186,25 @@ export function ResumeWorkspace() {
         </div>
         
         <div className="flex items-center gap-2">
+           {store.atsScoreData && (
+             <div className="mr-2 flex items-center gap-2 text-sm font-medium">
+               <span className={store.atsScoreData.overallScore >= 80 ? "text-green-600" : "text-amber-600"}>
+                 ATS: {store.atsScoreData.overallScore}%
+               </span>
+             </div>
+           )}
+           
+           <Button 
+             variant="outline" 
+             size="sm" 
+             className="gap-2" 
+             onClick={handleAnalyzeATS}
+             disabled={isAnalyzingATS}
+           >
+            {isAnalyzingATS ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
+            {store.atsScoreData ? 'Re-Analyze' : 'Analyze ATS'}
+          </Button>
+
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowTemplateModal(true)}>
             <LayoutTemplate className="h-4 w-4" />
             Templates
@@ -206,7 +282,7 @@ export function ResumeWorkspace() {
         <TemplatePreviewModal
           open={showTemplateModal}
           onClose={() => setShowTemplateModal(false)}
-          onSelectTemplate={setSelectedTemplateId}
+          onSelectTemplate={handleTemplateSelect}
           currentTemplateId={selectedTemplateId}
           resumeData={canonicalData}
         />
