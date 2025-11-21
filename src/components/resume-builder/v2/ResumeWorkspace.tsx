@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { renderResumeWithTemplate } from "@/lib/resumeTemplateRenderer";
 import { exportFormats } from "@/lib/resumeExportUtils";
 import { CanonicalResume } from "@/lib/resumeModel";

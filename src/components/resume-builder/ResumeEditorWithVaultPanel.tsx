@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { InteractiveResumeBuilder } from "./InteractiveResumeBuilder";
+import { InteractiveResumeBuilder } from "./legacy/InteractiveResumeBuilder";
 import { IntelligentVaultPanel } from "./IntelligentVaultPanel";
 import { GapSolutionsCard } from "./GapSolutionsCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
