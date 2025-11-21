@@ -11,7 +11,6 @@ interface ActivePulseProps {
 export function ActivePulse({
   activeApplications,
   interviews,
-  offers,
   vaultScore
 }: ActivePulseProps) {
   return (
