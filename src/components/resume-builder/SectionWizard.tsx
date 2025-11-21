@@ -77,6 +77,7 @@ export const SectionWizard = ({
   const [jobResearch, setJobResearch] = useState<any>(null);
   const [idealContent, setIdealContent] = useState<any>(null);
   const [personalizedContent, setPersonalizedContent] = useState<any>(null);
+  const [blendContent, setBlendContent] = useState<any>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
   const [vaultItemsUsed, setVaultItemsUsed] = useState<any[]>([]);
@@ -224,14 +225,24 @@ export const SectionWizard = ({
 
       setIdealContent(dualData.idealVersion.content);
       setPersonalizedContent(dualData.personalizedVersion.content);
+      setBlendContent(dualData.blendVersion?.content || dualData.idealVersion.content);
       
-      // Store vault items used for attribution
-      setVaultItemsUsed(dualData.vaultItemsUsed || relevantMatches.map(m => ({
+      // Store vault items used for attribution - ensure proper structure
+      const formattedVaultItems = dualData.personalizedVersion?.vaultItemsUsed?.map((item: any) => ({
+        id: item.id || crypto.randomUUID(),
+        category: item.type || 'vault_item',
+        qualityTier: item.qualityTier || 'gold',
+        excerpt: typeof item.content === 'string' 
+          ? item.content.substring(0, 100) 
+          : JSON.stringify(item.content).substring(0, 100)
+      })) || relevantMatches.map(m => ({
         id: m.vaultItemId,
         category: m.vaultCategory,
-        qualityTier: m.qualityTier,
+        qualityTier: m.qualityTier || 'gold',
         excerpt: typeof m.content === 'string' ? m.content.substring(0, 100) : JSON.stringify(m.content).substring(0, 100)
-      })));
+      }));
+      
+      setVaultItemsUsed(formattedVaultItems);
 
       setCurrentGenerationStep(3); // Complete
       setShowComparison(true);
@@ -335,6 +346,28 @@ export const SectionWizard = ({
     toast({
       title: "Personalized version selected",
       description: "You can edit before approving"
+    });
+  };
+
+  const handleSelectBlend = async () => {
+    setGeneratedContent(blendContent);
+    setEditedContent(
+      typeof blendContent === 'string'
+        ? blendContent
+        : JSON.stringify(blendContent, null, 2)
+    );
+    setShowComparison(false);
+
+    // Track version selection
+    await trackVersionSelection('blend', {
+      section_type: section.type,
+      vault_items_used: relevantMatches.length,
+      vault_strength: calculateVaultStrength(relevantMatches)
+    });
+
+    toast({
+      title: "Blended version selected",
+      description: "AI combined the best of both versions. You can edit before approving"
     });
   };
 
@@ -500,6 +533,7 @@ export const SectionWizard = ({
               }}
               idealContent={idealContent}
               personalizedContent={personalizedContent}
+              blendContent={blendContent}
               sectionType={section.type}
               vaultStrength={{
                 score: calculateVaultStrength(relevantMatches),
@@ -513,6 +547,7 @@ export const SectionWizard = ({
               }}
               onSelectIdeal={handleSelectIdeal}
               onSelectPersonalized={handleSelectPersonalized}
+              onSelectBlend={handleSelectBlend}
               onOpenEditor={handleOpenEditor}
               jobTitle={jobAnalysis.roleProfile?.title}
             />

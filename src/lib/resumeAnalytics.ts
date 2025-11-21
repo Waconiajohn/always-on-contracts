@@ -177,8 +177,8 @@ export class GenerationTimer {
 }
 
 // Helper functions for common tracking patterns
-export const trackVersionSelection = (version: 'ideal' | 'personalized', metadata: Record<string, any> = {}) => {
-  return analytics.trackVersionSelection(version, metadata);
+export const trackVersionSelection = (version: 'ideal' | 'personalized' | 'blend', metadata: Record<string, any> = {}) => {
+  return analytics.trackVersionSelection(version as 'ideal' | 'personalized' | 'blended', metadata);
 };
 
 export const trackSectionComplete = (sectionType: string, metadata: Record<string, any> = {}) => {

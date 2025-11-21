@@ -15,6 +15,7 @@ interface DualGenerationComparisonProps {
   };
   idealContent: any;
   personalizedContent: any;
+  blendContent?: any;
   sectionType: string;
   vaultStrength?: {
     score: number;
@@ -23,6 +24,7 @@ interface DualGenerationComparisonProps {
   };
   onSelectIdeal: () => void;
   onSelectPersonalized: () => void;
+  onSelectBlend?: () => void;
   onOpenEditor: (initialContent: any) => void;
   jobTitle?: string;
   atsMatchIdeal?: number;
@@ -33,9 +35,11 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
   research,
   idealContent,
   personalizedContent,
+  blendContent,
   vaultStrength = { score: 50, hasRealNumbers: false, hasDiverseCategories: false },
   onSelectIdeal,
   onSelectPersonalized,
+  onSelectBlend,
   onOpenEditor,
   jobTitle,
   // TODO: Calculate actual ATS scores based on keyword matching algorithm
@@ -177,10 +181,11 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
 
       {/* Comparison Tabs */}
       <Tabs defaultValue="side-by-side" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
           <TabsTrigger value="ideal-only">Industry Standard</TabsTrigger>
           <TabsTrigger value="personalized-only">Your Version</TabsTrigger>
+          <TabsTrigger value="blend-only">AI Blended</TabsTrigger>
         </TabsList>
 
         {/* Side by Side View */}
@@ -422,6 +427,68 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
             </div>
           </Card>
         </TabsContent>
+
+        {/* AI Blended Version View */}
+        {blendContent && onSelectBlend && (
+          <TabsContent value="blend-only" className="space-y-4">
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold">🎯 AI Blended Version</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Intelligently combines industry standards with your actual experience
+                    </p>
+                  </div>
+                  <Badge className="bg-primary">
+                    Recommended
+                  </Badge>
+                </div>
+
+                <div className="p-6 bg-card rounded-lg border">
+                  {renderContent(blendContent)}
+                </div>
+
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <div className="flex items-start gap-2">
+                    <Check className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />
+                    <span>Uses professional structure from Industry Standard</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />
+                    <span>Incorporates your actual achievements and metrics</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />
+                    <span>Optimized for ATS keyword matching</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />
+                    <span>Best of both worlds - authentic and competitive</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={onSelectBlend}
+                    size="lg"
+                    className="flex-1"
+                  >
+                    Use This Version
+                  </Button>
+                  <Button
+                    onClick={() => onOpenEditor(blendContent)}
+                    size="lg"
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Edit First
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Citations Footer (if available) */}
