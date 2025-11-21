@@ -1,23 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Loader2, Search, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Clock, Copy, Sparkles, FileText, Star, StarOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BooleanAIAssistant } from "@/components/job-search/BooleanAIAssistant";
-import { SavedSearches } from "@/components/job-search/SavedSearches";
-import { SavedJobsList } from "@/components/job-search/SavedJobsList";
-import { QuickBooleanBuilder } from "@/components/job-search/QuickBooleanBuilder";
-import { BooleanActiveIndicator } from "@/components/job-search/BooleanActiveIndicator";
 import { useNavigate } from "react-router-dom";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { ContextSidebar } from "@/components/layout/ContextSidebar";
@@ -26,6 +10,12 @@ import { useLayout } from "@/contexts/LayoutContext";
 import { invokeEdgeFunction } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
 import { useJobTitleRecommendations } from "@/hooks/useJobTitleRecommendations";
+
+// V2 Components
+import { SearchHeader } from "@/components/job-search/v2/SearchHeader";
+import { SearchControls } from "@/components/job-search/v2/SearchControls";
+import { BooleanBuilderTool } from "@/components/job-search/v2/BooleanBuilderTool";
+import { SearchResults } from "@/components/job-search/v2/SearchResults";
 
 interface JobResult {
   id: string;
@@ -77,42 +67,7 @@ const JobSearchContent = () => {
   const [autoRunFromVault, setAutoRunFromVault] = useState(false);
   const [useTransferableSkills, setUseTransferableSkills] = useState(false);
 
-  const handleApplyAISearch = async (booleanString: string) => {
-    setBooleanString(booleanString);
-    setShowAdvanced(true);
-    setActiveSavedSearchName('AI Generated');
-    setSearchOrigin('boolean_ai');
-    
-    // Scroll to the advanced filters section with smooth animation
-    setTimeout(() => {
-      const advancedSection = document.getElementById('advanced-filters-section');
-      if (advancedSection) {
-        advancedSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // Add a pulsing highlight effect to the boolean input
-        const booleanInput = document.getElementById('boolean-input');
-        if (booleanInput) {
-          booleanInput.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-          setTimeout(() => {
-            booleanInput.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-          }, 2000);
-        }
-      }
-    }, 100);
-
-    // Auto-trigger search after a brief delay
-    setTimeout(async () => {
-      if (searchQuery.trim()) {
-        await handleSearch(true); // Pass flag to indicate this is a boolean search
-      } else {
-        toast({
-          title: "Search query needed",
-          description: "Please enter a job title or keyword to search with the boolean string",
-          variant: "destructive"
-        });
-      }
-    }, 300);
-  };
+  // handleApplyAISearch removed as it was tightly coupled to old UI structure
   
   const handleLoadSavedSearch = (search: any) => {
     setBooleanString(search.boolean_string);
@@ -653,518 +608,63 @@ const JobSearchContent = () => {
       }
       maxWidth="full"
     >
-      <div className="px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Search Jobs</h1>
-          <p className="text-muted-foreground">Live results from 50+ sources</p>
-        </div>
+      <div className="px-4 py-8 max-w-7xl mx-auto">
+        <SearchHeader 
+          query={searchQuery}
+          setQuery={setSearchQuery}
+          location={location}
+          setLocation={setLocation}
+          radius={radiusMiles}
+          setRadius={setRadiusMiles}
+          onSearch={() => handleSearch(false)}
+          isSearching={isSearching}
+          suggestedTitles={suggestedTitles}
+        />
 
-        {/* Search Bar */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              <div className="grid md:grid-cols-[1fr_auto] gap-3">
-                <Input
-                  placeholder="Search for jobs (e.g., 'Senior Product Manager' or 'AI Engineer')"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="flex-1"
-                />
-                <Button onClick={() => handleSearch(false)} disabled={isSearching} className="min-w-[120px]">
-                  {isSearching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Searching
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4 mr-2" />
-                      Search
-                    </>
-                  )}
-                </Button>
-              </div>
-              
-              <div className="grid md:grid-cols-[1fr_200px] gap-3">
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="City, State (e.g., Minneapolis, MN)"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-9"
-                  />
-                </div>
-                <Select value={radiusMiles} onValueChange={setRadiusMiles} disabled={!location}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Radius" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 miles</SelectItem>
-                    <SelectItem value="25">25 miles</SelectItem>
-                    <SelectItem value="50">50 miles</SelectItem>
-                    <SelectItem value="75">75 miles</SelectItem>
-                    <SelectItem value="100">100 miles</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SearchControls 
+          dateFilter={dateFilter}
+          setDateFilter={setDateFilter}
+          remoteType={remoteType}
+          setRemoteType={setRemoteType}
+          employmentType={employmentType}
+          setEmploymentType={setEmploymentType}
+          contractOnly={contractOnly}
+          setContractOnly={setContractOnly}
+          showAdvanced={showAdvanced}
+          setShowAdvanced={setShowAdvanced}
+          activeSavedSearchName={activeSavedSearchName}
+          onLoadSearch={handleLoadSavedSearch}
+          currentBooleanString={booleanString}
+          currentSearchQuery={searchQuery}
+          currentLocation={location}
+        />
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6 space-y-4">
-            {booleanString && activeSavedSearchName && (
-              <BooleanActiveIndicator 
-                booleanString={booleanString}
-                searchName={activeSavedSearchName}
-                onClear={handleClearBoolean}
-              />
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Posted</Label>
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="24h">Last 24 hours</SelectItem>
-                    <SelectItem value="3d">Last 3 days</SelectItem>
-                    <SelectItem value="7d">Last 7 days</SelectItem>
-                    <SelectItem value="14d">Last 14 days</SelectItem>
-                    <SelectItem value="30d">Last 30 days</SelectItem>
-                    <SelectItem value="any">Any time</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        <BooleanBuilderTool 
+          booleanString={booleanString}
+          setBooleanString={setBooleanString}
+        />
 
-              <div className="space-y-2">
-                <Label>Remote</Label>
-                <Select value={remoteType} onValueChange={setRemoteType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any</SelectItem>
-                    <SelectItem value="remote">Remote</SelectItem>
-                    <SelectItem value="local">Hybrid/Onsite</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Employment Type</Label>
-                <Select value={employmentType} onValueChange={setEmploymentType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any</SelectItem>
-                    <SelectItem value="full-time">Full-time</SelectItem>
-                    <SelectItem value="contract">Contract</SelectItem>
-                    <SelectItem value="freelance">Freelance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center space-x-2 pt-7">
-                <Switch
-                  id="contract-only"
-                  checked={contractOnly}
-                  onCheckedChange={setContractOnly}
-                />
-                <Label htmlFor="contract-only">Contract Only</Label>
-              </div>
-            </div>
-
-            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full">
-                  {showAdvanced ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
-                  Advanced Filters {appliedFiltersCount > 0 && `(${appliedFiltersCount} applied)`}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-4 space-y-4">
-                <div className="mb-4">
-                  <SavedSearches 
-                    onLoadSearch={handleLoadSavedSearch}
-                    currentBooleanString={booleanString}
-                    currentSearchQuery={searchQuery}
-                    currentLocation={location}
-                    currentFilters={{
-                      datePosted: dateFilter,
-                      contractOnly,
-                      remoteType,
-                      employmentType
-                    }}
-                  />
-                </div>
-                
-                <div id="advanced-filters-section" className="space-y-2 p-4 border rounded-lg bg-muted/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className="font-semibold">🚀 Boolean Search String</Label>
-                    <Badge variant="secondary" className="text-xs">Google Jobs Only</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Use advanced boolean operators (AND, OR, NOT) for precise searches. 
-                    Note: This works best with Google Jobs; may not apply to all sources.
-                  </p>
-                  
-                   <Button 
-                    onClick={() => setShowBooleanBuilder(true)}
-                    className="w-full mb-3"
-                    variant="outline"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Quick Boolean Builder
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => setShowAIAssistant(true)}
-                    className="w-full mb-3"
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    AI Boolean Assistant (Advanced)
-                  </Button>
-                  
-                  <Input
-                    id="boolean-input"
-                    placeholder='e.g., ("Product Manager" OR "Program Manager") AND (Agile OR Scrum) NOT "junior"'
-                    value={booleanString}
-                    onChange={(e) => setBooleanString(e.target.value)}
-                    className="font-mono text-sm transition-all duration-300"
-                  />
-                  {booleanString && (
-                    <div className="flex gap-2 mt-3">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => {
-                          navigator.clipboard.writeText(booleanString);
-                          toast({
-                            title: "Copied for LinkedIn",
-                            description: "Paste this into LinkedIn's job search to use advanced operators"
-                          });
-                        }}
-                      >
-                        <Copy className="h-3 w-3 mr-2" />
-                        Copy for LinkedIn
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setBooleanString('')}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </CardContent>
-        </Card>
-
-        {/* Search Progress */}
-        {isSearching && (
-          <Card className="mb-6 border-primary">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <div className="flex-1">
-                  <p className="font-medium">Searching 7 sources...</p>
-                  <p className="text-sm text-muted-foreground mt-1">Google Jobs + 6 ATS systems (150+ companies)</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-sm">
-                    <span className={sourceStats.google_jobs?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Google Jobs {sourceStats.google_jobs?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.greenhouse?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Greenhouse {sourceStats.greenhouse?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.lever?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Lever {sourceStats.lever?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.workday?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Workday {sourceStats.workday?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.recruitee?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Recruitee {sourceStats.recruitee?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.workable?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Workable {sourceStats.workable?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                    <span className={sourceStats.ashby?.status === 'success' ? 'text-green-600' : 'text-muted-foreground'}>
-                      Ashby {sourceStats.ashby?.status === 'success' ? '✓' : '⏳'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Results Header */}
-        {jobs.length > 0 && (
-          <div className="mb-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Found {jobs.length} jobs {searchTime && `in ${(searchTime / 1000).toFixed(1)}s`}
-              </p>
-            </div>
-            
-            {/* Boolean Search Comparison Banner */}
-            {booleanString && activeSavedSearchName && booleanSearchCount !== null && basicSearchCount !== null && (
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Badge className="shrink-0">
-                      🎯 AI Boolean Search
-                    </Badge>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        Basic search: {basicSearchCount} jobs → Boolean search: {booleanSearchCount} jobs
-                        {booleanSearchCount > basicSearchCount && (
-                          <span className="text-primary ml-2">
-                            (+{booleanSearchCount - basicSearchCount} more jobs found)
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Using: <code className="text-xs bg-background/50 px-1 rounded">{booleanString.length > 80 ? booleanString.slice(0, 80) + '...' : booleanString}</code>
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* Results */}
-        <Tabs defaultValue="results" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="results">
-              Search Results ({jobs.length})
-            </TabsTrigger>
-            <TabsTrigger value="saved">
-              Saved Jobs
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="results">
-            <div className="space-y-4">
-              {jobs.map((job) => (
-                <Card key={job.id} className="hover:border-primary/50 transition-colors">
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-xl font-semibold">{job.title}</h3>
-                          {job.match_score && job.match_score > 0 && (
-                            <Badge variant="outline" className={getScoreColor(job.match_score)}>
-                              {job.match_score}% Match
-                            </Badge>
-                          )}
-                          {contractOnly && (
-                            <Badge variant="secondary">Contract</Badge>
-                          )}
-                        </div>
-                        <p className="text-lg text-muted-foreground">{job.company}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                      {job.location && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {job.location}
-                        </div>
-                      )}
-                      {formatSalary(job.salary_min, job.salary_max) && (
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-4 w-4" />
-                          {formatSalary(job.salary_min, job.salary_max)}
-                        </div>
-                      )}
-                      {job.employment_type && (
-                        <div className="flex items-center gap-1">
-                          <Briefcase className="h-4 w-4" />
-                          {job.employment_type}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        Posted {(() => {
-                          try {
-                            const date = new Date(job.posted_date);
-                            if (isNaN(date.getTime())) {
-                              return 'Recently';
-                            }
-                            return formatDistanceToNow(date, { addSuffix: true });
-                          } catch {
-                            return 'Recently';
-                          }
-                        })()}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge variant="outline">{job.source}</Badge>
-                      {job.remote_type && (
-                        <Badge variant="secondary">{job.remote_type}</Badge>
-                      )}
-                    </div>
-
-                    {job.description && (
-                      <div className="mb-4 relative">
-                        <p className={`text-sm text-muted-foreground transition-all ${
-                          expandedJobIds.has(job.id) ? '' : 'line-clamp-3'
-                        }`}>
-                          {job.description}
-                        </p>
-                        {job.description.length > 200 && (
-                          <>
-                            {!expandedJobIds.has(job.id) && (
-                              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-                            )}
-                            <div className="flex items-center gap-2 mt-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => toggleJobExpansion(job.id)}
-                                className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
-                              >
-                                {expandedJobIds.has(job.id) ? (
-                                  <>
-                                    <ChevronUp className="h-3 w-3 mr-1" />
-                                    Show Less
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="h-3 w-3 mr-1" />
-                                    Show More
-                                  </>
-                                )}
-                              </Button>
-                              {job.apply_url && job.description.endsWith('…') && (
-                                <a
-                                  href={job.apply_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-primary hover:underline"
-                                >
-                                  View Full Job Post
-                                </a>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button 
-                        onClick={() => generateResumeForJob(job)} 
-                        className="gap-2"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Generate Resume
-                      </Button>
-                      <Button onClick={() => addToQueue(job)} variant="secondary" className="gap-2">
-                        Add to My Applications
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => savedJobIds.has(job.id) ? unsaveJob(job) : saveJob(job)}
-                        title={savedJobIds.has(job.id) ? "Remove from saved" : "Save for later"}
-                      >
-                        {savedJobIds.has(job.id) ? (
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        ) : (
-                          <StarOff className="h-4 w-4" />
-                        )}
-                      </Button>
-                      {job.apply_url && (
-                        <Button variant="outline" asChild>
-                          <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
-                            View Details
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {/* Load More Button */}
-              {!isSearching && nextPageToken && jobs.length > 0 && (
-                <div className="flex justify-center pt-6">
-                  <Button
-                    onClick={() => handleSearch(false, true)}
-                    disabled={isLoadingMore}
-                    variant="outline"
-                    size="lg"
-                    className="w-full sm:w-auto"
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading more jobs...
-                      </>
-                    ) : (
-                      <>
-                        Load More Results
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          (Page 2+)
-                        </span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {/* Empty State */}
-              {!isSearching && jobs.length === 0 && searchQuery && (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">
-                      No jobs found. Try adjusting your search or filters.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="saved">
-            <SavedJobsList />
-          </TabsContent>
-        </Tabs>
-
-      {/* AI Assistants */}
-      <BooleanAIAssistant
-        open={showAIAssistant}
-        onOpenChange={setShowAIAssistant}
-        onApplySearch={handleApplyAISearch}
-      />
-
-      <QuickBooleanBuilder
-        open={showBooleanBuilder}
-        onOpenChange={setShowBooleanBuilder}
-        onApply={(booleanStr) => {
-          setBooleanString(booleanStr);
-          setActiveSavedSearchName('Quick Builder');
-          setShowAdvanced(true);
-        }}
-      />
+        <SearchResults 
+          jobs={jobs}
+          isSearching={isSearching}
+          isLoadingMore={isLoadingMore}
+          searchTime={searchTime}
+          booleanString={booleanString}
+          activeSavedSearchName={activeSavedSearchName}
+          basicSearchCount={basicSearchCount}
+          booleanSearchCount={booleanSearchCount}
+          expandedJobIds={expandedJobIds}
+          savedJobIds={savedJobIds}
+          contractOnly={contractOnly}
+          searchQuery={searchQuery}
+          nextPageToken={nextPageToken}
+          onLoadMore={() => handleSearch(false, true)}
+          onToggleExpand={toggleJobExpansion}
+          onGenerateResume={generateResumeForJob}
+          onAddToQueue={addToQueue}
+          onSaveJob={saveJob}
+          onUnsaveJob={unsaveJob}
+        />
       </div>
     </ContentLayout>
   );
