@@ -60,7 +60,7 @@ export const SwapEvidenceDialog = ({
       // Fetch alternative bullets from vault_resume_milestones
       const { data: milestones, error } = await supabase
         .from("vault_resume_milestones")
-        .select("id, original_bullet, job_title, company_name, start_date, end_date")
+        .select("id, description, job_title, company_name, start_date, end_date")
         .eq("user_id", user.id)
         .neq("id", currentEvidenceId)
         .order("start_date", { ascending: false })
@@ -96,7 +96,7 @@ export const SwapEvidenceDialog = ({
         const endYear = m.end_date ? new Date(m.end_date).getFullYear() : 'Present';
         return {
           id: m.id,
-          original_bullet: m.original_bullet || '',
+          original_bullet: m.description || '',
           job_title: m.job_title || 'Unknown Position',
           company: m.company_name || 'Unknown Company',
           date_range: `${startYear} - ${endYear}`,
