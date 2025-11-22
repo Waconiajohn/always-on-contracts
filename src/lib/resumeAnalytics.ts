@@ -186,7 +186,12 @@ export const trackSectionComplete = (sectionType: string, metadata: Record<strin
 };
 
 export const calculateVaultStrength = (vaultMatches: any[]): number => {
-  if (!vaultMatches || vaultMatches.length === 0) return 0;
+  if (!vaultMatches || vaultMatches.length === 0) {
+    console.log('[VAULT-STRENGTH] No vault matches provided, returning 0');
+    return 0;
+  }
+
+  console.log('[VAULT-STRENGTH] Calculating strength for', vaultMatches.length, 'matches');
 
   const tierWeights: Record<string, number> = {
     gold: 1.0,
@@ -203,5 +208,8 @@ export const calculateVaultStrength = (vaultMatches: any[]): number => {
     return sum + (tierWeight * freshnessMultiplier * matchMultiplier);
   }, 0);
 
-  return Math.min(100, Math.round((totalScore / vaultMatches.length) * 100));
+  const strength = Math.min(100, Math.round((totalScore / vaultMatches.length) * 100));
+  console.log('[VAULT-STRENGTH] Calculated strength:', strength);
+  
+  return strength;
 };
