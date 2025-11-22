@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, User, Edit, Check, Brain, TrendingUp, Target, Zap, AlertTriangle } from 'lucide-react';
+import { Trophy, User, Edit, Check, Brain, TrendingUp, Target, Zap, AlertTriangle, CheckCircle, ShieldCheck } from 'lucide-react';
 import { TooltipHelp } from './HelpTooltip';
 
 interface DualGenerationComparisonProps {
@@ -38,6 +38,7 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
   personalizedContent,
   blendContent,
   vaultStrength = { score: 50, hasRealNumbers: false, hasDiverseCategories: false },
+  evidenceMatrix,
   onSelectIdeal,
   onSelectPersonalized,
   onSelectBlend,
@@ -110,6 +111,19 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
   };
 
   const researchSummary = parseResearchInsights();
+  
+  // Calculate coverage stats for Evidence Map
+  const coverageStats = evidenceMatrix ? {
+    totalRequirements: evidenceMatrix.length,
+    matched: evidenceMatrix.filter(m => m.matchScore >= 60).length,
+    coverageScore: Math.round((evidenceMatrix.filter(m => m.matchScore >= 60).length / evidenceMatrix.length) * 100)
+  } : null;
+
+  const getMatchColor = (score: number) => {
+    if (score >= 80) return 'text-green-600 bg-green-50 border-green-200';
+    if (score >= 60) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    return 'text-red-600 bg-red-50 border-red-200';
+  };
 
   return (
     <div className="space-y-6">
@@ -182,11 +196,12 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
 
       {/* Comparison Tabs */}
       <Tabs defaultValue="side-by-side" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
           <TabsTrigger value="ideal-only">Industry Standard</TabsTrigger>
           <TabsTrigger value="personalized-only">Your Version</TabsTrigger>
           <TabsTrigger value="blend-only">AI Blended</TabsTrigger>
+          <TabsTrigger value="evidence-map">Evidence Map</TabsTrigger>
         </TabsList>
 
         {/* Side by Side View */}
@@ -511,6 +526,100 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
             </Card>
           </TabsContent>
         )}
+
+        {/* Evidence Map Tab - NEW */}
+        <TabsContent value="evidence-map" className="space-y-4">
+          {evidenceMatrix && evidenceMatrix.length > 0 ? (
+            <>
+              {/* Coverage Summary */}
+              {coverageStats && (
+                <Card className="p-4 bg-green-50 border-green-200">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="h-6 w-6 text-green-600" />
+                    <div>
+                      <h4 className="font-semibold text-green-900">Evidence Coverage: {coverageStats.coverageScore}%</h4>
+                      <p className="text-sm text-green-700">
+                        {coverageStats.matched} of {coverageStats.totalRequirements} requirements have strong evidence from your history
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Evidence Items */}
+              <div className="space-y-3">
+                {evidenceMatrix.map((item, idx) => (
+                  <Card key={idx} className={`p-4 border-2 ${getMatchColor(item.matchScore)}`}>
+                    <div className="space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant={item.requirementCategory === 'required' ? 'destructive' : 'secondary'} className="text-xs">
+                              {item.requirementCategory}
+                            </Badge>
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {item.matchScore}% Match
+                            </span>
+                          </div>
+                          <p className="font-medium text-sm">{item.requirementText}</p>
+                        </div>
+                        {item.matchScore >= 80 && (
+                          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                        )}
+                      </div>
+
+                      {/* Original Evidence */}
+                      <div className="bg-background/50 p-3 rounded-md space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="font-medium">Original Evidence:</span>
+                          <span>{item.originalSource?.jobTitle} at {item.originalSource?.company}</span>
+                        </div>
+                        <p className="text-sm">{item.originalBullet}</p>
+                      </div>
+
+                      {/* Enhanced Version */}
+                      <div className="bg-primary/5 p-3 rounded-md space-y-2">
+                        <div className="text-xs font-medium text-primary">Enhanced for Resume:</div>
+                        <p className="text-sm">{item.enhancedBullet}</p>
+                        {item.atsKeywords && item.atsKeywords.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {item.atsKeywords.map((kw: string, i: number) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {kw}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Match Reasons */}
+                      {item.matchReasons && item.matchReasons.length > 0 && (
+                        <div className="text-xs space-y-1">
+                          <div className="font-medium">Why this matches:</div>
+                          <ul className="list-disc ml-4 space-y-0.5 text-muted-foreground">
+                            {item.matchReasons.map((reason: string, i: number) => (
+                              <li key={i}>{reason}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <Card className="p-8 text-center">
+              <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h4 className="font-semibold mb-2">No Evidence Matrix Available</h4>
+              <p className="text-sm text-muted-foreground">
+                Evidence mapping is only available for Experience, Projects, and Summary sections
+                when using the evidence-based generation workflow.
+              </p>
+            </Card>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Citations Footer (if available) */}

@@ -5,20 +5,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Lightbulb,
   Sparkles,
   Loader2,
-  RotateCcw,
-  Check,
   Edit3,
   Maximize2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction, PerplexityResearchSchema, GenerateDualResumeSectionSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { invokeEdgeFunction } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
 import { DualGenerationComparison } from "@/components/resume-builder/DualGenerationComparison";
-import { calculateVaultStrength } from "@/lib/resumeAnalytics";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { VaultSourcingPanel } from "./VaultSourcingPanel";
 import { JDMatchPanel } from "./JDMatchPanel";
@@ -66,7 +62,6 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
   // New Evidence-Based State
   const [showRequirementMapper, setShowRequirementMapper] = useState(false);
   const [evidenceMatrix, setEvidenceMatrix] = useState<any[]>([]);
-  const [evidenceSelections, setEvidenceSelections] = useState<Record<string, any>>({});
 
   useEffect(() => {
     // Initialize content for editing
@@ -136,12 +131,38 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
   };
 
   const handleEvidenceComplete = async (selections: Record<string, any>) => {
-      setEvidenceSelections(selections);
       setShowRequirementMapper(false);
       setIsGenerating(true);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+          // Save evidence selections to database for audit trail
+          const mappings = evidenceMatrix.map(item => ({
+            user_id: user.id,
+            requirement_id: item.requirementId,
+            requirement_text: item.requirementText,
+            requirement_category: item.requirementCategory,
+            milestone_id: item.milestoneId,
+            original_bullet: item.originalBullet,
+            original_job_title: item.originalSource?.jobTitle,
+            original_company: item.originalSource?.company,
+            original_date_range: item.originalSource?.dateRange,
+            match_score: item.matchScore,
+            match_reasons: item.matchReasons || [],
+            enhanced_bullet: item.enhancedBullet,
+            ats_keywords: item.atsKeywords || [],
+            user_selection: selections[item.requirementId]?.version || 'enhanced',
+            custom_edit: selections[item.requirementId]?.customText
+          }));
+
+          const { error: saveError } = await supabase
+            .from('resume_requirement_mappings')
+            .upsert(mappings);
+
+          if (saveError) {
+            logger.error('Failed to save evidence mappings', saveError);
+          }
+
           await executeStandardGeneration(user.id, selections);
       }
   };

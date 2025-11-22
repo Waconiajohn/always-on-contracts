@@ -266,13 +266,6 @@ export const SectionWizard = ({
     handleGenerate();
   };
 
-  const handleEvidenceSelectionChange = (requirementId: string, version: 'original' | 'enhanced' | 'custom', customText?: string) => {
-    setEvidenceSelections(prev => ({
-      ...prev,
-      [requirementId]: { version, customText }
-    }));
-  };
-
   const handleEvidenceApprove = async () => {
     // User has approved evidence mappings, now generate final bullets
     setShowEvidenceMapper(false);
@@ -280,6 +273,39 @@ export const SectionWizard = ({
     setCurrentGenerationStep(2);
 
     try {
+      // Get authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Save evidence selections to database for audit trail
+      const mappings = evidenceMatrix.map(item => ({
+        user_id: user.id,
+        requirement_id: item.requirementId,
+        requirement_text: item.requirementText,
+        requirement_category: item.requirementCategory,
+        milestone_id: item.milestoneId,
+        original_bullet: item.originalBullet,
+        original_job_title: item.originalSource?.jobTitle,
+        original_company: item.originalSource?.company,
+        original_date_range: item.originalSource?.dateRange,
+        match_score: item.matchScore,
+        match_reasons: item.matchReasons || [],
+        enhanced_bullet: item.enhancedBullet,
+        ats_keywords: item.atsKeywords || [],
+        user_selection: evidenceSelections[item.requirementId]?.version || 'enhanced',
+        custom_edit: evidenceSelections[item.requirementId]?.customText
+      }));
+
+      const { error: saveError } = await supabase
+        .from('resume_requirement_mappings')
+        .insert(mappings);
+
+      if (saveError) {
+        logger.error('Failed to save evidence mappings', saveError);
+        // Don't throw - continue with generation even if save fails
+      }
+
+      // Generate final content using evidence
       const { data: finalContent, error: genError } = await invokeEdgeFunction(
         'generate-dual-resume-section',
         {
@@ -543,7 +569,11 @@ export const SectionWizard = ({
               
               <RequirementBulletMapper
                 evidenceMatrix={evidenceMatrix}
-                onSelectionChange={handleEvidenceSelectionChange}
+                onComplete={(selections) => {
+                  setEvidenceSelections(selections);
+                  handleEvidenceApprove();
+                }}
+                onCancel={() => setShowEvidenceMapper(false)}
               />
 
               <div className="flex justify-end gap-2 pt-4 border-t">
