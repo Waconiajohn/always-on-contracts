@@ -56,46 +56,90 @@ serve(async (req) => {
     ]);
 
     console.log('[MATCH-REQ-TO-BULLETS] Fetched', milestones.data?.length || 0, 'milestones and', workPositions.data?.length || 0, 'work positions');
+    
+    // Log sample work position to see structure
+    if (workPositions.data && workPositions.data.length > 0) {
+      console.log('[MATCH-REQ-TO-BULLETS] Sample work position structure:', JSON.stringify(workPositions.data[0], null, 2));
+    }
 
     // Build bullets from both milestones and work positions
     const bullets: any[] = [];
 
-    // Add bullets from milestones
+    // Add bullets from milestones (description field)
     (milestones.data || []).forEach((m: any) => {
       const position = (workPositions.data || []).find((p: any) => 
         p.company_name?.toLowerCase() === m.company_name?.toLowerCase()
       );
       
-      bullets.push({
-        id: m.id,
-        content: m.description || m.milestone_title,
-        source: {
-          company: m.company_name || position?.company_name || 'Unknown',
-          jobTitle: m.title || position?.job_title || 'Unknown',
-          dateRange: m.milestone_date || (position ? `${position.start_date} - ${position.end_date || 'Present'}` : '')
-        }
-      });
+      if (m.description) {
+        bullets.push({
+          id: m.id,
+          content: m.description,
+          source: {
+            company: m.company_name || position?.company_name || 'Unknown',
+            jobTitle: m.title || position?.job_title || 'Unknown',
+            dateRange: m.milestone_date || (position ? `${position.start_date} - ${position.end_date || 'Present'}` : '')
+          }
+        });
+      }
     });
 
-    // Add bullets from work positions (responsibilities)
+    // Add bullets from work positions
+    // Try multiple possible field names for achievements/responsibilities
     (workPositions.data || []).forEach((position: any) => {
-      const responsibilities = position.responsibilities || [];
-      responsibilities.forEach((responsibility: string, index: number) => {
-        if (responsibility && responsibility.trim()) {
+      const achievementFields = [
+        'achievements',
+        'responsibilities', 
+        'key_achievements',
+        'accomplishments',
+        'description',
+        'bullet_points'
+      ];
+      
+      for (const field of achievementFields) {
+        const fieldData = position[field];
+        
+        // Handle array of strings
+        if (Array.isArray(fieldData)) {
+          fieldData.forEach((item: string, index: number) => {
+            if (item && item.trim()) {
+              bullets.push({
+                id: `${position.id}-${field}-${index}`,
+                content: item,
+                source: {
+                  company: position.company_name || 'Unknown',
+                  jobTitle: position.job_title || 'Unknown',
+                  dateRange: `${position.start_date || ''} - ${position.end_date || 'Present'}`
+                }
+              });
+            }
+          });
+          break; // Found array data, stop looking
+        }
+        
+        // Handle single string
+        if (typeof fieldData === 'string' && fieldData.trim()) {
           bullets.push({
-            id: `${position.id}-resp-${index}`,
-            content: responsibility,
+            id: `${position.id}-${field}`,
+            content: fieldData,
             source: {
               company: position.company_name || 'Unknown',
               jobTitle: position.job_title || 'Unknown',
               dateRange: `${position.start_date || ''} - ${position.end_date || 'Present'}`
             }
           });
+          break; // Found string data, stop looking
         }
-      });
+      }
     });
 
     console.log('[MATCH-REQ-TO-BULLETS] Built', bullets.length, 'total bullets from vault data');
+    
+    if (bullets.length === 0) {
+      console.error('[MATCH-REQ-TO-BULLETS] WARNING: No bullets extracted from vault data!');
+      console.error('[MATCH-REQ-TO-BULLETS] Milestones data:', JSON.stringify(milestones.data, null, 2));
+      console.error('[MATCH-REQ-TO-BULLETS] Work positions data:', JSON.stringify(workPositions.data, null, 2));
+    }
 
     // 2. AI Matching
     const prompt = `You are analyzing a candidate's actual work history to find the BEST evidence for job requirements.
