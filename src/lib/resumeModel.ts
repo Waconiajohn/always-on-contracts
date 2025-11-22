@@ -11,6 +11,30 @@ export type CanonicalSectionType =
   | "certifications"
   | "other";
 
+export interface ResumeBulletMetadata {
+  requirementId?: string;
+  requirementText?: string;
+  requirementCategory?: 'required' | 'preferred' | 'nice_to_have';
+  evidenceId?: string;
+  milestoneId?: string;
+  originalBullet?: string;
+  originalSource?: {
+    jobTitle: string;
+    company: string;
+    dateRange: string;
+  };
+  matchScore?: number;
+  matchStrength?: 'Gold' | 'Silver' | 'Bronze';
+  atsKeywordsAdded?: string[];
+  userEdited?: boolean;
+}
+
+export interface ResumeBullet {
+  id: string;
+  content: string;
+  meta?: ResumeBulletMetadata;
+}
+
 export interface CanonicalResumeSection {
   id: string;
   type: CanonicalSectionType;
@@ -19,13 +43,22 @@ export interface CanonicalResumeSection {
    * Plain-text bullets only – no HTML.
    * This makes ATS parsing and export much simpler.
    */
-  bullets: string[];
+  bullets: string[] | ResumeBullet[];
   /**
    * Optional free-form block for sections like Summary
    * that may be paragraph-style instead of bullets.
    */
   paragraph?: string;
   order: number;
+  /**
+   * Optional metadata for the entire section
+   */
+  sectionMetadata?: {
+    evidenceMatrixId?: string;
+    coverageScore?: number;
+    totalRequirements?: number;
+    matchedRequirements?: number;
+  };
 }
 
 export interface CanonicalResumeHeader {

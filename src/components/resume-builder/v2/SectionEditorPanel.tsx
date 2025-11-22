@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
 import { DualGenerationComparison } from "@/components/resume-builder/DualGenerationComparison";
+import { RequirementBulletMapper } from "./RequirementBulletMapper";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { VaultSourcingPanel } from "./VaultSourcingPanel";
 import { JDMatchPanel } from "./JDMatchPanel";
@@ -61,6 +62,9 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
   const [editedContent, setEditedContent] = useState("");
   const [showComparison, setShowComparison] = useState(false);
   const [generationData, setGenerationData] = useState<any>(null);
+  const [showEvidenceMapper, setShowEvidenceMapper] = useState(false);
+  const [evidenceMatrix, setEvidenceMatrix] = useState<any[]>([]);
+  const [currentEvidenceIndex, setCurrentEvidenceIndex] = useState(0);
 
   useEffect(() => {
     // Initialize content for editing
@@ -86,12 +90,39 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
 
     setIsGenerating(true);
     setShowComparison(false);
+    setShowEvidenceMapper(false);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // 1. Research (Simplified for MVP - usually cached)
+      // Step 1: Match requirements to evidence bullets
+      const requirements = store.jobAnalysis.requirements || [];
+      const { data: matchData, error: matchError } = await invokeEdgeFunction(
+        'match-requirements-to-bullets',
+        {
+          userId: user.id,
+          jobRequirements: requirements,
+          atsKeywords: store.jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] }
+        }
+      );
+
+      if (matchError) throw matchError;
+
+      setEvidenceMatrix(matchData.evidenceMatrix || []);
+
+      // If we have evidence matches, show the evidence mapper first
+      if (matchData.evidenceMatrix && matchData.evidenceMatrix.length > 0) {
+        setShowEvidenceMapper(true);
+        setIsGenerating(false);
+        toast({
+          title: "Evidence Matched",
+          description: `Found ${matchData.evidenceMatrix.length} pieces of evidence for your requirements.`
+        });
+        return;
+      }
+
+      // If no evidence matches, proceed with traditional generation
       const researchPayload = {
         research_type: 'resume_job_analysis',
         query_params: {
@@ -103,7 +134,6 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
         }
       };
 
-      // Note: In a real implementation, we should check if research exists in store
       const { data: researchData, error: researchError } = await invokeEdgeFunction(
         'perplexity-research',
         researchPayload
@@ -111,19 +141,20 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
 
       if (researchError) throw researchError;
 
-      // 2. Generate Dual Version
+      // Generate Dual Version
       const dualPayload = {
         section_type: section.type,
-        section_guidance: "Professional tone, achievement-focused", // Should come from config
+        section_guidance: "Professional tone, achievement-focused",
         job_analysis_research: researchData.research_result,
-        vault_items: store.vaultMatches?.matchedItems || [], // Use all matched items
+        vault_items: store.vaultMatches?.matchedItems || [],
         resume_milestones: store.resumeMilestones || [],
         user_id: user.id,
         job_title: store.jobAnalysis.roleProfile?.title || '',
         industry: store.jobAnalysis.roleProfile?.industry || '',
         seniority: store.jobAnalysis.roleProfile?.seniority || 'mid-level',
         ats_keywords: store.jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
-        requirements: [] // Add requirements if available
+        requirements: [],
+        evidenceMatrix: matchData.evidenceMatrix || []
       };
 
       const { data: dualData, error: dualError } = await invokeEdgeFunction(
@@ -135,7 +166,8 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
 
       setGenerationData({
         dualData,
-        research: researchData
+        research: researchData,
+        evidenceMatrix: matchData.evidenceMatrix
       });
       setShowComparison(true);
 
@@ -207,6 +239,80 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
                 </Card>
             )}
 
+            {/* Evidence Mapper */}
+            {showEvidenceMapper && evidenceMatrix.length > 0 && (
+                <div className="animate-in fade-in slide-in-from-bottom-4">
+                    <RequirementBulletMapper
+                        evidenceMatrix={evidenceMatrix}
+                        currentIndex={currentEvidenceIndex}
+                        onNavigate={setCurrentEvidenceIndex}
+                        onSelectionChange={(_reqId, selection, customText) => {
+                            logger.info('Evidence selection', { selection, customText });
+                        }}
+                        onSwapEvidence={(_reqId) => {
+                            toast({ title: "Swap Evidence", description: "Feature coming soon" });
+                        }}
+                    />
+                    <div className="mt-4 flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setShowEvidenceMapper(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={async () => {
+                                // Proceed to generate final content using approved evidence
+                                setShowEvidenceMapper(false);
+                                setIsGenerating(true);
+                                
+                                try {
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (!user) throw new Error("User not authenticated");
+
+                                    const researchPayload = {
+                                        research_type: 'resume_job_analysis',
+                                        query_params: {
+                                            job_description: store.displayJobText || '',
+                                            job_title: store.jobAnalysis.roleProfile?.title || '',
+                                            company: store.jobAnalysis.roleProfile?.company || '',
+                                            industry: store.jobAnalysis.roleProfile?.industry || '',
+                                            location: store.jobAnalysis.roleProfile?.location || ''
+                                        }
+                                    };
+
+                                    const { data: researchData } = await invokeEdgeFunction('perplexity-research', researchPayload);
+
+                                    const dualPayload = {
+                                        section_type: section.type,
+                                        section_guidance: "Professional tone, achievement-focused",
+                                        job_analysis_research: researchData.research_result,
+                                        evidenceMatrix: evidenceMatrix,
+                                        user_id: user.id,
+                                        job_title: store.jobAnalysis.roleProfile?.title || '',
+                                        industry: store.jobAnalysis.roleProfile?.industry || '',
+                                        seniority: store.jobAnalysis.roleProfile?.seniority || 'mid-level',
+                                        ats_keywords: store.jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] }
+                                    };
+
+                                    const { data: dualData } = await invokeEdgeFunction('generate-dual-resume-section', dualPayload);
+
+                                    setGenerationData({ dualData, research: researchData, evidenceMatrix });
+                                    setShowComparison(true);
+                                } catch (error: any) {
+                                    logger.error('Generation failed', error);
+                                    toast({ title: "Generation Failed", description: error.message, variant: "destructive" });
+                                } finally {
+                                    setIsGenerating(false);
+                                }
+                            }}
+                        >
+                            Generate Final Resume Bullets
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Comparison View */}
             {showComparison && generationData && (
                 <div className="animate-in fade-in slide-in-from-bottom-4">
@@ -219,10 +325,11 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
                         personalizedContent={generationData.dualData.personalizedVersion.content}
                         sectionType={section.type}
                         vaultStrength={{
-                            score: 85, // Mock score
+                            score: 85,
                             hasRealNumbers: true,
                             hasDiverseCategories: true
                         }}
+                        evidenceMatrix={generationData.evidenceMatrix}
                         onSelectIdeal={() => handleSave(generationData.dualData.idealVersion.content)}
                         onSelectPersonalized={() => handleSave(generationData.dualData.personalizedVersion.content)}
                         onOpenEditor={(content) => {

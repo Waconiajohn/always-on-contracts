@@ -71,7 +71,10 @@ function renderSection(section: CanonicalResumeSection, _template: any): string 
   // Handle bullet-point sections
   if (section.bullets && section.bullets.length > 0) {
     const bullets = section.bullets
-      .map(bullet => `<li class="section-bullet">${escapeHtml(bullet)}</li>`)
+      .map(bullet => {
+        const text = typeof bullet === 'string' ? bullet : bullet.content;
+        return `<li class="section-bullet">${escapeHtml(text)}</li>`;
+      })
       .join('\n');
 
     return `

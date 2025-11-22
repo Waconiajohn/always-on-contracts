@@ -3163,6 +3163,102 @@ export type Database = {
         }
         Relationships: []
       }
+      resume_requirement_mappings: {
+        Row: {
+          ats_keywords: string[] | null
+          created_at: string | null
+          custom_edit: string | null
+          enhanced_bullet: string | null
+          enhancement_reasoning: string | null
+          id: string
+          job_analysis_id: string | null
+          match_confidence: number | null
+          match_reasons: string[] | null
+          match_score: number | null
+          milestone_id: string | null
+          original_bullet: string | null
+          original_company: string | null
+          original_date_range: string | null
+          original_job_title: string | null
+          requirement_category: string | null
+          requirement_priority: number | null
+          requirement_text: string
+          resume_version_id: string | null
+          suggested_additions: string[] | null
+          updated_at: string | null
+          user_feedback: string | null
+          user_id: string
+          user_selection: string | null
+        }
+        Insert: {
+          ats_keywords?: string[] | null
+          created_at?: string | null
+          custom_edit?: string | null
+          enhanced_bullet?: string | null
+          enhancement_reasoning?: string | null
+          id?: string
+          job_analysis_id?: string | null
+          match_confidence?: number | null
+          match_reasons?: string[] | null
+          match_score?: number | null
+          milestone_id?: string | null
+          original_bullet?: string | null
+          original_company?: string | null
+          original_date_range?: string | null
+          original_job_title?: string | null
+          requirement_category?: string | null
+          requirement_priority?: number | null
+          requirement_text: string
+          resume_version_id?: string | null
+          suggested_additions?: string[] | null
+          updated_at?: string | null
+          user_feedback?: string | null
+          user_id: string
+          user_selection?: string | null
+        }
+        Update: {
+          ats_keywords?: string[] | null
+          created_at?: string | null
+          custom_edit?: string | null
+          enhanced_bullet?: string | null
+          enhancement_reasoning?: string | null
+          id?: string
+          job_analysis_id?: string | null
+          match_confidence?: number | null
+          match_reasons?: string[] | null
+          match_score?: number | null
+          milestone_id?: string | null
+          original_bullet?: string | null
+          original_company?: string | null
+          original_date_range?: string | null
+          original_job_title?: string | null
+          requirement_category?: string | null
+          requirement_priority?: number | null
+          requirement_text?: string
+          resume_version_id?: string | null
+          suggested_additions?: string[] | null
+          updated_at?: string | null
+          user_feedback?: string | null
+          user_id?: string
+          user_selection?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_requirement_mappings_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "vault_resume_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_requirement_mappings_resume_version_id_fkey"
+            columns: ["resume_version_id"]
+            isOneToOne: false
+            referencedRelation: "resume_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_templates: {
         Row: {
           created_at: string

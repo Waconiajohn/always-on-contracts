@@ -390,3 +390,6 @@ verify_jwt = true
 
 [functions.enhance-with-keywords]
 verify_jwt = true
+
+[functions.match-requirements-to-bullets]
+verify_jwt = true
