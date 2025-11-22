@@ -20,7 +20,7 @@ import { VaultItemAttributionBadge } from "@/components/career-vault/VaultItemAt
 import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction, PerplexityResearchSchema, GenerateDualResumeSectionSchema, safeValidateInput } from "@/lib/edgeFunction";
+import { invokeEdgeFunction, PerplexityResearchSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
 import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
@@ -82,9 +82,6 @@ export const SectionWizard = ({
   const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
   const [vaultItemsUsed, setVaultItemsUsed] = useState<any[]>([]);
 
-  // State manager for recovery
-  const stateManager = new StateManager(`section-${section.id}`);
-
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
     const iconMap: { [key: string]: string } = {
@@ -116,6 +113,7 @@ export const SectionWizard = ({
   const handleGenerate = async () => {
     setIsGenerating(true);
     setShowComparison(false);
+    setShowEvidenceMapper(false);
     setCurrentGenerationStep(0);
 
     // Track generation start
@@ -177,102 +175,52 @@ export const SectionWizard = ({
             setJobResearch(research);
           }
 
-          // Step 2 & 3: Generate BOTH versions simultaneously using new dual generation function
+          // Step 1.5: Match requirements to bullets to create evidence matrix
           setCurrentGenerationStep(1);
+          const requirementsForSection = [
+            ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => ({
+              id: r.id || crypto.randomUUID(),
+              requirement: r.requirement || r,
+              category: 'required' as const
+            })),
+            ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => ({
+              id: r.id || crypto.randomUUID(),
+              requirement: r.requirement || r,
+              category: 'preferred' as const
+            }))
+          ];
 
-          const dualPayload = {
-            section_type: section.type,
-            section_guidance: section.guidancePrompt,
-            job_analysis_research: research.research_result,
-            vault_items: relevantMatches,
-            resume_milestones: resumeMilestones,
-            user_id: user.id,
-            job_title: jobAnalysis.roleProfile?.title || '',
-            industry: jobAnalysis.roleProfile?.industry || '',
-            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
-            ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
-            requirements: [
-              ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => r.requirement || r),
-              ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => r.requirement || r)
-            ]
-          };
-
-          const dualValidation = safeValidateInput(GenerateDualResumeSectionSchema, dualPayload);
-          if (!dualValidation.success) {
-            throw new Error('Invalid generation parameters');
-          }
-
-          const { data: dualData, error: dualError } = await invokeEdgeFunction(
-            'generate-dual-resume-section',
-            dualPayload
+          const { data: matchData, error: matchError } = await invokeEdgeFunction(
+            'match-requirements-to-bullets',
+            {
+              requirements: requirementsForSection
+            }
           );
 
-          if (dualError) {
-            logger.error('Dual generation failed', dualError);
-            throw new Error(`Dual generation failed: ${dualError.message || 'Unable to generate versions'}`);
+          if (matchError) {
+            logger.error('Requirement matching failed', matchError);
+            throw new Error(`Requirement matching failed: ${matchError.message}`);
           }
 
-          return { dualData, vaultStrength };
+          // Show evidence mapper for user review
+          setEvidenceMatrix(matchData.evidenceMatrix || []);
+          setShowEvidenceMapper(true);
+          setIsGenerating(false);
+          return { skipFinalGeneration: true, vaultStrength };
         },
         {
-          operationName: 'Section Generation',
+          operationName: 'Evidence Mapping',
           config: { maxRetries: 2 },
           showToasts: true
         }
       );
 
-      const { dualData, vaultStrength } = result;
+      if (result.skipFinalGeneration) return;
 
-      setIdealContent(dualData.idealVersion.content);
-      setPersonalizedContent(dualData.personalizedVersion.content);
-      setBlendContent(dualData.blendVersion?.content || dualData.idealVersion.content);
+      // This code should never be reached as we return early after showing evidence mapper
+      // Evidence approval will trigger handleEvidenceApprove instead
       
-      // Store vault items used for attribution - ensure proper structure
-      const formattedVaultItems = (dualData.personalizedVersion?.vaultItemsUsed || [])
-        .map((item: any) => {
-          // Handle if item is already a string (corrupted state)
-          if (typeof item === 'string') {
-            try {
-              item = JSON.parse(item);
-            } catch {
-              return null;
-            }
-          }
-          
-          return {
-            id: item.id || crypto.randomUUID(),
-            category: item.type || item.category || 'vault_item',
-            qualityTier: item.qualityTier || item.quality_tier || 'gold',
-            excerpt: typeof item.content === 'string' 
-              ? item.content.substring(0, 100) 
-              : (item.excerpt || JSON.stringify(item.content || {}).substring(0, 100))
-          };
-        })
-        .filter(Boolean); // Remove any null entries
-      
-      setVaultItemsUsed(formattedVaultItems);
-
-      setCurrentGenerationStep(3); // Complete
-      setShowComparison(true);
-
-      // Save state for recovery
-      stateManager.saveState('comparison', {
-        idealContent: dualData.idealVersion.content,
-        personalizedContent: dualData.personalizedVersion.content
-      });
-
-      // Track successful generation
-      await timer.complete({
-        vault_items_used: relevantMatches.length,
-        vault_strength: vaultStrength
-      });
-
-      toast({
-        title: "Dual generation complete!",
-        description: `${dualData.comparison.recommendation === 'ideal' ? 'Industry standard recommended' : 
-                      dualData.comparison.recommendation === 'personalized' ? 'Your personalized version recommended' :
-                      'Consider blending both versions'}`
-      });
+      // This code path should not execute
 
     } catch (error) {
       logger.error('Error generating section', error);
