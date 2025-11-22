@@ -55,7 +55,10 @@ export function LiveResumeCanvas({
             const content = section.paragraph 
               ? `<p class="section-paragraph">${escapeHtml(section.paragraph)}</p>`
               : section.bullets.length > 0
-                ? `<ul class="section-bullets">${section.bullets.map(b => `<li class="section-bullet">${escapeHtml(b)}</li>`).join('')}</ul>`
+                ? `<ul class="section-bullets">${section.bullets.map(b => {
+                    const text = typeof b === 'string' ? b : b.content;
+                    return `<li class="section-bullet">${escapeHtml(text)}</li>`;
+                  }).join('')}</ul>`
                 : '';
 
             // Add data-section-id for interactivity

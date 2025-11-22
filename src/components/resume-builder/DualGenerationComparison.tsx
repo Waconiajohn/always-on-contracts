@@ -22,6 +22,7 @@ interface DualGenerationComparisonProps {
     hasRealNumbers: boolean;
     hasDiverseCategories: boolean;
   };
+  evidenceMatrix?: any[];
   onSelectIdeal: () => void;
   onSelectPersonalized: () => void;
   onSelectBlend?: () => void;

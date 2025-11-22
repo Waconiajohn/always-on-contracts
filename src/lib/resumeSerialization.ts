@@ -236,7 +236,10 @@ export function canonicalResumeToHTML(resume: CanonicalResume): string {
     .sort((a, b) => a.order - b.order)
     .map((section) => {
       const bulletsHtml = section.bullets
-        .map((b) => `<li>${escapeHtml(b)}</li>`)
+        .map((b) => {
+          const text = typeof b === 'string' ? b : b.content;
+          return `<li>${escapeHtml(text)}</li>`;
+        })
         .join("");
 
       const paragraphHtml = section.paragraph
