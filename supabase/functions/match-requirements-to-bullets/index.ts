@@ -70,57 +70,47 @@ serve(async (req) => {
 
     console.log('[MATCH-REQ-TO-BULLETS] Found vault_id:', vaultData.id);
 
-    const [milestones, workPositions] = await Promise.all([
-      supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultData.id),
-      supabase.from('vault_work_positions').select('*').eq('vault_id', vaultData.id)
-    ]);
+    // ✅ THE FIX: Use SQL JOIN to fetch milestones with their linked work positions
+    const { data: milestonesWithPositions, error: fetchError } = await supabase
+      .from('vault_resume_milestones')
+      .select(`
+        *,
+        work_position:vault_work_positions!work_position_id (
+          id,
+          company_name,
+          job_title,
+          start_date,
+          end_date,
+          is_current,
+          description
+        )
+      `)
+      .eq('vault_id', vaultData.id);
 
-    console.log('[MATCH-REQ-TO-BULLETS] Fetched', milestones.data?.length || 0, 'milestones and', workPositions.data?.length || 0, 'work positions');
+    if (fetchError) {
+      console.error('[MATCH-REQ-TO-BULLETS] Error fetching milestones:', fetchError);
+      throw fetchError;
+    }
 
-    // Build bullets from both milestones and work positions
+    console.log('[MATCH-REQ-TO-BULLETS] Fetched', milestonesWithPositions?.length || 0, 'milestones with positions');
+
+    // Build bullets from milestones (each milestone now has work_position data via JOIN)
     const bullets: any[] = [];
 
-    // Add bullets from milestones (if any exist)
-    (milestones.data || []).forEach((m: any) => {
-      const position = (workPositions.data || []).find((p: any) => 
-        p.company_name?.toLowerCase() === m.company_name?.toLowerCase()
-      );
-      
-      if (m.description) {
+    (milestonesWithPositions || []).forEach((m: any) => {
+      if (m.description && m.work_position) {
         bullets.push({
           id: m.id,
           content: m.description,
           source: {
-            company: m.company_name || position?.company_name || 'Unknown',
-            jobTitle: m.title || position?.job_title || 'Unknown',
-            dateRange: m.milestone_date || (position ? `${position.start_date} - ${position.end_date || 'Present'}` : '')
+            milestoneId: m.id,
+            workPositionId: m.work_position.id, // ← Clean reference via FK
+            company: m.work_position.company_name || 'Unknown',
+            jobTitle: m.work_position.job_title || 'Unknown',
+            dateRange: `${m.work_position.start_date || ''} - ${m.work_position.end_date || 'Present'}`
           }
         });
       }
-    });
-
-    // Extract bullets from work position descriptions
-    // Each description contains multiple achievement sentences separated by periods or newlines
-    (workPositions.data || []).forEach((position: any) => {
-      if (!position.description) return;
-      
-      // Split description into individual sentences/bullets
-      // Handle both period-separated and newline-separated content
-      const rawBullets = position.description
-        .split(/(?<=[.!?])\s+(?=[A-Z])/)  // Split on sentence boundaries
-        .filter((b: string) => b.trim().length > 20);  // Filter out very short fragments
-      
-      rawBullets.forEach((bulletText: string, index: number) => {
-        bullets.push({
-          id: `${position.id}-bullet-${index}`,
-          content: bulletText.trim(),
-          source: {
-            company: position.company_name || 'Unknown',
-            jobTitle: position.job_title || 'Unknown',
-            dateRange: `${position.start_date || ''} - ${position.end_date || 'Present'}`
-          }
-        });
-      });
     });
 
     console.log('[MATCH-REQ-TO-BULLETS] Built', bullets.length, 'total bullets from vault data');

@@ -814,48 +814,64 @@ serve(async (req) => {
     // CRITICAL FIX: Store Milestones/Achievements (Previously Missing!)
     // ========================================================================
     console.log('\n🏆 Storing achievements as milestones...');
-    const milestones: any[] = [];
     
-    // Add quantified achievements
-    structuredData!.achievements.quantified.forEach(ach => {
-      milestones.push({
-        vault_id: vaultId,
-        user_id: userId,
-        milestone_title: ach.achievement,
-        description: ach.achievement,
-        metric_type: ach.metric,
-        metric_value: ach.impact,
-        context: ach.context,
-        confidence_score: ach.confidence / 100,
-        quality_tier: ach.confidence > 85 ? 'gold' : 'silver',
-        extraction_source: 'ai-structured-v3'
-      });
-    });
+    // Get most recent work position to link achievements to
+    const { data: recentPosition } = await supabase
+      .from('vault_work_positions')
+      .select('id')
+      .eq('vault_id', vaultId)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
     
-    // Add strategic achievements
-    structuredData!.achievements.strategic.forEach(ach => {
-      milestones.push({
-        vault_id: vaultId,
-        user_id: userId,
-        milestone_title: ach.achievement,
-        description: `${ach.achievement}\n\nScope: ${ach.scope}\nImpact: ${ach.impact}`,
-        confidence_score: ach.confidence / 100,
-        quality_tier: ach.confidence > 80 ? 'silver' : 'bronze',
-        extraction_source: 'ai-structured-v3'
-      });
-    });
-    
-    if (milestones.length > 0) {
-      const { error: mlError } = await supabase
-        .from('vault_resume_milestones')
-        .insert(milestones);
+    if (!recentPosition) {
+      console.log('⚠️ No work positions found - skipping milestone storage');
+    } else {
+      const milestones: any[] = [];
       
-      if (mlError) {
-        console.error('❌ Error inserting milestones:', mlError);
-      } else {
-        console.log(`✅ Stored ${milestones.length} milestones`);
-        console.log(`   Gold: ${milestones.filter(m => m.quality_tier === 'gold').length}`);
-        console.log(`   Silver: ${milestones.filter(m => m.quality_tier === 'silver').length}`);
+      // Add quantified achievements
+      structuredData!.achievements.quantified.forEach(ach => {
+        milestones.push({
+          vault_id: vaultId,
+          user_id: userId,
+          work_position_id: recentPosition.id, // ← THE FIX: Link to most recent position
+          milestone_title: ach.achievement,
+          description: ach.achievement,
+          metric_type: ach.metric,
+          metric_value: ach.impact,
+          context: ach.context,
+          confidence_score: ach.confidence / 100,
+          quality_tier: ach.confidence > 85 ? 'gold' : 'silver',
+          extraction_source: 'ai-structured-v3'
+        });
+      });
+      
+      // Add strategic achievements
+      structuredData!.achievements.strategic.forEach(ach => {
+        milestones.push({
+          vault_id: vaultId,
+          user_id: userId,
+          work_position_id: recentPosition.id, // ← THE FIX: Link to most recent position
+          milestone_title: ach.achievement,
+          description: `${ach.achievement}\n\nScope: ${ach.scope}\nImpact: ${ach.impact}`,
+          confidence_score: ach.confidence / 100,
+          quality_tier: ach.confidence > 80 ? 'silver' : 'bronze',
+          extraction_source: 'ai-structured-v3'
+        });
+      });
+      
+      if (milestones.length > 0) {
+        const { error: mlError } = await supabase
+          .from('vault_resume_milestones')
+          .insert(milestones);
+        
+        if (mlError) {
+          console.error('❌ Error inserting milestones:', mlError);
+        } else {
+          console.log(`✅ Stored ${milestones.length} milestones`);
+          console.log(`   Gold: ${milestones.filter(m => m.quality_tier === 'gold').length}`);
+          console.log(`   Silver: ${milestones.filter(m => m.quality_tier === 'silver').length}`);
+        }
       }
     }
 

@@ -5652,6 +5652,7 @@ export type Database = {
           updated_at: string | null
           user_id: string
           vault_id: string
+          work_position_id: string
         }
         Insert: {
           company_name?: string | null
@@ -5682,6 +5683,7 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           vault_id: string
+          work_position_id: string
         }
         Update: {
           company_name?: string | null
@@ -5712,6 +5714,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           vault_id?: string
+          work_position_id?: string
         }
         Relationships: [
           {
@@ -5719,6 +5722,13 @@ export type Database = {
             columns: ["vault_id"]
             isOneToOne: false
             referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_resume_milestones_work_position_id_fkey"
+            columns: ["work_position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
             referencedColumns: ["id"]
           },
         ]

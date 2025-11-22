@@ -140,40 +140,55 @@ serve(async (req) => {
       console.log('🏆 Storing milestones...');
       const milestones: any[] = [];
       
-      structuredData.achievements.quantified.forEach(ach => {
-        milestones.push({
-          vault_id: vaultId,
-          user_id: userId,
-          milestone_title: ach.achievement,
-          description: ach.achievement,
-          metric_type: ach.metric,
-          metric_value: ach.impact,
-          context: ach.context,
-          confidence_score: ach.confidence / 100,
-          quality_tier: ach.confidence > 85 ? 'gold' : 'silver',
-          extraction_source: 'ai-structured-repair'
+      // Get most recent work position to link achievements to
+      const { data: recentPosition } = await supabase
+        .from('vault_work_positions')
+        .select('id')
+        .eq('vault_id', vaultId)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (!recentPosition) {
+        console.log('⚠️ No work positions found - skipping milestone repair');
+      } else {
+        structuredData.achievements.quantified.forEach(ach => {
+          milestones.push({
+            vault_id: vaultId,
+            user_id: userId,
+            work_position_id: recentPosition.id, // ← THE FIX: Link to most recent position
+            milestone_title: ach.achievement,
+            description: ach.achievement,
+            metric_type: ach.metric,
+            metric_value: ach.impact,
+            context: ach.context,
+            confidence_score: ach.confidence / 100,
+            quality_tier: ach.confidence > 85 ? 'gold' : 'silver',
+            extraction_source: 'ai-structured-repair'
+          });
         });
-      });
-      
-      structuredData.achievements.strategic.forEach(ach => {
-        milestones.push({
-          vault_id: vaultId,
-          user_id: userId,
-          milestone_title: ach.achievement,
-          description: `${ach.achievement}\n\nScope: ${ach.scope}\nImpact: ${ach.impact}`,
-          confidence_score: ach.confidence / 100,
-          quality_tier: ach.confidence > 80 ? 'silver' : 'bronze',
-          extraction_source: 'ai-structured-repair'
+        
+        structuredData.achievements.strategic.forEach(ach => {
+          milestones.push({
+            vault_id: vaultId,
+            user_id: userId,
+            work_position_id: recentPosition.id, // ← THE FIX: Link to most recent position
+            milestone_title: ach.achievement,
+            description: `${ach.achievement}\n\nScope: ${ach.scope}\nImpact: ${ach.impact}`,
+            confidence_score: ach.confidence / 100,
+            quality_tier: ach.confidence > 80 ? 'silver' : 'bronze',
+            extraction_source: 'ai-structured-repair'
+          });
         });
-      });
-      
-      const { error: mlError } = await supabase
-        .from('vault_resume_milestones')
-        .insert(milestones);
-      
-      if (!mlError) {
-        repairedItems += milestones.length;
-        console.log(`✅ Added ${milestones.length} milestones`);
+        
+        const { error: mlError } = await supabase
+          .from('vault_resume_milestones')
+          .insert(milestones);
+        
+        if (!mlError) {
+          repairedItems += milestones.length;
+          console.log(`✅ Added ${milestones.length} milestones`);
+        }
       }
     }
 
