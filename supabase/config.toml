@@ -399,3 +399,6 @@ verify_jwt = true
 
 [functions.match-requirements-to-bullets]
 verify_jwt = true
+
+[functions.migrate-evidence-to-position]
+verify_jwt = true

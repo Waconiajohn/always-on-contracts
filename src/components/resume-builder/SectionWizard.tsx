@@ -16,7 +16,7 @@ import {
   Loader2
 } from "lucide-react";
 import { VaultItemAttributionBadge } from "@/components/career-vault/VaultItemAttributionBadge";
-import { RequirementBulletMapper } from "./v2/RequirementBulletMapper";
+import { RequirementEvidenceReview } from "./v2/RequirementEvidenceReview";
 
 import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
@@ -601,7 +601,7 @@ export const SectionWizard = ({
 
           {/* Evidence Mapper */}
           {showEvidenceMapper && evidenceMatrix.length > 0 && (
-             <RequirementBulletMapper
+             <RequirementEvidenceReview
                 evidenceMatrix={evidenceMatrix}
                 onComplete={handleEvidenceApprove}
                 onCancel={() => setShowEvidenceMapper(false)}
