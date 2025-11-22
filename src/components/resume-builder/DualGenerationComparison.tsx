@@ -49,6 +49,20 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
   atsMatchIdeal,
   atsMatchPersonalized,
 }) => {
+  // Utility function for match score colors
+  const getMatchColor = (score: number) => {
+    if (score >= 80) return 'border-green-200 bg-green-50';
+    if (score >= 60) return 'border-yellow-200 bg-yellow-50';
+    return 'border-orange-200 bg-orange-50';
+  };
+
+  // Calculate coverage stats from evidence matrix
+  const coverageStats = evidenceMatrix && evidenceMatrix.length > 0 ? (() => {
+    const totalReqs = evidenceMatrix.length;
+    const matched = evidenceMatrix.filter((m: any) => m.matchScore >= 70).length;
+    const coverageScore = Math.round((matched / totalReqs) * 100);
+    return { totalReqs, matched, coverageScore };
+  })() : null;
 
   const renderContent = (content: any) => {
     if (typeof content === 'string') {
@@ -111,19 +125,6 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
   };
 
   const researchSummary = parseResearchInsights();
-  
-  // Calculate coverage stats for Evidence Map
-  const coverageStats = evidenceMatrix ? {
-    totalRequirements: evidenceMatrix.length,
-    matched: evidenceMatrix.filter(m => m.matchScore >= 60).length,
-    coverageScore: Math.round((evidenceMatrix.filter(m => m.matchScore >= 60).length / evidenceMatrix.length) * 100)
-  } : null;
-
-  const getMatchColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 bg-green-50 border-green-200';
-    if (score >= 60) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    return 'text-red-600 bg-red-50 border-red-200';
-  };
 
   return (
     <div className="space-y-6">
@@ -527,7 +528,6 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
           </TabsContent>
         )}
 
-        {/* Evidence Map Tab - NEW */}
         <TabsContent value="evidence-map" className="space-y-4">
           {evidenceMatrix && evidenceMatrix.length > 0 ? (
             <>
@@ -539,7 +539,7 @@ export const DualGenerationComparison: React.FC<DualGenerationComparisonProps> =
                     <div>
                       <h4 className="font-semibold text-green-900">Evidence Coverage: {coverageStats.coverageScore}%</h4>
                       <p className="text-sm text-green-700">
-                        {coverageStats.matched} of {coverageStats.totalRequirements} requirements have strong evidence from your history
+                        {coverageStats.matched} of {coverageStats.totalReqs} requirements have strong evidence from your history
                       </p>
                     </div>
                   </div>

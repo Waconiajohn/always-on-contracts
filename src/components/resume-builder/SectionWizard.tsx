@@ -196,7 +196,9 @@ export const SectionWizard = ({
           const { data: matchData, error: matchError } = await invokeEdgeFunction(
             'match-requirements-to-bullets',
             {
-              requirements: requirementsForSection
+              userId: user.id,
+              jobRequirements: requirementsForSection,
+              atsKeywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] }
             }
           );
 
