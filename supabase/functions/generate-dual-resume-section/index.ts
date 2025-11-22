@@ -358,12 +358,19 @@ ${job_analysis_research}
 SECTION GUIDANCE:
 ${section_guidance}
 
+CANDIDATE'S ACTUAL WORK HISTORY:
     ${workHistoryContext}
     ${educationContext}
     ${vaultMilestonesContext}
 
-CANDIDATE'S CAREER VAULT INTELLIGENCE:
-${JSON.stringify(vault_items.slice(0, 30), null, 2)}
+${section_type === 'summary' || section_type === 'opening_paragraph' ? `
+CANDIDATE'S TOP ACHIEVEMENTS (Use these to lead your summary):
+${vaultMilestones.slice(0, 5).map((m: any, i: number) => `${i + 1}. ${m.description || m.milestone_title} (${m.company_name})`).join('\n')}
+
+CANDIDATE'S KEY STRENGTHS FROM VAULT:
+${vault_items.slice(0, 15).map((v: any) => `• ${v.content.power_phrase || v.content.stated_skill || v.content.skill_name || JSON.stringify(v.content).substring(0, 100)}`).join('\n')}
+` : `CANDIDATE'S CAREER VAULT INTELLIGENCE:
+${JSON.stringify(vault_items.slice(0, 30), null, 2)}`}
 
 ${hasSkillsData ? `CANDIDATE'S VAULT SKILLS:
 ${vaultSkills.map((s: any) => s.skill).join(', ')}
@@ -377,13 +384,26 @@ Important keywords: ${ats_keywords.important.join(', ')}
 REQUIREMENTS TO ADDRESS:
 ${requirements.slice(0, 10).join('\n- ')}
 
-${skillsSections.includes(section_type) ? `
+${section_type === 'summary' || section_type === 'opening_paragraph' ? `
+CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
+1. LEAD WITH IMPACT: Start with their most impressive quantified achievement (e.g., "$350M budget managed", "20% reduction in failures")
+2. POSITION AS SOLUTION: Frame them as the perfect solution to the employer's core problem (from research)
+3. SHOWCASE PROGRESSION: Show career growth and increasing responsibility across their work history
+4. WEAVE IN KEYWORDS: Naturally integrate critical ATS keywords into achievement statements
+5. BE EXECUTIVE-LEVEL: Use powerful, confident language appropriate for ${seniority} level
+6. FORMAT: Write 3-4 compelling sentences that tell their career story with metrics and impact
+7. NO LISTS: Weave competencies into the narrative, don't list them
+
+STRUCTURE EXAMPLE:
+"[Job Title] with [X years] driving [measurable impact] across [companies/industry]. [Most impressive achievement with metric]. Proven expertise in [skill 1], [skill 2], and [skill 3], delivering [another key result]. Currently seeking to leverage [unique strength] to [solve employer's problem]."
+` : ''}
+
+${section_type === 'skills' || section_type === 'skills_list' || section_type === 'technical_skills' ? `
 CRITICAL: For skills section, return ONLY a simple comma-separated list. NO descriptions, NO categories, NO bullet points.
 Example format: "Python, JavaScript, AWS, Team Leadership, Project Management, Data Analysis, Agile"
-Base the list on their ACTUAL vault skills above.
-` : section_type === 'summary' || section_type === 'opening_paragraph' ? `
-CRITICAL: Do NOT list technical skills or competencies as a list. Weave them into the narrative. Keep it to 3-4 powerful sentences.
-` : needsBothContexts ? `
+` : ''}
+
+${needsBothContexts ? `
 CRITICAL: For capability groups, create 3-4 themed categories with supporting bullet points.
 Format each as: 
 **Category Name**

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,6 +84,21 @@ export const SectionWizard = ({
   const [vaultItemsUsed, setVaultItemsUsed] = useState<any[]>([]);
   const [showEvidenceMapper, setShowEvidenceMapper] = useState(false);
   const [evidenceMatrix, setEvidenceMatrix] = useState<any[]>([]);
+
+  // Reset all state when section changes
+  useEffect(() => {
+    setGeneratedContent(null);
+    setIsEditing(false);
+    setEditedContent("");
+    setJobResearch(null);
+    setIdealContent(null);
+    setPersonalizedContent(null);
+    setBlendContent(null);
+    setShowComparison(false);
+    setShowEvidenceMapper(false);
+    setEvidenceMatrix([]);
+    setVaultItemsUsed([]);
+  }, [section.id]);
 
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
