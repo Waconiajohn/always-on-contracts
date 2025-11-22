@@ -103,6 +103,23 @@ export function PositionMigrationDialog({
       if (!vaultData) throw new Error('Career vault not found');
 
       if (migrationMode === 'clone') {
+        // Clone exact text to new position and save to database
+        const { error: insertError } = await supabase
+          .from('vault_resume_milestones')
+          .insert({
+            vault_id: vaultData.id,
+            user_id: user.id,
+            work_position_id: selectedPosition, // ← THE FIX: Save with FK
+            milestone_title: currentBullet,
+            description: currentBullet,
+            milestone_type: 'job',
+            quality_tier: 'gold',
+            confidence_score: 0.95,
+            extraction_source: 'user-migration-clone'
+          });
+        
+        if (insertError) throw insertError;
+        
         toast({
           title: "Experience updated",
           description: `Using this experience for ${targetPosition.job_title}`
@@ -136,6 +153,23 @@ export function PositionMigrationDialog({
 
         if (error) throw error;
         if (!data?.newBullet) throw new Error('No new bullet generated');
+
+        // Save the AI-generated bullet to database
+        const { error: insertError } = await supabase
+          .from('vault_resume_milestones')
+          .insert({
+            vault_id: vaultData.id,
+            user_id: user.id,
+            work_position_id: selectedPosition, // ← THE FIX: Save with FK
+            milestone_title: data.newBullet,
+            description: data.newBullet,
+            milestone_type: 'job',
+            quality_tier: 'gold',
+            confidence_score: 0.90,
+            extraction_source: 'ai-migration-generated'
+          });
+        
+        if (insertError) throw insertError;
 
         toast({
           title: "New experience generated",

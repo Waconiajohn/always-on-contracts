@@ -13,6 +13,56 @@ const corsHeaders = {
 
 const logger = createLogger('parse-resume-milestones');
 
+// Helper function to find or create a work position
+async function findOrCreateWorkPosition(supabase: any, data: {
+  vault_id: string;
+  user_id: string;
+  company_name: string;
+  job_title: string;
+  start_date?: string;
+  end_date?: string;
+}) {
+  // Try to find existing position (case-insensitive match on company and title)
+  const { data: existing } = await supabase
+    .from('vault_work_positions')
+    .select('id')
+    .eq('vault_id', data.vault_id)
+    .ilike('company_name', data.company_name)
+    .ilike('job_title', data.job_title)
+    .maybeSingle();
+  
+  if (existing) {
+    console.log(`[FIND-OR-CREATE-POSITION] Found existing position: ${data.company_name} - ${data.job_title}`);
+    return existing.id;
+  }
+  
+  // Create new position
+  console.log(`[FIND-OR-CREATE-POSITION] Creating new position: ${data.company_name} - ${data.job_title}`);
+  const { data: newPosition, error: createError } = await supabase
+    .from('vault_work_positions')
+    .insert({
+      vault_id: data.vault_id,
+      user_id: data.user_id,
+      company_name: data.company_name,
+      job_title: data.job_title,
+      start_date: data.start_date || null,
+      end_date: data.end_date || null,
+      is_current: data.end_date === 'Present' || !data.end_date,
+      quality_tier: 'gold',
+      confidence_score: 0.95,
+      extraction_source: 'resume-parser'
+    })
+    .select('id')
+    .single();
+  
+  if (createError) {
+    console.error('[FIND-OR-CREATE-POSITION] Error creating position:', createError);
+    throw createError;
+  }
+  
+  return newPosition.id;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -147,82 +197,93 @@ OUTPUT REQUIREMENTS:
 
     console.log('[PARSE-RESUME-MILESTONES] Parsed milestones:', parsed.milestones.length);
 
-    // Extract ALL jobs and education entries with complete data
-    const milestoneInserts = parsed.milestones
-      .filter((m: any) => {
-        // Jobs must have complete data
-        if (m.type === 'job') {
-          const hasAllRequiredFields = 
-            m.company_name && 
-            m.job_title && 
-            m.start_date && 
-            m.end_date;
-          
-          if (!hasAllRequiredFields) {
-            console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete job:', {
-              company: m.company_name || 'MISSING',
-              title: m.job_title || 'MISSING',
-              start: m.start_date || 'MISSING',
-              end: m.end_date || 'MISSING'
-            });
-          }
-          return hasAllRequiredFields;
+    // Process each milestone and create/link to work positions
+    const milestoneInserts = [];
+    
+    for (let index = 0; index < parsed.milestones.length; index++) {
+      const m = parsed.milestones[index];
+      
+      // Skip incomplete entries
+      if (m.type === 'job') {
+        const hasAllRequiredFields = m.company_name && m.job_title && m.start_date && m.end_date;
+        if (!hasAllRequiredFields) {
+          console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete job:', {
+            company: m.company_name || 'MISSING',
+            title: m.job_title || 'MISSING',
+            start: m.start_date || 'MISSING',
+            end: m.end_date || 'MISSING'
+          });
+          continue;
         }
         
-        // Education must have complete data
-        if (m.type === 'education') {
-          const hasAllRequiredFields =
-            m.institution_name &&
-            m.degree_title &&
-            m.graduation_date;
-          
-          if (!hasAllRequiredFields) {
-            console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete education:', {
-              institution: m.institution_name || 'MISSING',
-              degree: m.degree_title || 'MISSING',
-              graduation: m.graduation_date || 'MISSING'
-            });
-          }
-          return hasAllRequiredFields;
-        }
-        
-        // Unknown type - skip
-        console.log('[PARSE-RESUME-MILESTONES] Skipping unknown type:', m.type);
-        return false;
-      })
-      .map((m: any, index: number) => {
-        // Dynamic question allocation based on priority
-        let questionsForEntry = 2; // Default for education
-        
-        if (m.type === 'job') {
-          if (index === 0) questionsForEntry = 8; // Most recent job: 8 questions
-          else if (index <= 2) questionsForEntry = 5; // Next 2 jobs: 5 questions each
-          else if (index <= 5) questionsForEntry = 3; // Next 3 jobs: 3 questions each
-          else questionsForEntry = 2; // Older jobs: 2 questions
-        }
-
-        // Map to database schema (handle both job and education types)
-        return {
+        // Find or create work position for this job
+        const workPositionId = await findOrCreateWorkPosition(supabase, {
           vault_id: vaultId,
           user_id: user.id,
-          milestone_type: m.type,
-          
-          // Job fields (or mapped education fields)
-          company_name: m.company_name || m.institution_name || null,
-          job_title: m.job_title || m.degree_title || null,
-          start_date: m.start_date || null,
-          end_date: m.end_date || m.graduation_date || null,
-          description: m.type === 'education' 
-            ? `${m.field_of_study || ''}${m.honors ? ' • ' + m.honors : ''}`.trim() || ''
-            : (m.description || ''),
-          key_achievements: m.key_achievements || [],
-          
-          questions_asked: questionsForEntry,
+          company_name: m.company_name,
+          job_title: m.job_title,
+          start_date: m.start_date,
+          end_date: m.end_date
+        });
+        
+        // Dynamic question allocation based on recency
+        let questionsForEntry = 2;
+        if (index === 0) questionsForEntry = 8; // Most recent: 8 questions
+        else if (index <= 2) questionsForEntry = 5; // Next 2: 5 questions
+        else if (index <= 5) questionsForEntry = 3; // Next 3: 3 questions
+        
+        // Create milestone entries for each achievement
+        const achievements = m.key_achievements || [];
+        for (const achievement of achievements) {
+          milestoneInserts.push({
+            vault_id: vaultId,
+            user_id: user.id,
+            work_position_id: workPositionId, // ← THE FIX: Link via FK
+            milestone_type: 'job',
+            milestone_title: achievement,
+            description: achievement,
+            questions_asked: questionsForEntry,
+            questions_answered: 0,
+            completion_percentage: 0,
+            intelligence_extracted: 0
+          });
+        }
+        
+      } else if (m.type === 'education') {
+        const hasAllRequiredFields = m.institution_name && m.degree_title && m.graduation_date;
+        if (!hasAllRequiredFields) {
+          console.log('[PARSE-RESUME-MILESTONES] Skipping incomplete education:', {
+            institution: m.institution_name || 'MISSING',
+            degree: m.degree_title || 'MISSING',
+            graduation: m.graduation_date || 'MISSING'
+          });
+          continue;
+        }
+        
+        // Find or create work position for education (using institution as "company")
+        const workPositionId = await findOrCreateWorkPosition(supabase, {
+          vault_id: vaultId,
+          user_id: user.id,
+          company_name: m.institution_name,
+          job_title: m.degree_title,
+          start_date: undefined,
+          end_date: m.graduation_date
+        });
+        
+        milestoneInserts.push({
+          vault_id: vaultId,
+          user_id: user.id,
+          work_position_id: workPositionId, // ← THE FIX: Link via FK
+          milestone_type: 'education',
+          milestone_title: m.degree_title,
+          description: `${m.field_of_study || ''}${m.honors ? ' • ' + m.honors : ''}`.trim() || '',
+          questions_asked: 2,
           questions_answered: 0,
           completion_percentage: 0,
           intelligence_extracted: 0
-        };
-      });
+        });
+      }
+    }
 
     if (milestoneInserts.length === 0) {
       console.error('[PARSE-RESUME-MILESTONES] No valid milestones found');
