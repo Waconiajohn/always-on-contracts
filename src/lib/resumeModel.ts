@@ -116,6 +116,7 @@ export interface EvidenceMatch {
   milestoneId: string;
   originalBullet: string;
   originalSource: {
+    workPositionId?: string;
     jobTitle: string;
     company: string;
     dateRange: string;

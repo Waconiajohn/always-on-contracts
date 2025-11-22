@@ -90,8 +90,8 @@ export function RequirementEvidenceReview({
         selectedBullet: workingBullet,
         source: {
           milestoneId: currentMatch.milestoneId,
-          originalBullet: currentMatch.originalBullet,
-          ...currentMatch.originalSource
+          workPositionId: currentMatch.originalSource?.workPositionId,
+          originalBullet: currentMatch.originalBullet
         }
       };
       setResults([...results, newResult]);
