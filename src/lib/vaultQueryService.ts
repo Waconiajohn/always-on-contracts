@@ -96,7 +96,17 @@ export async function getCompleteVaultIntelligence(
     supabase.from('vault_confirmed_skills').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_work_positions').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_education').select('*').eq('vault_id', vaultIdToUse),
-    supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultIdToUse),
+    supabase.from('vault_resume_milestones').select(`
+      *,
+      work_position:vault_work_positions!work_position_id (
+        id,
+        company_name,
+        job_title,
+        start_date,
+        end_date,
+        is_current
+      )
+    `).eq('vault_id', vaultIdToUse),
     supabase.from('vault_competitive_advantages').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_professional_resources').select('*').eq('vault_id', vaultIdToUse),
     supabase.from('vault_career_context').select('*').eq('vault_id', vaultIdToUse).maybeSingle(),
