@@ -75,7 +75,18 @@ serve(async (req) => {
     if (vaultRecord) {
       const [workPos, miles] = await Promise.all([
         supabase.from('vault_work_positions').select('*').eq('vault_id', vaultRecord.id).order('start_date', { ascending: false }),
-        supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultRecord.id).order('created_at', { ascending: false })
+        supabase.from('vault_resume_milestones').select(`
+          *,
+          work_position:vault_work_positions!work_position_id (
+            id,
+            company_name,
+            job_title,
+            start_date,
+            end_date,
+            is_current,
+            description
+          )
+        `).eq('vault_id', vaultRecord.id).order('created_at', { ascending: false })
       ]);
       
       workPositions = workPos.data || [];
