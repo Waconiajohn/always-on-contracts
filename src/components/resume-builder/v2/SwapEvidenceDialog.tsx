@@ -41,14 +41,19 @@ export function SwapEvidenceDialog({
       if (!user) return;
 
       // Fetch milestones with joined work positions for context
-      // Fix: Query updated to use correct columns
       const { data: milestones, error } = await supabase
         .from('vault_resume_milestones')
         .select(`
           id,
           description,
           milestone_title,
-          company_name,
+          work_position:vault_work_positions!work_position_id (
+            id,
+            company_name,
+            job_title,
+            start_date,
+            end_date
+          )
           vault_id,
           created_at
         `)
@@ -65,10 +70,11 @@ export function SwapEvidenceDialog({
         id: m.id,
         bullet: m.description || m.milestone_title,
         source: {
-          company: m.company_name || 'Unknown',
-          // Fallback for missing job title/dates since they aren't in milestones table directly
-          jobTitle: 'Role', 
-          dateRange: 'Past'
+          company: m.work_position?.company_name || 'Unknown',
+          jobTitle: m.work_position?.job_title || 'Role',
+          dateRange: m.work_position?.start_date && m.work_position?.end_date
+            ? `${m.work_position.start_date} - ${m.work_position.end_date}`
+            : 'Past'
         },
         matchScore: Math.floor(Math.random() * 40) + 40 // Mock score for now
       }));

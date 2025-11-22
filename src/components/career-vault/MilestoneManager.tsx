@@ -25,6 +25,14 @@ interface Milestone {
   hide_dates: boolean;
   date_display_preference: string;
   privacy_notes: string | null;
+  work_position?: {
+    id: string;
+    company_name: string;
+    job_title: string;
+    start_date: string | null;
+    end_date: string | null;
+    is_current: boolean;
+  } | null;
 }
 
 interface AgeRisk {
@@ -49,7 +57,17 @@ export function MilestoneManager({ vaultId }: { vaultId: string }) {
     try {
       const { data, error } = await supabase
         .from('vault_resume_milestones')
-        .select('*')
+        .select(`
+          *,
+          work_position:vault_work_positions!work_position_id (
+            id,
+            company_name,
+            job_title,
+            start_date,
+            end_date,
+            is_current
+          )
+        `)
         .eq('vault_id', vaultId)
         .order('start_date', { ascending: false });
 
