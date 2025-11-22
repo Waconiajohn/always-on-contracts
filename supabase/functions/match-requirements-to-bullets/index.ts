@@ -57,12 +57,16 @@ serve(async (req) => {
 
     console.log('[MATCH-REQ-TO-BULLETS] Fetched', milestones.data?.length || 0, 'milestones and', workPositions.data?.length || 0, 'work positions');
 
-    const bullets = (milestones.data || []).map((m: any) => {
+    // Build bullets from both milestones and work positions
+    const bullets: any[] = [];
+
+    // Add bullets from milestones
+    (milestones.data || []).forEach((m: any) => {
       const position = (workPositions.data || []).find((p: any) => 
-        p.company_name?.toLowerCase() === m.company_name?.toLowerCase() // Rough matching
+        p.company_name?.toLowerCase() === m.company_name?.toLowerCase()
       );
       
-      return {
+      bullets.push({
         id: m.id,
         content: m.description || m.milestone_title,
         source: {
@@ -70,8 +74,28 @@ serve(async (req) => {
           jobTitle: m.title || position?.job_title || 'Unknown',
           dateRange: m.milestone_date || (position ? `${position.start_date} - ${position.end_date || 'Present'}` : '')
         }
-      };
+      });
     });
+
+    // Add bullets from work positions (responsibilities)
+    (workPositions.data || []).forEach((position: any) => {
+      const responsibilities = position.responsibilities || [];
+      responsibilities.forEach((responsibility: string, index: number) => {
+        if (responsibility && responsibility.trim()) {
+          bullets.push({
+            id: `${position.id}-resp-${index}`,
+            content: responsibility,
+            source: {
+              company: position.company_name || 'Unknown',
+              jobTitle: position.job_title || 'Unknown',
+              dateRange: `${position.start_date || ''} - ${position.end_date || 'Present'}`
+            }
+          });
+        }
+      });
+    });
+
+    console.log('[MATCH-REQ-TO-BULLETS] Built', bullets.length, 'total bullets from vault data');
 
     // 2. AI Matching
     const prompt = `You are analyzing a candidate's actual work history to find the BEST evidence for job requirements.
