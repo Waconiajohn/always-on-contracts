@@ -52,7 +52,17 @@ serve(async (req) => {
     if (milestone_id) {
       const { data: milestone } = await supabase
         .from('vault_resume_milestones')
-        .select('*')
+        .select(`
+          *,
+          work_position:vault_work_positions!work_position_id (
+            id,
+            company_name,
+            job_title,
+            start_date,
+            end_date,
+            is_current
+          )
+        `)
         .eq('id', milestone_id)
         .eq('user_id', user.id)
         .maybeSingle();

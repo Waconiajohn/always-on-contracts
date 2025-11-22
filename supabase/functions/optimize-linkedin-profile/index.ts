@@ -152,7 +152,15 @@ serve(async (req) => {
     // 3) Milestones for additional achievements
     const { data: milestones } = await supabase
       .from("vault_resume_milestones")
-      .select("milestone_title, description, metric_value")
+      .select(`
+        milestone_title,
+        description,
+        metric_value,
+        work_position:vault_work_positions!work_position_id (
+          company_name,
+          job_title
+        )
+      `)
       .eq("vault_id", vaultData?.id)
       .limit(20);
 
