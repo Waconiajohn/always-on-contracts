@@ -1118,6 +1118,53 @@ export type Database = {
         }
         Relationships: []
       }
+      evidence_matrix_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          is_complete: boolean | null
+          job_id: string | null
+          metadata: Json | null
+          requirements_json: Json
+          selections_json: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_complete?: boolean | null
+          job_id?: string | null
+          metadata?: Json | null
+          requirements_json?: Json
+          selections_json?: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_complete?: boolean | null
+          job_id?: string | null
+          metadata?: Json | null
+          requirements_json?: Json
+          selections_json?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_matrix_sessions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "application_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       experiments: {
         Row: {
           control_variant: string
@@ -3170,6 +3217,8 @@ export type Database = {
           custom_edit: string | null
           enhanced_bullet: string | null
           enhancement_reasoning: string | null
+          evidence_quality_score: string | null
+          gap_suggestions: string[] | null
           id: string
           job_analysis_id: string | null
           match_confidence: number | null
@@ -3180,6 +3229,7 @@ export type Database = {
           original_company: string | null
           original_date_range: string | null
           original_job_title: string | null
+          quality_feedback: string | null
           requirement_category: string | null
           requirement_priority: number | null
           requirement_text: string
@@ -3196,6 +3246,8 @@ export type Database = {
           custom_edit?: string | null
           enhanced_bullet?: string | null
           enhancement_reasoning?: string | null
+          evidence_quality_score?: string | null
+          gap_suggestions?: string[] | null
           id?: string
           job_analysis_id?: string | null
           match_confidence?: number | null
@@ -3206,6 +3258,7 @@ export type Database = {
           original_company?: string | null
           original_date_range?: string | null
           original_job_title?: string | null
+          quality_feedback?: string | null
           requirement_category?: string | null
           requirement_priority?: number | null
           requirement_text: string
@@ -3222,6 +3275,8 @@ export type Database = {
           custom_edit?: string | null
           enhanced_bullet?: string | null
           enhancement_reasoning?: string | null
+          evidence_quality_score?: string | null
+          gap_suggestions?: string[] | null
           id?: string
           job_analysis_id?: string | null
           match_confidence?: number | null
@@ -3232,6 +3287,7 @@ export type Database = {
           original_company?: string | null
           original_date_range?: string | null
           original_job_title?: string | null
+          quality_feedback?: string | null
           requirement_category?: string | null
           requirement_priority?: number | null
           requirement_text?: string

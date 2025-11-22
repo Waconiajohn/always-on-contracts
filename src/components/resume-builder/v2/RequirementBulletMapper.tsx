@@ -3,13 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, ChevronRight, Check, RefreshCw, Sparkles, CheckCircle2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronLeft, ChevronRight, Check, RefreshCw, Sparkles, CheckCircle2, Info } from "lucide-react";
 import { SwapEvidenceDialog } from "./SwapEvidenceDialog";
+import { FurtherEnhanceDialog } from "./FurtherEnhanceDialog";
 
 interface EvidenceMatch {
   requirementId: string;
   requirementText: string;
   requirementCategory: 'required' | 'preferred' | 'nice_to_have';
+  priority?: string;
   
   originalBullet: string;
   originalSource: {
@@ -20,6 +23,7 @@ interface EvidenceMatch {
   
   matchScore: number;
   matchReasons: string[];
+  qualityScore?: string;
   
   enhancedBullet: string;
   atsKeywords: string[];
@@ -37,6 +41,8 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
   const [customEdits, setCustomEdits] = useState<Record<string, string>>({});
   const [swappedEvidence, setSwappedEvidence] = useState<Record<string, any>>({});
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [furtherEnhanceOpen, setFurtherEnhanceOpen] = useState(false);
+  const [enhancedBullets, setEnhancedBullets] = useState<Record<string, string>>({});
 
   const currentItem = evidenceMatrix[currentIndex];
   const isLast = currentIndex === evidenceMatrix.length - 1;
@@ -47,6 +53,15 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
   const displayBullet = currentSwapped?.bullet || currentItem.originalBullet;
   const displaySource = currentSwapped?.source || currentItem.originalSource;
   const displayScore = currentSwapped?.matchScore || currentItem.matchScore;
+  const displayEnhancedBullet = enhancedBullets[currentItem.requirementId] || currentItem.enhancedBullet;
+
+  const handleFurtherEnhance = (newBullet: string) => {
+    setEnhancedBullets(prev => ({
+      ...prev,
+      [currentItem.requirementId]: newBullet
+    }));
+    handleSelection('enhanced');
+  };
 
   const handleSelection = (type: 'original' | 'enhanced' | 'custom') => {
     setSelections(prev => ({ ...prev, [currentItem.requirementId]: type }));
@@ -67,7 +82,7 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
   };
 
   const currentSelection = selections[currentItem.requirementId] || 'enhanced';
-  const customText = customEdits[currentItem.requirementId] || currentItem.enhancedBullet;
+  const customText = customEdits[currentItem.requirementId] || displayEnhancedBullet;
 
   const handleNext = () => {
     if (isLast) {
@@ -117,13 +132,38 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-                The Ask
+                📋 Job Requirement
               </Badge>
-              <Badge variant="secondary" className="text-xs capitalize">
-                {currentItem.requirementCategory.replace('_', ' ')}
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant={
+                      currentItem.priority === 'required' || currentItem.requirementCategory === 'required' ? 'destructive' : 
+                      currentItem.priority === 'preferred' || currentItem.requirementCategory === 'preferred' ? 'default' : 
+                      'secondary'
+                    } className="text-xs capitalize">
+                      <Info className="h-3 w-3 mr-1" />
+                      {currentItem.priority || currentItem.requirementCategory.replace('_', ' ')}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">This shows the requirement's priority level from the job posting</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="font-medium text-sm">{currentItem.requirementText}</p>
+            {currentItem.qualityScore && (
+              <Badge variant="outline" className={`text-xs ${
+                currentItem.qualityScore === 'strong' ? 'bg-green-50 text-green-700 border-green-200' :
+                currentItem.qualityScore === 'good' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                'bg-orange-50 text-orange-700 border-orange-200'
+              }`}>
+                {currentItem.qualityScore === 'strong' ? '💪 Strong Match' :
+                 currentItem.qualityScore === 'good' ? '👍 Good Match' :
+                 '⚠️ Weak Match'}
+              </Badge>
+            )}
           </CardContent>
         </Card>
 
@@ -132,7 +172,7 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center justify-between mb-2">
               <Badge variant="outline" className="bg-slate-100 text-slate-700">
-                Your Proof
+                ✅ Your Evidence
               </Badge>
               <span className={`text-xs font-bold ${
                 displayScore >= 80 ? 'text-green-600' : 
@@ -183,7 +223,7 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center justify-between mb-2">
               <Badge variant="default" className="bg-primary">
-                Resume Bullet
+                📝 Resume Bullet Options
               </Badge>
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
@@ -194,8 +234,22 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
               }`}
               onClick={() => handleSelection('enhanced')}
             >
-              <p className="font-medium text-xs text-primary mb-1">Enhanced Version (Recommended)</p>
-              {currentItem.enhancedBullet}
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-medium text-xs text-primary">Enhanced Version (Recommended)</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFurtherEnhanceOpen(true);
+                  }}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Further Enhance
+                </Button>
+              </div>
+              {displayEnhancedBullet}
             </div>
 
             <div 
@@ -240,6 +294,15 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
         requirementText={currentItem.requirementText}
         currentEvidenceId={currentSwapped?.id}
         onSwapComplete={handleSwapComplete}
+      />
+
+      <FurtherEnhanceDialog
+        open={furtherEnhanceOpen}
+        onOpenChange={setFurtherEnhanceOpen}
+        originalBullet={displayBullet}
+        currentEnhancedBullet={displayEnhancedBullet}
+        requirement={currentItem.requirementText}
+        onEnhanced={handleFurtherEnhance}
       />
     </div>
   );
