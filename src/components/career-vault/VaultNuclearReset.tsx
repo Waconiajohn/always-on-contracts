@@ -116,21 +116,60 @@ export const VaultNuclearReset = ({
       console.log('🧹 Deleting verification results...');
       await supabase.from('resume_verification_results').delete().eq('vault_id', vaultId);
 
-      // 7. Reset career_vault metadata to zero state
+      // 7. Reset career_vault metadata to zero state - ALL counts and data
       console.log('♻️ Resetting career_vault metadata to zero...');
       const { error: resetError } = await supabase
         .from('career_vault')
         .update({
-          onboarding_step: 'not_started',
-          review_completion_percentage: 0,
-          vault_strength_before_qa: null,
-          vault_strength_after_qa: null,
+          // Resume and extraction data
+          resume_raw_text: null,
+          initial_analysis: null,
+          extraction_status: 'not_started',
+          extraction_timestamp: null,
+          extraction_run_id: null,
+          extraction_quality: null,
+          extraction_item_count: 0,
+          extraction_completeness_score: 0,
+          last_extraction_session_id: null,
+          auto_population_confidence: null,
+          auto_populated: false,
+          
+          // All count fields to zero
           total_power_phrases: 0,
           total_transferable_skills: 0,
           total_hidden_competencies: 0,
-          extraction_item_count: 0,
-          resume_raw_text: null,
-          initial_analysis: null,
+          total_soft_skills: 0,
+          total_leadership_philosophy: 0,
+          total_executive_presence: 0,
+          total_personality_traits: 0,
+          total_work_style: 0,
+          total_values: 0,
+          total_behavioral_indicators: 0,
+          
+          // Progress and strength scores to zero
+          overall_strength_score: 0,
+          interview_completion_percentage: 0,
+          review_completion_percentage: 0,
+          vault_strength_before_qa: null,
+          vault_strength_after_qa: null,
+          
+          // Gap analysis and benchmarking
+          gap_analysis: null,
+          last_gap_analysis_at: null,
+          benchmark_comparison: null,
+          benchmark_standard: null,
+          benchmark_generated_at: null,
+          benchmark_role_level: null,
+          
+          // QA and onboarding
+          intelligent_qa_completed: false,
+          onboarding_step: 'not_started',
+          
+          // Target settings (keep these as they're user preferences)
+          // target_roles, target_industries, excluded_industries, career_direction
+          
+          // Update timestamp
+          last_updated_at: new Date().toISOString(),
         })
         .eq('id', vaultId);
 
