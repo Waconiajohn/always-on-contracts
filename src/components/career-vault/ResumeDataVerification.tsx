@@ -45,7 +45,17 @@ export function ResumeDataVerification({ vaultId }: VerificationProps) {
         supabase.from('career_vault').select('resume_raw_text, user_id').eq('id', vaultId).single(),
         supabase.from('vault_work_positions').select('*').eq('vault_id', vaultId),
         supabase.from('vault_education').select('*').eq('vault_id', vaultId),
-        supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultId)
+        supabase.from('vault_resume_milestones').select(`
+          *,
+          work_position:vault_work_positions!work_position_id (
+            id,
+            company_name,
+            job_title,
+            start_date,
+            end_date,
+            is_current
+          )
+        `).eq('vault_id', vaultId)
       ]);
 
       if (vaultRes.error) throw vaultRes.error;

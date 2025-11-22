@@ -90,7 +90,17 @@ export const useVaultData = (userId: string | undefined) => {
         supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
         supabase.from('vault_work_positions').select('*').eq('vault_id', vaultId).order('start_date', { ascending: false }),
         supabase.from('vault_education').select('*').eq('vault_id', vaultId).order('graduation_year', { ascending: false }),
-        supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultId).order('created_at', { ascending: false }),
+        supabase.from('vault_resume_milestones').select(`
+          *,
+          work_position:vault_work_positions!work_position_id (
+            id,
+            company_name,
+            job_title,
+            start_date,
+            end_date,
+            is_current
+          )
+        `).eq('vault_id', vaultId).order('created_at', { ascending: false }),
         supabase.from('profiles').select('target_roles').eq('user_id', userId).maybeSingle(),
         supabase.from('vault_career_context').select('*').eq('vault_id', vaultId).maybeSingle(),
       ]);
