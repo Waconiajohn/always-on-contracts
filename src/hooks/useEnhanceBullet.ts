@@ -42,10 +42,22 @@ export function useEnhanceBullet({
         description: "Your bullet has been successfully enhanced"
       });
     } catch (error: any) {
-      console.error('Enhancement error:', error);
+      console.error('Enhancement error details:', {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      
+      const errorMessage = error.message || "Failed to enhance bullet";
+      const userFriendlyMessage = errorMessage.includes('rate limit') 
+        ? 'Rate limit exceeded. Please wait a moment and try again.'
+        : errorMessage.includes('credits')
+        ? 'Insufficient credits. Please add credits to continue.'
+        : 'Failed to enhance bullet. Please try again.';
+      
       toast({
         title: "Enhancement failed",
-        description: error.message || "Failed to enhance bullet",
+        description: userFriendlyMessage,
         variant: "destructive"
       });
     } finally {

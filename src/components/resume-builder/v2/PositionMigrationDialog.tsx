@@ -93,12 +93,13 @@ export function PositionMigrationDialog({
       const targetPosition = positions.find(p => p.id === selectedPosition);
       if (!targetPosition) throw new Error('Target position not found');
 
-      const { data: vaultData } = await supabase
+      const { data: vaultData, error: vaultError } = await supabase
         .from('career_vault')
         .select('id')
         .eq('user_id', user.id)
         .single();
         
+      if (vaultError) throw vaultError;
       if (!vaultData) throw new Error('Career vault not found');
 
       if (migrationMode === 'clone') {
@@ -153,10 +154,23 @@ export function PositionMigrationDialog({
 
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Migration error:', error);
+      console.error('Migration error details:', {
+        error: error.message,
+        mode: migrationMode,
+        timestamp: new Date().toISOString()
+      });
+      
+      const userFriendlyMessage = error.message?.includes('Career vault not found')
+        ? 'Your career vault could not be found. Please try refreshing the page.'
+        : error.message?.includes('Target position not found')
+        ? 'Selected position no longer exists. Please select a different position.'
+        : error.message?.includes('rate limit')
+        ? 'Rate limit exceeded. Please wait a moment and try again.'
+        : 'Migration failed. Please try again.';
+      
       toast({
         title: "Migration failed",
-        description: error.message,
+        description: userFriendlyMessage,
         variant: "destructive"
       });
     } finally {

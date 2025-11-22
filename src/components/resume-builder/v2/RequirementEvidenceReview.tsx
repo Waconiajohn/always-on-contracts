@@ -86,6 +86,7 @@ export function RequirementEvidenceReview({
       // Save result
       const newResult = {
         requirementId: currentMatch.requirementId,
+        requirementText: currentMatch.requirementText,
         selectedBullet: workingBullet,
         source: {
           milestoneId: currentMatch.milestoneId,
@@ -140,7 +141,11 @@ export function RequirementEvidenceReview({
 
   const insertKeyword = (keyword: string) => {
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
+    if (!textarea) {
+      // Fallback: append to end if textarea not found
+      setWorkingBullet(prev => `${prev} ${keyword}`);
+      return;
+    }
     
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
@@ -148,7 +153,14 @@ export function RequirementEvidenceReview({
     const before = text.substring(0, start);
     const after = text.substring(end);
     
-    setWorkingBullet(`${before}${keyword}${after}`);
+    const newText = `${before} ${keyword}${after}`;
+    setWorkingBullet(newText);
+    
+    // Focus back on textarea after insertion
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + keyword.length + 1, start + keyword.length + 1);
+    }, 0);
   };
 
   const renderStepIndicator = () => (
