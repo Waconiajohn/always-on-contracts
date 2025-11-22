@@ -48,24 +48,31 @@ export function LiveResumeCanvas({
         processedHtml = processedHtml.replace(/\{\{headline\}\}/g, escapeHtml(resumeData.header.headline || ''));
         processedHtml = processedHtml.replace(/\{\{contactLine\}\}/g, escapeHtml(resumeData.header.contactLine || ''));
 
-        // Inject Sections
+        // Inject Sections with metadata
         const sectionsHtml = resumeData.sections
           .map(section => {
             const heading = escapeHtml(section.heading);
             const content = section.paragraph 
               ? `<p class="section-paragraph">${escapeHtml(section.paragraph)}</p>`
               : section.bullets.length > 0
-                ? `<ul class="section-bullets">${section.bullets.map(b => {
-                    const text = typeof b === 'string' ? b : b.content;
-                    return `<li class="section-bullet">${escapeHtml(text)}</li>`;
+                ? `<ul class="section-bullets">${section.bullets.map((b, idx) => {
+                    const bulletObj = typeof b === 'string' ? { id: `bullet-${idx}`, content: b } : b;
+                    const meta = bulletObj.meta || {};
+                    
+                    // Build data attributes for traceability
+                    const dataAttrs = [
+                      `data-bullet-id="${bulletObj.id || idx}"`,
+                      meta.requirementText ? `data-requirement="${escapeHtml(meta.requirementText)}"` : '',
+                      meta.matchScore ? `data-match-score="${meta.matchScore}"` : '',
+                      meta.matchStrength ? `data-match-strength="${meta.matchStrength}"` : '',
+                      meta.originalSource?.company ? `data-source="${escapeHtml(meta.originalSource.company)}"` : '',
+                      meta.originalSource?.jobTitle ? `data-job-title="${escapeHtml(meta.originalSource.jobTitle)}"` : ''
+                    ].filter(Boolean).join(' ');
+                    
+                    return `<li class="section-bullet" ${dataAttrs}>${escapeHtml(bulletObj.content)}</li>`;
                   }).join('')}</ul>`
                 : '';
 
-            // Add data-section-id for interactivity
-            // We assume the template style expects a container class like "resume-section"
-            // If the template is strict, we might need to be careful where we add the attribute.
-            // Ideally, we wrap it in a div if not already, but let's assume standard structure.
-            
             return `
               <div class="resume-section ${activeSectionId === section.id ? 'active-section-highlight' : ''}" data-section-id="${section.id}">
                 <h2 class="section-heading">${heading}</h2>
@@ -110,7 +117,6 @@ export function LiveResumeCanvas({
 
   return (
     <div className="relative w-full h-full bg-gray-100 overflow-auto p-8 flex justify-center">
-      {/* Shadow DOM or Iframe would be safer, but simple div works for trusted content */}
       <div 
         ref={containerRef}
         className="bg-white shadow-2xl transition-transform origin-top"
@@ -124,6 +130,7 @@ export function LiveResumeCanvas({
       >
         <style>{`
           ${cssContent}
+          
           /* Interactive Overrides */
           .resume-section {
             position: relative;
@@ -133,12 +140,53 @@ export function LiveResumeCanvas({
             border-radius: 4px;
           }
           .resume-section:hover {
-            border-color: rgba(59, 130, 246, 0.5); /* Blue-500 with opacity */
+            border-color: rgba(59, 130, 246, 0.5);
             background-color: rgba(59, 130, 246, 0.05);
           }
           .active-section-highlight {
-            border-color: #3b82f6 !important; /* Blue-500 */
+            border-color: #3b82f6 !important;
             background-color: rgba(59, 130, 246, 0.1) !important;
+          }
+          
+          /* Bullet Hover Tooltips */
+          .section-bullet {
+            position: relative;
+            cursor: help;
+          }
+          .section-bullet[data-requirement]:hover::before {
+            content: "📋 " attr(data-requirement) " • Match: " attr(data-match-score) "% • From: " attr(data-source);
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: hsl(var(--popover));
+            color: hsl(var(--popover-foreground));
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid hsl(var(--border));
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.2s ease-in;
+          }
+          .section-bullet[data-match-strength="Gold"]::after {
+            content: "🥇";
+            margin-left: 4px;
+            font-size: 0.9em;
+          }
+          .section-bullet[data-match-strength="Silver"]::after {
+            content: "🥈";
+            margin-left: 4px;
+            font-size: 0.9em;
+          }
+          .section-bullet[data-match-strength="Bronze"]::after {
+            content: "🥉";
+            margin-left: 4px;
+            font-size: 0.9em;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
           }
         `}</style>
         <div dangerouslySetInnerHTML={{ __html: htmlContent }} />

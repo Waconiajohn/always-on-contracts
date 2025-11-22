@@ -11,6 +11,9 @@ export type CanonicalSectionType =
   | "certifications"
   | "other";
 
+/**
+ * Evidence metadata for resume bullets - tracks the "why" behind each claim
+ */
 export interface ResumeBulletMetadata {
   requirementId?: string;
   requirementText?: string;
@@ -99,4 +102,43 @@ export interface ResumeContext {
   jobTitle?: string;
   companyName?: string;
   location?: string;
+}
+
+/**
+ * Evidence Matrix - The "Proof Engine" data structure
+ * Maps job requirements to actual evidence from career history
+ */
+export interface EvidenceMatch {
+  requirementId: string;
+  requirementText: string;
+  requirementCategory: 'required' | 'preferred' | 'nice_to_have';
+  
+  milestoneId: string;
+  originalBullet: string;
+  originalSource: {
+    jobTitle: string;
+    company: string;
+    dateRange: string;
+  };
+  
+  matchScore: number; // 0-100
+  matchReasons: string[];
+  matchStrength?: 'Gold' | 'Silver' | 'Bronze';
+  
+  enhancedBullet: string; // AI-enhanced version with ATS keywords
+  atsKeywords: string[];
+  
+  // User selection tracking
+  userSelection?: 'original' | 'enhanced' | 'custom';
+  customEdit?: string;
+}
+
+export interface EvidenceMatrix {
+  matches: EvidenceMatch[];
+  stats: {
+    totalRequirements: number;
+    matchedRequirements: number;
+    coverageScore: number; // percentage
+    unmatchedRequirements?: string[];
+  };
 }
