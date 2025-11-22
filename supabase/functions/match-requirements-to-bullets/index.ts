@@ -88,11 +88,23 @@ Return JSON:
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
+    console.log('[MATCH-REQ-TO-BULLETS] Raw AI response length:', content?.length);
+    console.log('[MATCH-REQ-TO-BULLETS] Raw AI response preview:', content?.substring(0, 500));
+    
     const parseResult = extractJSON(content);
 
-    if (!parseResult.success || !parseResult.data) {
-      throw new Error('Failed to parse AI response');
+    if (!parseResult.success) {
+      console.error('[MATCH-REQ-TO-BULLETS] Parse error:', parseResult.error);
+      console.error('[MATCH-REQ-TO-BULLETS] Full response:', content);
+      throw new Error(`Failed to parse AI response: ${parseResult.error}`);
     }
+
+    if (!parseResult.data) {
+      console.error('[MATCH-REQ-TO-BULLETS] No data in parse result');
+      throw new Error('Failed to parse AI response: No data returned');
+    }
+    
+    console.log('[MATCH-REQ-TO-BULLETS] Successfully parsed response with', parseResult.data.matches?.length || 0, 'matches');
 
     // 3. Construct Evidence Matrix
     const evidenceMatrix = (parseResult.data.matches || []).map((match: any) => {
