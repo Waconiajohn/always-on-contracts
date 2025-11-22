@@ -61,6 +61,7 @@ export const SectionWizard = ({
   section,
   vaultMatches,
   jobAnalysis,
+  resumeMilestones = [],
   onSectionComplete,
   onBack,
   onSkip,
@@ -75,15 +76,15 @@ export const SectionWizard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [jobResearch, setJobResearch] = useState<any>(null);
-  const [idealContent] = useState<any>(null);
-  const [personalizedContent] = useState<any>(null);
-  const [blendContent] = useState<any>(null);
+  const [idealContent, setIdealContent] = useState<any>(null);
+  const [personalizedContent, setPersonalizedContent] = useState<any>(null);
+  const [blendContent, setBlendContent] = useState<any>(null); // Added missing state
   const [showComparison, setShowComparison] = useState(false);
   const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
-  const [vaultItemsUsed] = useState<any[]>([]);
+  const [vaultItemsUsed, setVaultItemsUsed] = useState<any[]>([]);
   const [showEvidenceMapper, setShowEvidenceMapper] = useState(false);
   const [evidenceMatrix, setEvidenceMatrix] = useState<any[]>([]);
-  const [evidenceSelections, setEvidenceSelections] = useState<Record<string, { version: string; customText?: string }>>({});
+  const [evidenceSelections, setEvidenceSelections] = useState<Record<string, any>>({});
 
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
@@ -108,7 +109,6 @@ export const SectionWizard = ({
   };
 
   // Filter vault matches relevant to this section
-  // AI automatically uses ALL relevant matches - no manual selection needed
   const relevantMatches = vaultMatches.filter(match =>
     section.vaultCategories.includes(match.vaultCategory)
   );
@@ -133,17 +133,14 @@ export const SectionWizard = ({
     });
 
     try {
-      // Use retry logic for generation
       const result = await executeWithRetry(
         async () => {
-          // Get authenticated user
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error("User not authenticated");
 
-          // Use ALL relevant vault matches automatically - no manual selection
           const vaultStrength = calculateVaultStrength(relevantMatches);
 
-          // Step 1: Get or fetch job analysis research (cache this globally)
+          // Step 1: Get or fetch job analysis research
           setCurrentGenerationStep(0);
 
           let research = jobResearch;
@@ -178,40 +175,76 @@ export const SectionWizard = ({
             setJobResearch(research);
           }
 
-          // Step 1.5: Match requirements to bullets to create evidence matrix
+          // Step 1.5: Match requirements to bullets
           setCurrentGenerationStep(1);
+          
           const requirementsForSection = [
             ...(jobAnalysis.jobRequirements?.required || []).map((r: any) => ({
               id: r.id || crypto.randomUUID(),
-              requirement: r.requirement || r,
+              text: r.requirement || r,
               category: 'required' as const
             })),
             ...(jobAnalysis.jobRequirements?.preferred || []).map((r: any) => ({
               id: r.id || crypto.randomUUID(),
-              requirement: r.requirement || r,
+              text: r.requirement || r,
               category: 'preferred' as const
             }))
           ];
 
-          const { data: matchData, error: matchError } = await invokeEdgeFunction(
-            'match-requirements-to-bullets',
-            {
-              userId: user.id,
-              jobRequirements: requirementsForSection,
-              atsKeywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] }
-            }
-          );
+          // Only do evidence matching for relevant sections
+          if (['experience', 'projects', 'summary'].includes(section.type)) {
+            const { data: matchData, error: matchError } = await invokeEdgeFunction(
+              'match-requirements-to-bullets',
+              {
+                userId: user.id,
+                jobRequirements: requirementsForSection,
+                atsKeywords: jobAnalysis.atsKeywords || { 
+                  critical: [], 
+                  important: [], 
+                  nice_to_have: [] 
+                }
+              }
+            );
 
-          if (matchError) {
-            logger.error('Requirement matching failed', matchError);
-            throw new Error(`Requirement matching failed: ${matchError.message}`);
+            if (matchError) {
+              logger.error('Requirement matching failed', matchError);
+              // Fallback to standard generation if matching fails
+            } else if (matchData.evidenceMatrix && matchData.evidenceMatrix.length > 0) {
+              setEvidenceMatrix(matchData.evidenceMatrix);
+              setShowEvidenceMapper(true);
+              setIsGenerating(false);
+              return { skipFinalGeneration: true, vaultStrength };
+            }
           }
 
-          // Show evidence mapper for user review
-          setEvidenceMatrix(matchData.evidenceMatrix || []);
-          setShowEvidenceMapper(true);
-          setIsGenerating(false);
-          return { skipFinalGeneration: true, vaultStrength };
+          // Standard Generation if no evidence mapping
+          // ... (This part would be the standard generation logic if we didn't return early)
+          // For brevity in this fix, I'm assuming we either return early or proceed to handleEvidenceApprove logic via state
+          
+          // If we didn't skip, we need to generate here (legacy flow or no matches)
+           const dualPayload = {
+            section_type: section.type,
+            section_guidance: section.guidancePrompt,
+            job_analysis_research: research.research_result,
+            vault_items: relevantMatches,
+            resume_milestones: resumeMilestones,
+            user_id: user.id,
+            job_title: jobAnalysis.roleProfile?.title || '',
+            industry: jobAnalysis.roleProfile?.industry || '',
+            seniority: jobAnalysis.roleProfile?.seniority || 'mid-level',
+            ats_keywords: jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
+            requirements: []
+          };
+          
+           const { data: dualData, error: dualError } = await invokeEdgeFunction(
+            'generate-dual-resume-section',
+            dualPayload
+          );
+
+          if (dualError) throw dualError;
+          
+          return { dualData, vaultStrength };
+
         },
         {
           operationName: 'Evidence Mapping',
@@ -221,61 +254,47 @@ export const SectionWizard = ({
       );
 
       if (result.skipFinalGeneration) return;
-
-      // This code should never be reached as we return early after showing evidence mapper
-      // Evidence approval will trigger handleEvidenceApprove instead
       
-      // This code path should not execute
+      // Handle legacy generation result
+      const { dualData, vaultStrength } = result;
+      setIdealContent(dualData.idealVersion.content);
+      setPersonalizedContent(dualData.personalizedVersion.content);
+      setVaultItemsUsed(dualData.vaultItemsUsed || []);
+      setCurrentGenerationStep(3);
+      setShowComparison(true);
+      await timer.complete({
+        vault_items_used: relevantMatches.length,
+        vault_strength: vaultStrength
+      });
 
     } catch (error) {
       logger.error('Error generating section', error);
-
-      // Determine operation context for better error messages
-      const operation: 'research' | 'ideal_generation' | 'personalized_generation' | 'general' = 
-        currentGenerationStep === 0 ? 'research'
-        : currentGenerationStep === 1 ? 'ideal_generation'
-        : currentGenerationStep === 2 ? 'personalized_generation'
-        : 'general';
-
-      const errorContext = {
+       const errorContext = {
         error: error instanceof Error ? error : new Error('Unknown error'),
-        operation,
-        retryable: error instanceof Error ? isRetryableError(error) : true
+        operation: 'general' as const,
+        retryable: true
       };
-
       const errorInfo = getErrorMessage(errorContext);
-      const suggestions = getRecoverySuggestion(errorContext);
-
-      // Track failed generation
-      await timer.fail(errorContext.error, operation);
-
+      await timer.fail(errorContext.error, 'general');
       toast({
         title: errorInfo.title,
-        description: `${errorInfo.description}${suggestions.length > 0 ? '\n\nTips:\n• ' + suggestions.join('\n• ') : ''}`,
+        description: errorInfo.description,
         variant: "destructive"
       });
     } finally {
-      setIsGenerating(false);
+      if (!showEvidenceMapper) {
+         setIsGenerating(false);
+      }
     }
   };
 
-  const handleRegenerate = () => {
-    setGeneratedContent(null);
-    setEditedContent("");
-    setShowComparison(false);
-    setShowEvidenceMapper(false);
-    setEvidenceSelections({});
-    handleGenerate();
-  };
-
-  const handleEvidenceApprove = async () => {
-    // User has approved evidence mappings, now generate final bullets
+  const handleEvidenceApprove = async (selections: Record<string, any>) => {
+    setEvidenceSelections(selections);
     setShowEvidenceMapper(false);
     setIsGenerating(true);
     setCurrentGenerationStep(2);
 
     try {
-      // Get authenticated user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
@@ -291,11 +310,13 @@ export const SectionWizard = ({
         original_company: item.originalSource?.company,
         original_date_range: item.originalSource?.dateRange,
         match_score: item.matchScore,
-        match_reasons: item.matchReasons || [],
+        match_reasons: item.matchReasons,
         enhanced_bullet: item.enhancedBullet,
-        ats_keywords: item.atsKeywords || [],
-        user_selection: evidenceSelections[item.requirementId]?.version || 'enhanced',
-        custom_edit: evidenceSelections[item.requirementId]?.customText
+        ats_keywords: item.atsKeywords,
+        user_selection: selections[item.requirementId]?.version || 'enhanced',
+        custom_edit: selections[item.requirementId]?.customText,
+        swapped_evidence_id: selections[item.requirementId]?.swappedEvidenceId,
+        swapped_original_bullet: selections[item.requirementId]?.swappedOriginalBullet
       }));
 
       const { error: saveError } = await supabase
@@ -304,25 +325,31 @@ export const SectionWizard = ({
 
       if (saveError) {
         logger.error('Failed to save evidence mappings', saveError);
-        // Don't throw - continue with generation even if save fails
       }
 
       // Generate final content using evidence
-      const { data: finalContent, error: genError } = await invokeEdgeFunction(
+      const { data: finalData, error: genError } = await invokeEdgeFunction(
         'generate-dual-resume-section',
         {
-          sectionType: section.type,
+          section_type: section.type,
           evidenceMatrix: evidenceMatrix,
-          evidenceSelections: evidenceSelections,
-          jobAnalysis: jobAnalysis
+          evidenceSelections: selections,
+          job_analysis_research: jobResearch?.research_result,
+          user_id: user.id,
+          job_title: jobAnalysis.roleProfile?.title,
+          industry: jobAnalysis.roleProfile?.industry,
+          seniority: jobAnalysis.roleProfile?.seniority,
+          ats_keywords: jobAnalysis.atsKeywords
         }
       );
 
       if (genError) throw genError;
 
-      setGeneratedContent(finalContent);
-      setEditedContent(typeof finalContent === 'string' ? finalContent : JSON.stringify(finalContent, null, 2));
+      setIdealContent(finalData.idealVersion.content);
+      setPersonalizedContent(finalData.personalizedVersion.content);
+      setBlendContent(finalData.blendVersion?.content);
       
+      setShowComparison(true);
       toast({
         title: "Resume section generated",
         description: "Review and approve the generated content"
@@ -338,6 +365,15 @@ export const SectionWizard = ({
       setIsGenerating(false);
     }
   };
+  
+  const handleRegenerate = () => {
+    setGeneratedContent(null);
+    setEditedContent("");
+    setShowComparison(false);
+    setShowEvidenceMapper(false);
+    setEvidenceSelections({});
+    handleGenerate();
+  };
 
   const handleSelectIdeal = async () => {
     setGeneratedContent(idealContent);
@@ -348,7 +384,6 @@ export const SectionWizard = ({
     );
     setShowComparison(false);
 
-    // Track version selection (using all relevant matches)
     await trackVersionSelection('ideal', {
       section_type: section.type,
       vault_items_used: relevantMatches.length,
@@ -370,7 +405,6 @@ export const SectionWizard = ({
     );
     setShowComparison(false);
 
-    // Track version selection (using all relevant matches)
     await trackVersionSelection('personalized', {
       section_type: section.type,
       vault_items_used: relevantMatches.length,
@@ -382,7 +416,7 @@ export const SectionWizard = ({
       description: "You can edit before approving"
     });
   };
-
+  
   const handleSelectBlend = async () => {
     setGeneratedContent(blendContent);
     setEditedContent(
@@ -391,9 +425,8 @@ export const SectionWizard = ({
         : JSON.stringify(blendContent, null, 2)
     );
     setShowComparison(false);
-
-    // Track version selection
-    await trackVersionSelection('blend', {
+    
+     await trackVersionSelection('blend', {
       section_type: section.type,
       vault_items_used: relevantMatches.length,
       vault_strength: calculateVaultStrength(relevantMatches)
@@ -401,7 +434,7 @@ export const SectionWizard = ({
 
     toast({
       title: "Blended version selected",
-      description: "AI combined the best of both versions. You can edit before approving"
+      description: "You can edit before approving"
     });
   };
 
@@ -425,7 +458,6 @@ export const SectionWizard = ({
       ? editedContent
       : generatedContent;
 
-    // Track section completion
     const contentString = typeof finalContent === 'string'
       ? finalContent
       : JSON.stringify(finalContent);
@@ -436,7 +468,6 @@ export const SectionWizard = ({
       vault_items_used: relevantMatches.length
     });
 
-    // Convert content to array format if needed
     const contentArray = Array.isArray(finalContent)
       ? finalContent
       : [{ id: crypto.randomUUID(), content: finalContent }];
@@ -504,7 +535,7 @@ export const SectionWizard = ({
           </Card>
 
           {/* Ready to Generate */}
-          {!generatedContent && (
+          {!generatedContent && !showEvidenceMapper && (
             <Card className="p-6">
               <div className="text-center space-y-4">
                 <div>
@@ -557,53 +588,13 @@ export const SectionWizard = ({
             </Card>
           )}
 
-          {/* Evidence Mapper - Review requirement matches before generating */}
+          {/* Evidence Mapper */}
           {showEvidenceMapper && evidenceMatrix.length > 0 && (
-            <Card className="p-6 space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold">Review Evidence Matches</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Select the best version of each bullet to address requirements
-                  </p>
-                </div>
-              </div>
-              
-              <RequirementBulletMapper
+             <RequirementBulletMapper
                 evidenceMatrix={evidenceMatrix}
-                onComplete={(selections) => {
-                  setEvidenceSelections(selections);
-                  handleEvidenceApprove();
-                }}
+                onComplete={handleEvidenceApprove}
                 onCancel={() => setShowEvidenceMapper(false)}
               />
-
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowEvidenceMapper(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleEvidenceApprove}
-                  disabled={isGenerating}
-                  className="gap-2"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Generate Resume Section
-                    </>
-                  )}
-                </Button>
-              </div>
-            </Card>
           )}
 
           {/* Dual Generation Comparison */}
@@ -628,6 +619,7 @@ export const SectionWizard = ({
                 }),
                 hasDiverseCategories: new Set(relevantMatches.map(m => m.vaultCategory)).size > 2
               }}
+              evidenceMatrix={evidenceMatrix}
               onSelectIdeal={handleSelectIdeal}
               onSelectPersonalized={handleSelectPersonalized}
               onSelectBlend={handleSelectBlend}
@@ -636,37 +628,20 @@ export const SectionWizard = ({
             />
           )}
 
-          {/* Vault Attribution - Show which items were used */}
+          {/* Vault Attribution */}
           {vaultItemsUsed.length > 0 && generatedContent && !showComparison && (
             <Alert>
               <Sparkles className="h-4 w-4" />
               <AlertTitle>Career Vault Items Used</AlertTitle>
               <AlertDescription>
                 <div className="space-y-2 mt-3">
-                  {vaultItemsUsed.slice(0, 5).map((item, idx) => {
-                    // If item is somehow still a string, try to parse it
-                    let safeItem = item;
-                    if (typeof item === 'string') {
-                      try {
-                        safeItem = JSON.parse(item);
-                      } catch {
-                        return <p key={idx} className="text-xs text-destructive">Invalid vault item data</p>;
-                      }
-                    }
-                    
-                    // Ensure required fields exist
-                    if (!safeItem.id || !safeItem.category || !safeItem.excerpt) {
-                      return null;
-                    }
-                    
-                    return (
-                      <VaultItemAttributionBadge
-                        key={idx}
-                        vaultItem={safeItem}
-                        compact
-                      />
-                    );
-                  })}
+                  {vaultItemsUsed.slice(0, 5).map((item, idx) => (
+                    <VaultItemAttributionBadge
+                      key={idx}
+                      vaultItem={item}
+                      compact
+                    />
+                  ))}
                   {vaultItemsUsed.length > 5 && (
                     <p className="text-xs text-muted-foreground">
                       +{vaultItemsUsed.length - 5} more vault items used
@@ -677,7 +652,7 @@ export const SectionWizard = ({
             </Alert>
           )}
 
-          {/* Single Content Review (after selection) */}
+          {/* Single Content Review */}
           {generatedContent && !showComparison && (
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">

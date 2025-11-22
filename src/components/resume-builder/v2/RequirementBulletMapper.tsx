@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, ChevronRight, Check, RefreshCw, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, RefreshCw, Sparkles, AlertCircle, CheckCircle2, Edit3 } from "lucide-react";
 import { SwapEvidenceDialog } from "./SwapEvidenceDialog";
 
 interface EvidenceMatch {
@@ -25,7 +25,7 @@ interface EvidenceMatch {
   atsKeywords: string[];
 }
 
-interface RequirementBulletMapperProps {
+export interface RequirementBulletMapperProps {
   evidenceMatrix: EvidenceMatch[];
   onComplete: (selections: Record<string, any>) => void;
   onCancel: () => void;
@@ -35,12 +35,18 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, 'original' | 'enhanced' | 'custom'>>({});
   const [customEdits, setCustomEdits] = useState<Record<string, string>>({});
+  const [swappedEvidence, setSwappedEvidence] = useState<Record<string, any>>({});
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
-  const [swappedEvidence, setSwappedEvidence] = useState<Record<string, { id: string; bullet: string }>>({});
 
   const currentItem = evidenceMatrix[currentIndex];
   const isLast = currentIndex === evidenceMatrix.length - 1;
   const isFirst = currentIndex === 0;
+  const currentSwapped = swappedEvidence[currentItem.requirementId];
+
+  // Use swapped evidence if available, otherwise default
+  const displayBullet = currentSwapped?.bullet || currentItem.originalBullet;
+  const displaySource = currentSwapped?.source || currentItem.originalSource;
+  const displayScore = currentSwapped?.matchScore || currentItem.matchScore;
 
   const handleSelection = (type: 'original' | 'enhanced' | 'custom') => {
     setSelections(prev => ({ ...prev, [currentItem.requirementId]: type }));
@@ -50,20 +56,22 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
     setCustomEdits(prev => ({ ...prev, [currentItem.requirementId]: text }));
     handleSelection('custom');
   };
+  
+  const handleSwapComplete = (newEvidence: any) => {
+    setSwappedEvidence(prev => ({
+      ...prev,
+      [currentItem.requirementId]: newEvidence
+    }));
+    // Reset selection to original (or enhanced if we regenerate, but for now original is safe)
+    handleSelection('original');
+  };
 
   const currentSelection = selections[currentItem.requirementId] || 'enhanced';
   const customText = customEdits[currentItem.requirementId] || currentItem.enhancedBullet;
 
-  const handleSwapComplete = (newEvidenceId: string, newOriginalBullet: string) => {
-    setSwappedEvidence(prev => ({
-      ...prev,
-      [currentItem.requirementId]: { id: newEvidenceId, bullet: newOriginalBullet }
-    }));
-  };
-
   const handleNext = () => {
     if (isLast) {
-      // Compile final results with new format expected by database persistence
+      // Compile final results with proper structure
       const finalResults: Record<string, any> = {};
       evidenceMatrix.forEach(item => {
         const choice = selections[item.requirementId] || 'enhanced';
@@ -127,29 +135,37 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
                 Your Proof
               </Badge>
               <span className={`text-xs font-bold ${
-                currentItem.matchScore >= 80 ? 'text-green-600' : 
-                currentItem.matchScore >= 60 ? 'text-yellow-600' : 'text-red-600'
+                displayScore >= 80 ? 'text-green-600' : 
+                displayScore >= 60 ? 'text-yellow-600' : 'text-red-600'
               }`}>
-                {currentItem.matchScore}% Match
+                {displayScore}% Match
               </span>
             </div>
             
             <div className="p-3 bg-background rounded border text-sm text-muted-foreground italic">
-              "{currentItem.originalBullet}"
+              "{displayBullet}"
             </div>
             
             <div className="text-xs text-muted-foreground">
-              Source: {currentItem.originalSource.jobTitle} at {currentItem.originalSource.company}
+              Source: {displaySource.jobTitle} at {displaySource.company}
             </div>
 
-            <div className="space-y-1">
-              {currentItem.matchReasons.map((reason, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs text-green-700">
-                  <Check className="h-3 w-3 mt-0.5" />
-                  {reason}
-                </div>
-              ))}
-            </div>
+            {currentSwapped && (
+              <div className="flex items-center gap-2 text-xs text-green-600 font-medium">
+                <CheckCircle2 className="h-3 w-3" /> Evidence swapped
+              </div>
+            )}
+
+            {!currentSwapped && (
+              <div className="space-y-1">
+                {currentItem.matchReasons.map((reason, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-green-700">
+                    <Check className="h-3 w-3 mt-0.5" />
+                    {reason}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <Button 
               variant="outline" 
@@ -159,12 +175,6 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
             >
               <RefreshCw className="h-3 w-3 mr-1" /> Swap Evidence
             </Button>
-            
-            {swappedEvidence[currentItem.requirementId] && (
-              <div className="text-xs text-green-600 font-medium">
-                ✓ Evidence swapped
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -195,7 +205,7 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
               onClick={() => handleSelection('original')}
             >
               <p className="font-medium text-xs text-muted-foreground mb-1">Original Version</p>
-              {currentItem.originalBullet}
+              {displayBullet}
             </div>
 
             <div 
@@ -228,7 +238,7 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
         onOpenChange={setSwapDialogOpen}
         requirementId={currentItem.requirementId}
         requirementText={currentItem.requirementText}
-        currentEvidenceId={swappedEvidence[currentItem.requirementId]?.id || currentItem.requirementId}
+        currentEvidenceId={currentSwapped?.id}
         onSwapComplete={handleSwapComplete}
       />
     </div>
