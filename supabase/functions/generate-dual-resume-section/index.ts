@@ -63,10 +63,70 @@ serve(async (req) => {
       industry,
       seniority = 'mid-level',
       ats_keywords = { critical: [], important: [], nice_to_have: [] },
-      requirements = []
+      requirements = [],
+      evidenceMatrix = [], // New parameter for evidence-based generation
+      evidenceSelections = {} // New parameter for user choices
     } = await req.json();
 
     console.log(`Generating dual versions for ${section_type}`);
+
+    // --- EVIDENCE-BASED GENERATION PATH ---
+    if (evidenceMatrix.length > 0) {
+        console.log('Using Evidence-Based Generation');
+        
+        // Filter matrix for selected evidence
+        const approvedEvidence = evidenceMatrix.filter((item: any) => {
+            // Check if this item was selected by user, or is the default high-confidence match
+            const selection = evidenceSelections[item.requirementId];
+            if (selection && selection !== 'original' && selection !== 'enhanced') return false; // Custom or skipped
+            // If no explicit selection, use if matchScore is high (default)
+            return item.matchScore >= 70;
+        });
+
+        const evidenceContext = approvedEvidence.map((ev: any) => 
+            `- Requirement: "${ev.requirementText}"
+  Evidence: "${ev.originalBullet}"
+  Enhanced Idea: "${ev.enhancedBullet}"`
+        ).join('\n\n');
+
+        const evidencePrompt = `You are an expert resume writer. Format the following PROVEN EVIDENCE into a professional ${section_type} section.
+
+ROLE: ${job_title}
+INDUSTRY: ${industry}
+
+APPROVED EVIDENCE (Use this exact content, polished for the resume):
+${evidenceContext}
+
+CRITICAL RULES:
+1. Do NOT invent new facts. Use the evidence provided.
+2. Ensure flow and tone are consistent with an ${seniority} level resume.
+3. Integrate these keywords naturally: ${ats_keywords.critical.join(', ')}
+4. If multiple pieces of evidence belong to the same job role, group them.
+
+Return ONLY the bullet points/content.`;
+
+        const { response: evidenceResponse, metrics } = await callLovableAI({
+            messages: [{ role: 'user', content: evidencePrompt }],
+            model: LOVABLE_AI_MODELS.DEFAULT,
+            temperature: 0.4,
+            max_tokens: 1500,
+        }, 'generate-evidence-based-section', user_id);
+        
+        await logAIUsage(metrics);
+
+        const finalContent = cleanCitations(evidenceResponse.choices?.[0]?.message?.content || '');
+        
+        return new Response(
+            JSON.stringify({
+                success: true,
+                idealVersion: { content: finalContent, quality: { overallScore: 95 } }, // Placeholder quality
+                personalizedVersion: { content: finalContent, quality: { overallScore: 95 } },
+                blendVersion: { content: finalContent, quality: { overallScore: 95 } },
+                comparison: { recommendation: 'personalized', recommendationReason: 'Evidence-based generation' }
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+    }
 
     // SAFETY CHECK: Prevent hallucination when vault is empty
     const isDataRequiredSection = ['experience', 'work_history', 'professional_experience', 'employment', 'education', 'academic_background'].includes(section_type);

@@ -5,21 +5,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Lightbulb,
   Sparkles,
   Loader2,
+  RotateCcw,
+  Check,
   Edit3,
   Maximize2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction } from "@/lib/edgeFunction";
+import { invokeEdgeFunction, PerplexityResearchSchema, GenerateDualResumeSectionSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
 import { DualGenerationComparison } from "@/components/resume-builder/DualGenerationComparison";
-import { RequirementBulletMapper } from "./RequirementBulletMapper";
+import { calculateVaultStrength } from "@/lib/resumeAnalytics";
 import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { VaultSourcingPanel } from "./VaultSourcingPanel";
 import { JDMatchPanel } from "./JDMatchPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RequirementBulletMapper } from "./RequirementBulletMapper";
 
 interface SectionEditorPanelProps {
   sectionId: string;
@@ -35,11 +39,7 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
   
   // Derived Data
   const atsKeywords = store.jobAnalysis?.atsKeywords || { critical: [], important: [], nice_to_have: [] };
-  const allKeywords = [
-    ...(atsKeywords.critical || []), 
-    ...(atsKeywords.important || []), 
-    ...(atsKeywords.nice_to_have || [])
-  ];
+  const allKeywords = [...atsKeywords.critical, ...atsKeywords.important, ...atsKeywords.nice_to_have];
   const sectionContentStr = Array.isArray(section?.content) 
       ? section?.content.map((i: any) => i.content || i).join(' ') 
       : typeof section?.content === 'string' ? section?.content : '';
@@ -62,9 +62,11 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
   const [editedContent, setEditedContent] = useState("");
   const [showComparison, setShowComparison] = useState(false);
   const [generationData, setGenerationData] = useState<any>(null);
-  const [showEvidenceMapper, setShowEvidenceMapper] = useState(false);
+  
+  // New Evidence-Based State
+  const [showRequirementMapper, setShowRequirementMapper] = useState(false);
   const [evidenceMatrix, setEvidenceMatrix] = useState<any[]>([]);
-  const [currentEvidenceIndex, setCurrentEvidenceIndex] = useState(0);
+  const [evidenceSelections, setEvidenceSelections] = useState<Record<string, any>>({});
 
   useEffect(() => {
     // Initialize content for editing
@@ -90,39 +92,62 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
 
     setIsGenerating(true);
     setShowComparison(false);
-    setShowEvidenceMapper(false);
+    setShowRequirementMapper(false);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // Step 1: Match requirements to evidence bullets
-      const requirements = store.jobAnalysis.requirements || [];
-      const { data: matchData, error: matchError } = await invokeEdgeFunction(
-        'match-requirements-to-bullets',
-        {
-          userId: user.id,
-          jobRequirements: requirements,
-          atsKeywords: store.jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] }
-        }
-      );
+      // 1. Match Requirements to Bullets (Phase 1 - Backend)
+      // Only do this for Experience/Projects/Summary sections where mapping matters
+      if (['experience', 'projects', 'summary'].includes(section.type)) {
+          toast({ title: "Mapping career history..." });
+          
+          const { data: matrixData, error: matrixError } = await invokeEdgeFunction(
+              'match-requirements-to-bullets',
+              {
+                  userId: user.id,
+                  jobRequirements: store.jobAnalysis.jobRequirements?.required || [],
+                  atsKeywords: store.jobAnalysis.atsKeywords
+              }
+          );
 
-      if (matchError) throw matchError;
-
-      setEvidenceMatrix(matchData.evidenceMatrix || []);
-
-      // If we have evidence matches, show the evidence mapper first
-      if (matchData.evidenceMatrix && matchData.evidenceMatrix.length > 0) {
-        setShowEvidenceMapper(true);
-        setIsGenerating(false);
-        toast({
-          title: "Evidence Matched",
-          description: `Found ${matchData.evidenceMatrix.length} pieces of evidence for your requirements.`
-        });
-        return;
+          if (!matrixError && matrixData.evidenceMatrix.length > 0) {
+              setEvidenceMatrix(matrixData.evidenceMatrix);
+              setShowRequirementMapper(true);
+              setIsGenerating(false);
+              return; // Stop here to let user review
+          }
+          // If no matrix, fall back to standard generation
       }
 
-      // If no evidence matches, proceed with traditional generation
+      // Standard Generation (or fallback)
+      await executeStandardGeneration(user.id);
+
+    } catch (error: any) {
+      logger.error('Generation failed', error);
+      toast({
+        title: "Generation Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      setIsGenerating(false);
+    }
+  };
+
+  const handleEvidenceComplete = async (selections: Record<string, any>) => {
+      setEvidenceSelections(selections);
+      setShowRequirementMapper(false);
+      setIsGenerating(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+          await executeStandardGeneration(user.id, selections);
+      }
+  };
+
+  const executeStandardGeneration = async (userId: string, selections: Record<string, any> = {}) => {
+      // 1. Research (Simplified for MVP - usually cached)
       const researchPayload = {
         research_type: 'resume_job_analysis',
         query_params: {
@@ -141,20 +166,21 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
 
       if (researchError) throw researchError;
 
-      // Generate Dual Version
+      // 2. Generate Dual Version
       const dualPayload = {
         section_type: section.type,
-        section_guidance: "Professional tone, achievement-focused",
+        section_guidance: "Professional tone, achievement-focused", 
         job_analysis_research: researchData.research_result,
-        vault_items: store.vaultMatches?.matchedItems || [],
+        vault_items: store.vaultMatches?.matchedItems || [], 
         resume_milestones: store.resumeMilestones || [],
-        user_id: user.id,
+        user_id: userId,
         job_title: store.jobAnalysis.roleProfile?.title || '',
         industry: store.jobAnalysis.roleProfile?.industry || '',
         seniority: store.jobAnalysis.roleProfile?.seniority || 'mid-level',
         ats_keywords: store.jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] },
         requirements: [],
-        evidenceMatrix: matchData.evidenceMatrix || []
+        evidenceMatrix: evidenceMatrix, // Pass matrix if available
+        evidenceSelections: selections // Pass user selections
       };
 
       const { data: dualData, error: dualError } = await invokeEdgeFunction(
@@ -166,21 +192,10 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
 
       setGenerationData({
         dualData,
-        research: researchData,
-        evidenceMatrix: matchData.evidenceMatrix
+        research: researchData
       });
       setShowComparison(true);
-
-    } catch (error: any) {
-      logger.error('Generation failed', error);
-      toast({
-        title: "Generation Failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
       setIsGenerating(false);
-    }
   };
 
   const handleSave = (content: any) => {
@@ -196,6 +211,18 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
     setIsEditing(false);
     toast({ title: "Section Updated" });
   };
+
+  if (showRequirementMapper && evidenceMatrix.length > 0) {
+      return (
+          <div className="h-full flex flex-col bg-card p-4">
+              <RequirementBulletMapper 
+                  evidenceMatrix={evidenceMatrix}
+                  onComplete={handleEvidenceComplete}
+                  onCancel={() => setShowRequirementMapper(false)}
+              />
+          </div>
+      );
+  }
 
   return (
     <div className="h-full flex flex-col bg-card">
@@ -239,80 +266,6 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
                 </Card>
             )}
 
-            {/* Evidence Mapper */}
-            {showEvidenceMapper && evidenceMatrix.length > 0 && (
-                <div className="animate-in fade-in slide-in-from-bottom-4">
-                    <RequirementBulletMapper
-                        evidenceMatrix={evidenceMatrix}
-                        currentIndex={currentEvidenceIndex}
-                        onNavigate={setCurrentEvidenceIndex}
-                        onSelectionChange={(_reqId, selection, customText) => {
-                            logger.info('Evidence selection', { selection, customText });
-                        }}
-                        onSwapEvidence={(_reqId) => {
-                            toast({ title: "Swap Evidence", description: "Feature coming soon" });
-                        }}
-                    />
-                    <div className="mt-4 flex gap-2">
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setShowEvidenceMapper(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            onClick={async () => {
-                                // Proceed to generate final content using approved evidence
-                                setShowEvidenceMapper(false);
-                                setIsGenerating(true);
-                                
-                                try {
-                                    const { data: { user } } = await supabase.auth.getUser();
-                                    if (!user) throw new Error("User not authenticated");
-
-                                    const researchPayload = {
-                                        research_type: 'resume_job_analysis',
-                                        query_params: {
-                                            job_description: store.displayJobText || '',
-                                            job_title: store.jobAnalysis.roleProfile?.title || '',
-                                            company: store.jobAnalysis.roleProfile?.company || '',
-                                            industry: store.jobAnalysis.roleProfile?.industry || '',
-                                            location: store.jobAnalysis.roleProfile?.location || ''
-                                        }
-                                    };
-
-                                    const { data: researchData } = await invokeEdgeFunction('perplexity-research', researchPayload);
-
-                                    const dualPayload = {
-                                        section_type: section.type,
-                                        section_guidance: "Professional tone, achievement-focused",
-                                        job_analysis_research: researchData.research_result,
-                                        evidenceMatrix: evidenceMatrix,
-                                        user_id: user.id,
-                                        job_title: store.jobAnalysis.roleProfile?.title || '',
-                                        industry: store.jobAnalysis.roleProfile?.industry || '',
-                                        seniority: store.jobAnalysis.roleProfile?.seniority || 'mid-level',
-                                        ats_keywords: store.jobAnalysis.atsKeywords || { critical: [], important: [], nice_to_have: [] }
-                                    };
-
-                                    const { data: dualData } = await invokeEdgeFunction('generate-dual-resume-section', dualPayload);
-
-                                    setGenerationData({ dualData, research: researchData, evidenceMatrix });
-                                    setShowComparison(true);
-                                } catch (error: any) {
-                                    logger.error('Generation failed', error);
-                                    toast({ title: "Generation Failed", description: error.message, variant: "destructive" });
-                                } finally {
-                                    setIsGenerating(false);
-                                }
-                            }}
-                        >
-                            Generate Final Resume Bullets
-                        </Button>
-                    </div>
-                </div>
-            )}
-
             {/* Comparison View */}
             {showComparison && generationData && (
                 <div className="animate-in fade-in slide-in-from-bottom-4">
@@ -325,11 +278,10 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
                         personalizedContent={generationData.dualData.personalizedVersion.content}
                         sectionType={section.type}
                         vaultStrength={{
-                            score: 85,
+                            score: 85, // Mock score
                             hasRealNumbers: true,
                             hasDiverseCategories: true
                         }}
-                        evidenceMatrix={generationData.evidenceMatrix}
                         onSelectIdeal={() => handleSave(generationData.dualData.idealVersion.content)}
                         onSelectPersonalized={() => handleSave(generationData.dualData.personalizedVersion.content)}
                         onOpenEditor={(content) => {
@@ -395,8 +347,6 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
                                 matchScore={matchScore}
                                 matchedKeywords={matchedKeywords}
                                 missingKeywords={missingKeywords}
-                                requirements={store.jobAnalysis?.requirements || []}
-                                sectionContent={sectionContentStr}
                             />
                         </TabsContent>
                     </Tabs>
