@@ -19,7 +19,6 @@ interface SwapEvidenceDialogProps {
 export function SwapEvidenceDialog({
   open,
   onOpenChange,
-  requirementId,
   requirementText,
   currentEvidenceId,
   onSwapComplete

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, ChevronRight, Check, RefreshCw, Sparkles, AlertCircle, CheckCircle2, Edit3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, RefreshCw, Sparkles, CheckCircle2 } from "lucide-react";
 import { SwapEvidenceDialog } from "./SwapEvidenceDialog";
 
 interface EvidenceMatch {

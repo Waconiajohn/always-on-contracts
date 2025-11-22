@@ -26,7 +26,7 @@ import { logger } from "@/lib/logger";
 import { DualGenerationComparison } from "./DualGenerationComparison";
 import { GenerationProgress } from "./GenerationProgress";
 import { TooltipHelp } from "./HelpTooltip";
-import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
+import { getErrorMessage } from "@/lib/errorMessages";
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength, analytics } from "@/lib/resumeAnalytics";
 import { executeWithRetry } from "@/lib/errorHandling";
 
@@ -84,7 +84,6 @@ export const SectionWizard = ({
   const [vaultItemsUsed, setVaultItemsUsed] = useState<any[]>([]);
   const [showEvidenceMapper, setShowEvidenceMapper] = useState(false);
   const [evidenceMatrix, setEvidenceMatrix] = useState<any[]>([]);
-  const [evidenceSelections, setEvidenceSelections] = useState<Record<string, any>>({});
 
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
@@ -289,7 +288,6 @@ export const SectionWizard = ({
   };
 
   const handleEvidenceApprove = async (selections: Record<string, any>) => {
-    setEvidenceSelections(selections);
     setShowEvidenceMapper(false);
     setIsGenerating(true);
     setCurrentGenerationStep(2);
@@ -301,7 +299,6 @@ export const SectionWizard = ({
       // Save evidence selections to database for audit trail
       const mappings = evidenceMatrix.map(item => ({
         user_id: user.id,
-        requirement_id: item.requirementId,
         requirement_text: item.requirementText,
         requirement_category: item.requirementCategory,
         milestone_id: item.milestoneId,
@@ -371,7 +368,6 @@ export const SectionWizard = ({
     setEditedContent("");
     setShowComparison(false);
     setShowEvidenceMapper(false);
-    setEvidenceSelections({});
     handleGenerate();
   };
 

@@ -141,7 +141,6 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
             const selection = selections[item.requirementId];
             return {
               user_id: user.id,
-              requirement_id: item.requirementId,
               requirement_text: item.requirementText,
               requirement_category: item.requirementCategory,
               milestone_id: selection?.swappedEvidenceId || item.milestoneId,
