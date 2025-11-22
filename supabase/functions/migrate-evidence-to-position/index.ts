@@ -76,10 +76,17 @@ Rewrite this achievement to fit the target job context while addressing the requ
     );
 
   } catch (error) {
-    console.error('Migration error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Migration error details:', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+        error: errorMessage,
+        details: 'Failed to generate contextualized bullet. Please try again.'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
