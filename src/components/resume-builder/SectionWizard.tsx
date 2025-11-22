@@ -16,6 +16,7 @@ import {
   Loader2
 } from "lucide-react";
 import { VaultItemAttributionBadge } from "@/components/career-vault/VaultItemAttributionBadge";
+import { RequirementBulletMapper } from "./v2/RequirementBulletMapper";
 
 import { ResumeSection } from "@/lib/resumeFormats";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +28,7 @@ import { GenerationProgress } from "./GenerationProgress";
 import { TooltipHelp } from "./HelpTooltip";
 import { getErrorMessage, getRecoverySuggestion, isRetryableError } from "@/lib/errorMessages";
 import { GenerationTimer, trackVersionSelection, trackSectionComplete, calculateVaultStrength, analytics } from "@/lib/resumeAnalytics";
-import { executeWithRetry, StateManager } from "@/lib/errorHandling";
+import { executeWithRetry } from "@/lib/errorHandling";
 
 interface VaultMatch {
   vaultItemId: string;
@@ -60,7 +61,6 @@ export const SectionWizard = ({
   section,
   vaultMatches,
   jobAnalysis,
-  resumeMilestones = [],
   onSectionComplete,
   onBack,
   onSkip,
@@ -75,12 +75,15 @@ export const SectionWizard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [jobResearch, setJobResearch] = useState<any>(null);
-  const [idealContent, setIdealContent] = useState<any>(null);
-  const [personalizedContent, setPersonalizedContent] = useState<any>(null);
-  const [blendContent, setBlendContent] = useState<any>(null);
+  const [idealContent] = useState<any>(null);
+  const [personalizedContent] = useState<any>(null);
+  const [blendContent] = useState<any>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [currentGenerationStep, setCurrentGenerationStep] = useState(0);
-  const [vaultItemsUsed, setVaultItemsUsed] = useState<any[]>([]);
+  const [vaultItemsUsed] = useState<any[]>([]);
+  const [showEvidenceMapper, setShowEvidenceMapper] = useState(false);
+  const [evidenceMatrix, setEvidenceMatrix] = useState<any[]>([]);
+  const [evidenceSelections, setEvidenceSelections] = useState<Record<string, { version: string; customText?: string }>>({});
 
   // Helper to get section icon
   const getSectionIcon = (sectionId: string): string => {
@@ -258,7 +261,54 @@ export const SectionWizard = ({
     setGeneratedContent(null);
     setEditedContent("");
     setShowComparison(false);
+    setShowEvidenceMapper(false);
+    setEvidenceSelections({});
     handleGenerate();
+  };
+
+  const handleEvidenceSelectionChange = (requirementId: string, version: 'original' | 'enhanced' | 'custom', customText?: string) => {
+    setEvidenceSelections(prev => ({
+      ...prev,
+      [requirementId]: { version, customText }
+    }));
+  };
+
+  const handleEvidenceApprove = async () => {
+    // User has approved evidence mappings, now generate final bullets
+    setShowEvidenceMapper(false);
+    setIsGenerating(true);
+    setCurrentGenerationStep(2);
+
+    try {
+      const { data: finalContent, error: genError } = await invokeEdgeFunction(
+        'generate-dual-resume-section',
+        {
+          sectionType: section.type,
+          evidenceMatrix: evidenceMatrix,
+          evidenceSelections: evidenceSelections,
+          jobAnalysis: jobAnalysis
+        }
+      );
+
+      if (genError) throw genError;
+
+      setGeneratedContent(finalContent);
+      setEditedContent(typeof finalContent === 'string' ? finalContent : JSON.stringify(finalContent, null, 2));
+      
+      toast({
+        title: "Resume section generated",
+        description: "Review and approve the generated content"
+      });
+    } catch (error) {
+      logger.error('Error generating final content', error);
+      toast({
+        title: "Generation failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSelectIdeal = async () => {
@@ -475,6 +525,51 @@ export const SectionWizard = ({
                     />
                   )}
                 </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Evidence Mapper - Review requirement matches before generating */}
+          {showEvidenceMapper && evidenceMatrix.length > 0 && (
+            <Card className="p-6 space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Review Evidence Matches</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Select the best version of each bullet to address requirements
+                  </p>
+                </div>
+              </div>
+              
+              <RequirementBulletMapper
+                evidenceMatrix={evidenceMatrix}
+                onSelectionChange={handleEvidenceSelectionChange}
+              />
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEvidenceMapper(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleEvidenceApprove}
+                  disabled={isGenerating}
+                  className="gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Generate Resume Section
+                    </>
+                  )}
+                </Button>
               </div>
             </Card>
           )}
