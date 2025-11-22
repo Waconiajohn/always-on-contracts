@@ -5,7 +5,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { AIUsageMetrics } from './ai-config.ts';
+import { AIUsageMetrics } from './lovable-ai-config.ts';
 
 /**
  * Log AI usage metrics to the database
