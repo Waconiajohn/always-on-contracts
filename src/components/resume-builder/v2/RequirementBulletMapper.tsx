@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, Check, RefreshCw, Sparkles } from "lucide-react";
+import { SwapEvidenceDialog } from "./SwapEvidenceDialog";
 
 interface EvidenceMatch {
   requirementId: string;
@@ -34,6 +35,8 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, 'original' | 'enhanced' | 'custom'>>({});
   const [customEdits, setCustomEdits] = useState<Record<string, string>>({});
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [swappedEvidence, setSwappedEvidence] = useState<Record<string, { id: string; bullet: string }>>({});
 
   const currentItem = evidenceMatrix[currentIndex];
   const isLast = currentIndex === evidenceMatrix.length - 1;
@@ -51,16 +54,27 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
   const currentSelection = selections[currentItem.requirementId] || 'enhanced';
   const customText = customEdits[currentItem.requirementId] || currentItem.enhancedBullet;
 
+  const handleSwapComplete = (newEvidenceId: string, newOriginalBullet: string) => {
+    setSwappedEvidence(prev => ({
+      ...prev,
+      [currentItem.requirementId]: { id: newEvidenceId, bullet: newOriginalBullet }
+    }));
+  };
+
   const handleNext = () => {
     if (isLast) {
-      // Compile final results
+      // Compile final results with new format expected by database persistence
       const finalResults: Record<string, any> = {};
       evidenceMatrix.forEach(item => {
         const choice = selections[item.requirementId] || 'enhanced';
-        finalResults[item.requirementId] = choice;
-        if (choice === 'custom') {
-          finalResults[`${item.requirementId}_custom`] = customEdits[item.requirementId] || item.enhancedBullet;
-        }
+        const swapped = swappedEvidence[item.requirementId];
+        
+        finalResults[item.requirementId] = {
+          version: choice,
+          customText: choice === 'custom' ? (customEdits[item.requirementId] || item.enhancedBullet) : undefined,
+          swappedEvidenceId: swapped?.id,
+          swappedOriginalBullet: swapped?.bullet
+        };
       });
       onComplete(finalResults);
     } else {
@@ -137,9 +151,20 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
               ))}
             </div>
 
-            <Button variant="outline" size="sm" className="w-full text-xs h-7">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full text-xs h-7"
+              onClick={() => setSwapDialogOpen(true)}
+            >
               <RefreshCw className="h-3 w-3 mr-1" /> Swap Evidence
             </Button>
+            
+            {swappedEvidence[currentItem.requirementId] && (
+              <div className="text-xs text-green-600 font-medium">
+                ✓ Evidence swapped
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -197,6 +222,15 @@ export function RequirementBulletMapper({ evidenceMatrix, onComplete, onCancel }
           {isLast ? "Approve All & Generate" : "Next Requirement"}
         </Button>
       </div>
+
+      <SwapEvidenceDialog
+        open={swapDialogOpen}
+        onOpenChange={setSwapDialogOpen}
+        requirementId={currentItem.requirementId}
+        requirementText={currentItem.requirementText}
+        currentEvidenceId={swappedEvidence[currentItem.requirementId]?.id || currentItem.requirementId}
+        onSwapComplete={handleSwapComplete}
+      />
     </div>
   );
 }

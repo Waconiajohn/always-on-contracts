@@ -57,52 +57,79 @@ export const SwapEvidenceDialog = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Fetch alternative bullets from vault_resume_milestones
-      const { data: milestones, error } = await supabase
-        .from("vault_resume_milestones")
-        .select("id, description, job_title, company_name, start_date, end_date")
+      // Get user's vault ID
+      const { data: vaultData } = await supabase
+        .from("career_vault")
+        .select("id")
         .eq("user_id", user.id)
+        .single();
+
+      if (!vaultData) throw new Error("Career vault not found");
+
+      // Fetch work positions for context
+      const { data: workPositions } = await supabase
+        .from("vault_work_positions")
+        .select("company_name, job_title, start_date, end_date")
+        .eq("vault_id", vaultData.id);
+
+      // Fetch alternative milestones from vault
+      const { data: milestones } = await supabase
+        .from("vault_resume_milestones")
+        .select("id, description, milestone_title, company_name, vault_id, created_at")
+        .eq("vault_id", vaultData.id)
         .neq("id", currentEvidenceId)
-        .order("start_date", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (!milestones || milestones.length === 0) {
+        setAlternatives([]);
+        setLoading(false);
+        return;
+      }
 
       // Re-run matching algorithm to score alternatives
       const { data: matchData, error: matchError } = await supabase.functions.invoke(
         "match-requirements-to-bullets",
         {
           body: {
-            requirements: [
+            userId: user.id,
+            jobRequirements: [
               {
                 id: requirementId,
-                requirement: requirementText,
-                category: "required",
+                text: requirementText,
+                priority: "required",
               },
             ],
-            excludedEvidenceIds: [currentEvidenceId],
+            atsKeywords: { critical: [], important: [], nice_to_have: [] },
           },
         }
       );
 
       if (matchError) throw matchError;
 
-      // Map and sort by match score
-      const scored = (milestones || []).map((m) => {
-        const match = matchData?.evidenceMatrix?.[0]?.matches?.find(
-          (mt: any) => mt.evidenceId === m.id
+      // Map milestones with work position context and match scores
+      const scored = milestones.map((m) => {
+        // Find matching work position for context
+        const position = (workPositions || []).find((p: any) => 
+          p.company_name?.toLowerCase() === m.company_name?.toLowerCase()
         );
-        const startYear = m.start_date ? new Date(m.start_date).getFullYear() : '';
-        const endYear = m.end_date ? new Date(m.end_date).getFullYear() : 'Present';
+        
+        const match = matchData?.evidenceMatrix?.find(
+          (ev: any) => ev.milestoneId === m.id
+        );
+        
+        const startYear = position?.start_date ? new Date(position.start_date).getFullYear() : '';
+        const endYear = position?.end_date ? new Date(position.end_date).getFullYear() : 'Present';
+        
         return {
           id: m.id,
-          original_bullet: m.description || '',
-          job_title: m.job_title || 'Unknown Position',
+          original_bullet: m.description || m.milestone_title || '',
+          job_title: position?.job_title || 'Unknown Position',
           company: m.company_name || 'Unknown Company',
-          date_range: `${startYear} - ${endYear}`,
+          date_range: `${startYear}${endYear ? ` - ${endYear}` : ''}`,
           match_score: match?.matchScore || 0,
         };
-      }).filter(a => a.match_score > 0.3) // Only show reasonable alternatives
+      }).filter(a => a.match_score > 30) // Only show reasonable alternatives
         .sort((a, b) => b.match_score - a.match_score)
         .slice(0, 5);
 

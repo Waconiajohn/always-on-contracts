@@ -137,23 +137,26 @@ export function SectionEditorPanel({ sectionId, onClose }: SectionEditorPanelPro
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
           // Save evidence selections to database for audit trail
-          const mappings = evidenceMatrix.map(item => ({
-            user_id: user.id,
-            requirement_id: item.requirementId,
-            requirement_text: item.requirementText,
-            requirement_category: item.requirementCategory,
-            milestone_id: item.milestoneId,
-            original_bullet: item.originalBullet,
-            original_job_title: item.originalSource?.jobTitle,
-            original_company: item.originalSource?.company,
-            original_date_range: item.originalSource?.dateRange,
-            match_score: item.matchScore,
-            match_reasons: item.matchReasons || [],
-            enhanced_bullet: item.enhancedBullet,
-            ats_keywords: item.atsKeywords || [],
-            user_selection: selections[item.requirementId]?.version || 'enhanced',
-            custom_edit: selections[item.requirementId]?.customText
-          }));
+          const mappings = evidenceMatrix.map(item => {
+            const selection = selections[item.requirementId];
+            return {
+              user_id: user.id,
+              requirement_id: item.requirementId,
+              requirement_text: item.requirementText,
+              requirement_category: item.requirementCategory,
+              milestone_id: selection?.swappedEvidenceId || item.milestoneId,
+              original_bullet: selection?.swappedOriginalBullet || item.originalBullet,
+              original_job_title: item.originalSource?.jobTitle,
+              original_company: item.originalSource?.company,
+              original_date_range: item.originalSource?.dateRange,
+              match_score: item.matchScore,
+              match_reasons: item.matchReasons || [],
+              enhanced_bullet: item.enhancedBullet,
+              ats_keywords: item.atsKeywords || [],
+              user_selection: selection?.version || 'enhanced',
+              custom_edit: selection?.customText
+            };
+          });
 
           const { error: saveError } = await supabase
             .from('resume_requirement_mappings')
