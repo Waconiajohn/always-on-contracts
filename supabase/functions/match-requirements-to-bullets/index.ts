@@ -24,11 +24,38 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 1. Fetch Vault Data
+    // 1. Fetch Vault Data - First get vault_id
+    const { data: vaultData, error: vaultError } = await supabase
+      .from('career_vault')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (vaultError) {
+      console.error('[MATCH-REQ-TO-BULLETS] Vault fetch error:', vaultError);
+      throw vaultError;
+    }
+
+    if (!vaultData) {
+      console.log('[MATCH-REQ-TO-BULLETS] No vault found for user');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          evidenceMatrix: [],
+          statistics: { totalRequirements: 0, matchedRequirements: 0, unmatchedRequirements: 0, averageMatchScore: 0 }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[MATCH-REQ-TO-BULLETS] Found vault_id:', vaultData.id);
+
     const [milestones, workPositions] = await Promise.all([
-      supabase.from('vault_resume_milestones').select('*').eq('user_id', userId),
-      supabase.from('vault_work_positions').select('*').eq('user_id', userId)
+      supabase.from('vault_resume_milestones').select('*').eq('vault_id', vaultData.id),
+      supabase.from('vault_work_positions').select('*').eq('vault_id', vaultData.id)
     ]);
+
+    console.log('[MATCH-REQ-TO-BULLETS] Fetched', milestones.data?.length || 0, 'milestones and', workPositions.data?.length || 0, 'work positions');
 
     const bullets = (milestones.data || []).map((m: any) => {
       const position = (workPositions.data || []).find((p: any) => 
