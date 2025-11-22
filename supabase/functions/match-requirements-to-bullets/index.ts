@@ -15,7 +15,27 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, jobRequirements, atsKeywords } = await req.json();
+  // Parse request body
+  const { userId, jobRequirements, atsKeywords } = await req.json();
+  
+  // Sprint 1: Filter out null/empty requirements
+  const validRequirements = (jobRequirements || []).filter((r: any) => 
+    r && r.text && typeof r.text === 'string' && r.text.trim().length > 0
+  );
+  
+  if (validRequirements.length === 0) {
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        error: 'No valid requirements provided',
+        evidenceMatrix: [],
+        stats: { totalRequirements: 0, matchedRequirements: 0, coverageScore: 0 }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  
+  console.log(`[MATCH-REQ-TO-BULLETS] Filtered ${jobRequirements?.length || 0} requirements down to ${validRequirements.length} valid ones`);
 
     if (!userId) throw new Error('userId is required');
     if (!jobRequirements) throw new Error('jobRequirements is required');
@@ -124,8 +144,8 @@ serve(async (req) => {
     // 2. AI Matching
     const prompt = `You are analyzing a candidate's actual work history to find the BEST evidence for job requirements.
 
-JOB REQUIREMENTS:
-${JSON.stringify(jobRequirements.slice(0, 15), null, 2)}
+JOB REQUIREMENTS (${validRequirements.length} valid):
+${JSON.stringify(validRequirements.slice(0, 15), null, 2)}
 
 ATS KEYWORDS (Include these if possible):
 Critical: ${(atsKeywords?.critical || []).join(', ')}
@@ -181,12 +201,17 @@ Return JSON:
     
     console.log('[MATCH-REQ-TO-BULLETS] Successfully parsed response with', parseResult.data.matches?.length || 0, 'matches');
 
-    // 3. Construct Evidence Matrix
+    // 3. Construct Evidence Matrix with Sprint 4 quality scoring
     const evidenceMatrix = (parseResult.data.matches || []).map((match: any) => {
-      const req = jobRequirements[match.requirementIndex];
+      const req = validRequirements[match.requirementIndex];
       const bullet = bullets[match.bestBulletIndex];
       
       if (!req || !bullet) return null;
+
+      const matchScore = match.matchScore || 0;
+      let qualityScore = 'weak';
+      if (matchScore >= 80) qualityScore = 'strong';
+      else if (matchScore >= 60) qualityScore = 'good';
 
       return {
         requirementId: req.id || `req-${match.requirementIndex}`,
@@ -197,8 +222,9 @@ Return JSON:
         originalBullet: bullet.content,
         originalSource: bullet.source,
         
-        matchScore: match.matchScore,
+        matchScore: matchScore,
         matchReasons: match.matchReasons,
+        qualityScore, // Sprint 4 enhancement
         
         enhancedBullet: match.enhancedBullet,
         atsKeywords: match.atsKeywordsAdded
@@ -210,9 +236,9 @@ Return JSON:
         success: true,
         evidenceMatrix,
         stats: {
-          totalRequirements: jobRequirements.length,
+          totalRequirements: validRequirements.length,
           matchedRequirements: evidenceMatrix.length,
-          coverageScore: Math.round((evidenceMatrix.length / jobRequirements.length) * 100)
+          coverageScore: Math.round((evidenceMatrix.length / validRequirements.length) * 100)
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
