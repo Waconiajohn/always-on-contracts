@@ -205,8 +205,8 @@ export const SectionWizard = ({
             }))
           ];
 
-          // Only do evidence matching for relevant sections
-          if (['experience', 'projects', 'summary'].includes(section.type)) {
+          // Only do evidence matching for relevant sections (NOT summary - summaries are narrative, not bullet-based)
+          if (['experience', 'projects'].includes(section.type)) {
             const { data: matchData, error: matchError } = await invokeEdgeFunction(
               'match-requirements-to-bullets',
               {
