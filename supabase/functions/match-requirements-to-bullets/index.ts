@@ -56,16 +56,11 @@ serve(async (req) => {
     ]);
 
     console.log('[MATCH-REQ-TO-BULLETS] Fetched', milestones.data?.length || 0, 'milestones and', workPositions.data?.length || 0, 'work positions');
-    
-    // Log sample work position to see structure
-    if (workPositions.data && workPositions.data.length > 0) {
-      console.log('[MATCH-REQ-TO-BULLETS] Sample work position structure:', JSON.stringify(workPositions.data[0], null, 2));
-    }
 
     // Build bullets from both milestones and work positions
     const bullets: any[] = [];
 
-    // Add bullets from milestones (description field)
+    // Add bullets from milestones (if any exist)
     (milestones.data || []).forEach((m: any) => {
       const position = (workPositions.data || []).find((p: any) => 
         p.company_name?.toLowerCase() === m.company_name?.toLowerCase()
@@ -84,61 +79,46 @@ serve(async (req) => {
       }
     });
 
-    // Add bullets from work positions
-    // Try multiple possible field names for achievements/responsibilities
+    // Extract bullets from work position descriptions
+    // Each description contains multiple achievement sentences separated by periods or newlines
     (workPositions.data || []).forEach((position: any) => {
-      const achievementFields = [
-        'achievements',
-        'responsibilities', 
-        'key_achievements',
-        'accomplishments',
-        'description',
-        'bullet_points'
-      ];
+      if (!position.description) return;
       
-      for (const field of achievementFields) {
-        const fieldData = position[field];
-        
-        // Handle array of strings
-        if (Array.isArray(fieldData)) {
-          fieldData.forEach((item: string, index: number) => {
-            if (item && item.trim()) {
-              bullets.push({
-                id: `${position.id}-${field}-${index}`,
-                content: item,
-                source: {
-                  company: position.company_name || 'Unknown',
-                  jobTitle: position.job_title || 'Unknown',
-                  dateRange: `${position.start_date || ''} - ${position.end_date || 'Present'}`
-                }
-              });
-            }
-          });
-          break; // Found array data, stop looking
-        }
-        
-        // Handle single string
-        if (typeof fieldData === 'string' && fieldData.trim()) {
-          bullets.push({
-            id: `${position.id}-${field}`,
-            content: fieldData,
-            source: {
-              company: position.company_name || 'Unknown',
-              jobTitle: position.job_title || 'Unknown',
-              dateRange: `${position.start_date || ''} - ${position.end_date || 'Present'}`
-            }
-          });
-          break; // Found string data, stop looking
-        }
-      }
+      // Split description into individual sentences/bullets
+      // Handle both period-separated and newline-separated content
+      const rawBullets = position.description
+        .split(/(?<=[.!?])\s+(?=[A-Z])/)  // Split on sentence boundaries
+        .filter((b: string) => b.trim().length > 20);  // Filter out very short fragments
+      
+      rawBullets.forEach((bulletText: string, index: number) => {
+        bullets.push({
+          id: `${position.id}-bullet-${index}`,
+          content: bulletText.trim(),
+          source: {
+            company: position.company_name || 'Unknown',
+            jobTitle: position.job_title || 'Unknown',
+            dateRange: `${position.start_date || ''} - ${position.end_date || 'Present'}`
+          }
+        });
+      });
     });
 
     console.log('[MATCH-REQ-TO-BULLETS] Built', bullets.length, 'total bullets from vault data');
     
     if (bullets.length === 0) {
-      console.error('[MATCH-REQ-TO-BULLETS] WARNING: No bullets extracted from vault data!');
-      console.error('[MATCH-REQ-TO-BULLETS] Milestones data:', JSON.stringify(milestones.data, null, 2));
-      console.error('[MATCH-REQ-TO-BULLETS] Work positions data:', JSON.stringify(workPositions.data, null, 2));
+      console.error('[MATCH-REQ-TO-BULLETS] WARNING: No bullets extracted! Returning empty result.');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          evidenceMatrix: [],
+          stats: { 
+            totalRequirements: jobRequirements.length, 
+            matchedRequirements: 0, 
+            coverageScore: 0 
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // 2. AI Matching
