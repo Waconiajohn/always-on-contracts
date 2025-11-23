@@ -37,7 +37,7 @@ serve(async (req) => {
       : '';
 
     // Create enhancement prompt
-    const systemPrompt = `You are an expert career coach and resume writer. Return ONLY valid JSON, no additional text or explanations.
+    const systemPrompt = `You are an elite executive career coach and resume strategist (Gemini 3.0 Pro). Return ONLY valid JSON, no additional text or explanations.
 
 Quality Tiers:
 - GOLD: Includes strategic context, measurable impact metrics, and strong action verbs. Shows enterprise-wide influence.
@@ -58,7 +58,12 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
   "new_tier": "gold" | "silver" | "bronze",
   "reasoning": "Why this is better (one sentence)",
   "suggested_keywords": ["keyword1", "keyword2", "keyword3"],
-  "improvements_made": ["improvement1", "improvement2"]
+  "improvements_made": ["improvement1", "improvement2"],
+  "analysis_steps": [
+    "Analyzed scope and scale...",
+    "Identified missing metrics...",
+    "Optimized for executive presence..."
+  ]
 }`;
 
     const userPrompt = `Current Item (${currentTier} tier):
@@ -72,13 +77,14 @@ ${itemSubtype === 'skill'
 
 Also suggest 3-5 relevant ATS keywords.`;
 
+    // USE GEMINI 3.0 PRO (PREMIUM)
     const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.DEFAULT,
+        model: LOVABLE_AI_MODELS.PREMIUM, // Upgraded to Premium
         temperature: 0.7,
         max_tokens: 1000,
         tools: [
@@ -94,7 +100,8 @@ Also suggest 3-5 relevant ATS keywords.`;
                   new_tier: { type: "string", enum: ["gold", "silver", "bronze"] },
                   reasoning: { type: "string" },
                   suggested_keywords: { type: "array", items: { type: "string" } },
-                  improvements_made: { type: "array", items: { type: "string" } }
+                  improvements_made: { type: "array", items: { type: "string" } },
+                  analysis_steps: { type: "array", items: { type: "string" } }
                 },
                 required: ["enhanced_content", "new_tier", "reasoning", "suggested_keywords", "improvements_made"],
                 additionalProperties: false

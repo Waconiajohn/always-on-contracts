@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Check, ArrowRight, X, Pencil } from 'lucide-react';
+import { Sparkles, Loader2, Check, ArrowRight, X, Pencil, Brain, Layers, Zap } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from "@/components/ui/progress";
 
 interface AIEnhancementPanelProps {
   item: any;
@@ -29,6 +30,8 @@ export function AIEnhancementPanel({
   const [isEditing, setIsEditing] = useState(false);
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [isRegeneratingWithKeywords, setIsRegeneratingWithKeywords] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisStep, setAnalysisStep] = useState("");
   const { toast } = useToast();
 
   const getCurrentContent = () => {
@@ -37,8 +40,31 @@ export function AIEnhancementPanel({
            item.competency_area || item.inferred_capability || '';
   };
 
+  // Simulated progress for better UX
+  useEffect(() => {
+    if (isEnhancing && analysisProgress < 90) {
+      const steps = [
+        "Analyzing context...",
+        "Identifying strategic impact...",
+        "Quantifying metrics...",
+        "Optimizing for executive presence...",
+        "Finalizing enhancement..."
+      ];
+      const interval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          const next = prev + 15;
+          const stepIndex = Math.min(Math.floor(next / 20), steps.length - 1);
+          setAnalysisStep(steps[stepIndex]);
+          return next > 90 ? 90 : next;
+        });
+      }, 800);
+      return () => clearInterval(interval);
+    }
+  }, [isEnhancing]);
+
   const handleEnhance = async () => {
     setIsEnhancing(true);
+    setAnalysisProgress(0);
     
     try {
       const { data, error } = await supabase.functions.invoke('enhance-vault-item', {
@@ -55,9 +81,14 @@ export function AIEnhancementPanel({
       if (error) throw error;
 
       if (data?.success) {
-        setEnhancement(data.enhancement);
-        setEditedContent(data.enhancement.enhanced_content);
-        setIsEditing(false);
+        setAnalysisProgress(100);
+        setAnalysisStep("Complete!");
+        setTimeout(() => {
+             setEnhancement(data.enhancement);
+             setEditedContent(data.enhancement.enhanced_content);
+             setIsEditing(false);
+             setIsEnhancing(false);
+        }, 500);
       } else {
         throw new Error('Enhancement failed');
       }
@@ -68,7 +99,6 @@ export function AIEnhancementPanel({
         description: 'Failed to generate enhancement',
         variant: 'destructive'
       });
-    } finally {
       setIsEnhancing(false);
     }
   };
@@ -131,7 +161,10 @@ export function AIEnhancementPanel({
   const handleAccept = async () => {
     if (!enhancement || !item) return;
 
-    setIsEnhancing(true);
+    // Note: This update preserves existing foreign keys (source_milestone_id)
+    // because it's an UPDATE operation on the existing row.
+    // The migration added these columns, so if they were populated during extraction, they stay.
+
     try {
       const tableName = getTableName();
       const contentField = getContentField();
@@ -153,14 +186,9 @@ export function AIEnhancementPanel({
         title: 'Enhanced!',
         description: `Upgraded to ${enhancement.new_tier} tier`
       });
-
-      setIsEnhancing(false);
       
       // Close panel and trigger refresh
-      // Using setTimeout to ensure state updates complete before unmounting
-      setTimeout(() => {
-        onEnhanced();
-      }, 100);
+      onEnhanced();
     } catch (error) {
       console.error('Error applying enhancement:', error);
       toast({
@@ -168,7 +196,6 @@ export function AIEnhancementPanel({
         description: 'Failed to apply enhancement',
         variant: 'destructive'
       });
-      setIsEnhancing(false);
     }
   };
 
@@ -191,19 +218,17 @@ export function AIEnhancementPanel({
   };
 
   return (
-    <Card className="border-purple-500/50 bg-gradient-to-br from-purple-500/5 to-blue-500/5">
+    <Card className="border-purple-500/50 bg-gradient-to-br from-purple-500/5 to-blue-500/5 shadow-lg">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-500" />
-              AI Enhancement
+              <Brain className="h-5 w-5 text-purple-600" />
+              AI Enhancement Studio
             </CardTitle>
-            {itemType === 'transferable_skills' && item.item_subtype && (
-              <Badge variant={item.item_subtype === 'skill' ? 'default' : 'secondary'} className="text-xs">
-                {item.item_subtype === 'skill' ? 'Skill' : 'Expertise'}
-              </Badge>
-            )}
+            <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] px-1.5">
+              Gemini 3.0 Pro
+            </Badge>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -211,94 +236,108 @@ export function AIEnhancementPanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!enhancement ? (
+        {isEnhancing ? (
+             <div className="space-y-4 py-8">
+                 <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                     <span>{analysisStep}</span>
+                     <span>{analysisProgress}%</span>
+                 </div>
+                 <Progress value={analysisProgress} className="h-2 bg-purple-100" />
+                 <p className="text-xs text-center text-muted-foreground mt-4">
+                     Leveraging advanced reasoning to maximize impact...
+                 </p>
+             </div>
+        ) : !enhancement ? (
           <>
-            <Alert>
-              <AlertDescription className="text-sm">
-                AI will analyze your {itemType === 'transferable_skills' && item.item_subtype === 'skill' ? 'skill name' : 'item'} and suggest improvements to upgrade it to a higher quality tier.
-                {itemType === 'transferable_skills' && item.item_subtype === 'skill' 
-                  ? ' Skills will stay concise (2-5 words), with refined industry terminology.' 
-                  : ' This includes adding strategic context, quantified metrics, and stronger language.'
-                }
+            <Alert className="bg-background/50 border-purple-200">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <AlertDescription className="text-sm text-muted-foreground">
+                Transform this item using <strong>Gemini 3.0 Pro</strong>. 
+                The AI will analyze strategic context, apply industry metrics, and optimize for executive presence.
               </AlertDescription>
             </Alert>
             <Button
               onClick={handleEnhance}
-              disabled={isEnhancing}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md transition-all hover:scale-[1.02]"
             >
-              {isEnhancing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Enhancement
-                </>
-              )}
+              <Zap className="h-4 w-4 mr-2 fill-current" />
+              Generate Executive Enhancement
             </Button>
           </>
         ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Current</span>
-                <Badge variant="outline">{item.quality_tier}</Badge>
-              </div>
-              <div className="p-3 bg-muted rounded-lg text-sm">
-                {getCurrentContent()}
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <ArrowRight className="h-5 w-5 text-muted-foreground" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Enhanced</span>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-yellow-500">{enhancement.new_tier}</Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="h-6 px-2"
-                  >
-                    <Pencil className="h-3 w-3 mr-1" />
-                    {isEditing ? 'Done' : 'Edit'}
-                  </Button>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Comparison View */}
+            <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Original</span>
+                    <Badge variant="outline" className="text-xs">{item.quality_tier}</Badge>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground italic">
+                    "{getCurrentContent()}"
+                  </div>
                 </div>
-              </div>
-              {isEditing ? (
-                <Textarea
-                  value={editedContent}
-                  onChange={(e) => setEditedContent(e.target.value)}
-                  className="min-h-[120px] text-sm"
-                  placeholder="Edit the enhancement..."
-                />
-              ) : (
-                <div className="p-3 bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg text-sm border border-yellow-500/20">
-                  {editedContent}
+
+                <div className="flex justify-center -my-2 z-10">
+                  <div className="bg-background rounded-full p-1 border shadow-sm">
+                    <ArrowRight className="h-4 w-4 text-purple-500" />
+                  </div>
                 </div>
-              )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-purple-700 uppercase tracking-wider">Enhanced Version</span>
+                    <div className="flex items-center gap-2">
+                        <Badge className="bg-yellow-500 hover:bg-yellow-600 shadow-sm">Gold Tier</Badge>
+                        {!isEditing && (
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setIsEditing(true)}>
+                                <Pencil className="h-3 w-3" />
+                            </Button>
+                        )}
+                    </div>
+                  </div>
+                  
+                  {isEditing ? (
+                    <Textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="min-h-[120px] text-sm border-purple-200 focus:ring-purple-500"
+                    />
+                  ) : (
+                    <div className="p-4 bg-white dark:bg-slate-900 rounded-lg text-sm border border-purple-200 shadow-sm ring-1 ring-purple-500/10">
+                      {editedContent}
+                    </div>
+                  )}
+                </div>
             </div>
 
-            <Alert>
-              <AlertDescription className="text-sm">
-                <strong>Why this is better:</strong> {enhancement.reasoning}
-              </AlertDescription>
-            </Alert>
+            {/* Reasoning & Analysis */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Layers className="h-3 w-3" /> AI Reasoning Logic
+                </h4>
+                <div className="bg-purple-50/50 dark:bg-purple-900/10 rounded-lg p-3 space-y-2 border border-purple-100 dark:border-purple-800">
+                    <p className="text-sm text-purple-900 dark:text-purple-100 font-medium">
+                        {enhancement.reasoning}
+                    </p>
+                    {enhancement.analysis_steps && (
+                        <ul className="space-y-1 mt-2">
+                            {enhancement.analysis_steps.map((step: string, i: number) => (
+                                <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                                    <Check className="h-3 w-3 text-green-500 mt-0.5" />
+                                    {step}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
 
+            {/* Keyword Optimization */}
             {enhancement.suggested_keywords && enhancement.suggested_keywords.length > 0 && (
               <div className="space-y-3">
                 <div>
-                  <span className="text-sm font-medium">Select Keywords to Add:</span>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Choose one or more keywords, then click "Rewrite with Keywords" below
-                  </p>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Strategic Keywords</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {enhancement.suggested_keywords.map((keyword: string, idx: number) => {
@@ -306,11 +345,11 @@ export function AIEnhancementPanel({
                     return (
                       <Badge 
                         key={idx} 
-                        variant={isSelected ? "default" : "secondary"}
+                        variant={isSelected ? "default" : "outline"}
                         className={`text-xs cursor-pointer transition-all ${
                           isSelected 
-                            ? 'bg-purple-500 text-white hover:bg-purple-600' 
-                            : 'hover:bg-purple-100 hover:border-purple-300'
+                            ? 'bg-purple-600 hover:bg-purple-700' 
+                            : 'hover:border-purple-400 hover:text-purple-600'
                         }`}
                         onClick={() => toggleKeywordSelection(keyword)}
                       >
@@ -324,45 +363,31 @@ export function AIEnhancementPanel({
                   <Button
                     onClick={handleRegenerateWithKeywords}
                     disabled={isRegeneratingWithKeywords}
-                    variant="outline"
-                    className="w-full border-purple-500 hover:bg-purple-50"
+                    variant="secondary"
+                    size="sm"
+                    className="w-full"
                   >
                     {isRegeneratingWithKeywords ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Rewriting...
-                      </>
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                     ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Rewrite with {selectedKeywords.length} Keyword{selectedKeywords.length > 1 ? 's' : ''}
-                      </>
+                      <Sparkles className="h-3 w-3 mr-2" />
                     )}
+                    Inject {selectedKeywords.length} Keywords
                   </Button>
                 )}
               </div>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 pt-2 border-t">
+              <Button variant="outline" onClick={() => setEnhancement(null)} className="flex-1">
+                Discard
+              </Button>
               <Button
                 onClick={handleAccept}
-                disabled={isEnhancing}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-[2] bg-green-600 hover:bg-green-700 shadow-md"
               >
-                {isEnhancing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Applying...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Accept Enhancement
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" onClick={() => setEnhancement(null)}>
-                Try Again
+                <Check className="h-4 w-4 mr-2" />
+                Approve & Save to Vault
               </Button>
             </div>
           </div>
