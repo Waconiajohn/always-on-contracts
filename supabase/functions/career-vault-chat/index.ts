@@ -61,7 +61,7 @@ If asked about specific items, reference the data provided in the vault context.
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-pro-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
