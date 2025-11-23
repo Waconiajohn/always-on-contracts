@@ -36,7 +36,7 @@ export interface ChatCompletionResponse {
  */
 export async function callLovableAI(
   messages: ChatMessage[],
-  model: string = "google/gemini-2.5-pro",
+  model: string = "google/gemini-3-pro-preview",
   options: ChatCompletionOptions = {}
 ): Promise<ChatCompletionResponse> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
