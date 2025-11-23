@@ -10,7 +10,7 @@ export const LOVABLE_AI_MODELS = {
   DEFAULT: 'google/gemini-2.5-flash',
   
   // Premium: Best quality for complex reasoning
-  PREMIUM: 'google/gemini-2.5-pro',
+  PREMIUM: 'google/gemini-3-pro-preview',
   
   // Fast: Cheapest for simple tasks
   FAST: 'google/gemini-2.5-flash-lite',
@@ -27,7 +27,7 @@ export const LOVABLE_AI_CONFIG = {
   // Pricing per 1M tokens (accurate as of 2025)
   PRICING: {
     'google/gemini-2.5-flash': { input: 0.30, output: 2.50 },
-    'google/gemini-2.5-pro': { input: 2.50, output: 10.00 },
+    'google/gemini-3-pro-preview': { input: 2.50, output: 10.00 },
     'google/gemini-2.5-flash-lite': { input: 0.10, output: 0.80 },
   },
   

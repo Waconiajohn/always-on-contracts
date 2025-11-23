@@ -50,7 +50,7 @@ Example:
 
 Choose the appropriate model based on task complexity:
 
-#### LOVABLE_AI_MODELS.PREMIUM (google/gemini-2.5-pro)
+#### LOVABLE_AI_MODELS.PREMIUM (google/gemini-3-pro-preview)
 **Use for:**
 - Complex reasoning and analysis
 - Multi-step problem solving
