@@ -16,6 +16,9 @@ import { SearchHeader } from "@/components/job-search/v2/SearchHeader";
 import { SearchControls } from "@/components/job-search/v2/SearchControls";
 import { SearchResults } from "@/components/job-search/v2/SearchResults";
 
+// V3 Components
+import { V3JobSearchHero } from "@/components/job-search/v3/V3JobSearchHero";
+
 interface JobResult {
   id: string;
   title: string;
@@ -545,7 +548,13 @@ const JobSearchContent = () => {
       }
       maxWidth="full"
     >
-      <div className="px-4 py-8 max-w-7xl mx-auto">
+      <div className="px-4 py-8 max-w-7xl mx-auto space-y-8">
+        {/* V3 Hero */}
+        <V3JobSearchHero 
+          totalJobs={jobs.length}
+          isSearching={isSearching}
+        />
+
         <SearchHeader 
           query={searchQuery}
           setQuery={setSearchQuery}
