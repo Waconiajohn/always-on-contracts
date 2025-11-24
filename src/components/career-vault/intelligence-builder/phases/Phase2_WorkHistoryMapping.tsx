@@ -19,8 +19,8 @@ interface WorkPosition {
   company_name: string;
   job_title: string;
   start_date: string;
-  end_date?: string;
-  description?: string;
+  end_date?: string | null;
+  description?: string | null;
   bullets?: string[];
 }
 
@@ -66,13 +66,24 @@ export const Phase2_WorkHistoryMapping = ({
 
       if (milestonesError) throw milestonesError;
 
-      // Group milestones by position
-      const positionsWithBullets = (positionsData || []).map(pos => ({
-        ...pos,
-        bullets: (milestonesData || [])
-          .filter(m => m.work_position_id === pos.id)
-          .map(m => m.achievement_description)
-      }));
+      // Group milestones by position - use key_achievements array
+      const positionsWithBullets = (positionsData || []).map(pos => {
+        const positionMilestones = (milestonesData || [])
+          .filter(m => m.work_position_id === pos.id);
+        
+        // Flatten all key_achievements arrays from all milestones for this position
+        const bullets = positionMilestones.flatMap(m => m.key_achievements || []);
+        
+        return {
+          id: pos.id,
+          company_name: pos.company_name,
+          job_title: pos.job_title,
+          start_date: pos.start_date,
+          end_date: pos.end_date,
+          description: pos.description,
+          bullets
+        };
+      });
 
       setPositions(positionsWithBullets);
       onProgress(100);
@@ -96,7 +107,7 @@ export const Phase2_WorkHistoryMapping = ({
       return pos;
     }));
 
-    // Update in database
+    // Update in database - update the key_achievements array
     try {
       const { data: milestones } = await supabase
         .from('vault_resume_milestones')
@@ -104,11 +115,15 @@ export const Phase2_WorkHistoryMapping = ({
         .eq('vault_id', vaultId)
         .eq('work_position_id', positionId);
 
-      if (milestones && milestones[bulletIndex]) {
-        await supabase
-          .from('vault_resume_milestones')
-          .update({ achievement_description: newText })
-          .eq('id', milestones[bulletIndex].id);
+      if (milestones && milestones.length > 0) {
+        // Update the first milestone's key_achievements array with the new bullets
+        const position = positions.find(p => p.id === positionId);
+        if (position?.bullets) {
+          await supabase
+            .from('vault_resume_milestones')
+            .update({ key_achievements: position.bullets })
+            .eq('id', milestones[0].id);
+        }
       }
     } catch (error) {
       console.error('Error updating bullet:', error);
