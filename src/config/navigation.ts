@@ -6,8 +6,6 @@ import {
   Linkedin,
   MessageSquare,
   Building2,
-  TrendingUp,
-  LineChart,
   Users,
   DollarSign,
   Brain,
@@ -54,16 +52,15 @@ export const mainNavItems: NavItem[] = [
     path: '/career-vault', 
     icon: Package 
   },
-  {
-    label: 'Job Search',
-    icon: Search,
-    dropdown: [
-      { label: 'Search Jobs', path: '/job-search', icon: Search },
-      { label: 'Active Applications', path: '/active-applications', icon: Package },
-      { label: 'Boolean Search', path: '/boolean-search', icon: Search },
-      { label: 'Career Trends', path: '/agents/career-trends', icon: TrendingUp },
-      { label: 'Research Hub', path: '/research-hub', icon: LineChart },
-    ],
+  { 
+    label: 'Job Search', 
+    path: '/job-search', 
+    icon: Search 
+  },
+  { 
+    label: 'Active Applications', 
+    path: '/active-applications', 
+    icon: Package 
   },
     {
     label: 'Resume',
