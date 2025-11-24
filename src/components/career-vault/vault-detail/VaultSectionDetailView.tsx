@@ -9,8 +9,10 @@ import { RoadmapWorkspace } from './RoadmapWorkspace';
 import { VaultSearchFilter } from './VaultSearchFilter';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Button } from '@/components/ui/button';
-import { Plus, ArrowLeft } from 'lucide-react';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { Badge } from "@/components/ui/badge";
+import { Plus, ArrowLeft, Sparkles } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { VaultSectionBuilder } from '../dashboard/VaultSectionBuilder';
 
 interface VaultSectionDetailViewProps {
   sectionKey: string;
@@ -35,6 +37,7 @@ export function VaultSectionDetailView({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [activeRoadmapItem, setActiveRoadmapItem] = useState<any>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   // Sort items by quality tier (gold > silver > bronze > assumed), then by confidence
   const sortedItems = [...items].sort((a, b) => {
@@ -93,6 +96,7 @@ export function VaultSectionDetailView({
   const handleItemUpdate = () => {
     setActiveTab('all'); // Switch to "All" tab to show updated items
     onItemUpdate();
+    setIsAdding(false);
   };
 
   // Filter items relevant to active roadmap
@@ -112,99 +116,134 @@ export function VaultSectionDetailView({
   const displayItems = activeRoadmapItem ? getRelevantItems() : filteredItems;
 
   return (
-    <div className="space-y-6">
-      {/* Header with back button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold">
-              {sectionTitle}
-              {activeRoadmapItem && (
-                <span className="ml-3 text-sm font-normal text-primary">
-                  • Focus Mode: {activeRoadmapItem.title}
-                </span>
-              )}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {sortedItems.length} items • {qualityStats.gold} gold, {qualityStats.silver} silver
-            </p>
-          </div>
+    <div className="space-y-6 min-h-screen pb-20">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-2">
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={onBack}>
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                {sectionTitle}
+                {activeRoadmapItem && (
+                    <Badge variant="outline" className="ml-2 bg-primary/5 text-primary border-primary/20">
+                    Focus Mode: {activeRoadmapItem.title}
+                    </Badge>
+                )}
+                </h2>
+            </div>
+            </div>
+            {!activeRoadmapItem && (
+             <Button size="lg" className="gap-2 shadow-md" onClick={() => setIsAdding(true)}>
+                <Plus className="h-4 w-4" />
+                Add {sectionTitle.split(' ')[0]} Item
+            </Button>
+            )}
         </div>
-        {!activeRoadmapItem && (
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Item
-          </Button>
-        )}
+
+        {/* Top: Benchmark Status (Always Visible) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div className="md:col-span-2">
+                <BenchmarkComparisonPanel
+                    sectionTitle={sectionTitle}
+                    current={benchmarkData.current}
+                    target={benchmarkData.target}
+                    percentage={benchmarkData.percentage}
+                />
+             </div>
+             <div className="flex items-center justify-center bg-muted/30 rounded-lg p-4 border border-dashed">
+                 <div className="text-center">
+                     <p className="text-sm font-medium text-muted-foreground mb-1">Gap Analysis</p>
+                     <p className="text-2xl font-bold text-primary">{Math.max(0, benchmarkData.target - benchmarkData.current)} Items Needed</p>
+                     <p className="text-xs text-muted-foreground">to reach benchmark</p>
+                 </div>
+             </div>
+        </div>
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)]">
-        {/* Left Panel - Item List */}
-        <ResizablePanel defaultSize={55} minSize={40}>
-          <div className="space-y-4 pr-4">
-          <VaultSearchFilter
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            qualityStats={qualityStats}
-          />
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: Content (8 cols) */}
+        <div className="lg:col-span-8 space-y-6">
+            
+            {/* Add Item Form */}
+            {isAdding && (
+                <Card className="border-primary/50 shadow-lg animate-in fade-in slide-in-from-top-4">
+                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">Add New Item</CardTitle>
+                        <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)}>Cancel</Button>
+                    </CardHeader>
+                    <CardContent>
+                        <VaultSectionBuilder
+                            vaultId={vaultId}
+                            sectionKey={sectionKey as any}
+                            sectionTitle={sectionTitle}
+                            sectionDescription={`Add a new item to your ${sectionTitle}`}
+                            current={0} // Not needed for add form
+                            target={0}  // Not needed for add form
+                            percentage={0} // Not needed for add form
+                            benchmarkData={{ rationale: "Add custom item" }}
+                            onVaultUpdated={handleItemUpdate}
+                        />
+                    </CardContent>
+                </Card>
+            )}
 
-          {selectedItems.length > 0 && (
-            <BulkActionsToolbar
-              selectedCount={selectedItems.length}
-              vaultId={vaultId}
-              selectedItems={selectedItems}
-              onClearSelection={() => setSelectedItems([])}
-              onComplete={handleItemUpdate}
-            />
-          )}
+            {/* Filters & Search */}
+            <div className="flex items-center justify-between gap-4">
+                <VaultSearchFilter
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    qualityStats={qualityStats}
+                />
+            </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Your {sectionTitle}</CardTitle>
-                <div className="flex gap-2 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    {qualityStats.gold} Gold
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-gray-400" />
-                    {qualityStats.silver} Silver
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-orange-600" />
-                    {qualityStats.bronze} Bronze
-                  </span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-6">
-                  <TabsTrigger value="all">All ({sortedItems.length})</TabsTrigger>
-                  <TabsTrigger value="gold">Gold ({qualityStats.gold})</TabsTrigger>
-                  <TabsTrigger value="silver">Silver ({qualityStats.silver})</TabsTrigger>
-                  <TabsTrigger value="bronze">Bronze ({qualityStats.bronze})</TabsTrigger>
-                  <TabsTrigger value="assumed">Assumed ({qualityStats.assumed})</TabsTrigger>
-                  <TabsTrigger value="needs_review">
-                    Review ({qualityStats.needsReview})
-                  </TabsTrigger>
+            {selectedItems.length > 0 && (
+                <BulkActionsToolbar
+                selectedCount={selectedItems.length}
+                vaultId={vaultId}
+                selectedItems={selectedItems}
+                onClearSelection={() => setSelectedItems([])}
+                onComplete={handleItemUpdate}
+                />
+            )}
+            
+            {/* Tabs & List */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent space-x-6 mb-4">
+                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 py-2">All ({sortedItems.length})</TabsTrigger>
+                  <TabsTrigger value="gold" className="rounded-none border-b-2 border-transparent data-[state=active]:border-yellow-500 data-[state=active]:bg-transparent px-0 py-2">Gold ({qualityStats.gold})</TabsTrigger>
+                  <TabsTrigger value="silver" className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-400 data-[state=active]:bg-transparent px-0 py-2">Silver ({qualityStats.silver})</TabsTrigger>
+                  <TabsTrigger value="bronze" className="rounded-none border-b-2 border-transparent data-[state=active]:border-orange-600 data-[state=active]:bg-transparent px-0 py-2">Bronze ({qualityStats.bronze})</TabsTrigger>
                 </TabsList>
 
-                <ScrollArea className="h-[calc(100vh-420px)] mt-4">
-                  <div className="space-y-3">
-                    {displayItems.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        {activeRoadmapItem 
-                          ? "No items match this focus area yet. Add some using the workspace on the right!"
-                          : "No items found"
-                        }
-                      </div>
-                    ) : (
-                      displayItems.map((item) => (
+                {/* Empty State with Call to Action */}
+                {displayItems.length === 0 && !activeRoadmapItem && (
+                    <Card className="border-dashed border-2">
+                        <CardContent className="py-12 text-center space-y-4">
+                            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Sparkles className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold">This section is empty</h3>
+                                <p className="text-muted-foreground max-w-sm mx-auto">
+                                    Start building your {sectionTitle} by adding your first item. Our AI will help you refine it.
+                                </p>
+                            </div>
+                            <Button onClick={() => setIsAdding(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create First Item
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Items List */}
+                <div className="space-y-4">
+                    {displayItems.map((item) => (
                         <VaultItemCard
                           key={item.id}
                           item={item}
@@ -220,54 +259,42 @@ export function VaultSectionDetailView({
                           }}
                           onUpdate={handleItemUpdate}
                         />
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </Tabs>
-            </CardContent>
-          </Card>
-          </div>
-        </ResizablePanel>
+                      ))}
+                </div>
+            </Tabs>
+        </div>
 
-        <ResizableHandle withHandle />
-
-        {/* Right Panel - Benchmark & Workspace */}
-        <ResizablePanel defaultSize={45} minSize={35} className="flex flex-col">
-          <div className="flex-1 overflow-y-auto pl-4">
-            <div className="space-y-4 pb-6">
-          {!activeRoadmapItem ? (
-            <>
-              <BenchmarkComparisonPanel
-                sectionTitle={sectionTitle}
-                current={benchmarkData.current}
-                target={benchmarkData.target}
-                percentage={benchmarkData.percentage}
-              />
-
-              <GapRoadmapWidget
-                sectionKey={sectionKey}
-                vaultId={vaultId}
-                benchmarkData={benchmarkData}
-                currentItems={items}
-                onItemsAdded={handleItemUpdate}
-                onStartWork={handleStartWork}
-              />
-            </>
-          ) : (
-            <RoadmapWorkspace
-              roadmapItem={activeRoadmapItem}
-              sectionKey={sectionKey}
-              vaultId={vaultId}
-              currentItems={items}
-              onExit={handleExitFocus}
-              onItemAdded={handleItemUpdate}
-            />
-          )}
+        {/* Right Column: Roadmap & Tools (4 cols) */}
+        <div className="lg:col-span-4 space-y-6">
+            {/* Roadmap Widget */}
+            <div className="sticky top-32">
+                 {!activeRoadmapItem ? (
+                    <GapRoadmapWidget
+                        sectionKey={sectionKey}
+                        vaultId={vaultId}
+                        benchmarkData={benchmarkData}
+                        currentItems={items}
+                        onItemsAdded={handleItemUpdate}
+                        onStartWork={handleStartWork}
+                    />
+                 ) : (
+                    <RoadmapWorkspace
+                        roadmapItem={activeRoadmapItem}
+                        sectionKey={sectionKey}
+                        vaultId={vaultId}
+                        currentItems={items}
+                        onExit={handleExitFocus}
+                        onItemAdded={handleItemUpdate}
+                    />
+                 )}
             </div>
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </div>
+
+      </div>
+
+      {/* Add Item Dialog/Panel could go here if we want a modal approach */}
+      {/* Currently we leverage RoadmapWorkspace for adding or a separate form */}
+      {/* Ideally, we should open the RoadmapWorkspace in "Manual Mode" or similar if isAdding is true */}
     </div>
   );
 }

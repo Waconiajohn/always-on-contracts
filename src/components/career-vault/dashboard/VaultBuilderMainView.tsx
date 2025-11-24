@@ -57,7 +57,6 @@ export function VaultBuilderMainView({
   onVaultUpdated
 }: VaultBuilderMainViewProps) {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<SectionKey>('work_experience');
   const [detailViewSection, setDetailViewSection] = useState<string | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
 
@@ -309,13 +308,13 @@ export function VaultBuilderMainView({
                 key={section.key}
                 className={`
                   relative cursor-pointer transition-all duration-300 group
-                  ${section.key === activeSection ? 'ring-2 ring-primary shadow-lg scale-105' : ''}
+                  hover:ring-2 hover:ring-primary hover:shadow-lg hover:scale-105
                   ${isLocked ? 'opacity-50' : ''}
                   ${section.percentage >= 100 ? 'bg-green-500/5' : ''}
                 `}
                 onClick={() => {
                   if (isLocked) return;
-                  setActiveSection(section.key);
+                  setDetailViewSection(section.key);
                 }}
               >
                 {section.percentage >= 100 && (
@@ -324,9 +323,7 @@ export function VaultBuilderMainView({
                 <CardContent className="p-6 relative z-10">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3 flex-1">
-                      <div className={`p-2 rounded-lg ${
-                        section.key === activeSection ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                      }`}>
+                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                         <section.icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1">
@@ -381,124 +378,6 @@ export function VaultBuilderMainView({
         </div>
       </div>
 
-      {/* Active Section Builder with Enhanced Progress Display */}
-      {(() => {
-        const section = sections.find(s => s.key === activeSection);
-        if (!section) return null;
-
-        const isLocked = section.layer === 2 && overallPercentage < (section.unlockThreshold || 60);
-        const items = getItemsForSection(section.key);
-
-        if (isLocked) {
-          return (
-            <Card className="border-dashed">
-              <CardContent className="py-16 text-center">
-                <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Section Locked</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Reach {section.unlockThreshold}% overall completion to unlock Layer 2 sections.
-                  You're currently at {overallPercentage}%.
-                </p>
-              </CardContent>
-            </Card>
-          );
-        }
-
-        const goldCount = items.filter((i: any) => i.quality_tier === 'gold').length;
-        const silverCount = items.filter((i: any) => i.quality_tier === 'silver').length;
-        const bronzeCount = items.filter((i: any) => i.quality_tier === 'bronze').length;
-        const assumedCount = items.filter((i: any) => i.quality_tier === 'assumed').length;
-
-        return (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h2 className="text-2xl font-bold">{section.title}</h2>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-5 w-5">
-                            <Info className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-sm">
-                            Top performers in {benchmark.role} roles typically have {section.target} items 
-                            in this category. {section.benchmarkData.rationale}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <p className="text-muted-foreground">{section.description}</p>
-                </div>
-                <Badge variant="secondary" className="text-sm">
-                  {section.current} / {section.target} items
-                </Badge>
-              </div>
-
-              {/* Batch actions indicator */}
-              {items.length > 5 && (
-                <Badge variant="secondary" className="mb-4">
-                  <Zap className="h-3 w-3 mr-1" />
-                  {items.length} items available for AI batch enhancement
-                </Badge>
-              )}
-
-              {/* Enhanced progress section with smart messaging and quality breakdown */}
-              <div className="bg-muted/50 p-4 rounded-lg space-y-3 mb-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {getProgressMessage(section.percentage, section.current, section.target)}
-                  </span>
-                  <span className="text-2xl font-bold">{section.percentage}%</span>
-                </div>
-                <Progress value={section.percentage} className="h-3" />
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{section.current} items</span>
-                  <span>{section.target - section.current} more to benchmark</span>
-                </div>
-                
-                {/* Real-time quality distribution */}
-                {items.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 pt-3 border-t">
-                    <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
-                      <p className="text-xl font-bold text-yellow-600">{goldCount}</p>
-                      <p className="text-[10px] text-yellow-700 dark:text-yellow-400">Gold</p>
-                    </div>
-                    <div className="text-center p-2 bg-gray-50 dark:bg-gray-950/20 rounded">
-                      <p className="text-xl font-bold text-gray-600">{silverCount}</p>
-                      <p className="text-[10px] text-gray-700 dark:text-gray-400">Silver</p>
-                    </div>
-                    <div className="text-center p-2 bg-orange-50 dark:bg-orange-950/20 rounded">
-                      <p className="text-xl font-bold text-orange-600">{bronzeCount}</p>
-                      <p className="text-[10px] text-orange-700 dark:text-orange-400">Bronze</p>
-                    </div>
-                    <div className="text-center p-2 bg-red-50 dark:bg-red-950/20 rounded">
-                      <p className="text-xl font-bold text-red-600">{assumedCount}</p>
-                      <p className="text-[10px] text-red-700 dark:text-red-400">Review</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <VaultSectionBuilder
-                vaultId={vaultId}
-                sectionKey={section.key}
-                sectionTitle={section.title}
-                sectionDescription={section.description}
-                current={section.current}
-                target={section.target}
-                percentage={section.percentage}
-                benchmarkData={section.benchmarkData}
-                onVaultUpdated={onVaultUpdated}
-              />
-            </CardContent>
-          </Card>
-        );
-      })()}
     </div>
   );
 }
