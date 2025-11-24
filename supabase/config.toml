@@ -411,3 +411,6 @@ verify_jwt = true
 
 [functions.generate-gap-questions]
 verify_jwt = true
+
+[functions.analyze-market-fit]
+verify_jwt = true
