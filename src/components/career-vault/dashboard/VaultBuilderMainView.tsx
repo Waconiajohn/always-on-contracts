@@ -13,11 +13,8 @@ import {
   Award,
   Settings,
   AlertTriangle,
-  Info,
-  Zap,
   Shield
 } from "lucide-react";
-import { VaultSectionBuilder } from './VaultSectionBuilder';
 import { VaultSectionDetailView } from '../vault-detail/VaultSectionDetailView';
 import { VaultNuclearReset } from '../VaultNuclearReset';
 import { VaultQuickStats } from '../VaultQuickStats';
@@ -28,12 +25,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { VaultData } from '@/hooks/useVaultData';
 
 interface VaultBuilderMainViewProps {
@@ -84,17 +75,6 @@ export function VaultBuilderMainView({
           ...vaultData.values
         ];
     }
-  }
-
-  // Smart progress message based on completion
-  function getProgressMessage(percentage: number, current: number, target: number): string {
-    if (percentage === 0) return "Ready to start";
-    if (percentage < 25) return "Just getting started";
-    if (percentage < 50) return "Building momentum";
-    if (percentage < 75) return "Halfway there!";
-    if (percentage < 90) return "Almost complete";
-    if (percentage < 100) return `Just ${target - current} more`;
-    return "Complete! ✓";
   }
 
   const overallPercentage = Math.round(

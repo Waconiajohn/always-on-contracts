@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
+import { logAIUsage } from "../_shared/cost-tracking.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +14,6 @@ serve(async (req) => {
 
   try {
     const { roadmapItem, sectionKey, vaultId, currentItems } = await req.json();
-    
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
 
     // Analyze current items to avoid duplicates
     const existingContent = currentItems.map((item: any) => 
@@ -26,7 +22,9 @@ serve(async (req) => {
 
     // Create context-specific prompt
     const sectionContext = getSectionContext(sectionKey);
-    const prompt = `You are helping a user improve their career vault for the "${sectionKey}" section.
+    const systemPrompt = `You are a career coach helping users build their professional vault. Return ONLY valid JSON with no markdown formatting, no code blocks, no explanations - just the raw JSON object.`;
+    
+    const userPrompt = `You are helping a user improve their career vault for the "${sectionKey}" section.
 
 Current Situation:
 - Goal: ${roadmapItem.title}
@@ -52,45 +50,52 @@ For each suggestion, provide:
 - reasoning: Why this helps achieve the goal (1 sentence)
 - keywords: Array of 2-3 relevant keywords from the suggestion
 
-Return a JSON object with a "suggestions" array.`;
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a career coach helping users build their professional vault. Always return valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+CRITICAL: Return ONLY raw JSON (no markdown, no code blocks), exactly this structure:
+{
+  "suggestions": [
+    {
+      "content": "text",
+      "qualityTier": "gold",
+      "reasoning": "text",
+      "keywords": ["keyword1", "keyword2"]
     }
+  ]
+}`;
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices[0].message.content;
+    const { response, metrics } = await callLovableAI(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.DEFAULT,
+        temperature: 0.7,
+        max_tokens: 2000
+      },
+      "generate-roadmap-suggestions",
+      undefined
+    );
+
+    await logAIUsage(metrics);
+
+    let content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error('AI did not return content');
+    }
     
-    // Parse JSON from response
+    // Parse JSON from response, handle markdown code blocks
+    content = content.trim();
+    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (jsonMatch) {
+      content = jsonMatch[1];
+    }
+    
     let suggestions;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        suggestions = parsed.suggestions || [];
-      } else {
-        suggestions = [];
-      }
+      const parsed = JSON.parse(content);
+      suggestions = parsed.suggestions || [];
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
+      console.error('JSON parse error:', parseError, 'Content:', content);
       suggestions = [];
     }
 

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { VaultItemCard } from './VaultItemCard';
 import { BenchmarkComparisonPanel } from './BenchmarkComparisonPanel';
 import { GapRoadmapWidget } from './GapRoadmapWidget';
@@ -11,7 +10,6 @@ import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
 import { Plus, ArrowLeft, Sparkles } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { VaultSectionBuilder } from '../dashboard/VaultSectionBuilder';
 
 interface VaultSectionDetailViewProps {
