@@ -30,7 +30,8 @@ export default function ApplicationQueue() {
     loading, 
     stats,
     addToManualQueue,
-    dismissSuggestion
+    dismissSuggestion,
+    refetch
   } = useApplicationQueue();
 
   const updateApplicationStatus = async (queueId: string, newStatus: string) => {
@@ -68,6 +69,9 @@ export default function ApplicationQueue() {
         title: "Application removed",
         description: "Removed from your applications"
       });
+
+      // Refresh the data immediately
+      await refetch();
     } catch (error: any) {
       toast({
         title: "Delete failed",

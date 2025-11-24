@@ -409,6 +409,7 @@ export const useApplicationQueue = () => {
     addToManualQueue,
     dismissSuggestion,
     bulkApproveHighMatches,
-    clearRejected
+    clearRejected,
+    refetch: fetchManualQueue
   };
 };
