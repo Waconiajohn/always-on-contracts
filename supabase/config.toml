@@ -70,7 +70,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.suggest-linkedin-topics-from-vault]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-interview-question]
 verify_jwt = true
