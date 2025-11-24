@@ -17,14 +17,18 @@ import {
 } from "lucide-react";
 import { VaultSectionDetailView } from '../vault-detail/VaultSectionDetailView';
 import { VaultNuclearReset } from '../VaultNuclearReset';
-import { VaultQuickStats } from '../VaultQuickStats';
-import { VerificationStatus } from '../VerificationStatus';
+import { V3VaultBuilderOverview } from './V3VaultBuilderOverview';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { 
+  getStrengthLevel, 
+  getSectionGuidance, 
+  getQualityStatusText 
+} from '@/lib/utils/vaultQualitativeHelpers';
 import type { VaultData } from '@/hooks/useVaultData';
 
 interface VaultBuilderMainViewProps {
@@ -44,7 +48,6 @@ export function VaultBuilderMainView({
   vaultId,
   benchmark,
   vaultData,
-  stats,
   onVaultUpdated
 }: VaultBuilderMainViewProps) {
   const navigate = useNavigate();
@@ -80,7 +83,6 @@ export function VaultBuilderMainView({
   const overallPercentage = Math.round(
     (benchmark.overall_current / benchmark.overall_target) * 100
   );
-  const pointsNeeded = benchmark.overall_target - benchmark.overall_current;
 
   const sections: Array<{
     key: SectionKey;
@@ -176,31 +178,12 @@ export function VaultBuilderMainView({
 
   return (
     <div className="space-y-8">
-      {/* Quick Stats Overview */}
-      <div className="flex items-center justify-between">
-        <VaultQuickStats 
-          totalItems={stats.totalItems}
-          interviewProgress={vaultData.vault?.interview_completion_percentage || 0}
-          strengthScore={stats.strengthScore.total}
-          lastUpdated={vaultData.vault?.last_updated_at}
-          workPositionsCount={stats.workPositionsCount}
-          educationCount={stats.educationCount}
-        />
-        
-        {/* Admin/Dev Tool: Data Verification */}
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => navigate('/resume-data-audit')}
-          className="gap-2"
-        >
-          <Shield className="h-4 w-4" />
-          Verify Data
-        </Button>
-      </div>
-
-      {/* Verification Status */}
-      <VerificationStatus vaultId={vaultId} />
+      {/* V3 Calm Overview - Replaces gamified stats */}
+      <V3VaultBuilderOverview
+        vaultData={vaultData}
+        overallPercentage={overallPercentage}
+        sections={sections.map(s => ({ key: s.key, percentage: s.percentage, layer: s.layer }))}
+      />
 
       {/* Nuclear Reset Dialog */}
       {showResetDialog && (
@@ -213,11 +196,14 @@ export function VaultBuilderMainView({
         />
       )}
 
-      {/* Overall Progress Hero with Advanced Menu */}
-      <Card className="bg-gradient-to-br from-primary/5 via-background to-primary/5 border-primary/20">
-        <CardContent className="pt-8 pb-8">
+      {/* Overall Progress - Redesigned without points/gamification */}
+      <Card className="border-primary/20">
+        <CardContent className="pt-6 pb-6">
           <div className="flex items-start justify-between mb-6">
-            <Badge variant="outline">Overall Market Readiness</Badge>
+            <div>
+              <Badge variant="outline" className="mb-2">Overall Vault Strength</Badge>
+              <h3 className="text-2xl font-semibold">{getStrengthLevel(overallPercentage).level}</h3>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -225,7 +211,13 @@ export function VaultBuilderMainView({
                   Advanced
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-background z-50">
+                <DropdownMenuItem 
+                  onClick={() => navigate('/resume-data-audit')}
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Verify Data
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => setShowResetDialog(true)}
                   className="text-destructive focus:text-destructive"
@@ -237,42 +229,38 @@ export function VaultBuilderMainView({
             </DropdownMenu>
           </div>
 
-          <div className="text-center space-y-6">
-            <div>
-              <h2 className="text-4xl font-bold mb-2">{overallPercentage}%</h2>
-              <p className="text-muted-foreground">
-                {pointsNeeded > 0 
-                  ? `${pointsNeeded} points to reach benchmark` 
-                  : 'You\'ve reached the benchmark! 🎉'
-                }
+          <div className="space-y-4">
+            {/* Progress bar with qualitative milestones */}
+            <div className="relative">
+              <Progress value={overallPercentage} className="h-3" />
+              <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                <span className={overallPercentage >= 0 ? 'font-medium text-foreground' : ''}>Developing</span>
+                <span className={overallPercentage >= 60 ? 'font-medium text-foreground' : ''}>Competitive (60%)</span>
+                <span className={overallPercentage >= 85 ? 'font-medium text-foreground' : ''}>Exceptional (85%)</span>
+              </div>
+            </div>
+
+            {/* Current status with context */}
+            <div className="p-4 rounded-lg bg-muted/50">
+              <p className="text-sm">
+                <span className="font-medium">Current status:</span>{' '}
+                {overallPercentage}% complete
+                {overallPercentage < 60 && (
+                  <> - {Math.round(60 - overallPercentage)}% more to reach competitive threshold</>
+                )}
+                {overallPercentage >= 60 && overallPercentage < 85 && (
+                  <> - {Math.round(85 - overallPercentage)}% more to reach exceptional status</>
+                )}
+                {overallPercentage >= 85 && (
+                  <> - exceptional positioning achieved</>
+                )}
               </p>
             </div>
-
-            {/* Three-column progress: Current | Gap | Benchmark */}
-            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-              <div className="text-center p-4 bg-background rounded-lg border">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Current</p>
-                <p className="text-3xl font-bold text-blue-600">{benchmark.overall_current}</p>
-                <p className="text-xs text-muted-foreground mt-1">points</p>
-              </div>
-              <div className="text-center p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">Gap</p>
-                <p className="text-3xl font-bold text-amber-600">{pointsNeeded}</p>
-                <p className="text-xs text-amber-600 mt-1">needed</p>
-              </div>
-              <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                <p className="text-xs text-green-700 dark:text-green-400 uppercase tracking-wide mb-1">Benchmark</p>
-                <p className="text-3xl font-bold text-green-600">{benchmark.overall_target}</p>
-                <p className="text-xs text-green-600 mt-1">target</p>
-              </div>
-            </div>
-
-            <Progress value={overallPercentage} className="h-3 max-w-2xl mx-auto" />
           </div>
         </CardContent>
       </Card>
 
-      {/* Section Navigation Cards with Enhanced UI */}
+      {/* Section Cards - Redesigned without emojis and gamification */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Build Your Vault Section by Section</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -281,30 +269,38 @@ export function VaultBuilderMainView({
             const goldCount = items.filter((i: any) => i.quality_tier === 'gold').length;
             const silverCount = items.filter((i: any) => i.quality_tier === 'silver').length;
             const bronzeCount = items.filter((i: any) => i.quality_tier === 'bronze').length;
+            const assumedCount = items.filter((i: any) => 
+              !i.quality_tier || i.quality_tier === 'assumed'
+            ).length;
             const isLocked = section.layer === 2 && overallPercentage < (section.unlockThreshold || 60);
+            const qualityText = getQualityStatusText(goldCount, silverCount, bronzeCount, assumedCount);
+            const guidanceText = getSectionGuidance(
+              section.key, 
+              section.percentage, 
+              isLocked,
+              section.current,
+              section.target
+            );
 
             return (
               <Card
                 key={section.key}
                 className={`
                   relative cursor-pointer transition-all duration-300 group
-                  hover:ring-2 hover:ring-primary hover:shadow-lg hover:scale-105
-                  ${isLocked ? 'opacity-50' : ''}
-                  ${section.percentage >= 100 ? 'bg-green-500/5' : ''}
+                  hover:ring-2 hover:ring-primary hover:shadow-md
+                  ${isLocked ? 'opacity-60' : ''}
+                  ${section.percentage >= 100 ? 'border-emerald-500/30' : ''}
                 `}
                 onClick={() => {
                   if (isLocked) return;
                   setDetailViewSection(section.key);
                 }}
               >
-                {section.percentage >= 100 && (
-                  <div className="absolute inset-0 bg-green-500/5 rounded-lg animate-pulse" />
-                )}
-                <CardContent className="p-6 relative z-10">
+                <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                        <section.icon className="h-5 w-5" />
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <section.icon className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">{section.title}</h3>
@@ -312,44 +308,30 @@ export function VaultBuilderMainView({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isLocked && <Lock className="h-5 w-5 text-muted-foreground" />}
-                      {section.percentage >= 100 && <CheckCircle2 className="h-5 w-5 text-green-600" />}
+                      {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                      {section.percentage >= 100 && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{section.current} / {section.target}</span>
+                      <span className="text-muted-foreground">{section.current} items</span>
                       <span className="font-medium">{section.percentage}%</span>
                     </div>
                     <Progress value={section.percentage} className="h-2" />
                     
-                    {/* Quality breakdown mini-bars */}
-                    {items.length > 0 && (
-                      <>
-                        <div className="flex gap-1 h-1">
-                          {goldCount > 0 && <div className="bg-yellow-500/50 rounded" style={{ flex: goldCount }} />}
-                          {silverCount > 0 && <div className="bg-gray-400/50 rounded" style={{ flex: silverCount }} />}
-                          {bronzeCount > 0 && <div className="bg-orange-500/50 rounded" style={{ flex: bronzeCount }} />}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-[10px] text-muted-foreground">
-                            {goldCount}🥇 {silverCount}🥈 {bronzeCount}🥉
-                          </p>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDetailViewSection(section.key);
-                            }}
-                            className="h-6 text-xs px-2"
-                          >
-                            View All ({section.current})
-                          </Button>
-                        </div>
-                      </>
-                    )}
+                    {/* Quality status and guidance */}
+                    <div className="space-y-2">
+                      {items.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {qualityText}
+                        </p>
+                      )}
+                      <p className="text-xs text-foreground/70">
+                        {isLocked && <Lock className="h-3 w-3 inline mr-1" />}
+                        {guidanceText}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
