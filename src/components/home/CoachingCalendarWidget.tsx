@@ -69,8 +69,8 @@ export const CoachingCalendarWidget = ({ isPlatinum }: CoachingCalendarWidgetPro
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
             1-on-1 Coaching
           </CardTitle>
         </CardHeader>
@@ -80,7 +80,7 @@ export const CoachingCalendarWidget = ({ isPlatinum }: CoachingCalendarWidgetPro
             <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0 mb-3">
               💎 Platinum Feature
             </Badge>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-base text-muted-foreground mb-4">
               Get personalized coaching from career experts
             </p>
             <Button 
@@ -101,7 +101,7 @@ export const CoachingCalendarWidget = ({ isPlatinum }: CoachingCalendarWidgetPro
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle className="text-sm">1-on-1 Coaching</CardTitle>
+          <CardTitle className="text-base">1-on-1 Coaching</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -114,18 +114,18 @@ export const CoachingCalendarWidget = ({ isPlatinum }: CoachingCalendarWidgetPro
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          1-on-1 Coaching
-        </CardTitle>
-      </CardHeader>
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            1-on-1 Coaching
+          </CardTitle>
+        </CardHeader>
       <CardContent className="space-y-4">
         {/* Book Session Section */}
         <div className="border rounded-lg p-4 bg-muted/50">
-          <h4 className="font-medium text-sm mb-2">Schedule Your Session</h4>
-          <p className="text-xs text-muted-foreground mb-3">
+          <h4 className="font-medium text-base mb-2">Schedule Your Session</h4>
+          <p className="text-sm text-muted-foreground mb-3">
             Book a personalized coaching session with our career experts
           </p>
           <Button
@@ -142,20 +142,20 @@ export const CoachingCalendarWidget = ({ isPlatinum }: CoachingCalendarWidgetPro
         {/* Upcoming Sessions */}
         {sessions.length > 0 && (
           <div className="space-y-3">
-            <h4 className="font-medium text-sm">Upcoming Sessions</h4>
+            <h4 className="font-medium text-base">Upcoming Sessions</h4>
             {sessions.map(session => (
-              <div key={session.id} className="border rounded-lg p-3 space-y-2">
+              <div key={session.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <p className="font-medium text-sm">{session.coach_name || 'Career Coach'}</p>
+                    <p className="font-medium text-base">{session.coach_name || 'Career Coach'}</p>
                     {session.scheduled_date && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
                         {format(new Date(session.scheduled_date), 'MMM d, h:mm a')}
                       </div>
                     )}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
                       {session.duration_minutes || 45} minutes
                     </div>
                   </div>
@@ -178,7 +178,7 @@ export const CoachingCalendarWidget = ({ isPlatinum }: CoachingCalendarWidgetPro
         )}
 
         {sessions.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-2">
+          <p className="text-base text-muted-foreground text-center py-2">
             No upcoming sessions scheduled
           </p>
         )}

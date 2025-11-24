@@ -5,9 +5,10 @@ import { CoachingCalendarWidget } from "@/components/home/CoachingCalendarWidget
 import { JobMarketLiveDataWidget } from "@/components/home/JobMarketLiveDataWidget";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { useUserContext } from "@/hooks/useUserContext";
-import { MorningBrief } from "@/components/home/v2/MorningBrief";
-import { ActivePulse } from "@/components/home/v2/ActivePulse";
-import { ActionCenter } from "@/components/home/v2/ActionCenter";
+import { V3HomeHero } from "@/components/home/v3/V3HomeHero";
+import { V3JourneyStatus } from "@/components/home/v3/V3JourneyStatus";
+import { V3PersonalizedTools } from "@/components/home/v3/V3PersonalizedTools";
+import { getNextActionPrompt } from "@/lib/utils/vaultQualitativeHelpers";
 
 const UnifiedHomeContent = () => {
   const { subscription } = useSubscription();
@@ -22,6 +23,12 @@ const UnifiedHomeContent = () => {
     );
   }
 
+  // Get today's priority action
+  const todaysPriority = getNextActionPrompt(
+    userContext.vaultCompletion,
+    [] // We don't have section data here, so we'll provide a simplified version
+  );
+
   return (
     <ContentLayout
       maxWidth="full"
@@ -33,23 +40,25 @@ const UnifiedHomeContent = () => {
         </aside>
       }
     >
-      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
-        {/* V2 Homepage Components */}
-        <MorningBrief 
+      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-12">
+        {/* V3 Homepage Components */}
+        <V3HomeHero 
           userName={userContext.userName}
+          vaultCompletion={userContext.vaultCompletion}
+          todaysPriority={todaysPriority}
+        />
+
+        <V3JourneyStatus 
+          activeApplications={userContext.activeApplications}
+          interviews={userContext.upcomingInterviews}
+          vaultCompletion={userContext.vaultCompletion}
+        />
+
+        <V3PersonalizedTools 
           vaultCompletion={userContext.vaultCompletion}
           activeApplications={userContext.activeApplications}
           upcomingInterviews={userContext.upcomingInterviews}
         />
-
-        <ActivePulse 
-          activeApplications={userContext.activeApplications}
-          interviews={userContext.upcomingInterviews}
-          offers={userContext.offers}
-          vaultScore={userContext.vaultCompletion}
-        />
-
-        <ActionCenter />
       </div>
     </ContentLayout>
   );

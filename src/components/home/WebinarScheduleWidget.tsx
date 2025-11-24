@@ -94,8 +94,8 @@ export const WebinarScheduleWidget = ({ isPlatinum }: WebinarScheduleWidgetProps
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Video className="h-4 w-4" />
+          <CardTitle className="text-base flex items-center gap-2">
+            <Video className="h-5 w-5" />
             Live Webinars
           </CardTitle>
         </CardHeader>
@@ -105,7 +105,7 @@ export const WebinarScheduleWidget = ({ isPlatinum }: WebinarScheduleWidgetProps
             <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0 mb-3">
               💎 Platinum Feature
             </Badge>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-base text-muted-foreground mb-4">
               Access live training sessions with career experts
             </p>
             <Button 
@@ -126,7 +126,7 @@ export const WebinarScheduleWidget = ({ isPlatinum }: WebinarScheduleWidgetProps
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle className="text-sm">Live Webinars</CardTitle>
+          <CardTitle className="text-base">Live Webinars</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -140,39 +140,39 @@ export const WebinarScheduleWidget = ({ isPlatinum }: WebinarScheduleWidgetProps
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Video className="h-4 w-4" />
-          Upcoming Webinars
-        </CardTitle>
-      </CardHeader>
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Video className="h-5 w-5" />
+            Upcoming Webinars
+          </CardTitle>
+        </CardHeader>
       <CardContent className="space-y-4">
         {webinars.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="text-base text-muted-foreground text-center py-4">
             No upcoming webinars scheduled
           </p>
         ) : (
           webinars.map(webinar => (
-            <div key={webinar.id} className="border rounded-lg p-3 space-y-2">
+            <div key={webinar.id} className="border rounded-lg p-4 space-y-2">
               <div className="flex items-start justify-between gap-2">
-                <h4 className="font-medium text-sm">{webinar.title}</h4>
+                <h4 className="font-medium text-base">{webinar.title}</h4>
                 {webinar.isRegistered && (
                   <Badge variant="secondary" className="text-xs">Registered</Badge>
                 )}
               </div>
               
-              <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="space-y-1 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-3 w-3" />
+                  <Calendar className="h-4 w-4" />
                   {format(new Date(webinar.scheduled_date), 'MMM d, h:mm a')}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-4 w-4" />
                   {webinar.duration_minutes || 60} minutes
                 </div>
                 <div className="flex items-center gap-2">
-                  <Users className="h-3 w-3" />
+                  <Users className="h-4 w-4" />
                   {webinar.current_attendees || 0}/{webinar.max_attendees || 50} registered
                 </div>
               </div>

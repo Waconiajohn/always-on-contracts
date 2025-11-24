@@ -75,7 +75,7 @@ export const JobMarketLiveDataWidget = () => {
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle className="text-sm">Job Market Insights</CardTitle>
+          <CardTitle className="text-base">Job Market Insights</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -92,10 +92,10 @@ export const JobMarketLiveDataWidget = () => {
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle className="text-sm">Job Market Insights</CardTitle>
+          <CardTitle className="text-base">Job Market Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="text-base text-muted-foreground text-center py-4">
             Unable to load market data
           </p>
         </CardContent>
@@ -104,13 +104,13 @@ export const JobMarketLiveDataWidget = () => {
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Job Market Live
-          </CardTitle>
+      <Card className="h-full">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Job Market Live
+            </CardTitle>
           <Button
             size="sm"
             variant="ghost"
@@ -124,19 +124,19 @@ export const JobMarketLiveDataWidget = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Total Jobs */}
-        <div className="flex items-center justify-between p-3 border rounded-lg">
+        <div className="flex items-center justify-between p-4 border rounded-lg">
           <div className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Active Postings</span>
+            <Briefcase className="h-5 w-5 text-muted-foreground" />
+            <span className="text-base text-muted-foreground">Active Postings</span>
           </div>
-          <span className="text-lg font-bold">{data.totalJobs.toLocaleString()}</span>
+          <span className="text-3xl font-bold">{data.totalJobs.toLocaleString()}</span>
         </div>
 
         {/* Market Demand */}
-        <div className="flex items-center justify-between p-3 border rounded-lg">
+        <div className="flex items-center justify-between p-4 border rounded-lg">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Market Demand</span>
+            <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            <span className="text-base text-muted-foreground">Market Demand</span>
           </div>
           <Badge variant="secondary" className={`${getDemandColor(data.demandIndicator)} text-white border-0`}>
             {getDemandLabel(data.demandIndicator)}
@@ -144,21 +144,21 @@ export const JobMarketLiveDataWidget = () => {
         </div>
 
         {/* Salary Range */}
-        <div className="flex items-center justify-between p-3 border rounded-lg">
+        <div className="flex items-center justify-between p-4 border rounded-lg">
           <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Avg Salary</span>
+            <DollarSign className="h-5 w-5 text-muted-foreground" />
+            <span className="text-base text-muted-foreground">Avg Salary</span>
           </div>
-          <span className="text-sm font-medium">{data.avgSalaryRange}</span>
+          <span className="text-base font-medium">{data.avgSalaryRange}</span>
         </div>
 
         {/* Trending Titles */}
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground font-medium">Trending Roles:</p>
+          <p className="text-sm text-muted-foreground font-medium">Trending Roles:</p>
           <div className="space-y-1">
             {data.trendingTitles.slice(0, 3).map((title, index) => (
-              <div key={index} className="flex items-center gap-2 text-xs">
-                <MapPin className="h-3 w-3 text-primary" />
+              <div key={index} className="flex items-center gap-2 text-sm">
+                <MapPin className="h-4 w-4 text-primary" />
                 <span className="truncate">{title}</span>
               </div>
             ))}
@@ -166,7 +166,7 @@ export const JobMarketLiveDataWidget = () => {
         </div>
 
         {/* Last Updated */}
-        <p className="text-xs text-muted-foreground text-center pt-2 border-t">
+        <p className="text-sm text-muted-foreground text-center pt-2 border-t">
           Updated {data.lastUpdated.toLocaleTimeString()}
         </p>
       </CardContent>
