@@ -23,7 +23,7 @@ interface TopicSuggestion {
 serve(createAIHandler({
   functionName: 'suggest-linkedin-topics-from-vault',
   schema: GenericAIResponseSchema,
-  requireAuth: false,
+  requireAuth: true,
   rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
   handler: async ({ user, logger }) => {
