@@ -37,7 +37,7 @@ serve(async (req) => {
       : '';
 
     // Create enhancement prompt
-    const systemPrompt = `You are an elite executive career coach and resume strategist (Gemini 3.0 Pro). Return ONLY valid JSON, no additional text or explanations.
+    const systemPrompt = `You are an elite executive career coach and resume strategist. You MUST return ONLY valid JSON with no markdown formatting, no code blocks, no explanations - just the raw JSON object.
 
 Quality Tiers:
 - GOLD: Includes strategic context, measurable impact metrics, and strong action verbs. Shows enterprise-wide influence.
@@ -52,18 +52,14 @@ Guidelines for Enhancement:
 4. Show scope and scale (team size, project budget, geographic reach)
 5. Demonstrate impact beyond immediate role
 
-CRITICAL: Return ONLY this exact JSON structure, nothing else:
+CRITICAL: Return ONLY raw JSON (no markdown, no code blocks), exactly this structure:
 {
   "enhanced_content": "The improved version",
-  "new_tier": "gold" | "silver" | "bronze",
+  "new_tier": "gold",
   "reasoning": "Why this is better (one sentence)",
   "suggested_keywords": ["keyword1", "keyword2", "keyword3"],
   "improvements_made": ["improvement1", "improvement2"],
-  "analysis_steps": [
-    "Analyzed scope and scale...",
-    "Identified missing metrics...",
-    "Optimized for executive presence..."
-  ]
+  "analysis_steps": ["step1", "step2", "step3"]
 }`;
 
     const userPrompt = `Current Item (${currentTier} tier):
@@ -84,32 +80,9 @@ Also suggest 3-5 relevant ATS keywords.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM, // Upgraded to Premium
+        model: LOVABLE_AI_MODELS.PREMIUM,
         temperature: 0.7,
-        max_tokens: 1000,
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "enhance_vault_item",
-              description: "Return the enhanced vault item with improvements",
-              parameters: {
-                type: "object",
-                properties: {
-                  enhanced_content: { type: "string" },
-                  new_tier: { type: "string", enum: ["gold", "silver", "bronze"] },
-                  reasoning: { type: "string" },
-                  suggested_keywords: { type: "array", items: { type: "string" } },
-                  improvements_made: { type: "array", items: { type: "string" } },
-                  analysis_steps: { type: "array", items: { type: "string" } }
-                },
-                required: ["enhanced_content", "new_tier", "reasoning", "suggested_keywords", "improvements_made"],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "enhance_vault_item" } }
+        max_tokens: 1000
       },
       "enhance-vault-item",
       undefined
@@ -117,14 +90,21 @@ Also suggest 3-5 relevant ATS keywords.`;
 
     await logAIUsage(metrics);
 
-    // Extract from tool call response
-    const toolCall = response.choices[0].message.tool_calls?.[0];
-    if (!toolCall) {
-      console.error('No tool call in response:', response);
-      throw new Error('AI did not return a tool call response');
+    // Extract content from response
+    let content = response.choices[0].message.content;
+    if (!content) {
+      console.error('No content in response:', response);
+      throw new Error('AI did not return content');
     }
 
-    const enhancement = JSON.parse(toolCall.function.arguments);
+    // Clean markdown code blocks if present
+    content = content.trim();
+    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (jsonMatch) {
+      content = jsonMatch[1];
+    }
+
+    const enhancement = JSON.parse(content);
     console.log('[enhance-vault-item] Parsed enhancement:', enhancement);
     
     // Validate required fields
