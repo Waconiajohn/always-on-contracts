@@ -771,6 +771,7 @@ export type Database = {
           benchmark_standard: Json | null
           career_direction: string | null
           created_at: string
+          current_phase: number | null
           excluded_industries: string[] | null
           extraction_completeness_score: number | null
           extraction_item_count: number | null
@@ -783,6 +784,7 @@ export type Database = {
           id: string
           industry_research_completed: boolean | null
           initial_analysis: Json | null
+          intelligence_builder_completed: boolean | null
           intelligent_qa_completed: boolean | null
           interview_completion_percentage: number | null
           last_extraction_session_id: string | null
@@ -820,6 +822,7 @@ export type Database = {
           benchmark_standard?: Json | null
           career_direction?: string | null
           created_at?: string
+          current_phase?: number | null
           excluded_industries?: string[] | null
           extraction_completeness_score?: number | null
           extraction_item_count?: number | null
@@ -832,6 +835,7 @@ export type Database = {
           id?: string
           industry_research_completed?: boolean | null
           initial_analysis?: Json | null
+          intelligence_builder_completed?: boolean | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_extraction_session_id?: string | null
@@ -869,6 +873,7 @@ export type Database = {
           benchmark_standard?: Json | null
           career_direction?: string | null
           created_at?: string
+          current_phase?: number | null
           excluded_industries?: string[] | null
           extraction_completeness_score?: number | null
           extraction_item_count?: number | null
@@ -881,6 +886,7 @@ export type Database = {
           id?: string
           industry_research_completed?: boolean | null
           initial_analysis?: Json | null
+          intelligence_builder_completed?: boolean | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_extraction_session_id?: string | null
@@ -4485,6 +4491,72 @@ export type Database = {
           },
         ]
       }
+      vault_ai_coaching_history: {
+        Row: {
+          coaching_type: string | null
+          created_at: string | null
+          fact_drift_details: Json | null
+          fact_drift_detected: boolean | null
+          final_text: string | null
+          id: string
+          item_id: string | null
+          item_type: string | null
+          original_text: string
+          position_id: string | null
+          suggested_text: string
+          user_action: string | null
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          coaching_type?: string | null
+          created_at?: string | null
+          fact_drift_details?: Json | null
+          fact_drift_detected?: boolean | null
+          final_text?: string | null
+          id?: string
+          item_id?: string | null
+          item_type?: string | null
+          original_text: string
+          position_id?: string | null
+          suggested_text: string
+          user_action?: string | null
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          coaching_type?: string | null
+          created_at?: string | null
+          fact_drift_details?: Json | null
+          fact_drift_detected?: boolean | null
+          final_text?: string | null
+          id?: string
+          item_id?: string | null
+          item_type?: string | null
+          original_text?: string
+          position_id?: string | null
+          suggested_text?: string
+          user_action?: string | null
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_ai_coaching_history_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_ai_coaching_history_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_behavioral_indicators: {
         Row: {
           ai_confidence: number | null
@@ -5073,6 +5145,59 @@ export type Database = {
           },
         ]
       }
+      vault_gap_progress: {
+        Row: {
+          created_at: string | null
+          gap_description: string | null
+          gap_id: string
+          gap_type: string | null
+          id: string
+          questions_answered: number | null
+          questions_generated: Json | null
+          resolved_at: string | null
+          status: string | null
+          total_questions: number | null
+          updated_at: string | null
+          vault_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          gap_description?: string | null
+          gap_id: string
+          gap_type?: string | null
+          id?: string
+          questions_answered?: number | null
+          questions_generated?: Json | null
+          resolved_at?: string | null
+          status?: string | null
+          total_questions?: number | null
+          updated_at?: string | null
+          vault_id: string
+        }
+        Update: {
+          created_at?: string | null
+          gap_description?: string | null
+          gap_id?: string
+          gap_type?: string | null
+          id?: string
+          questions_answered?: number | null
+          questions_generated?: Json | null
+          resolved_at?: string | null
+          status?: string | null
+          total_questions?: number | null
+          updated_at?: string | null
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_gap_progress_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_hidden_competencies: {
         Row: {
           ai_confidence: number | null
@@ -5093,6 +5218,7 @@ export type Database = {
           supporting_evidence: string[]
           user_id: string
           vault_id: string
+          work_position_id: string | null
         }
         Insert: {
           ai_confidence?: number | null
@@ -5113,6 +5239,7 @@ export type Database = {
           supporting_evidence?: string[]
           user_id: string
           vault_id: string
+          work_position_id?: string | null
         }
         Update: {
           ai_confidence?: number | null
@@ -5133,8 +5260,16 @@ export type Database = {
           supporting_evidence?: string[]
           user_id?: string
           vault_id?: string
+          work_position_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_hidden_competencies_work_position_id_fkey"
+            columns: ["work_position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "war_chest_hidden_competencies_war_chest_id_fkey"
             columns: ["vault_id"]
@@ -5299,6 +5434,53 @@ export type Database = {
           },
         ]
       }
+      vault_market_research: {
+        Row: {
+          common_requirements: Json | null
+          created_at: string | null
+          id: string
+          researched_at: string | null
+          sample_jobs: Json | null
+          skill_frequency: Json | null
+          target_industry: string | null
+          target_role: string
+          updated_at: string | null
+          vault_id: string
+        }
+        Insert: {
+          common_requirements?: Json | null
+          created_at?: string | null
+          id?: string
+          researched_at?: string | null
+          sample_jobs?: Json | null
+          skill_frequency?: Json | null
+          target_industry?: string | null
+          target_role: string
+          updated_at?: string | null
+          vault_id: string
+        }
+        Update: {
+          common_requirements?: Json | null
+          created_at?: string | null
+          id?: string
+          researched_at?: string | null
+          sample_jobs?: Json | null
+          skill_frequency?: Json | null
+          target_industry?: string | null
+          target_role?: string
+          updated_at?: string | null
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_market_research_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_personality_traits: {
         Row: {
           ai_confidence: number | null
@@ -5369,6 +5551,9 @@ export type Database = {
       }
       vault_power_phrases: {
         Row: {
+          adaptation_notes: string | null
+          adaptation_tier: string | null
+          adapted_from_id: string | null
           ai_confidence: number | null
           category: string
           confidence_score: number | null
@@ -5388,10 +5573,15 @@ export type Database = {
           review_priority: number | null
           section_source: string | null
           source: string | null
+          target_keywords: string[] | null
           user_id: string
           vault_id: string
+          work_position_id: string | null
         }
         Insert: {
+          adaptation_notes?: string | null
+          adaptation_tier?: string | null
+          adapted_from_id?: string | null
           ai_confidence?: number | null
           category: string
           confidence_score?: number | null
@@ -5411,10 +5601,15 @@ export type Database = {
           review_priority?: number | null
           section_source?: string | null
           source?: string | null
+          target_keywords?: string[] | null
           user_id: string
           vault_id: string
+          work_position_id?: string | null
         }
         Update: {
+          adaptation_notes?: string | null
+          adaptation_tier?: string | null
+          adapted_from_id?: string | null
           ai_confidence?: number | null
           category?: string
           confidence_score?: number | null
@@ -5434,10 +5629,26 @@ export type Database = {
           review_priority?: number | null
           section_source?: string | null
           source?: string | null
+          target_keywords?: string[] | null
           user_id?: string
           vault_id?: string
+          work_position_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_power_phrases_adapted_from_id_fkey"
+            columns: ["adapted_from_id"]
+            isOneToOne: false
+            referencedRelation: "vault_power_phrases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_power_phrases_work_position_id_fkey"
+            columns: ["work_position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "war_chest_power_phrases_war_chest_id_fkey"
             columns: ["vault_id"]
@@ -5733,6 +5944,54 @@ export type Database = {
           },
         ]
       }
+      vault_skill_positions: {
+        Row: {
+          context_notes: string | null
+          created_at: string | null
+          id: string
+          position_id: string
+          proficiency_level: string | null
+          skill_id: string
+          updated_at: string | null
+          years_used: number | null
+        }
+        Insert: {
+          context_notes?: string | null
+          created_at?: string | null
+          id?: string
+          position_id: string
+          proficiency_level?: string | null
+          skill_id: string
+          updated_at?: string | null
+          years_used?: number | null
+        }
+        Update: {
+          context_notes?: string | null
+          created_at?: string | null
+          id?: string
+          position_id?: string
+          proficiency_level?: string | null
+          skill_id?: string
+          updated_at?: string | null
+          years_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_skill_positions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_skill_positions_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "vault_transferable_skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_skill_taxonomy: {
         Row: {
           confidence_score: number | null
@@ -5938,6 +6197,7 @@ export type Database = {
           stated_skill: string
           user_id: string
           vault_id: string
+          work_position_id: string | null
         }
         Insert: {
           ai_confidence?: number | null
@@ -5959,6 +6219,7 @@ export type Database = {
           stated_skill: string
           user_id: string
           vault_id: string
+          work_position_id?: string | null
         }
         Update: {
           ai_confidence?: number | null
@@ -5980,8 +6241,16 @@ export type Database = {
           stated_skill?: string
           user_id?: string
           vault_id?: string
+          work_position_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_transferable_skills_work_position_id_fkey"
+            columns: ["work_position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "war_chest_transferable_skills_war_chest_id_fkey"
             columns: ["vault_id"]
