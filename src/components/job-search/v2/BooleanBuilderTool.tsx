@@ -47,22 +47,26 @@ export function BooleanBuilderTool({ booleanString, setBooleanString }: BooleanB
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline" 
             onClick={() => setShowQuickBuilder(true)}
-            className="flex-1 bg-background"
+            className="w-full bg-background h-auto py-3"
           >
-            <Sparkles className="h-4 w-4 mr-2 text-amber-500" />
-            Quick Builder
+            <div className="flex flex-col items-center gap-1 w-full">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-medium">Quick Builder</span>
+            </div>
           </Button>
           <Button 
             variant="outline"
             onClick={() => setShowAIAssistant(true)}
-            className="flex-1 bg-background"
+            className="w-full bg-background h-auto py-3"
           >
-            <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
-            AI Assistant
+            <div className="flex flex-col items-center gap-1 w-full">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <span className="text-xs font-medium">AI Assistant</span>
+            </div>
           </Button>
         </div>
 
