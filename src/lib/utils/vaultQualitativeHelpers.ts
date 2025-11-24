@@ -128,26 +128,36 @@ export function getNextActionPrompt(
   overallPercentage: number,
   sections: Array<{ key: string; percentage: number; layer: number }>
 ): string {
-  // Find first incomplete Layer 1 section
-  const incompleteLayer1 = sections.find(s => s.layer === 1 && s.percentage < 100);
-  if (incompleteLayer1) {
-    const sectionName = incompleteLayer1.key.replace(/_/g, ' ');
-    return `Complete ${sectionName} to unlock executive intelligence sections`;
-  }
+  // Calculate Layer 1 average
+  const layer1Sections = sections.filter(s => s.layer === 1);
+  const layer1Avg = layer1Sections.length > 0
+    ? layer1Sections.reduce((sum, s) => sum + s.percentage, 0) / layer1Sections.length
+    : 0;
   
-  // Layer 1 complete, suggest Layer 2
-  if (overallPercentage >= 60) {
-    const incompleteLayer2 = sections.find(s => s.layer === 2 && s.percentage < 100);
-    if (incompleteLayer2) {
-      const sectionName = incompleteLayer2.key.replace(/_/g, ' ');
-      return `Add ${sectionName} details to strengthen your executive profile`;
+  // If Layer 1 not at 60% average, that's the priority
+  if (layer1Avg < 60) {
+    const totalItemsNeeded = layer1Sections.reduce((sum, s) => {
+      const gap = Math.max(0, 60 - s.percentage);
+      return sum + Math.ceil(gap / 4); // Rough estimate: 4% per item
+    }, 0);
+    
+    if (totalItemsNeeded > 0) {
+      return `Add ${totalItemsNeeded} more items to foundation sections (currently ${Math.round(layer1Avg)}% complete)`;
     }
   }
   
-  // All sections complete
-  if (overallPercentage >= 85) {
-    return 'Your vault is exceptional - ready for senior opportunities';
+  // Layer 1 done, focus on Layer 2
+  if (overallPercentage < 85) {
+    const layer2Incomplete = sections.filter(s => s.layer === 2 && s.percentage < 100);
+    if (layer2Incomplete.length > 0) {
+      return 'Add leadership and strategic impact details to reach exceptional status (85%+)';
+    }
   }
   
-  return 'Continue building your vault to strengthen market positioning';
+  // Everything done
+  if (overallPercentage >= 85) {
+    return 'Vault complete! Generate your resume or start interview prep →';
+  }
+  
+  return 'Continue building your vault to unlock advanced features';
 }
