@@ -1,4 +1,4 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -34,51 +34,50 @@ export function ActionCenter() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Your Toolbox</h2>
       </div>
 
-      <Tabs defaultValue="find" className="w-full">
-        <TabsList className="w-full justify-start h-auto p-1 bg-muted/50 space-x-2 mb-6 overflow-x-auto">
-          <TabsTrigger value="find" className="px-6 py-2.5">Find & Apply</TabsTrigger>
-          <TabsTrigger value="prepare" className="px-6 py-2.5">Prepare & Win</TabsTrigger>
-          <TabsTrigger value="brand" className="px-6 py-2.5">Build Brand</TabsTrigger>
-          <TabsTrigger value="foundation" className="px-6 py-2.5">Foundation</TabsTrigger>
-        </TabsList>
+      {/* Find & Apply */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground/90">Find & Apply</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderActionCard("Job Search", "Find opportunities with AI matching", Briefcase, "/job-search", "bg-blue-500")}
+          {renderActionCard("Resume Builder", "Create tailored, ATS-optimized resumes", FileText, "/agents/resume-builder-wizard", "bg-indigo-500")}
+          {renderActionCard("Agency Matcher", "Connect with top recruiters", Building2, "/agencies", "bg-slate-500")}
+        </div>
+      </div>
 
-        <TabsContent value="find" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {renderActionCard("Job Search", "Find opportunities with AI matching", Briefcase, "/job-search", "bg-blue-500")}
-            {renderActionCard("Resume Builder", "Create tailored, ATS-optimized resumes", FileText, "/agents/resume-builder-wizard", "bg-indigo-500")}
-            {renderActionCard("Agency Matcher", "Connect with top recruiters", Building2, "/agencies", "bg-slate-500")}
-          </div>
-        </TabsContent>
+      {/* Build Brand */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground/90">Build Brand</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderActionCard("LinkedIn Profile", "Optimize your professional presence", Linkedin, "/agents/linkedin-profile-builder", "bg-blue-600")}
+          {renderActionCard("Content Creator", "Thought leadership and blogging", Linkedin, "/agents/linkedin-blogging", "bg-blue-400")}
+          {renderActionCard("Networking Hub", "Build strategic connections", Users, "/agents/networking", "bg-teal-500")}
+        </div>
+      </div>
 
-        <TabsContent value="prepare" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {renderActionCard("Interview Prep", "Practice with vault-powered responses", MessageSquare, "/agents/interview-prep", "bg-purple-500")}
-            {renderActionCard("Salary Negotiation", "Market data and negotiation scripts", DollarSign, "/salary-negotiation", "bg-green-500")}
-            {renderActionCard("Active Applications", "Track status and next steps", FileText, "/active-applications", "bg-orange-500")}
-          </div>
-        </TabsContent>
+      {/* Prepare & Win */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground/90">Prepare & Win</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderActionCard("Interview Prep", "Practice with vault-powered responses", MessageSquare, "/agents/interview-prep", "bg-purple-500")}
+          {renderActionCard("Salary Negotiation", "Market data and negotiation scripts", DollarSign, "/salary-negotiation", "bg-green-500")}
+          {renderActionCard("Active Applications", "Track status and next steps", FileText, "/active-applications", "bg-orange-500")}
+        </div>
+      </div>
 
-        <TabsContent value="brand" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {renderActionCard("LinkedIn Profile", "Optimize your professional presence", Linkedin, "/agents/linkedin-profile-builder", "bg-blue-600")}
-            {renderActionCard("Content Creator", "Thought leadership and blogging", Linkedin, "/agents/linkedin-blogging", "bg-blue-400")}
-            {renderActionCard("Networking Hub", "Build strategic connections", Users, "/agents/networking", "bg-teal-500")}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="foundation" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {renderActionCard("Career Vault", "Your intelligence foundation", Target, "/career-vault", "bg-rose-500")}
-            {renderActionCard("Financial Planning", "Compensation and retirement analysis", Calculator, "/agents/financial-planning-assistant", "bg-emerald-600")}
-            {renderActionCard("Career Trends", "Market intelligence insights", TrendingUp, "/agents/career-trends-scout", "bg-cyan-500")}
-          </div>
-        </TabsContent>
-      </Tabs>
+      {/* Foundation */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground/90">Foundation</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderActionCard("Career Vault", "Your intelligence foundation", Target, "/career-vault", "bg-rose-500")}
+          {renderActionCard("Financial Planning", "Compensation and retirement analysis", Calculator, "/agents/financial-planning-assistant", "bg-emerald-600")}
+          {renderActionCard("Career Trends", "Market intelligence insights", TrendingUp, "/agents/career-trends-scout", "bg-cyan-500")}
+        </div>
+      </div>
     </div>
   );
 }
