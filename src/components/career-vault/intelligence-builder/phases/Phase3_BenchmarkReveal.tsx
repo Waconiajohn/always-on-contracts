@@ -44,6 +44,7 @@ export const Phase3_BenchmarkReveal = ({
   onComplete
 }: Phase3Props) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [benchmark, setBenchmark] = useState<BenchmarkComparison | null>(null);
   const [marketData, setMarketData] = useState<any>(null);
 
@@ -90,6 +91,28 @@ export const Phase3_BenchmarkReveal = ({
       toast.error('Failed to load benchmark comparison');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleStartGapInterview = async () => {
+    setIsGeneratingQuestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-gap-questions', {
+        body: {
+          vaultId,
+          gaps: benchmark?.gaps_requiring_questions || []
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Generated ${data.totalQuestions} targeted questions`);
+      onComplete();
+    } catch (error) {
+      console.error('Error generating gap questions:', error);
+      toast.error('Failed to generate interview questions');
+    } finally {
+      setIsGeneratingQuestions(false);
     }
   };
 
@@ -296,11 +319,18 @@ export const Phase3_BenchmarkReveal = ({
           <div>
             <h3 className="font-semibold mb-1">Ready to Fill the Gaps?</h3>
             <p className="text-sm text-muted-foreground">
-              Next, we'll ask targeted questions to unlock your hidden strengths
+              {isGeneratingQuestions 
+                ? "Generating personalized questions..."
+                : "Next, we'll ask targeted questions to unlock your hidden strengths"
+              }
             </p>
           </div>
-          <Button onClick={onComplete} size="lg">
-            Start Gap Interview
+          <Button 
+            onClick={handleStartGapInterview} 
+            size="lg"
+            disabled={isGeneratingQuestions}
+          >
+            {isGeneratingQuestions ? "Generating..." : "Start Gap Interview"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
