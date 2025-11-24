@@ -130,7 +130,7 @@ export const VaultNuclearReset = ({
           // Resume and extraction data
           resume_raw_text: null,
           initial_analysis: null,
-          extraction_status: 'not_started',
+          extraction_status: 'pending', // Valid values: pending, processing, completed, failed, needs_retry
           extraction_timestamp: null,
           extraction_run_id: null,
           extraction_quality: null,
