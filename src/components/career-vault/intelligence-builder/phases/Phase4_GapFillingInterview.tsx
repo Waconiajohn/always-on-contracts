@@ -5,6 +5,6 @@ interface Phase4Props {
   onComplete: () => void;
 }
 
-export const Phase4_GapFillingInterview = ({ onComplete }: Phase4Props) => {
+export const Phase4_GapFillingInterview = (_props: Phase4Props) => {
   return <div>Phase 4: Gap-Filling Interview - Coming in Week 2</div>;
 };

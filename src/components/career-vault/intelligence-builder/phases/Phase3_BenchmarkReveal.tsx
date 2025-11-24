@@ -5,6 +5,6 @@ interface Phase3Props {
   onComplete: () => void;
 }
 
-export const Phase3_BenchmarkReveal = ({ onComplete }: Phase3Props) => {
+export const Phase3_BenchmarkReveal = (_props: Phase3Props) => {
   return <div>Phase 3: Benchmark Reveal - Coming in Week 2</div>;
 };

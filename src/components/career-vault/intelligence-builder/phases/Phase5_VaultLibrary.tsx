@@ -4,6 +4,6 @@ interface Phase5Props {
   onRestartWizard: () => void;
 }
 
-export const Phase5_VaultLibrary = () => {
+export const Phase5_VaultLibrary = (_props: Phase5Props) => {
   return <div>Phase 5: Vault Library - Coming in Week 2</div>;
 };
