@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { VAULT_TABLE_NAMES } from '@/lib/constants/vaultTables';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface VaultNuclearResetProps {
   vaultId: string;
@@ -17,6 +18,7 @@ export const VaultNuclearReset = ({
   onResetComplete 
 }: VaultNuclearResetProps) => {
   const [isResetting, setIsResetting] = useState(false);
+  const queryClient = useQueryClient();
 
   const clearVaultAndReExtract = async () => {
     setIsResetting(true);
@@ -116,7 +118,11 @@ export const VaultNuclearReset = ({
       console.log('🧹 Deleting verification results...');
       await supabase.from('resume_verification_results').delete().eq('vault_id', vaultId);
 
-      // 7. Reset career_vault metadata to zero state - ALL counts and data
+      // 7. Delete benchmark comparisons
+      console.log('🧹 Deleting benchmark comparisons...');
+      await supabase.from('vault_benchmark_comparison').delete().eq('vault_id', vaultId);
+
+      // 8. Reset career_vault metadata to zero state - ALL counts and data
       console.log('♻️ Resetting career_vault metadata to zero...');
       const { error: resetError } = await supabase
         .from('career_vault')
@@ -180,9 +186,18 @@ export const VaultNuclearReset = ({
 
       console.log('✅ NUCLEAR RESET COMPLETE: All data wiped to zero state (including resume)');
 
+      // Force invalidate ALL vault-related React Query caches to show zero state immediately
+      await queryClient.invalidateQueries({ queryKey: ['vault-data'] });
+      await queryClient.invalidateQueries({ queryKey: ['vault-assessment'] });
+      await queryClient.invalidateQueries({ queryKey: ['vault-benchmark'] });
+      await queryClient.invalidateQueries({ queryKey: ['extraction-progress'] });
+      await queryClient.resetQueries({ queryKey: ['vault-data'] });
+      
+      console.log('✅ All React Query caches invalidated and reset');
+
       toast.success('Vault completely cleared. Resume deleted. Upload a resume to start fresh.');
       
-      // Force cache invalidation to show zero state immediately
+      // Call the callback after cache invalidation
       if (onResetComplete) {
         onResetComplete();
       }
@@ -240,6 +255,8 @@ export const VaultNuclearReset = ({
                   <li>All gap analysis data</li>
                   <li>All career context and AI analysis</li>
                   <li>All extraction history</li>
+                  <li>All benchmark comparisons</li>
+                  <li>All verification results</li>
                 </ul>
                 Everything will be set to ZERO. You'll need to upload a resume afterward to start completely fresh.
                 <br /><br />
