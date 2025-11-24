@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Loader2, Sparkles, Trash2, List, LayoutGrid, Calendar, DollarSign, MessageSquare } from "lucide-react";
+import { Loader2, Sparkles, Trash2, List, LayoutGrid, Calendar, DollarSign, MessageSquare, Briefcase } from "lucide-react";
 import { useApplicationQueue } from "@/hooks/useApplicationQueue";
 import { EmptyState } from "@/components/EmptyState";
 import { AISuggestionItem } from "@/components/AISuggestionItem";
@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { FeaturePageWrapper } from "@/components/gates/FeaturePageWrapper";
+import { ContentLayout } from "@/components/layout/ContentLayout";
+import { ApplicationQueueSidebar } from "@/components/applications/ApplicationQueueSidebar";
 
 export default function ApplicationQueue() {
   const navigate = useNavigate();
@@ -115,53 +117,39 @@ export default function ApplicationQueue() {
 
   return (
     <FeaturePageWrapper showVaultReminder={true} vaultReminderContext="general">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
+      <ContentLayout
+        leftSidebar={<ApplicationQueueSidebar />}
+        maxWidth="full"
+        className="p-6"
+      >
+        {/* Simplified Hero Section */}
+        <div className="space-y-4 mb-6">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Active Applications</h1>
+            <h1 className="text-4xl font-bold">Active Applications</h1>
             <p className="text-muted-foreground mt-2">
-              Track your applications, manage interviews, and review AI-powered job suggestions
+              Track your job applications, manage interview schedules, and review AI-matched opportunities.
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate("/job-search")}
-          >
-            <Briefcase className="h-4 w-4 mr-2" />
-            Find More Jobs
-          </Button>
-        </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <Card>
-            <CardHeader className="pb-4">
-              <CardDescription>Total Applications</CardDescription>
-              <CardTitle className="text-4xl">{stats.total}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Not Applied</CardDescription>
-              <CardTitle className="text-3xl">{statusCounts.not_applied}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Applied</CardDescription>
-              <CardTitle className="text-3xl">{statusCounts.applied}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-primary/50">
-            <CardHeader className="pb-3">
-              <CardDescription className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                AI Suggestions
-              </CardDescription>
-              <CardTitle className="text-3xl text-primary">{stats.suggestions}</CardTitle>
-            </CardHeader>
-            </Card>
+          
+          {/* Compact inline stats */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
+              <span className="text-2xl font-bold">{stats.total}</span>
+              <span className="text-sm text-muted-foreground">Total</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
+              <span className="text-2xl font-bold">{statusCounts.not_applied}</span>
+              <span className="text-sm text-muted-foreground">Not Applied</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
+              <span className="text-2xl font-bold">{statusCounts.applied}</span>
+              <span className="text-sm text-muted-foreground">Applied</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg border border-primary/30">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-2xl font-bold text-primary">{stats.suggestions}</span>
+              <span className="text-sm text-muted-foreground">AI Matches</span>
+            </div>
           </div>
         </div>
 
@@ -447,6 +435,7 @@ export default function ApplicationQueue() {
           </SubscriptionGate>
         </TabsContent>
       </Tabs>
+      </ContentLayout>
     </FeaturePageWrapper>
   );
 }
