@@ -258,6 +258,10 @@ export function VaultBuilderMainView({
           <p className="text-base text-muted-foreground">
             Complete these to unlock executive intelligence sections (currently {Math.round(layer1Avg)}% complete)
           </p>
+          <p className="text-sm text-primary font-medium mt-2 flex items-center gap-1">
+            <Sparkles className="h-4 w-4" />
+            Click any section card below to start adding items
+          </p>
         </div>
         
         <div className="grid md:grid-cols-2 gap-6">
@@ -288,6 +292,12 @@ export function VaultBuilderMainView({
           <p className="text-base text-muted-foreground mt-1">
             Advanced sections that showcase leadership and strategic impact
           </p>
+          {layer1Avg >= 60 && (
+            <p className="text-sm text-primary font-medium mt-2 flex items-center gap-1">
+              <Sparkles className="h-4 w-4" />
+              Click any section card below to start adding items
+            </p>
+          )}
         </div>
         
         <div className="grid md:grid-cols-3 gap-6">
