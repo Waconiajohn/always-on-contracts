@@ -1,29 +1,122 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText,
   Linkedin,
   MessageSquare,
   TrendingUp,
-  RefreshCw,
   Briefcase,
-  Award
+  Award,
+  Search,
+  Sparkles,
+  Target
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Phase5Props {
   vaultId: string;
-  vaultData: any;
-  onRestartWizard: () => void;
+  onProgress: (progress: number) => void;
+  onTimeEstimate: (estimate: string) => void;
+  onComplete: () => void;
+}
+
+interface VaultStats {
+  powerPhrases: number;
+  skills: number;
+  competencies: number;
+  softSkills: number;
+  total: number;
 }
 
 export const Phase5_VaultLibrary = ({
-  vaultId: _vaultId,
-  vaultData,
-  onRestartWizard
+  vaultId,
+  onProgress,
+  onTimeEstimate,
 }: Phase5Props) => {
-  const [activeTab, setActiveTab] = useState<'positions' | 'skills' | 'achievements'>('positions');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stats, setStats] = useState<VaultStats | null>(null);
+  const [powerPhrases, setPowerPhrases] = useState<any[]>([]);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadVaultData();
+  }, [vaultId]);
+
+  const loadVaultData = async () => {
+    setIsLoading(true);
+    onProgress(20);
+
+    try {
+      // Load vault metadata for stats
+      const { data: vault } = await supabase
+        .from('career_vault')
+        .select('*')
+        .eq('id', vaultId)
+        .single();
+
+      onProgress(40);
+
+      // Load power phrases
+      const { data: phrases } = await supabase
+        .from('vault_power_phrases')
+        .select('*')
+        .eq('vault_id', vaultId)
+        .order('created_at', { ascending: false });
+
+      setPowerPhrases(phrases || []);
+      onProgress(60);
+
+      // Load skills
+      const { data: skillsData } = await supabase
+        .from('vault_transferable_skills')
+        .select('*')
+        .eq('vault_id', vaultId)
+        .order('created_at', { ascending: false });
+
+      setSkills(skillsData || []);
+      onProgress(80);
+
+      // Calculate stats
+      setStats({
+        powerPhrases: phrases?.length || 0,
+        skills: skillsData?.length || 0,
+        competencies: vault?.total_hidden_competencies || 0,
+        softSkills: vault?.total_soft_skills || 0,
+        total: (phrases?.length || 0) + (skillsData?.length || 0)
+      });
+
+      onProgress(100);
+      onTimeEstimate('Ready to use');
+      toast.success('Vault loaded successfully');
+    } catch (error) {
+      console.error('Error loading vault:', error);
+      toast.error('Failed to load vault data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredPhrases = powerPhrases.filter(p =>
+    p.power_phrase?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredSkills = skills.filter(s =>
+    s.stated_skill?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-muted-foreground">Loading your vault...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -32,38 +125,50 @@ export const Phase5_VaultLibrary = ({
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold">Your Career Intelligence Library</h1>
           <p className="text-lg text-muted-foreground">
-            Your career data is now organized and ready to power your job search
+            {stats?.total || 0} market-ready items organized and searchable
           </p>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-6 text-center">
-            <div className="text-3xl font-bold text-primary">
-              {vaultData?.overall_strength_score || 0}%
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Market Readiness</p>
-          </Card>
-
-          <Card className="p-6 text-center">
             <div className="text-3xl font-bold text-primary">
-              {vaultData?.total_power_phrases || 0}
+              {stats?.powerPhrases || 0}
             </div>
             <p className="text-sm text-muted-foreground mt-1">Power Phrases</p>
           </Card>
 
           <Card className="p-6 text-center">
-            <div className="text-3xl font-bold text-primary">
-              {vaultData?.total_transferable_skills || 0}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <TrendingUp className="h-5 w-5 text-blue-500" />
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Transferable Skills</p>
+            <div className="text-3xl font-bold text-blue-500">
+              {stats?.skills || 0}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Skills</p>
           </Card>
 
           <Card className="p-6 text-center">
-            <div className="text-3xl font-bold text-primary">
-              {vaultData?.total_hidden_competencies || 0}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Target className="h-5 w-5 text-orange-500" />
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Hidden Strengths</p>
+            <div className="text-3xl font-bold text-orange-500">
+              {stats?.competencies || 0}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Competencies</p>
+          </Card>
+
+          <Card className="p-6 text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Award className="h-5 w-5 text-green-500" />
+            </div>
+            <div className="text-3xl font-bold text-green-500">
+              {stats?.softSkills || 0}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Soft Skills</p>
           </Card>
         </div>
 
@@ -122,78 +227,86 @@ export const Phase5_VaultLibrary = ({
         <Card className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Browse Your Vault</h2>
-            <Button onClick={onRestartWizard} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Re-run Analysis
-            </Button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search your vault..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 border-b">
-            <button
-              onClick={() => setActiveTab('positions')}
-              className={`px-4 py-2 font-semibold transition-colors ${
-                activeTab === 'positions'
-                  ? 'border-b-2 border-primary text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Briefcase className="h-4 w-4 inline mr-2" />
-              Positions
-            </button>
-            <button
-              onClick={() => setActiveTab('skills')}
-              className={`px-4 py-2 font-semibold transition-colors ${
-                activeTab === 'skills'
-                  ? 'border-b-2 border-primary text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <TrendingUp className="h-4 w-4 inline mr-2" />
-              Skills
-            </button>
-            <button
-              onClick={() => setActiveTab('achievements')}
-              className={`px-4 py-2 font-semibold transition-colors ${
-                activeTab === 'achievements'
-                  ? 'border-b-2 border-primary text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Award className="h-4 w-4 inline mr-2" />
-              Achievements
-            </button>
-          </div>
+          <Tabs defaultValue="phrases" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="phrases">
+                <Briefcase className="h-4 w-4 mr-2" />
+                Power Phrases ({filteredPhrases.length})
+              </TabsTrigger>
+              <TabsTrigger value="skills">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Skills ({filteredSkills.length})
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Tab Content */}
-          <div className="min-h-[300px]">
-            {activeTab === 'positions' && (
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Your work history with AI-enhanced bullets and strategic positioning
-                </p>
-                <Badge variant="secondary">Feature coming soon</Badge>
-              </div>
-            )}
+            <TabsContent value="phrases" className="space-y-3">
+              {filteredPhrases.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No power phrases found</p>
+                </div>
+              ) : (
+                filteredPhrases.map((phrase) => (
+                  <Card key={phrase.id} className="p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="font-medium">{phrase.power_phrase}</p>
+                        {phrase.context && (
+                          <p className="text-sm text-muted-foreground mt-1">{phrase.context}</p>
+                        )}
+                      </div>
+                      <Badge variant={
+                        phrase.quality_tier === 'gold' ? 'default' :
+                        phrase.quality_tier === 'silver' ? 'secondary' : 'outline'
+                      }>
+                        {phrase.quality_tier || 'bronze'}
+                      </Badge>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
 
-            {activeTab === 'skills' && (
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Technical and transferable skills organized by proficiency and relevance
-                </p>
-                <Badge variant="secondary">Feature coming soon</Badge>
-              </div>
-            )}
-
-            {activeTab === 'achievements' && (
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Quantified achievements and impact metrics ready for any application
-                </p>
-                <Badge variant="secondary">Feature coming soon</Badge>
-              </div>
-            )}
-          </div>
+            <TabsContent value="skills" className="space-y-3">
+              {filteredSkills.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No skills found</p>
+                </div>
+              ) : (
+                filteredSkills.map((skill) => (
+                  <Card key={skill.id} className="p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="font-medium">{skill.stated_skill}</p>
+                        {skill.evidence && (
+                          <p className="text-sm text-muted-foreground mt-1">{skill.evidence}</p>
+                        )}
+                      </div>
+                      <Badge variant={
+                        skill.quality_tier === 'gold' ? 'default' :
+                        skill.quality_tier === 'silver' ? 'secondary' : 'outline'
+                      }>
+                        {skill.quality_tier || 'bronze'}
+                      </Badge>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
         </Card>
       </div>
     </div>
