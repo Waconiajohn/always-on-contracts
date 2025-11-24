@@ -180,20 +180,89 @@ Return JSON format:
 
     console.log('[analyze-market-fit] Market research saved:', savedResearch.id);
 
-    // Step 4: Compare user's resume to market (if resumeText provided)
-    let gaps = [];
+    // Step 4: Compare user's resume to market and create benchmark comparison
+    let userSkills: string[] = [];
+    let gaps: any[] = [];
+    let confirmedSkills: string[] = [];
+    let likelySkills: string[] = [];
+    
     if (resumeText) {
-      const userSkills = extractSkillsFromText(resumeText);
+      userSkills = extractSkillsFromText(resumeText);
       const requiredSkills = marketData.commonSkills || [];
       
+      // Identify gaps (skills in market but not in resume)
       gaps = requiredSkills
         .filter((skill: string) => !userSkills.some(us => us.toLowerCase().includes(skill.toLowerCase())))
-        .map((skill: string) => ({
-          type: 'skill',
-          name: skill,
-          frequency: marketData.skillFrequency?.[skill] || 0,
-          priority: marketData.skillFrequency?.[skill] >= 5 ? 'critical' : 'important'
-        }));
+        .map((skill: string, index: number) => {
+          const frequency = marketData.skillFrequency?.[skill] || 0;
+          return {
+            gap_id: `gap_${index + 1}`,
+            gap_type: 'skill',
+            requirement: skill,
+            priority: frequency >= 7 ? 'blocking' : frequency >= 4 ? 'important' : 'nice_to_have',
+            reasoning: `This skill appears in ${frequency}/${jobs.length} job postings and is missing from your resume`
+          };
+        });
+
+      // Confirmed skills (found in resume)
+      confirmedSkills = requiredSkills.filter((skill: string) => 
+        userSkills.some(us => us.toLowerCase().includes(skill.toLowerCase()))
+      );
+
+      // Likely skills (inferred from related terms)
+      likelySkills = userSkills.filter(us => 
+        !confirmedSkills.some(cs => cs.toLowerCase() === us.toLowerCase())
+      ).slice(0, 5);
+    }
+
+    // Step 5: Create benchmark comparison record for Phase 3
+    const strengthScore = confirmedSkills.length > 0 
+      ? Math.round((confirmedSkills.length / (confirmedSkills.length + gaps.length)) * 100)
+      : 0;
+    
+    const completenessPercentage = (marketData.commonSkills?.length || 0) > 0
+      ? Math.round((confirmedSkills.length / (marketData.commonSkills?.length || 1)) * 100)
+      : 0;
+
+    const { data: benchmarkData, error: benchmarkError } = await supabaseClient
+      .from('vault_benchmark_comparison')
+      .insert({
+        vault_id: vaultId,
+        user_id: user.id,
+        job_title: targetRole,
+        industry: targetIndustry || 'General',
+        seniority_level: 'mid',  // TODO: Detect from resume
+        benchmark_data: {
+          jobsAnalyzed: jobs.length,
+          commonSkills: marketData.commonSkills || [],
+          commonRequirements: marketData.commonRequirements || {},
+          skillFrequency: marketData.skillFrequency || {}
+        },
+        confirmed_data: {
+          technical_skills: confirmedSkills,
+          leadership_skills: [],
+          achievements: []
+        },
+        likely_data: {
+          technical_skills: likelySkills,
+          leadership_skills: [],
+          achievements: []
+        },
+        gaps_requiring_questions: gaps,
+        evidence_summary: {
+          strength_score: strengthScore,
+          completeness_percentage: completenessPercentage
+        },
+        comparison_confidence: confirmedSkills.length > 0 ? 0.85 : 0.5
+      })
+      .select()
+      .single();
+
+    if (benchmarkError) {
+      console.error('[analyze-market-fit] Benchmark save error:', benchmarkError);
+      // Don't throw - this is supplementary data
+    } else {
+      console.log('[analyze-market-fit] Benchmark comparison saved:', benchmarkData.id);
     }
 
     return new Response(JSON.stringify({
@@ -206,7 +275,8 @@ Return JSON format:
         keyThemes: marketData.keyThemes || []
       },
       gaps: gaps,
-      researchId: savedResearch.id
+      researchId: savedResearch.id,
+      benchmarkId: benchmarkData?.id
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
