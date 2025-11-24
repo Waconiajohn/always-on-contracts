@@ -75,7 +75,7 @@ export const mainNavItems: NavItem[] = [
     label: 'LinkedIn',
     icon: Linkedin,
     dropdown: [
-      { label: 'Profile', path: '/agents/linkedin-profile', icon: Linkedin },
+      { label: 'Profile', path: '/agents/linkedin-profile-builder', icon: Linkedin },
       { label: 'Content', path: '/agents/linkedin-blogging', icon: MessageSquare },
       { label: 'Networking', path: '/agents/networking', icon: Users },
     ],
