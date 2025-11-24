@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { callLovableAI } from '../_shared/lovableAI.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,12 +41,6 @@ Deno.serve(async (req) => {
     console.log('Generating gap questions for vault:', vaultId);
     console.log('Number of gaps:', gaps.length);
 
-    // Use Lovable AI to generate targeted questions
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
     const generatedGaps = [];
 
     for (const gap of gaps) {
@@ -75,32 +70,13 @@ Return a JSON array of questions in this format:
   }
 ]`;
 
-      const aiResponse = await fetch('https://api.lovable.app/v1/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      });
+      const aiResponse = await callLovableAI(
+        [{ role: 'user', content: prompt }],
+        'google/gemini-2.5-flash',
+        { temperature: 0.7, max_tokens: 1000 }
+      );
 
-      if (!aiResponse.ok) {
-        console.error('AI request failed:', await aiResponse.text());
-        throw new Error('Failed to generate questions');
-      }
-
-      const aiData = await aiResponse.json();
-      const messageContent = aiData.choices[0].message.content;
+      const messageContent = aiResponse.choices[0].message.content;
       
       // Extract JSON from response
       const jsonMatch = messageContent.match(/\[[\s\S]*\]/);
