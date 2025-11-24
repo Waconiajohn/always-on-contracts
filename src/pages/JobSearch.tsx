@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -89,12 +89,6 @@ const JobSearchContent = () => {
     setShowAdvanced(true);
   };
 
-  const handleClearBoolean = () => {
-    setBooleanString('');
-    setActiveSavedSearchName(null);
-    setBasicSearchCount(null);
-    setBooleanSearchCount(null);
-  };
   
   // Use hook for AI-powered job title recommendations
   const { suggestedTitles } = useJobTitleRecommendations(userId);
@@ -518,15 +512,6 @@ const JobSearchContent = () => {
     });
   };
 
-  const appliedFiltersCount = useMemo(() => {
-    let count = 0;
-    if (dateFilter !== '24h') count++;
-    if (contractOnly) count++;
-    if (remoteType !== 'any') count++;
-    if (employmentType !== 'any') count++;
-    if (booleanString.trim()) count++;
-    return count;
-  }, [dateFilter, contractOnly, remoteType, employmentType, booleanString]);
 
   return (
     <ContentLayout
@@ -538,8 +523,6 @@ const JobSearchContent = () => {
           width="lg"
         >
           <JobSearchSidebar
-            appliedFiltersCount={appliedFiltersCount}
-            onClearFilters={handleClearBoolean}
             userId={userId}
             booleanString={booleanString}
             setBooleanString={setBooleanString}
