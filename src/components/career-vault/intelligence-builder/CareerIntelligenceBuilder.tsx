@@ -22,7 +22,6 @@ export const CareerIntelligenceBuilder = ({
   const [phaseProgress, setPhaseProgress] = useState(0);
   const [timeEstimate, setTimeEstimate] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
-  const [vaultData, setVaultData] = useState<any>(null);
 
   useEffect(() => {
     loadVaultState();
@@ -38,8 +37,6 @@ export const CareerIntelligenceBuilder = ({
         .single();
 
       if (error) throw error;
-
-      setVaultData(vault);
       
       // If already completed, go straight to library
       if (vault.intelligence_builder_completed) {
@@ -109,8 +106,9 @@ export const CareerIntelligenceBuilder = ({
     return (
       <Phase5_VaultLibrary
         vaultId={vaultId}
-        vaultData={vaultData}
-        onRestartWizard={() => handlePhaseComplete(1)}
+        onProgress={setPhaseProgress}
+        onTimeEstimate={setTimeEstimate}
+        onComplete={() => {}} // Phase 5 is final destination
       />
     );
   }
