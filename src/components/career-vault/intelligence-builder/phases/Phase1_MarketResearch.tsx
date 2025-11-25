@@ -89,35 +89,26 @@ export const Phase1_MarketResearch = ({
     onTimeEstimate('~3 minutes left');
 
     try {
-      // Get the current user ID for storage path (RLS requirement)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Step 1: Upload resume
+      // Step 1: Convert resume to base64
       onProgress(20);
-      const fileName = `${user.id}/${Date.now()}_${resumeFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, resumeFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('resumes')
-        .getPublicUrl(fileName);
+      const arrayBuffer = await resumeFile.arrayBuffer();
+      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
       // Step 2: Parse resume
       onProgress(30);
       const parseResult = await supabase.functions.invoke('parse-resume', {
-        body: { resumeUrl: publicUrl }
+        body: { 
+          fileData: base64Data,
+          fileName: resumeFile.name
+        }
       });
 
       if (parseResult.error) {
-        throw new Error(parseResult.error.message || "Failed to parse resume - please ensure it's a valid PDF or DOCX file");
+        throw new Error(parseResult.error.message || "Failed to parse resume - please ensure it's a valid PDF, DOCX, or TXT file");
       }
       
-      if (!parseResult.data) {
-        throw new Error("Resume parsing returned no data");
+      if (!parseResult.data?.text) {
+        throw new Error("Resume parsing returned no text content");
       }
 
       const actualItemsExtracted = parseResult.data.items?.length || 0;
@@ -128,8 +119,7 @@ export const Phase1_MarketResearch = ({
       const autoPopResult = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: {
           vaultId,
-          resumeText: parseResult.data.text,
-          resumeUrl: publicUrl
+          resumeText: parseResult.data.text
         }
       });
 
