@@ -8,6 +8,22 @@ import { toast } from "sonner";
 import { ResumeAnalysisFeed } from "../LiveAnalysisFeed";
 import { MarketFitResults } from "../MarketFitResults";
 
+interface MarketAnalysisData {
+  marketData: {
+    jobsAnalyzed: number;
+    commonSkills: string[];
+    commonRequirements: Record<string, any>;
+    skillFrequency: Record<string, number>;
+    keyThemes: string[];
+  };
+  gaps: Array<{
+    type: string;
+    name: string;
+    frequency: number;
+    priority: 'critical' | 'important' | 'nice_to_have';
+  }>;
+}
+
 interface Phase1Props {
   vaultId: string;
   onProgress: (progress: number) => void;
@@ -26,7 +42,7 @@ export const Phase1_MarketResearch = ({
   const [targetRole, setTargetRole] = useState("");
   const [targetIndustry, setTargetIndustry] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [analysisData, setAnalysisData] = useState<MarketAnalysisData | null>(null);
   const [itemsExtracted, setItemsExtracted] = useState(0);
   const [jobsAnalyzed, setJobsAnalyzed] = useState(0);
 
@@ -88,45 +104,63 @@ export const Phase1_MarketResearch = ({
 
       // Step 2: Parse resume
       onProgress(30);
-      setItemsExtracted(5);
-      const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-resume', {
+      const parseResult = await supabase.functions.invoke('parse-resume', {
         body: { resumeUrl: publicUrl }
       });
 
-      if (parseError) throw parseError;
+      if (parseResult.error) {
+        throw new Error(parseResult.error.message || "Failed to parse resume - please ensure it's a valid PDF or DOCX file");
+      }
+      
+      if (!parseResult.data) {
+        throw new Error("Resume parsing returned no data");
+      }
 
-      setItemsExtracted(parseData?.items?.length || 10);
+      const actualItemsExtracted = parseResult.data.items?.length || 0;
+      setItemsExtracted(actualItemsExtracted);
       onProgress(50);
 
       // Step 3: Extract vault items
-      const { error: extractError } = await supabase.functions.invoke('auto-populate-vault-v3', {
+      const autoPopResult = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: {
           vaultId,
-          resumeText: parseData?.text,
+          resumeText: parseResult.data.text,
           resumeUrl: publicUrl
         }
       });
 
-      if (extractError) throw extractError;
+      if (autoPopResult.error) {
+        throw new Error(autoPopResult.error.message || "Failed to extract information from resume");
+      }
+      
+      if (!autoPopResult.data) {
+        throw new Error("Vault population returned no data");
+      }
 
       onProgress(60);
-      setJobsAnalyzed(3);
 
       // Step 4: Analyze market fit
       onTimeEstimate('~2 minutes left');
-      const { data: marketData, error: marketError } = await supabase.functions.invoke('analyze-market-fit', {
+      const marketFitResult = await supabase.functions.invoke('analyze-market-fit', {
         body: {
           vaultId,
           targetRole,
           targetIndustry,
-          resumeText: parseData?.text,
+          resumeText: parseResult.data.text,
           numJobs: 10
         }
       });
 
-      if (marketError) throw marketError;
+      if (marketFitResult.error) {
+        throw new Error(marketFitResult.error.message || "Failed to analyze job market - please try again");
+      }
+      
+      if (!marketFitResult.data) {
+        throw new Error("Market analysis returned no data");
+      }
 
-      setJobsAnalyzed(marketData?.marketData?.jobsAnalyzed || 10);
+      const actualJobsAnalyzed = marketFitResult.data.marketData?.jobsAnalyzed || 0;
+      setJobsAnalyzed(actualJobsAnalyzed);
       onProgress(90);
 
       // Step 5: Update vault with targets
@@ -135,19 +169,29 @@ export const Phase1_MarketResearch = ({
         .update({
           target_roles: [targetRole],
           target_industries: targetIndustry ? [targetIndustry] : [],
-          resume_raw_text: parseData?.text
+          resume_raw_text: parseResult.data.text
         })
         .eq('id', vaultId);
 
       onProgress(100);
-      setAnalysisData(marketData);
+      setAnalysisData(marketFitResult.data);
       setStep('results');
       toast.success('Market analysis complete!');
 
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error('Failed to analyze resume. Please try again.');
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "An unexpected error occurred during analysis";
+      
+      toast.error(errorMessage, {
+        description: "Please try again or contact support if the issue persists",
+      });
+      
       setStep('upload');
+      // Reset progress on error
+      setItemsExtracted(0);
+      setJobsAnalyzed(0);
     } finally {
       setIsProcessing(false);
     }
@@ -171,12 +215,12 @@ export const Phase1_MarketResearch = ({
     );
   }
 
-  if (step === 'results') {
+  if (step === 'results' && analysisData) {
     return (
       <MarketFitResults
         vaultId={vaultId}
-        marketData={analysisData?.marketData}
-        gaps={analysisData?.gaps || []}
+        marketData={analysisData.marketData}
+        gaps={analysisData.gaps}
         onContinue={onComplete}
       />
     );
