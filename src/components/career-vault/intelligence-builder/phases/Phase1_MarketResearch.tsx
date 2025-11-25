@@ -89,6 +89,13 @@ export const Phase1_MarketResearch = ({
     onTimeEstimate('~3 minutes left');
 
     try {
+      // Verify user is authenticated
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('Please sign in to continue. Your session may have expired.');
+      }
+
       // Step 1: Convert resume to base64
       onProgress(20);
       const arrayBuffer = await resumeFile.arrayBuffer();
@@ -148,6 +155,12 @@ export const Phase1_MarketResearch = ({
       // Handle "no jobs found" case specifically
       if (marketFitResult.error) {
         const errorMsg = marketFitResult.error.message || "";
+        
+        // Check for authentication errors
+        if (errorMsg.includes("Unauthorized") || errorMsg.includes("401")) {
+          throw new Error("Your session has expired. Please refresh the page and sign in again.");
+        }
+        
         if (errorMsg.includes("No jobs found")) {
           toast.error("No jobs found for this role", {
             description: `Try searching for:\n• "${targetRole.replace('Senior ', '')}" (remove seniority level)\n• Related roles like "Drilling Supervisor" or "Petroleum Engineer"\n• Specific locations instead of "Remote"`,
