@@ -64,11 +64,18 @@ export function VaultItemCard({
   };
 
   const getMetadata = () => {
-    const confidence = item.confidence_score || item.ai_confidence || 0;
+    // confidence_score is integer (0-100), ai_confidence is decimal (0-1)
+    let confidence = 0;
+    if (item.confidence_score !== undefined && item.confidence_score !== null) {
+      confidence = item.confidence_score; // Already 0-100
+    } else if (item.ai_confidence !== undefined && item.ai_confidence !== null) {
+      confidence = item.ai_confidence * 100; // Convert 0-1 to 0-100
+    }
+    
     const lastUpdated = item.last_updated_at || item.updated_at || item.created_at;
     
     return {
-      confidence: Math.round(confidence * 100),
+      confidence: Math.min(100, Math.round(confidence)),
       lastUpdated: lastUpdated ? formatDistanceToNow(new Date(lastUpdated), { addSuffix: true }) : 'Unknown',
       source: item.source || 'Extracted from resume',
       usageCount: item.usage_count || 0
