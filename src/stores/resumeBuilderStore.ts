@@ -55,7 +55,7 @@ interface CategorizedRequirements {
 
 interface ResumeBuilderState {
   // Wizard state
-  currentStep: 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'section-wizard' | 'generation' | 'final-review';
+  currentStep: 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'section-wizard' | 'generation' | 'hiring-manager-review' | 'ats-score-report' | 'final-review';
   currentRequirementIndex: number;
   currentSectionIndex: number;
   generationMode: 'full' | 'section-by-section' | null;

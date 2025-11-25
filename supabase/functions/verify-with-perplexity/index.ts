@@ -98,8 +98,19 @@ Provide factual verification with current sources.`;
 
     console.log('Calling Perplexity for verification...');
     
-    const { response, metrics } = await callLovableAI(
-      {
+    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    if (!perplexityApiKey) {
+      throw new Error('PERPLEXITY_API_KEY not configured');
+    }
+
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${perplexityApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar-pro',
         messages: [
           {
             role: 'system',
@@ -110,17 +121,20 @@ Provide factual verification with current sources.`;
             content: verificationPrompt
           }
         ],
-        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.2,
         max_tokens: 2000,
-      },
-      'verify-with-perplexity',
-      user.id
-    );
+      }),
+    });
 
-    await logAIUsage(metrics);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Perplexity API error:', response.status, errorText);
+      throw new Error(`Perplexity API error: ${response.status}`);
+    }
 
-    const verification_result = response.choices[0]?.message?.content;
+    const data = await response.json();
+    const verification_result = data.choices?.[0]?.message?.content;
+    const citations = data.citations || [];
 
     // Store verification result
     const { error: insertError } = await supabase
@@ -131,6 +145,7 @@ Provide factual verification with current sources.`;
         original_content: content_to_verify,
         verification_result,
         verified_at: new Date().toISOString(),
+        citations,
       });
 
     if (insertError) {
@@ -141,6 +156,7 @@ Provide factual verification with current sources.`;
       JSON.stringify({
         success: true,
         verification_result,
+        citations,
         verified_at: new Date().toISOString(),
       }),
       {

@@ -3327,6 +3327,53 @@ export type Database = {
           },
         ]
       }
+      resume_reviews: {
+        Row: {
+          citations: string[] | null
+          created_at: string
+          id: string
+          resume_id: string | null
+          review_data: Json
+          review_type: string
+          reviewed_at: string
+          score: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          citations?: string[] | null
+          created_at?: string
+          id?: string
+          resume_id?: string | null
+          review_data?: Json
+          review_type: string
+          reviewed_at?: string
+          score?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          citations?: string[] | null
+          created_at?: string
+          id?: string
+          resume_id?: string | null
+          review_data?: Json
+          review_type?: string
+          reviewed_at?: string
+          score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_reviews_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resume_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_templates: {
         Row: {
           created_at: string
