@@ -174,7 +174,7 @@ export const Phase3_BenchmarkReveal = ({
           </div>
 
           <div className="space-y-4">
-            {benchmark.confirmed_data.technical_skills.length > 0 && (
+            {benchmark.confirmed_data?.technical_skills?.length > 0 && (
               <div>
                 <h4 className="font-semibold text-sm mb-2">Technical Skills</h4>
                 <div className="space-y-1">
@@ -188,7 +188,7 @@ export const Phase3_BenchmarkReveal = ({
               </div>
             )}
 
-            {benchmark.confirmed_data.leadership_skills.length > 0 && (
+            {benchmark.confirmed_data?.leadership_skills?.length > 0 && (
               <div>
                 <h4 className="font-semibold text-sm mb-2">Leadership</h4>
                 <div className="space-y-1">
