@@ -48,12 +48,26 @@ serve(async (req) => {
 
     // Step 1: Search live jobs using unified-job-search
     console.log('[analyze-market-fit] Searching live jobs...');
-    const jobSearchResponse = await supabaseClient.functions.invoke('unified-job-search', {
-      body: {
-        query: targetRole,
-        location: 'Remote',
-        limit: numJobs
+    
+    // Build flexible search parameters based on industry
+    // For specialized industries (oil & gas, construction, etc.), search across all location types
+    const searchBody: any = {
+      query: targetRole,
+      limit: Math.max(numJobs, 20), // Request more to account for filtering
+      filters: {
+        datePosted: '30d' as const,
+        remoteType: 'any' as const, // Search all: remote, hybrid, onsite
+        contractOnly: false
       }
+    };
+    
+    // Don't restrict by specific location - let all locations come through
+    // This is critical for specialized roles that are location-based
+    
+    console.log('[analyze-market-fit] Search params:', JSON.stringify(searchBody, null, 2));
+    
+    const jobSearchResponse = await supabaseClient.functions.invoke('unified-job-search', {
+      body: searchBody
     });
 
     if (jobSearchResponse.error) {
@@ -62,7 +76,34 @@ serve(async (req) => {
     }
 
     const jobs = jobSearchResponse.data?.results || [];
-    console.log(`[analyze-market-fit] Found ${jobs.length} jobs`);
+    console.log(`[analyze-market-fit] Found ${jobs.length} jobs for "${targetRole}"`);
+
+    // If no jobs found and the role includes seniority level, try searching without it
+    if (jobs.length === 0 && /^(Senior|Lead|Principal|Staff|Junior|Mid-Level|Mid Level)\s+/i.test(targetRole)) {
+      console.log('[analyze-market-fit] No jobs found, retrying without seniority level...');
+      const baseRole = targetRole.replace(/^(Senior|Lead|Principal|Staff|Junior|Mid-Level|Mid Level)\s+/i, '').trim();
+      
+      const fallbackSearchBody = {
+        query: baseRole,
+        limit: Math.max(numJobs, 20),
+        filters: {
+          datePosted: '30d' as const,
+          remoteType: 'any' as const,
+          contractOnly: false
+        }
+      };
+      
+      const fallbackResponse = await supabaseClient.functions.invoke('unified-job-search', {
+        body: fallbackSearchBody
+      });
+      
+      if (!fallbackResponse.error && fallbackResponse.data?.results?.length > 0) {
+        jobs.push(...fallbackResponse.data.results);
+        console.log(`[analyze-market-fit] Fallback search found ${fallbackResponse.data.results.length} jobs for "${baseRole}"`);
+      }
+    }
+    
+    console.log(`[analyze-market-fit] Total jobs to analyze: ${jobs.length}`);
 
     if (jobs.length === 0) {
       return new Response(JSON.stringify({ 
