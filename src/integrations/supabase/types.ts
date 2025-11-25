@@ -785,6 +785,8 @@ export type Database = {
           industry_research_completed: boolean | null
           initial_analysis: Json | null
           intelligence_builder_completed: boolean | null
+          intelligence_builder_phase: number | null
+          intelligence_builder_started_at: string | null
           intelligent_qa_completed: boolean | null
           interview_completion_percentage: number | null
           last_extraction_session_id: string | null
@@ -836,6 +838,8 @@ export type Database = {
           industry_research_completed?: boolean | null
           initial_analysis?: Json | null
           intelligence_builder_completed?: boolean | null
+          intelligence_builder_phase?: number | null
+          intelligence_builder_started_at?: string | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_extraction_session_id?: string | null
@@ -887,6 +891,8 @@ export type Database = {
           industry_research_completed?: boolean | null
           initial_analysis?: Json | null
           intelligence_builder_completed?: boolean | null
+          intelligence_builder_phase?: number | null
+          intelligence_builder_started_at?: string | null
           intelligent_qa_completed?: boolean | null
           interview_completion_percentage?: number | null
           last_extraction_session_id?: string | null
@@ -4986,6 +4992,7 @@ export type Database = {
           situational_example: string
           user_id: string
           vault_id: string
+          work_position_id: string | null
         }
         Insert: {
           ai_confidence?: number | null
@@ -5005,6 +5012,7 @@ export type Database = {
           situational_example: string
           user_id: string
           vault_id: string
+          work_position_id?: string | null
         }
         Update: {
           ai_confidence?: number | null
@@ -5024,8 +5032,16 @@ export type Database = {
           situational_example?: string
           user_id?: string
           vault_id?: string
+          work_position_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_executive_presence_work_position_id_fkey"
+            columns: ["work_position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "war_chest_executive_presence_war_chest_id_fkey"
             columns: ["vault_id"]
@@ -5385,6 +5401,7 @@ export type Database = {
           real_world_application: string | null
           user_id: string
           vault_id: string
+          work_position_id: string | null
         }
         Insert: {
           ai_confidence?: number | null
@@ -5404,6 +5421,7 @@ export type Database = {
           real_world_application?: string | null
           user_id: string
           vault_id: string
+          work_position_id?: string | null
         }
         Update: {
           ai_confidence?: number | null
@@ -5423,8 +5441,16 @@ export type Database = {
           real_world_application?: string | null
           user_id?: string
           vault_id?: string
+          work_position_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_leadership_philosophy_work_position_id_fkey"
+            columns: ["work_position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "war_chest_leadership_philosophy_war_chest_id_fkey"
             columns: ["vault_id"]
@@ -6050,6 +6076,7 @@ export type Database = {
           skill_name: string
           user_id: string
           vault_id: string
+          work_position_id: string | null
         }
         Insert: {
           ai_confidence?: number | null
@@ -6072,6 +6099,7 @@ export type Database = {
           skill_name: string
           user_id: string
           vault_id: string
+          work_position_id?: string | null
         }
         Update: {
           ai_confidence?: number | null
@@ -6094,8 +6122,16 @@ export type Database = {
           skill_name?: string
           user_id?: string
           vault_id?: string
+          work_position_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_soft_skills_work_position_id_fkey"
+            columns: ["work_position_id"]
+            isOneToOne: false
+            referencedRelation: "vault_work_positions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "war_chest_soft_skills_war_chest_id_fkey"
             columns: ["vault_id"]
