@@ -4,8 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Trophy, Brain, FileText, Users, 
-  MessageSquare, Loader2
+  MessageSquare, Loader2, ArrowLeft, Home
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { CategorySection } from '../components/CategorySection';
 
 interface Phase5Props {
@@ -20,6 +22,7 @@ export const Phase5_VaultLibrary = ({
   onProgress
 }: Phase5Props) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   
   // All 10 intelligence categories
@@ -165,6 +168,26 @@ export const Phase5_VaultLibrary = ({
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 pb-24">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Navigation */}
+        <div className="flex items-center justify-between pt-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/career-vault')}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Career Vault
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/home')}
+            className="gap-2"
+          >
+            <Home className="h-4 w-4" />
+            Home
+          </Button>
+        </div>
+
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-full">
