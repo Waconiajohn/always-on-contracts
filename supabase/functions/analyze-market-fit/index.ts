@@ -75,7 +75,7 @@ serve(async (req) => {
       throw new Error(`Failed to search jobs: ${jobSearchResponse.error.message}`);
     }
 
-    const jobs = jobSearchResponse.data?.results || [];
+    const jobs = jobSearchResponse.data?.jobs || [];
     console.log(`[analyze-market-fit] Found ${jobs.length} jobs for "${targetRole}"`);
 
     // If no jobs found and the role includes seniority level, try searching without it
@@ -97,9 +97,9 @@ serve(async (req) => {
         body: fallbackSearchBody
       });
       
-      if (!fallbackResponse.error && fallbackResponse.data?.results?.length > 0) {
-        jobs.push(...fallbackResponse.data.results);
-        console.log(`[analyze-market-fit] Fallback search found ${fallbackResponse.data.results.length} jobs for "${baseRole}"`);
+      if (!fallbackResponse.error && fallbackResponse.data?.jobs?.length > 0) {
+        jobs.push(...fallbackResponse.data.jobs);
+        console.log(`[analyze-market-fit] Fallback search found ${fallbackResponse.data.jobs.length} jobs for "${baseRole}"`);
       }
     }
     
