@@ -19,8 +19,10 @@ import { useResumeBuilderStore } from "@/stores/resumeBuilderStore";
 import { useResumeMilestones } from "@/hooks/useResumeMilestones";
 import { enhanceVaultMatches } from "@/lib/vaultQualityScoring";
 import { ResumeWorkspace } from "@/components/resume-builder/v2/ResumeWorkspace";
+import { HiringManagerReviewPanel } from "@/components/resume-builder/HiringManagerReviewPanel";
+import { ATSScoreReportPanel } from "@/components/resume-builder/ATSScoreReportPanel";
 
-type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'final-review';
+type WizardStep = 'job-input' | 'gap-analysis' | 'format-selection' | 'requirement-filter' | 'requirement-builder' | 'generation-mode' | 'section-wizard' | 'generation' | 'hiring-manager-review' | 'ats-score-report' | 'final-review';
 
 const ResumeBuilderWizardContent = () => {
   const { toast } = useToast();
@@ -85,6 +87,15 @@ const ResumeBuilderWizardContent = () => {
     }
     
     return enhancedDescription;
+  };
+
+  // Helper function to convert resume sections to formatted text
+  const convertSectionsToText = (sections: any[]): string => {
+    return sections.map(section => {
+      const items = section.items || [];
+      const itemsText = items.map((item: any) => `• ${item.content}`).join('\n');
+      return `${section.title}\n${itemsText}`;
+    }).join('\n\n');
   };
 
   // Helper function to fetch full job description from URL
@@ -442,15 +453,15 @@ const ResumeBuilderWizardContent = () => {
     const format = getFormat(selectedFormat || 'executive');
     if (!format) return;
 
-    // Move to next section or final review
+    // Move to next section or hiring manager review
     if (currentSectionIndex < format.sections.length - 1) {
       setCurrentSectionIndex(currentSectionIndex + 1);
     } else {
-      // All sections complete
-      setCurrentStep('final-review');
+      // All sections complete - move to hiring manager review
+      setCurrentStep('hiring-manager-review');
       toast({
-        title: "Resume Complete!",
-        description: "All sections have been generated. Review and export below."
+        title: "Resume Generated!",
+        description: "Now let's get a hiring manager's perspective on your resume."
       });
     }
   };
@@ -470,7 +481,7 @@ const ResumeBuilderWizardContent = () => {
     if (currentSectionIndex < format.sections.length - 1) {
       setCurrentSectionIndex(currentSectionIndex + 1);
     } else {
-      setCurrentStep('final-review');
+      setCurrentStep('hiring-manager-review');
     }
   };
 
@@ -874,6 +885,42 @@ const ResumeBuilderWizardContent = () => {
             />
           </div>
         </div>
+      );
+
+    case 'hiring-manager-review':
+      return (
+        <HiringManagerReviewPanel
+          resumeContent={convertSectionsToText(resumeSections)}
+          jobDescription={displayJobText || jobAnalysis?.jobDescription || ""}
+          jobTitle={jobAnalysis?.jobTitle}
+          industry={jobAnalysis?.industry}
+          onContinue={() => {
+            setCurrentStep('ats-score-report');
+            toast({
+              title: "Review Complete",
+              description: "Now let's analyze your resume's ATS compatibility."
+            });
+          }}
+          onBack={() => setCurrentStep('section-wizard')}
+        />
+      );
+
+    case 'ats-score-report':
+      return (
+        <ATSScoreReportPanel
+          resumeContent={convertSectionsToText(resumeSections)}
+          jobDescription={displayJobText || jobAnalysis?.jobDescription || ""}
+          jobTitle={jobAnalysis?.jobTitle}
+          industry={jobAnalysis?.industry}
+          onExport={() => {
+            setCurrentStep('final-review');
+            toast({
+              title: "Analysis Complete",
+              description: "Your resume is ready for final review and export."
+            });
+          }}
+          onBack={() => setCurrentStep('hiring-manager-review')}
+        />
       );
 
     case 'final-review':
