@@ -106,10 +106,25 @@ export const Phase1_MarketResearch = ({
         .from('resumes')
         .getPublicUrl(fileName);
 
-      // Step 2: Parse resume
+      // Step 2: Download and convert resume to base64
       onProgress(30);
+      const { data: fileBlob, error: downloadError } = await supabase.storage
+        .from('resumes')
+        .download(fileName);
+
+      if (downloadError) throw downloadError;
+      if (!fileBlob) throw new Error('Failed to download resume file');
+
+      // Convert blob to base64
+      const arrayBuffer = await fileBlob.arrayBuffer();
+      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      // Step 3: Parse resume
       const parseResult = await supabase.functions.invoke('parse-resume', {
-        body: { resumeUrl: publicUrl }
+        body: { 
+          fileData: base64Data,
+          fileName: resumeFile.name
+        }
       });
 
       if (parseResult.error) {
