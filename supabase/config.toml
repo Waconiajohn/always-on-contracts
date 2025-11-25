@@ -414,3 +414,6 @@ verify_jwt = true
 
 [functions.career-transition-research]
 verify_jwt = true
+
+[functions.hiring-manager-review]
+verify_jwt = true
