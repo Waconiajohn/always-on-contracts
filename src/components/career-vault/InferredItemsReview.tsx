@@ -128,12 +128,16 @@ export const InferredItemsReview = () => {
   };
 
   const getConfidenceBadge = (confidence: number) => {
-    if (confidence >= 0.8) {
-      return <Badge className="bg-green-500">High Confidence ({Math.round(confidence * 100)}%)</Badge>;
-    } else if (confidence >= 0.6) {
-      return <Badge className="bg-yellow-500">Medium Confidence ({Math.round(confidence * 100)}%)</Badge>;
+    // Handle both integer (0-100) and decimal (0-1) confidence scores
+    const score = confidence > 1 ? confidence : confidence * 100;
+    const rounded = Math.min(100, Math.round(score));
+    
+    if (rounded >= 80) {
+      return <Badge className="bg-green-500">High Confidence ({rounded}%)</Badge>;
+    } else if (rounded >= 60) {
+      return <Badge className="bg-yellow-500">Medium Confidence ({rounded}%)</Badge>;
     } else {
-      return <Badge className="bg-red-500">Low Confidence ({Math.round(confidence * 100)}%)</Badge>;
+      return <Badge className="bg-red-500">Low Confidence ({rounded}%)</Badge>;
     }
   };
 

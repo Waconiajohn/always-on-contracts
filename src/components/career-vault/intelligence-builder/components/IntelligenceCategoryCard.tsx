@@ -97,9 +97,9 @@ export function IntelligenceCategoryCard({
                 {' '}{item.quality_tier}
               </Badge>
               
-              {item.confidence_score && (
+              {(item.confidence_score || item.ai_confidence) && (
                 <Badge variant="secondary" className="text-xs">
-                  {Math.round(item.confidence_score * 100)}% confidence
+                  {Math.min(100, Math.round(item.confidence_score || (item.ai_confidence * 100)))}% confidence
                 </Badge>
               )}
             </div>

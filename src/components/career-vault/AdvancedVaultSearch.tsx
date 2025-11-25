@@ -316,7 +316,7 @@ export default function AdvancedVaultSearch({ vaultId, onViewItem }: AdvancedVau
                               </Badge>
                               {result.confidence_score > 0 && (
                                 <Badge variant="secondary" className="text-xs">
-                                  {(result.confidence_score * 100).toFixed(0)}% confidence
+                                  {Math.min(100, Math.round(result.confidence_score))}% confidence
                                 </Badge>
                               )}
                             </div>
