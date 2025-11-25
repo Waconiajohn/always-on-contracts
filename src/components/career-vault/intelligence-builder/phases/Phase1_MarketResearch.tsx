@@ -145,8 +145,19 @@ export const Phase1_MarketResearch = ({
         }
       });
 
+      // Handle "no jobs found" case specifically
       if (marketFitResult.error) {
-        throw new Error(marketFitResult.error.message || "Failed to analyze job market - please try again");
+        const errorMsg = marketFitResult.error.message || "";
+        if (errorMsg.includes("No jobs found")) {
+          toast.error("No jobs found for this role", {
+            description: `Try searching for:\n• "${targetRole.replace('Senior ', '')}" (remove seniority level)\n• Related roles like "Drilling Supervisor" or "Petroleum Engineer"\n• Specific locations instead of "Remote"`,
+            duration: 8000
+          });
+          setStep('upload');
+          setIsProcessing(false);
+          return;
+        }
+        throw new Error(errorMsg || "Failed to analyze job market - please try again");
       }
       
       if (!marketFitResult.data) {
