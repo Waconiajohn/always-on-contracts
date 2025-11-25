@@ -30,7 +30,9 @@ export const MarketFitResults = ({
   const importantGaps = gaps.filter(g => g.priority === 'important');
 
   const matchedSkills = marketData.commonSkills.length - gaps.length;
-  const matchPercentage = Math.round((matchedSkills / marketData.commonSkills.length) * 100);
+  const matchPercentage = marketData.commonSkills.length > 0
+    ? Math.round((matchedSkills / marketData.commonSkills.length) * 100)
+    : 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
