@@ -148,6 +148,8 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
+    console.log('[analyze-market-fit] Starting AI extraction for', jobsToAnalyze.length, 'jobs');
+
     const extractionPrompt = `Analyze these ${jobsToAnalyze.length} job postings for ${targetRole}${targetIndustry ? ` in ${targetIndustry}` : ''}.
 
 Extract the following data to help understand what skills, requirements, and themes are most important in the current job market:
@@ -161,107 +163,139 @@ Focus on identifying:
 3. How frequently each skill appears across all postings
 4. Key themes and priorities that employers emphasize`;
 
-    // Use structured output with tool calling for guaranteed JSON
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { 
-            role: "system", 
-            content: "You are a job market analyst. Extract structured data from job postings accurately." 
-          },
-          { role: "user", content: extractionPrompt }
-        ],
-        max_tokens: 2000,
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_market_data",
-              description: "Extract structured market analysis data from job postings",
-              parameters: {
-                type: "object",
-                properties: {
-                  commonSkills: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Skills mentioned in 40% or more of job postings"
-                  },
-                  commonRequirements: {
-                    type: "object",
-                    properties: {
-                      yearsExperience: { type: "string" },
-                      education: { type: "string" },
-                      certifications: { type: "array", items: { type: "string" } }
+    let marketData;
+    
+    try {
+      console.log('[analyze-market-fit] Calling Lovable AI with gemini-2.5-flash...');
+      
+      // Use structured output with tool calling for guaranteed JSON
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { 
+              role: "system", 
+              content: "You are a job market analyst. Extract structured data from job postings accurately." 
+            },
+            { role: "user", content: extractionPrompt }
+          ],
+          max_tokens: 2000,
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_market_data",
+                description: "Extract structured market analysis data from job postings",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    commonSkills: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "Skills mentioned in 40% or more of job postings"
+                    },
+                    commonRequirements: {
+                      type: "object",
+                      properties: {
+                        yearsExperience: { type: "string" },
+                        education: { type: "string" },
+                        certifications: { type: "array", items: { type: "string" } }
+                      }
+                    },
+                    skillFrequency: {
+                      type: "object",
+                      additionalProperties: { type: "number" },
+                      description: "Number of times each skill appears across all postings"
+                    },
+                    keyThemes: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "Key themes and priorities employers emphasize"
                     }
                   },
-                  skillFrequency: {
-                    type: "object",
-                    additionalProperties: { type: "number" },
-                    description: "Number of times each skill appears across all postings"
-                  },
-                  keyThemes: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Key themes and priorities employers emphasize"
-                  }
-                },
-                required: ["commonSkills", "commonRequirements", "skillFrequency", "keyThemes"]
+                  required: ["commonSkills", "commonRequirements", "skillFrequency", "keyThemes"]
+                }
               }
             }
+          ],
+          tool_choice: { type: "function", function: { name: "extract_market_data" } }
+        }),
+      });
+
+      console.log('[analyze-market-fit] AI response status:', aiResponse.status);
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error('[analyze-market-fit] Lovable AI error:', aiResponse.status, errorText);
+        throw new Error(`AI extraction failed: ${aiResponse.status} - ${errorText}`);
+      }
+
+      const aiData = await aiResponse.json();
+      console.log('[analyze-market-fit] Raw AI response structure:', {
+        hasChoices: !!aiData.choices,
+        choicesLength: aiData.choices?.length,
+        hasMessage: !!aiData.choices?.[0]?.message,
+        hasToolCalls: !!aiData.choices?.[0]?.message?.tool_calls,
+        hasContent: !!aiData.choices?.[0]?.message?.content
+      });
+      
+      // Extract from tool_calls (structured output)
+      const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
+      
+      if (toolCalls && toolCalls.length > 0) {
+        console.log('[analyze-market-fit] Found tool calls, extracting structured data...');
+        try {
+          const toolCall = toolCalls[0];
+          const argsStr = toolCall.function?.arguments;
+          marketData = typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr;
+          console.log('[analyze-market-fit] ✓ Successfully extracted structured data from tool call');
+          console.log('[analyze-market-fit] Skills found:', marketData.commonSkills?.length || 0);
+        } catch (parseError) {
+          console.error('[analyze-market-fit] Failed to parse tool call arguments:', parseError);
+          marketData = null;
+        }
+      } else {
+        console.warn('[analyze-market-fit] No tool calls in AI response, trying text parsing fallback');
+        const extractedText = aiData.choices?.[0]?.message?.content || "";
+        console.log('[analyze-market-fit] Content length:', extractedText.length);
+        try {
+          const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            marketData = JSON.parse(jsonMatch[0]);
+            console.log('[analyze-market-fit] ✓ Parsed JSON from text content');
+          } else {
+            console.warn('[analyze-market-fit] No JSON found in text content');
+            marketData = null;
           }
-        ],
-        tool_choice: { type: "function", function: { name: "extract_market_data" } }
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('[analyze-market-fit] Lovable AI error:', aiResponse.status, errorText);
-      throw new Error(`AI extraction failed: ${aiResponse.status} - ${errorText}`);
-    }
-
-    const aiData = await aiResponse.json();
-    console.log('[analyze-market-fit] Raw AI response:', JSON.stringify(aiData, null, 2));
-    
-    // Extract from tool_calls (structured output)
-    let marketData;
-    const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
-    
-    if (toolCalls && toolCalls.length > 0) {
-      try {
-        const toolCall = toolCalls[0];
-        const argsStr = toolCall.function?.arguments;
-        marketData = typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr;
-        console.log('[analyze-market-fit] Successfully extracted structured data from tool call');
-      } catch (parseError) {
-        console.error('[analyze-market-fit] Failed to parse tool call arguments:', parseError);
-        marketData = null;
+        } catch (parseError) {
+          console.error('[analyze-market-fit] Text parsing failed:', parseError);
+          marketData = null;
+        }
       }
-    } else {
-      console.warn('[analyze-market-fit] No tool calls in AI response, trying text parsing fallback');
-      const extractedText = aiData.choices?.[0]?.message?.content || "";
-      try {
-        const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
-        marketData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-      } catch (parseError) {
-        console.error('[analyze-market-fit] Text parsing also failed:', extractedText);
-        marketData = null;
-      }
+
+    } catch (aiError) {
+      console.error('[analyze-market-fit] AI extraction error:', aiError);
+      marketData = null;
     }
 
     // Fallback: Basic keyword extraction if AI fails
     if (!marketData || !marketData.commonSkills || marketData.commonSkills.length === 0) {
-      console.warn('[analyze-market-fit] AI extraction failed, using fallback keyword analysis');
+      console.warn('[analyze-market-fit] ⚠️ AI extraction failed or returned no skills, using fallback keyword analysis');
       marketData = performFallbackAnalysis(jobDescriptions, targetRole);
+      console.log('[analyze-market-fit] Fallback analysis complete, found', marketData.commonSkills.length, 'skills');
     }
 
-    console.log('[analyze-market-fit] Final market data:', JSON.stringify(marketData, null, 2));
+    console.log('[analyze-market-fit] Final market data summary:', {
+      skillsCount: marketData.commonSkills?.length || 0,
+      hasRequirements: !!marketData.commonRequirements,
+      frequencyKeys: Object.keys(marketData.skillFrequency || {}).length,
+      themesCount: marketData.keyThemes?.length || 0
+    });
 
     // Step 3: Store in vault_market_research
     const { data: savedResearch, error: saveError } = await supabaseClient
