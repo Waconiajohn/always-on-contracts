@@ -1,6 +1,5 @@
 import { Target, Calendar, TrendingUp, Clock } from "lucide-react";
 import { CollapsibleSection } from "./CollapsibleSection";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -52,14 +51,11 @@ export function V3ActiveJobSearch({
         {/* Applications Tracker */}
         <div className="border border-border rounded-lg p-5 bg-card">
           <div className="flex items-start justify-between mb-4">
-            <div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Target className="h-5 w-5 text-primary" />
+              </div>
               <h3 className="font-semibold">Applications Tracker</h3>
-              <Badge variant="outline" className="mt-1">
-                Gemini 2.5 Flash analyzes timing
-              </Badge>
-            </div>
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Target className="h-5 w-5 text-primary" />
             </div>
           </div>
 
@@ -107,14 +103,11 @@ export function V3ActiveJobSearch({
         {upcomingInterviews > 0 && nextInterviewDate && (
           <div className="border border-primary/20 rounded-lg p-5 bg-gradient-to-br from-primary/5 to-background">
             <div className="flex items-start justify-between mb-4">
-              <div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
                 <h3 className="font-semibold">Interview Prep</h3>
-                <Badge variant="outline" className="mt-1">
-                  GPT-5 generates practice questions
-                </Badge>
-              </div>
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Calendar className="h-5 w-5 text-primary" />
               </div>
             </div>
 

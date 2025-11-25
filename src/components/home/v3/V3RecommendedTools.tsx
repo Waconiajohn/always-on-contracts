@@ -129,16 +129,6 @@ export function V3RecommendedTools({
             
             <div className="space-y-2 text-sm mb-4">
               <div className="flex items-start gap-2">
-                <span className="font-medium text-foreground min-w-[120px]">AI Models:</span>
-                <div className="flex flex-wrap gap-1">
-                  {primaryTool.aiModels.map(model => (
-                    <Badge key={model} variant="outline" className="text-xs">
-                      {model}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
                 <span className="font-medium text-foreground min-w-[120px]">Vault Data Used:</span>
                 <span className="text-muted-foreground">{primaryTool.vaultDeps}</span>
               </div>
@@ -196,15 +186,7 @@ export function V3RecommendedTools({
                 </div>
               </div>
 
-              {unlocked ? (
-                <div className="flex flex-wrap gap-1">
-                  {tool.aiModels.slice(0, 2).map(model => (
-                    <Badge key={model} variant="outline" className="text-xs">
-                      {model}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
+              {!unlocked && (
                 <p className="text-xs text-muted-foreground">
                   Unlock at {tool.requiredVault}% vault completion
                 </p>

@@ -1,5 +1,4 @@
 import { Zap, Clock, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -100,9 +99,6 @@ export function V3MicroWins({ vaultCompletion }: V3MicroWinsProps) {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Icon className="h-4 w-4 text-primary" />
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {win.aiModel}
-                </Badge>
               </div>
 
               <p className="text-sm font-medium mb-3 line-clamp-2 group-hover:text-primary transition-colors">
