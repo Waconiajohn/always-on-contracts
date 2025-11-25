@@ -6296,6 +6296,56 @@ export type Database = {
           },
         ]
       }
+      vault_transition_research: {
+        Row: {
+          created_at: string | null
+          current_industry_outlook: Json | null
+          hidden_advantages: string[] | null
+          id: string
+          perplexity_query_used: string | null
+          research_sources: string[] | null
+          researched_at: string | null
+          transition_opportunities: Json | null
+          updated_at: string | null
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_industry_outlook?: Json | null
+          hidden_advantages?: string[] | null
+          id?: string
+          perplexity_query_used?: string | null
+          research_sources?: string[] | null
+          researched_at?: string | null
+          transition_opportunities?: Json | null
+          updated_at?: string | null
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_industry_outlook?: Json | null
+          hidden_advantages?: string[] | null
+          id?: string
+          perplexity_query_used?: string | null
+          research_sources?: string[] | null
+          researched_at?: string | null
+          transition_opportunities?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_transition_research_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "career_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_values_motivations: {
         Row: {
           ai_confidence: number | null
