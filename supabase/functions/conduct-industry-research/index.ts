@@ -63,12 +63,82 @@ Focus on actionable, specific insights that would help someone build a competiti
     const { data: { user } } = await supabase.auth.getUser(token);
 
     if (user) {
+      // Step 2: Add Perplexity verification layer for real-time news and insights
+      const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+      if (perplexityApiKey) {
+        console.log('[INDUSTRY RESEARCH] Adding Perplexity verification layer...');
+        
+        const perplexityPrompt = `Verify and enhance this ${targetRole} research in ${targetIndustry}:
+
+${researchContent}
+
+Provide:
+1. Recent industry news and trends (last 6 months)
+2. Current market demand data with citations
+3. Emerging skills and technologies
+4. Salary trends and market positioning
+
+Cite all sources.`;
+
+        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${perplexityApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'sonar-pro',
+            messages: [
+              { role: 'system', content: 'You are a market research analyst providing real-time industry intelligence with citations.' },
+              { role: 'user', content: perplexityPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 2000,
+          }),
+        });
+
+        if (perplexityResponse.ok) {
+          const perplexityData = await perplexityResponse.json();
+          const verifiedContent = perplexityData.choices?.[0]?.message?.content;
+          const citations = perplexityData.citations || [];
+          
+          // Store enhanced research with citations
+          await supabase.from('career_vault_industry_research').insert({
+            user_id: user.id,
+            target_role: targetRole,
+            target_industry: targetIndustry,
+            research_content: researchContent + '\n\n---\n\nREAL-TIME MARKET INTELLIGENCE:\n' + verifiedContent,
+            research_provider: 'perplexity_enhanced',
+            key_metrics: { citations, enhanced: true }
+          });
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              research: {
+                targetRole,
+                targetIndustry,
+                content: researchContent,
+                marketIntelligence: verifiedContent,
+                citations,
+                commonSkills: extractSection(researchContent, 'Skills'),
+                keyMetrics: extractSection(researchContent, 'Achievements'),
+                leadershipTraits: extractSection(researchContent, 'Leadership'),
+                industryTrends: extractSection(researchContent, 'Trends')
+              }
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+      
+      // Fallback to basic research if Perplexity fails
       await supabase.from('career_vault_industry_research').insert({
         user_id: user.id,
         target_role: targetRole,
         target_industry: targetIndustry,
         research_content: researchContent,
-        research_provider: 'perplexity'
+        research_provider: 'lovable_ai'
       });
     }
 

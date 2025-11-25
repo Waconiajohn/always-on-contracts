@@ -472,6 +472,22 @@ export const GenerateVaultRecommendationsSchema = z.object({
   limit: z.number().min(1).max(20).optional().default(5)
 });
 
+export const HiringManagerReviewSchema = z.object({
+  resumeContent: z.string().min(100, 'Resume content too short'),
+  jobDescription: z.string().min(50, 'Job description too short'),
+  jobTitle: z.string().optional(),
+  industry: z.string().optional()
+});
+
+export const ATSScoreReportSchema = z.object({
+  jobTitle: z.string().optional(),
+  jobDescription: z.string().min(50, 'Job description required'),
+  industry: z.string().optional(),
+  canonicalHeader: z.any().optional(),
+  canonicalSections: z.array(z.any()).optional(),
+  resumeContent: z.string().optional()
+});
+
 export const GenerateGapFillingQuestionsSchema = z.object({
   vaultId: z.string().uuid('Invalid vault ID').optional(),
   resumeText: z.string().min(100).max(50000),
