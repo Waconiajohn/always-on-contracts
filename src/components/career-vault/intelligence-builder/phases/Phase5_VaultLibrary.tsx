@@ -15,15 +15,32 @@ interface Phase5Props {
   onProgress: (progress: number, message?: string) => void;
   onTimeEstimate: (estimate: string) => void;
   onComplete: () => void;
+  onBackToBuilder?: () => void;
 }
 
 export const Phase5_VaultLibrary = ({
   vaultId,
-  onProgress
+  onProgress,
+  onBackToBuilder
 }: Phase5Props) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+
+  const handleBackToVault = async () => {
+    if (onBackToBuilder) {
+      // Go back to builder interface
+      onBackToBuilder();
+    } else {
+      // Reset to phase 0 and reload
+      await supabase
+        .from('career_vault')
+        .update({ current_phase: 0 })
+        .eq('id', vaultId);
+      
+      window.location.href = '/career-vault';
+    }
+  };
   
   // All 10 intelligence categories
   const [achievements, setAchievements] = useState<any[]>([]);
@@ -172,11 +189,11 @@ export const Phase5_VaultLibrary = ({
         <div className="flex items-center justify-between pt-4">
           <Button
             variant="ghost"
-            onClick={() => navigate('/career-vault')}
+            onClick={handleBackToVault}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Career Vault
+            Back to Builder
           </Button>
           <Button
             variant="outline"

@@ -101,6 +101,12 @@ export const CareerIntelligenceBuilder = ({
     return <ExplainerOnboarding onStart={handleStart} />;
   }
 
+  const handleBackFromLibrary = async () => {
+    // Go back to phase 0 (onboarding/explainer)
+    await updateVaultPhase(0);
+    setCurrentPhase(0);
+  };
+
   // Phase 5: Vault Library (persistent home)
   if (currentPhase === 5) {
     return (
@@ -109,6 +115,7 @@ export const CareerIntelligenceBuilder = ({
         onProgress={setPhaseProgress}
         onTimeEstimate={setTimeEstimate}
         onComplete={() => {}} // Phase 5 is final destination
+        onBackToBuilder={handleBackFromLibrary}
       />
     );
   }
