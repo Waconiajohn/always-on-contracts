@@ -37,7 +37,7 @@ const LinkedInBloggingAgent = lazy(() => import("./pages/agents/LinkedInBlogging
 const LinkedInProfileBuilder = lazy(() => import("./pages/agents/LinkedInProfileBuilder"));
 const LinkedInNetworkingAgent = lazy(() => import("./pages/agents/LinkedInNetworkingAgent"));
 const NetworkingAgent = lazy(() => import("./pages/agents/NetworkingAgentComplete"));
-const CareerTransitionScout = lazy(() => import("./pages/agents/CareerTransitionScout"));
+const CareerChangeScout = lazy(() => import("./pages/agents/CareerTransitionScout"));
 const FinancialPlanningAssistant = lazy(() => import("./pages/agents/FinancialPlanningAssistant"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const AffiliatePortal = lazy(() => import("./pages/AffiliatePortal"));
@@ -107,8 +107,9 @@ const AppContent = () => {
         <Route path="/agents/linkedin-profile-builder" element={<ProtectedRoute><LinkedInProfileBuilder /></ProtectedRoute>} />
         <Route path="/agents/linkedin-networking" element={<ProtectedRoute><LinkedInNetworkingAgent /></ProtectedRoute>} />
         <Route path="/agents/networking" element={<ProtectedRoute><NetworkingAgent /></ProtectedRoute>} />
-        <Route path="/agents/career-transition-scout" element={<ProtectedRoute><CareerTransitionScout /></ProtectedRoute>} />
-        <Route path="/agents/career-trends-scout" element={<Navigate to="/agents/career-transition-scout" replace />} />
+        <Route path="/agents/career-change-scout" element={<ProtectedRoute><CareerChangeScout /></ProtectedRoute>} />
+        <Route path="/agents/career-transition-scout" element={<Navigate to="/agents/career-change-scout" replace />} />
+        <Route path="/agents/career-trends-scout" element={<Navigate to="/agents/career-change-scout" replace />} />
         <Route path="/agents/financial-planning-assistant" element={<ProtectedRoute><FinancialPlanningAssistant /></ProtectedRoute>} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />

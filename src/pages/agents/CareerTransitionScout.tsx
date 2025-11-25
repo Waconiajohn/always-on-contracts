@@ -143,7 +143,7 @@ const CareerTransitionScout = () => {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Sparkles className="h-8 w-8 text-primary" />
-          Career Transition Scout
+          Career Change Scout
         </h1>
         <p className="text-muted-foreground">
           Discover high-value career opportunities across industries using your vault data and real-time market intelligence
@@ -170,11 +170,11 @@ const CareerTransitionScout = () => {
                 className="gap-2"
               >
                 {isResearching ? (
-                  <>Analyzing Your Opportunities...</>
+                  <>Analyzing Your Options...</>
                 ) : (
                   <>
                     <Target className="h-4 w-4" />
-                    Analyze My Transition Options
+                    Analyze My Options
                   </>
                 )}
               </Button>
@@ -229,11 +229,11 @@ const CareerTransitionScout = () => {
             </div>
           </Card>
 
-          {/* Transition Opportunities */}
+          {/* Career Change Opportunities */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <Target className="h-6 w-6 text-primary" />
-              High-Value Transition Opportunities
+              High-Value Career Opportunities
             </h2>
             
             {research.transitionOpportunities.map((opportunity, index) => (
