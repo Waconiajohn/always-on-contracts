@@ -40,7 +40,7 @@ export const JobSearchSidebar: React.FC<JobSearchSidebarProps> = ({
         <h3 className="text-base font-bold">Explore Career Intelligence</h3>
         
         <Card 
-          onClick={() => navigate('/agents/career-transition-scout')}
+          onClick={() => navigate('/agents/career-change-scout')}
           className="p-5 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-200 bg-gradient-to-br from-primary/5 to-primary/10"
         >
           <div className="flex items-start gap-4">
@@ -48,9 +48,9 @@ export const JobSearchSidebar: React.FC<JobSearchSidebarProps> = ({
               <TrendingUp className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-base mb-2">Career Transition Scout</h4>
+              <h4 className="font-bold text-base mb-2">Career Change Scout</h4>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Discover high-value career transitions across industries using your vault and real-time market intelligence
+                Discover high-value career changes across industries using your vault and real-time market intelligence
               </p>
             </div>
           </div>
