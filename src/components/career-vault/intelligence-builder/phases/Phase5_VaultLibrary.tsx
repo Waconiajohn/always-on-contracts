@@ -18,25 +18,10 @@ interface Phase5Props {
 
 export const Phase5_VaultLibrary = ({
   vaultId,
-  onProgress,
-  onTimeEstimate,
-  onComplete
+  onProgress
 }: Phase5Props) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  
-  const [stats, setStats] = useState({
-    achievements: 0,
-    skills: 0,
-    competencies: 0,
-    softSkills: 0,
-    leadership: 0,
-    executive: 0,
-    personality: 0,
-    workstyle: 0,
-    values: 0,
-    behavioral: 0
-  });
   
   // All 10 intelligence categories
   const [achievements, setAchievements] = useState<any[]>([]);
@@ -65,10 +50,10 @@ export const Phase5_VaultLibrary = ({
     onProgress(10, "Loading vault data...");
 
     try {
-      // Fetch vault metadata
-      const { data: vaultData, error: vaultError } = await supabase
+      // Fetch vault metadata to ensure vault exists
+      const { error: vaultError } = await supabase
         .from('career_vault')
-        .select('*')
+        .select('id')
         .eq('id', vaultId)
         .single();
 
@@ -121,19 +106,6 @@ export const Phase5_VaultLibrary = ({
       setWorkstyle(workstyleRes.data || []);
       setValues(valuesRes.data || []);
       setBehavioral(behavioralRes.data || []);
-
-      setStats({
-        achievements: achievementsRes.data?.length || 0,
-        skills: skillsRes.data?.length || 0,
-        competencies: competenciesRes.data?.length || 0,
-        softSkills: softSkillsRes.data?.length || 0,
-        leadership: leadershipRes.data?.length || 0,
-        executive: executiveRes.data?.length || 0,
-        personality: personalityRes.data?.length || 0,
-        workstyle: workstyleRes.data?.length || 0,
-        values: valuesRes.data?.length || 0,
-        behavioral: behavioralRes.data?.length || 0
-      });
 
       onProgress(100, "Vault loaded successfully");
       
@@ -264,7 +236,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="Your skills library helps LinkedIn Optimizer create keyword-rich profiles and enables Interview Prep to match your expertise to job requirements."
               items={skills}
               category="skills"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('transferable_skills')}
               workPositions={workPositions}
@@ -278,7 +249,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="These competencies differentiate you in competitive hiring processes by revealing strategic thinking abilities that aren't obvious from job titles alone."
               items={competencies}
               category="competencies"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('hidden_competencies')}
               workPositions={workPositions}
@@ -298,7 +268,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="These strengths enhance your Interview Prep responses with behavioral examples and help LinkedIn Optimizer craft authentic personal brand messaging."
               items={softSkills}
               category="strengths"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('soft_skills')}
               workPositions={workPositions}
@@ -312,7 +281,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="Leadership insights power executive-level Interview Prep responses and create compelling LinkedIn thought leadership content."
               items={leadership}
               category="leadership"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('leadership')}
               workPositions={workPositions}
@@ -326,7 +294,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="Executive presence indicators help Interview Prep craft C-suite level responses and guide LinkedIn Optimizer in positioning you for senior roles."
               items={executivePresence}
               category="executive"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('executive_presence')}
               workPositions={workPositions}
@@ -346,7 +313,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="Personality insights enable LinkedIn Optimizer to create authentic voice content and help Interview Prep answer culture-fit questions naturally."
               items={personality}
               category="personality"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('personality')}
               workPositions={workPositions}
@@ -360,7 +326,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="Work style data helps Resume Builder customize objective statements and provides Interview Prep with team dynamics examples."
               items={workstyle}
               category="workstyle"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('work_style')}
               workPositions={workPositions}
@@ -374,7 +339,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="Values inform LinkedIn Optimizer's authentic storytelling and help Interview Prep answer motivation questions with genuine passion."
               items={values}
               category="values"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('values')}
               workPositions={workPositions}
@@ -388,7 +352,6 @@ export const Phase5_VaultLibrary = ({
               educationalContext="Behavioral patterns provide Interview Prep with rich STAR story examples and give LinkedIn Optimizer proof points for your claims."
               items={behavioral}
               category="behavioral"
-              onEnhance={(item, type) => {}}
               onRefresh={loadVaultData}
               onGenerateCategory={() => handleRegenerateCategory('behavioral')}
               workPositions={workPositions}
