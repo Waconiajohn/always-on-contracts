@@ -57,6 +57,7 @@ Format your response with clear section headers as specified above.`;
 
     console.log(`[COMPANY-RESEARCH] Calling Lovable AI for: ${companyName}`);
 
+    // PHASE 1: Get structured baseline from Lovable AI
     const { response, metrics } = await callLovableAI(
       {
         messages: [
@@ -73,6 +74,57 @@ Format your response with clear section headers as specified above.`;
 
     const researchContent = response.choices[0].message.content;
     console.log('[COMPANY-RESEARCH] Raw AI response:', researchContent.substring(0, 500));
+
+    // PHASE 2: PERPLEXITY ENHANCEMENT - Add real-time data
+    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    let perplexityEnhancements = '';
+    let citations: string[] = [];
+    
+    if (perplexityApiKey) {
+      console.log('[COMPANY-RESEARCH] Fetching real-time company data from Perplexity...');
+      
+      const perplexityPrompt = `Provide current 2025 intelligence on ${companyName}:
+
+1. Recent news (last 6 months) - funding, leadership changes, product launches
+2. Glassdoor reviews summary and employee sentiment
+3. Financial performance and growth trajectory
+4. Current strategic initiatives and market positioning
+5. Recent press releases or announcements
+
+${jobDescription ? `Context: Research for interview for role: ${jobDescription.slice(0, 300)}` : ''}
+
+Cite all sources with URLs.`;
+
+      try {
+        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${perplexityApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'sonar-pro',
+            messages: [
+              { role: 'system', content: 'You are a company research analyst. Provide current, cited intelligence about companies.' },
+              { role: 'user', content: perplexityPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 2000,
+          }),
+        });
+
+        if (perplexityResponse.ok) {
+          const perplexityJson = await perplexityResponse.json();
+          perplexityEnhancements = perplexityJson.choices?.[0]?.message?.content || '';
+          citations = perplexityJson.citations || [];
+          console.log('[COMPANY-RESEARCH] ✅ Real-time data retrieved with', citations.length, 'citations');
+        } else {
+          console.warn('[COMPANY-RESEARCH] ⚠️ Perplexity API failed, using base research only');
+        }
+      } catch (error) {
+        console.error('[COMPANY-RESEARCH] Perplexity error:', error);
+      }
+    }
 
     // Parse sections
     const sections = {
@@ -115,6 +167,8 @@ Format your response with clear section headers as specified above.`;
         success: true,
         research: sections,
         rawContent: researchContent,
+        realTimeEnhancements: perplexityEnhancements,
+        citations,
         companyName,
         researchedAt: new Date().toISOString()
       }),

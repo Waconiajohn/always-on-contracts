@@ -192,6 +192,7 @@ Return JSON with:
   "salary_range_recommendation": { "minimum_acceptable": 0, "target": 0, "stretch": 0 }
 }`;
 
+    // PHASE 1: Get AI analysis
     const { response, metrics } = await retryWithBackoff(
       async () => await callLovableAI(
         {
@@ -228,7 +229,63 @@ Return JSON with:
       throw new Error(`Invalid AI response: ${result.error}`);
     }
 
-    const analysis = result.data;
+    let analysis = result.data;
+
+    // PHASE 2: PERPLEXITY MARKET INTELLIGENCE LAYER
+    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    let marketIntelligence = null;
+    let citations: string[] = [];
+    
+    if (perplexityApiKey) {
+      console.log('[analyze-competitive-position] Adding Perplexity market intelligence...');
+      
+      const marketPrompt = `Validate competitive positioning for ${job_title} with ${profile?.years_experience || careerContext.yearsOfExperience} years experience.
+
+CANDIDATE ANALYSIS:
+${JSON.stringify(analysis, null, 2)}
+
+Provide 2025 market intelligence:
+1. Current salary trends and market rates
+2. In-demand skills and their market value
+3. Competitive landscape insights
+4. Hiring trends for this role
+5. Red flags or concerns for this level
+
+Cite all sources.`;
+
+      try {
+        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${perplexityApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'sonar-pro',
+            messages: [
+              { role: 'system', content: 'You are a market intelligence analyst. Provide data-driven competitive analysis.' },
+              { role: 'user', content: marketPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 1500,
+          }),
+        });
+
+        if (perplexityResponse.ok) {
+          const perplexityJson = await perplexityResponse.json();
+          marketIntelligence = perplexityJson.choices?.[0]?.message?.content || '';
+          citations = perplexityJson.citations || [];
+          
+          // Enhance analysis with market intelligence
+          analysis.market_intelligence = marketIntelligence;
+          analysis.data_sources = citations;
+          
+          console.log('[analyze-competitive-position] ✅ Market intelligence added with', citations.length, 'citations');
+        }
+      } catch (error) {
+        console.error('[analyze-competitive-position] Perplexity error:', error);
+      }
+    }
 
     // Validate required fields
     if (typeof analysis.competitive_score !== 'number') {
@@ -276,6 +333,8 @@ Return JSON with:
         potential_gaps: analysis.potential_gaps || [],
         recommended_positioning: analysis.recommended_positioning || '',
         salary_range_recommendation: analysis.salary_range_recommendation || {},
+        market_intelligence: analysis.market_intelligence || null,
+        data_sources: citations,
         vault_strength_score: vaultData.overall_strength_score,
         analyzed_at: new Date().toISOString()
       }),
