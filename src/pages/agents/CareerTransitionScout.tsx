@@ -86,17 +86,27 @@ const CareerTransitionScout = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(`Edge function error: ${error.message || 'Unknown error'}`);
+      }
+
+      if (!data) {
+        throw new Error('No data returned from analysis');
+      }
 
       if (data.success && data.research) {
         setResearch(data.research);
-        toast.success('Career transition analysis complete!');
+        toast.success('Career change analysis complete!');
+      } else if (data.error) {
+        throw new Error(data.error);
       } else {
-        throw new Error('No research results returned');
+        throw new Error('Analysis returned unexpected format');
       }
     } catch (error) {
       console.error('Research error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to analyze transitions');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze career change options';
+      toast.error(errorMessage);
     } finally {
       setIsResearching(false);
     }
