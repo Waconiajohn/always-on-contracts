@@ -13,6 +13,14 @@ const corsHeaders = {
 
 const logger = createLogger('parse-resume-milestones');
 
+// Normalize job title by removing location suffixes and standardizing format
+function normalizeJobTitle(title: string): string {
+  return title
+    .replace(/\s*[–—-]\s*.+$/, '')  // Remove " – Eagle Ford Shale" type suffixes
+    .trim()
+    .toLowerCase();
+}
+
 // Helper function to find or create a work position
 async function findOrCreateWorkPosition(supabase: any, data: {
   vault_id: string;
@@ -22,14 +30,26 @@ async function findOrCreateWorkPosition(supabase: any, data: {
   start_date?: string;
   end_date?: string;
 }) {
-  // Try to find existing position (case-insensitive match on company and title)
+  const normalizedTitle = normalizeJobTitle(data.job_title);
+  
+  // Try to find existing position - match on company, dates, AND normalized title
   const { data: existing } = await supabase
     .from('vault_work_positions')
-    .select('id')
+    .select('id, job_title')
     .eq('vault_id', data.vault_id)
     .ilike('company_name', data.company_name)
-    .ilike('job_title', data.job_title)
+    .eq('start_date', data.start_date || null)
+    .eq('end_date', data.end_date || null)
     .maybeSingle();
+  
+  // If we found a match, verify the title is similar after normalization
+  if (existing) {
+    const existingNormalized = normalizeJobTitle(existing.job_title);
+    if (existingNormalized === normalizedTitle) {
+      console.log(`[FIND-OR-CREATE-POSITION] Found existing position: ${data.company_name} - ${data.job_title}`);
+      return existing.id;
+    }
+  }
   
   if (existing) {
     console.log(`[FIND-OR-CREATE-POSITION] Found existing position: ${data.company_name} - ${data.job_title}`);
