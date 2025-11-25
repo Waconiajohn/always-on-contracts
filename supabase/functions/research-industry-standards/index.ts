@@ -115,8 +115,8 @@ Provide a comprehensive analysis in JSON format with the following structure:
 Focus on 2025 market data. Be specific and quantitative where possible.
 `;
 
-    // Call Lovable AI with retry logic for resilience
-    const { response: perplexityResponse, metrics } = await withRetry(() =>
+    // PHASE 1: Call Lovable AI for initial structured research
+    const { response: aiResponse, metrics: aiMetrics } = await withRetry(() =>
       callLovableAI(
         {
           messages: [
@@ -138,9 +138,9 @@ Focus on 2025 market data. Be specific and quantitative where possible.
       )
     );
 
-    await logAIUsage(metrics);
+    await logAIUsage(aiMetrics);
 
-    const researchContent = perplexityResponse.choices[0]?.message?.content || '{}';
+    const researchContent = aiResponse.choices[0]?.message?.content || '{}';
     
     // Extract JSON from markdown code blocks if present
     let researchResults;
@@ -165,6 +165,63 @@ Focus on 2025 market data. Be specific and quantitative where possible.
       };
     }
 
+    // PHASE 2: PERPLEXITY VERIFICATION LAYER - Validate with real-time data
+    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    let perplexityCitations: string[] = [];
+    
+    if (perplexityApiKey) {
+      console.log('[RESEARCH-INDUSTRY] Adding Perplexity verification layer...');
+      
+      const verificationPrompt = `Validate and enhance this industry research for ${targetRole} in ${targetIndustry}:
+
+RESEARCH TO VERIFY:
+${JSON.stringify(researchResults, null, 2)}
+
+Provide:
+1. Validation of must-have skills with current job posting data (2025)
+2. Recent industry trends and AI threat assessments
+3. Current certification requirements and their market value
+4. Bureau of Labor Statistics data validation
+5. Any critical missing skills or qualifications
+
+Cite all sources.`;
+
+      try {
+        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${perplexityApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'sonar-pro',
+            messages: [
+              { role: 'system', content: 'You are an industry research validator. Verify career data against current 2025 market sources.' },
+              { role: 'user', content: verificationPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 2000,
+          }),
+        });
+
+        if (perplexityResponse.ok) {
+          const perplexityJson = await perplexityResponse.json();
+          const verificationData = perplexityJson.choices?.[0]?.message?.content || '';
+          perplexityCitations = perplexityJson.citations || [];
+          
+          // Enhance research results with verification insights
+          researchResults.perplexityVerification = verificationData;
+          researchResults.dataSources = perplexityCitations;
+          
+          console.log('[RESEARCH-INDUSTRY] ✅ Perplexity verification complete with', perplexityCitations.length, 'citations');
+        } else {
+          console.warn('[RESEARCH-INDUSTRY] ⚠️ Perplexity verification failed, using base research');
+        }
+      } catch (error) {
+        console.error('[RESEARCH-INDUSTRY] Perplexity error:', error);
+      }
+    }
+
     // Store research in database (citations removed as Lovable AI doesn't provide them)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -183,7 +240,7 @@ Focus on 2025 market data. Be specific and quantitative where possible.
         target_role: targetRole,
         target_industry: targetIndustry,
         research_results: researchResults,
-        perplexity_citations: []
+        perplexity_citations: perplexityCitations
       })
     });
 
@@ -207,7 +264,8 @@ Focus on 2025 market data. Be specific and quantitative where possible.
           message: `📊 Real-Time Market Intelligence Complete: We've researched live data on ${targetRole} roles in ${targetIndustry}.`,
           uniqueValue: `Unlike competitors using static templates, we used Perplexity AI to analyze current job postings, executive profiles, and industry trends—giving you intelligence that's accurate as of today.`,
           insightCount: `Found ${researchResults.mustHaveSkills?.length || 0} must-have skills, ${researchResults.competitiveAdvantages?.length || 0} competitive advantages, and ${researchResults.redFlags?.length || 0} red flags to avoid.`,
-          citationNote: 'Research based on comprehensive market analysis.'
+          citationNote: perplexityCitations.length > 0 ? `Verified with ${perplexityCitations.length} real-time sources` : 'Research based on comprehensive market analysis.',
+          citations: perplexityCitations
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

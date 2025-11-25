@@ -85,18 +85,66 @@ Deno.serve(async (req) => {
         .order('posted_date', { ascending: false })
         .limit(50);
 
+      // Step 3.5: PERPLEXITY LAYER - Get real-time salary data with citations
+      const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+      let perplexityData = null;
+      let citations: string[] = [];
+
+      if (perplexityApiKey) {
+        console.log('Fetching real-time salary data from Perplexity...');
+        
+        const perplexityPrompt = `Provide current 2025 salary data for ${job_title} in ${location} with ${years_experience} years experience.
+
+Include:
+1. Salary ranges from Glassdoor, Levels.fyi, LinkedIn Salary, Indeed
+2. 25th, 50th, 75th, 90th percentile compensation
+3. Total compensation breakdown (base, bonus, equity, benefits)
+4. Cost of living adjustments for ${location}
+5. Skills that command premium salaries
+6. Recent salary trends (last 6 months)
+
+Cite ALL sources with URLs.`;
+
+        try {
+          const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${perplexityApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'sonar-pro',
+              messages: [
+                { role: 'system', content: 'You are a salary research expert. Provide data-driven salary analysis with citations.' },
+                { role: 'user', content: perplexityPrompt }
+              ],
+              temperature: 0.2,
+              max_tokens: 2000,
+            }),
+          });
+
+          if (perplexityResponse.ok) {
+            const perplexityJson = await perplexityResponse.json();
+            perplexityData = perplexityJson.choices?.[0]?.message?.content || '';
+            citations = perplexityJson.citations || [];
+            console.log('✅ Perplexity salary data retrieved with', citations.length, 'citations');
+          } else {
+            console.warn('⚠️ Perplexity API failed, falling back to Lovable AI');
+          }
+        } catch (error) {
+          console.error('Perplexity error:', error);
+        }
+      }
+
     // STANDARDIZED SYSTEM PROMPT
     const systemPrompt = `You are an expert salary research specialist providing comprehensive market data analysis.
 
-Your task: Provide accurate, cited salary data with specific numbers and sources from industry-leading platforms.
+Your task: Synthesize salary data and provide accurate, structured output.
 
-DATA SOURCES TO CITE:
-- Glassdoor
-- Levels.fyi
-- LinkedIn Salary
-- Indeed Salary
-- Payscale
-- Bureau of Labor Statistics
+${perplexityData ? `REAL-TIME MARKET DATA (use this as primary source):
+${perplexityData}
+
+CITATIONS: ${citations.join(', ')}` : ''}
 
 CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
 {
@@ -114,7 +162,7 @@ CRITICAL OUTPUT FORMAT - Return ONLY this JSON structure:
   "sources_cited": ["https://url1", "https://url2"]
 }`;
 
-    const userPrompt = `Provide detailed salary data for:
+    const userPrompt = `${perplexityData ? 'Synthesize the real-time data above into structured format.' : `Provide detailed salary data for:
 
 POSITION: ${job_title}
 LOCATION: ${location}
@@ -126,7 +174,7 @@ REQUIRED ANALYSIS:
 3. Total compensation including bonus, equity, benefits
 4. Regional cost of living adjustments
 5. In-demand skills that command premium pay
-6. Recent salary trends (last 6 months)
+6. Recent salary trends (last 6 months)`}
 
 ${rateHistory && rateHistory.length > 0 ? `INTERNAL RATE HISTORY DATA:
 ${JSON.stringify(rateHistory.slice(0, 10), null, 2)}` : ''}
@@ -134,9 +182,9 @@ ${JSON.stringify(rateHistory.slice(0, 10), null, 2)}` : ''}
 ${jobOpps && jobOpps.length > 0 ? `RECENT JOB POSTINGS DATA:
 ${JSON.stringify(jobOpps.slice(0, 10), null, 2)}` : ''}
 
-Cite all sources with URLs. Return your analysis in the required JSON format.`;
+Return your analysis in the required JSON format.`;
 
-    logger.info('Calling Lovable AI for market research');
+    logger.info('Calling Lovable AI for market research synthesis');
     const { response: aiResponse, metrics: aiMetrics } = await callLovableAI(
       {
         messages: [
@@ -154,7 +202,6 @@ Cite all sources with URLs. Return your analysis in the required JSON format.`;
       await logAIUsage(aiMetrics);
 
       const researchResults = aiResponse.choices[0].message.content;
-      const citations: string[] = [];
 
       // Step 5: Use AI to extract structured salary data
       const extractionPrompt = `Extract from this research:

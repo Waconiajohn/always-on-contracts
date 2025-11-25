@@ -435,6 +435,51 @@ Return ONLY valid JSON in the format above.`;
 
     const aiResponse = response.choices[0].message.content;
 
+    // PERPLEXITY ENHANCEMENT (only for company/industry context)
+    // Add real-time company news if milestone context is available
+    let companyContext = '';
+    let citations: string[] = [];
+    
+    if (milestoneContext?.company_name && Deno.env.get('PERPLEXITY_API_KEY')) {
+      console.log('[GENERATE-INTERVIEW-QUESTION] Fetching company news from Perplexity...');
+      
+      const companyPrompt = `Recent news and developments about ${milestoneContext.company_name} (last 6 months):
+- Product launches
+- Leadership changes
+- Strategic initiatives
+- Industry positioning
+
+Provide 2-3 key points relevant for interview questions.`;
+
+      try {
+        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('PERPLEXITY_API_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'sonar-pro',
+            messages: [
+              { role: 'system', content: 'You are a company research analyst. Provide concise, relevant company updates.' },
+              { role: 'user', content: companyPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 800,
+          }),
+        });
+
+        if (perplexityResponse.ok) {
+          const perplexityJson = await perplexityResponse.json();
+          companyContext = perplexityJson.choices?.[0]?.message?.content || '';
+          citations = perplexityJson.citations || [];
+          console.log('[GENERATE-INTERVIEW-QUESTION] ✅ Company context retrieved with', citations.length, 'citations');
+        }
+      } catch (error) {
+        console.error('[GENERATE-INTERVIEW-QUESTION] Perplexity error:', error);
+      }
+    }
+
     let parsedResult;
     const parseResult = extractJSON(aiResponse);
 
@@ -460,6 +505,12 @@ Return ONLY valid JSON in the format above.`;
         };
       } else {
         parsedResult = parsed;
+        
+        // Inject company context if available from Perplexity
+        if (companyContext && citations.length > 0) {
+          parsedResult.companyContext = companyContext;
+          parsedResult.citations = citations;
+        }
         
         // Ensure questionsToExpand exists and has at least one question
         if (!parsed.question.questionsToExpand || parsed.question.questionsToExpand.length === 0) {
