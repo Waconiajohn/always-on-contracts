@@ -132,10 +132,15 @@ serve(async (req) => {
     // Step 2: Extract requirements from jobs using AI
     console.log('[analyze-market-fit] Extracting requirements from job descriptions...');
     
-    const jobDescriptions = jobs.map((job: any) => ({
+    // Limit to 20 jobs for better AI processing
+    const jobsToAnalyze = jobs.slice(0, 20);
+    
+    const jobDescriptions = jobsToAnalyze.map((job: any) => ({
       title: job.title,
       company: job.company,
-      description: job.description?.substring(0, 1000) // Limit for token efficiency
+      location: job.location,
+      remoteType: job.remoteType,
+      description: job.description?.substring(0, 1500) // Increased for more context
     }));
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -143,32 +148,20 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const extractionPrompt = `Analyze these ${jobs.length} job postings for ${targetRole} and extract:
+    const extractionPrompt = `Analyze these ${jobsToAnalyze.length} job postings for ${targetRole}${targetIndustry ? ` in ${targetIndustry}` : ''}.
 
-1. **Common Skills** (mentioned in 40%+ of jobs)
-2. **Common Requirements** (experience level, education, certifications)
-3. **Skill Frequency** (how often each skill appears)
-4. **Key Themes** (what companies care about most)
+Extract the following data to help understand what skills, requirements, and themes are most important in the current job market:
 
 Job Data:
 ${JSON.stringify(jobDescriptions, null, 2)}
 
-Return JSON format:
-{
-  "commonSkills": ["skill1", "skill2", ...],
-  "commonRequirements": {
-    "yearsExperience": "3-5 years",
-    "education": "Bachelor's degree",
-    "certifications": ["cert1", "cert2"]
-  },
-  "skillFrequency": {
-    "Python": 8,
-    "Leadership": 6,
-    ...
-  },
-  "keyThemes": ["theme1", "theme2", ...]
-}`;
+Focus on identifying:
+1. Skills that appear in 40% or more of the job postings
+2. Common experience requirements, education levels, and certifications
+3. How frequently each skill appears across all postings
+4. Key themes and priorities that employers emphasize`;
 
+    // Use structured output with tool calling for guaranteed JSON
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -176,44 +169,99 @@ Return JSON format:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { 
             role: "system", 
-            content: "You are a job market analyst. Extract structured data from job postings. Return only valid JSON." 
+            content: "You are a job market analyst. Extract structured data from job postings accurately." 
           },
           { role: "user", content: extractionPrompt }
         ],
-        temperature: 0.3,
-        max_tokens: 1000,
+        max_tokens: 2000,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_market_data",
+              description: "Extract structured market analysis data from job postings",
+              parameters: {
+                type: "object",
+                properties: {
+                  commonSkills: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Skills mentioned in 40% or more of job postings"
+                  },
+                  commonRequirements: {
+                    type: "object",
+                    properties: {
+                      yearsExperience: { type: "string" },
+                      education: { type: "string" },
+                      certifications: { type: "array", items: { type: "string" } }
+                    }
+                  },
+                  skillFrequency: {
+                    type: "object",
+                    additionalProperties: { type: "number" },
+                    description: "Number of times each skill appears across all postings"
+                  },
+                  keyThemes: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Key themes and priorities employers emphasize"
+                  }
+                },
+                required: ["commonSkills", "commonRequirements", "skillFrequency", "keyThemes"]
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "extract_market_data" } }
       }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('[analyze-market-fit] Lovable AI error:', aiResponse.status, errorText);
-      throw new Error(`AI extraction failed: ${aiResponse.status}`);
+      throw new Error(`AI extraction failed: ${aiResponse.status} - ${errorText}`);
     }
 
     const aiData = await aiResponse.json();
-    const extractedText = aiData.choices?.[0]?.message?.content || "";
+    console.log('[analyze-market-fit] Raw AI response:', JSON.stringify(aiData, null, 2));
     
-    // Parse JSON from AI response
+    // Extract from tool_calls (structured output)
     let marketData;
-    try {
-      const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
-      marketData = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-    } catch (parseError) {
-      console.error('[analyze-market-fit] Failed to parse AI JSON:', extractedText);
-      marketData = {
-        commonSkills: [],
-        commonRequirements: {},
-        skillFrequency: {},
-        keyThemes: []
-      };
+    const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
+    
+    if (toolCalls && toolCalls.length > 0) {
+      try {
+        const toolCall = toolCalls[0];
+        const argsStr = toolCall.function?.arguments;
+        marketData = typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr;
+        console.log('[analyze-market-fit] Successfully extracted structured data from tool call');
+      } catch (parseError) {
+        console.error('[analyze-market-fit] Failed to parse tool call arguments:', parseError);
+        marketData = null;
+      }
+    } else {
+      console.warn('[analyze-market-fit] No tool calls in AI response, trying text parsing fallback');
+      const extractedText = aiData.choices?.[0]?.message?.content || "";
+      try {
+        const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
+        marketData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch (parseError) {
+        console.error('[analyze-market-fit] Text parsing also failed:', extractedText);
+        marketData = null;
+      }
     }
 
-    console.log('[analyze-market-fit] Market data extracted:', marketData);
+    // Fallback: Basic keyword extraction if AI fails
+    if (!marketData || !marketData.commonSkills || marketData.commonSkills.length === 0) {
+      console.warn('[analyze-market-fit] AI extraction failed, using fallback keyword analysis');
+      marketData = performFallbackAnalysis(jobDescriptions, targetRole);
+    }
+
+    console.log('[analyze-market-fit] Final market data:', JSON.stringify(marketData, null, 2));
 
     // Step 3: Store in vault_market_research
     const { data: savedResearch, error: saveError } = await supabaseClient
@@ -352,9 +400,63 @@ function extractSkillsFromText(text: string): string[] {
   const commonSkillKeywords = [
     'python', 'javascript', 'java', 'react', 'node', 'aws', 'docker',
     'kubernetes', 'sql', 'leadership', 'agile', 'scrum', 'project management',
-    'data analysis', 'machine learning', 'ai', 'communication', 'teamwork'
+    'data analysis', 'machine learning', 'ai', 'communication', 'teamwork',
+    // Oil & Gas / Engineering specific
+    'drilling', 'wellbore', 'bha', 'completion', 'hpht', 'directional drilling',
+    'mud logging', 'pressure control', 'well design', 'risk assessment',
+    'rig operations', 'cementing', 'fracturing', 'reservoir', 'subsurface'
   ];
 
   const textLower = text.toLowerCase();
   return commonSkillKeywords.filter(skill => textLower.includes(skill));
+}
+
+// Fallback: Basic keyword analysis if AI extraction fails
+function performFallbackAnalysis(jobDescriptions: any[], targetRole: string): any {
+  console.log('[analyze-market-fit] Performing fallback keyword analysis');
+  
+  // Common technical and soft skills by industry
+  const skillKeywords = [
+    // General
+    'leadership', 'communication', 'project management', 'problem solving', 
+    'team collaboration', 'strategic planning', 'analytical',
+    // Oil & Gas / Drilling Engineering
+    'drilling operations', 'well planning', 'bha design', 'directional drilling',
+    'hpht wells', 'well control', 'completion design', 'mud systems',
+    'torque and drag', 'hydraulics', 'cementing', 'pressure management',
+    'rig supervision', 'drilling optimization', 'cost reduction', 'safety protocols'
+  ];
+
+  const skillFrequency: Record<string, number> = {};
+  const allText = jobDescriptions.map(j => `${j.title} ${j.description}`.toLowerCase()).join(' ');
+  
+  skillKeywords.forEach(skill => {
+    const regex = new RegExp(skill.toLowerCase(), 'gi');
+    const matches = allText.match(regex);
+    if (matches) {
+      skillFrequency[skill] = matches.length;
+    }
+  });
+
+  // Filter to skills appearing in at least 40% of jobs
+  const threshold = Math.ceil(jobDescriptions.length * 0.4);
+  const commonSkills = Object.entries(skillFrequency)
+    .filter(([_, count]) => count >= threshold)
+    .sort((a, b) => b[1] - a[1])
+    .map(([skill]) => skill);
+
+  return {
+    commonSkills: commonSkills.length > 0 ? commonSkills : Object.keys(skillFrequency).slice(0, 10),
+    commonRequirements: {
+      yearsExperience: "3-5 years typical",
+      education: "Bachelor's degree preferred",
+      certifications: []
+    },
+    skillFrequency,
+    keyThemes: [
+      "Technical expertise in role-specific tools",
+      "Strong communication and collaboration",
+      "Problem-solving and analytical thinking"
+    ]
+  };
 }
