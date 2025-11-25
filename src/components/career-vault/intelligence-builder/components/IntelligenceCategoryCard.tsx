@@ -28,7 +28,7 @@ export function IntelligenceCategoryCard({
 
   const getContent = () => {
     return item.power_phrase || item.phrase || item.stated_skill || 
-           item.skill || item.competency_area || item.inferred_capability ||
+           item.skill || item.inferred_capability || item.competency_area ||
            item.trait_name || item.trait || item.style_preference ||
            item.value_name || item.specific_behavior || '';
   };
