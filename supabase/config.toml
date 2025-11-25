@@ -411,3 +411,6 @@ verify_jwt = true
 
 [functions.generate-gap-questions]
 verify_jwt = true
+
+[functions.career-transition-research]
+verify_jwt = true
