@@ -158,10 +158,10 @@ Job Data:
 ${JSON.stringify(jobDescriptions, null, 2)}
 
 Focus on identifying:
-1. Skills that appear in 40% or more of the job postings
-2. Common experience requirements, education levels, and certifications
-3. How frequently each skill appears across all postings
-4. Key themes and priorities that employers emphasize`;
+1. commonSkills: List all skills mentioned in 40% or more of the job postings
+2. skillFrequency: For EACH skill you identify in commonSkills, count how many of the ${jobsToAnalyze.length} job postings mention it (e.g., {"drilling": 18, "project management": 15})
+3. commonRequirements: Extract typical experience requirements, education levels, and certifications
+4. keyThemes: Identify key themes and priorities that employers emphasize`;
 
     let marketData;
     
@@ -180,7 +180,7 @@ Focus on identifying:
           messages: [
             { 
               role: "system", 
-              content: "You are a job market analyst. Extract structured data from job postings accurately." 
+              content: "You are a job market analyst. Extract structured data from job postings accurately. When extracting skillFrequency, create an object where each key is a skill name from commonSkills and each value is the count of jobs requiring it. Example: {\"drilling\": 32, \"BHA design\": 18, \"project management\": 24}" 
             },
             { role: "user", content: extractionPrompt }
           ],
@@ -210,7 +210,7 @@ Focus on identifying:
                     skillFrequency: {
                       type: "object",
                       additionalProperties: { type: "number" },
-                      description: "Number of times each skill appears across all postings"
+                      description: "For each skill in commonSkills, count how many of the job postings require that skill. Keys are skill names (e.g., 'drilling'), values are counts (e.g., 18 out of 20 jobs)"
                     },
                     keyThemes: {
                       type: "array",
