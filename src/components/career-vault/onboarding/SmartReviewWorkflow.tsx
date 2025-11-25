@@ -443,7 +443,7 @@ export default function SmartReviewWorkflow({
                     )}
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
-                        {Math.round(item.confidenceScore * 100)}% confidence
+                        {Math.min(100, Math.round(item.confidenceScore))}% confidence
                       </Badge>
                       <Badge variant="outline" className="text-xs">
                         {item.qualityTier}
@@ -574,8 +574,8 @@ function ReviewItemCard({
             </p>
           )}
           <div className="flex items-center gap-2 mt-3">
-            <Badge variant={item.confidenceScore < 0.6 ? 'destructive' : 'secondary'} className="text-xs">
-              {Math.round(item.confidenceScore * 100)}% confidence
+            <Badge variant={item.confidenceScore < 60 ? 'destructive' : 'secondary'} className="text-xs">
+              {Math.min(100, Math.round(item.confidenceScore))}% confidence
             </Badge>
             <Badge variant="outline" className="text-xs">
               {item.type.replace('_', ' ')}
