@@ -22,7 +22,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
@@ -70,6 +70,15 @@ serve(async (req) => {
       body: searchBody
     });
 
+    console.log('[analyze-market-fit] Raw response:', JSON.stringify({
+      error: jobSearchResponse.error,
+      dataKeys: jobSearchResponse.data ? Object.keys(jobSearchResponse.data) : null,
+      hasJobs: jobSearchResponse.data?.jobs ? true : false,
+      hasResults: jobSearchResponse.data?.results ? true : false,
+      jobsLength: jobSearchResponse.data?.jobs?.length,
+      resultsLength: jobSearchResponse.data?.results?.length
+    }));
+
     if (jobSearchResponse.error) {
       console.error('[analyze-market-fit] Job search error:', jobSearchResponse.error);
       throw new Error(`Failed to search jobs: ${jobSearchResponse.error.message}`);
@@ -96,6 +105,12 @@ serve(async (req) => {
       const fallbackResponse = await supabaseClient.functions.invoke('unified-job-search', {
         body: fallbackSearchBody
       });
+      
+      console.log('[analyze-market-fit] Fallback raw response:', JSON.stringify({
+        error: fallbackResponse.error,
+        hasJobs: fallbackResponse.data?.jobs ? true : false,
+        jobsLength: fallbackResponse.data?.jobs?.length
+      }));
       
       if (!fallbackResponse.error && fallbackResponse.data?.jobs?.length > 0) {
         jobs.push(...fallbackResponse.data.jobs);
