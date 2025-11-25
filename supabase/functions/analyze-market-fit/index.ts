@@ -411,7 +411,12 @@ Focus on identifying:
         skillFrequency: marketData.skillFrequency || {},
         keyThemes: marketData.keyThemes || []
       },
-      gaps: gaps,
+      gaps: gaps.map(gap => ({
+        type: gap.gap_type,
+        name: gap.requirement,
+        frequency: marketData.skillFrequency?.[gap.requirement] || 0,
+        priority: gap.priority === 'blocking' ? 'critical' : gap.priority as 'critical' | 'important' | 'nice_to_have'
+      })),
       researchId: savedResearch.id,
       benchmarkId: benchmarkData?.id
     }), {
