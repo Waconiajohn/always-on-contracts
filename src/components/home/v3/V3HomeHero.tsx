@@ -30,12 +30,6 @@ export function V3HomeHero({
   return (
     <div className="mb-8">
       <div className="bg-gradient-to-br from-primary/5 via-background to-primary/5 border border-primary/20 rounded-lg p-8 md:p-12 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Badge variant="outline" className="bg-primary/10">
-            Powered by Gemini 3.0 Pro & GPT-5
-          </Badge>
-        </div>
-
         <h1 className="text-4xl md:text-5xl font-bold mb-2">
           Good morning, {userName}.
         </h1>

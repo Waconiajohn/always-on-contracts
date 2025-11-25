@@ -116,7 +116,7 @@ export function CategorySection({
               <div className="text-4xl mb-4">🤖</div>
               <h4 className="font-semibold text-lg">No {title} Yet</h4>
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Generate professional insights using AI analysis powered by Gemini 2.5 Flash
+                Generate professional insights using AI analysis
               </p>
               {onGenerateCategory && (
                 <Button

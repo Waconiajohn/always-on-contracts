@@ -90,12 +90,7 @@ export function V3IntelligenceStatus({
               <div className={`p-2 bg-muted rounded-lg ${journeyPhase.color}`}>
                 <PhaseIcon className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="font-semibold">Journey Phase</h3>
-                <Badge variant="outline" className="mt-1">
-                  Analyzed by Gemini 3.0 Pro
-                </Badge>
-              </div>
+              <h3 className="font-semibold">Journey Phase</h3>
             </div>
           </div>
 
@@ -136,12 +131,7 @@ export function V3IntelligenceStatus({
         {/* Profile Strength Card */}
         <div className="border border-border rounded-lg p-5 bg-card">
           <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="font-semibold">Profile Strength</h3>
-              <Badge variant="outline" className="mt-1">
-                Enhanced by Gemini 2.5 Flash
-              </Badge>
-            </div>
+            <h3 className="font-semibold">Profile Strength</h3>
           </div>
 
           <div className="space-y-3">
