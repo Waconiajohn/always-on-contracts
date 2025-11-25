@@ -6,8 +6,11 @@ import { JobMarketLiveDataWidget } from "@/components/home/JobMarketLiveDataWidg
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { useUserContext } from "@/hooks/useUserContext";
 import { V3HomeHero } from "@/components/home/v3/V3HomeHero";
-import { V3JourneyStatus } from "@/components/home/v3/V3JourneyStatus";
-import { V3PersonalizedTools } from "@/components/home/v3/V3PersonalizedTools";
+import { V3AIEngineCard } from "@/components/home/v3/V3AIEngineCard";
+import { V3IntelligenceStatus } from "@/components/home/v3/V3IntelligenceStatus";
+import { V3ActiveJobSearch } from "@/components/home/v3/V3ActiveJobSearch";
+import { V3RecommendedTools } from "@/components/home/v3/V3RecommendedTools";
+import { V3MicroWins } from "@/components/home/v3/V3MicroWins";
 import { getNextActionPrompt } from "@/lib/utils/vaultQualitativeHelpers";
 
 const UnifiedHomeContent = () => {
@@ -40,21 +43,37 @@ const UnifiedHomeContent = () => {
         </aside>
       }
     >
-      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-12">
-        {/* V3 Homepage Components */}
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* V3 Homepage Components - Strategic Career Command Center */}
+        
+        {/* AI Engine Marketing */}
+        <V3AIEngineCard />
+
+        {/* Hero Section with Educational Context */}
         <V3HomeHero 
           userName={userContext.userName}
           vaultCompletion={userContext.vaultCompletion}
           todaysPriority={todaysPriority}
         />
 
-        <V3JourneyStatus 
-          activeApplications={userContext.activeApplications}
-          interviews={userContext.upcomingInterviews}
+        {/* Career Intelligence Status */}
+        <V3IntelligenceStatus
           vaultCompletion={userContext.vaultCompletion}
+          activeApplications={userContext.activeApplications}
+          upcomingInterviews={userContext.upcomingInterviews}
         />
 
-        <V3PersonalizedTools 
+        {/* Active Job Search (conditional) */}
+        <V3ActiveJobSearch
+          activeApplications={userContext.activeApplications}
+          upcomingInterviews={userContext.upcomingInterviews}
+        />
+
+        {/* Quick Wins */}
+        <V3MicroWins vaultCompletion={userContext.vaultCompletion} />
+
+        {/* Recommended Tools */}
+        <V3RecommendedTools
           vaultCompletion={userContext.vaultCompletion}
           activeApplications={userContext.activeApplications}
           upcomingInterviews={userContext.upcomingInterviews}
