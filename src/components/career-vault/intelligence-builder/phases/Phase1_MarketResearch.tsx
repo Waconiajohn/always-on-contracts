@@ -89,9 +89,13 @@ export const Phase1_MarketResearch = ({
     onTimeEstimate('~3 minutes left');
 
     try {
+      // Get the current user ID for storage path (RLS requirement)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       // Step 1: Upload resume
       onProgress(20);
-      const fileName = `${vaultId}/${Date.now()}_${resumeFile.name}`;
+      const fileName = `${user.id}/${Date.now()}_${resumeFile.name}`;
       const { error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(fileName, resumeFile);
