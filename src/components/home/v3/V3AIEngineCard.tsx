@@ -13,20 +13,20 @@ export function V3AIEngineCard() {
         </div>
         
         <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-2">AI Intelligence Engine</h3>
+          <h3 className="text-lg font-semibold mb-2">Powered by Advanced AI</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Your homepage is powered by 3 AI models that analyze your vault in real-time to provide personalized guidance
+            Your experience is powered by multiple AI models that analyze your vault in real-time to provide personalized guidance
           </p>
           
           <div className="flex flex-wrap gap-2 mb-3">
             <Badge variant="outline" className="bg-primary/5">
+              Claude Sonnet 4 - Core Intelligence
+            </Badge>
+            <Badge variant="outline" className="bg-primary/5">
               Gemini 3.0 Pro - Strategic Analysis
             </Badge>
             <Badge variant="outline" className="bg-primary/5">
-              Gemini 2.5 Flash - Daily Recommendations
-            </Badge>
-            <Badge variant="outline" className="bg-primary/5">
-              GPT-5 - Job Matching
+              Perplexity - Market Research
             </Badge>
           </div>
           
@@ -50,13 +50,13 @@ export function V3AIEngineCard() {
           {isExpanded && (
             <div className="mt-4 space-y-3 text-sm text-muted-foreground">
               <div>
-                <span className="font-medium text-foreground">Gemini 3.0 Pro</span> analyzes your entire career vault to identify strategic positioning opportunities and generates executive-level insights.
+                <span className="font-medium text-foreground">Claude Sonnet 4</span> powers the core intelligence of the platform, analyzing your career vault to extract insights, generate content, and provide strategic recommendations.
               </div>
               <div>
-                <span className="font-medium text-foreground">Gemini 2.5 Flash</span> provides real-time recommendations for daily actions, analyzes application timing, and suggests optimal follow-up moments.
+                <span className="font-medium text-foreground">Gemini 3.0 Pro</span> handles complex reasoning tasks, identifies strategic positioning opportunities, and generates executive-level insights from your experience.
               </div>
               <div>
-                <span className="font-medium text-foreground">GPT-5</span> matches your vault profile against job requirements, generates tailored resumes, and predicts interview success probability.
+                <span className="font-medium text-foreground">Perplexity</span> provides real-time market research, industry trends, and competitive intelligence to keep your career strategy current.
               </div>
             </div>
           )}
