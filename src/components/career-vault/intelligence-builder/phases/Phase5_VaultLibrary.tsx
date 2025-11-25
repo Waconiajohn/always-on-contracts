@@ -1,313 +1,452 @@
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  FileText,
-  Linkedin,
-  MessageSquare,
-  TrendingUp,
-  Briefcase,
-  Award,
-  Search,
-  Sparkles,
-  Target
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Trophy, Brain, Sparkles, FileText, Users, 
+  MessageSquare, Loader2, Zap
+} from 'lucide-react';
+import { CategorySection } from '../components/CategorySection';
 
 interface Phase5Props {
   vaultId: string;
-  onProgress: (progress: number) => void;
+  onProgress: (progress: number, message?: string) => void;
   onTimeEstimate: (estimate: string) => void;
   onComplete: () => void;
-}
-
-interface VaultStats {
-  powerPhrases: number;
-  skills: number;
-  competencies: number;
-  softSkills: number;
-  total: number;
 }
 
 export const Phase5_VaultLibrary = ({
   vaultId,
   onProgress,
   onTimeEstimate,
+  onComplete
 }: Phase5Props) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [stats, setStats] = useState<VaultStats | null>(null);
-  const [powerPhrases, setPowerPhrases] = useState<any[]>([]);
-  const [skills, setSkills] = useState<any[]>([]);
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [stats, setStats] = useState({
+    achievements: 0,
+    skills: 0,
+    competencies: 0,
+    softSkills: 0,
+    leadership: 0,
+    executive: 0,
+    personality: 0,
+    workstyle: 0,
+    values: 0,
+    behavioral: 0
+  });
+  
+  // All 10 intelligence categories
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [competencies, setCompetencies] = useState<any[]>([]);
+  const [softSkills, setSoftSkills] = useState<any[]>([]);
+  const [leadership, setLeadership] = useState<any[]>([]);
+  const [executivePresence, setExecutivePresence] = useState<any[]>([]);
+  const [personality, setPersonality] = useState<any[]>([]);
+  const [workstyle, setWorkstyle] = useState<any[]>([]);
+  const [values, setValues] = useState<any[]>([]);
+  const [behavioral, setBehavioral] = useState<any[]>([]);
+  
+  // Work context data
+  const [workPositions, setWorkPositions] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<any[]>([]);
 
   useEffect(() => {
     loadVaultData();
   }, [vaultId]);
 
   const loadVaultData = async () => {
+    if (!vaultId) return;
+
     setIsLoading(true);
-    onProgress(20);
+    onProgress(10, "Loading vault data...");
 
     try {
-      // Load vault metadata for stats
-      const { data: vault } = await supabase
+      // Fetch vault metadata
+      const { data: vaultData, error: vaultError } = await supabase
         .from('career_vault')
         .select('*')
         .eq('id', vaultId)
         .single();
 
-      onProgress(40);
+      if (vaultError) throw vaultError;
+      onProgress(20, "Loading work experience...");
 
-      // Load power phrases
-      const { data: phrases } = await supabase
-        .from('vault_power_phrases')
+      // Fetch work positions and milestones for context
+      const { data: positionsData } = await supabase
+        .from('vault_work_positions')
         .select('*')
         .eq('vault_id', vaultId)
-        .order('created_at', { ascending: false });
+        .order('start_date', { ascending: false });
 
-      setPowerPhrases(phrases || []);
-      onProgress(60);
+      setWorkPositions(positionsData || []);
+      setMilestones([]);
+      onProgress(30, "Loading intelligence categories...");
 
-      // Load skills
-      const { data: skillsData } = await supabase
-        .from('vault_transferable_skills')
-        .select('*')
-        .eq('vault_id', vaultId)
-        .order('created_at', { ascending: false });
+      // Fetch all 10 intelligence categories in parallel
+      const [
+        achievementsRes,
+        skillsRes,
+        competenciesRes,
+        softSkillsRes,
+        leadershipRes,
+        executiveRes,
+        personalityRes,
+        workstyleRes,
+        valuesRes,
+        behavioralRes
+      ] = await Promise.all([
+        supabase.from('vault_power_phrases').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_transferable_skills').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_hidden_competencies').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_soft_skills').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_leadership_philosophy').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_executive_presence').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_personality_traits').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_work_style').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_values_motivations').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false }),
+        supabase.from('vault_behavioral_indicators').select('*').eq('vault_id', vaultId).order('quality_tier', { ascending: false })
+      ]);
 
-      setSkills(skillsData || []);
-      onProgress(80);
+      setAchievements(achievementsRes.data || []);
+      setSkills(skillsRes.data || []);
+      setCompetencies(competenciesRes.data || []);
+      setSoftSkills(softSkillsRes.data || []);
+      setLeadership(leadershipRes.data || []);
+      setExecutivePresence(executiveRes.data || []);
+      setPersonality(personalityRes.data || []);
+      setWorkstyle(workstyleRes.data || []);
+      setValues(valuesRes.data || []);
+      setBehavioral(behavioralRes.data || []);
 
-      // Calculate stats
       setStats({
-        powerPhrases: phrases?.length || 0,
-        skills: skillsData?.length || 0,
-        competencies: vault?.total_hidden_competencies || 0,
-        softSkills: vault?.total_soft_skills || 0,
-        total: (phrases?.length || 0) + (skillsData?.length || 0)
+        achievements: achievementsRes.data?.length || 0,
+        skills: skillsRes.data?.length || 0,
+        competencies: competenciesRes.data?.length || 0,
+        softSkills: softSkillsRes.data?.length || 0,
+        leadership: leadershipRes.data?.length || 0,
+        executive: executiveRes.data?.length || 0,
+        personality: personalityRes.data?.length || 0,
+        workstyle: workstyleRes.data?.length || 0,
+        values: valuesRes.data?.length || 0,
+        behavioral: behavioralRes.data?.length || 0
       });
 
-      onProgress(100);
-      onTimeEstimate('Ready to use');
-      toast.success('Vault loaded successfully');
+      onProgress(100, "Vault loaded successfully");
+      
+      toast({
+        title: "Vault loaded",
+        description: "All 10 intelligence categories ready to explore"
+      });
     } catch (error) {
       console.error('Error loading vault:', error);
-      toast.error('Failed to load vault data');
+      toast({
+        title: "Error",
+        description: "Failed to load vault data",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredPhrases = powerPhrases.filter(p =>
-    p.power_phrase?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleRegenerateCategory = async (categoryName: string) => {
+    try {
+      toast({
+        title: "Generating intelligence...",
+        description: `Using Gemini 2.5 Flash to analyze your career data`
+      });
 
-  const filteredSkills = skills.filter(s =>
-    s.stated_skill?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      const { error } = await supabase.functions.invoke('extract-vault-intangibles', {
+        body: { vaultId, category: categoryName }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Generation complete!",
+        description: `New ${categoryName} items added to your vault`
+      });
+
+      loadVaultData();
+    } catch (error) {
+      console.error('Error regenerating category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate intelligence",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-muted-foreground">Loading your vault...</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-lg text-muted-foreground">Loading your career intelligence library...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="max-w-7xl mx-auto p-8 space-y-8">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 pb-24">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold">Your Career Intelligence Library</h1>
-          <p className="text-lg text-muted-foreground">
-            {stats?.total || 0} market-ready items organized and searchable
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-full">
+            <Trophy className="h-5 w-5 text-purple-600" />
+            <span className="font-semibold text-purple-700 dark:text-purple-300">Powered by Advanced AI</span>
+            <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200 text-[10px]">
+              Gemini 3.0 Pro
+            </Badge>
+          </div>
+          <h1 className="text-4xl font-bold">Career Intelligence Library</h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            10 categories of professional intelligence, enhanced by Google's most advanced AI models
           </p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-6 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div className="text-3xl font-bold text-primary">
-              {stats?.powerPhrases || 0}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Power Phrases</p>
-          </Card>
-
-          <Card className="p-6 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
-            </div>
-            <div className="text-3xl font-bold text-blue-500">
-              {stats?.skills || 0}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Skills</p>
-          </Card>
-
-          <Card className="p-6 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Target className="h-5 w-5 text-orange-500" />
-            </div>
-            <div className="text-3xl font-bold text-orange-500">
-              {stats?.competencies || 0}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Competencies</p>
-          </Card>
-
-          <Card className="p-6 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Award className="h-5 w-5 text-green-500" />
-            </div>
-            <div className="text-3xl font-bold text-green-500">
-              {stats?.softSkills || 0}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Soft Skills</p>
-          </Card>
-        </div>
-
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Resume Builder */}
-          <Card className="p-6 space-y-4 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <FileText className="h-6 w-6 text-primary" />
+        {/* AI Intelligence Engine Info */}
+        <Card className="border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-blue-500/5">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <Brain className="h-6 w-6 text-purple-600" />
               </div>
-              <h3 className="text-xl font-bold">Resume Builder</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Generate tailored resumes with AI-optimized bullets from your vault
-            </p>
-            <Button className="w-full" variant="default">
-              Create Resume
-            </Button>
-          </Card>
-
-          {/* LinkedIn Optimizer */}
-          <Card className="p-6 space-y-4 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Linkedin className="h-6 w-6 text-primary" />
+              <div className="flex-1">
+                <h3 className="font-semibold mb-2">AI Intelligence Engine</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Every item in your vault can be enhanced using our AI models. Enhancement includes strategic keyword injection, executive-level language optimization, and quality tier upgrades.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="bg-purple-50 border-purple-200">
+                    <Sparkles className="h-3 w-3 mr-1 text-purple-600" />
+                    Gemini 3.0 Pro - Enhancement
+                  </Badge>
+                  <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                    <Zap className="h-3 w-3 mr-1 text-blue-600" />
+                    Gemini 2.5 Flash - Generation
+                  </Badge>
+                </div>
               </div>
-              <h3 className="text-xl font-bold">LinkedIn Optimizer</h3>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Optimize your LinkedIn profile with strategic positioning
-            </p>
-            <Button className="w-full" variant="default">
-              Optimize Profile
-            </Button>
-          </Card>
+          </CardContent>
+        </Card>
 
-          {/* Interview Prep */}
-          <Card className="p-6 space-y-4 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <MessageSquare className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold">Interview Prep</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Practice with AI-powered interview coaching and feedback
-            </p>
-            <Button className="w-full" variant="default">
-              Start Prep
-            </Button>
-          </Card>
-        </div>
-
-        {/* Vault Content Browser */}
-        <Card className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Browse Your Vault</h2>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search your vault..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+        {/* Category Sections */}
+        <div className="space-y-6">
+          {/* Core Intelligence */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span>⚡</span> Core Intelligence
+            </h2>
+            <CategorySection
+              title="Career Achievements"
+              icon="🎯"
+              description="Quantified accomplishments that demonstrate impact"
+              educationalContext="These achievements power your Resume Builder by providing concrete, metrics-driven bullet points that pass ATS systems and impress hiring managers."
+              items={achievements}
+              category="achievements"
+              defaultOpen={true}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('power_phrases')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+            
+            <CategorySection
+              title="Skills & Expertise"
+              icon="💼"
+              description="Technical and functional capabilities"
+              educationalContext="Your skills library helps LinkedIn Optimizer create keyword-rich profiles and enables Interview Prep to match your expertise to job requirements."
+              items={skills}
+              category="skills"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('transferable_skills')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+            
+            <CategorySection
+              title="Strategic Capabilities"
+              icon="🧩"
+              description="Hidden competencies and strategic strengths"
+              educationalContext="These competencies differentiate you in competitive hiring processes by revealing strategic thinking abilities that aren't obvious from job titles alone."
+              items={competencies}
+              category="competencies"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('hidden_competencies')}
+              workPositions={workPositions}
+              milestones={milestones}
             />
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="phrases" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="phrases">
-                <Briefcase className="h-4 w-4 mr-2" />
-                Power Phrases ({filteredPhrases.length})
-              </TabsTrigger>
-              <TabsTrigger value="skills">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Skills ({filteredSkills.length})
-              </TabsTrigger>
-            </TabsList>
+          {/* Leadership & Presence */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span>👑</span> Leadership & Presence
+            </h2>
+            <CategorySection
+              title="Professional Strengths"
+              icon="💪"
+              description="Core soft skills and interpersonal abilities"
+              educationalContext="These strengths enhance your Interview Prep responses with behavioral examples and help LinkedIn Optimizer craft authentic personal brand messaging."
+              items={softSkills}
+              category="strengths"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('soft_skills')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+            
+            <CategorySection
+              title="Leadership Philosophy"
+              icon="🎓"
+              description="Your approach to leading teams and driving results"
+              educationalContext="Leadership insights power executive-level Interview Prep responses and create compelling LinkedIn thought leadership content."
+              items={leadership}
+              category="leadership"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('leadership')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+            
+            <CategorySection
+              title="Executive Presence"
+              icon="✨"
+              description="Communication style and professional gravitas"
+              educationalContext="Executive presence indicators help Interview Prep craft C-suite level responses and guide LinkedIn Optimizer in positioning you for senior roles."
+              items={executivePresence}
+              category="executive"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('executive_presence')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+          </div>
 
-            <TabsContent value="phrases" className="space-y-3">
-              {filteredPhrases.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No power phrases found</p>
-                </div>
-              ) : (
-                filteredPhrases.map((phrase) => (
-                  <Card key={phrase.id} className="p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="font-medium">{phrase.power_phrase}</p>
-                        {phrase.context && (
-                          <p className="text-sm text-muted-foreground mt-1">{phrase.context}</p>
-                        )}
-                      </div>
-                      <Badge variant={
-                        phrase.quality_tier === 'gold' ? 'default' :
-                        phrase.quality_tier === 'silver' ? 'secondary' : 'outline'
-                      }>
-                        {phrase.quality_tier || 'bronze'}
-                      </Badge>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
+          {/* Personal Brand */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span>🌟</span> Personal Brand
+            </h2>
+            <CategorySection
+              title="Personality Traits"
+              icon="🎭"
+              description="Behavioral characteristics and work personality"
+              educationalContext="Personality insights enable LinkedIn Optimizer to create authentic voice content and help Interview Prep answer culture-fit questions naturally."
+              items={personality}
+              category="personality"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('personality')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+            
+            <CategorySection
+              title="Work Style Preferences"
+              icon="⚙️"
+              description="How you work best and collaborate"
+              educationalContext="Work style data helps Resume Builder customize objective statements and provides Interview Prep with team dynamics examples."
+              items={workstyle}
+              category="workstyle"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('work_style')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+            
+            <CategorySection
+              title="Core Values & Motivations"
+              icon="❤️"
+              description="What drives you professionally"
+              educationalContext="Values inform LinkedIn Optimizer's authentic storytelling and help Interview Prep answer motivation questions with genuine passion."
+              items={values}
+              category="values"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('values')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+            
+            <CategorySection
+              title="Behavioral Indicators"
+              icon="🔍"
+              description="Observable patterns in how you deliver results"
+              educationalContext="Behavioral patterns provide Interview Prep with rich STAR story examples and give LinkedIn Optimizer proof points for your claims."
+              items={behavioral}
+              category="behavioral"
+              onEnhance={(item, type) => {}}
+              onRefresh={loadVaultData}
+              onGenerateCategory={() => handleRegenerateCategory('behavioral')}
+              workPositions={workPositions}
+              milestones={milestones}
+            />
+          </div>
+        </div>
 
-            <TabsContent value="skills" className="space-y-3">
-              {filteredSkills.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No skills found</p>
+        {/* Feature Integration Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t">
+          <Card className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
-              ) : (
-                filteredSkills.map((skill) => (
-                  <Card key={skill.id} className="p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="font-medium">{skill.stated_skill}</p>
-                        {skill.evidence && (
-                          <p className="text-sm text-muted-foreground mt-1">{skill.evidence}</p>
-                        )}
-                      </div>
-                      <Badge variant={
-                        skill.quality_tier === 'gold' ? 'default' :
-                        skill.quality_tier === 'silver' ? 'secondary' : 'outline'
-                      }>
-                        {skill.quality_tier || 'bronze'}
-                      </Badge>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-          </Tabs>
-        </Card>
+                <CardTitle>Resume Builder</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Uses: Achievements, Skills, Competencies, Work Style
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-blue-500/20 hover:border-blue-500/40 transition-colors cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <CardTitle>LinkedIn Optimizer</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Uses: All categories for authentic personal branding
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <MessageSquare className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle>Interview Prep</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Uses: Leadership, Behavioral, Values for STAR responses
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
