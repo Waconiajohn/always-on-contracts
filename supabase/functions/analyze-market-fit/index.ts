@@ -222,8 +222,7 @@ Focus on identifying:
                 }
               }
             }
-          ],
-          tool_choice: { type: "function", function: { name: "extract_market_data" } }
+          ]
         }),
       });
 
