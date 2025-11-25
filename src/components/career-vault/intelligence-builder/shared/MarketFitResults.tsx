@@ -1,23 +1,56 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Target, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, Target, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+
+interface MarketData {
+  jobsAnalyzed: number;
+  commonSkills: string[];
+  skillFrequency: Record<string, number>;
+  keyThemes: string[];
+  commonRequirements?: any;
+}
+
+interface Gap {
+  gap_id: string;
+  gap_type: string;
+  requirement: string;
+  priority: 'blocking' | 'important' | 'nice_to_have';
+  reasoning: string;
+}
 
 interface MarketFitResultsProps {
-  jobsAnalyzed: number;
-  topSkills: Array<{ name: string; frequency: number }>;
-  matchPercentage: number;
-  matchedSkills: string[];
-  missingSkills: string[];
+  vaultId?: string;
+  marketData: MarketData;
+  gaps: Gap[];
+  onContinue: () => void;
 }
 
 export const MarketFitResults = ({
-  jobsAnalyzed,
-  topSkills,
-  matchPercentage,
-  matchedSkills,
-  missingSkills
+  marketData,
+  gaps,
+  onContinue
 }: MarketFitResultsProps) => {
+  const { jobsAnalyzed = 0, commonSkills = [], skillFrequency = {}, keyThemes = [] } = marketData || {};
+  
+  // Calculate match percentage
+  const criticalGaps = gaps.filter(g => g.priority === 'blocking').length;
+  const importantGaps = gaps.filter(g => g.priority === 'important').length;
+  const totalSkills = commonSkills.length;
+  const matchedSkills = commonSkills.filter(skill => {
+    return !gaps.some(g => g.requirement.toLowerCase() === skill.toLowerCase());
+  });
+  const totalGaps = gaps.length;
+  const matchPercentage = totalSkills > 0 
+    ? Math.round((matchedSkills.length / totalSkills) * 100)
+    : 0;
+
+  // Top skills sorted by frequency
+  const topSkills = Object.entries(skillFrequency)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 8)
+    .map(([name, frequency]) => ({ name, frequency }));
   const getMatchStatus = () => {
     if (matchPercentage >= 80) return { color: 'text-green-600', label: 'Excellent Match', icon: TrendingUp };
     if (matchPercentage >= 60) return { color: 'text-blue-600', label: 'Good Match', icon: Target };
@@ -58,7 +91,7 @@ export const MarketFitResults = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Skills to Add</p>
-                <p className="text-2xl font-bold text-orange-600">{missingSkills.length}</p>
+                <p className="text-2xl font-bold text-orange-600">{totalGaps}</p>
               </div>
             </div>
           </div>
@@ -76,7 +109,7 @@ export const MarketFitResults = ({
         <CardContent>
           <div className="space-y-3">
             {topSkills.map((skill, index) => {
-              const isMatched = matchedSkills.some(s => s.toLowerCase() === skill.name.toLowerCase());
+              const isMatched = matchedSkills.includes(skill.name);
               const percentage = (skill.frequency / jobsAnalyzed) * 100;
               
               return (
@@ -86,7 +119,8 @@ export const MarketFitResults = ({
                       <span className="font-medium">{skill.name}</span>
                       {isMatched && (
                         <Badge variant="outline" className="text-green-600 border-green-600">
-                          ✓ You Have This
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          You Have This
                         </Badge>
                       )}
                     </div>
@@ -102,33 +136,81 @@ export const MarketFitResults = ({
         </CardContent>
       </Card>
 
-      {/* Missing Skills Alert */}
-      {missingSkills.length > 0 && (
+      {/* Critical Gaps */}
+      {criticalGaps > 0 && (
+        <Card className="border-red-200 bg-red-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-900">
+              <AlertCircle className="h-5 w-5" />
+              Critical Gaps ({criticalGaps})
+            </CardTitle>
+            <CardDescription className="text-red-700">
+              These skills appear in most job postings and are missing from your resume
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {gaps.filter(g => g.priority === 'blocking').slice(0, 5).map((gap) => (
+                <div key={gap.gap_id} className="p-3 rounded-lg bg-white border border-red-200">
+                  <p className="font-medium text-red-900">{gap.requirement}</p>
+                  <p className="text-sm text-red-700 mt-1">{gap.reasoning}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Important Gaps */}
+      {importantGaps > 0 && (
         <Card className="border-orange-200 bg-orange-50/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-900">
-              <AlertCircle className="h-5 w-5" />
-              Skills to Highlight or Develop
+              <Target className="h-5 w-5" />
+              Important Skills ({importantGaps})
             </CardTitle>
             <CardDescription className="text-orange-700">
-              These skills appeared frequently but aren't clearly shown in your resume
+              These skills appeared frequently and would strengthen your profile
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {missingSkills.slice(0, 10).map((skill, index) => (
-                <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-900">
-                  {skill}
+              {gaps.filter(g => g.priority === 'important').map((gap) => (
+                <Badge key={gap.gap_id} variant="secondary" className="bg-orange-100 text-orange-900">
+                  {gap.requirement}
                 </Badge>
               ))}
             </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Don't worry - we'll help you either highlight these skills if you have them, 
-              or develop an action plan to acquire them.
-            </p>
           </CardContent>
         </Card>
       )}
+
+      {/* Key Themes */}
+      {keyThemes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>What Companies Care About</CardTitle>
+            <CardDescription>Key themes from job descriptions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {keyThemes.map((theme, index) => (
+                <Badge key={index} variant="outline">
+                  {theme}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Continue Button */}
+      <div className="flex justify-center pt-4">
+        <Button size="lg" onClick={onContinue}>
+          Continue to Work History Mapping
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };
