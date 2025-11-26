@@ -122,9 +122,9 @@ const AppContent = () => {
             <Route path="/admin/user-roles" element={<ProtectedRoute><AdminRoute><UserRoleManagement /></AdminRoute></ProtectedRoute>} />
             <Route path="/admin-setup" element={<ProtectedRoute><AdminSetup /></ProtectedRoute>} />
             <Route path="/vault-admin" element={<ProtectedRoute><VaultAdminTools /></ProtectedRoute>} />
-            <Route path="/career-vault" element={<ProtectedRoute><CareerVaultEntry /></ProtectedRoute>} />
+            <Route path="/career-vault" element={<CareerVaultDashboard />} />
+            <Route path="/career-intelligence-builder" element={<ProtectedRoute><CareerVaultEntry /></ProtectedRoute>} />
             <Route path="/career-intelligence" element={<ProtectedRoute><CareerIntelligenceLibrary /></ProtectedRoute>} />
-            <Route path="/career-vault-old" element={<CareerVaultDashboard />} />
             <Route path="/career-vault-onboarding" element={<Navigate to="/career-vault" replace />} />
             {/* Legacy redirects */}
             <Route path="/career-tools" element={<Navigate to="/home" replace />} />
