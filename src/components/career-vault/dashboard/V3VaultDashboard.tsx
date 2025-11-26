@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 import { V3VaultOverview } from "./V3VaultOverview";
 import { V3SmartQuestionPanel } from "./V3SmartQuestionPanel";
@@ -35,6 +36,7 @@ function V3VaultDashboardContent() {
   const stats = useVaultStats(vaultData);
   const { assessment, assessVaultQuality, isAssessing } = useVaultAssessment();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [showCareerDirectionModal, setShowCareerDirectionModal] = useState(false);
   const [showGapAnalysisModal, setShowGapAnalysisModal] = useState(false);
@@ -48,12 +50,23 @@ function V3VaultDashboardContent() {
   const targetIndustries = (vaultData?.vault as any)?.target_industries || [];
   const hasResume = !!((vaultData?.vault as any)?.resume_raw_text?.trim());
 
-  // Check for career direction on load
+  // CRITICAL: Redirect to onboarding if no resume
   useEffect(() => {
-    if (vaultId && !careerDirection) {
+    if (vaultId && !hasResume) {
+      navigate('/onboarding');
+      toast({
+        title: "Resume Required",
+        description: "Please upload your resume to continue building your Career Vault.",
+      });
+    }
+  }, [vaultId, hasResume, navigate, toast]);
+
+  // Check for career direction on load (only if resume exists)
+  useEffect(() => {
+    if (vaultId && hasResume && !careerDirection) {
       setShowCareerDirectionModal(true);
     }
-  }, [vaultId, careerDirection]);
+  }, [vaultId, hasResume, careerDirection]);
 
   // Fetch market research and gap analysis counts
   useEffect(() => {
@@ -93,6 +106,25 @@ function V3VaultDashboardContent() {
   }) => {
     if (!vaultId) return;
 
+    // CRITICAL: Verify resume exists before triggering market analysis
+    const { data: vaultInfo } = await supabase
+      .from('career_vault')
+      .select('resume_raw_text')
+      .eq('id', vaultId)
+      .single();
+
+    const resumeExists = vaultInfo?.resume_raw_text && vaultInfo.resume_raw_text.trim().length > 0;
+
+    if (!resumeExists) {
+      toast({
+        title: "Resume Required",
+        description: "Please upload your resume before setting career direction.",
+        variant: "destructive"
+      });
+      navigate('/onboarding');
+      return;
+    }
+
     // Save career direction to vault
     await supabase
       .from('career_vault')
@@ -113,18 +145,12 @@ function V3VaultDashboardContent() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const { data: vaultInfo } = await supabase
-        .from('career_vault')
-        .select('resume_raw_text')
-        .eq('id', vaultId)
-        .single();
-
       await supabase.functions.invoke('analyze-market-fit', {
         body: {
           vaultId,
           targetRole,
           targetIndustry,
-          resumeText: vaultInfo?.resume_raw_text || '',
+          resumeText: vaultInfo.resume_raw_text,
           numJobs: 25,
         },
         headers: {
