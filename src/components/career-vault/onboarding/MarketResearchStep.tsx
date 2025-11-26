@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, TrendingUp, Briefcase, ArrowRight, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseClient } from '@/hooks/useAuth';
-import { logger } from '@/lib/logger';
 
 interface MarketResearchStepProps {
   onComplete: (data: {

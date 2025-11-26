@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Check, ChevronRight, Target, FileText, Search, Zap, Trophy, Home, Loader2, ArrowRight } from 'lucide-react';
+import { Check, Target, FileText, Search, Zap, Trophy, Home, Loader2, ArrowRight } from 'lucide-react';
 import ResumeAnalysisStep from './onboarding/ResumeAnalysisStep';
 import CareerDirectionStep from './onboarding/CareerDirectionStep';
 import MarketResearchStep from './onboarding/MarketResearchStep';
@@ -35,7 +34,6 @@ export default function CareerCompassWizard() {
   const [initialAnalysis, setInitialAnalysis] = useState<any>(null);
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
   const [targetIndustries, setTargetIndustries] = useState<string[]>([]);
-  const [marketData, setMarketData] = useState<any>(null);
   const [industryResearch, setIndustryResearch] = useState<any>(null);
 
   const currentStep = STEPS[currentStepIndex];
@@ -91,12 +89,7 @@ export default function CareerCompassWizard() {
           .maybeSingle();
 
         if (research) {
-          setMarketData({
-            commonSkills: research.common_requirements?.skills || [],
-            // ... recreate simplified structure if needed
-          });
           // If research exists, we usually move to Gap Analysis
-          // But if they explicitly came here without ?step param, maybe they want to see where they are.
           step = 4; 
         }
         
@@ -143,12 +136,23 @@ export default function CareerCompassWizard() {
   };
 
   const handleMarketResearchComplete = (data: { marketData: any; researchId: string }) => {
-    setMarketData(data.marketData);
     setIndustryResearch([{ results: data.marketData }]); 
     setCurrentStepIndex(4); // Move to Gap Analysis
   };
 
-  const handleGapAnalysisComplete = (data: { newVaultStrength: number }) => {
+  const handleGapAnalysisComplete = (_data: { newVaultStrength: number }) => {
+    setCurrentStepIndex(5); // Move to Complete
+    
+    setTimeout(() => {
+      navigate('/career-vault');
+      toast({
+        title: "Career Compass Complete!",
+        description: "Your vault has been built and optimized based on your goals."
+      });
+    }, 3000);
+  };
+
+  const handleSkipGapAnalysis = () => {
     setCurrentStepIndex(5); // Move to Complete
     
     setTimeout(() => {
@@ -331,7 +335,7 @@ export default function CareerCompassWizard() {
                 currentVaultStrength={0}
                 industryResearch={industryResearch}
                 onComplete={handleGapAnalysisComplete}
-                onSkip={handleGapAnalysisComplete}
+                onSkip={handleSkipGapAnalysis}
               />
             )}
 
