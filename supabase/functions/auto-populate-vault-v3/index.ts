@@ -754,6 +754,8 @@ serve(async (req) => {
     // CRITICAL FIX: Store Work Positions (Previously Missing!)
     // ========================================================================
     console.log('\n💼 Storing work positions...');
+    const insertedPositions: { id: string; company: string; title: string }[] = [];
+    
     if (structuredData!.experience.roles.length > 0) {
       const workPositions = structuredData!.experience.roles.map(role => ({
         vault_id: vaultId,
@@ -769,15 +771,27 @@ serve(async (req) => {
         extraction_source: 'ai-structured-v3'
       }));
       
-      const { error: wpError } = await supabase
+      const { data: insertedData, error: wpError } = await supabase
         .from('vault_work_positions')
-        .insert(workPositions);
+        .insert(workPositions)
+        .select('id, company_name, job_title');
       
       if (wpError) {
         console.error('❌ Error inserting work positions:', wpError);
       } else {
         console.log(`✅ Stored ${workPositions.length} work positions`);
         console.log(`   Companies: ${workPositions.map(w => w.company_name).join(', ')}`);
+        
+        // Store position IDs for milestone linking
+        if (insertedData) {
+          insertedData.forEach((pos, i) => {
+            insertedPositions.push({
+              id: pos.id,
+              company: structuredData!.experience.roles[i].company,
+              title: structuredData!.experience.roles[i].title
+            });
+          });
+        }
       }
     }
 
@@ -811,67 +825,87 @@ serve(async (req) => {
     }
 
     // ========================================================================
-    // CRITICAL FIX: Store Milestones/Achievements (Previously Missing!)
+    // CRITICAL FIX: Store Milestones/Achievements with key_achievements array
     // ========================================================================
-    console.log('\n🏆 Storing achievements as milestones...');
+    console.log('\n🏆 Storing achievements as milestones with proper role linking...');
     
-    // Get most recent work position to link achievements to
-    const { data: recentPosition } = await supabase
-      .from('vault_work_positions')
-      .select('id')
-      .eq('vault_id', vaultId)
-      .order('start_date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    
-    if (!recentPosition) {
+    if (insertedPositions.length === 0) {
       console.log('⚠️ No work positions found - skipping milestone storage');
     } else {
-      const milestones: any[] = [];
+      // Group achievements by role context using AI to match
+      const milestonesToInsert: any[] = [];
       
-      // Add quantified achievements
-      structuredData!.achievements.quantified.forEach(ach => {
-        milestones.push({
-          vault_id: vaultId,
-          user_id: userId,
-          work_position_id: recentPosition.id, // ← THE FIX: Link to most recent position
-          milestone_title: ach.achievement,
-          description: ach.achievement,
-          metric_type: ach.metric,
-          metric_value: ach.impact,
-          context: ach.context,
-          confidence_score: ach.confidence / 100,
-          quality_tier: ach.confidence > 85 ? 'gold' : 'silver',
-          extraction_source: 'ai-structured-v3'
-        });
-      });
-      
-      // Add strategic achievements
-      structuredData!.achievements.strategic.forEach(ach => {
-        milestones.push({
-          vault_id: vaultId,
-          user_id: userId,
-          work_position_id: recentPosition.id, // ← THE FIX: Link to most recent position
-          milestone_title: ach.achievement,
-          description: `${ach.achievement}\n\nScope: ${ach.scope}\nImpact: ${ach.impact}`,
-          confidence_score: ach.confidence / 100,
-          quality_tier: ach.confidence > 80 ? 'silver' : 'bronze',
-          extraction_source: 'ai-structured-v3'
-        });
-      });
-      
-      if (milestones.length > 0) {
-        const { error: mlError } = await supabase
-          .from('vault_resume_milestones')
-          .insert(milestones);
+      // For each position, extract relevant achievements from the role
+      structuredData!.experience.roles.forEach((role, roleIndex) => {
+        const matchingPosition = insertedPositions.find(p => 
+          p.company === role.company && p.title === role.title
+        );
         
-        if (mlError) {
-          console.error('❌ Error inserting milestones:', mlError);
-        } else {
-          console.log(`✅ Stored ${milestones.length} milestones`);
-          console.log(`   Gold: ${milestones.filter(m => m.quality_tier === 'gold').length}`);
-          console.log(`   Silver: ${milestones.filter(m => m.quality_tier === 'silver').length}`);
+        if (!matchingPosition) {
+          console.log(`⚠️ No matching position found for ${role.title} at ${role.company}`);
+          return;
         }
+        
+        // Collect all achievements (both quantified and strategic) for this role
+        const roleAchievements: string[] = [];
+        
+        // Add quantified achievements that mention this company/role
+        structuredData!.achievements.quantified.forEach(ach => {
+          const achText = ach.achievement.toLowerCase();
+          const companyLower = role.company.toLowerCase();
+          const titleLower = role.title.toLowerCase();
+          
+          // Simple keyword matching - achievements mentioning company or in context of role
+          if (achText.includes(companyLower) || ach.context?.toLowerCase().includes(companyLower)) {
+            roleAchievements.push(ach.achievement);
+          }
+        });
+        
+        // Add strategic achievements 
+        structuredData!.achievements.strategic.forEach(ach => {
+          const achText = ach.achievement.toLowerCase();
+          const companyLower = role.company.toLowerCase();
+          
+          if (achText.includes(companyLower) || ach.scope?.toLowerCase().includes(companyLower)) {
+            roleAchievements.push(ach.achievement);
+          }
+        });
+        
+        // If no specific achievements found, add first few from global pool
+        if (roleAchievements.length === 0 && roleIndex === 0) {
+          // For most recent role, add top achievements
+          structuredData!.achievements.quantified.slice(0, 3).forEach(ach => {
+            roleAchievements.push(ach.achievement);
+          });
+        }
+        
+        // Store as single milestone record with key_achievements array
+        if (roleAchievements.length > 0) {
+          milestonesToInsert.push({
+            vault_id: vaultId,
+            user_id: userId,
+            work_position_id: matchingPosition.id,
+            key_achievements: roleAchievements, // Store as array for Phase 2 compatibility
+            confidence_score: 0.85,
+            quality_tier: 'silver',
+            extraction_source: 'ai-structured-v3'
+          });
+        }
+      });
+      
+      if (milestonesToInsert.length > 0) {
+        const { error: milestoneError } = await supabase
+          .from('vault_resume_milestones')
+          .insert(milestonesToInsert);
+        
+        if (milestoneError) {
+          console.error('❌ Error inserting milestones:', milestoneError);
+        } else {
+          const totalAchievements = milestonesToInsert.reduce((sum, m) => sum + m.key_achievements.length, 0);
+          console.log(`✅ Stored ${milestonesToInsert.length} milestone records with ${totalAchievements} total achievements`);
+        }
+      } else {
+        console.log('ℹ️ No achievements to store');
       }
     }
 
@@ -1704,12 +1738,18 @@ Return ONLY valid JSON (no markdown):
 // ========================================================================
 
 async function clearVaultData(supabase: any, vaultId: string): Promise<void> {
+  // Clear all vault intelligence data
   await supabase.from('vault_power_phrases').delete().eq('vault_id', vaultId);
   await supabase.from('vault_transferable_skills').delete().eq('vault_id', vaultId);
   await supabase.from('vault_hidden_competencies').delete().eq('vault_id', vaultId);
   await supabase.from('vault_soft_skills').delete().eq('vault_id', vaultId);
   await supabase.from('vault_leadership_philosophy').delete().eq('vault_id', vaultId);
   await supabase.from('vault_executive_presence').delete().eq('vault_id', vaultId);
+  
+  // CRITICAL FIX: Clear work history and related data to prevent duplicates
+  await supabase.from('vault_work_positions').delete().eq('vault_id', vaultId);
+  await supabase.from('vault_resume_milestones').delete().eq('vault_id', vaultId);
+  await supabase.from('vault_education').delete().eq('vault_id', vaultId);
 
   await supabase
     .from('career_vault')
@@ -1719,5 +1759,5 @@ async function clearVaultData(supabase: any, vaultId: string): Promise<void> {
     })
     .eq('id', vaultId);
 
-  console.log('✅ Vault data cleared');
+  console.log('✅ Vault data cleared (including work history, milestones, and education)');
 }

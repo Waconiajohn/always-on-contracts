@@ -17,7 +17,6 @@ import {
   LogOut,
   FlaskConical,
   Settings,
-  Library,
   type LucideIcon,
 } from "lucide-react";
 
@@ -52,11 +51,6 @@ export const mainNavItems: NavItem[] = [
     label: 'Career Vault', 
     path: '/career-vault', 
     icon: Package 
-  },
-  {
-    label: 'Intelligence Library',
-    path: '/career-intelligence',
-    icon: Library
   },
   { 
     label: 'Job Search', 
