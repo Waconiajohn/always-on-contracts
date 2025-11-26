@@ -208,78 +208,30 @@ const CareerVaultDashboardContent = () => {
 
   return (
     <div className="container mx-auto max-w-7xl py-8 space-y-8">
-      {/* Hero Section */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-full">
-          <Trophy className="h-5 w-5 text-purple-600" />
-          <span className="font-semibold text-purple-700 dark:text-purple-300">Career Intelligence Vault</span>
-        </div>
-        <h1 className="text-4xl font-bold">Your Career Intelligence</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          {totalItems} intelligence items extracted and organized across 10 categories
-        </p>
-      </div>
-
-      {/* Overall Progress Card */}
+      {/* Compact Hero + Vault Strength */}
       <Card className="border-2">
-        <CardHeader>
+        <CardContent className="pt-6">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Vault Strength: {strengthScore}%</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Level: <Badge variant="outline">{strengthLevel}</Badge>
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-full">
+                <Trophy className="h-4 w-4 text-purple-600" />
+                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">Career Intelligence Vault</span>
+              </div>
+              <h1 className="text-3xl font-bold">Your Career Intelligence</h1>
+              <p className="text-muted-foreground">
+                {totalItems} items • Level: <Badge variant="outline" className="ml-1">{strengthLevel}</Badge>
               </p>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold text-primary">{totalItems}</div>
-              <div className="text-sm text-muted-foreground">Total Items</div>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-primary mb-1">{strengthScore}%</div>
+              <div className="text-sm text-muted-foreground">Vault Strength</div>
+              <Progress value={strengthScore} className="h-2 w-32 mt-2" />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Progress value={strengthScore} className="h-3" />
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              {strengthScore < 60 && "Keep building your vault to reach market readiness"}
-              {strengthScore >= 60 && strengthScore < 85 && "You're making great progress!"}
-              {strengthScore >= 85 && "Your vault is market ready! 🎉"}
-            </span>
-            <Button onClick={() => navigate('/career-intelligence')} variant="default" className="gap-2">
-              View Intelligence Library
-              <ArrowRight className="h-4 w-4" />
-            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* 10 Category Cards */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Intelligence Categories</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((category) => (
-            <Card 
-              key={category.key}
-              className={`hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br ${category.color}`}
-              onClick={() => navigate(`/career-intelligence?section=${category.key}`)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-3xl">{category.icon}</span>
-                  <Badge variant={category.count > 0 ? "default" : "secondary"}>
-                    {category.count} items
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <h3 className="font-semibold mb-1">{category.title}</h3>
-                <p className="text-sm text-muted-foreground">{category.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Smart Next Steps */}
+      {/* Smart Next Steps - Primary Guide */}
       <SmartNextSteps
         interviewProgress={vaultData.vault.interview_completion_percentage || 0}
         strengthScore={strengthScore}
@@ -288,64 +240,113 @@ const CareerVaultDashboardContent = () => {
         hasExecutivePresence={(stats?.categoryCounts?.executivePresence || 0) > 0}
       />
 
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card 
-          className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer"
-          onClick={() => setEnhanceDrawerOpen(true)}
-        >
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Sparkles className="h-6 w-6 text-primary" />
+      {/* 3 Prominent Action Boxes */}
+      <div>
+        <h2 className="text-xl font-bold mb-4">Take Action</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card 
+            className="border-2 border-primary/30 hover:border-primary/60 hover:shadow-xl transition-all cursor-pointer group"
+            onClick={() => setEnhanceDrawerOpen(true)}
+          >
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                  <Sparkles className="h-7 w-7 text-primary" />
+                </div>
+                <CardTitle className="text-xl">Enhance Items</CardTitle>
               </div>
-              <CardTitle className="text-lg">Enhance Items</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Use AI to upgrade quality and add strategic keywords
-            </p>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Use AI to upgrade quality, add strategic keywords, and strengthen weak items
+              </p>
+              <Button className="w-full" variant="outline">
+                Start Enhancing
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
 
-        <Card 
-          className="border-blue-500/20 hover:border-blue-500/40 transition-colors cursor-pointer"
-          onClick={() => setGapAnalysisOpen(true)}
-        >
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Target className="h-6 w-6 text-blue-600" />
+          <Card 
+            className="border-2 border-blue-500/30 hover:border-blue-500/60 hover:shadow-xl transition-all cursor-pointer group"
+            onClick={() => setGapAnalysisOpen(true)}
+          >
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors">
+                  <Target className="h-7 w-7 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl">Gap Analysis</CardTitle>
               </div>
-              <CardTitle className="text-lg">Gap Analysis</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Compare your profile to market benchmarks
-            </p>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Compare your profile to market benchmarks and identify areas to strengthen
+              </p>
+              <Button className="w-full" variant="outline">
+                Run Analysis
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
 
-        <Card 
-          className="border-green-500/20 hover:border-green-500/40 transition-colors cursor-pointer"
-          onClick={() => setMarketResearchOpen(true)}
-        >
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+          <Card 
+            className="border-2 border-green-500/30 hover:border-green-500/60 hover:shadow-xl transition-all cursor-pointer group"
+            onClick={() => setMarketResearchOpen(true)}
+          >
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-green-500/10 rounded-xl group-hover:bg-green-500/20 transition-colors">
+                  <TrendingUp className="h-7 w-7 text-green-600" />
+                </div>
+                <CardTitle className="text-xl">Market Research</CardTitle>
               </div>
-              <CardTitle className="text-lg">Market Research</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              View job market insights and trends
-            </p>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                View job market insights, trends, and data from analyzed positions
+              </p>
+              <Button className="w-full" variant="outline">
+                View Research
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Compact Category Chips */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 text-muted-foreground">Intelligence Categories</h2>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <Button
+              key={category.key}
+              variant="outline"
+              size="sm"
+              className="h-auto py-2 px-3 gap-2 hover:shadow-md transition-all"
+              onClick={() => navigate(`/career-intelligence?section=${category.key}`)}
+            >
+              <span className="text-lg">{category.icon}</span>
+              <span className="font-medium">{category.title}</span>
+              <Badge variant={category.count > 0 ? "default" : "secondary"} className="ml-1">
+                {category.count}
+              </Badge>
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* View Full Library Button */}
+      <div className="flex justify-center">
+        <Button 
+          size="lg" 
+          onClick={() => navigate('/career-intelligence')}
+          className="gap-2 shadow-lg"
+        >
+          View Full Intelligence Library
+          <ArrowRight className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Advanced Options */}
