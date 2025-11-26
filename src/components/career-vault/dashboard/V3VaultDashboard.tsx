@@ -237,45 +237,63 @@ function V3VaultDashboardContent() {
       {/* 3 Action Boxes */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Box 1: Review Your Intelligence */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/career-intelligence")}>
-          <CardContent className="py-4 px-4 space-y-2">
-            <div className="text-sm font-semibold">Review Your Intelligence</div>
-            <div className="text-xs text-muted-foreground">
-              View and edit your {totalItems} extracted career data points across 10 categories
+        <Card className="group border-primary/20 hover:border-primary/40 bg-gradient-to-br from-background to-primary/5 shadow-sm hover:shadow-lg transition-all cursor-pointer transform hover:scale-[1.02]" onClick={() => navigate("/career-intelligence")}>
+          <CardContent className="py-5 px-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <ArrowRight className="h-4 w-4 text-primary" />
+              </div>
+              <div className="text-sm font-semibold">Intelligence Library</div>
             </div>
-            <Button variant="ghost" size="sm" className="w-full justify-start px-0">
-              Open Library <ArrowRight className="ml-2 h-3 w-3" />
-            </Button>
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              Explore {totalItems} career data points across 10 intelligence categories
+            </div>
+            <div className="flex items-center gap-1 text-xs font-medium text-primary">
+              <span>Open Library</span>
+              <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+            </div>
           </CardContent>
         </Card>
 
         {/* Box 2: Gap Analysis */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowGapAnalysisModal(true)}>
-          <CardContent className="py-4 px-4 space-y-2">
-            <div className="text-sm font-semibold">Gap Analysis</div>
-            <div className="text-xs text-muted-foreground">
-              {gapAnalysisExists
-                ? `Comparing your vault to ${marketResearchCount} real ${targetRoles[0] || 'target role'} job postings`
-                : "Generate your first gap analysis based on market research"}
+        <Card className="group border-primary/20 hover:border-primary/40 bg-gradient-to-br from-background to-primary/5 shadow-sm hover:shadow-lg transition-all cursor-pointer transform hover:scale-[1.02]" onClick={() => setShowGapAnalysisModal(true)}>
+          <CardContent className="py-5 px-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <ArrowRight className="h-4 w-4 text-primary" />
+              </div>
+              <div className="text-sm font-semibold">Gap Analysis</div>
             </div>
-            <Button variant="ghost" size="sm" className="w-full justify-start px-0">
-              View Gaps <ArrowRight className="ml-2 h-3 w-3" />
-            </Button>
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              {gapAnalysisExists
+                ? `Compared against ${marketResearchCount} ${targetRoles[0] || 'target role'} postings`
+                : "Generate insights from market research data"}
+            </div>
+            <div className="flex items-center gap-1 text-xs font-medium text-primary">
+              <span>View Gaps</span>
+              <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+            </div>
           </CardContent>
         </Card>
 
         {/* Box 3: Market Research */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowMarketResearchModal(true)}>
-          <CardContent className="py-4 px-4 space-y-2">
-            <div className="text-sm font-semibold">Market Research</div>
-            <div className="text-xs text-muted-foreground">
-              {marketResearchCount > 0
-                ? `Based on ${marketResearchCount} job postings we collected for ${targetRoles[0] || 'your target role'}`
-                : "Market research will run after you set your career direction"}
+        <Card className="group border-primary/20 hover:border-primary/40 bg-gradient-to-br from-background to-primary/5 shadow-sm hover:shadow-lg transition-all cursor-pointer transform hover:scale-[1.02]" onClick={() => setShowMarketResearchModal(true)}>
+          <CardContent className="py-5 px-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <ArrowRight className="h-4 w-4 text-primary" />
+              </div>
+              <div className="text-sm font-semibold">Market Research</div>
             </div>
-            <Button variant="ghost" size="sm" className="w-full justify-start px-0">
-              See Research <ArrowRight className="ml-2 h-3 w-3" />
-            </Button>
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              {marketResearchCount > 0
+                ? `${marketResearchCount} job postings analyzed for ${targetRoles[0] || 'your role'}`
+                : "Market analysis runs after career direction is set"}
+            </div>
+            <div className="flex items-center gap-1 text-xs font-medium text-primary">
+              <span>View Research</span>
+              <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -296,24 +314,25 @@ function V3VaultDashboardContent() {
       </div>
 
       {/* What's Next CTA */}
-      <Card className="shadow-sm">
-        <CardContent className="py-4 px-4 flex flex-col md:flex-row items-center justify-between gap-3">
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-background shadow-sm">
+        <CardContent className="py-5 px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground">
             {vaultStrength < 60
-              ? "Continue strengthening your vault by answering the smart questions above."
-              : "Your vault is ready! Go to Job Search to find matching opportunities."}
+              ? "Continue strengthening your vault by answering smart questions above."
+              : "Your vault is ready! Explore job opportunities that match your profile."}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3 flex-shrink-0">
             {vaultStrength >= 60 && (
-              <Button onClick={() => navigate("/job-search")}>
-                Go to Job Search <ArrowRight className="ml-2 h-4 w-4" />
+              <Button onClick={() => navigate("/job-search")} className="gap-2">
+                Go to Job Search <ArrowRight className="h-4 w-4" />
               </Button>
             )}
             <Button
               variant="outline"
               onClick={() => setShowCareerDirectionModal(true)}
+              className="gap-2"
             >
-              Change Target Role/Industry
+              Change Focus
             </Button>
           </div>
         </CardContent>
