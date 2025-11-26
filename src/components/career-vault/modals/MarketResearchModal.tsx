@@ -95,6 +95,15 @@ export const MarketResearchModal = ({ open, onClose, vaultId }: MarketResearchMo
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
+  // Calculate match score summary
+  const matchScoreSummary = research.length > 0 ? {
+    averageMatch: Math.round(
+      research.reduce((sum, job) => sum + (job.match_score || 0), 0) / research.length
+    ),
+    highMatchCount: research.filter(job => (job.match_score || 0) >= 80).length,
+    mediumMatchCount: research.filter(job => (job.match_score || 0) >= 60 && (job.match_score || 0) < 80).length,
+  } : null;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
@@ -110,6 +119,18 @@ export const MarketResearchModal = ({ open, onClose, vaultId }: MarketResearchMo
               <X className="h-4 w-4" />
             </Button>
           </div>
+          {matchScoreSummary && (
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200">
+              <div className="text-sm font-semibold">Your Match Score Summary</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Average match: <span className="font-semibold text-blue-700 dark:text-blue-300">{matchScoreSummary.averageMatch}%</span> across {research.length} job postings
+              </div>
+              <div className="flex gap-4 mt-2 text-xs">
+                <div>High Match (80%+): <span className="font-semibold">{matchScoreSummary.highMatchCount}</span></div>
+                <div>Medium Match (60-79%): <span className="font-semibold">{matchScoreSummary.mediumMatchCount}</span></div>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         {/* Market Insights Summary */}
