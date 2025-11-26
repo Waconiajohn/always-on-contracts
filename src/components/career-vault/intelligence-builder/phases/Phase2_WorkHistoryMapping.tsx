@@ -165,9 +165,9 @@ export const Phase2_WorkHistoryMapping = ({
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center space-y-3">
-        <h2 className="text-3xl font-bold">Map Your Work History</h2>
+        <h2 className="text-3xl font-bold">Review Your Work History</h2>
         <p className="text-lg text-muted-foreground">
-          Organize your experience and enhance each achievement with AI
+          Your experience timeline with AI-powered achievement enhancement
         </p>
       </div>
 
@@ -207,9 +207,9 @@ export const Phase2_WorkHistoryMapping = ({
                 )}
 
                 {/* Bullets */}
-                {position.bullets && position.bullets.length > 0 && (
+                {position.bullets && position.bullets.length > 0 ? (
                   <div className="space-y-4">
-                    <h4 className="font-semibold text-sm">Key Achievements:</h4>
+                    <h4 className="font-semibold text-sm">Key Achievements ({position.bullets.length}):</h4>
                     {position.bullets.map((bullet, bulletIndex) => (
                       <Card key={bulletIndex} className="p-4 bg-muted/30 space-y-3">
                         <p className="text-sm">{bullet}</p>
@@ -235,14 +235,22 @@ export const Phase2_WorkHistoryMapping = ({
                       </Card>
                     ))}
                   </div>
+                ) : (
+                  <div className="p-4 bg-muted/30 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No achievements detected for this position yet.
+                    </p>
+                  </div>
                 )}
 
                 {/* Progress indicator for this position */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Position {posIndex + 1} of {positions.length}</span>
-                  {position.bullets && (
-                    <span>{position.bullets.length} achievements mapped</span>
-                  )}
+                  <span>
+                    {position.bullets && position.bullets.length > 0 
+                      ? `${position.bullets.length} achievements extracted`
+                      : 'No achievements yet'}
+                  </span>
                 </div>
               </Card>
             </div>
