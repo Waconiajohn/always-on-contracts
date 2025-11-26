@@ -149,7 +149,7 @@ export default function CareerCompassWizard() {
         title: "Career Compass Complete!",
         description: "Your vault has been built and optimized based on your goals."
       });
-    }, 3000);
+    }, 5000); // 5 seconds to read the summary
   };
 
   const handleSkipGapAnalysis = () => {
@@ -161,7 +161,7 @@ export default function CareerCompassWizard() {
         title: "Career Compass Complete!",
         description: "Your vault has been built and optimized based on your goals."
       });
-    }, 3000);
+    }, 5000); // 5 seconds to read the summary
   };
 
   if (isLoading) {
