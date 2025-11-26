@@ -3,12 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VaultItemCard } from './VaultItemCard';
 import { BenchmarkComparisonPanel } from './BenchmarkComparisonPanel';
-import { GapRoadmapWidget } from './GapRoadmapWidget';
-import { RoadmapWorkspace } from './RoadmapWorkspace';
 import { VaultSearchFilter } from './VaultSearchFilter';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Button } from '@/components/ui/button';
-import { Badge } from "@/components/ui/badge";
 import { Plus, ArrowLeft, Sparkles } from 'lucide-react';
 import { VaultSectionBuilder } from '../dashboard/VaultSectionBuilder';
 
@@ -34,7 +31,6 @@ export function VaultSectionDetailView({
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [activeRoadmapItem, setActiveRoadmapItem] = useState<any>(null);
   const [isAdding, setIsAdding] = useState(false);
 
   // Sort items by quality tier (gold > silver > bronze > assumed), then by confidence
@@ -50,25 +46,33 @@ export function VaultSectionDetailView({
     return scoreB - scoreA;
   });
 
-  // Filter items by quality tier
-  const filterByQuality = (quality: string) => {
-    if (quality === 'all') return sortedItems;
-    return sortedItems.filter(item => item.quality_tier === quality);
-  };
-
-  // Apply search filter
-  const filteredItems = filterByQuality(activeTab).filter(item => {
-    const content = getItemContent(item).toLowerCase();
-    return content.includes(searchTerm.toLowerCase());
-  });
+  // Apply search filter based on active tab
+  const filteredItems = (() => {
+    let items = sortedItems;
+    
+    // Filter by tab
+    if (activeTab === 'highQuality') {
+      items = items.filter(item => item.quality_tier === 'gold' || item.quality_tier === 'silver');
+    } else if (activeTab === 'needsReview') {
+      items = items.filter(item => item.quality_tier === 'bronze' || !item.quality_tier || (item.confidence_score && item.confidence_score < 0.7));
+    }
+    
+    // Apply search
+    if (searchTerm) {
+      items = items.filter(item => {
+        const content = getItemContent(item).toLowerCase();
+        return content.includes(searchTerm.toLowerCase());
+      });
+    }
+    
+    return items;
+  })();
 
   // Get quality distribution
   const qualityStats = {
-    gold: sortedItems.filter(i => i.quality_tier === 'gold').length,
-    silver: sortedItems.filter(i => i.quality_tier === 'silver').length,
-    bronze: sortedItems.filter(i => i.quality_tier === 'bronze').length,
-    assumed: sortedItems.filter(i => i.quality_tier === 'assumed').length,
-    needsReview: sortedItems.filter(i => !i.quality_tier || i.confidence_score && i.confidence_score < 0.7).length
+    all: sortedItems.length,
+    highQuality: sortedItems.filter(i => i.quality_tier === 'gold' || i.quality_tier === 'silver').length,
+    needsReview: sortedItems.filter(i => i.quality_tier === 'bronze' || !i.quality_tier || (i.confidence_score && i.confidence_score < 0.7)).length
   };
 
   function getItemContent(item: any): string {
@@ -81,37 +85,12 @@ export function VaultSectionDetailView({
     return 'hidden_competency';
   }
 
-  const handleStartWork = (roadmapItem: any) => {
-    setActiveRoadmapItem(roadmapItem);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleExitFocus = () => {
-    setActiveRoadmapItem(null);
-  };
-
   // Handle item updates and ensure visibility
   const handleItemUpdate = () => {
     setActiveTab('all'); // Switch to "All" tab to show updated items
     onItemUpdate();
     setIsAdding(false);
   };
-
-  // Filter items relevant to active roadmap
-  const getRelevantItems = () => {
-    if (!activeRoadmapItem) return filteredItems;
-    
-    // Filter items that contain keywords from roadmap
-    const keywords = activeRoadmapItem.suggestedActions || [];
-    return filteredItems.filter(item => {
-      const content = getItemContent(item).toLowerCase();
-      return keywords.some((keyword: string) => 
-        content.includes(keyword.toLowerCase())
-      );
-    });
-  };
-
-  const displayItems = activeRoadmapItem ? getRelevantItems() : filteredItems;
 
   return (
     <div className="space-y-6 min-h-screen pb-20">
@@ -123,22 +102,13 @@ export function VaultSectionDetailView({
                 <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                {sectionTitle}
-                {activeRoadmapItem && (
-                    <Badge variant="outline" className="ml-2 bg-primary/5 text-primary border-primary/20">
-                    Focus Mode: {activeRoadmapItem.title}
-                    </Badge>
-                )}
-                </h2>
+                <h2 className="text-2xl font-bold">{sectionTitle}</h2>
             </div>
             </div>
-            {!activeRoadmapItem && (
-             <Button size="lg" className="gap-2 shadow-md" onClick={() => setIsAdding(true)}>
+            <Button size="lg" className="gap-2 shadow-md" onClick={() => setIsAdding(true)}>
                 <Plus className="h-4 w-4" />
-                Add {sectionTitle.split(' ')[0]} Item
+                Add Item
             </Button>
-            )}
         </div>
 
         {/* Top: Benchmark Status (Always Visible) */}
@@ -161,11 +131,8 @@ export function VaultSectionDetailView({
         </div>
       </div>
 
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Column: Content (8 cols) */}
-        <div className="lg:col-span-8 space-y-6">
+      {/* Main Content */}
+      <div className="space-y-6">
             
             {/* Add Item Form */}
             {isAdding && (
@@ -191,13 +158,10 @@ export function VaultSectionDetailView({
             )}
 
             {/* Filters & Search */}
-            <div className="flex items-center justify-between gap-4">
-                <VaultSearchFilter
-                    searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    qualityStats={qualityStats}
-                />
-            </div>
+            <VaultSearchFilter
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+            />
 
             {selectedItems.length > 0 && (
                 <BulkActionsToolbar
@@ -212,14 +176,13 @@ export function VaultSectionDetailView({
             {/* Tabs & List */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent space-x-6 mb-4">
-                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 py-2">All ({sortedItems.length})</TabsTrigger>
-                  <TabsTrigger value="gold" className="rounded-none border-b-2 border-transparent data-[state=active]:border-yellow-500 data-[state=active]:bg-transparent px-0 py-2">Gold ({qualityStats.gold})</TabsTrigger>
-                  <TabsTrigger value="silver" className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-400 data-[state=active]:bg-transparent px-0 py-2">Silver ({qualityStats.silver})</TabsTrigger>
-                  <TabsTrigger value="bronze" className="rounded-none border-b-2 border-transparent data-[state=active]:border-orange-600 data-[state=active]:bg-transparent px-0 py-2">Bronze ({qualityStats.bronze})</TabsTrigger>
+                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 py-2">All ({qualityStats.all})</TabsTrigger>
+                  <TabsTrigger value="highQuality" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 py-2">High Quality ({qualityStats.highQuality})</TabsTrigger>
+                  <TabsTrigger value="needsReview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 py-2">Needs Review ({qualityStats.needsReview})</TabsTrigger>
                 </TabsList>
 
                 {/* Empty State with Call to Action */}
-                {displayItems.length === 0 && !activeRoadmapItem && (
+                {filteredItems.length === 0 && (
                     <Card className="border-dashed border-2">
                         <CardContent className="py-12 text-center space-y-4">
                             <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -241,7 +204,7 @@ export function VaultSectionDetailView({
 
                 {/* Items List */}
                 <div className="space-y-4">
-                    {displayItems.map((item) => (
+                    {filteredItems.map((item) => (
                         <VaultItemCard
                           key={item.id}
                           item={item}
@@ -258,41 +221,9 @@ export function VaultSectionDetailView({
                           onUpdate={handleItemUpdate}
                         />
                       ))}
-                </div>
+                 </div>
             </Tabs>
-        </div>
-
-        {/* Right Column: Roadmap & Tools (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
-            {/* Roadmap Widget */}
-            <div className="sticky top-32">
-                 {!activeRoadmapItem ? (
-                    <GapRoadmapWidget
-                        sectionKey={sectionKey}
-                        vaultId={vaultId}
-                        benchmarkData={benchmarkData}
-                        currentItems={items}
-                        onItemsAdded={handleItemUpdate}
-                        onStartWork={handleStartWork}
-                    />
-                 ) : (
-                    <RoadmapWorkspace
-                        roadmapItem={activeRoadmapItem}
-                        sectionKey={sectionKey}
-                        vaultId={vaultId}
-                        currentItems={items}
-                        onExit={handleExitFocus}
-                        onItemAdded={handleItemUpdate}
-                    />
-                 )}
-            </div>
-        </div>
-
       </div>
-
-      {/* Add Item Dialog/Panel could go here if we want a modal approach */}
-      {/* Currently we leverage RoadmapWorkspace for adding or a separate form */}
-      {/* Ideally, we should open the RoadmapWorkspace in "Manual Mode" or similar if isAdding is true */}
     </div>
   );
 }
