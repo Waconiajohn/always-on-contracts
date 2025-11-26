@@ -242,21 +242,25 @@ export function V3SmartQuestionPanel({
   }
 
   return (
-    <Card id="smart-question-panel" className="shadow-sm">
-      <CardContent className="py-4 px-4 space-y-3">
+    <Card id="smart-question-panel" className="border-primary/20 bg-gradient-to-br from-primary/5 to-background shadow-lg relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-primary/40" />
+      <CardContent className="py-5 px-5 space-y-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-blue-500 mt-0.5" />
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                Focused improvement
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                Smart Question
               </div>
-              <div className="text-sm font-medium">
-                Question {activeIndex + 1} of {questions.length}
+              <div className="text-base font-semibold">
+                {activeIndex + 1} of {questions.length}
               </div>
               {current.category && (
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Focus area: {current.category}
+                <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 bg-primary/10 rounded-full">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span className="text-[11px] font-medium text-primary">{current.category}</span>
                 </div>
               )}
             </div>
@@ -264,38 +268,43 @@ export function V3SmartQuestionPanel({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2"
+            className="h-8 w-8 p-0"
             onClick={() => loadQuestions(true)}
             disabled={loading || initializing}
             title="Get new questions"
           >
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
 
         {current.reasoning && (
-          <p className="text-xs text-muted-foreground">
-            {current.reasoning}
-          </p>
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {current.reasoning}
+            </p>
+          </div>
         )}
 
-        <p className="text-sm font-semibold">{current.question}</p>
+        <div className="space-y-2">
+          <p className="text-sm font-semibold leading-relaxed">{current.question}</p>
+        </div>
 
         <textarea
-          rows={3}
-          className="w-full rounded-md border px-3 py-2 text-sm"
+          rows={4}
+          className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          placeholder="A short, factual answer is ideal. Bullet points are fine."
+          placeholder="Share your answer here. Be specific and include details..."
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
+        <div className="flex items-center justify-between gap-3 pt-2">
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSkip}
               disabled={loading}
+              className="text-xs"
             >
               Skip
             </Button>
@@ -314,17 +323,17 @@ export function V3SmartQuestionPanel({
             size="sm"
             onClick={handleSubmit}
             disabled={loading || !answer.trim()}
+            className="px-6"
           >
             {loading && (
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
             )}
-            Save and update vault
+            Save Answer
           </Button>
         </div>
 
-        <p className="text-[11px] text-muted-foreground">
-          Each answer helps us present your experience more clearly, quantify your
-          impact, and match you to the right roles.
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          Each answer strengthens your vault and improves how we present your experience across all features.
         </p>
       </CardContent>
     </Card>
