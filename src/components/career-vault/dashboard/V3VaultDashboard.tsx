@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,6 +18,7 @@ import { CareerFocusClarifier } from "@/components/career-vault/CareerFocusClari
 import { JourneyProgress } from "@/components/career-vault/JourneyProgress";
 import { GapAnalysisModal } from "@/components/career-vault/modals/GapAnalysisModal";
 import { MarketResearchModal } from "@/components/career-vault/modals/MarketResearchModal";
+import { VaultNuclearReset } from "@/components/career-vault/VaultNuclearReset";
 
 /**
  * Career Vault V3: Calm, smart, ongoing improvement.
@@ -274,6 +275,22 @@ function V3VaultDashboardContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Danger Zone */}
+      {vaultId && (
+        <Card className="border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20">
+          <CardHeader>
+            <CardTitle className="text-red-900 dark:text-red-200">Danger Zone</CardTitle>
+            <CardDescription className="text-red-800 dark:text-red-300">
+              Destructive operations that permanently delete all vault data.
+              Use only when you want to start completely fresh.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VaultNuclearReset vaultId={vaultId} onResetComplete={() => navigate('/onboarding')} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modals */}
       {vaultId && (
