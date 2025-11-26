@@ -77,6 +77,15 @@ export default function CareerCompassWizard() {
         // CRITICAL: Never skip resume step if no resume exists
         let step = 0; // Welcome
         
+        console.log('🔍 RESTORE STATE: Checking vault data...', {
+          hasResumeText: !!vault.resume_raw_text,
+          resumeLength: vault.resume_raw_text?.length || 0,
+          hasTargetRoles: !!vault.target_roles,
+          targetRolesCount: vault.target_roles?.length || 0,
+          careerDirection: vault.career_direction,
+          onboardingStep: vault.onboarding_step
+        });
+        
         // Only advance past resume step if resume exists
         if (vault.resume_raw_text && vault.resume_raw_text.trim().length > 0) {
           step = 2; // Can skip to Direction step
@@ -100,6 +109,14 @@ export default function CareerCompassWizard() {
             }
           }
         }
+        
+        // CRITICAL GUARD: Force step 1 if no resume exists, regardless of other state
+        if (step > 1 && (!vault.resume_raw_text || vault.resume_raw_text.trim().length === 0)) {
+          console.warn('⚠️ GUARD TRIGGERED: Step was', step, 'but no resume exists. Forcing to step 1 (Resume Upload).');
+          step = 1;
+        }
+        
+        console.log('✅ RESTORE STATE: Final step determined:', step, STEPS[step]?.label);
         
         if (step > 0) {
           setCurrentStepIndex(step);

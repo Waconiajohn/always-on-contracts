@@ -143,7 +143,7 @@ export const VaultNuclearReset = ({
 
       // 10. Reset career_vault metadata to zero state - INCLUDING target roles/industries
       console.log('♻️ Resetting career_vault metadata to zero...');
-      const { error: resetError } = await supabase
+      const { data: updatedVault, error: resetError } = await supabase
         .from('career_vault')
         .update({
           // Resume and extraction data
@@ -199,14 +199,27 @@ export const VaultNuclearReset = ({
           // Update timestamp
           last_updated_at: new Date().toISOString(),
         })
-        .eq('id', vaultId);
+        .eq('id', vaultId)
+        .select('resume_raw_text, target_roles, target_industries, career_direction')
+        .single();
 
       if (resetError) {
         console.error('❌ Failed to reset career_vault metadata:', resetError);
         throw resetError;
       }
 
-      console.log('✅ NUCLEAR RESET COMPLETE: All data wiped to zero state (including resume)');
+      // CRITICAL: Verify the update actually worked
+      if (updatedVault?.resume_raw_text !== null) {
+        console.error('❌ VERIFICATION FAILED: resume_raw_text is still set:', updatedVault?.resume_raw_text?.substring(0, 50));
+        throw new Error('Failed to clear resume - database update did not apply correctly');
+      }
+      
+      if (updatedVault?.target_roles !== null || updatedVault?.career_direction !== null) {
+        console.error('❌ VERIFICATION FAILED: Career direction still set');
+        throw new Error('Failed to clear career direction - database update did not apply correctly');
+      }
+
+      console.log('✅ NUCLEAR RESET COMPLETE: All data verified wiped to zero state (including resume)');
 
       // Force invalidate ALL vault-related React Query caches
       await queryClient.invalidateQueries({ queryKey: ['vault-data'] });

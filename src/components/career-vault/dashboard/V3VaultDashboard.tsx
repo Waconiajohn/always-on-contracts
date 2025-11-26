@@ -53,17 +53,27 @@ function V3VaultDashboardContent() {
   // CRITICAL: Redirect immediately if no resume - don't render dashboard
   useEffect(() => {
     if (vaultId && !hasResume) {
+      console.warn('⚠️ V3VaultDashboard: No resume found, redirecting to onboarding');
       navigate('/onboarding');
       toast({
         title: "Resume Required",
-        description: "Please upload your resume to continue building your Career Vault.",
+        description: "Please upload your resume to continue building your vault.",
       });
     }
   }, [vaultId, hasResume, navigate, toast]);
 
-  // Early return to prevent rendering dashboard without resume
-  if (vaultId && !hasResume) {
-    return null;
+  // CRITICAL: Block ALL rendering if no resume exists
+  // Show loading state while useEffect handles redirect
+  if (!isLoading && vaultId && !hasResume) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center space-y-2">
+          <p className="text-lg font-medium">Resume Required</p>
+          <p className="text-sm text-muted-foreground">Redirecting to resume upload...</p>
+        </div>
+      </div>
+    );
   }
 
   // Check for career direction on load (only if resume exists)
