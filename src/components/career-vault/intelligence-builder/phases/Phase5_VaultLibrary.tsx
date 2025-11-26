@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -6,7 +6,7 @@ import {
   Trophy, Brain, FileText, Users, 
   MessageSquare, Loader2, ArrowLeft, Home
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CategorySection } from '../components/CategorySection';
 
@@ -23,7 +23,12 @@ export const Phase5_VaultLibrary = ({
 }: Phase5Props) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Refs for scrolling to sections
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const section = searchParams.get('section');
 
   const handleBackToVault = () => {
     window.location.href = '/career-vault';
@@ -48,6 +53,18 @@ export const Phase5_VaultLibrary = ({
   useEffect(() => {
     loadVaultData();
   }, [vaultId]);
+
+  // Scroll to section when specified in URL
+  useEffect(() => {
+    if (section && !isLoading && sectionRefs.current[section]) {
+      setTimeout(() => {
+        sectionRefs.current[section]?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+    }
+  }, [section, isLoading]);
 
   const loadVaultData = async () => {
     if (!vaultId) return;
@@ -224,11 +241,12 @@ export const Phase5_VaultLibrary = ({
         {/* Category Sections */}
         <div className="space-y-6">
           {/* Core Intelligence */}
-          <div className="space-y-4">
+          <div className="space-y-4" ref={(el) => sectionRefs.current['core'] = el}>
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <span>⚡</span> Core Intelligence
             </h2>
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['achievements'] = el}>
+              <CategorySection
               title="Career Achievements"
               icon="🎯"
               description="Quantified accomplishments that demonstrate impact"
@@ -241,8 +259,10 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
             
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['skills'] = el}>
+              <CategorySection
               title="Skills & Expertise"
               icon="💼"
               description="Technical and functional capabilities"
@@ -254,8 +274,10 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
             
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['competencies'] = el}>
+              <CategorySection
               title="Strategic Capabilities"
               icon="🧩"
               description="Hidden competencies and strategic strengths"
@@ -267,14 +289,16 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
           </div>
 
           {/* Leadership & Presence */}
-          <div className="space-y-4">
+          <div className="space-y-4" ref={(el) => sectionRefs.current['leadership-section'] = el}>
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <span>👑</span> Leadership & Presence
             </h2>
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['strengths'] = el}>
+              <CategorySection
               title="Professional Strengths"
               icon="💪"
               description="Core soft skills and interpersonal abilities"
@@ -286,8 +310,10 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
             
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['leadership'] = el}>
+              <CategorySection
               title="Leadership Philosophy"
               icon="🎓"
               description="Your approach to leading teams and driving results"
@@ -299,8 +325,10 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
             
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['executive'] = el}>
+              <CategorySection
               title="Executive Presence"
               icon="✨"
               description="Communication style and professional gravitas"
@@ -312,14 +340,17 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
           </div>
+        </div>
 
           {/* Personal Brand */}
-          <div className="space-y-4">
+          <div className="space-y-4" ref={(el) => sectionRefs.current['personal-brand'] = el}>
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <span>🌟</span> Personal Brand
             </h2>
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['personality'] = el}>
+              <CategorySection
               title="Personality Traits"
               icon="🎭"
               description="Behavioral characteristics and work personality"
@@ -331,8 +362,10 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
             
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['workstyle'] = el}>
+              <CategorySection
               title="Work Style Preferences"
               icon="⚙️"
               description="How you work best and collaborate"
@@ -344,8 +377,10 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
             
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['values'] = el}>
+              <CategorySection
               title="Core Values & Motivations"
               icon="❤️"
               description="What drives you professionally"
@@ -357,8 +392,10 @@ export const Phase5_VaultLibrary = ({
               workPositions={workPositions}
               milestones={milestones}
             />
+            </div>
             
-            <CategorySection
+            <div ref={(el) => sectionRefs.current['behavioral'] = el}>
+              <CategorySection
               title="Behavioral Indicators"
               icon="🔍"
               description="Observable patterns in how you deliver results"

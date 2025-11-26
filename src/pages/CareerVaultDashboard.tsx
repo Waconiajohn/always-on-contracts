@@ -9,12 +9,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   Loader2, Upload, ArrowRight, Trophy, TrendingUp,
-  Target, Brain, Sparkles
+  Target, Brain, Sparkles, ChevronDown
 } from "lucide-react";
 import { UploadResumeModal } from '@/components/career-vault/modals/UploadResumeModal';
 import { ExtractionProgressModal } from '@/components/career-vault/modals/ExtractionProgressModal';
+import { GapAnalysisModal } from '@/components/career-vault/modals/GapAnalysisModal';
+import { MarketResearchModal } from '@/components/career-vault/modals/MarketResearchModal';
+import { EnhanceItemsDrawer } from '@/components/career-vault/modals/EnhanceItemsDrawer';
+import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
+import { VaultNuclearReset } from '@/components/career-vault/VaultNuclearReset';
 
 /**
  * Simplified Career Vault Dashboard
@@ -29,6 +35,10 @@ const CareerVaultDashboardContent = () => {
   const [userId, setUserId] = useState<string | undefined>();
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [extractionModalOpen, setExtractionModalOpen] = useState(false);
+  const [gapAnalysisOpen, setGapAnalysisOpen] = useState(false);
+  const [marketResearchOpen, setMarketResearchOpen] = useState(false);
+  const [enhanceDrawerOpen, setEnhanceDrawerOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const { data: vaultData, isLoading, refetch } = useVaultData(userId);
   const stats = useVaultStats(vaultData);
@@ -250,7 +260,7 @@ const CareerVaultDashboardContent = () => {
             <Card 
               key={category.key}
               className={`hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br ${category.color}`}
-              onClick={() => navigate('/career-intelligence')}
+              onClick={() => navigate(`/career-intelligence?section=${category.key}`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -269,9 +279,21 @@ const CareerVaultDashboardContent = () => {
         </div>
       </div>
 
+      {/* Smart Next Steps */}
+      <SmartNextSteps
+        interviewProgress={vaultData.vault.interview_completion_percentage || 0}
+        strengthScore={strengthScore}
+        totalItems={totalItems}
+        hasLeadership={(stats?.categoryCounts?.leadershipPhilosophy || 0) > 0}
+        hasExecutivePresence={(stats?.categoryCounts?.executivePresence || 0) > 0}
+      />
+
       {/* Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer">
+        <Card 
+          className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer"
+          onClick={() => setEnhanceDrawerOpen(true)}
+        >
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
@@ -287,7 +309,10 @@ const CareerVaultDashboardContent = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-blue-500/20 hover:border-blue-500/40 transition-colors cursor-pointer">
+        <Card 
+          className="border-blue-500/20 hover:border-blue-500/40 transition-colors cursor-pointer"
+          onClick={() => setGapAnalysisOpen(true)}
+        >
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -303,7 +328,10 @@ const CareerVaultDashboardContent = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-green-500/20 hover:border-green-500/40 transition-colors cursor-pointer">
+        <Card 
+          className="border-green-500/20 hover:border-green-500/40 transition-colors cursor-pointer"
+          onClick={() => setMarketResearchOpen(true)}
+        >
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-500/10 rounded-lg">
@@ -320,6 +348,19 @@ const CareerVaultDashboardContent = () => {
         </Card>
       </div>
 
+      {/* Advanced Options */}
+      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full gap-2">
+            <ChevronDown className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+            Advanced Options
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4">
+          <VaultNuclearReset vaultId={vaultData.vault.id} onResetComplete={() => refetch()} />
+        </CollapsibleContent>
+      </Collapsible>
+
       {/* Modals */}
       <UploadResumeModal
         open={uploadModalOpen}
@@ -330,6 +371,22 @@ const CareerVaultDashboardContent = () => {
         open={extractionModalOpen}
         onComplete={handleExtractionComplete}
         vaultId={vaultData?.vault?.id}
+      />
+      <GapAnalysisModal
+        open={gapAnalysisOpen}
+        onClose={() => setGapAnalysisOpen(false)}
+        vaultId={vaultData?.vault?.id || ''}
+      />
+      <MarketResearchModal
+        open={marketResearchOpen}
+        onClose={() => setMarketResearchOpen(false)}
+        vaultId={vaultData?.vault?.id || ''}
+      />
+      <EnhanceItemsDrawer
+        open={enhanceDrawerOpen}
+        onClose={() => setEnhanceDrawerOpen(false)}
+        vaultId={vaultData?.vault?.id || ''}
+        onItemUpdated={() => refetch()}
       />
     </div>
   );
