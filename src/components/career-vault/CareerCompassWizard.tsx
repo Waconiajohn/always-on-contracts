@@ -88,8 +88,8 @@ export default function CareerCompassWizard() {
           .limit(1)
           .maybeSingle();
 
-        if (research) {
-          // If research exists, we usually move to Gap Analysis
+        // Only advance to gap analysis if we have both research AND resume text
+        if (research && vault.resume_raw_text) {
           step = 4; 
         }
         

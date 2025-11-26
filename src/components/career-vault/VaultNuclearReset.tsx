@@ -122,7 +122,15 @@ export const VaultNuclearReset = ({
       console.log('🧹 Deleting benchmark comparisons...');
       await supabase.from('vault_benchmark_comparison').delete().eq('vault_id', vaultId);
 
-      // 8. Reset career_vault metadata to zero state - ALL counts and data
+      // 8. Delete market research data
+      console.log('🧹 Deleting market research data...');
+      await supabase.from('vault_market_research').delete().eq('vault_id', vaultId);
+
+      // 9. Delete intelligent responses (QA session data)
+      console.log('🧹 Deleting intelligent responses...');
+      await supabase.from('career_vault_intelligent_responses').delete().eq('vault_id', vaultId);
+
+      // 10. Reset career_vault metadata to zero state - ALL counts and data
       console.log('♻️ Resetting career_vault metadata to zero...');
       const { error: resetError } = await supabase
         .from('career_vault')
@@ -257,6 +265,8 @@ export const VaultNuclearReset = ({
                   <li>All extraction history</li>
                   <li>All benchmark comparisons</li>
                   <li>All verification results</li>
+                  <li>All market research data</li>
+                  <li>All intelligent QA responses</li>
                 </ul>
                 Everything will be set to ZERO. You'll need to upload a resume afterward to start completely fresh.
                 <br /><br />
