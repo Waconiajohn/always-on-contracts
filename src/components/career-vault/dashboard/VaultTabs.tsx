@@ -128,7 +128,6 @@ export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTa
               <div className="space-y-4">
                 <VaultNuclearReset
                   vaultId={vaultId}
-                  onResetComplete={onRefresh}
                 />
                 <VaultMigrationTool
                   vaultId={vaultId}

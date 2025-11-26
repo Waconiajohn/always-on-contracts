@@ -10,12 +10,10 @@ import { useQueryClient } from '@tanstack/react-query';
 
 interface VaultNuclearResetProps {
   vaultId: string;
-  onResetComplete?: () => void;
 }
 
 export const VaultNuclearReset = ({ 
-  vaultId, 
-  onResetComplete 
+  vaultId
 }: VaultNuclearResetProps) => {
   const [isResetting, setIsResetting] = useState(false);
   const queryClient = useQueryClient();
@@ -122,9 +120,15 @@ export const VaultNuclearReset = ({
       console.log('🧹 Deleting benchmark comparisons...');
       await supabase.from('vault_benchmark_comparison').delete().eq('vault_id', vaultId);
 
-      // 8. Delete market research data
-      console.log('🧹 Deleting market research data...');
-      await supabase.from('vault_market_research').delete().eq('vault_id', vaultId);
+      // 8. Delete ALL research-related data
+      console.log('🧹 Deleting all market research and industry research data...');
+      const { data: { user } } = await supabase.auth.getUser();
+      await Promise.all([
+        supabase.from('vault_market_research').delete().eq('vault_id', vaultId),
+        supabase.from('vault_research').delete().eq('user_id', user?.id || ''),
+        supabase.from('vault_transition_research').delete().eq('vault_id', vaultId),
+        supabase.from('career_vault_industry_research').delete().eq('vault_id', vaultId),
+      ]);
 
       // 9. Delete intelligent responses (QA session data)
       console.log('🧹 Deleting intelligent responses...');
@@ -194,7 +198,7 @@ export const VaultNuclearReset = ({
 
       console.log('✅ NUCLEAR RESET COMPLETE: All data wiped to zero state (including resume)');
 
-      // Force invalidate ALL vault-related React Query caches to show zero state immediately
+      // Force invalidate ALL vault-related React Query caches
       await queryClient.invalidateQueries({ queryKey: ['vault-data'] });
       await queryClient.invalidateQueries({ queryKey: ['vault-assessment'] });
       await queryClient.invalidateQueries({ queryKey: ['vault-benchmark'] });
@@ -203,12 +207,12 @@ export const VaultNuclearReset = ({
       
       console.log('✅ All React Query caches invalidated and reset');
 
-      toast.success('Vault completely cleared. Resume deleted. Upload a resume to start fresh.');
+      toast.success('Vault completely cleared. Reloading page...', { duration: 2000 });
       
-      // Call the callback after cache invalidation
-      if (onResetComplete) {
-        onResetComplete();
-      }
+      // Force a page reload to ensure all state is cleared
+      setTimeout(() => {
+        window.location.href = '/onboarding';
+      }, 2000);
     } catch (error: any) {
       console.error('❌ NUCLEAR RESET FAILED:', error);
       toast.error(
