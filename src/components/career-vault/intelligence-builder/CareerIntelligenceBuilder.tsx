@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GlobalProgressShell } from "./GlobalProgressShell";
@@ -18,6 +19,7 @@ export const CareerIntelligenceBuilder = ({
   vaultId,
   initialPhase = 0
 }: CareerIntelligenceBuilderProps) => {
+  const navigate = useNavigate();
   const [currentPhase, setCurrentPhase] = useState(initialPhase);
   const [phaseProgress, setPhaseProgress] = useState(0);
   const [timeEstimate, setTimeEstimate] = useState<string>();
@@ -101,10 +103,9 @@ export const CareerIntelligenceBuilder = ({
     return <ExplainerOnboarding onStart={handleStart} />;
   }
 
-  const handleBackFromLibrary = async () => {
-    // Go back to phase 0 (onboarding/explainer)
-    await updateVaultPhase(0);
-    setCurrentPhase(0);
+  const handleBackFromLibrary = () => {
+    // Navigate back to Career Vault dashboard
+    navigate('/career-vault');
   };
 
   // Phase 5: Vault Library (persistent home)
