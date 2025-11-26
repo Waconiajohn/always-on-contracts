@@ -199,20 +199,13 @@ export function VaultBuilderMainView({
             </div>
             <div className="flex gap-2">
               <Button 
-                variant="default" 
-                size="sm"
-                onClick={() => navigate('/career-intelligence')}
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Intelligence Library
-              </Button>
-              <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/career-intelligence-builder')}
+                onClick={() => navigate('/career-intelligence')}
+                className="gap-2"
               >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Guided Builder
+                Intelligence Library
+                <span className="text-lg">→</span>
               </Button>
               <Button 
                 variant="outline" 
