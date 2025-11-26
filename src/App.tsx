@@ -47,7 +47,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminPromptManager = lazy(() => import("./pages/AdminPromptManager"));
 const UserRoleManagement = lazy(() => import("./pages/UserRoleManagement"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
-import { V3VaultDashboard } from "./components/career-vault/dashboard/V3VaultDashboard";
+const V3VaultDashboard = lazy(() => import("./components/career-vault/dashboard/V3VaultDashboard").then(m => ({ default: m.V3VaultDashboard })));
 const CareerIntelligenceLibrary = lazy(() => import("./pages/CareerIntelligenceLibrary"));
 const VaultAdminTools = lazy(() => import("./pages/VaultAdminTools"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
