@@ -124,14 +124,18 @@ export const MarketFitResults = ({
       {/* Prioritized Gaps */}
       {gaps.length > 0 && (
         <Card className="p-6">
-          <h3 className="text-xl font-bold mb-4">What You're Missing</h3>
+          <h3 className="text-xl font-bold mb-4">Skills to Add to Your Vault</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            These skills appeared frequently in job postings for your target role. Adding them to your vault will strengthen your applications.
+          </p>
           <div className="space-y-4">
             {/* Critical Gaps */}
             {criticalGaps.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-3 h-3 rounded-full bg-red-600"></span>
-                  <h4 className="font-semibold text-red-600">BLOCKING (Must Fix)</h4>
+                  <h4 className="font-semibold text-red-600">High Priority</h4>
+                  <span className="text-sm text-muted-foreground ml-auto">Found in 20%+ of jobs</span>
                 </div>
                 <div className="grid md:grid-cols-2 gap-3">
                   {criticalGaps.map((gap, i) => (
@@ -139,7 +143,7 @@ export const MarketFitResults = ({
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{gap.name}</span>
                         <Badge variant="secondary" className="text-xs">
-                          {gap.frequency}/{marketData.jobsAnalyzed} jobs
+                          {gap.frequency} of {marketData.jobsAnalyzed} jobs
                         </Badge>
                       </div>
                     </Card>
@@ -153,7 +157,8 @@ export const MarketFitResults = ({
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-                  <h4 className="font-semibold text-amber-600">IMPORTANT (Should Address)</h4>
+                  <h4 className="font-semibold text-amber-600">Medium Priority</h4>
+                  <span className="text-sm text-muted-foreground ml-auto">Found in 10-20% of jobs</span>
                 </div>
                 <div className="grid md:grid-cols-2 gap-3">
                   {importantGaps.map((gap, i) => (
@@ -161,7 +166,7 @@ export const MarketFitResults = ({
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{gap.name}</span>
                         <Badge variant="secondary" className="text-xs">
-                          {gap.frequency}/{marketData.jobsAnalyzed} jobs
+                          {gap.frequency} of {marketData.jobsAnalyzed} jobs
                         </Badge>
                       </div>
                     </Card>
