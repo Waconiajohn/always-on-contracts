@@ -50,7 +50,7 @@ function V3VaultDashboardContent() {
   const targetIndustries = (vaultData?.vault as any)?.target_industries || [];
   const hasResume = !!((vaultData?.vault as any)?.resume_raw_text?.trim());
 
-  // CRITICAL: Redirect to onboarding if no resume
+  // CRITICAL: Redirect immediately if no resume - don't render dashboard
   useEffect(() => {
     if (vaultId && !hasResume) {
       navigate('/onboarding');
@@ -60,6 +60,11 @@ function V3VaultDashboardContent() {
       });
     }
   }, [vaultId, hasResume, navigate, toast]);
+
+  // Early return to prevent rendering dashboard without resume
+  if (vaultId && !hasResume) {
+    return null;
+  }
 
   // Check for career direction on load (only if resume exists)
   useEffect(() => {
