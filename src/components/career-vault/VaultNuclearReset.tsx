@@ -201,11 +201,18 @@ export const VaultNuclearReset = ({
         })
         .eq('id', vaultId)
         .select('resume_raw_text, target_roles, target_industries, career_direction')
-        .single();
+        .maybeSingle();
 
       if (resetError) {
         console.error('❌ Failed to reset career_vault metadata:', resetError);
         throw resetError;
+      }
+
+      // Check if vault was found and updated
+      if (!updatedVault) {
+        console.warn('⚠️ No vault found to update - vault may have been deleted');
+        toast.error('Vault not found. Please refresh the page and try again.');
+        return;
       }
 
       // CRITICAL: Verify the update actually worked

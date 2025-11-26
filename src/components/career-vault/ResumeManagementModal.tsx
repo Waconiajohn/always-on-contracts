@@ -106,7 +106,7 @@ export const ResumeManagementModal = ({
         console.log('[VAULT-CLEAR] All vault items deleted successfully');
 
         // CRITICAL: Reset vault progress AND extraction_item_count to 0
-        const { error: resetError } = await supabase
+        const { data: resetData, error: resetError } = await supabase
           .from('career_vault')
           .update({
             interview_completion_percentage: 0,
@@ -127,11 +127,18 @@ export const ResumeManagementModal = ({
             auto_populated: false,
             extraction_timestamp: new Date().toISOString()
           })
-          .eq('id', vaultId);
+          .eq('id', vaultId)
+          .select()
+          .maybeSingle();
 
         if (resetError) {
           console.error('[VAULT-CLEAR] Failed to reset vault:', resetError);
           throw new Error('Failed to reset vault progress. Please try again.');
+        }
+
+        if (!resetData) {
+          console.error('[VAULT-CLEAR] No vault found to reset');
+          throw new Error('Vault not found. Please refresh and try again.');
         }
 
         console.log('[VAULT-CLEAR] Vault reset complete');
