@@ -287,7 +287,7 @@ function V3VaultDashboardContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <VaultNuclearReset vaultId={vaultId} onResetComplete={() => navigate('/onboarding')} />
+            <VaultNuclearReset vaultId={vaultId} />
           </CardContent>
         </Card>
       )}
