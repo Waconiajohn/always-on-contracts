@@ -201,43 +201,9 @@ export function UploadResumeModal({ open, onClose, onUploadComplete }: UploadRes
 
       if (response.error) throw response.error;
 
-      // Step 4: Trigger market fit analysis to pull 25 job descriptions
-      console.log('Triggering market fit analysis...');
-      setProgress({ 
-        phase: 'market-analysis', 
-        percentage: 85, 
-        message: 'Analyzing 25 job postings to identify gaps...' 
-      });
-
-      // Get vault data to determine target role and industry
-      const { data: vaultInfo } = await supabase
-        .from('career_vault')
-        .select('target_roles, target_industries')
-        .eq('id', vaultId)
-        .single();
-
-      const targetRole = vaultInfo?.target_roles?.[0] || 'Software Engineer';
-      const targetIndustry = vaultInfo?.target_industries?.[0] || 'Technology';
-
-      const marketFitResponse = await supabase.functions.invoke('analyze-market-fit', {
-        body: {
-          vaultId,
-          targetRole,
-          targetIndustry,
-          resumeText: text,
-          numJobs: 25
-        },
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (marketFitResponse.error) {
-        console.error('Market fit analysis error:', marketFitResponse.error);
-        // Don't fail the whole process, just log the error
-        toast.error('Market analysis failed, but your vault was created successfully');
-      }
-
+      // Market research will be triggered after career direction is set
+      console.log('Vault created successfully, waiting for career direction...');
+      
       setProgress({ phase: 'complete', percentage: 100, message: 'Complete!' });
       onUploadComplete(vaultId);
     } catch (error) {

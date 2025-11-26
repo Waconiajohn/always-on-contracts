@@ -4,14 +4,20 @@ import { useVaultData } from "@/hooks/useVaultData";
 import { useVaultStats } from "@/hooks/useVaultStats";
 import { useVaultAssessment } from "@/hooks/useVaultAssessment";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { Loader2, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 import { V3VaultOverview } from "./V3VaultOverview";
 import { V3SmartQuestionPanel } from "./V3SmartQuestionPanel";
 import { V3VaultDetailTabs } from "./V3VaultDetailTabs";
+import { CareerFocusClarifier } from "@/components/career-vault/CareerFocusClarifier";
+import { JourneyProgress } from "@/components/career-vault/JourneyProgress";
+import { GapAnalysisModal } from "@/components/career-vault/modals/GapAnalysisModal";
+import { MarketResearchModal } from "@/components/career-vault/modals/MarketResearchModal";
 
 /**
  * Career Vault V3: Calm, smart, ongoing improvement.
@@ -29,7 +35,47 @@ function V3VaultDashboardContent() {
   const { assessment, assessVaultQuality, isAssessing } = useVaultAssessment();
   const navigate = useNavigate();
 
+  const [showCareerDirectionModal, setShowCareerDirectionModal] = useState(false);
+  const [showGapAnalysisModal, setShowGapAnalysisModal] = useState(false);
+  const [showMarketResearchModal, setShowMarketResearchModal] = useState(false);
+  const [marketResearchCount, setMarketResearchCount] = useState(0);
+  const [gapAnalysisExists, setGapAnalysisExists] = useState(false);
+
   const vaultId = (vaultData?.vault as any)?.id;
+  const careerDirection = (vaultData?.vault as any)?.career_direction;
+  const targetRoles = (vaultData?.vault as any)?.target_roles || [];
+  const targetIndustries = (vaultData?.vault as any)?.target_industries || [];
+
+  // Check for career direction on load
+  useEffect(() => {
+    if (vaultId && !careerDirection) {
+      setShowCareerDirectionModal(true);
+    }
+  }, [vaultId, careerDirection]);
+
+  // Fetch market research and gap analysis counts
+  useEffect(() => {
+    if (!vaultId) return;
+
+    const fetchCounts = async () => {
+      const [marketRes, gapRes] = await Promise.all([
+        supabase
+          .from('vault_market_research')
+          .select('id', { count: 'exact', head: true })
+          .eq('vault_id', vaultId),
+        supabase
+          .from('vault_gap_analysis')
+          .select('id')
+          .eq('vault_id', vaultId)
+          .single(),
+      ]);
+
+      setMarketResearchCount(marketRes.count || 0);
+      setGapAnalysisExists(!!gapRes.data);
+    };
+
+    void fetchCounts();
+  }, [vaultId]);
 
   // Fetch assessment on mount
   useEffect(() => {
@@ -37,6 +83,56 @@ function V3VaultDashboardContent() {
       void assessVaultQuality(vaultId);
     }
   }, [vaultId, assessment, isAssessing, assessVaultQuality]);
+
+  const handleCareerDirectionComplete = async (data: {
+    careerDirection: 'stay' | 'pivot' | 'explore';
+    targetRoles: string[];
+    targetIndustries: string[];
+  }) => {
+    if (!vaultId) return;
+
+    // Save career direction to vault
+    await supabase
+      .from('career_vault')
+      .update({
+        career_direction: data.careerDirection,
+        target_roles: data.targetRoles,
+        target_industries: data.targetIndustries,
+      })
+      .eq('id', vaultId);
+
+    setShowCareerDirectionModal(false);
+
+    // Trigger market research with actual targets
+    const targetRole = data.targetRoles[0];
+    const targetIndustry = data.targetIndustries[0];
+
+    if (targetRole && targetIndustry) {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const { data: vaultInfo } = await supabase
+        .from('career_vault')
+        .select('resume_raw_text')
+        .eq('id', vaultId)
+        .single();
+
+      await supabase.functions.invoke('analyze-market-fit', {
+        body: {
+          vaultId,
+          targetRole,
+          targetIndustry,
+          resumeText: vaultInfo?.resume_raw_text || '',
+          numJobs: 25,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+
+    void refetch();
+  };
 
   if (isLoading) {
     return (
@@ -58,6 +154,18 @@ function V3VaultDashboardContent() {
 
   const benchmarkMatch = assessment?.competitive_percentile;
   const vaultStrength = stats?.strengthScore.total ?? 0;
+  const totalItems = stats?.totalItems ?? 0;
+
+  // Show career direction modal if not set
+  if (showCareerDirectionModal && vaultId) {
+    return (
+      <CareerFocusClarifier
+        onComplete={handleCareerDirectionComplete}
+        detectedRole={targetRoles[0]}
+        detectedIndustry={targetIndustries[0]}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4 pb-8">
@@ -66,6 +174,60 @@ function V3VaultDashboardContent() {
         stats={stats} 
         benchmarkMatch={benchmarkMatch}
       />
+
+      {/* Journey Progress */}
+      <JourneyProgress
+        careerDirection={careerDirection}
+        marketResearchCount={marketResearchCount}
+        gapAnalysisExists={gapAnalysisExists}
+        vaultStrength={vaultStrength}
+      />
+
+      {/* 3 Action Boxes */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Box 1: Review Your Intelligence */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/career-intelligence")}>
+          <CardContent className="py-4 px-4 space-y-2">
+            <div className="text-sm font-semibold">Review Your Intelligence</div>
+            <div className="text-xs text-muted-foreground">
+              View and edit your {totalItems} extracted career data points across 10 categories
+            </div>
+            <Button variant="ghost" size="sm" className="w-full justify-start px-0">
+              Open Library <ArrowRight className="ml-2 h-3 w-3" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Box 2: Gap Analysis */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowGapAnalysisModal(true)}>
+          <CardContent className="py-4 px-4 space-y-2">
+            <div className="text-sm font-semibold">Gap Analysis</div>
+            <div className="text-xs text-muted-foreground">
+              {gapAnalysisExists
+                ? `Comparing your vault to ${marketResearchCount} real ${targetRoles[0] || 'target role'} job postings`
+                : "Generate your first gap analysis based on market research"}
+            </div>
+            <Button variant="ghost" size="sm" className="w-full justify-start px-0">
+              View Gaps <ArrowRight className="ml-2 h-3 w-3" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Box 3: Market Research */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowMarketResearchModal(true)}>
+          <CardContent className="py-4 px-4 space-y-2">
+            <div className="text-sm font-semibold">Market Research</div>
+            <div className="text-xs text-muted-foreground">
+              {marketResearchCount > 0
+                ? `Based on ${marketResearchCount} job postings we collected for ${targetRoles[0] || 'your target role'}`
+                : "Market research will run after you set your career direction"}
+            </div>
+            <Button variant="ghost" size="sm" className="w-full justify-start px-0">
+              See Research <ArrowRight className="ml-2 h-3 w-3" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
@@ -82,41 +244,45 @@ function V3VaultDashboardContent() {
         </div>
       </div>
 
-      {/* Next-step CTA */}
-      <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-3 border-t pt-4 text-sm">
-        <span className="text-muted-foreground">
-          {vaultStrength < 70
-            ? "A few more quick answers will make your Career Vault even more compelling before you generate targeted resumes."
-            : "Your Career Vault is in strong shape. You're ready to generate targeted resumes and refresh LinkedIn."}
-        </span>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/career-intelligence")}
-          >
-            View Full Library
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/career-intelligence-builder")}
-          >
-            Build Intelligence (Guided)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              document
-                .getElementById("smart-question-panel")
-                ?.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            Strengthen my vault
-          </Button>
-        </div>
-      </div>
+      {/* What's Next CTA */}
+      <Card className="shadow-sm">
+        <CardContent className="py-4 px-4 flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            {vaultStrength < 60
+              ? "Continue strengthening your vault by answering the smart questions above."
+              : "Your vault is ready! Go to Job Search to find matching opportunities."}
+          </div>
+          <div className="flex gap-2">
+            {vaultStrength >= 60 && (
+              <Button onClick={() => navigate("/job-search")}>
+                Go to Job Search <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setShowCareerDirectionModal(true)}
+            >
+              Change Target Role/Industry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Modals */}
+      {vaultId && (
+        <>
+          <GapAnalysisModal
+            open={showGapAnalysisModal}
+            onClose={() => setShowGapAnalysisModal(false)}
+            vaultId={vaultId}
+          />
+          <MarketResearchModal
+            open={showMarketResearchModal}
+            onClose={() => setShowMarketResearchModal(false)}
+            vaultId={vaultId}
+          />
+        </>
+      )}
     </div>
   );
 }

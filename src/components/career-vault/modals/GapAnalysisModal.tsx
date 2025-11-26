@@ -24,12 +24,40 @@ export const GapAnalysisModal = ({ open, onClose, vaultId }: GapAnalysisModalPro
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
+  const [vaultContext, setVaultContext] = useState<{ targetRole: string; targetIndustry: string; jobCount: number } | null>(null);
 
   useEffect(() => {
     if (open && vaultId) {
-      loadGapAnalysis();
+      void loadGapAnalysis();
+      void loadVaultContext();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, vaultId]);
+
+  const loadVaultContext = async () => {
+    try {
+      // Fetch vault data and market research count
+      const [vaultRes, marketRes] = await Promise.all([
+        supabase
+          .from('career_vault')
+          .select('target_roles, target_industries')
+          .eq('id', vaultId)
+          .single(),
+        supabase
+          .from('vault_market_research')
+          .select('id', { count: 'exact', head: true })
+          .eq('vault_id', vaultId),
+      ]);
+      
+      setVaultContext({
+        targetRole: vaultRes.data?.target_roles?.[0] || 'your target role',
+        targetIndustry: vaultRes.data?.target_industries?.[0] || 'your industry',
+        jobCount: marketRes.count || 25,
+      });
+    } catch (error) {
+      console.error('Error loading vault context:', error);
+    }
+  };
 
   const loadGapAnalysis = async () => {
     setLoading(true);
@@ -54,15 +82,57 @@ export const GapAnalysisModal = ({ open, onClose, vaultId }: GapAnalysisModalPro
   const generateGapAnalysis = async () => {
     setGenerating(true);
     try {
+      // Fetch market research to use as industry standards
+      const { data: marketResearch, error: mrError } = await supabase
+        .from('vault_market_research')
+        .select('*')
+        .eq('vault_id', vaultId);
+      
+      if (mrError) throw mrError;
+      
+      if (!marketResearch || marketResearch.length === 0) {
+        toast({
+          title: 'Market Research Required',
+          description: 'Please set your career direction first to enable market research',
+          variant: 'destructive',
+        });
+        setGenerating(false);
+        return;
+      }
+
+      // Derive industry standards from market research
+      const allSkills: string[] = [];
+      const allDescriptions: string[] = [];
+      
+      marketResearch.forEach(job => {
+        if (job.skill_frequency && typeof job.skill_frequency === 'object') {
+          allSkills.push(...Object.keys(job.skill_frequency as Record<string, number>));
+        }
+        if (job.common_requirements && typeof job.common_requirements === 'object') {
+          const reqArray = job.common_requirements as any[];
+          if (Array.isArray(reqArray)) {
+            allDescriptions.push(...reqArray.map(r => String(r)));
+          }
+        }
+      });
+
+      const industryStandards = {
+        jobPostingsAnalyzed: marketResearch.length,
+        requiredSkills: allSkills,
+        commonResponsibilities: allDescriptions.join('\n').substring(0, 5000),
+        targetRole: vaultContext?.targetRole || 'target role',
+        targetIndustry: vaultContext?.targetIndustry || 'industry',
+      };
+
       const { error } = await supabase.functions.invoke('generate-gap-analysis', {
-        body: { vaultId }
+        body: { vaultId, industryStandards }
       });
 
       if (error) throw error;
 
       toast({
         title: 'Gap Analysis Generated',
-        description: 'Your profile has been analyzed against market benchmarks'
+        description: `Your profile has been analyzed against ${marketResearch.length} real job postings`
       });
 
       await loadGapAnalysis();
@@ -135,7 +205,13 @@ export const GapAnalysisModal = ({ open, onClose, vaultId }: GapAnalysisModalPro
             <div>
               <DialogTitle className="text-2xl">Gap Analysis Results</DialogTitle>
               <DialogDescription>
-                Analysis of your profile vs. market benchmarks
+                {vaultContext ? (
+                  <>
+                    Comparing your vault against <span className="font-semibold">{vaultContext.jobCount} real {vaultContext.targetRole}</span> positions in <span className="font-semibold">{vaultContext.targetIndustry}</span>
+                  </>
+                ) : (
+                  'Analysis of your profile vs. market benchmarks'
+                )}
               </DialogDescription>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
