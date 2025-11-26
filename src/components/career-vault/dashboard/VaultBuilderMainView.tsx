@@ -197,27 +197,31 @@ export function VaultBuilderMainView({
               <h2 className="text-2xl font-semibold mb-1">Your Vault Progress</h2>
               <p className="text-base text-muted-foreground">{strengthLevel.description}</p>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Advanced
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate('/resume-data-audit')}>
-                  <Shield className="h-4 w-4 mr-2" />
-                  Verify Data
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setShowResetDialog(true)}
-                  className="text-destructive"
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Nuclear Reset Vault
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowResetDialog(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Reset Vault
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Advanced
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/resume-data-audit')}>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Verify Data
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           <div className="space-y-4">

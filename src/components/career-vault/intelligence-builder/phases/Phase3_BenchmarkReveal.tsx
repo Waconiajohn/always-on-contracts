@@ -151,13 +151,13 @@ export const Phase3_BenchmarkReveal = ({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-2xl font-bold">
-              {benchmark.evidence_summary.strength_score}%
+              {benchmark.evidence_summary?.strength_score ?? 0}%
             </h3>
             <p className="text-sm text-muted-foreground">Market Readiness Score</p>
           </div>
           <div>
             <h3 className="text-2xl font-bold">
-              {benchmark.evidence_summary.completeness_percentage}%
+              {benchmark.evidence_summary?.completeness_percentage ?? 0}%
             </h3>
             <p className="text-sm text-muted-foreground">Profile Completeness</p>
           </div>
