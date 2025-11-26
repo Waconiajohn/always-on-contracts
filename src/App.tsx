@@ -47,7 +47,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminPromptManager = lazy(() => import("./pages/AdminPromptManager"));
 const UserRoleManagement = lazy(() => import("./pages/UserRoleManagement"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
-const CareerVaultDashboard = lazy(() => import("./pages/CareerVaultDashboard"));
+import { V3VaultDashboard } from "./components/career-vault/dashboard/V3VaultDashboard";
 const CareerIntelligenceLibrary = lazy(() => import("./pages/CareerIntelligenceLibrary"));
 const VaultAdminTools = lazy(() => import("./pages/VaultAdminTools"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
@@ -120,7 +120,7 @@ const AppContent = () => {
             <Route path="/admin/user-roles" element={<ProtectedRoute><AdminRoute><UserRoleManagement /></AdminRoute></ProtectedRoute>} />
             <Route path="/admin-setup" element={<ProtectedRoute><AdminSetup /></ProtectedRoute>} />
             <Route path="/vault-admin" element={<ProtectedRoute><VaultAdminTools /></ProtectedRoute>} />
-            <Route path="/career-vault" element={<CareerVaultDashboard />} />
+            <Route path="/career-vault" element={<ProtectedRoute><V3VaultDashboard /></ProtectedRoute>} />
             <Route path="/career-intelligence" element={<ProtectedRoute><CareerIntelligenceLibrary /></ProtectedRoute>} />
             <Route path="/career-vault-onboarding" element={<Navigate to="/career-vault" replace />} />
             {/* Legacy redirects */}

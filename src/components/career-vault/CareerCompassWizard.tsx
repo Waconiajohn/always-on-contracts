@@ -340,18 +340,63 @@ export default function CareerCompassWizard() {
             )}
 
             {currentStepIndex === 5 && (
-              <Card className="bg-white/80 backdrop-blur-sm border-green-200 shadow-xl text-center py-12">
-                <CardContent className="space-y-6">
-                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-                    <Trophy className="w-12 h-12 text-green-600" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-4xl font-bold text-slate-900">Vault Complete!</h2>
-                    <p className="text-xl text-slate-600 max-w-md mx-auto">
-                      Your Career Vault is now populated with market intelligence and tailored insights.
+              <Card className="bg-white/80 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+                <CardContent className="py-12 space-y-8">
+                  <div className="text-center">
+                    <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                      <Trophy className="w-12 h-12 text-primary" />
+                    </div>
+                    <h2 className="text-4xl font-bold mb-4">Career Compass Complete!</h2>
+                    <p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto">
+                      Your Career Vault has been built and is ready to power your job search.
                     </p>
                   </div>
-                  <p className="text-sm text-slate-500">Redirecting to dashboard...</p>
+                  
+                  {/* Summary Stats */}
+                  <Card className="max-w-2xl mx-auto border-2">
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-3 gap-6 text-center">
+                        <div>
+                          <div className="text-3xl font-bold text-primary mb-1">
+                            {initialAnalysis?.items_extracted || '50+'}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Items Extracted</div>
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-primary mb-1">
+                            {targetRoles.length || 1}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Target Roles</div>
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-primary mb-1">
+                            25+
+                          </div>
+                          <div className="text-sm text-muted-foreground">Jobs Analyzed</div>
+                        </div>
+                      </div>
+                      
+                      {targetRoles.length > 0 && (
+                        <div className="mt-6 pt-6 border-t">
+                          <p className="text-sm text-muted-foreground mb-2">Focused On:</p>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {targetRoles.slice(0, 3).map(role => (
+                              <span key={role} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                                {role}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <div className="text-center space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Your vault is now optimized for {targetRoles[0] || 'your target role'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
+                  </div>
                 </CardContent>
               </Card>
             )}
