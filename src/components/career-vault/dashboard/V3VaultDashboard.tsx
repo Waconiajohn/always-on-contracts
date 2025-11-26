@@ -144,10 +144,17 @@ function V3VaultDashboardContent() {
 
   if (!vaultData) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">
-          No Career Vault found. Please upload a resume to get started.
-        </p>
+      <div className="text-center py-12 space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold">Welcome to Your Career Vault</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Your Career Vault is your personal intelligence hub. Upload your resume 
+            to get started, and we'll help you build a powerful career profile.
+          </p>
+        </div>
+        <Button size="lg" onClick={() => navigate('/onboarding')}>
+          Start Career Compass <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
       </div>
     );
   }
