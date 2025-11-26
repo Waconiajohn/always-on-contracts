@@ -12,9 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   Loader2, Upload, ArrowRight, Trophy, TrendingUp,
-  Target, Brain, Sparkles, ChevronDown
+  Target, Brain, Sparkles, ChevronDown, RefreshCw
 } from "lucide-react";
-import { UploadResumeModal } from '@/components/career-vault/modals/UploadResumeModal';
 import { ExtractionProgressModal } from '@/components/career-vault/modals/ExtractionProgressModal';
 import { GapAnalysisModal } from '@/components/career-vault/modals/GapAnalysisModal';
 import { MarketResearchModal } from '@/components/career-vault/modals/MarketResearchModal';
@@ -23,17 +22,16 @@ import { SmartNextSteps } from '@/components/career-vault/SmartNextSteps';
 import { VaultNuclearReset } from '@/components/career-vault/VaultNuclearReset';
 
 /**
- * Simplified Career Vault Dashboard
+ * Career Vault Dashboard
  * 
  * Flow:
- * 1. Upload Resume → Extracts data + pulls 25 job descriptions + benchmarks
- * 2. Dashboard shows 10 categories with item counts and progress
- * 3. "View Intelligence Library" to see and enhance items
+ * 1. Empty State -> Redirects to /onboarding (Career Compass Wizard)
+ * 2. Dashboard -> Shows progress, stats, and action items
+ * 3. "Update Strategy" -> Redirects to /onboarding to change direction
  */
 const CareerVaultDashboardContent = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | undefined>();
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [extractionModalOpen, setExtractionModalOpen] = useState(false);
   const [gapAnalysisOpen, setGapAnalysisOpen] = useState(false);
   const [marketResearchOpen, setMarketResearchOpen] = useState(false);
@@ -54,12 +52,6 @@ const CareerVaultDashboardContent = () => {
     };
     getUserId();
   }, [navigate]);
-
-  const handleUploadComplete = async () => {
-    setUploadModalOpen(false);
-    setExtractionModalOpen(true);
-    await refetch();
-  };
 
   const handleExtractionComplete = async () => {
     setExtractionModalOpen(false);
@@ -95,24 +87,18 @@ const CareerVaultDashboardContent = () => {
             <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1"><span className="text-primary">1.</span> Upload Resume</span>
               <ArrowRight className="h-4 w-4" />
-              <span className="flex items-center gap-1"><span className="text-primary">2.</span> AI Extracts Data</span>
+              <span className="flex items-center gap-1"><span className="text-primary">2.</span> Define Target</span>
               <ArrowRight className="h-4 w-4" />
-              <span className="flex items-center gap-1"><span className="text-primary">3.</span> Analyze 25 Jobs</span>
+              <span className="flex items-center gap-1"><span className="text-primary">3.</span> Analyze Market</span>
               <ArrowRight className="h-4 w-4" />
-              <span className="flex items-center gap-1"><span className="text-primary">4.</span> Track Progress</span>
+              <span className="flex items-center gap-1"><span className="text-primary">4.</span> Build Vault</span>
             </div>
-            <Button size="lg" onClick={() => setUploadModalOpen(true)}>
+            <Button size="lg" onClick={() => navigate('/onboarding')}>
               <Upload className="h-5 w-5 mr-2" />
-              Upload Resume to Get Started
+              Start Career Compass
             </Button>
           </CardContent>
         </Card>
-
-        <UploadResumeModal
-          open={uploadModalOpen}
-          onClose={() => setUploadModalOpen(false)}
-          onUploadComplete={handleUploadComplete}
-        />
       </div>
     );
   }
@@ -222,10 +208,20 @@ const CareerVaultDashboardContent = () => {
                 {totalItems} items • Level: <Badge variant="outline" className="ml-1">{strengthLevel}</Badge>
               </p>
             </div>
-            <div className="text-center">
+            <div className="text-center flex flex-col items-end">
               <div className="text-5xl font-bold text-primary mb-1">{strengthScore}%</div>
               <div className="text-sm text-muted-foreground">Vault Strength</div>
               <Progress value={strengthScore} className="h-2 w-32 mt-2" />
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-4 text-muted-foreground hover:text-primary gap-2"
+                onClick={() => navigate('/onboarding')}
+              >
+                <RefreshCw className="h-3 w-3" />
+                Update Strategy / Change Direction
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -363,11 +359,6 @@ const CareerVaultDashboardContent = () => {
       </Collapsible>
 
       {/* Modals */}
-      <UploadResumeModal
-        open={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
-        onUploadComplete={handleUploadComplete}
-      />
       <ExtractionProgressModal
         open={extractionModalOpen}
         onComplete={handleExtractionComplete}

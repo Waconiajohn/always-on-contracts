@@ -1,5 +1,10 @@
-import { Navigate } from "react-router-dom";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import CareerCompassWizard from "@/components/career-vault/CareerCompassWizard";
 
 export default function Onboarding() {
-  return <Navigate to="/quick-start" replace />;
+  return (
+    <ProtectedRoute>
+      <CareerCompassWizard />
+    </ProtectedRoute>
+  );
 }

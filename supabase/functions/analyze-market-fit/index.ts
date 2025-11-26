@@ -222,7 +222,8 @@ Focus on identifying:
                 }
               }
             }
-          ]
+          ],
+          tool_choice: "auto"
         }),
       });
 
@@ -235,13 +236,7 @@ Focus on identifying:
       }
 
       const aiData = await aiResponse.json();
-      console.log('[analyze-market-fit] Raw AI response structure:', {
-        hasChoices: !!aiData.choices,
-        choicesLength: aiData.choices?.length,
-        hasMessage: !!aiData.choices?.[0]?.message,
-        hasToolCalls: !!aiData.choices?.[0]?.message?.tool_calls,
-        hasContent: !!aiData.choices?.[0]?.message?.content
-      });
+      console.log('[analyze-market-fit] Raw AI response structure:', JSON.stringify(aiData, null, 2));
       
       // Extract from tool_calls (structured output)
       const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
@@ -411,12 +406,7 @@ Focus on identifying:
         skillFrequency: marketData.skillFrequency || {},
         keyThemes: marketData.keyThemes || []
       },
-      gaps: gaps.map(gap => ({
-        type: gap.gap_type,
-        name: gap.requirement,
-        frequency: marketData.skillFrequency?.[gap.requirement] || 0,
-        priority: gap.priority === 'blocking' ? 'critical' : gap.priority as 'critical' | 'important' | 'nice_to_have'
-      })),
+      gaps: gaps,
       researchId: savedResearch.id,
       benchmarkId: benchmarkData?.id
     }), {
