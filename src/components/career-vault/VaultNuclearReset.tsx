@@ -120,21 +120,28 @@ export const VaultNuclearReset = ({
       console.log('🧹 Deleting benchmark comparisons...');
       await supabase.from('vault_benchmark_comparison').delete().eq('vault_id', vaultId);
 
-      // 8. Delete ALL research-related data
+      // 8. Delete ALL research-related data (using user_id for vault_research since it doesn't have vault_id)
       console.log('🧹 Deleting all market research and industry research data...');
       const { data: { user } } = await supabase.auth.getUser();
-      await Promise.all([
-        supabase.from('vault_market_research').delete().eq('vault_id', vaultId),
-        supabase.from('vault_research').delete().eq('user_id', user?.id || ''),
-        supabase.from('vault_transition_research').delete().eq('vault_id', vaultId),
-        supabase.from('career_vault_industry_research').delete().eq('vault_id', vaultId),
-      ]);
+      
+      if (user) {
+        await Promise.all([
+          supabase.from('vault_market_research').delete().eq('vault_id', vaultId),
+          supabase.from('vault_research').delete().eq('user_id', user.id),
+          supabase.from('vault_transition_research').delete().eq('vault_id', vaultId),
+          supabase.from('career_vault_industry_research').delete().eq('vault_id', vaultId),
+        ]);
+      }
 
-      // 9. Delete intelligent responses (QA session data)
+      // 9. Delete gap progress
+      console.log('🧹 Deleting gap progress...');
+      await supabase.from('vault_gap_progress').delete().eq('vault_id', vaultId);
+
+      // 10. Delete intelligent responses (QA session data)
       console.log('🧹 Deleting intelligent responses...');
       await supabase.from('career_vault_intelligent_responses').delete().eq('vault_id', vaultId);
 
-      // 10. Reset career_vault metadata to zero state - ALL counts and data
+      // 10. Reset career_vault metadata to zero state - INCLUDING target roles/industries
       console.log('♻️ Resetting career_vault metadata to zero...');
       const { error: resetError } = await supabase
         .from('career_vault')
@@ -183,8 +190,11 @@ export const VaultNuclearReset = ({
           intelligent_qa_completed: false,
           onboarding_step: 'not_started',
           
-          // Target settings (keep these as they're user preferences)
-          // target_roles, target_industries, excluded_industries, career_direction
+          // CLEAR target settings - complete fresh start
+          target_roles: null,
+          target_industries: null,
+          excluded_industries: null,
+          career_direction: null,
           
           // Update timestamp
           last_updated_at: new Date().toISOString(),
