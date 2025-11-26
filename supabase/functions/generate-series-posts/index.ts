@@ -60,17 +60,22 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: req.headers.get("Authorization")! },
-      },
-    });
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const token = authHeader.replace('Bearer ', '');
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user) {
+      console.error('[generate-series-posts] Auth error:', userError);
+      throw new Error('Unauthorized');
+    }
 
     const body = await req.json();
     const parsed = RequestSchema.safeParse(body);

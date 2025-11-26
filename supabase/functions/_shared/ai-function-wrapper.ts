@@ -97,14 +97,15 @@ export function createAIHandler<T = any>(config: AIHandlerConfig<T>) {
           );
         }
 
+        const token = authHeader.replace('Bearer ', '');
         supabase = createClient(
           Deno.env.get("SUPABASE_URL") ?? "",
-          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-          { global: { headers: { Authorization: authHeader } } }
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
         );
 
-        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser(token);
         if (userError || !authUser) {
+          console.error('[ai-function-wrapper] Auth error:', userError);
           throw new AIError(
             'Invalid or expired session',
             'AUTHENTICATION_ERROR',
