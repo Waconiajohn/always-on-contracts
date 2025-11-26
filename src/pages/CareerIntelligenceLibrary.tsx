@@ -56,12 +56,20 @@ const CareerIntelligenceLibraryContent = () => {
   }
 
   return (
-    <Phase5_VaultLibrary
-      vaultId={vaultId}
-      onProgress={() => {}}
-      onTimeEstimate={() => {}}
-      onComplete={() => {}}
-    />
+    <div className="space-y-4">
+      <button
+        onClick={() => navigate('/career-vault')}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
+      >
+        ← Back to Career Vault
+      </button>
+      <Phase5_VaultLibrary
+        vaultId={vaultId}
+        onProgress={() => {}}
+        onTimeEstimate={() => {}}
+        onComplete={() => {}}
+      />
+    </div>
   );
 };
 

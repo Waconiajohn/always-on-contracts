@@ -89,13 +89,20 @@ function V3VaultDashboardContent() {
             ? "A few more quick answers will make your Career Vault even more compelling before you generate targeted resumes."
             : "Your Career Vault is in strong shape. You're ready to generate targeted resumes and refresh LinkedIn."}
         </span>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/resume-builder")}
+            onClick={() => navigate("/career-intelligence")}
           >
-            Build a targeted resume
+            View Full Library
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/career-intelligence-builder")}
+          >
+            Build Intelligence (Guided)
           </Button>
           <Button
             variant="ghost"
