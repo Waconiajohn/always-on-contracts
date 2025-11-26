@@ -50,32 +50,6 @@ function V3VaultDashboardContent() {
   const targetIndustries = (vaultData?.vault as any)?.target_industries || [];
   const hasResume = !!((vaultData?.vault as any)?.resume_raw_text?.trim());
 
-  // CRITICAL: Redirect immediately if no resume - don't render dashboard
-  useEffect(() => {
-    if (vaultId && !hasResume) {
-      console.warn('⚠️ V3VaultDashboard: No resume found, redirecting to onboarding');
-      navigate('/onboarding');
-      toast({
-        title: "Resume Required",
-        description: "Please upload your resume to continue building your vault.",
-      });
-    }
-  }, [vaultId, hasResume, navigate, toast]);
-
-  // CRITICAL: Block ALL rendering if no resume exists
-  // Show loading state while useEffect handles redirect
-  if (!isLoading && vaultId && !hasResume) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <div className="text-center space-y-2">
-          <p className="text-lg font-medium">Resume Required</p>
-          <p className="text-sm text-muted-foreground">Redirecting to resume upload...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Check for career direction on load (only if resume exists)
   useEffect(() => {
     if (vaultId && hasResume && !careerDirection) {
@@ -113,6 +87,18 @@ function V3VaultDashboardContent() {
       void assessVaultQuality(vaultId);
     }
   }, [vaultId, assessment, isAssessing, assessVaultQuality]);
+
+  // CRITICAL: Redirect if no resume exists
+  useEffect(() => {
+    if (vaultId && !hasResume) {
+      console.warn('⚠️ V3VaultDashboard: No resume found, redirecting to onboarding');
+      navigate('/onboarding');
+      toast({
+        title: "Resume Required",
+        description: "Please upload your resume to continue building your vault.",
+      });
+    }
+  }, [vaultId, hasResume, navigate, toast]);
 
   const handleCareerDirectionComplete = async (data: {
     careerDirection: 'stay' | 'pivot' | 'explore';
