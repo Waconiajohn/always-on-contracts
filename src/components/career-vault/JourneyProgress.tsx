@@ -2,6 +2,7 @@ import { CheckCircle2, Circle, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface JourneyProgressProps {
+  hasResume: boolean;
   careerDirection: string | null;
   marketResearchCount: number;
   gapAnalysisExists: boolean;
@@ -9,6 +10,7 @@ interface JourneyProgressProps {
 }
 
 export function JourneyProgress({
+  hasResume,
   careerDirection,
   marketResearchCount,
   gapAnalysisExists,
@@ -17,7 +19,8 @@ export function JourneyProgress({
   const steps = [
     {
       label: "Resume Uploaded & Analyzed",
-      completed: true,
+      completed: hasResume,
+      detail: hasResume ? "Resume analyzed" : "Resume required",
     },
     {
       label: "Career Direction Set",

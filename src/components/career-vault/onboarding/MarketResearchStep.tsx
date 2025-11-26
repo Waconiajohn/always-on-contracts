@@ -36,6 +36,12 @@ export default function MarketResearchStep({
   const { toast } = useToast();
 
   useEffect(() => {
+    // Validate that resume exists before starting analysis
+    if (!resumeText || resumeText.trim().length === 0) {
+      setError('Resume not found. Please upload your resume first.');
+      setStatus('error');
+      return;
+    }
     startAnalysis();
   }, []);
 
@@ -112,9 +118,15 @@ export default function MarketResearchStep({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-slate-600">{error}</p>
-          <Button onClick={startAnalysis} variant="outline">
-            Retry Analysis
-          </Button>
+          {error?.includes('Resume not found') ? (
+            <Button onClick={() => window.location.href = '/onboarding?step=resume'} variant="default">
+              Upload Resume
+            </Button>
+          ) : (
+            <Button onClick={startAnalysis} variant="outline">
+              Retry Analysis
+            </Button>
+          )}
         </CardContent>
       </Card>
     );

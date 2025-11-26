@@ -46,6 +46,7 @@ function V3VaultDashboardContent() {
   const careerDirection = (vaultData?.vault as any)?.career_direction;
   const targetRoles = (vaultData?.vault as any)?.target_roles || [];
   const targetIndustries = (vaultData?.vault as any)?.target_industries || [];
+  const hasResume = !!((vaultData?.vault as any)?.resume_raw_text?.trim());
 
   // Check for career direction on load
   useEffect(() => {
@@ -185,6 +186,7 @@ function V3VaultDashboardContent() {
 
       {/* Journey Progress */}
       <JourneyProgress
+        hasResume={hasResume}
         careerDirection={careerDirection}
         marketResearchCount={marketResearchCount}
         gapAnalysisExists={gapAnalysisExists}

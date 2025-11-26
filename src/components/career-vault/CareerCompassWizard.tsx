@@ -74,23 +74,31 @@ export default function CareerCompassWizard() {
         }
 
         // Otherwise determine step based on data presence
+        // CRITICAL: Never skip resume step if no resume exists
         let step = 0; // Welcome
         
-        if (vault.resume_raw_text) step = 2; // Skip Resume Step if done
-        if (vault.target_roles && vault.target_roles.length > 0) step = 3; // Skip Direction if done
+        // Only advance past resume step if resume exists
+        if (vault.resume_raw_text && vault.resume_raw_text.trim().length > 0) {
+          step = 2; // Can skip to Direction step
+          
+          // Only advance to market research if we ALSO have target roles/industries
+          if (vault.target_roles && vault.target_roles.length > 0) {
+            step = 3; // Move to Market Research
+            
+            // Check if market research is complete
+            const { data: research } = await supabase
+              .from('vault_market_research')
+              .select('*')
+              .eq('vault_id', vault.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-        // Check market research
-        const { data: research } = await supabase
-          .from('vault_market_research')
-          .select('*')
-          .eq('vault_id', vault.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        // Only advance to gap analysis if we have both research AND resume text
-        if (research && vault.resume_raw_text) {
-          step = 4; 
+            // Only advance to gap analysis if we have research
+            if (research) {
+              step = 4; 
+            }
+          }
         }
         
         if (step > 0) {
