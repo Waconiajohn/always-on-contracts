@@ -242,7 +242,6 @@ RETURN VALID JSON ONLY:
           leadership_style: item.leadershipStyle,
           real_world_application: item.realWorldApplication,
           core_principles: item.corePrinciples || [],
-          confidence_score: item.confidenceScore,
           quality_tier: 'bronze', // Inferred data starts as bronze
           needs_user_review: true,
           // Industry-aware fields for interview prep & LinkedIn
@@ -334,7 +333,6 @@ RETURN VALID JSON ONLY:
           situational_example: item.situationalExample,
           brand_alignment: item.brandAlignment,
           perceived_impact: item.perceivedImpact,
-          confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
           needs_user_review: true,
           // Industry-aware fields for interview prep & LinkedIn
@@ -414,7 +412,6 @@ RETURN VALID JSON ONLY:
           trait_name: item.traitName,
           behavioral_evidence: item.behavioralEvidence,
           work_context: item.workContext,
-          confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
           needs_user_review: true
         }));
@@ -490,7 +487,6 @@ RETURN VALID JSON ONLY:
           preference_area: item.preferenceArea,
           preference_description: item.preferenceDescription,
           ideal_environment: item.idealEnvironment,
-          confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
           needs_user_review: true
         }));
@@ -565,7 +561,6 @@ RETURN VALID JSON ONLY:
           value_name: item.valueName,
           manifestation: item.manifestation,
           importance_level: item.importanceLevel || 'important',
-          confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
           needs_user_review: true
         }));
@@ -643,7 +638,6 @@ RETURN VALID JSON ONLY:
           specific_behavior: item.specificBehavior,
           context: item.context,
           outcome_pattern: item.outcomePattern,
-          confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
           needs_user_review: true
         }));
