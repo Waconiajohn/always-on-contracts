@@ -191,20 +191,20 @@ export default function CareerCompassWizard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-background via-secondary/10 to-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header with Exit Button */}
         <div className="flex justify-between items-start">
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Career Compass</h1>
-            <p className="text-lg text-slate-600 max-w-xl">
+            <h1 className="text-4xl font-bold tracking-tight">Career Compass</h1>
+            <p className="text-lg text-muted-foreground max-w-xl">
               {currentStep.label}
             </p>
           </div>
@@ -214,12 +214,12 @@ export default function CareerCompassWizard() {
         </div>
 
         {/* Progress Stepper */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="bg-card rounded-xl shadow-sm border p-6">
           <div className="relative">
-            <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-slate-100">
+            <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-muted">
               <div
                 style={{ width: `${progress}%` }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600 transition-all duration-500"
+                className="shadow-none flex flex-col text-center whitespace-nowrap justify-center bg-primary transition-all duration-500"
               ></div>
             </div>
             <div className="flex justify-between">
@@ -232,16 +232,16 @@ export default function CareerCompassWizard() {
                   <div 
                     key={step.id} 
                     className={`flex flex-col items-center ${
-                      isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-slate-400'
+                      isActive ? 'text-primary' : isCompleted ? 'text-accent' : 'text-muted-foreground'
                     }`}
                   >
                     <div className={`
                       flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 mb-2 transition-all
                       ${isActive 
-                        ? 'border-blue-600 bg-blue-50' 
+                        ? 'border-primary bg-primary/10' 
                         : isCompleted 
-                          ? 'border-green-600 bg-green-50' 
-                          : 'border-slate-200 bg-slate-50'
+                          ? 'border-accent bg-accent/10' 
+                          : 'border-border bg-muted'
                       }
                     `}>
                       {isCompleted ? (
@@ -268,11 +268,11 @@ export default function CareerCompassWizard() {
             transition={{ duration: 0.3 }}
           >
             {currentStepIndex === 0 && (
-              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-xl text-center py-12">
+              <Card className="bg-card/80 backdrop-blur-sm border shadow-xl text-center py-12">
                 <CardContent className="space-y-8 max-w-2xl mx-auto">
                   <div className="space-y-4">
-                    <h2 className="text-3xl font-bold text-slate-900">Welcome to Your Career Vault</h2>
-                    <p className="text-lg text-slate-600">
+                    <h2 className="text-3xl font-bold">Welcome to Your Career Vault</h2>
+                    <p className="text-lg text-muted-foreground">
                       We've redesigned the career journey to be logical, data-driven, and effective.
                       Here is the roadmap we will follow together:
                     </p>
@@ -280,39 +280,39 @@ export default function CareerCompassWizard() {
 
                   <div className="grid gap-6 text-left">
                     <div className="flex gap-4">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-5 h-5 text-primary" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">1. Foundation</h3>
-                        <p className="text-slate-600">Upload your resume so we understand your starting point.</p>
+                        <p className="text-muted-foreground">Upload your resume so we understand your starting point.</p>
                       </div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                        <Target className="w-5 h-5 text-purple-600" />
+                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+                        <Target className="w-5 h-5 text-accent" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">2. Direction</h3>
-                        <p className="text-slate-600">Declare your target role and industry. Where do you want to go?</p>
+                        <p className="text-muted-foreground">Declare your target role and industry. Where do you want to go?</p>
                       </div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <Search className="w-5 h-5 text-green-600" />
+                      <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                        <Search className="w-5 h-5 text-success" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">3. Market Reality</h3>
-                        <p className="text-slate-600">We analyze live job postings to tell you exactly what the market demands.</p>
+                        <p className="text-muted-foreground">We analyze live job postings to tell you exactly what the market demands.</p>
                       </div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                        <Zap className="w-5 h-5 text-amber-600" />
+                      <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+                        <Zap className="w-5 h-5 text-warning" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">4. Gap Closing</h3>
-                        <p className="text-slate-600">We identify gaps and help you fill them with targeted AI questions.</p>
+                        <p className="text-muted-foreground">We identify gaps and help you fill them with targeted AI questions.</p>
                       </div>
                     </div>
                   </div>
