@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, FileText, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useSupabaseClient } from '@/hooks/useAuth';
-import { validateInput, invokeEdgeFunction, AnalyzeResumeInitialSchema } from '@/lib/edgeFunction';
+import { validateInput, invokeEdgeFunction, AnalyzeResumeInitialSchema, AutoPopulateVaultSchema } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
 
 interface ResumeAnalysisStepProps {
@@ -168,9 +168,14 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
       logger.info('Triggering vault extraction pipeline', { vaultId: currentVaultId });
       
       try {
+        const validatedExtraction = validateInput(AutoPopulateVaultSchema, {
+          vaultId: currentVaultId,
+          resumeText: text
+        });
+
         const { error: extractionError } = await invokeEdgeFunction(
           'auto-populate-vault-v3',
-          { vaultId: currentVaultId, mode: 'full' }
+          validatedExtraction
         );
         
         if (extractionError) {
