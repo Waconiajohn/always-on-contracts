@@ -157,8 +157,7 @@ export const AutoPopulateVaultSchema = z.object({
   vaultId: z.string().uuid('Invalid vault ID'),
   resumeText: z.string()
     .min(100, 'Resume text must be at least 100 characters')
-    .max(50000, 'Resume text must be less than 50,000 characters')
-    .optional(),
+    .max(50000, 'Resume text must be less than 50,000 characters'),
   targetRoles: z.array(z.string().trim().min(1)).optional(),
   targetIndustries: z.array(z.string().trim().min(1)).optional()
 });

@@ -44,10 +44,10 @@ const ProfileContent = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch vault data
+      // Fetch vault data including resume text
       const { data: vaultData } = await supabase
         .from("career_vault")
-        .select("id")
+        .select("id, resume_raw_text")
         .eq("user_id", user.id)
         .maybeSingle();
 
