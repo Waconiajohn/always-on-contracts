@@ -82,7 +82,7 @@ export default function CareerDirectionStep({
         careerDirection,
         currentRole: initialAnalysis.detectedRole,
         currentIndustry: initialAnalysis.detectedIndustry,
-        vaultId: careerDirection === 'stay' ? vaultId : undefined
+        vaultId
       });
 
       const { data, error } = await invokeEdgeFunction(
