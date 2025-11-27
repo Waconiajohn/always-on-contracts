@@ -112,36 +112,39 @@ Use this to infer intangible qualities.
     // =================================================
     // EXTRACTION 1: LEADERSHIP PHILOSOPHY
     // =================================================
-    console.log('👔 Extracting leadership philosophy...');
+    let leadershipItems: any[] = [];
+    
+    try {
+      console.log('👔 Extracting leadership philosophy...');
 
-    // Fetch target roles/industries, resume text, and industry research for context
-    const { data: vault } = await supabaseClient
-      .from('career_vault')
-      .select('target_roles, target_industries, resume_raw_text')
-      .eq('id', vaultId)
-      .single();
+      // Fetch target roles/industries, resume text, and industry research for context
+      const { data: vault } = await supabaseClient
+        .from('career_vault')
+        .select('target_roles, target_industries, resume_raw_text')
+        .eq('id', vaultId)
+        .single();
 
-    // Fetch industry research for market context
-    const { data: industryResearch } = await supabaseClient
-      .from('career_vault_industry_research')
-      .select('*')
-      .eq('vault_id', vaultId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      // Fetch industry research for market context
+      const { data: industryResearch } = await supabaseClient
+        .from('career_vault_industry_research')
+        .select('*')
+        .eq('vault_id', vaultId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-    // Use provided resumeText or fall back to vault data
-    const finalResumeText = resumeText || vault?.resume_raw_text;
+      // Use provided resumeText or fall back to vault data
+      const finalResumeText = resumeText || vault?.resume_raw_text;
 
-    if (!finalResumeText) {
-      throw new Error('No resume text found. Please upload your resume in Career Vault first.');
-    }
+      if (!finalResumeText) {
+        throw new Error('No resume text found. Please upload your resume in Career Vault first.');
+      }
 
-    const targetRole = vault?.target_roles?.[0] || 'Not specified';
-    const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
+      const targetRole = vault?.target_roles?.[0] || 'Not specified';
+      const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
 
-    // Build industry context from research
-    const industryContext = industryResearch ? `
+      // Build industry context from research
+      const industryContext = industryResearch ? `
 INDUSTRY & MARKET INTELLIGENCE:
 Target Industry: ${industryResearch.target_industry}
 Target Role: ${industryResearch.target_role}
@@ -164,7 +167,7 @@ Use this intelligence to:
 INDUSTRY CONTEXT: No specific research available yet. Focus on extracting high-quality insights from resume.
 `;
 
-    const leadershipPrompt = `You are an executive coach inferring UNSPOKEN leadership philosophy from resume evidence.
+      const leadershipPrompt = `You are an executive coach inferring UNSPOKEN leadership philosophy from resume evidence.
 
 ${industryContext}
 
@@ -213,48 +216,57 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: leadershipResponse, metrics: leadershipMetrics } = await callLovableAI({
-      messages: [
-        { role: 'system', content: 'You are an expert at inferring leadership philosophy from resume evidence. Return only valid JSON.' },
-        { role: 'user', content: leadershipPrompt }
-      ],
-      model: LOVABLE_AI_MODELS.PREMIUM, // Use premium model for intelligence extraction
-      temperature: 0.4,
-      max_tokens: 2500,
-      response_format: { type: 'json_object' }
-    }, 'extract-vault-intangibles-leadership', user.id);
+      const { response: leadershipResponse, metrics: leadershipMetrics } = await callLovableAI({
+        messages: [
+          { role: 'system', content: 'You are an expert at inferring leadership philosophy from resume evidence. Return only valid JSON.' },
+          { role: 'user', content: leadershipPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM, // Use premium model for intelligence extraction
+        temperature: 0.4,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' }
+      }, 'extract-vault-intangibles-leadership', user.id);
 
-    await logAIUsage(leadershipMetrics);
+      await logAIUsage(leadershipMetrics);
 
-    const leadershipContent = leadershipResponse.choices[0].message.content;
-    const leadershipResult = extractJSON(leadershipContent);
-    const leadershipItems = leadershipResult.success ? (leadershipResult.data?.leadershipPhilosophy || []) : [];
+      const leadershipContent = leadershipResponse.choices[0].message.content;
+      const leadershipResult = extractJSON(leadershipContent);
+      leadershipItems = leadershipResult.success ? (leadershipResult.data?.leadershipPhilosophy || []) : [];
 
-    // Insert leadership philosophy with industry context
-    const leadershipInserts = leadershipItems.map((item: any) => ({
-      vault_id: vaultId,
-      user_id: user.id,
-      philosophy_statement: item.philosophyStatement,
-      leadership_style: item.leadershipStyle,
-      real_world_application: item.realWorldApplication,
-      core_principles: item.corePrinciples || [],
-      confidence_score: item.confidenceScore,
-      quality_tier: 'bronze', // Inferred data starts as bronze
-      source: 'auto_populated_intangibles',
-      needs_user_review: true,
-      // Industry-aware fields for interview prep & LinkedIn
-      alignment_with_industry_norms: item.alignmentWithIndustryNorms,
-      behavioral_interview_examples: item.behavioralInterviewExamples || [],
-      linkedin_angle: item.linkedinAngle
-    }));
+      // Insert leadership philosophy with industry context
+      if (leadershipItems.length > 0) {
+        const leadershipInserts = leadershipItems.map((item: any) => ({
+          vault_id: vaultId,
+          user_id: user.id,
+          philosophy_statement: item.philosophyStatement,
+          leadership_style: item.leadershipStyle,
+          real_world_application: item.realWorldApplication,
+          core_principles: item.corePrinciples || [],
+          confidence_score: item.confidenceScore,
+          quality_tier: 'bronze', // Inferred data starts as bronze
+          source: 'auto_populated_intangibles',
+          needs_user_review: true,
+          // Industry-aware fields for interview prep & LinkedIn
+          alignment_with_industry_norms: item.alignmentWithIndustryNorms,
+          behavioral_interview_examples: item.behavioralInterviewExamples || [],
+          linkedin_angle: item.linkedinAngle
+        }));
 
-    await supabaseClient.from('vault_leadership_philosophy').insert(leadershipInserts);
-    console.log(`✅ Extracted ${leadershipItems.length} leadership philosophy items`);
+        await supabaseClient.from('vault_leadership_philosophy').insert(leadershipInserts);
+      }
+      console.log(`✅ Extracted ${leadershipItems.length} leadership philosophy items`);
+    } catch (error) {
+      console.error('❌ Leadership extraction failed:', error.message);
+      // Continue with other extractions
+    }
 
     // =================================================
     // EXTRACTION 2: EXECUTIVE PRESENCE
     // =================================================
-    console.log('🎩 Extracting executive presence indicators...');
+    let presenceItems: any[] = [];
+    
+    try {
+      console.log('🎩 Extracting executive presence indicators...');
 
     const presencePrompt = `You are an executive coach identifying EXECUTIVE PRESENCE indicators.
 
@@ -293,48 +305,57 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: presenceResponse, metrics: presenceMetrics } = await callLovableAI({
-      messages: [
-        { role: 'system', content: 'You are an expert at identifying executive presence. Return only valid JSON.' },
-        { role: 'user', content: presencePrompt }
-      ],
-      model: LOVABLE_AI_MODELS.PREMIUM, // Use premium model
-      temperature: 0.4,
-      max_tokens: 2500,
-      response_format: { type: 'json_object' }
-    }, 'extract-vault-intangibles-presence', user.id);
+      const { response: presenceResponse, metrics: presenceMetrics } = await callLovableAI({
+        messages: [
+          { role: 'system', content: 'You are an expert at identifying executive presence. Return only valid JSON.' },
+          { role: 'user', content: presencePrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM, // Use premium model
+        temperature: 0.4,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' }
+      }, 'extract-vault-intangibles-presence', user.id);
 
-    await logAIUsage(presenceMetrics);
+      await logAIUsage(presenceMetrics);
 
-    const presenceContent = presenceResponse.choices[0].message.content;
-    const presenceResult = extractJSON(presenceContent);
-    const presenceItems = presenceResult.success ? (presenceResult.data?.executivePresence || []) : [];
+      const presenceContent = presenceResponse.choices[0].message.content;
+      const presenceResult = extractJSON(presenceContent);
+      presenceItems = presenceResult.success ? (presenceResult.data?.executivePresence || []) : [];
 
-    // Insert executive presence with industry context
-    const presenceInserts = presenceItems.map((item: any) => ({
-      vault_id: vaultId,
-      user_id: user.id,
-      presence_indicator: item.presenceIndicator,
-      situational_example: item.situationalExample,
-      brand_alignment: item.brandAlignment,
-      perceived_impact: item.perceivedImpact,
-      confidence_score: item.confidenceScore,
-      quality_tier: 'bronze',
-      source: 'auto_populated_intangibles',
-      needs_user_review: true,
-      // Industry-aware fields for interview prep & LinkedIn
-      role_fit_assessment: item.roleFitAssessment,
-      interview_response_hook: item.interviewResponseHook,
-      linkedin_credibility_boost: item.linkedinCredibilityBoost
-    }));
+      // Insert executive presence with industry context
+      if (presenceItems.length > 0) {
+        const presenceInserts = presenceItems.map((item: any) => ({
+          vault_id: vaultId,
+          user_id: user.id,
+          presence_indicator: item.presenceIndicator,
+          situational_example: item.situationalExample,
+          brand_alignment: item.brandAlignment,
+          perceived_impact: item.perceivedImpact,
+          confidence_score: item.confidenceScore,
+          quality_tier: 'bronze',
+          source: 'auto_populated_intangibles',
+          needs_user_review: true,
+          // Industry-aware fields for interview prep & LinkedIn
+          role_fit_assessment: item.roleFitAssessment,
+          interview_response_hook: item.interviewResponseHook,
+          linkedin_credibility_boost: item.linkedinCredibilityBoost
+        }));
 
-    await supabaseClient.from('vault_executive_presence').insert(presenceInserts);
-    console.log(`✅ Extracted ${presenceItems.length} executive presence indicators`);
+        await supabaseClient.from('vault_executive_presence').insert(presenceInserts);
+      }
+      console.log(`✅ Extracted ${presenceItems.length} executive presence indicators`);
+    } catch (error) {
+      console.error('❌ Executive presence extraction failed:', error.message);
+      // Continue with other extractions
+    }
 
     // =================================================
     // EXTRACTION 3: PERSONALITY TRAITS
     // =================================================
-    console.log('🧠 Extracting personality traits from behavioral evidence...');
+    let personalityItems: any[] = [];
+    
+    try {
+      console.log('🧠 Extracting personality traits from behavioral evidence...');
 
     const personalityPrompt = `You are a behavioral psychologist inferring personality traits from resume evidence.
 
@@ -362,43 +383,52 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: personalityResponse, metrics: personalityMetrics } = await callLovableAI({
-      messages: [
-        { role: 'system', content: 'You are an expert at identifying personality traits. Return only valid JSON.' },
-        { role: 'user', content: personalityPrompt }
-      ],
-      model: LOVABLE_AI_MODELS.DEFAULT,
-      temperature: 0.4,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' }
-    }, 'extract-vault-intangibles-personality', user.id);
+      const { response: personalityResponse, metrics: personalityMetrics } = await callLovableAI({
+        messages: [
+          { role: 'system', content: 'You are an expert at identifying personality traits. Return only valid JSON.' },
+          { role: 'user', content: personalityPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.4,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' }
+      }, 'extract-vault-intangibles-personality', user.id);
 
-    await logAIUsage(personalityMetrics);
+      await logAIUsage(personalityMetrics);
 
-    const personalityContent = personalityResponse.choices[0].message.content;
-    const personalityResult = extractJSON(personalityContent);
-    const personalityItems = personalityResult.success ? (personalityResult.data?.personalityTraits || []) : [];
+      const personalityContent = personalityResponse.choices[0].message.content;
+      const personalityResult = extractJSON(personalityContent);
+      personalityItems = personalityResult.success ? (personalityResult.data?.personalityTraits || []) : [];
 
-    // Insert personality traits
-    const personalityInserts = personalityItems.map((item: any) => ({
-      vault_id: vaultId,
-      user_id: user.id,
-      trait_name: item.traitName,
-      behavioral_evidence: item.behavioralEvidence,
-      work_context: item.workContext,
-      confidence_score: item.confidenceScore,
-      quality_tier: 'bronze',
-      source: 'auto_populated_intangibles',
-      needs_user_review: true
-    }));
+      // Insert personality traits
+      if (personalityItems.length > 0) {
+        const personalityInserts = personalityItems.map((item: any) => ({
+          vault_id: vaultId,
+          user_id: user.id,
+          trait_name: item.traitName,
+          behavioral_evidence: item.behavioralEvidence,
+          work_context: item.workContext,
+          confidence_score: item.confidenceScore,
+          quality_tier: 'bronze',
+          source: 'auto_populated_intangibles',
+          needs_user_review: true
+        }));
 
-    await supabaseClient.from('vault_personality_traits').insert(personalityInserts);
-    console.log(`✅ Extracted ${personalityItems.length} personality traits`);
+        await supabaseClient.from('vault_personality_traits').insert(personalityInserts);
+      }
+      console.log(`✅ Extracted ${personalityItems.length} personality traits`);
+    } catch (error) {
+      console.error('❌ Personality extraction failed:', error.message);
+      // Continue with other extractions
+    }
 
     // =================================================
     // EXTRACTION 4: WORK STYLE
     // =================================================
-    console.log('💼 Extracting work style preferences...');
+    let workStyleItems: any[] = [];
+    
+    try {
+      console.log('💼 Extracting work style preferences...');
 
     const workStylePrompt = `You are a workplace culture analyst inferring work style preferences.
 
@@ -426,43 +456,52 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: workStyleResponse, metrics: workStyleMetrics } = await callLovableAI({
-      messages: [
-        { role: 'system', content: 'You are an expert at identifying work style preferences. Return only valid JSON.' },
-        { role: 'user', content: workStylePrompt }
-      ],
-      model: LOVABLE_AI_MODELS.DEFAULT,
-      temperature: 0.4,
-      max_tokens: 1500,
-      response_format: { type: 'json_object' }
-    }, 'extract-vault-intangibles-workstyle', user.id);
+      const { response: workStyleResponse, metrics: workStyleMetrics } = await callLovableAI({
+        messages: [
+          { role: 'system', content: 'You are an expert at identifying work style preferences. Return only valid JSON.' },
+          { role: 'user', content: workStylePrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.4,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' }
+      }, 'extract-vault-intangibles-workstyle', user.id);
 
-    await logAIUsage(workStyleMetrics);
+      await logAIUsage(workStyleMetrics);
 
-    const workStyleContent = workStyleResponse.choices[0].message.content;
-    const workStyleResult = extractJSON(workStyleContent);
-    const workStyleItems = workStyleResult.success ? (workStyleResult.data?.workStyle || []) : [];
+      const workStyleContent = workStyleResponse.choices[0].message.content;
+      const workStyleResult = extractJSON(workStyleContent);
+      workStyleItems = workStyleResult.success ? (workStyleResult.data?.workStyle || []) : [];
 
-    // Insert work style
-    const workStyleInserts = workStyleItems.map((item: any) => ({
-      vault_id: vaultId,
-      user_id: user.id,
-      preference_area: item.preferenceArea,
-      preference_description: item.preferenceDescription,
-      ideal_environment: item.idealEnvironment,
-      confidence_score: item.confidenceScore,
-      quality_tier: 'bronze',
-      source: 'auto_populated_intangibles',
-      needs_user_review: true
-    }));
+      // Insert work style
+      if (workStyleItems.length > 0) {
+        const workStyleInserts = workStyleItems.map((item: any) => ({
+          vault_id: vaultId,
+          user_id: user.id,
+          preference_area: item.preferenceArea,
+          preference_description: item.preferenceDescription,
+          ideal_environment: item.idealEnvironment,
+          confidence_score: item.confidenceScore,
+          quality_tier: 'bronze',
+          source: 'auto_populated_intangibles',
+          needs_user_review: true
+        }));
 
-    await supabaseClient.from('vault_work_style').insert(workStyleInserts);
-    console.log(`✅ Extracted ${workStyleItems.length} work style items`);
+        await supabaseClient.from('vault_work_style').insert(workStyleInserts);
+      }
+      console.log(`✅ Extracted ${workStyleItems.length} work style items`);
+    } catch (error) {
+      console.error('❌ Work style extraction failed:', error.message);
+      // Continue with other extractions
+    }
 
     // =================================================
     // EXTRACTION 5: VALUES & MOTIVATIONS
     // =================================================
-    console.log('❤️ Extracting values and motivations...');
+    let valuesItems: any[] = [];
+    
+    try {
+      console.log('❤️ Extracting values and motivations...');
 
     const valuesPrompt = `You are a career counselor identifying core values and motivations.
 
@@ -489,45 +528,54 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: valuesResponse, metrics: valuesMetrics } = await callLovableAI({
-      messages: [
-        { role: 'system', content: 'You are an expert at identifying values and motivations. Return only valid JSON.' },
-        { role: 'user', content: valuesPrompt }
-      ],
-      model: LOVABLE_AI_MODELS.DEFAULT,
-      temperature: 0.4,
-      max_tokens: 1500,
-      response_format: { type: 'json_object' }
-    }, 'extract-vault-intangibles-values', user.id);
+      const { response: valuesResponse, metrics: valuesMetrics } = await callLovableAI({
+        messages: [
+          { role: 'system', content: 'You are an expert at identifying values and motivations. Return only valid JSON.' },
+          { role: 'user', content: valuesPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.4,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' }
+      }, 'extract-vault-intangibles-values', user.id);
 
-    await logAIUsage(valuesMetrics);
+      await logAIUsage(valuesMetrics);
 
-    const valuesContent = valuesResponse.choices[0].message.content;
-    const valuesResult = extractJSON(valuesContent);
-    const valuesItems = valuesResult.success ? (valuesResult.data?.valuesMotivations || []) : [];
+      const valuesContent = valuesResponse.choices[0].message.content;
+      const valuesResult = extractJSON(valuesContent);
+      valuesItems = valuesResult.success ? (valuesResult.data?.valuesMotivations || []) : [];
 
-    // Insert values
-    const valuesInserts = valuesItems.map((item: any) => ({
-      vault_id: vaultId,
-      user_id: user.id,
-      value_name: item.valueName,
-      manifestation: item.manifestation,
-      importance_level: item.importanceLevel || 'important',
-      confidence_score: item.confidenceScore,
-      quality_tier: 'bronze',
-      source: 'auto_populated_intangibles',
-      needs_user_review: true
-    }));
+      // Insert values
+      if (valuesItems.length > 0) {
+        const valuesInserts = valuesItems.map((item: any) => ({
+          vault_id: vaultId,
+          user_id: user.id,
+          value_name: item.valueName,
+          manifestation: item.manifestation,
+          importance_level: item.importanceLevel || 'important',
+          confidence_score: item.confidenceScore,
+          quality_tier: 'bronze',
+          source: 'auto_populated_intangibles',
+          needs_user_review: true
+        }));
 
-    await supabaseClient.from('vault_values_motivations').insert(valuesInserts);
-    console.log(`✅ Extracted ${valuesItems.length} values/motivations`);
+        await supabaseClient.from('vault_values_motivations').insert(valuesInserts);
+      }
+      console.log(`✅ Extracted ${valuesItems.length} values/motivations`);
+    } catch (error) {
+      console.error('❌ Values extraction failed:', error.message);
+      // Continue with other extractions
+    }
 
     // =================================================
     // EXTRACTION 6: BEHAVIORAL INDICATORS
     // =================================================
-    console.log('📈 Extracting behavioral success patterns...');
+    let behavioralItems: any[] = [];
+    
+    try {
+      console.log('📈 Extracting behavioral success patterns...');
 
-    const behavioralPrompt = `You are a talent assessment expert identifying behavioral patterns that predict success.
+      const behavioralPrompt = `You are a talent assessment expert identifying behavioral patterns that predict success.
 
 ${vaultContext}
 
@@ -554,39 +602,45 @@ RETURN VALID JSON ONLY:
   ]
 }`;
 
-    const { response: behavioralResponse, metrics: behavioralMetrics } = await callLovableAI({
-      messages: [
-        { role: 'system', content: 'You are an expert at identifying behavioral indicators. Return only valid JSON.' },
-        { role: 'user', content: behavioralPrompt }
-      ],
-      model: LOVABLE_AI_MODELS.DEFAULT,
-      temperature: 0.4,
-      max_tokens: 1500,
-      response_format: { type: 'json_object' }
-    }, 'extract-vault-intangibles-behavioral', user.id);
+      const { response: behavioralResponse, metrics: behavioralMetrics } = await callLovableAI({
+        messages: [
+          { role: 'system', content: 'You are an expert at identifying behavioral indicators. Return only valid JSON.' },
+          { role: 'user', content: behavioralPrompt }
+        ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        temperature: 0.4,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' }
+      }, 'extract-vault-intangibles-behavioral', user.id);
 
-    await logAIUsage(behavioralMetrics);
+      await logAIUsage(behavioralMetrics);
 
-    const behavioralContent = behavioralResponse.choices[0].message.content;
-    const behavioralResult = extractJSON(behavioralContent);
-    const behavioralItems = behavioralResult.success ? (behavioralResult.data?.behavioralIndicators || []) : [];
+      const behavioralContent = behavioralResponse.choices[0].message.content;
+      const behavioralResult = extractJSON(behavioralContent);
+      behavioralItems = behavioralResult.success ? (behavioralResult.data?.behavioralIndicators || []) : [];
 
-    // Insert behavioral indicators
-    const behavioralInserts = behavioralItems.map((item: any) => ({
-      vault_id: vaultId,
-      user_id: user.id,
-      indicator_type: item.indicatorType,
-      specific_behavior: item.specificBehavior,
-      context: item.context,
-      outcome_pattern: item.outcomePattern,
-      confidence_score: item.confidenceScore,
-      quality_tier: 'bronze',
-      source: 'auto_populated_intangibles',
-      needs_user_review: true
-    }));
+      // Insert behavioral indicators
+      if (behavioralItems.length > 0) {
+        const behavioralInserts = behavioralItems.map((item: any) => ({
+          vault_id: vaultId,
+          user_id: user.id,
+          indicator_type: item.indicatorType,
+          specific_behavior: item.specificBehavior,
+          context: item.context,
+          outcome_pattern: item.outcomePattern,
+          confidence_score: item.confidenceScore,
+          quality_tier: 'bronze',
+          source: 'auto_populated_intangibles',
+          needs_user_review: true
+        }));
 
-    await supabaseClient.from('vault_behavioral_indicators').insert(behavioralInserts);
-    console.log(`✅ Extracted ${behavioralItems.length} behavioral indicators`);
+        await supabaseClient.from('vault_behavioral_indicators').insert(behavioralInserts);
+      }
+      console.log(`✅ Extracted ${behavioralItems.length} behavioral indicators`);
+    } catch (error) {
+      console.error('❌ Behavioral indicators extraction failed:', error.message);
+      // Continue with extraction complete
+    }
 
     // =================================================
     // EXTRACTION 7: THOUGHT LEADERSHIP
