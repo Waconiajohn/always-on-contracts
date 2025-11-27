@@ -17,6 +17,7 @@ function VaultAdminToolsContent() {
   const { user } = useAuth();
   const { data: vaultData, isLoading } = useVaultData(user?.id);
   const vaultId = (vaultData?.vault as any)?.id;
+  const resumeText = (vaultData?.vault as any)?.resume_raw_text;
 
   if (isLoading) {
     return (
@@ -94,7 +95,7 @@ function VaultAdminToolsContent() {
           <CardDescription>Tools for migrating vault data and schema updates</CardDescription>
         </CardHeader>
         <CardContent>
-          <VaultMigrationTool vaultId={vaultId} />
+          <VaultMigrationTool vaultId={vaultId} resumeText={resumeText} />
         </CardContent>
       </Card>
 
