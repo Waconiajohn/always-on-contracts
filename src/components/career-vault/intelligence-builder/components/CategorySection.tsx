@@ -112,24 +112,39 @@ export function CategorySection({
 
           {/* Empty State */}
           {items.length === 0 ? (
-            <div className="text-center py-12 space-y-4">
-              <div className="text-4xl mb-4">🤖</div>
-              <h4 className="font-semibold text-lg">No {title} Yet</h4>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Generate professional insights using AI analysis
-              </p>
+            <div className="text-center py-16 space-y-6">
+              <div className="relative inline-block">
+                <div className="text-6xl mb-4 animate-pulse">🤖</div>
+                <div className="absolute -top-2 -right-2 animate-bounce">
+                  <Sparkles className="h-5 w-5 text-purple-500" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-bold text-xl">No {title} Yet</h4>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Our advanced AI will analyze your career history and extract professional insights that traditional resume scanners miss.
+                </p>
+              </div>
               {onGenerateCategory && (
                 <Button
                   onClick={onGenerateCategory}
-                  className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground"
+                  size="lg"
+                  className="mt-6 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-700 hover:via-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate with AI
-                  <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20 text-[10px]">
-                    Gemini 2.5 Flash
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Sparkles className="h-5 w-5 mr-2 animate-pulse" />
+                  <span className="font-semibold">Extract Intelligence from Resume</span>
+                  <Badge 
+                    variant="secondary" 
+                    className="ml-3 bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs font-semibold"
+                  >
+                    Gemini 2.5 Pro
                   </Badge>
                 </Button>
               )}
+              <p className="text-xs text-muted-foreground mt-4">
+                ✨ Powered by Google's most advanced AI model
+              </p>
             </div>
           ) : (
             <div className="grid gap-4">

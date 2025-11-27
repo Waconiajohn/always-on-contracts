@@ -85,11 +85,20 @@ Use this to infer intangible qualities.
     // =================================================
     console.log('👔 Extracting leadership philosophy...');
 
-    // Fetch target roles/industries and resume text for context
+    // Fetch target roles/industries, resume text, and industry research for context
     const { data: vault } = await supabaseClient
       .from('career_vault')
       .select('target_roles, target_industries, resume_raw_text')
       .eq('id', vaultId)
+      .single();
+
+    // Fetch industry research for market context
+    const { data: industryResearch } = await supabaseClient
+      .from('career_vault_industry_research')
+      .select('*')
+      .eq('vault_id', vaultId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
 
     // Use provided resumeText or fall back to vault data
@@ -102,7 +111,33 @@ Use this to infer intangible qualities.
     const targetRole = vault?.target_roles?.[0] || 'Not specified';
     const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
 
+    // Build industry context from research
+    const industryContext = industryResearch ? `
+INDUSTRY & MARKET INTELLIGENCE:
+Target Industry: ${industryResearch.target_industry}
+Target Role: ${industryResearch.target_role}
+
+Key Industry Trends:
+${JSON.stringify(industryResearch.industry_trends || {}, null, 2)}
+
+Common Skills in This Market:
+${JSON.stringify(industryResearch.common_skills || {}, null, 2)}
+
+Expected Leadership Traits:
+${JSON.stringify(industryResearch.leadership_traits || {}, null, 2)}
+
+Use this intelligence to:
+1. Position extracted items against market expectations
+2. Identify competitive advantages vs. industry norms
+3. Note where candidate exceeds typical requirements
+4. Flag gaps relative to senior roles in ${targetIndustry}
+` : `
+INDUSTRY CONTEXT: No specific research available yet. Focus on extracting high-quality insights from resume.
+`;
+
     const leadershipPrompt = `You are an executive coach inferring UNSPOKEN leadership philosophy from resume evidence.
+
+${industryContext}
 
 CRITICAL: The candidate won't say "I'm a servant leader" on their resume. INFER it from:
 - HOW they describe their wins (team-first vs. I-focused language)
@@ -154,17 +189,17 @@ RETURN VALID JSON ONLY:
         { role: 'system', content: 'You are an expert at inferring leadership philosophy from resume evidence. Return only valid JSON.' },
         { role: 'user', content: leadershipPrompt }
       ],
-      model: LOVABLE_AI_MODELS.DEFAULT,
+      model: LOVABLE_AI_MODELS.PREMIUM, // Use premium model for intelligence extraction
       temperature: 0.4,
-      max_tokens: 2000,
+      max_tokens: 2500,
       response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-leadership', user.id);
 
     await logAIUsage(leadershipMetrics);
 
     const leadershipContent = leadershipResponse.choices[0].message.content;
-    const cleanedLeadership = leadershipContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const leadershipItems = JSON.parse(cleanedLeadership).leadershipPhilosophy;
+    const leadershipResult = extractJSON(leadershipContent);
+    const leadershipItems = leadershipResult.success ? (leadershipResult.data?.leadershipPhilosophy || []) : [];
 
     // Insert leadership philosophy with industry context
     const leadershipInserts = leadershipItems.map((item: any) => ({
@@ -201,6 +236,8 @@ Executive presence includes:
 - Gravitas indicators (high-stakes decisions, crisis management)
 - Strategic influence
 
+${industryContext}
+
 ${vaultContext}
 
 RESUME TEXT:
@@ -232,17 +269,17 @@ RETURN VALID JSON ONLY:
         { role: 'system', content: 'You are an expert at identifying executive presence. Return only valid JSON.' },
         { role: 'user', content: presencePrompt }
       ],
-      model: LOVABLE_AI_MODELS.DEFAULT,
+      model: LOVABLE_AI_MODELS.PREMIUM, // Use premium model
       temperature: 0.4,
-      max_tokens: 2000,
+      max_tokens: 2500,
       response_format: { type: 'json_object' }
     }, 'extract-vault-intangibles-presence', user.id);
 
     await logAIUsage(presenceMetrics);
 
     const presenceContent = presenceResponse.choices[0].message.content;
-    const cleanedPresence = presenceContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const presenceItems = JSON.parse(cleanedPresence).executivePresence;
+    const presenceResult = extractJSON(presenceContent);
+    const presenceItems = presenceResult.success ? (presenceResult.data?.executivePresence || []) : [];
 
     // Insert executive presence with industry context
     const presenceInserts = presenceItems.map((item: any) => ({
@@ -310,8 +347,8 @@ RETURN VALID JSON ONLY:
     await logAIUsage(personalityMetrics);
 
     const personalityContent = personalityResponse.choices[0].message.content;
-    const cleanedPersonality = personalityContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const personalityItems = JSON.parse(cleanedPersonality).personalityTraits;
+    const personalityResult = extractJSON(personalityContent);
+    const personalityItems = personalityResult.success ? (personalityResult.data?.personalityTraits || []) : [];
 
     // Insert personality traits
     const personalityInserts = personalityItems.map((item: any) => ({
@@ -374,8 +411,8 @@ RETURN VALID JSON ONLY:
     await logAIUsage(workStyleMetrics);
 
     const workStyleContent = workStyleResponse.choices[0].message.content;
-    const cleanedWorkStyle = workStyleContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const workStyleItems = JSON.parse(cleanedWorkStyle).workStyle;
+    const workStyleResult = extractJSON(workStyleContent);
+    const workStyleItems = workStyleResult.success ? (workStyleResult.data?.workStyle || []) : [];
 
     // Insert work style
     const workStyleInserts = workStyleItems.map((item: any) => ({
@@ -437,8 +474,8 @@ RETURN VALID JSON ONLY:
     await logAIUsage(valuesMetrics);
 
     const valuesContent = valuesResponse.choices[0].message.content;
-    const cleanedValues = valuesContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const valuesItems = JSON.parse(cleanedValues).valuesMotivations;
+    const valuesResult = extractJSON(valuesContent);
+    const valuesItems = valuesResult.success ? (valuesResult.data?.valuesMotivations || []) : [];
 
     // Insert values
     const valuesInserts = valuesItems.map((item: any) => ({
@@ -502,8 +539,8 @@ RETURN VALID JSON ONLY:
     await logAIUsage(behavioralMetrics);
 
     const behavioralContent = behavioralResponse.choices[0].message.content;
-    const cleanedBehavioral = behavioralContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const behavioralItems = JSON.parse(cleanedBehavioral).behavioralIndicators;
+    const behavioralResult = extractJSON(behavioralContent);
+    const behavioralItems = behavioralResult.success ? (behavioralResult.data?.behavioralIndicators || []) : [];
 
     // Insert behavioral indicators
     const behavioralInserts = behavioralItems.map((item: any) => ({
