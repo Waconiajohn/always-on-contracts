@@ -12,14 +12,14 @@
   --card-foreground: 225 75% 8%;
   --popover: 0 0% 100%;
   --popover-foreground: 225 75% 8%;
-  --primary: 217 91% 60%;
+  --primary: 243 100% 67%;
   --primary-foreground: 0 0% 100%;
-  --primary-glow: 217 91% 70%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 225 75% 8%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 38 92% 50%;
+  --primary-glow: 243 100% 75%;
+  --secondary: 220 15% 96%;
+  --secondary-foreground: 220 20% 20%;
+  --muted: 220 15% 96%;
+  --muted-foreground: 220 10% 50%;
+  --accent: 180 50% 50%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
@@ -39,19 +39,19 @@
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 225 75% 8%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-foreground: 220 20% 20%;
+    --sidebar-primary: 243 100% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 225 75% 8%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 220 15% 96%;
+    --sidebar-accent-foreground: 220 20% 20%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 243 100% 67%;
     
     /* AI System Colors */
-    --ai-primary: 217 91% 60%;
-    --ai-secondary: 189 100% 50%;
-    --ai-accent: 217 91% 40%;
-    --ai-glow: 217 91% 60%;
+    --ai-primary: 243 100% 67%;
+    --ai-secondary: 180 50% 50%;
+    --ai-accent: 243 100% 55%;
+    --ai-glow: 243 100% 67%;
     --ai-active: 142 76% 36%;
     --ai-processing: 38 92% 50%;
     --ai-complete: 271 81% 56%;
@@ -87,13 +87,13 @@
   --card-foreground: 0 0% 98%;
   --popover: 225 70% 12%;
   --popover-foreground: 0 0% 98%;
-  --primary: 217 91% 60%;
+  --primary: 243 100% 67%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 225 60% 18%;
+  --secondary: 220 20% 18%;
   --secondary-foreground: 0 0% 98%;
-  --muted: 225 60% 18%;
-  --muted-foreground: 215 20% 70%;
-  --accent: 217 91% 60%;
+  --muted: 220 20% 18%;
+  --muted-foreground: 220 15% 70%;
+  --accent: 180 50% 55%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 63% 31%;
   --destructive-foreground: 0 0% 98%;
@@ -106,20 +106,20 @@
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
-    --sidebar-background: 225 70% 12%;
+    --sidebar-background: 220 25% 12%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 243 100% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 60% 18%;
+    --sidebar-accent: 220 20% 18%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 225 60% 18%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 243 100% 67%;
     
     /* AI System Colors - Dark Mode */
-    --ai-primary: 217 91% 60%;
-    --ai-secondary: 189 100% 50%;
-    --ai-accent: 217 91% 70%;
-    --ai-glow: 217 91% 60%;
+    --ai-primary: 243 100% 67%;
+    --ai-secondary: 180 50% 55%;
+    --ai-accent: 243 100% 75%;
+    --ai-glow: 243 100% 67%;
     --ai-active: 142 76% 36%;
     --ai-processing: 38 92% 50%;
     --ai-complete: 271 81% 56%;
