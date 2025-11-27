@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Trophy, Brain, FileText, Users, 
-  MessageSquare, Loader2, ArrowLeft, Home
+  Trophy, Brain, 
+  Loader2, ArrowLeft, Home
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -410,56 +410,6 @@ export const Phase5_VaultLibrary = ({
           </div>
         </div>
 
-        {/* Feature Integration Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t">
-          <Card className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Resume Builder</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Uses: Achievements, Skills, Competencies, Work Style
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-blue-500/20 hover:border-blue-500/40 transition-colors cursor-pointer">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-                <CardTitle>LinkedIn Optimizer</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Uses: All categories for authentic personal branding
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-pointer">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/10 rounded-lg">
-                  <MessageSquare className="h-6 w-6 text-purple-600" />
-                </div>
-                <CardTitle>Interview Prep</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Uses: Leadership, Behavioral, Values for STAR responses
-              </p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );

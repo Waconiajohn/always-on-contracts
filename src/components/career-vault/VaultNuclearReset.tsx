@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -255,37 +254,38 @@ export const VaultNuclearReset = ({
   };
 
   return (
-    <Card className="border-destructive">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-destructive">
-          <AlertTriangle className="h-5 w-5" />
-          Nuclear Reset
-        </CardTitle>
-        <CardDescription>
-          Delete ALL vault items, resume, and reset everything to zero. You'll need to upload a resume afterward to start completely fresh.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button 
-              variant="destructive" 
-              disabled={isResetting}
-              className="w-full"
-            >
-              {isResetting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Clear Vault to Zero
-                </>
-              )}
-            </Button>
-          </AlertDialogTrigger>
+    <div className="space-y-3">
+      <div className="flex items-start gap-3 p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+        <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+        <div className="flex-1 space-y-2">
+          <h4 className="text-sm font-semibold text-destructive">Nuclear Reset</h4>
+          <p className="text-xs text-muted-foreground">
+            Delete ALL vault items, resume, and reset everything to zero. You'll need to upload a resume afterward to start completely fresh.
+          </p>
+        </div>
+      </div>
+      
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button 
+            variant="outline"
+            size="sm"
+            disabled={isResetting}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            {isResetting ? (
+              <>
+                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                Resetting...
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="mr-2 h-3 w-3" />
+                Clear Vault to Zero
+              </>
+            )}
+          </Button>
+        </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -315,7 +315,6 @@ export const VaultNuclearReset = ({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </CardContent>
-    </Card>
+    </div>
   );
 };
