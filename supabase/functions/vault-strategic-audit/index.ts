@@ -307,14 +307,83 @@ Return JSON:
         model: LOVABLE_AI_MODELS.DEFAULT,
         messages: [{
           role: 'system',
-          content: 'You are a helpful career advisor. Generate simple, concrete questions that are easy to answer. NEVER ask abstract questions like "describe a time when...". Ask for specific facts: numbers, tools, team sizes, budget amounts, technologies. Make questions feel helpful, not intimidating. Return only valid JSON, no markdown.'
+          content: 'You are a helpful career advisor. Generate simple, concrete questions that are easy to answer. NEVER ask abstract questions like "describe a time when...". Ask for specific facts: numbers, tools, team sizes, budget amounts, technologies. Make questions feel helpful, not intimidating.'
         }, {
           role: 'user',
           content: prompt
         }],
         temperature: 0.7,
         max_tokens: 8000,
-        response_format: { type: 'json_object' },
+        tools: [{
+          type: "function",
+          function: {
+            name: "strategic_audit_results",
+            description: "Return strategic audit analysis with gaps, questions, and enhancements",
+            parameters: {
+              type: "object",
+              properties: {
+                executiveSummary: {
+                  type: "string",
+                  description: "2-3 paragraphs on strategic positioning and opportunities"
+                },
+                strategicGapsDiscovered: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      gapType: { type: "string" },
+                      description: { type: "string" },
+                      impact: { type: "string" },
+                      suggestedEnhancement: {
+                        type: "object",
+                        properties: {
+                          table: { type: "string" },
+                          action: { type: "string", enum: ["add", "update"] },
+                          confidence: { type: "number" },
+                          reasoning: { type: "string" },
+                          strategicValue: { type: "string" },
+                          data: { type: "object" }
+                        }
+                      }
+                    }
+                  }
+                },
+                smartQuestionsToAsk: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      question: { type: "string" },
+                      category: { type: "string" },
+                      reasoning: { type: "string" },
+                      impact: { type: "string", enum: ["high", "medium", "low"] },
+                      targetTable: { type: "string" }
+                    },
+                    required: ["question", "category", "reasoning", "impact", "targetTable"]
+                  }
+                },
+                enhancements: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      table: { type: "string" },
+                      action: { type: "string", enum: ["add", "update"] },
+                      confidence: { type: "number" },
+                      reasoning: { type: "string" },
+                      strategicValue: { type: "string" },
+                      data: { type: "object" }
+                    },
+                    required: ["table", "action", "confidence", "reasoning", "strategicValue", "data"]
+                  }
+                }
+              },
+              required: ["executiveSummary", "strategicGapsDiscovered", "smartQuestionsToAsk", "enhancements"],
+              additionalProperties: false
+            }
+          }
+        }],
+        tool_choice: { type: "function", function: { name: "strategic_audit_results" } }
       },
       'vault-strategic-audit',
       user.id
@@ -335,13 +404,14 @@ Return JSON:
       created_at: new Date().toISOString()
     });
 
-    // Parse AI response
-    const resultText = aiResponse.response.choices[0]?.message?.content || '{"enhancements": [], "smartQuestionsToAsk": [], "strategicGapsDiscovered": [], "executiveSummary": "No analysis generated"}';
-    const cleanedText = resultText.includes('```')
-      ? resultText.split('```')[1].replace('json', '').trim()
-      : resultText;
-
-    const aiResult = JSON.parse(cleanedText);
+    // Parse AI response from tool call
+    const toolCall = aiResponse.response.choices[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function.name !== "strategic_audit_results") {
+      console.error('[vault-strategic-audit] No tool calls or wrong tool in response:', aiResponse.response.choices[0]?.message);
+      throw new Error('AI did not return structured output');
+    }
+    
+    const aiResult = JSON.parse(toolCall.function.arguments);
     const enhancements: StrategicEnhancement[] = aiResult.enhancements || [];
     const smartQuestions: SmartQuestion[] = aiResult.smartQuestionsToAsk || [];
     const strategicGaps: StrategicGap[] = aiResult.strategicGapsDiscovered || [];
