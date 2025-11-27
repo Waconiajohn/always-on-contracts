@@ -804,6 +804,7 @@ serve(async (req) => {
 
     // ========================================================================
     // CRITICAL FIX: Store Work Positions (Previously Missing!)
+    // Now uses database constraint for duplicate prevention
     // ========================================================================
     console.log('\n💼 Storing work positions...');
     const insertedPositions: { id: string; company: string; title: string }[] = [];
@@ -823,56 +824,44 @@ serve(async (req) => {
         extraction_source: 'ai-structured-v3'
       }));
       
-      // Filter duplicates based on company + job title combination
-      const { data: existingPositions } = await supabase
+      console.log(`   Attempting to insert ${workPositions.length} work positions...`);
+      
+      // Use database constraint - duplicates will be silently ignored
+      const { data: insertedData, error: wpError } = await supabase
         .from('vault_work_positions')
-        .select('company_name, job_title')
-        .eq('vault_id', vaultId);
+        .upsert(workPositions, { 
+          onConflict: 'vault_id,company_name,job_title',
+          ignoreDuplicates: true 
+        })
+        .select('id, company_name, job_title');
       
-      const uniquePositions = workPositions.filter(newPos => {
-        if (!existingPositions || existingPositions.length === 0) return true;
-        return !existingPositions.some(existing => 
-          existing.company_name === newPos.company_name && 
-          existing.job_title === newPos.job_title
-        );
-      });
-      
-      if (uniquePositions.length > 0) {
-        const { data: insertedData, error: wpError } = await supabase
-          .from('vault_work_positions')
-          .insert(uniquePositions)
-          .select('id, company_name, job_title');
+      if (wpError) {
+        console.error('❌ Error inserting work positions:', wpError);
+      } else if (insertedData && insertedData.length > 0) {
+        console.log(`✅ Stored ${insertedData.length} unique work positions`);
+        console.log(`   Companies: ${insertedData.map(w => w.company_name).join(', ')}`);
         
-        if (wpError) {
-          console.error('❌ Error inserting work positions:', wpError);
-        } else {
-          console.log(`✅ Stored ${uniquePositions.length} unique work positions`);
-          console.log(`   Companies: ${uniquePositions.map(w => w.company_name).join(', ')}`);
-          
-          // Store position IDs for milestone linking
-          if (insertedData) {
-            insertedData.forEach((pos, i) => {
-              // Find matching role from original data
-              const matchingRole = structuredData!.experience.roles.find(r => 
-                r.company === pos.company_name && r.title === pos.job_title
-              );
-              if (matchingRole) {
-                insertedPositions.push({
-                  id: pos.id,
-                  company: matchingRole.company,
-                  title: matchingRole.title
-                });
-              }
+        // Store position IDs for milestone linking
+        insertedData.forEach((pos) => {
+          const matchingRole = structuredData!.experience.roles.find(r => 
+            r.company === pos.company_name && r.title === pos.job_title
+          );
+          if (matchingRole) {
+            insertedPositions.push({
+              id: pos.id,
+              company: matchingRole.company,
+              title: matchingRole.title
             });
           }
-        }
+        });
       } else {
-        console.log(`ℹ️ All work positions were duplicates - none inserted`);
+        console.log(`ℹ️ All work positions already exist - none inserted`);
       }
     }
 
     // ========================================================================
     // CRITICAL FIX: Store Education (Previously Missing!)
+    // Now uses database constraint for duplicate prevention
     // ========================================================================
     console.log('\n🎓 Storing education records...');
     if (structuredData!.education.degrees.length > 0) {
@@ -888,34 +877,24 @@ serve(async (req) => {
         extraction_source: 'ai-structured-v3'
       }));
       
-      // Filter duplicates based on institution + degree + field combination
-      const { data: existingEducation } = await supabase
+      console.log(`   Attempting to insert ${educationRecords.length} education records...`);
+      
+      // Use database constraint - duplicates will be silently ignored
+      const { data: insertedData, error: eduError } = await supabase
         .from('vault_education')
-        .select('institution_name, degree_type, field_of_study')
-        .eq('vault_id', vaultId);
+        .upsert(educationRecords, { 
+          onConflict: 'vault_id,institution_name,degree_type,field_of_study',
+          ignoreDuplicates: true 
+        })
+        .select('degree_type, field_of_study');
       
-      const uniqueEducation = educationRecords.filter(newEdu => {
-        if (!existingEducation || existingEducation.length === 0) return true;
-        return !existingEducation.some(existing => 
-          existing.institution_name === newEdu.institution_name && 
-          existing.degree_type === newEdu.degree_type &&
-          existing.field_of_study === newEdu.field_of_study
-        );
-      });
-      
-      if (uniqueEducation.length > 0) {
-        const { error: eduError } = await supabase
-          .from('vault_education')
-          .insert(uniqueEducation);
-        
-        if (eduError) {
-          console.error('❌ Error inserting education:', eduError);
-        } else {
-          console.log(`✅ Stored ${uniqueEducation.length} unique education records`);
-          console.log(`   Degrees: ${uniqueEducation.map(e => `${e.degree_type} in ${e.field_of_study}`).join(', ')}`);
-        }
+      if (eduError) {
+        console.error('❌ Error inserting education:', eduError);
+      } else if (insertedData && insertedData.length > 0) {
+        console.log(`✅ Stored ${insertedData.length} unique education records`);
+        console.log(`   Degrees: ${insertedData.map(e => `${e.degree_type} in ${e.field_of_study}`).join(', ')}`);
       } else {
-        console.log(`ℹ️ All education records were duplicates - none inserted`);
+        console.log(`ℹ️ All education records already exist - none inserted`);
       }
     }
 
@@ -1837,41 +1816,107 @@ Return ONLY valid JSON (no markdown):
 // ========================================================================
 
 /**
+ * Generate a simple hash for exact match detection
+ */
+function simpleHash(text: string): string {
+  const normalized = normalizeText(text);
+  let hash = 0;
+  for (let i = 0; i < normalized.length; i++) {
+    const char = normalized.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
+}
+
+/**
+ * Normalize text for better comparison
+ */
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Extract key phrases from text
+ */
+function extractKeyPhrases(text: string): string[] {
+  const normalized = normalizeText(text);
+  const words = normalized.split(/\s+/);
+  const stopwords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'have', 'has', 'had']);
+  return words
+    .filter(word => word.length > 3 && !stopwords.has(word))
+    .slice(0, 10);
+}
+
+/**
  * Calculate similarity between two strings (0-1)
- * Uses normalized Levenshtein distance
+ * Improved with normalization, hashing, and key phrase extraction
  */
 function calculateSimilarity(str1: string, str2: string): number {
-  const s1 = str1.toLowerCase().trim();
-  const s2 = str2.toLowerCase().trim();
+  // Step 1: Exact match via hash (fastest)
+  if (simpleHash(str1) === simpleHash(str2)) {
+    return 1.0;
+  }
+  
+  const s1 = normalizeText(str1);
+  const s2 = normalizeText(str2);
   
   if (s1 === s2) return 1.0;
   
+  if (s1.length === 0 || s2.length === 0) return 0.0;
+  
+  // Step 2: Substring matching (catches variations)
   const longer = s1.length > s2.length ? s1 : s2;
   const shorter = s1.length > s2.length ? s2 : s1;
   
-  if (longer.length === 0) return 1.0;
-  
-  // Simple substring matching for speed
-  if (longer.includes(shorter) || shorter.includes(longer)) {
-    return 0.85; // High similarity if one contains the other
+  if (longer.includes(shorter)) {
+    return 0.95;
   }
   
-  // Word-level matching
-  const words1 = s1.split(/\s+/);
-  const words2 = s2.split(/\s+/);
-  const commonWords = words1.filter(w => words2.includes(w));
-  const similarity = (2 * commonWords.length) / (words1.length + words2.length);
+  // Step 3: Key phrase matching (semantic similarity)
+  const phrases1 = extractKeyPhrases(str1);
+  const phrases2 = extractKeyPhrases(str2);
   
-  return similarity;
+  if (phrases1.length === 0 || phrases2.length === 0) {
+    return 0.0;
+  }
+  
+  const commonPhrases = phrases1.filter(p => phrases2.includes(p));
+  const phraseSimilarity = (2 * commonPhrases.length) / (phrases1.length + phrases2.length);
+  
+  return phraseSimilarity;
 }
 
 /**
  * Check if an item is a duplicate of any existing items
  */
-function isDuplicate(newItem: string, existingItems: string[], threshold: number = 0.85): boolean {
-  return existingItems.some(existing => 
-    calculateSimilarity(newItem, existing) >= threshold
-  );
+function isDuplicate(newItem: string, existingItems: string[], threshold: number = 0.90): boolean {
+  // First pass: exact hash matching (O(n) but very fast)
+  const newHash = simpleHash(newItem);
+  const existingHashes = existingItems.map(item => simpleHash(item));
+  
+  if (existingHashes.includes(newHash)) {
+    console.log(`   🔍 Exact match via hash: "${newItem.substring(0, 50)}..."`);
+    return true;
+  }
+  
+  // Second pass: similarity matching
+  for (const existing of existingItems) {
+    const similarity = calculateSimilarity(newItem, existing);
+    if (similarity >= threshold) {
+      console.log(`   🔍 Duplicate found (${(similarity * 100).toFixed(0)}% match):`);
+      console.log(`      New: "${newItem.substring(0, 60)}..."`);
+      console.log(`      Existing: "${existing.substring(0, 60)}..."`);
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -1883,31 +1928,34 @@ async function filterDuplicates<T extends Record<string, any>>(
   vaultId: string,
   newItems: T[],
   contentField: string,
-  threshold: number = 0.85
+  threshold: number = 0.90
 ): Promise<T[]> {
-  // Fetch existing items
+  console.log(`\n🔍 Checking for duplicates in ${tableName}...`);
+  
   const { data: existingData } = await supabase
     .from(tableName)
     .select(contentField)
     .eq('vault_id', vaultId);
   
   if (!existingData || existingData.length === 0) {
-    console.log(`   No existing ${tableName} - inserting all ${newItems.length} items`);
+    console.log(`   ✓ No existing items - inserting all ${newItems.length}`);
     return newItems;
   }
   
   const existingContent = existingData.map((item: any) => item[contentField]).filter(Boolean);
+  console.log(`   📊 Comparing ${newItems.length} new vs ${existingContent.length} existing`);
   
-  // Filter out duplicates
   const uniqueItems = newItems.filter(item => {
     const content = item[contentField];
-    if (!content) return true; // Keep items without content field
+    if (!content) return true;
     return !isDuplicate(content, existingContent, threshold);
   });
   
   const duplicatesCount = newItems.length - uniqueItems.length;
   if (duplicatesCount > 0) {
-    console.log(`   ✓ Filtered ${duplicatesCount} duplicate(s) from ${tableName}`);
+    console.log(`   ✅ Filtered ${duplicatesCount} duplicates, keeping ${uniqueItems.length} unique`);
+  } else {
+    console.log(`   ✅ All ${newItems.length} items are unique`);
   }
   
   return uniqueItems;
