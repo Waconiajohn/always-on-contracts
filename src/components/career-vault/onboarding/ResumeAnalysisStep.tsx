@@ -164,6 +164,30 @@ export default function ResumeAnalysisStep({ onComplete, existingData }: ResumeA
         description: 'Your resume has been analyzed with AI.',
       });
 
+      // CRITICAL FIX: Trigger extraction pipeline to populate vault data
+      logger.info('Triggering vault extraction pipeline', { vaultId: currentVaultId });
+      
+      try {
+        const { error: extractionError } = await invokeEdgeFunction(
+          'auto-populate-vault-v3',
+          { vaultId: currentVaultId, mode: 'full' }
+        );
+        
+        if (extractionError) {
+          logger.error('Extraction pipeline failed', extractionError);
+          // Don't block onboarding if extraction fails - user can retry later
+          toast({
+            title: 'Extraction Started',
+            description: 'Building your Career Vault intelligence in the background.',
+            variant: 'default',
+          });
+        } else {
+          logger.info('Extraction pipeline triggered successfully');
+        }
+      } catch (extractionErr: any) {
+        logger.error('Failed to trigger extraction', extractionErr);
+      }
+
       setTimeout(() => {
         onComplete({
           vaultId: currentVaultId!,
