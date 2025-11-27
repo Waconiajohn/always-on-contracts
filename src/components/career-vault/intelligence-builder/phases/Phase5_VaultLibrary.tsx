@@ -363,10 +363,8 @@ export const Phase5_VaultLibrary = ({
           </CardContent>
         </Card>
 
-        {/* Quick Extract All - Show if most categories are empty */}
-        {(achievements.length + skills.length + competencies.length + softSkills.length + leadership.length + executivePresence.length + personality.length + workstyle.length + values.length + behavioral.length) < 20 && (
-          <ExtractAllButton onExtractAll={handleExtractAll} isExtracting={isExtractingAll} />
-        )}
+        {/* Quick Extract All - Always show so users can re-extract */}
+        <ExtractAllButton onExtractAll={handleExtractAll} isExtracting={isExtractingAll} />
 
         {/* Category Sections */}
         <div className="space-y-6">
