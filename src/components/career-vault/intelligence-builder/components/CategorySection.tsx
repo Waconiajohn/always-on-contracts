@@ -121,11 +121,11 @@ export function CategorySection({
               {onGenerateCategory && (
                 <Button
                   onClick={onGenerateCategory}
-                  className="mt-4 bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70"
+                  className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate with AI
-                  <Badge variant="outline" className="ml-2 bg-accent/10 text-accent border-accent/20 text-[10px]">
+                  <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20 text-[10px]">
                     Gemini 2.5 Flash
                   </Badge>
                 </Button>

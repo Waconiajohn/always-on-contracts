@@ -169,9 +169,12 @@ export const Phase5_VaultLibrary = ({
       loadVaultData();
     } catch (error) {
       console.error('Error regenerating category:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error",
-        description: "Failed to generate intelligence",
+        description: errorMessage.includes('resume') 
+          ? "No resume data found. Please upload your resume in Career Vault first."
+          : `Failed to generate intelligence: ${errorMessage}`,
         variant: "destructive"
       });
     }
