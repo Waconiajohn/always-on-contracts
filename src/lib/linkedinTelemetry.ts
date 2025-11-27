@@ -29,15 +29,25 @@ export async function trackLinkedInAction(telemetry: LinkedInActionTelemetry) {
       return;
     }
 
+    // Add performance metadata
+    const enrichedTelemetry = {
+      ...telemetry,
+      metadata: {
+        ...telemetry.metadata,
+        timestamp: Date.now(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+      },
+      created_at: new Date().toISOString()
+    };
+
     const { error } = await supabase
       .from('linkedin_usage_telemetry')
-      .insert({
-        ...telemetry,
-        created_at: new Date().toISOString()
-      });
+      .insert(enrichedTelemetry);
     
     if (error) {
       console.warn('[Telemetry] Failed to log:', error);
+    } else {
+      console.log('[Telemetry] Action tracked:', telemetry.action_type);
     }
   } catch (err) {
     // Never let telemetry break user experience
