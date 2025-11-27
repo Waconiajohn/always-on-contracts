@@ -174,8 +174,22 @@ export const Phase5_VaultLibrary = ({
       }
 
       // STEP 1: Extract Core Intelligence (achievements, skills, competencies)
+      // Fetch vault data to get resume text
+      const { data: vaultData } = await supabase
+        .from('career_vault')
+        .select('resume_raw_text')
+        .eq('id', vaultId)
+        .single();
+
+      if (!vaultData?.resume_raw_text) {
+        throw new Error('No resume text found. Please upload your resume in Career Vault first.');
+      }
+
       const { error: coreError } = await supabase.functions.invoke('auto-populate-vault-v3', {
-        body: { vaultId }
+        body: { 
+          vaultId,
+          resumeText: vaultData.resume_raw_text
+        }
       });
 
       if (coreError) {
