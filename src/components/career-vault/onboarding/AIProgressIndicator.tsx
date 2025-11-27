@@ -46,7 +46,7 @@ export function AIProgressIndicator({ stages, onComplete }: AIProgressIndicatorP
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-center gap-2 text-purple-600">
+      <div className="flex items-center justify-center gap-2 text-accent">
         <Sparkles className="w-5 h-5 animate-pulse" />
         <h3 className="text-lg font-semibold">AI Processing</h3>
       </div>
@@ -56,21 +56,21 @@ export function AIProgressIndicator({ stages, onComplete }: AIProgressIndicatorP
           <div key={stage.id} className="flex items-center gap-3">
             <div className="flex-shrink-0">
               {stage.status === 'complete' ? (
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5 text-success" />
               ) : stage.status === 'active' ? (
-                <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                <Loader2 className="w-5 h-5 text-accent animate-spin" />
               ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-slate-300" />
+                <div className="w-5 h-5 rounded-full border-2 border-muted" />
               )}
             </div>
             <div className="flex-1">
               <p
                 className={`text-sm font-medium ${
                   stage.status === 'complete'
-                    ? 'text-green-700'
+                    ? 'text-success'
                     : stage.status === 'active'
-                    ? 'text-purple-700'
-                    : 'text-slate-400'
+                    ? 'text-accent'
+                    : 'text-muted-foreground'
                 }`}
               >
                 {stage.label}
