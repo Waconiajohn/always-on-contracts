@@ -25,8 +25,9 @@ import { logAIUsage } from '../_shared/cost-tracking.ts';
 import { extractJSON } from '../_shared/json-parser.ts';
 
 interface IntangiblesRequest {
-  resumeText: string;
+  resumeText?: string;
   vaultId: string;
+  category?: string; // Optional: extract specific category only
   existingVaultData?: {
     powerPhrases: any[];
     skills: any[];
@@ -45,30 +46,58 @@ serve(async (req) => {
   }
 
   try {
+    // Get and validate authorization
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Missing authorization header');
+      console.error('[extract-vault-intangibles] Missing Authorization header');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Unauthorized',
+          userMessage: 'Authentication required. Please log in again.'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
+    // Extract token from Bearer header
     const token = authHeader.replace('Bearer ', '');
+    
+    // Create Supabase client with service role for admin operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Authenticate user from token
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    
     if (userError || !user) {
-      console.error('[extract-vault-intangibles] Auth error:', userError);
-      throw new Error('Unauthorized');
+      console.error('[extract-vault-intangibles] Auth error:', userError?.message || 'No user found');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Unauthorized',
+          userMessage: 'Session expired. Please log in again.'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const {
       resumeText,
       vaultId,
+      category,
       existingVaultData
-    }: IntangiblesRequest = await req.json();
+    } = await req.json();
 
-    console.log('🌟 EXTRACTING INTANGIBLES for vault:', vaultId);
+    console.log('🌟 EXTRACTING INTANGIBLES for vault:', vaultId, category ? `(category: ${category})` : '(all categories)');
 
     // Build context from existing vault data
     const vaultContext = existingVaultData ? `
