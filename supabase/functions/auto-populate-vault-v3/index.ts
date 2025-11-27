@@ -638,7 +638,7 @@ serve(async (req) => {
     // ========================================================================
     console.log('\n💾 Storing extracted data...');
 
-    // Store power phrases
+    // Store power phrases with duplicate detection
     if (allExtracted.powerPhrases.length > 0) {
       const powerPhrasesInserts = allExtracted.powerPhrases.map((pp) => ({
         vault_id: vaultId,
@@ -656,21 +656,34 @@ serve(async (req) => {
         enhancement_notes: pp.enhancement_notes,
       }));
 
-      const { error: ppError } = await supabase
-        .from('vault_power_phrases')
-        .insert(powerPhrasesInserts);
+      // Filter out duplicates
+      const uniquePowerPhrases = await filterDuplicates(
+        supabase,
+        'vault_power_phrases',
+        vaultId,
+        powerPhrasesInserts,
+        'power_phrase'
+      );
 
-      if (ppError) {
-        console.error('❌ Error inserting power phrases:', ppError);
+      if (uniquePowerPhrases.length > 0) {
+        const { error: ppError } = await supabase
+          .from('vault_power_phrases')
+          .insert(uniquePowerPhrases);
+
+        if (ppError) {
+          console.error('❌ Error inserting power phrases:', ppError);
+        } else {
+          console.log(`✅ Stored ${uniquePowerPhrases.length} unique power phrases`);
+          console.log(`   - Gold: ${uniquePowerPhrases.filter(p => p.quality_tier === 'gold').length}`);
+          console.log(`   - Silver: ${uniquePowerPhrases.filter(p => p.quality_tier === 'silver').length}`);
+          console.log(`   - Bronze: ${uniquePowerPhrases.filter(p => p.quality_tier === 'bronze').length}`);
+        }
       } else {
-        console.log(`✅ Stored ${powerPhrasesInserts.length} power phrases`);
-        console.log(`   - Gold: ${powerPhrasesInserts.filter(p => p.quality_tier === 'gold').length}`);
-        console.log(`   - Silver: ${powerPhrasesInserts.filter(p => p.quality_tier === 'silver').length}`);
-        console.log(`   - Bronze: ${powerPhrasesInserts.filter(p => p.quality_tier === 'bronze').length}`);
+        console.log(`ℹ️ All power phrases were duplicates - none inserted`);
       }
     }
 
-    // Store skills
+    // Store skills with duplicate detection
     if (allExtracted.skills.length > 0) {
       const skillsInserts = allExtracted.skills.map((s) => ({
         vault_id: vaultId,
@@ -687,18 +700,31 @@ serve(async (req) => {
         enhancement_notes: s.enhancement_notes,
       }));
 
-      const { error: skillsError } = await supabase
-        .from('vault_transferable_skills')
-        .insert(skillsInserts);
+      // Filter out duplicates
+      const uniqueSkills = await filterDuplicates(
+        supabase,
+        'vault_transferable_skills',
+        vaultId,
+        skillsInserts,
+        'stated_skill'
+      );
 
-      if (skillsError) {
-        console.error('❌ Error inserting skills:', skillsError);
+      if (uniqueSkills.length > 0) {
+        const { error: skillsError } = await supabase
+          .from('vault_transferable_skills')
+          .insert(uniqueSkills);
+
+        if (skillsError) {
+          console.error('❌ Error inserting skills:', skillsError);
+        } else {
+          console.log(`✅ Stored ${uniqueSkills.length} unique skills`);
+        }
       } else {
-        console.log(`✅ Stored ${skillsInserts.length} skills`);
+        console.log(`ℹ️ All skills were duplicates - none inserted`);
       }
     }
 
-    // Store competencies
+    // Store competencies with duplicate detection
     if (allExtracted.competencies.length > 0) {
       const competenciesInserts = allExtracted.competencies.map((c) => ({
         vault_id: vaultId,
@@ -714,18 +740,31 @@ serve(async (req) => {
         enhancement_notes: c.enhancement_notes,
       }));
 
-      const { error: compError } = await supabase
-        .from('vault_hidden_competencies')
-        .insert(competenciesInserts);
+      // Filter out duplicates
+      const uniqueCompetencies = await filterDuplicates(
+        supabase,
+        'vault_hidden_competencies',
+        vaultId,
+        competenciesInserts,
+        'inferred_capability'
+      );
 
-      if (compError) {
-        console.error('❌ Error inserting competencies:', compError);
+      if (uniqueCompetencies.length > 0) {
+        const { error: compError } = await supabase
+          .from('vault_hidden_competencies')
+          .insert(uniqueCompetencies);
+
+        if (compError) {
+          console.error('❌ Error inserting competencies:', compError);
+        } else {
+          console.log(`✅ Stored ${uniqueCompetencies.length} unique competencies`);
+        }
       } else {
-        console.log(`✅ Stored ${competenciesInserts.length} competencies`);
+        console.log(`ℹ️ All competencies were duplicates - none inserted`);
       }
     }
 
-    // Store soft skills
+    // Store soft skills with duplicate detection
     if (allExtracted.softSkills.length > 0) {
       const softSkillsInserts = allExtracted.softSkills.map((ss) => ({
         vault_id: vaultId,
@@ -739,14 +778,27 @@ serve(async (req) => {
         review_priority: ss.review_priority,
       }));
 
-      const { error: ssError } = await supabase
-        .from('vault_soft_skills')
-        .insert(softSkillsInserts);
+      // Filter out duplicates
+      const uniqueSoftSkills = await filterDuplicates(
+        supabase,
+        'vault_soft_skills',
+        vaultId,
+        softSkillsInserts,
+        'skill_name'
+      );
 
-      if (ssError) {
-        console.error('❌ Error inserting soft skills:', ssError);
+      if (uniqueSoftSkills.length > 0) {
+        const { error: ssError } = await supabase
+          .from('vault_soft_skills')
+          .insert(uniqueSoftSkills);
+
+        if (ssError) {
+          console.error('❌ Error inserting soft skills:', ssError);
+        } else {
+          console.log(`✅ Stored ${uniqueSoftSkills.length} unique soft skills`);
+        }
       } else {
-        console.log(`✅ Stored ${softSkillsInserts.length} soft skills`);
+        console.log(`ℹ️ All soft skills were duplicates - none inserted`);
       }
     }
 
@@ -771,27 +823,51 @@ serve(async (req) => {
         extraction_source: 'ai-structured-v3'
       }));
       
-      const { data: insertedData, error: wpError } = await supabase
+      // Filter duplicates based on company + job title combination
+      const { data: existingPositions } = await supabase
         .from('vault_work_positions')
-        .insert(workPositions)
-        .select('id, company_name, job_title');
+        .select('company_name, job_title')
+        .eq('vault_id', vaultId);
       
-      if (wpError) {
-        console.error('❌ Error inserting work positions:', wpError);
-      } else {
-        console.log(`✅ Stored ${workPositions.length} work positions`);
-        console.log(`   Companies: ${workPositions.map(w => w.company_name).join(', ')}`);
+      const uniquePositions = workPositions.filter(newPos => {
+        if (!existingPositions || existingPositions.length === 0) return true;
+        return !existingPositions.some(existing => 
+          existing.company_name === newPos.company_name && 
+          existing.job_title === newPos.job_title
+        );
+      });
+      
+      if (uniquePositions.length > 0) {
+        const { data: insertedData, error: wpError } = await supabase
+          .from('vault_work_positions')
+          .insert(uniquePositions)
+          .select('id, company_name, job_title');
         
-        // Store position IDs for milestone linking
-        if (insertedData) {
-          insertedData.forEach((pos, i) => {
-            insertedPositions.push({
-              id: pos.id,
-              company: structuredData!.experience.roles[i].company,
-              title: structuredData!.experience.roles[i].title
+        if (wpError) {
+          console.error('❌ Error inserting work positions:', wpError);
+        } else {
+          console.log(`✅ Stored ${uniquePositions.length} unique work positions`);
+          console.log(`   Companies: ${uniquePositions.map(w => w.company_name).join(', ')}`);
+          
+          // Store position IDs for milestone linking
+          if (insertedData) {
+            insertedData.forEach((pos, i) => {
+              // Find matching role from original data
+              const matchingRole = structuredData!.experience.roles.find(r => 
+                r.company === pos.company_name && r.title === pos.job_title
+              );
+              if (matchingRole) {
+                insertedPositions.push({
+                  id: pos.id,
+                  company: matchingRole.company,
+                  title: matchingRole.title
+                });
+              }
             });
-          });
+          }
         }
+      } else {
+        console.log(`ℹ️ All work positions were duplicates - none inserted`);
       }
     }
 
@@ -812,15 +888,34 @@ serve(async (req) => {
         extraction_source: 'ai-structured-v3'
       }));
       
-      const { error: eduError } = await supabase
+      // Filter duplicates based on institution + degree + field combination
+      const { data: existingEducation } = await supabase
         .from('vault_education')
-        .insert(educationRecords);
+        .select('institution_name, degree_type, field_of_study')
+        .eq('vault_id', vaultId);
       
-      if (eduError) {
-        console.error('❌ Error inserting education:', eduError);
+      const uniqueEducation = educationRecords.filter(newEdu => {
+        if (!existingEducation || existingEducation.length === 0) return true;
+        return !existingEducation.some(existing => 
+          existing.institution_name === newEdu.institution_name && 
+          existing.degree_type === newEdu.degree_type &&
+          existing.field_of_study === newEdu.field_of_study
+        );
+      });
+      
+      if (uniqueEducation.length > 0) {
+        const { error: eduError } = await supabase
+          .from('vault_education')
+          .insert(uniqueEducation);
+        
+        if (eduError) {
+          console.error('❌ Error inserting education:', eduError);
+        } else {
+          console.log(`✅ Stored ${uniqueEducation.length} unique education records`);
+          console.log(`   Degrees: ${uniqueEducation.map(e => `${e.degree_type} in ${e.field_of_study}`).join(', ')}`);
+        }
       } else {
-        console.log(`✅ Stored ${educationRecords.length} education records`);
-        console.log(`   Degrees: ${educationRecords.map(e => `${e.degree_type} in ${e.field_of_study}`).join(', ')}`);
+        console.log(`ℹ️ All education records were duplicates - none inserted`);
       }
     }
 
@@ -1736,6 +1831,87 @@ Return ONLY valid JSON (no markdown):
 // ========================================================================
 // VAULT CLEANUP HELPER
 // ========================================================================
+
+// ========================================================================
+// SMART DUPLICATE DETECTION
+// ========================================================================
+
+/**
+ * Calculate similarity between two strings (0-1)
+ * Uses normalized Levenshtein distance
+ */
+function calculateSimilarity(str1: string, str2: string): number {
+  const s1 = str1.toLowerCase().trim();
+  const s2 = str2.toLowerCase().trim();
+  
+  if (s1 === s2) return 1.0;
+  
+  const longer = s1.length > s2.length ? s1 : s2;
+  const shorter = s1.length > s2.length ? s2 : s1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  // Simple substring matching for speed
+  if (longer.includes(shorter) || shorter.includes(longer)) {
+    return 0.85; // High similarity if one contains the other
+  }
+  
+  // Word-level matching
+  const words1 = s1.split(/\s+/);
+  const words2 = s2.split(/\s+/);
+  const commonWords = words1.filter(w => words2.includes(w));
+  const similarity = (2 * commonWords.length) / (words1.length + words2.length);
+  
+  return similarity;
+}
+
+/**
+ * Check if an item is a duplicate of any existing items
+ */
+function isDuplicate(newItem: string, existingItems: string[], threshold: number = 0.85): boolean {
+  return existingItems.some(existing => 
+    calculateSimilarity(newItem, existing) >= threshold
+  );
+}
+
+/**
+ * Filter out duplicate items from a new batch
+ */
+async function filterDuplicates<T extends Record<string, any>>(
+  supabase: any,
+  tableName: string,
+  vaultId: string,
+  newItems: T[],
+  contentField: string,
+  threshold: number = 0.85
+): Promise<T[]> {
+  // Fetch existing items
+  const { data: existingData } = await supabase
+    .from(tableName)
+    .select(contentField)
+    .eq('vault_id', vaultId);
+  
+  if (!existingData || existingData.length === 0) {
+    console.log(`   No existing ${tableName} - inserting all ${newItems.length} items`);
+    return newItems;
+  }
+  
+  const existingContent = existingData.map((item: any) => item[contentField]).filter(Boolean);
+  
+  // Filter out duplicates
+  const uniqueItems = newItems.filter(item => {
+    const content = item[contentField];
+    if (!content) return true; // Keep items without content field
+    return !isDuplicate(content, existingContent, threshold);
+  });
+  
+  const duplicatesCount = newItems.length - uniqueItems.length;
+  if (duplicatesCount > 0) {
+    console.log(`   ✓ Filtered ${duplicatesCount} duplicate(s) from ${tableName}`);
+  }
+  
+  return uniqueItems;
+}
 
 async function clearVaultData(supabase: any, vaultId: string): Promise<void> {
   // Clear all vault intelligence data
