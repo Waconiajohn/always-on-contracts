@@ -109,42 +109,34 @@ Hidden Competencies: ${existingVaultData.competencies?.map((c: any) => c.compete
 Use this to infer intangible qualities.
 ` : '';
 
-    // =================================================
-    // EXTRACTION 1: LEADERSHIP PHILOSOPHY
-    // =================================================
-    let leadershipItems: any[] = [];
-    
-    try {
-      console.log('👔 Extracting leadership philosophy...');
+    // Fetch target roles/industries, resume text, and industry research for context (SHARED across all extractions)
+    const { data: vault } = await supabaseClient
+      .from('career_vault')
+      .select('target_roles, target_industries, resume_raw_text')
+      .eq('id', vaultId)
+      .single();
 
-      // Fetch target roles/industries, resume text, and industry research for context
-      const { data: vault } = await supabaseClient
-        .from('career_vault')
-        .select('target_roles, target_industries, resume_raw_text')
-        .eq('id', vaultId)
-        .single();
+    // Fetch industry research for market context
+    const { data: industryResearch } = await supabaseClient
+      .from('career_vault_industry_research')
+      .select('*')
+      .eq('vault_id', vaultId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-      // Fetch industry research for market context
-      const { data: industryResearch } = await supabaseClient
-        .from('career_vault_industry_research')
-        .select('*')
-        .eq('vault_id', vaultId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+    // Use provided resumeText or fall back to vault data
+    const finalResumeText = resumeText || vault?.resume_raw_text;
 
-      // Use provided resumeText or fall back to vault data
-      const finalResumeText = resumeText || vault?.resume_raw_text;
+    if (!finalResumeText) {
+      throw new Error('No resume text found. Please upload your resume in Career Vault first.');
+    }
 
-      if (!finalResumeText) {
-        throw new Error('No resume text found. Please upload your resume in Career Vault first.');
-      }
+    const targetRole = vault?.target_roles?.[0] || 'Not specified';
+    const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
 
-      const targetRole = vault?.target_roles?.[0] || 'Not specified';
-      const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
-
-      // Build industry context from research
-      const industryContext = industryResearch ? `
+    // Build industry context from research
+    const industryContext = industryResearch ? `
 INDUSTRY & MARKET INTELLIGENCE:
 Target Industry: ${industryResearch.target_industry}
 Target Role: ${industryResearch.target_role}
@@ -166,6 +158,14 @@ Use this intelligence to:
 ` : `
 INDUSTRY CONTEXT: No specific research available yet. Focus on extracting high-quality insights from resume.
 `;
+
+    // =================================================
+    // EXTRACTION 1: LEADERSHIP PHILOSOPHY
+    // =================================================
+    let leadershipItems: any[] = [];
+    
+    try {
+      console.log('👔 Extracting leadership philosophy...');
 
       const leadershipPrompt = `You are an executive coach inferring UNSPOKEN leadership philosophy from resume evidence.
 
@@ -255,8 +255,8 @@ RETURN VALID JSON ONLY:
         await supabaseClient.from('vault_leadership_philosophy').insert(leadershipInserts);
       }
       console.log(`✅ Extracted ${leadershipItems.length} leadership philosophy items`);
-    } catch (error) {
-      console.error('❌ Leadership extraction failed:', error.message);
+    } catch (error: any) {
+      console.error('❌ Leadership extraction failed:', error?.message || error);
       // Continue with other extractions
     }
 
@@ -344,8 +344,8 @@ RETURN VALID JSON ONLY:
         await supabaseClient.from('vault_executive_presence').insert(presenceInserts);
       }
       console.log(`✅ Extracted ${presenceItems.length} executive presence indicators`);
-    } catch (error) {
-      console.error('❌ Executive presence extraction failed:', error.message);
+    } catch (error: any) {
+      console.error('❌ Executive presence extraction failed:', error?.message || error);
       // Continue with other extractions
     }
 
@@ -417,8 +417,8 @@ RETURN VALID JSON ONLY:
         await supabaseClient.from('vault_personality_traits').insert(personalityInserts);
       }
       console.log(`✅ Extracted ${personalityItems.length} personality traits`);
-    } catch (error) {
-      console.error('❌ Personality extraction failed:', error.message);
+    } catch (error: any) {
+      console.error('❌ Personality extraction failed:', error?.message || error);
       // Continue with other extractions
     }
 
@@ -490,8 +490,8 @@ RETURN VALID JSON ONLY:
         await supabaseClient.from('vault_work_style').insert(workStyleInserts);
       }
       console.log(`✅ Extracted ${workStyleItems.length} work style items`);
-    } catch (error) {
-      console.error('❌ Work style extraction failed:', error.message);
+    } catch (error: any) {
+      console.error('❌ Work style extraction failed:', error?.message || error);
       // Continue with other extractions
     }
 
@@ -562,8 +562,8 @@ RETURN VALID JSON ONLY:
         await supabaseClient.from('vault_values_motivations').insert(valuesInserts);
       }
       console.log(`✅ Extracted ${valuesItems.length} values/motivations`);
-    } catch (error) {
-      console.error('❌ Values extraction failed:', error.message);
+    } catch (error: any) {
+      console.error('❌ Values extraction failed:', error?.message || error);
       // Continue with other extractions
     }
 
@@ -637,8 +637,8 @@ RETURN VALID JSON ONLY:
         await supabaseClient.from('vault_behavioral_indicators').insert(behavioralInserts);
       }
       console.log(`✅ Extracted ${behavioralItems.length} behavioral indicators`);
-    } catch (error) {
-      console.error('❌ Behavioral indicators extraction failed:', error.message);
+    } catch (error: any) {
+      console.error('❌ Behavioral indicators extraction failed:', error?.message || error);
       // Continue with extraction complete
     }
 
