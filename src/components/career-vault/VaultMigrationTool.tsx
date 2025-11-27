@@ -77,7 +77,8 @@ export function VaultMigrationTool({ vaultId, resumeText, onComplete, onDataChan
       while (retries < maxRetries) {
         const validatedInput = validateInput(VaultCleanupSchema, {
           vaultId,
-          aggressive: true
+          confirmation: 'DELETE_ALL_DATA',
+          preserveVaultRecord: true
         });
 
         const { data, error: cleanupError } = await invokeEdgeFunction(
