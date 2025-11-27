@@ -58,7 +58,7 @@ export function EnhancementQuestionsSkeleton() {
             </div>
 
             {/* Why It Matters */}
-            <Card className="bg-blue-50/50 border-blue-200">
+            <Card className="bg-info/5 border-info/10">
               <div className="p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-4 rounded" />

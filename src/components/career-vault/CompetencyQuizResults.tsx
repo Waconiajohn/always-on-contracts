@@ -307,11 +307,11 @@ export const CompetencyQuizResults = ({
             </div>
           )}
 
-          <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-md">
-            <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div className="flex items-start gap-3 p-3 bg-accent/10 rounded-md">
+            <Sparkles className="h-5 w-5 text-accent mt-0.5" />
             <div>
-              <p className="font-medium text-blue-900">Smart Application Strategy</p>
-              <p className="text-sm text-blue-700">
+              <p className="font-medium text-foreground">Smart Application Strategy</p>
+              <p className="text-sm text-muted-foreground">
                 {strengths.length > 0 ? (
                   <>Your profile is strongest for roles emphasizing {strengths[0].category.toLowerCase()}.</>
                 ) : (

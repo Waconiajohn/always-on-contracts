@@ -218,15 +218,15 @@ export function AIEnhancementPanel({
   };
 
   return (
-    <Card className="border-purple-500/50 bg-gradient-to-br from-purple-500/5 to-blue-500/5 shadow-lg">
+    <Card className="border-accent/50 bg-gradient-to-br from-accent/5 to-accent/10 shadow-lg">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Brain className="h-5 w-5 text-purple-600" />
+              <Brain className="h-5 w-5 text-accent" />
               AI Enhancement Studio
             </CardTitle>
-            <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] px-1.5">
+            <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 text-[10px] px-1.5">
               Gemini 3.0 Pro
             </Badge>
           </div>
@@ -242,14 +242,14 @@ export function AIEnhancementPanel({
                      <span>{analysisStep}</span>
                      <span>{analysisProgress}%</span>
                  </div>
-                 <Progress value={analysisProgress} className="h-2 bg-purple-100" />
+                 <Progress value={analysisProgress} className="h-2" />
                  <p className="text-xs text-center text-muted-foreground mt-4">
                      Leveraging advanced reasoning to maximize impact...
                  </p>
              </div>
         ) : !enhancement ? (
           <>
-            <Alert className="bg-background/50 border-purple-200">
+            <Alert className="bg-background/50 border-accent/20">
               <Sparkles className="h-4 w-4 text-purple-500" />
               <AlertDescription className="text-sm text-muted-foreground">
                 Transform this item using <strong>Gemini 3.0 Pro</strong>. 

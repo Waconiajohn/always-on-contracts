@@ -41,11 +41,11 @@ export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTa
       <TabsContent value="items">
         <Suspense fallback={<VaultItemsTableSkeleton />}>
           {highlightedGap && (
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse-border">
-              <p className="text-sm text-blue-900">
+            <div className="mb-4 p-4 bg-accent/10 border border-accent/20 rounded-lg animate-pulse-border">
+              <p className="text-sm text-foreground">
                 <strong>💡 Filling Gap:</strong> {highlightedGap.replace(/_/g, ' ')}
               </p>
-              <p className="text-xs text-blue-700 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Look for relevant sections below and click "+ Add" to add new items.
               </p>
             </div>

@@ -291,12 +291,12 @@ export const MicroQuestionsModal = ({
           </div>
 
           {/* Benefits Reminder */}
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="bg-info/10 dark:bg-info/5 border border-info/20 dark:border-info/10 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div className="text-sm text-blue-900 dark:text-blue-100">
+              <Sparkles className="h-5 w-5 text-info mt-0.5" />
+              <div className="text-sm text-foreground dark:text-foreground">
                 <p className="font-medium mb-1">Why answer these questions?</p>
-                <ul className="space-y-1 text-blue-700 dark:text-blue-200">
+                <ul className="space-y-1 text-muted-foreground dark:text-muted-foreground">
                   <li>• Higher quality tiers = better resume matching</li>
                   <li>• Upgraded items get prioritized in AI generation</li>
                   <li>• Improve your ATS scores and job match rates</li>

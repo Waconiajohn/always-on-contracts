@@ -176,7 +176,7 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Download className="w-5 h-5 text-blue-600" />
+            <Download className="w-5 h-5 text-accent" />
             Export Career Vault
           </DialogTitle>
           <DialogDescription>
@@ -194,42 +194,42 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
                 onClick={() => setFormat('json')}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   format === 'json'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:border-slate-300'
+                    ? 'border-info bg-info/5'
+                    : 'border-border hover:border-border/80'
                 }`}
               >
-                <FileJson className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                <FileJson className="w-8 h-8 mx-auto mb-2 text-info" />
                 <div className="font-medium text-sm">JSON</div>
-                <div className="text-xs text-slate-500">Full backup</div>
+                <div className="text-xs text-muted-foreground">Full backup</div>
               </button>
               <button
                 onClick={() => setFormat('csv')}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   format === 'csv'
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-slate-200 hover:border-slate-300'
+                    ? 'border-success bg-success/5'
+                    : 'border-border hover:border-border/80'
                 }`}
               >
-                <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-success" />
                 <div className="font-medium text-sm">CSV</div>
-                <div className="text-xs text-slate-500">Excel-ready</div>
+                <div className="text-xs text-muted-foreground">Excel-ready</div>
               </button>
               <button
                 onClick={() => setFormat('text')}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   format === 'text'
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-slate-200 hover:border-slate-300'
+                    ? 'border-accent bg-accent/5'
+                    : 'border-border hover:border-border/80'
                 }`}
               >
-                <FileText className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                <FileText className="w-8 h-8 mx-auto mb-2 text-accent" />
                 <div className="font-medium text-sm">Text</div>
-                <div className="text-xs text-slate-500">AI-ready</div>
+                <div className="text-xs text-muted-foreground">AI-ready</div>
               </button>
             </div>
-            <Alert className="bg-blue-50 border-blue-200">
-              <FormatIcon className="w-4 h-4 text-blue-600" />
-              <AlertDescription className="text-sm text-blue-800">
+            <Alert className="bg-info/10 border-info/20">
+              <FormatIcon className="w-4 h-4 text-info" />
+              <AlertDescription className="text-sm text-foreground">
                 {getFormatDescription()}
               </AlertDescription>
             </Alert>
@@ -308,9 +308,9 @@ export default function VaultExportDialog({ vaultId }: { vaultId: string; totalI
           )}
 
           {/* Use Case Suggestions */}
-          <Alert className="bg-purple-50 border-purple-200">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <AlertDescription className="text-sm text-purple-800 space-y-2">
+          <Alert className="bg-accent/10 border-accent/20">
+            <Sparkles className="w-4 h-4 text-accent" />
+            <AlertDescription className="text-sm text-foreground space-y-2">
               <p className="font-semibold">💡 Export Use Cases:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
                 <li>

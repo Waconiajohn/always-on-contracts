@@ -37,7 +37,7 @@ export const VaultItemViewModal = ({ item, open, onOpenChange }: VaultItemViewMo
     
     if (t === 'silver' || t === 'bronze') {
       return (
-        <Badge className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700">
+        <Badge className="bg-info/10 text-info border-info/20 dark:bg-info/5 dark:text-info dark:border-info/10">
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Verified
         </Badge>

@@ -19,15 +19,15 @@ interface RecentActivityFeedProps {
 const getActivityIcon = (type: string) => {
   switch (type) {
     case 'document_upload':
-      return <FileText className="h-4 w-4 text-primary" />;
+      return <FileText className="h-4 w-4 text-info" />;
     case 'intelligence_extracted':
-      return <Brain className="h-4 w-4 text-secondary" />;
+      return <Brain className="h-4 w-4 text-success" />;
     case 'interview_progress':
       return <Target className="h-4 w-4 text-accent" />;
     case 'strength_score_change':
-      return <Trophy className="h-4 w-4 text-amber-500" />;
+      return <Trophy className="h-4 w-4 text-warning" />;
     case 'milestone_reached':
-      return <Sparkles className="h-4 w-4 text-purple-500" />;
+      return <Sparkles className="h-4 w-4 text-accent" />;
     default:
       return <Activity className="h-4 w-4 text-muted-foreground" />;
   }

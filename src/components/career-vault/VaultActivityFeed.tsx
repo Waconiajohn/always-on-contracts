@@ -36,13 +36,13 @@ export const VaultActivityFeed = ({ vaultId, limit = 7 }: VaultActivityFeedProps
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'document_upload':
-        return <FileText className="h-4 w-4 text-blue-500" />;
+        return <FileText className="h-4 w-4 text-info" />;
       case 'intelligence_extracted':
-        return <Plus className="h-4 w-4 text-green-500" />;
+        return <Plus className="h-4 w-4 text-success" />;
       case 'interview_progress':
-        return <Activity className="h-4 w-4 text-purple-500" />;
+        return <Activity className="h-4 w-4 text-accent" />;
       case 'strength_score_change':
-        return <TrendingUp className="h-4 w-4 text-orange-500" />;
+        return <TrendingUp className="h-4 w-4 text-warning" />;
       case 'milestone_reached':
         return <CheckCircle className="h-4 w-4 text-success" />;
       default:

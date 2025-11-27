@@ -103,9 +103,9 @@ export function CategorySection({
       {isExpanded && (
         <CardContent className="space-y-4 pt-4">
           {/* Educational Context */}
-          <Alert className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-sm text-blue-900 dark:text-blue-100">
+          <Alert className="bg-info/5 dark:bg-info/5 border-info/20 dark:border-info/10">
+            <Info className="h-4 w-4 text-info" />
+            <AlertDescription className="text-sm text-foreground dark:text-foreground">
               <strong>Why this matters:</strong> {educationalContext}
             </AlertDescription>
           </Alert>
@@ -121,11 +121,11 @@ export function CategorySection({
               {onGenerateCategory && (
                 <Button
                   onClick={onGenerateCategory}
-                  className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="mt-4 bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate with AI
-                  <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-700 border-purple-200 text-[10px]">
+                  <Badge variant="outline" className="ml-2 bg-accent/10 text-accent border-accent/20 text-[10px]">
                     Gemini 2.5 Flash
                   </Badge>
                 </Button>

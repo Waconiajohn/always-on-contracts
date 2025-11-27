@@ -173,12 +173,12 @@ export default function BulkVaultOperations({
 
   return (
     <>
-      <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+      <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-purple-600" />
+            <Zap className="w-5 h-5 text-accent" />
             Bulk Operations
-            <Badge className="bg-purple-600 text-white ml-2">
+            <Badge className="bg-accent text-accent-foreground ml-2">
               {selectedItems.length} selected
             </Badge>
           </CardTitle>
@@ -197,7 +197,7 @@ export default function BulkVaultOperations({
           </Alert>
 
           {/* Selection Summary */}
-          <div className="bg-white rounded-lg p-4 border border-purple-200 space-y-2">
+          <div className="bg-card rounded-lg p-4 border border-border space-y-2">
             <h4 className="text-sm font-semibold text-slate-900 mb-2">Selected Items:</h4>
             {Object.entries(
               selectedItems.reduce((acc, item) => {
@@ -296,9 +296,9 @@ export default function BulkVaultOperations({
 
           {/* Last Result */}
           {lastResult && (
-            <Alert className="bg-blue-50 border-blue-200">
-              <CheckCircle2 className="w-4 h-4 text-blue-600" />
-              <AlertDescription className="text-sm text-blue-800">
+            <Alert className="bg-success/10 border-success/20">
+              <CheckCircle2 className="w-4 h-4 text-success" />
+              <AlertDescription className="text-sm text-success/90">
                 Last operation: {lastResult.totalProcessed} items processed
                 {lastResult.newVaultStrength && (
                   <span> • New vault strength: {lastResult.newVaultStrength}%</span>
