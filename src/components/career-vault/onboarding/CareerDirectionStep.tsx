@@ -207,10 +207,10 @@ export default function CareerDirectionStep({
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-xl">
+    <Card className="bg-background/80 backdrop-blur-sm border-border shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Compass className="w-6 h-6 text-purple-600" />
+          <Compass className="w-6 h-6 text-accent" />
           What's Your Career Goal?
         </CardTitle>
         <CardDescription>
@@ -219,10 +219,10 @@ export default function CareerDirectionStep({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Marketing message */}
-        <Alert className="border-purple-200 bg-purple-50">
-          <Sparkles className="w-4 h-4 text-purple-600" />
-          <AlertDescription className="text-sm text-slate-700">
-            <strong className="text-purple-700">AI-Powered Intelligence:</strong> Unlike job boards that
+        <Alert className="border-accent/20 bg-accent/5">
+          <Sparkles className="w-4 h-4 text-accent" />
+          <AlertDescription className="text-sm text-muted-foreground">
+            <strong className="text-accent">AI-Powered Intelligence:</strong> Unlike job boards that
             just match keywords, we analyze your transferable skills and market trends to suggest
             careers with <strong>quantified match scores</strong>—including opportunities you never considered.
           </AlertDescription>
@@ -236,21 +236,21 @@ export default function CareerDirectionStep({
               title="Stay in My Field"
               description="Advance within your current industry and role"
               onClick={() => setCareerDirection('stay')}
-              color="blue"
+              color="info"
             />
             <DirectionCard
               icon={TrendingUp}
               title="Pivot"
               description="Transition to a new industry or role"
               onClick={() => setCareerDirection('pivot')}
-              color="purple"
+              color="accent"
             />
             <DirectionCard
               icon={Compass}
               title="Explore Options"
               description="See diverse opportunities across multiple paths"
               onClick={() => setCareerDirection('explore')}
-              color="indigo"
+              color="warning"
             />
           </div>
         )}
@@ -273,11 +273,11 @@ export default function CareerDirectionStep({
         {careerDirection && !isLoadingSuggestions && suggestedRoles.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-600" />
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Zap className="w-5 h-5 text-warning" />
                 Select Target Roles (1-3 recommended)
               </h3>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              <Badge variant="outline" className="bg-info/5 text-info border-info/20">
                 {selectedRoles.length} selected
               </Badge>
             </div>
@@ -329,11 +329,11 @@ export default function CareerDirectionStep({
         {careerDirection && !isLoadingSuggestions && suggestedIndustries.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-600" />
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-success" />
                 Select Target Industries (1-3 recommended)
               </h3>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Badge variant="outline" className="bg-success/5 text-success border-success/20">
                 {selectedIndustries.length} selected
               </Badge>
             </div>
@@ -403,7 +403,7 @@ export default function CareerDirectionStep({
               )}
             </Button>
 
-            <p className="text-sm text-center text-slate-600 mt-3">
+            <p className="text-sm text-center text-muted-foreground mt-3">
               Next: We'll research live industry standards for your selected paths
             </p>
           </div>
@@ -428,19 +428,19 @@ function DirectionCard({
   color: string;
 }) {
   const colorClasses = {
-    blue: 'from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800',
-    purple: 'from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800',
-    indigo: 'from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800',
+    info: 'bg-info hover:bg-info/90',
+    accent: 'bg-accent hover:bg-accent/90',
+    warning: 'bg-warning hover:bg-warning/90',
   };
 
   return (
     <button
       onClick={onClick}
-      className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} text-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105 text-left`}
+      className={`${colorClasses[color as keyof typeof colorClasses]} text-primary-foreground p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105 text-left`}
     >
       <Icon className="w-8 h-8 mb-3" />
       <h3 className="font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-sm text-white/90">{description}</p>
+      <p className="text-sm opacity-90">{description}</p>
     </button>
   );
 }
@@ -462,8 +462,8 @@ function RoleSuggestionCard({
     <div
       className={`border-2 rounded-lg transition-all ${
         isSelected
-          ? 'border-blue-500 bg-blue-50 shadow-md'
-          : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+          ? 'border-info bg-info/5 shadow-md'
+          : 'border-border hover:border-info/50 hover:bg-accent/5'
       }`}
     >
       <div onClick={onToggle} className="p-4 cursor-pointer">
@@ -471,8 +471,8 @@ function RoleSuggestionCard({
           <div className="flex items-start gap-2">
             <Checkbox checked={isSelected} className="mt-1" />
             <div className="flex-1">
-              <h4 className="font-semibold text-slate-900">{role.title}</h4>
-              <p className="text-xs text-slate-600 mt-1">{role.reasoning}</p>
+              <h4 className="font-semibold text-foreground">{role.title}</h4>
+              <p className="text-xs text-muted-foreground mt-1">{role.reasoning}</p>
             </div>
           </div>
           <Badge
@@ -485,26 +485,26 @@ function RoleSuggestionCard({
 
         {/* Match Score Breakdown */}
         {role.matchBreakdown && (
-          <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-            <p className="text-xs font-medium text-slate-700">Match Breakdown:</p>
+          <div className="mt-3 pt-3 border-t border-border space-y-2">
+            <p className="text-xs font-medium text-foreground">Match Breakdown:</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center">
-                <div className="text-lg font-bold text-blue-600">
+                <div className="text-lg font-bold text-info">
                   {Math.round(role.matchBreakdown.technicalSkills * 100)}%
                 </div>
-                <div className="text-xs text-slate-600">Technical</div>
+                <div className="text-xs text-muted-foreground">Technical</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-purple-600">
+                <div className="text-lg font-bold text-accent">
                   {Math.round(role.matchBreakdown.leadership * 100)}%
                 </div>
-                <div className="text-xs text-slate-600">Leadership</div>
+                <div className="text-xs text-muted-foreground">Leadership</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-green-600">
+                <div className="text-lg font-bold text-success">
                   {Math.round(role.matchBreakdown.industryAlignment * 100)}%
                 </div>
-                <div className="text-xs text-slate-600">Industry</div>
+                <div className="text-xs text-muted-foreground">Industry</div>
               </div>
             </div>
           </div>
@@ -519,18 +519,18 @@ function RoleSuggestionCard({
               e.stopPropagation();
               setShowDetails(!showDetails);
             }}
-            className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+            className="text-xs text-accent hover:text-accent/80 font-medium flex items-center gap-1"
           >
             <Quote className="w-3 h-3" />
             {showDetails ? 'Hide' : 'Show'} AI Evidence from Your Resume
           </button>
 
           {showDetails && (
-            <div className="mt-2 space-y-1.5 bg-purple-50 rounded-lg p-3 border border-purple-200">
+            <div className="mt-2 space-y-1.5 bg-accent/5 rounded-lg p-3 border border-accent/20">
               {role.resumeEvidence.map((evidence: string, idx: number) => (
                 <div key={idx} className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-purple-600 mt-1.5 flex-shrink-0" />
-                  <p className="text-xs text-slate-700 italic">"{evidence}"</p>
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground italic">"{evidence}"</p>
                 </div>
               ))}
             </div>
@@ -558,16 +558,16 @@ function IndustrySuggestionCard({
       onClick={onToggle}
       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
         isSelected
-          ? 'border-green-500 bg-green-50 shadow-md'
-          : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
+          ? 'border-success bg-success/5 shadow-md'
+          : 'border-border hover:border-success/50 hover:bg-accent/5'
       }`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-start gap-2">
           <Checkbox checked={isSelected} className="mt-1" />
           <div>
-            <h4 className="font-semibold text-slate-900">{industry.industry}</h4>
-            <p className="text-xs text-slate-600 mt-1">{industry.whyYouMatch}</p>
+            <h4 className="font-semibold text-foreground">{industry.industry}</h4>
+            <p className="text-xs text-muted-foreground mt-1">{industry.whyYouMatch}</p>
           </div>
         </div>
         <Badge
