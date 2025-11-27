@@ -320,7 +320,7 @@ export const GenerateBooleanSearchSchema = z.object({
 export const GenerateSeriesOutlineSchema = z.object({
   topic: z.string().min(10, 'Topic too short').max(500),
   targetAudience: z.string().optional(),
-  postCount: z.number().min(3).max(10).optional().default(5)
+  postCount: z.number().min(3).max(20).optional().default(5) // FIX: Increased to support 8, 12, 16 part series
 });
 
 export const GenerateGapSolutionsSchema = z.object({

@@ -1579,11 +1579,12 @@ export type Database = {
       }
       interview_prep_sessions: {
         Row: {
+          application_queue_id: string | null
           created_at: string
           id: string
           interview_date: string | null
           interview_stage: string
-          job_project_id: string
+          job_project_id: string | null
           notes: string | null
           prep_materials: Json | null
           questions_prepared: Json | null
@@ -1592,11 +1593,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          application_queue_id?: string | null
           created_at?: string
           id?: string
           interview_date?: string | null
           interview_stage: string
-          job_project_id: string
+          job_project_id?: string | null
           notes?: string | null
           prep_materials?: Json | null
           questions_prepared?: Json | null
@@ -1605,11 +1607,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          application_queue_id?: string | null
           created_at?: string
           id?: string
           interview_date?: string | null
           interview_stage?: string
-          job_project_id?: string
+          job_project_id?: string | null
           notes?: string | null
           prep_materials?: Json | null
           questions_prepared?: Json | null
@@ -1618,6 +1621,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "interview_prep_sessions_application_queue_id_fkey"
+            columns: ["application_queue_id"]
+            isOneToOne: false
+            referencedRelation: "application_queue"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "interview_prep_sessions_job_project_id_fkey"
             columns: ["job_project_id"]

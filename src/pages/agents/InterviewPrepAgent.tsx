@@ -102,13 +102,14 @@ const InterviewPrepAgentContent = () => {
         .from('interview_prep_sessions')
         .insert({
           user_id: user.id,
-          job_project_id: job.id,
-          interview_stage: job.interview_stage || 'hr_screen',
+          application_queue_id: job.id, // FIX: Use application_queue_id instead of job_project_id
+          interview_stage: job.interviewStage || 'hr_screen',
           interview_date: job.interview_date || null,
           prep_materials: {
             job_title: job.job_title,
             company_name: job.company_name,
-            job_description: job.job_description
+            job_description: job.job_description,
+            interview_stage: job.interviewStage
           },
           questions_prepared: []
         })
