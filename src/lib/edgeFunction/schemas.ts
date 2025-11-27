@@ -521,7 +521,9 @@ export const SuggestCareerPathsSchema = z.object({
   resumeAnalysis: z.any(),
   careerDirection: z.enum(['stay', 'pivot', 'explore']),
   currentRole: z.string().optional(),
-  currentIndustry: z.string().optional()
+  currentIndustry: z.string().optional(),
+  vaultId: z.string().uuid('Invalid vault ID').optional(),
+  resumeText: z.string().min(100).max(50000).optional()
 });
 
 // ============= ATS Analysis Schemas =============
