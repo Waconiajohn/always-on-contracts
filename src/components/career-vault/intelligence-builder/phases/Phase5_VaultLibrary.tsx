@@ -158,11 +158,40 @@ export const Phase5_VaultLibrary = ({
         description: "This will take 2-3 minutes. Using Gemini 2.5 Pro for maximum quality."
       });
 
+      // Verify we have a valid session before calling the function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('Invalid session, signing out:', sessionError);
+        await supabase.auth.signOut();
+        toast({
+          title: "Session expired",
+          description: "Please log in again to continue.",
+          variant: "destructive"
+        });
+        window.location.href = '/';
+        return;
+      }
+
       const { error } = await supabase.functions.invoke('extract-vault-intangibles', {
         body: { vaultId }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle auth errors specifically
+        if (error.message?.includes('Unauthorized') || error.message?.includes('Session expired')) {
+          console.error('Auth error, clearing session:', error);
+          await supabase.auth.signOut();
+          toast({
+            title: "Session expired",
+            description: "Please log in again to continue.",
+            variant: "destructive"
+          });
+          window.location.href = '/';
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: "Intelligence extraction complete!",
@@ -192,11 +221,40 @@ export const Phase5_VaultLibrary = ({
         description: `Using Gemini 2.5 Pro to analyze your career data`
       });
 
+      // Verify we have a valid session before calling the function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('Invalid session, signing out:', sessionError);
+        await supabase.auth.signOut();
+        toast({
+          title: "Session expired",
+          description: "Please log in again to continue.",
+          variant: "destructive"
+        });
+        window.location.href = '/';
+        return;
+      }
+
       const { error } = await supabase.functions.invoke('extract-vault-intangibles', {
         body: { vaultId, category: categoryName }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle auth errors specifically
+        if (error.message?.includes('Unauthorized') || error.message?.includes('Session expired')) {
+          console.error('Auth error, clearing session:', error);
+          await supabase.auth.signOut();
+          toast({
+            title: "Session expired",
+            description: "Please log in again to continue.",
+            variant: "destructive"
+          });
+          window.location.href = '/';
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: "Generation complete!",
