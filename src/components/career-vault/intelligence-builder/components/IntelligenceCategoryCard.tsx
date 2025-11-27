@@ -28,8 +28,10 @@ export function IntelligenceCategoryCard({
 
   const getContent = () => {
     return item.power_phrase || item.phrase || item.stated_skill || 
-           item.skill || item.inferred_capability || item.competency_area ||
-           item.trait_name || item.trait || item.style_preference ||
+           item.skill || item.skill_name || item.inferred_capability || 
+           item.competency_area || item.trait_name || item.trait || 
+           item.style_preference || item.preference_area || 
+           item.philosophy_statement || item.presence_indicator ||
            item.value_name || item.specific_behavior || '';
   };
 
