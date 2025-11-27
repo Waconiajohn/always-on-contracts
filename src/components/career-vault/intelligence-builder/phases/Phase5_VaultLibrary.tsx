@@ -254,6 +254,20 @@ export const Phase5_VaultLibrary = ({
       setIsExtractingAll(false);
     }
   };
+    } catch (error) {
+      console.error('Error extracting all:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast({
+        title: "Error",
+        description: errorMessage.includes('resume') 
+          ? "No resume data found. Please upload your resume in Career Vault first."
+          : `Failed to extract intelligence: ${errorMessage}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsExtractingAll(false);
+    }
+  };
 
   const handleRegenerateCategory = async (categoryName: string) => {
     try {
