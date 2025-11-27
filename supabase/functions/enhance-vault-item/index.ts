@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
 import { logAIUsage } from "../_shared/cost-tracking.ts";
+import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -91,20 +92,22 @@ Also suggest 3-5 relevant ATS keywords.`;
     await logAIUsage(metrics);
 
     // Extract content from response
-    let content = response.choices[0].message.content;
+    const content = response.choices[0].message.content;
     if (!content) {
       console.error('No content in response:', response);
       throw new Error('AI did not return content');
     }
 
-    // Clean markdown code blocks if present
-    content = content.trim();
-    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (jsonMatch) {
-      content = jsonMatch[1];
+    // Use robust JSON extraction with multiple fallback strategies
+    const parseResult = extractJSON(content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('Failed to parse AI response:', parseResult.error);
+      console.error('Raw content:', content);
+      throw new Error(`JSON parsing failed: ${parseResult.error}`);
     }
 
-    const enhancement = JSON.parse(content);
+    const enhancement = parseResult.data;
     console.log('[enhance-vault-item] Parsed enhancement:', enhancement);
     
     // Validate required fields
