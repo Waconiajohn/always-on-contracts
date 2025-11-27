@@ -7,25 +7,25 @@
 @layer base {
 :root {
   --background: 0 0% 100%;
-  --foreground: 225 75% 8%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 225 75% 8%;
+  --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 225 75% 8%;
-  --primary: 330 75% 30%;
-  --primary-foreground: 0 0% 100%;
-  --primary-glow: 330 75% 40%;
-  --secondary: 30 20% 94%;
-  --secondary-foreground: 330 75% 20%;
-  --muted: 30 15% 93%;
-  --muted-foreground: 30 10% 40%;
-  --accent: 25 93% 48%;
-  --accent-foreground: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 210 40% 98%;
+  --primary-glow: 221 83% 63%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
   --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive-foreground: 210 40% 98%;
   --border: 214 32% 91%;
   --input: 214 32% 91%;
-  --ring: 217 91% 60%;
+  --ring: 221 83% 53%;
   --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -39,19 +39,19 @@
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 330 75% 20%;
-    --sidebar-primary: 330 75% 30%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 20% 94%;
-    --sidebar-accent-foreground: 330 75% 20%;
-    --sidebar-border: 30 15% 88%;
-    --sidebar-ring: 330 75% 30%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 221 83% 53%;
     
     /* AI System Colors */
-    --ai-primary: 330 75% 30%;
-    --ai-secondary: 25 93% 48%;
-    --ai-accent: 330 75% 40%;
-    --ai-glow: 330 75% 35%;
+    --ai-primary: 221 83% 53%;
+    --ai-secondary: 217 91% 60%;
+    --ai-accent: 221 83% 63%;
+    --ai-glow: 221 83% 53%;
     --ai-active: 142 76% 36%;
     --ai-processing: 38 92% 50%;
     --ai-complete: 271 81% 56%;
@@ -81,24 +81,24 @@
   }
 
 .dark {
-  --background: 225 75% 8%;
-  --foreground: 0 0% 98%;
-  --card: 225 70% 12%;
-  --card-foreground: 0 0% 98%;
-  --popover: 225 70% 12%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 330 75% 35%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 30 25% 16%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 30 20% 16%;
-  --muted-foreground: 30 15% 70%;
-  --accent: 25 93% 55%;
-  --accent-foreground: 0 0% 98%;
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 14%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 14%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 223 47% 11%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
   --destructive: 0 63% 31%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 225 60% 18%;
-  --input: 225 60% 18%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
   --ring: 217 91% 60%;
   --chart-1: 217 91% 60%;
   --chart-2: 160 60% 45%;
@@ -106,20 +106,20 @@
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
-    --sidebar-background: 30 25% 12%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 330 75% 35%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 20% 16%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 30 20% 16%;
-    --sidebar-ring: 330 75% 35%;
+    --sidebar-background: 222 47% 14%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 217 91% 60%;
     
     /* AI System Colors - Dark Mode */
-    --ai-primary: 330 75% 35%;
-    --ai-secondary: 25 93% 55%;
-    --ai-accent: 330 75% 45%;
-    --ai-glow: 330 75% 40%;
+    --ai-primary: 217 91% 60%;
+    --ai-secondary: 217 91% 70%;
+    --ai-accent: 217 91% 65%;
+    --ai-glow: 217 91% 60%;
     --ai-active: 142 76% 36%;
     --ai-processing: 38 92% 50%;
     --ai-complete: 271 81% 56%;
