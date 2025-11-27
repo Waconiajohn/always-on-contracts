@@ -169,7 +169,7 @@ export const Phase5_VaultLibrary = ({
         description: "All 10 intelligence categories have been populated with AI insights"
       });
 
-      loadVaultData();
+      await loadVaultData();
     } catch (error) {
       console.error('Error extracting all:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -203,7 +203,7 @@ export const Phase5_VaultLibrary = ({
         description: `New ${categoryName} items added to your vault`
       });
 
-      loadVaultData();
+      await loadVaultData();
     } catch (error) {
       console.error('Error regenerating category:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
