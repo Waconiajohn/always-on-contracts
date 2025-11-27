@@ -207,10 +207,10 @@ export default function CareerDirectionStep({
   };
 
   return (
-    <Card className="bg-background/80 backdrop-blur-sm border-border shadow-xl">
+    <Card className="bg-background border-border shadow-lg">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Compass className="w-6 h-6 text-accent" />
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <Compass className="w-6 h-6 text-primary" />
           What's Your Career Goal?
         </CardTitle>
         <CardDescription>
@@ -219,10 +219,10 @@ export default function CareerDirectionStep({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Marketing message */}
-        <Alert className="border-accent/20 bg-accent/5">
-          <Sparkles className="w-4 h-4 text-accent" />
-          <AlertDescription className="text-sm text-muted-foreground">
-            <strong className="text-accent">AI-Powered Intelligence:</strong> Unlike job boards that
+        <Alert className="border-border bg-muted">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <AlertDescription className="text-sm text-foreground">
+            <strong className="text-primary">AI-Powered Intelligence:</strong> Unlike job boards that
             just match keywords, we analyze your transferable skills and market trends to suggest
             careers with <strong>quantified match scores</strong>—including opportunities you never considered.
           </AlertDescription>
@@ -236,21 +236,18 @@ export default function CareerDirectionStep({
               title="Stay in My Field"
               description="Advance within your current industry and role"
               onClick={() => setCareerDirection('stay')}
-              color="info"
             />
             <DirectionCard
               icon={TrendingUp}
               title="Pivot"
               description="Transition to a new industry or role"
               onClick={() => setCareerDirection('pivot')}
-              color="accent"
             />
             <DirectionCard
               icon={Compass}
               title="Explore Options"
               description="See diverse opportunities across multiple paths"
               onClick={() => setCareerDirection('explore')}
-              color="warning"
             />
           </div>
         )}
@@ -274,10 +271,10 @@ export default function CareerDirectionStep({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Zap className="w-5 h-5 text-warning" />
+                <Zap className="w-5 h-5 text-primary" />
                 Select Target Roles (1-3 recommended)
               </h3>
-              <Badge variant="outline" className="bg-info/5 text-info border-info/20">
+              <Badge variant="secondary">
                 {selectedRoles.length} selected
               </Badge>
             </div>
@@ -330,10 +327,10 @@ export default function CareerDirectionStep({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-success" />
+                <TrendingUp className="w-5 h-5 text-primary" />
                 Select Target Industries (1-3 recommended)
               </h3>
-              <Badge variant="outline" className="bg-success/5 text-success border-success/20">
+              <Badge variant="secondary">
                 {selectedIndustries.length} selected
               </Badge>
             </div>
@@ -419,28 +416,20 @@ function DirectionCard({
   title,
   description,
   onClick,
-  color,
 }: {
   icon: any;
   title: string;
   description: string;
   onClick: () => void;
-  color: string;
 }) {
-  const colorClasses = {
-    info: 'bg-info hover:bg-info/90',
-    accent: 'bg-accent hover:bg-accent/90',
-    warning: 'bg-warning hover:bg-warning/90',
-  };
-
   return (
     <button
       onClick={onClick}
-      className={`${colorClasses[color as keyof typeof colorClasses]} text-primary-foreground p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105 text-left`}
+      className="bg-primary text-primary-foreground p-6 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-[1.02] text-left border border-border"
     >
-      <Icon className="w-8 h-8 mb-3" />
+      <Icon className="w-8 h-8 mb-3 opacity-90" />
       <h3 className="font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-sm opacity-90">{description}</p>
+      <p className="text-sm opacity-80">{description}</p>
     </button>
   );
 }
@@ -462,8 +451,8 @@ function RoleSuggestionCard({
     <div
       className={`border-2 rounded-lg transition-all ${
         isSelected
-          ? 'border-info bg-info/5 shadow-md'
-          : 'border-border hover:border-info/50 hover:bg-accent/5'
+          ? 'border-primary bg-muted shadow-sm'
+          : 'border-border hover:border-primary/50 hover:bg-muted/50'
       }`}
     >
       <div onClick={onToggle} className="p-4 cursor-pointer">
@@ -489,19 +478,19 @@ function RoleSuggestionCard({
             <p className="text-xs font-medium text-foreground">Match Breakdown:</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center">
-                <div className="text-lg font-bold text-info">
+                <div className="text-lg font-bold text-primary">
                   {Math.round(role.matchBreakdown.technicalSkills * 100)}%
                 </div>
                 <div className="text-xs text-muted-foreground">Technical</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-accent">
+                <div className="text-lg font-bold text-primary">
                   {Math.round(role.matchBreakdown.leadership * 100)}%
                 </div>
                 <div className="text-xs text-muted-foreground">Leadership</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-success">
+                <div className="text-lg font-bold text-primary">
                   {Math.round(role.matchBreakdown.industryAlignment * 100)}%
                 </div>
                 <div className="text-xs text-muted-foreground">Industry</div>
@@ -519,17 +508,17 @@ function RoleSuggestionCard({
               e.stopPropagation();
               setShowDetails(!showDetails);
             }}
-            className="text-xs text-accent hover:text-accent/80 font-medium flex items-center gap-1"
+            className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1"
           >
             <Quote className="w-3 h-3" />
             {showDetails ? 'Hide' : 'Show'} AI Evidence from Your Resume
           </button>
 
           {showDetails && (
-            <div className="mt-2 space-y-1.5 bg-accent/5 rounded-lg p-3 border border-accent/20">
+            <div className="mt-2 space-y-1.5 bg-muted rounded-lg p-3 border border-border">
               {role.resumeEvidence.map((evidence: string, idx: number) => (
                 <div key={idx} className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 flex-shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                   <p className="text-xs text-muted-foreground italic">"{evidence}"</p>
                 </div>
               ))}
@@ -558,8 +547,8 @@ function IndustrySuggestionCard({
       onClick={onToggle}
       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
         isSelected
-          ? 'border-success bg-success/5 shadow-md'
-          : 'border-border hover:border-success/50 hover:bg-accent/5'
+          ? 'border-primary bg-muted shadow-sm'
+          : 'border-border hover:border-primary/50 hover:bg-muted/50'
       }`}
     >
       <div className="flex items-start justify-between mb-2">
