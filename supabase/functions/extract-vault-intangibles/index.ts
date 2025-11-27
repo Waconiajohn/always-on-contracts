@@ -244,7 +244,6 @@ RETURN VALID JSON ONLY:
           core_principles: item.corePrinciples || [],
           confidence_score: item.confidenceScore,
           quality_tier: 'bronze', // Inferred data starts as bronze
-          source: 'auto_populated_intangibles',
           needs_user_review: true,
           // Industry-aware fields for interview prep & LinkedIn
           alignment_with_industry_norms: item.alignmentWithIndustryNorms,
@@ -337,7 +336,6 @@ RETURN VALID JSON ONLY:
           perceived_impact: item.perceivedImpact,
           confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
-          source: 'auto_populated_intangibles',
           needs_user_review: true,
           // Industry-aware fields for interview prep & LinkedIn
           role_fit_assessment: item.roleFitAssessment,
@@ -418,7 +416,6 @@ RETURN VALID JSON ONLY:
           work_context: item.workContext,
           confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
-          source: 'auto_populated_intangibles',
           needs_user_review: true
         }));
 
@@ -495,7 +492,6 @@ RETURN VALID JSON ONLY:
           ideal_environment: item.idealEnvironment,
           confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
-          source: 'auto_populated_intangibles',
           needs_user_review: true
         }));
 
@@ -571,7 +567,6 @@ RETURN VALID JSON ONLY:
           importance_level: item.importanceLevel || 'important',
           confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
-          source: 'auto_populated_intangibles',
           needs_user_review: true
         }));
 
@@ -650,7 +645,6 @@ RETURN VALID JSON ONLY:
           outcome_pattern: item.outcomePattern,
           confidence_score: item.confidenceScore,
           quality_tier: 'bronze',
-          source: 'auto_populated_intangibles',
           needs_user_review: true
         }));
 
