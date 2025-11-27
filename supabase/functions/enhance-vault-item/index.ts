@@ -63,14 +63,14 @@ ${itemSubtype === 'skill'
 
 Also suggest 3-5 relevant ATS keywords.`;
 
-    // USE GEMINI 3.0 PRO (PREMIUM) with tool calling for structured output
+    // USE GEMINI 2.5 FLASH (DEFAULT) with tool calling for structured output
     const { response, metrics } = await callLovableAI(
       {
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM,
+        model: LOVABLE_AI_MODELS.DEFAULT,
         temperature: 0.7,
         max_tokens: 1000,
         tools: [{
