@@ -15,9 +15,17 @@ export const useResumeGate = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check vault data quality, not just existence
       const { data } = await supabase
         .from('career_vault')
-        .select('resume_raw_text, review_completion_percentage')
+        .select(`
+          resume_raw_text, 
+          review_completion_percentage,
+          total_power_phrases,
+          total_transferable_skills,
+          total_hidden_competencies,
+          intelligent_qa_completed
+        `)
         .eq('user_id', user.id)
         .single();
 
@@ -25,7 +33,14 @@ export const useResumeGate = () => {
         const hasResumeUploaded = !!data.resume_raw_text && data.resume_raw_text.trim().length > 0;
         const completion = data.review_completion_percentage || 0;
         
-        setHasResume(hasResumeUploaded);
+        // Check if vault has minimum viable data for AI features
+        const hasMinimumData = (
+          (data.total_power_phrases || 0) >= 5 &&
+          (data.total_transferable_skills || 0) >= 5 &&
+          (data.total_hidden_competencies || 0) >= 3
+        );
+        
+        setHasResume(hasResumeUploaded && hasMinimumData);
         setVaultCompletion(completion);
       }
     } catch (error) {
