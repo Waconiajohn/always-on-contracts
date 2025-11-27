@@ -182,7 +182,8 @@ export const ProcessReviewActionsSchema = z.object({
 
 export const VaultCleanupSchema = z.object({
   vaultId: z.string().uuid('Invalid vault ID'),
-  aggressive: z.boolean().optional()
+  confirmation: z.literal('DELETE_ALL_DATA'),
+  preserveVaultRecord: z.boolean().optional()
 });
 
 export const DetectRoleAndIndustrySchema = z.object({
