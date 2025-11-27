@@ -9,6 +9,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CategorySection } from '../components/CategorySection';
+import { ExtractAllButton } from '../components/ExtractAllButton';
 
 interface Phase5Props {
   vaultId: string;
@@ -25,6 +26,7 @@ export const Phase5_VaultLibrary = ({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
+  const [isExtractingAll, setIsExtractingAll] = useState(false);
   
   // Refs for scrolling to sections
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -148,11 +150,46 @@ export const Phase5_VaultLibrary = ({
     }
   };
 
+  const handleExtractAll = async () => {
+    setIsExtractingAll(true);
+    try {
+      toast({
+        title: "Extracting all intelligence...",
+        description: "This will take 2-3 minutes. Using Gemini 2.5 Pro for maximum quality."
+      });
+
+      const { error } = await supabase.functions.invoke('extract-vault-intangibles', {
+        body: { vaultId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Intelligence extraction complete!",
+        description: "All 10 intelligence categories have been populated with AI insights"
+      });
+
+      loadVaultData();
+    } catch (error) {
+      console.error('Error extracting all:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast({
+        title: "Error",
+        description: errorMessage.includes('resume') 
+          ? "No resume data found. Please upload your resume in Career Vault first."
+          : `Failed to extract intelligence: ${errorMessage}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsExtractingAll(false);
+    }
+  };
+
   const handleRegenerateCategory = async (categoryName: string) => {
     try {
       toast({
         title: "Generating intelligence...",
-        description: `Using Gemini 2.5 Flash to analyze your career data`
+        description: `Using Gemini 2.5 Pro to analyze your career data`
       });
 
       const { error } = await supabase.functions.invoke('extract-vault-intangibles', {
@@ -234,12 +271,17 @@ export const Phase5_VaultLibrary = ({
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">AI Intelligence Engine</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Every item in your vault can be enhanced using advanced AI. Enhancement includes strategic keyword injection, executive-level language optimization, and quality tier upgrades.
+                  Every item in your vault can be enhanced using Gemini 2.5 Pro—Google's most advanced AI. Enhancement includes strategic keyword injection, executive-level language optimization, quality tier upgrades, and industry benchmarking.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Extract All - Show if most categories are empty */}
+        {(achievements.length + skills.length + competencies.length + softSkills.length + leadership.length + executivePresence.length + personality.length + workstyle.length + values.length + behavioral.length) < 20 && (
+          <ExtractAllButton onExtractAll={handleExtractAll} isExtracting={isExtractingAll} />
+        )}
 
         {/* Category Sections */}
         <div className="space-y-6">
