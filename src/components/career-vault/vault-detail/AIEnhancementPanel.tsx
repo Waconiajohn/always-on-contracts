@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Check, ArrowRight, X, Pencil, Brain, Layers, Zap } from 'lucide-react';
+import { Sparkles, Loader2, Check, ArrowRight, X, Pencil, Brain, Layers } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from "@/components/ui/progress";
 
@@ -249,7 +249,7 @@ export function AIEnhancementPanel({
              </div>
         ) : !enhancement ? (
           <>
-            <Alert className="bg-background/50 border-accent/20">
+            <Alert className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border-2 border-dashed border-purple-300 dark:border-purple-700">
               <Sparkles className="h-4 w-4 text-purple-500" />
               <AlertDescription className="text-sm text-muted-foreground">
                 Transform this item using <strong>Gemini 3.0 Pro</strong>. 
@@ -258,10 +258,18 @@ export function AIEnhancementPanel({
             </Alert>
             <Button
               onClick={handleEnhance}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md transition-all hover:scale-[1.02]"
+              size="lg"
+              className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-700 hover:via-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
             >
-              <Zap className="h-4 w-4 mr-2 fill-current" />
-              Generate Executive Enhancement
+              <span className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Sparkles className="h-5 w-5 mr-2 animate-pulse" />
+              <span className="font-semibold">Generate Executive Enhancement</span>
+              <Badge 
+                variant="secondary" 
+                className="ml-3 bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs font-semibold"
+              >
+                Gemini 3.0 Pro
+              </Badge>
             </Button>
           </>
         ) : (

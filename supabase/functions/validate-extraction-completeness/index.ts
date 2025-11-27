@@ -9,7 +9,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
-import { extractJSON } from '../_shared/jsonParser.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -146,8 +146,14 @@ Return JSON with:
       response_mime_type: 'application/json'
     }, 'validate-extraction', 'system');
 
-    const validation = extractJSON(response.choices[0].message.content);
+    const parseResult = extractJSON(response.choices[0].message.content);
 
+    if (!parseResult.success || !parseResult.data) {
+      console.error('Failed to parse validation response:', parseResult.error);
+      throw new Error(`JSON parsing failed: ${parseResult.error}`);
+    }
+
+    const validation = parseResult.data;
     console.log('✅ Validation complete');
     console.log(`   Completeness score: ${validation.completeness_score}%`);
     console.log(`   Quality: ${validation.extraction_quality}`);

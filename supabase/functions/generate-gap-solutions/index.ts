@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
-import { extractJSON } from '../_shared/jsonParser.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 // Generate gap solutions using Perplexity AI
 const corsHeaders = {
@@ -198,8 +198,14 @@ RULES:
     await logAIUsage(metrics);
 
     const content = response.choices[0].message.content;
-    const parsed = extractJSON(content);
+    const parseResult = extractJSON(content);
 
+    if (!parseResult.success || !parseResult.data) {
+      console.error('Failed to parse AI response:', parseResult.error);
+      throw new Error(`JSON parsing failed: ${parseResult.error}`);
+    }
+
+    const parsed = parseResult.data;
     console.log('AI Response:', JSON.stringify(parsed, null, 2));
 
     // Validate that AI followed instructions
