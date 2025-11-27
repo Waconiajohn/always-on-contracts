@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
 import { logAIUsage } from "../_shared/cost-tracking.ts";
-import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +37,7 @@ serve(async (req) => {
       : '';
 
     // Create enhancement prompt
-    const systemPrompt = `You are an elite executive career coach and resume strategist. You MUST return ONLY valid JSON with no markdown formatting, no code blocks, no explanations - just the raw JSON object.
+    const systemPrompt = `You are an elite executive career coach and resume strategist.
 
 Quality Tiers:
 - GOLD: Includes strategic context, measurable impact metrics, and strong action verbs. Shows enterprise-wide influence.
@@ -51,17 +50,7 @@ Guidelines for Enhancement:
 2. Include strategic business context (cost savings, efficiency gains, etc.)
 3. Use strong action verbs (Led, Drove, Optimized, etc.)
 4. Show scope and scale (team size, project budget, geographic reach)
-5. Demonstrate impact beyond immediate role
-
-CRITICAL: Return ONLY raw JSON (no markdown, no code blocks), exactly this structure:
-{
-  "enhanced_content": "The improved version",
-  "new_tier": "gold",
-  "reasoning": "Why this is better (one sentence)",
-  "suggested_keywords": ["keyword1", "keyword2", "keyword3"],
-  "improvements_made": ["improvement1", "improvement2"],
-  "analysis_steps": ["step1", "step2", "step3"]
-}`;
+5. Demonstrate impact beyond immediate role`;
 
     const userPrompt = `Current Item (${currentTier} tier):
 "${currentContent}"
@@ -74,7 +63,7 @@ ${itemSubtype === 'skill'
 
 Also suggest 3-5 relevant ATS keywords.`;
 
-    // USE GEMINI 3.0 PRO (PREMIUM)
+    // USE GEMINI 3.0 PRO (PREMIUM) with tool calling for structured output
     const { response, metrics } = await callLovableAI(
       {
         messages: [
@@ -83,7 +72,50 @@ Also suggest 3-5 relevant ATS keywords.`;
         ],
         model: LOVABLE_AI_MODELS.PREMIUM,
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 1000,
+        tools: [{
+          type: "function",
+          function: {
+            name: "enhance_content",
+            description: "Return the enhanced content with quality improvements",
+            parameters: {
+              type: "object",
+              properties: {
+                enhanced_content: {
+                  type: "string",
+                  description: "The improved version of the content"
+                },
+                new_tier: {
+                  type: "string",
+                  enum: ["gold", "silver", "bronze", "assumed"],
+                  description: "The quality tier of the enhanced content"
+                },
+                reasoning: {
+                  type: "string",
+                  description: "Why this is better (one sentence)"
+                },
+                suggested_keywords: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "3-5 relevant ATS keywords"
+                },
+                improvements_made: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "List of specific improvements made"
+                },
+                analysis_steps: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Steps taken to analyze and enhance"
+                }
+              },
+              required: ["enhanced_content", "new_tier", "reasoning", "suggested_keywords", "improvements_made", "analysis_steps"],
+              additionalProperties: false
+            }
+          }
+        }],
+        tool_choice: { type: "function", function: { name: "enhance_content" } }
       },
       "enhance-vault-item",
       undefined
@@ -91,23 +123,14 @@ Also suggest 3-5 relevant ATS keywords.`;
 
     await logAIUsage(metrics);
 
-    // Extract content from response
-    const content = response.choices[0].message.content;
-    if (!content) {
-      console.error('No content in response:', response);
-      throw new Error('AI did not return content');
+    // Extract structured output from tool call
+    const toolCall = response.choices[0].message.tool_calls?.[0];
+    if (!toolCall || toolCall.function.name !== "enhance_content") {
+      console.error('No tool call in response:', response);
+      throw new Error('AI did not return structured output');
     }
 
-    // Use robust JSON extraction with multiple fallback strategies
-    const parseResult = extractJSON(content);
-    
-    if (!parseResult.success || !parseResult.data) {
-      console.error('Failed to parse AI response:', parseResult.error);
-      console.error('Raw content:', content);
-      throw new Error(`JSON parsing failed: ${parseResult.error}`);
-    }
-
-    const enhancement = parseResult.data;
+    const enhancement = JSON.parse(toolCall.function.arguments);
     console.log('[enhance-vault-item] Parsed enhancement:', enhancement);
     
     // Validate required fields
