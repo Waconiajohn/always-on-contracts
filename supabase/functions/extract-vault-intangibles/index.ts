@@ -553,6 +553,15 @@ RETURN VALID JSON ONLY:
       const valuesResult = extractJSON(valuesContent);
       valuesItems = valuesResult.success ? (valuesResult.data?.valuesMotivations || []) : [];
 
+      // Helper function to normalize importance levels from AI output
+      const normalizeImportanceLevel = (level: string | undefined): string => {
+        if (!level) return 'important';
+        const normalized = level.toLowerCase();
+        if (normalized === 'high' || normalized === 'core') return 'core';
+        if (normalized === 'low' || normalized === 'nice_to_have' || normalized === 'nice to have') return 'nice_to_have';
+        return 'important'; // medium, important, or default
+      };
+
       // Insert values
       if (valuesItems.length > 0) {
         const valuesInserts = valuesItems.map((item: any) => ({
@@ -560,7 +569,7 @@ RETURN VALID JSON ONLY:
           user_id: user.id,
           value_name: item.valueName,
           manifestation: item.manifestation,
-          importance_level: item.importanceLevel || 'important',
+          importance_level: normalizeImportanceLevel(item.importanceLevel),
           quality_tier: 'bronze',
           needs_user_review: true
         }));
