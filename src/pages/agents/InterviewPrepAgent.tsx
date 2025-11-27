@@ -27,6 +27,7 @@ import { ThirtyPlanBuilder } from "@/components/interview/ThirtyPlanBuilder";
 import { ThreeTwoOneFramework } from "@/components/interview/ThreeTwoOneFramework";
 import { PanelInterviewGuide } from "@/components/interview/PanelInterviewGuide";
 import { STARStoryGenerator } from "@/components/interview/STARStoryGenerator";
+import { DownloadPrepPackage } from "@/components/interview/DownloadPrepPackage";
 
 const InterviewPrepAgentContent = () => {
   const [activeTab, setActiveTab] = useState("select-job");
@@ -157,9 +158,17 @@ const InterviewPrepAgentContent = () => {
     <div className="min-h-screen flex w-full">
       <div className="flex-1">
         <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-2">Interview Prep Agent</h1>
-            <p className="text-muted-foreground">Practice with job-specific materials from your pipeline</p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Interview Prep Agent</h1>
+              <p className="text-muted-foreground">Practice with job-specific materials from your pipeline</p>
+            </div>
+            {selectedJob && (
+              <DownloadPrepPackage 
+                selectedJob={selectedJob}
+                companyName={selectedJob.company_name}
+              />
+            )}
           </div>
 
           {!selectedJob ? (
