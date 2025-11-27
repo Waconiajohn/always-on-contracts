@@ -252,7 +252,11 @@ RETURN VALID JSON ONLY:
           linkedin_angle: item.linkedinAngle
         }));
 
-        await supabaseClient.from('vault_leadership_philosophy').insert(leadershipInserts);
+        const { error: insertError } = await supabaseClient.from('vault_leadership_philosophy').insert(leadershipInserts);
+        if (insertError) {
+          console.error('❌ Failed to insert leadership philosophy:', insertError);
+          throw insertError;
+        }
       }
       console.log(`✅ Extracted ${leadershipItems.length} leadership philosophy items`);
     } catch (error: any) {
@@ -341,7 +345,11 @@ RETURN VALID JSON ONLY:
           linkedin_credibility_boost: item.linkedinCredibilityBoost
         }));
 
-        await supabaseClient.from('vault_executive_presence').insert(presenceInserts);
+        const { error: insertError } = await supabaseClient.from('vault_executive_presence').insert(presenceInserts);
+        if (insertError) {
+          console.error('❌ Failed to insert executive presence:', insertError);
+          throw insertError;
+        }
       }
       console.log(`✅ Extracted ${presenceItems.length} executive presence indicators`);
     } catch (error: any) {
@@ -414,7 +422,11 @@ RETURN VALID JSON ONLY:
           needs_user_review: true
         }));
 
-        await supabaseClient.from('vault_personality_traits').insert(personalityInserts);
+        const { error: insertError } = await supabaseClient.from('vault_personality_traits').insert(personalityInserts);
+        if (insertError) {
+          console.error('❌ Failed to insert personality traits:', insertError);
+          throw insertError;
+        }
       }
       console.log(`✅ Extracted ${personalityItems.length} personality traits`);
     } catch (error: any) {
@@ -487,7 +499,11 @@ RETURN VALID JSON ONLY:
           needs_user_review: true
         }));
 
-        await supabaseClient.from('vault_work_style').insert(workStyleInserts);
+        const { error: insertError } = await supabaseClient.from('vault_work_style').insert(workStyleInserts);
+        if (insertError) {
+          console.error('❌ Failed to insert work style:', insertError);
+          throw insertError;
+        }
       }
       console.log(`✅ Extracted ${workStyleItems.length} work style items`);
     } catch (error: any) {
@@ -559,7 +575,11 @@ RETURN VALID JSON ONLY:
           needs_user_review: true
         }));
 
-        await supabaseClient.from('vault_values_motivations').insert(valuesInserts);
+        const { error: insertError } = await supabaseClient.from('vault_values_motivations').insert(valuesInserts);
+        if (insertError) {
+          console.error('❌ Failed to insert values/motivations:', insertError);
+          throw insertError;
+        }
       }
       console.log(`✅ Extracted ${valuesItems.length} values/motivations`);
     } catch (error: any) {
@@ -634,7 +654,11 @@ RETURN VALID JSON ONLY:
           needs_user_review: true
         }));
 
-        await supabaseClient.from('vault_behavioral_indicators').insert(behavioralInserts);
+        const { error: insertError } = await supabaseClient.from('vault_behavioral_indicators').insert(behavioralInserts);
+        if (insertError) {
+          console.error('❌ Failed to insert behavioral indicators:', insertError);
+          throw insertError;
+        }
       }
       console.log(`✅ Extracted ${behavioralItems.length} behavioral indicators`);
     } catch (error: any) {
@@ -705,7 +729,11 @@ RETURN VALID JSON (or empty array if none found):
         quality_tier: 'bronze'
       }));
 
-      await supabaseClient.from('vault_thought_leadership').insert(thoughtInserts);
+      const { error: insertError } = await supabaseClient.from('vault_thought_leadership').insert(thoughtInserts);
+      if (insertError) {
+        console.error('❌ Failed to insert thought leadership:', insertError);
+        throw insertError;
+      }
       console.log(`✅ Extracted ${thoughtItems.length} thought leadership items`);
     } else {
       console.log('⚠️ No thought leadership found');
@@ -777,7 +805,11 @@ RETURN VALID JSON (or empty array if none found):
         quality_tier: 'gold'
       }));
 
-      await supabaseClient.from('vault_professional_network').insert(networkInserts);
+      const { error: insertError } = await supabaseClient.from('vault_professional_network').insert(networkInserts);
+      if (insertError) {
+        console.error('❌ Failed to insert professional network:', insertError);
+        throw insertError;
+      }
       console.log(`✅ Extracted ${networkItems.length} professional network items`);
     } else {
       console.log('⚠️ No professional network found');
@@ -845,7 +877,11 @@ RETURN VALID JSON with 3-5 strongest differentiators:
         quality_tier: 'gold'
       }));
 
-      await supabaseClient.from('vault_competitive_advantages').insert(advantageInserts);
+      const { error: insertError } = await supabaseClient.from('vault_competitive_advantages').insert(advantageInserts);
+      if (insertError) {
+        console.error('❌ Failed to insert competitive advantages:', insertError);
+        throw insertError;
+      }
       console.log(`✅ Extracted ${advantageItems.length} competitive advantages`);
     } else {
       console.log('⚠️ No competitive advantages identified');
