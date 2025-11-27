@@ -124,10 +124,17 @@ Also suggest 3-5 relevant ATS keywords.`;
     await logAIUsage(metrics);
 
     // Extract structured output from tool call
-    const toolCall = response.choices[0].message.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "enhance_content") {
-      console.error('No tool call in response:', response);
-      throw new Error('AI did not return structured output');
+    console.log('[enhance-vault-item] Full AI response:', JSON.stringify(response, null, 2));
+    
+    const toolCall = response.choices[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      console.error('[enhance-vault-item] No tool calls in response. Message:', response.choices[0]?.message);
+      throw new Error('AI did not return tool calls. This may be a model compatibility issue.');
+    }
+    
+    if (toolCall.function.name !== "enhance_content") {
+      console.error('[enhance-vault-item] Wrong tool call name:', toolCall.function.name);
+      throw new Error(`AI returned wrong tool: ${toolCall.function.name}`);
     }
 
     const enhancement = JSON.parse(toolCall.function.arguments);
