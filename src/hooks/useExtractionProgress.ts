@@ -14,25 +14,50 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
   const [progress, setProgress] = useState(0);
   const [currentMessage, setCurrentMessage] = useState('Initializing extraction...');
   const [isComplete, setIsComplete] = useState(false);
+  const [phase, setPhase] = useState<string>('initializing');
+  const [itemsExtracted, setItemsExtracted] = useState(0);
 
   useEffect(() => {
     if (!vaultId) return;
 
+    console.log('🔍 [ExtractionProgress] Monitoring vault:', vaultId);
+
     // Fetch current progress immediately
     const fetchCurrentProgress = async () => {
-      const { data } = await supabase
-        .from('extraction_progress' as any)
-        .select('*')
-        .eq('vault_id', vaultId)
-        .single();
-      
-      if (data) {
-        const progressData = data as any;
-        setProgress(progressData.percentage || 0);
-        setCurrentMessage(progressData.message || 'Processing...');
-        if ((progressData.percentage || 0) >= 100) {
-          setIsComplete(true);
+      try {
+        const { data, error } = await supabase
+          .from('extraction_progress' as any)
+          .select('*')
+          .eq('vault_id', vaultId)
+          .single();
+        
+        if (error) {
+          console.warn('⚠️ [ExtractionProgress] Error fetching progress:', error);
+          return;
         }
+
+        if (data) {
+          const progressData = data as any;
+          const currentProgress = progressData.percentage || 0;
+          
+          setProgress(currentProgress);
+          setCurrentMessage(progressData.message || 'Processing...');
+          setPhase(progressData.phase || 'processing');
+          setItemsExtracted(progressData.items_extracted || 0);
+          
+          console.log('📊 [ExtractionProgress] Current:', {
+            progress: currentProgress,
+            phase: progressData.phase,
+            items: progressData.items_extracted
+          });
+          
+          if (currentProgress >= 100) {
+            setIsComplete(true);
+            console.log('✅ [ExtractionProgress] Extraction complete!');
+          }
+        }
+      } catch (err) {
+        console.error('❌ [ExtractionProgress] Fetch error:', err);
       }
     };
 
@@ -52,18 +77,33 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
         (payload: RealtimePostgresChangesPayload<ProgressUpdate>) => {
           if (payload.new) {
             const update = payload.new as ProgressUpdate;
-            setProgress(update.percentage || 0);
-            setCurrentMessage(update.message || 'Processing...');
+            const newProgress = update.percentage || 0;
             
-            if ((update.percentage || 0) >= 100) {
+            console.log('🔄 [ExtractionProgress] Real-time update:', {
+              progress: newProgress,
+              phase: update.phase,
+              message: update.message,
+              items: update.items_extracted
+            });
+            
+            setProgress(newProgress);
+            setCurrentMessage(update.message || 'Processing...');
+            setPhase(update.phase || 'processing');
+            setItemsExtracted(update.items_extracted || 0);
+            
+            if (newProgress >= 100) {
               setIsComplete(true);
+              console.log('✅ [ExtractionProgress] Extraction complete (real-time)!');
             }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 [ExtractionProgress] Subscription status:', status);
+      });
 
     return () => {
+      console.log('🔌 [ExtractionProgress] Unsubscribing from:', vaultId);
       supabase.removeChannel(channel);
     };
   }, [vaultId]);
@@ -71,6 +111,8 @@ export const useExtractionProgress = (vaultId: string | undefined) => {
   return {
     progress,
     currentMessage,
-    isComplete
+    isComplete,
+    phase,
+    itemsExtracted
   };
 };

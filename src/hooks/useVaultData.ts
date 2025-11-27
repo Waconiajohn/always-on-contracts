@@ -45,7 +45,8 @@ export const useVaultData = (userId: string | undefined) => {
   return useQuery({
     queryKey: ['vault-data', userId],
     queryFn: async (): Promise<VaultData> => {
-      console.log('🔄 Fetching fresh vault data from database...');
+      const startTime = Date.now();
+      console.log('🔄 [VaultData] Fetching vault data for user:', userId);
       if (!userId) throw new Error('User ID required');
 
       // CRITICAL FIX: Query vault once, reuse ID for all subsequent queries (10x performance improvement)
@@ -55,10 +56,17 @@ export const useVaultData = (userId: string | undefined) => {
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (vaultError) throw vaultError;
-      if (!vault) throw new Error('No vault found');
+      if (vaultError) {
+        console.error('❌ [VaultData] Vault query error:', vaultError);
+        throw vaultError;
+      }
+      if (!vault) {
+        console.warn('⚠️ [VaultData] No vault found for user:', userId);
+        throw new Error('No vault found');
+      }
 
       const vaultId = vault.id;
+      console.log('✓ [VaultData] Vault found:', vaultId, '| Status:', vault.extraction_status);
 
       // Fetch all data in parallel using the vault ID we just retrieved
       const [
@@ -105,6 +113,22 @@ export const useVaultData = (userId: string | undefined) => {
         supabase.from('vault_career_context').select('*').eq('vault_id', vaultId).maybeSingle(),
       ]);
 
+      const duration = Date.now() - startTime;
+      const totalItems = [
+        powerPhrases, transferableSkills, hiddenCompetencies, softSkills,
+        leadershipPhilosophy, executivePresence, personalityTraits, workStyle,
+        values, behavioralIndicators, workPositions, education, milestones
+      ].reduce((sum, arr) => sum + (arr?.length || 0), 0);
+
+      console.log('✅ [VaultData] Fetch complete:', {
+        duration: `${duration}ms`,
+        totalItems,
+        powerPhrases: powerPhrases?.length || 0,
+        skills: transferableSkills?.length || 0,
+        competencies: hiddenCompetencies?.length || 0,
+        milestones: milestones?.length || 0
+      });
+
       return {
         vault,
         powerPhrases: powerPhrases || [],
@@ -130,14 +154,23 @@ export const useVaultData = (userId: string | undefined) => {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     // Retry logic with exponential backoff for extraction process
-    retry: 5, // Retry up to 5 times
+    retry: (failureCount, error) => {
+      console.log(`🔄 [VaultData] Retry decision - Attempt ${failureCount}/5, Error:`, error);
+      // Don't retry if vault doesn't exist or user ID is invalid
+      if (error instanceof Error) {
+        if (error.message.includes('No vault found') || error.message.includes('User ID required')) {
+          console.log('❌ [VaultData] Non-retryable error, stopping retries');
+          return false;
+        }
+      }
+      return failureCount < 5;
+    },
     retryDelay: (attemptIndex) => {
       // Exponential backoff: 1s, 2s, 4s, 8s, 16s
       const delay = Math.min(1000 * Math.pow(2, attemptIndex), 16000);
-      console.log(`⏳ Retry attempt ${attemptIndex + 1} after ${delay}ms...`);
+      console.log(`⏳ [VaultData] Retry attempt ${attemptIndex + 1}/5 after ${delay}ms...`);
       return delay;
     },
-    // Retry on specific errors that indicate temporary unavailability
     retryOnMount: true,
   });
 };
