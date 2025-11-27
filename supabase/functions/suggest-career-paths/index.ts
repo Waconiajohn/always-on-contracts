@@ -29,6 +29,8 @@ interface CareerPathRequest {
   careerDirection: 'stay' | 'pivot' | 'explore';
   currentRole: string;
   currentIndustry: string;
+  vaultId?: string;
+  resumeText?: string;
 }
 
 interface SuggestedRole {
@@ -94,13 +96,30 @@ serve(async (req) => {
       careerDirection,
       currentRole,
       currentIndustry,
+      vaultId,
+      resumeText: providedResumeText
     }: CareerPathRequest = await req.json();
 
     console.log('🚀 Generating career path suggestions:', {
       direction: careerDirection,
       currentRole,
       seniority: resumeAnalysis.seniorityLevel,
+      hasVaultId: !!vaultId,
+      hasResumeText: !!providedResumeText
     });
+
+    // For "stay" direction, fetch full resume text for deeper analysis
+    let fullResumeText = providedResumeText;
+    if (careerDirection === 'stay' && !fullResumeText && vaultId) {
+      const { data: vault } = await supabaseClient
+        .from('career_vault')
+        .select('resume_raw_text')
+        .eq('id', vaultId)
+        .single();
+      
+      fullResumeText = vault?.resume_raw_text;
+      console.log('📄 Fetched resume text from vault:', !!fullResumeText);
+    }
 
     // Build context-aware prompt based on career direction
     let systemPrompt = '';
@@ -109,22 +128,50 @@ serve(async (req) => {
     if (careerDirection === 'stay') {
       systemPrompt = `You are an elite executive career strategist specializing in SAME-FIELD ADVANCEMENT.
 
-Your task: Suggest roles that represent natural progression within the same industry/function.
+Your task: Analyze the FULL RESUME to suggest roles and industries that represent natural progression within their field.
+
+CRITICAL: You have access to the complete resume. Use SPECIFIC DETAILS from it to:
+1. Identify exact technical skills, tools, and methodologies they've used
+2. Spot industry-specific experience and certifications
+3. Find leadership indicators (team sizes, budget managed, cross-functional work)
+4. Detect specialized expertise that makes them uniquely qualified
 
 FOCUS ON:
-- Next-level roles (promotions)
-- Lateral moves to stronger companies
-- Specialist → Generalist or vice versa
-- Individual contributor → Leadership or vice versa
+- Next-level roles based on ACTUAL experience depth (not just title)
+- Industry specializations they've already touched (even tangentially)
+- Roles where their specific skill combination is rare and valuable
+- Companies/sectors that pay premium for their exact background
 
-Return 5-8 role suggestions ranked by fit.`;
+IMPORTANT: For INDUSTRIES, be SPECIFIC:
+- Don't just say "Technology" - suggest "Cloud Infrastructure" or "SaaS B2B"
+- Not "Healthcare" - "MedTech Devices" or "Healthcare IT"
+- Not "Finance" - "Investment Banking" or "FinTech Payments"
+- Extract ANY industry they've worked in or served as clients
 
-      userPrompt = `Current: ${currentRole} in ${currentIndustry}
+Return 6-8 role suggestions and 4-6 industry suggestions, all ranked by fit.`;
+
+      userPrompt = `CURRENT POSITION:
+Role: ${currentRole}
+Industry: ${currentIndustry}
 Seniority: ${resumeAnalysis.seniorityLevel}
 Experience: ${resumeAnalysis.yearsExperience} years
-Key Achievements: ${resumeAnalysis.keyAchievements.slice(0, 3).join('; ')}
 
-Suggest career advancement opportunities within this field.`;
+${fullResumeText ? `FULL RESUME TEXT FOR DEEP ANALYSIS:
+${fullResumeText}
+
+INSTRUCTIONS: 
+- Mine this resume for SPECIFIC skills, tools, industries, and experience
+- Suggest roles that leverage their ACTUAL proven capabilities
+- For industries, identify EVERY sector they've touched (even as clients/vendors)
+- Be specific with industry suggestions - no generic categories
+- Extract concrete evidence from the resume to support each suggestion` : `KEY ACHIEVEMENTS:
+${resumeAnalysis.keyAchievements.slice(0, 5).join('\n')}
+
+INSTRUCTIONS:
+- Use these achievements to infer career advancement opportunities
+- Suggest specific roles that build on proven accomplishments`}
+
+Analyze deeply and suggest career paths that maximize their unique background.`;
 
     } else if (careerDirection === 'pivot') {
       systemPrompt = `You are an elite executive career strategist specializing in CAREER TRANSITIONS.
