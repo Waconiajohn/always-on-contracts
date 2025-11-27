@@ -85,12 +85,19 @@ Use this to infer intangible qualities.
     // =================================================
     console.log('👔 Extracting leadership philosophy...');
 
-    // Fetch target roles/industries for context
+    // Fetch target roles/industries and resume text for context
     const { data: vault } = await supabaseClient
       .from('career_vault')
-      .select('target_roles, target_industries')
+      .select('target_roles, target_industries, resume_raw_text')
       .eq('id', vaultId)
       .single();
+
+    // Use provided resumeText or fall back to vault data
+    const finalResumeText = resumeText || vault?.resume_raw_text;
+
+    if (!finalResumeText) {
+      throw new Error('No resume text found. Please upload your resume in Career Vault first.');
+    }
 
     const targetRole = vault?.target_roles?.[0] || 'Not specified';
     const targetIndustry = vault?.target_industries?.[0] || 'Not specified';
@@ -105,7 +112,7 @@ CRITICAL: The candidate won't say "I'm a servant leader" on their resume. INFER 
 ${vaultContext}
 
 RESUME TEXT:
-${resumeText}
+${finalResumeText}
 
 TARGET ROLE: ${targetRole}
 TARGET INDUSTRY: ${targetIndustry}
@@ -197,7 +204,7 @@ Executive presence includes:
 ${vaultContext}
 
 RESUME TEXT:
-${resumeText}
+${finalResumeText}
 
 TARGET ROLE: ${targetRole}
 TARGET INDUSTRY: ${targetIndustry}
@@ -275,7 +282,7 @@ Look for observable behaviors that indicate:
 ${vaultContext}
 
 RESUME TEXT:
-${resumeText}
+${finalResumeText}
 
 RETURN VALID JSON ONLY:
 {
@@ -332,7 +339,7 @@ RETURN VALID JSON ONLY:
 ${vaultContext}
 
 RESUME TEXT:
-${resumeText}
+${finalResumeText}
 
 Infer work style based on:
 - Role types (remote, in-office, hybrid indicators)
@@ -396,7 +403,7 @@ RETURN VALID JSON ONLY:
 ${vaultContext}
 
 RESUME TEXT:
-${resumeText}
+${finalResumeText}
 
 Look for evidence of what drives this person:
 - Career choices (startups vs. enterprise, mission-driven orgs)
@@ -459,7 +466,7 @@ RETURN VALID JSON ONLY:
 ${vaultContext}
 
 RESUME TEXT:
-${resumeText}
+${finalResumeText}
 
 Identify patterns in how they:
 - Approach problems
