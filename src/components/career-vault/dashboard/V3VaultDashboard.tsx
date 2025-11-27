@@ -329,7 +329,7 @@ function V3VaultDashboardContent() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/vault-admin-tools')}
+            onClick={() => navigate('/vault-admin')}
             className="text-xs text-muted-foreground hover:text-destructive"
           >
             Advanced Admin Tools
