@@ -154,8 +154,8 @@ export const Phase5_VaultLibrary = ({
     setIsExtractingAll(true);
     try {
       toast({
-        title: "Extracting all intelligence...",
-        description: "This will take 2-3 minutes. Using Gemini 2.5 Pro for maximum quality."
+        title: "Extracting ALL intelligence...",
+        description: "Step 1: Core Intelligence (achievements, skills, competencies)..."
       });
 
       // Verify we have a valid session before calling the function
@@ -173,14 +173,15 @@ export const Phase5_VaultLibrary = ({
         return;
       }
 
-      const { error } = await supabase.functions.invoke('extract-vault-intangibles', {
+      // STEP 1: Extract Core Intelligence (achievements, skills, competencies)
+      const { error: coreError } = await supabase.functions.invoke('auto-populate-vault-v3', {
         body: { vaultId }
       });
 
-      if (error) {
+      if (coreError) {
         // Handle auth errors specifically
-        if (error.message?.includes('Unauthorized') || error.message?.includes('Session expired')) {
-          console.error('Auth error, clearing session:', error);
+        if (coreError.message?.includes('Unauthorized') || coreError.message?.includes('Session expired')) {
+          console.error('Auth error, clearing session:', coreError);
           await supabase.auth.signOut();
           toast({
             title: "Session expired",
@@ -190,12 +191,38 @@ export const Phase5_VaultLibrary = ({
           window.location.href = '/';
           return;
         }
-        throw error;
+        throw new Error(`Core Intelligence extraction failed: ${coreError.message}`);
       }
 
       toast({
-        title: "Intelligence extraction complete!",
-        description: "All 10 intelligence categories have been populated with AI insights"
+        title: "Core Intelligence complete!",
+        description: "Step 2: Executive Intangibles (leadership, presence, personality)..."
+      });
+
+      // STEP 2: Extract Executive Intangibles (leadership, presence, personality, work style, values, behavioral)
+      const { error: intangiblesError } = await supabase.functions.invoke('extract-vault-intangibles', {
+        body: { vaultId }
+      });
+
+      if (intangiblesError) {
+        // Handle auth errors specifically
+        if (intangiblesError.message?.includes('Unauthorized') || intangiblesError.message?.includes('Session expired')) {
+          console.error('Auth error, clearing session:', intangiblesError);
+          await supabase.auth.signOut();
+          toast({
+            title: "Session expired",
+            description: "Please log in again to continue.",
+            variant: "destructive"
+          });
+          window.location.href = '/';
+          return;
+        }
+        throw new Error(`Executive Intangibles extraction failed: ${intangiblesError.message}`);
+      }
+
+      toast({
+        title: "✨ ALL Intelligence extraction complete!",
+        description: "All 10 categories populated: Core Intelligence + Executive Intangibles"
       });
 
       await loadVaultData();
