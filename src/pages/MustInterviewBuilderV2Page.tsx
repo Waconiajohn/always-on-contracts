@@ -21,7 +21,7 @@ import { Loader2, Upload, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { MustInterviewBuilderV2 } from "@/components/resume-builder/v4/MustInterviewBuilderV2";
-import { transformScoreToBlueprint } from "@/lib/v4Adapters";
+import { transformScoreToBlueprint, transformGapsToV4, transformBulletsToV4 } from "@/lib/v4Adapters";
 import type { JobBlueprint, GapAnalysis, RoleData, BulletSuggestion } from "@/components/resume-builder/v4/types/builderV2Types";
 
 export default function MustInterviewBuilderV2Page() {
@@ -83,8 +83,8 @@ export default function MustInterviewBuilderV2Page() {
         "score-resume-match",
         {
           body: {
+            jobDescription: jobDescription,
             resumeContent: resumeText,
-            keywords: jobDescription.split(" ").filter((w: string) => w.length > 3).slice(0, 50),
           },
         }
       );
@@ -96,24 +96,41 @@ export default function MustInterviewBuilderV2Page() {
       setBlueprint(transformedBlueprint);
       setInitialScore(scoreData.overallScore || 0);
 
-      // Extract gaps from score data
-      const extractedGaps: GapAnalysis[] = (scoreData.priorityFixes || []).map((fix: any, i: number) => ({
-        id: `gap-${i}`,
-        type: fix.category || "missing_requirement",
-        severity: fix.priority === 1 ? "critical" : fix.priority === 2 ? "important" : "nice-to-have",
-        title: fix.issue || fix.fix,
-        description: fix.details || "",
-        currentState: fix.currentState || "",
-        targetState: fix.targetState || "",
-        suggestedApproaches: [fix.fix].filter(Boolean),
-        linkedBullets: [],
-      }));
+      // Extract gaps using v4Adapters
+      const extractedGaps = transformGapsToV4(scoreData);
       setGaps(extractedGaps);
 
       // Extract job title and company if not provided
       if (!jobTitle) {
         const detectedTitle = scoreData.detected?.role || "Target Role";
         setJobTitle(detectedTitle);
+      }
+
+      // Generate highlight suggestions by calling generate-dual-resume-section
+      try {
+        const { data: bulletData, error: bulletError } = await supabase.functions.invoke(
+          "generate-dual-resume-section",
+          {
+            body: {
+              section: "summary",
+              jobDescription,
+              resumeContent: resumeText,
+              targetRole: transformedBlueprint.inferredRoleFamily,
+              targetIndustry: transformedBlueprint.inferredIndustry,
+            },
+          }
+        );
+
+        if (bulletError) {
+          console.warn("Failed to generate bullets:", bulletError);
+          setHighlightSuggestions([]);
+        } else {
+          const transformedBullets = transformBulletsToV4(bulletData, "summary");
+          setHighlightSuggestions(transformedBullets);
+        }
+      } catch (bulletError) {
+        console.warn("Bullet generation error:", bulletError);
+        setHighlightSuggestions([]);
       }
 
       // Generate role data from resume
@@ -134,9 +151,6 @@ export default function MustInterviewBuilderV2Page() {
       };
       setRoles([sampleRole]);
 
-      // Generate highlight suggestions (placeholder for now)
-      setHighlightSuggestions([]);
-
       // Show the builder
       setShowBuilder(true);
     } catch (error: any) {
@@ -156,8 +170,8 @@ export default function MustInterviewBuilderV2Page() {
   const handleRescore = async (resumeText: string): Promise<number> => {
     const { data, error } = await supabase.functions.invoke("score-resume-match", {
       body: {
+        jobDescription: jobDescription,
         resumeContent: resumeText,
-        keywords: jobDescription.split(" ").filter((w: string) => w.length > 3).slice(0, 50),
       },
     });
 

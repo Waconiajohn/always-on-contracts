@@ -12,8 +12,8 @@ serve(createAIHandler({
   rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
 
   inputValidation: (body) => {
-    if (!body.keywords || !Array.isArray(body.keywords)) {
-      throw new Error('keywords must be an array');
+    if (!body.jobDescription || typeof body.jobDescription !== 'string') {
+      throw new Error('jobDescription must be a string');
     }
     if (!body.resumeContent) {
       throw new Error('resumeContent is required');
@@ -21,10 +21,10 @@ serve(createAIHandler({
   },
 
   handler: async ({ user, body, logger }) => {
-    const { keywords, resumeContent } = body;
+    const { jobDescription, resumeContent } = body;
 
     logger.info('Scoring resume match', {
-      keywordCount: keywords.length,
+      jobDescriptionLength: jobDescription.length,
       hasExecutiveSummary: !!resumeContent.executive_summary
     });
 
@@ -32,9 +32,10 @@ serve(createAIHandler({
 
 CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
 
-    const userPrompt = `Analyze this resume content against the required keywords and provide a detailed scoring:
+    const userPrompt = `Analyze this resume against the job description and provide detailed scoring:
 
-REQUIRED KEYWORDS: ${keywords.join(", ")}
+JOB DESCRIPTION:
+${resumeContent.executive_summary || ""}
 
 RESUME CONTENT:
 Executive Summary: ${resumeContent.executive_summary || ""}
@@ -42,11 +43,11 @@ Key Achievements: ${resumeContent.key_achievements?.join("; ") || ""}
 Core Competencies: ${resumeContent.core_competencies?.join(", ") || ""}
 
 TASK:
-1. Check which keywords appear in the resume (exact match or close variants)
-2. Calculate overall match percentage
-3. Score different categories (technical, leadership, domain)
-4. Identify strengths and gaps
-5. Provide specific improvement recommendations
+1. Calculate overall match percentage between resume and job requirements
+2. Score different categories (technical, leadership, domain)
+3. Identify 3-5 key strengths from the resume that match the job
+4. Identify 3-5 specific gaps or missing qualifications
+5. Provide an overall recommendation
 
 Return this structure:
 {
@@ -56,9 +57,9 @@ Return this structure:
     "leadership": 80,
     "domain": 85
   },
-  "strengths": ["Strong technical background", "Proven leadership"],
-  "gaps": ["Missing cloud certifications", "Limited agile experience"],
-  "recommendation": "Strong candidate with minor gaps in cloud technologies"
+  "strengths": ["Strong technical background in X", "Proven leadership experience"],
+  "gaps": ["Missing certification in Y", "Limited experience with Z technology"],
+  "recommendation": "Strong candidate with minor gaps in specific areas"
 }`;
 
     const startTime = Date.now();
