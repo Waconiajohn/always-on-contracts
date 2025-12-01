@@ -75,17 +75,36 @@ export function transformScoreToBlueprint(scoreData: any): JobBlueprint {
  * Transform gaps from score data to V4 GapAnalysis format
  */
 export function transformGapsToV4(scoreData: any): GapAnalysis[] {
-  return (scoreData.priorityFixes || []).map((fix: any, i: number) => ({
-    id: `gap-${i}`,
-    type: fix.category === "technical" ? "missing_skill" : "missing_requirement",
-    severity: fix.priority === 1 ? "critical" : fix.priority === 2 ? "important" : "nice-to-have",
-    title: fix.issue || fix.fix,
-    description: fix.details || "",
-    currentState: fix.currentState || "",
-    targetState: fix.targetState || "",
-    suggestedApproaches: [fix.fix].filter(Boolean),
-    linkedBullets: [],
-  }));
+  return (scoreData.priorityFixes || []).map((fix: any, i: number) => {
+    // Map category to valid GapType
+    let gapType: 'missing_skill_or_tool' | 'weak_achievement_story' | 'missing_metrics_or_scope' | 'missing_domain_experience' | 'unclear_level_or_seniority' | 'positioning_issue' = 'missing_skill_or_tool';
+    
+    if (fix.category === 'technical') {
+      gapType = 'missing_skill_or_tool';
+    } else if (fix.category === 'experience') {
+      gapType = 'missing_domain_experience';
+    } else if (fix.category === 'achievement') {
+      gapType = 'weak_achievement_story';
+    } else if (fix.category === 'metrics') {
+      gapType = 'missing_metrics_or_scope';
+    } else if (fix.category === 'level') {
+      gapType = 'unclear_level_or_seniority';
+    } else {
+      gapType = 'positioning_issue';
+    }
+
+    return {
+      id: `gap-${i}`,
+      gapType,
+      severity: fix.priority === 1 ? "critical" : fix.priority === 2 ? "important" : "nice-to-have",
+      title: fix.issue || fix.fix || "",
+      relatedCompetencies: [],
+      relatedResumeSections: [],
+      currentStateSnapshot: fix.currentState || "",
+      targetState: fix.targetState || fix.fix || "",
+      whyItMatters: fix.details || "",
+    };
+  });
 }
 
 /**
