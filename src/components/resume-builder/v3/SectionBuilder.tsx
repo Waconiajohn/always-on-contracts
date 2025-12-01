@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +21,6 @@ import {
 interface SectionBuilderProps {
   assessment: ResumeAssessment;
   resumeText: string;
-  jobDescription: string;
-  selectedFormat: string;
   sections: ResumeSection[];
   onSectionsUpdated: (sections: ResumeSection[], newScore?: number) => void;
   onComplete: () => void;
@@ -41,8 +39,6 @@ const SECTION_TYPES = [
 export const SectionBuilder = ({
   assessment,
   resumeText,
-  jobDescription,
-  selectedFormat,
   sections,
   onSectionsUpdated,
   onComplete,
@@ -199,7 +195,7 @@ export const SectionBuilder = ({
     onSectionsUpdated(updatedSections);
   };
 
-  const handleRegenerateSection = async (sectionId: string) => {
+  const handleRegenerateSection = async () => {
     // TODO: Implement regeneration for single section
     toast({
       title: "Coming soon",
@@ -296,7 +292,7 @@ export const SectionBuilder = ({
                   <div className="bg-muted/30 rounded-lg p-4">
                     {section.items.length > 0 ? (
                       <ul className="space-y-2">
-                        {section.items.map((item, i) => (
+                        {section.items.map((item) => (
                           <li key={item.id} className="text-sm">
                             {item.content.startsWith('•') ? item.content : `• ${item.content}`}
                           </li>
@@ -334,7 +330,7 @@ export const SectionBuilder = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleRegenerateSection(section.id)}
+                      onClick={() => handleRegenerateSection()}
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Regenerate

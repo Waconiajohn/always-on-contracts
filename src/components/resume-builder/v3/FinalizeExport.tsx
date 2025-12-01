@@ -36,7 +36,6 @@ export const FinalizeExport = ({
   assessment,
   jobDescription,
   selectedFormat,
-  hiringManagerFeedback,
   initialScore,
   currentScore,
   onATSReport,
