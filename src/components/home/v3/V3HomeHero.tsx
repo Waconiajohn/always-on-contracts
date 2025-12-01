@@ -35,8 +35,8 @@ export function V3HomeHero({
         </h1>
         
         <p className="text-base max-w-3xl mb-8 leading-relaxed text-muted-foreground">
-          Your career intelligence platform. Build your vault, generate AI-powered 
-          resumes, and land interviews with roles that match your experience.
+          Your must-interview career system. Extract your hidden value, align to market reality, 
+          and translate into hiring manager language—not fabrication, better representation.
         </p>
         
         <div className="grid md:grid-cols-2 gap-8">
@@ -66,7 +66,7 @@ export function V3HomeHero({
             </div>
 
             <p className="text-xs text-muted-foreground mt-2">
-              Gold items use executive-level language and pass ATS filters
+              Gold items position you as must-interview—executive language + ATS compliance + market alignment
             </p>
           </div>
           
@@ -89,7 +89,7 @@ export function V3HomeHero({
       <Alert className="border-primary/20 bg-primary/5">
         <Info className="h-4 w-4 text-primary" />
         <AlertDescription className="text-sm">
-          <span className="font-medium">Why this matters:</span> Your vault completion affects resume quality, interview prep accuracy, and job match relevance. Every item you add is analyzed by our AI models to position you competitively in your target market.
+          <span className="font-medium">19+ years, 100,000+ executives:</span> Your vault powers the must-interview methodology. Higher completion = stronger extraction, better alignment, more precise translation into what hiring teams actually want to see.
         </AlertDescription>
       </Alert>
     </div>

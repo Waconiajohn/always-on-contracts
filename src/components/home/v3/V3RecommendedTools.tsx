@@ -36,14 +36,14 @@ export function V3RecommendedTools({
     {
       id: 'quick-score',
       title: 'Quick Resume Score',
-      description: 'Get instant feedback on your resume vs any job',
+      description: 'See what hiring teams actually see—get must-interview status',
       icon: Sparkles,
       path: '/quick-score',
       isPrimary: vaultCompletion < 30,
       requiredVault: 0,
       aiModels: ['Gemini 2.5 Flash', 'GPT-5'],
-      vaultDeps: 'No vault required - works with any resume',
-      successMetric: 'See exactly how you stack up in seconds'
+      vaultDeps: 'No vault required - instant analysis of any resume',
+      successMetric: 'Know if you\'re "qualified" or "must-interview" in 90 seconds'
     },
     {
       id: 'interview-prep',
@@ -71,15 +71,15 @@ export function V3RecommendedTools({
     },
     {
       id: 'resume-builder',
-      title: 'Resume Builder',
-      description: 'Generate ATS-optimized resumes from your vault',
+      title: 'Must-Interview Resume Builder',
+      description: 'Extract value, align to reality, translate to hiring language',
       icon: FileText,
       path: '/resume-builder',
       isPrimary: vaultCompletion >= 60 && activeApplications === 0,
       requiredVault: 50,
       aiModels: ['GPT-5', 'Gemini 2.5 Flash'],
       vaultDeps: 'Work Experience (50%+), Skills (40%+)',
-      successMetric: 'Vault-powered resumes get 45% more callbacks'
+      successMetric: 'Must-interview resumes get 45% more callbacks—we don\'t fabricate, we better represent'
     },
     {
       id: 'job-search',
@@ -124,7 +124,7 @@ export function V3RecommendedTools({
       <Alert className="mb-6 border-primary/20 bg-primary/5">
         <Info className="h-4 w-4 text-primary" />
         <AlertDescription className="text-sm">
-          <span className="font-medium">Why this matters:</span> These tools are prioritized based on your vault completion and active applications. Each tool uses your vault data differently to maximize your career success.
+          <span className="font-medium">Must-Interview Methodology:</span> Each tool applies 19+ years of positioning science. Quick Score shows where you are. Resume Builder transforms you from "qualified" to "must-interview." No fabrication—better representation of what you've actually accomplished.
         </AlertDescription>
       </Alert>
 

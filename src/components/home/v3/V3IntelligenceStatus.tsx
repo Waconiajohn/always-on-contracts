@@ -78,7 +78,7 @@ export function V3IntelligenceStatus({
       <Alert className="mb-6 border-primary/20 bg-primary/5">
         <Info className="h-4 w-4 text-primary" />
         <AlertDescription className="text-sm">
-          <span className="font-medium">Why this matters:</span> Your career intelligence determines resume quality, interview readiness, and job match accuracy. We use Gemini 3.0 Pro to analyze patterns across your work history and identify strategic positioning opportunities.
+          <span className="font-medium">Must-Interview Status:</span> Higher vault strength = better extraction of hidden value, stronger alignment to market needs, clearer translation into hiring manager language. We don't fabricate—we better represent what you've actually accomplished.
         </AlertDescription>
       </Alert>
 
@@ -188,7 +188,7 @@ export function V3IntelligenceStatus({
             )}
 
             <div className="pt-3 border-t border-border text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Benchmark:</span> Users with 80%+ vaults get 3x more interviews
+              <span className="font-medium text-foreground">Must-Interview Benchmark:</span> 80%+ vault completion = 3x more interviews. Stronger extraction, better alignment, clearer translation.
             </div>
           </div>
         </div>
