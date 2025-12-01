@@ -23,7 +23,6 @@ import {
   ArrowRight,
   Clock,
   Sparkles,
-  Briefcase,
   ChevronRight
 } from "lucide-react";
 
