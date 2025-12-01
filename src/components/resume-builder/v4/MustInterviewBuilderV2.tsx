@@ -196,10 +196,6 @@ export const MustInterviewBuilderV2 = ({
     }));
   }, [builder.state.bulletStore]);
 
-  const highlightsSection = useMemo(() => ({
-    bullets: highlightsSuggestions,
-  }), [highlightsSuggestions]);
-
   const rolesSuggestions = useMemo(() => {
     return builder.state.roleOrder.map(roleId => {
       const role = builder.state.roleData.get(roleId);
@@ -452,7 +448,18 @@ export const MustInterviewBuilderV2 = ({
         {/* Step 2: Highlights */}
         {builder.state.currentStep === 2 && builder.state.jobBlueprint && (
           <HighlightsStep
-            highlights={highlightsSection}
+            highlights={{
+              bullets: highlightsSuggestions,
+              progress: {
+                total: highlightsSuggestions.length,
+                accepted: highlightsSuggestions.filter(b => b.status === 'accepted').length,
+                pending: highlightsSuggestions.filter(b => b.status === 'pending').length,
+                rejected: highlightsSuggestions.filter(b => b.status === 'rejected').length,
+                edited: highlightsSuggestions.filter(b => b.status === 'edited').length,
+              },
+              sectionGuidance: "Select 3-6 most impactful highlights that showcase your fit for this role.",
+              gapsAddressed: builder.state.gaps.filter(g => g.severity === 'critical').map(g => g.id),
+            }}
             jobBlueprint={builder.state.jobBlueprint}
             scores={{
               current: builder.state.currentScore,
@@ -491,7 +498,10 @@ export const MustInterviewBuilderV2 = ({
         {builder.state.currentStep === 4 && (
           <SkillsStep
             existingSkills={builder.state.existingSkills}
-            suggestedSkills={builder.state.suggestedSkills}
+            suggestedSkills={builder.state.suggestedSkills.map(skill => ({
+              ...skill,
+              source: skill.source as 'ats_critical' | 'ats_important' | 'competency' | 'must_have' | 'nice_to_have'
+            }))}
             onAcceptSkill={builder.acceptSkill}
             onRejectSkill={builder.rejectSkill}
             onAddCustomSkill={builder.addCustomSkill}
