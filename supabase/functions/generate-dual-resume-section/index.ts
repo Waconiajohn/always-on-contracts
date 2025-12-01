@@ -66,7 +66,8 @@ serve(async (req) => {
       ats_keywords = { critical: [], important: [], nice_to_have: [] },
       requirements = [],
       evidenceMatrix = [], // New parameter for evidence-based generation
-      evidenceSelections = {} // New parameter for user choices
+      evidenceSelections = {}, // New parameter for user choices
+      existing_resume = '' // Resume text for V3 Must-Interview Builder
     } = await req.json();
 
     console.log(`Generating dual versions for ${section_type}`);
@@ -130,9 +131,10 @@ Return ONLY the bullet points/content.`;
     }
 
     // SAFETY CHECK: Prevent hallucination when vault is empty
+    // Allow generation if existing_resume is provided (for V3 Must-Interview Builder)
     const isDataRequiredSection = ['experience', 'work_history', 'professional_experience', 'employment', 'education', 'academic_background'].includes(section_type);
     
-    if (isDataRequiredSection && resume_milestones.length === 0 && vault_items.length === 0) {
+    if (isDataRequiredSection && resume_milestones.length === 0 && vault_items.length === 0 && !existing_resume) {
       console.error(`⚠️ SAFETY CHECK FAILED: Cannot generate ${section_type} without resume data`);
       return new Response(
         JSON.stringify({
@@ -249,6 +251,10 @@ ${vaultMilestones.slice(0, 15).map((m: any) => `- ${m.milestone_title || m.descr
     const idealPrompt = `You are an expert resume writer. Create a ${section_type} section for a ${seniority} ${job_title} in ${industry}.
 
 ${RESUME_ARCHITECT_SYSTEM_PROMPT}
+
+${existing_resume ? `CANDIDATE'S EXISTING RESUME (for context):
+${existing_resume.substring(0, 3000)}
+` : ''}
 
 CRITICAL CONTEXT - Real job market research:
 ${job_analysis_research}
@@ -372,6 +378,10 @@ Keywords: ${item.atsKeywords.join(', ')}
     const personalizedPrompt = `You are an expert resume writer. Create a PERSONALIZED ${section_type} section for THIS SPECIFIC CANDIDATE.
 
 ${RESUME_ARCHITECT_SYSTEM_PROMPT}
+
+${existing_resume ? `CANDIDATE'S EXISTING RESUME (for context):
+${existing_resume.substring(0, 3000)}
+` : ''}
 
 CRITICAL CONTEXT - Real job market research:
 ${job_analysis_research}
