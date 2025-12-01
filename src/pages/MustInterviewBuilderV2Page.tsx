@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Upload, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useSessionResilience } from "@/hooks/useSessionResilience";
 import { MustInterviewBuilderV2 } from "@/components/resume-builder/v4/MustInterviewBuilderV2";
 import { transformScoreToBlueprint, transformGapsToV4, transformBulletsToV4 } from "@/lib/v4Adapters";
 import type { JobBlueprint, GapAnalysis, RoleData, BulletSuggestion } from "@/components/resume-builder/v4/types/builderV2Types";
@@ -27,6 +28,7 @@ import type { JobBlueprint, GapAnalysis, RoleData, BulletSuggestion } from "@/co
 export default function MustInterviewBuilderV2Page() {
   const { toast } = useToast();
   const location = useLocation();
+  const { withSessionValidation } = useSessionResilience();
   
   // Input state
   const [resumeText, setResumeText] = useState(
@@ -78,17 +80,21 @@ export default function MustInterviewBuilderV2Page() {
     setAnalysisError(null);
 
     try {
-      // Call the existing score-resume-match function
-      const { data: scoreData, error: scoreError } = await supabase.functions.invoke(
-        "score-resume-match",
-        {
-          body: {
-            jobDescription: jobDescription,
-            resumeContent: resumeText,
-          },
-        }
-      );
+      // Call the existing score-resume-match function with session validation
+      const scoreResult = await withSessionValidation(async () => {
+        return await supabase.functions.invoke(
+          "score-resume-match",
+          {
+            body: {
+              jobDescription: jobDescription,
+              resumeContent: resumeText,
+            },
+          }
+        );
+      });
 
+      if (!scoreResult) throw new Error("Session validation failed");
+      const { data: scoreData, error: scoreError } = scoreResult;
       if (scoreError) throw scoreError;
 
       // Transform score data to V4 format
@@ -108,25 +114,33 @@ export default function MustInterviewBuilderV2Page() {
 
       // Generate highlight suggestions by calling generate-dual-resume-section
       try {
-        const { data: bulletData, error: bulletError } = await supabase.functions.invoke(
-          "generate-dual-resume-section",
-          {
-            body: {
-              section: "summary",
-              jobDescription,
-              resumeContent: resumeText,
-              targetRole: transformedBlueprint.inferredRoleFamily,
-              targetIndustry: transformedBlueprint.inferredIndustry,
-            },
-          }
-        );
+        const bulletResult = await withSessionValidation(async () => {
+          return await supabase.functions.invoke(
+            "generate-dual-resume-section",
+            {
+              body: {
+                section: "summary",
+                jobDescription,
+                resumeContent: resumeText,
+                targetRole: transformedBlueprint.inferredRoleFamily,
+                targetIndustry: transformedBlueprint.inferredIndustry,
+              },
+            }
+          );
+        });
 
-        if (bulletError) {
-          console.warn("Failed to generate bullets:", bulletError);
+        if (!bulletResult) {
+          console.warn("Session validation failed for bullets");
           setHighlightSuggestions([]);
         } else {
-          const transformedBullets = transformBulletsToV4(bulletData, "summary");
-          setHighlightSuggestions(transformedBullets);
+          const { data: bulletData, error: bulletError } = bulletResult;
+          if (bulletError) {
+            console.warn("Failed to generate bullets:", bulletError);
+            setHighlightSuggestions([]);
+          } else {
+            const transformedBullets = transformBulletsToV4(bulletData, "summary");
+            setHighlightSuggestions(transformedBullets);
+          }
         }
       } catch (bulletError) {
         console.warn("Bullet generation error:", bulletError);
@@ -168,13 +182,17 @@ export default function MustInterviewBuilderV2Page() {
 
   // Callback for builder to rescore
   const handleRescore = async (resumeText: string): Promise<number> => {
-    const { data, error } = await supabase.functions.invoke("score-resume-match", {
-      body: {
-        jobDescription: jobDescription,
-        resumeContent: resumeText,
-      },
+    const result = await withSessionValidation(async () => {
+      return await supabase.functions.invoke("score-resume-match", {
+        body: {
+          jobDescription: jobDescription,
+          resumeContent: resumeText,
+        },
+      });
     });
 
+    if (!result) return initialScore;
+    const { data, error } = result;
     if (error || !data) return initialScore;
     return data.overallScore || initialScore;
   };
