@@ -15,9 +15,6 @@ import type {
   RoleData, 
   GapAnalysis, 
   JobBlueprint,
-  HighlightsSection,
-  SkillsData,
-  ScoreData,
   BuilderStep,
   BulletStatus
 } from '../types/builderV2Types';
@@ -293,7 +290,7 @@ export function useBuilderState(options: UseBuilderStateOptions) {
     });
   }, []);
 
-  const approveAllHighConfidence = useCallback((sectionId: string, suggestions: BulletSuggestion[]) => {
+  const approveAllHighConfidence = useCallback((_sectionId: string, suggestions: BulletSuggestion[]) => {
     setState(prev => {
       const newStore = new Map(prev.bulletStore);
       suggestions

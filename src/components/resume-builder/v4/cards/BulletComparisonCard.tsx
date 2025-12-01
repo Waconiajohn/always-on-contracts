@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { BulletSuggestion, ConfidenceLevel } from "../types/builderV2Types";
+import type { BulletSuggestion } from "../types/builderV2Types";
 import { CONFIDENCE_INFO } from "../types/builderV2Types";
 import { 
   Check, 

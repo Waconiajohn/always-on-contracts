@@ -9,8 +9,8 @@
  * - Empty states for no roles or all complete
  */
 
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,7 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { RoleData, BulletSuggestion, JobBlueprint, GapAnalysis } from "../types/builderV2Types";
 import { RoleEditorCard } from "../cards/RoleEditorCard";
-import { BUILDER_RULES, validateExperience } from "../config/resumeBuilderRules";
+import { validateExperience } from "../config/resumeBuilderRules";
 import { EXPERIENCE_EMPTY_STATES } from "../config/emptyStates";
 import { SECTION_LABELS, PROGRESS_LABELS, DISCLAIMERS, BUTTON_LABELS } from "../config/uiCopy";
 import { 
@@ -57,8 +57,6 @@ interface ExperienceStepProps {
 
 export const ExperienceStep = ({
   roles,
-  jobBlueprint,
-  gaps,
   gapStatus,
   totalAcceptedBullets,
   onBulletAction,

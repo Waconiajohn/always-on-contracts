@@ -11,9 +11,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+
 import { cn } from "@/lib/utils";
-import type { ScoreData, GapAnalysis, JobBlueprint, GapSeverity } from "../types/builderV2Types";
+import type { GapAnalysis, JobBlueprint } from "../types/builderV2Types";
 import { GAP_TYPE_INFO, SEVERITY_COLORS } from "../types/builderV2Types";
 import { 
   Target, 
@@ -28,27 +28,30 @@ import {
 } from "lucide-react";
 
 interface ResumeOverviewStepProps {
-  scores: ScoreData;
+  currentScore: number;
+  projectedScore: number;
+  scoreBreakdown: {
+    atsMatch: number;
+    requirementsCoverage: number;
+    competitiveStrength: number;
+  };
   gaps: GapAnalysis[];
   jobBlueprint: JobBlueprint;
-  jobTitle: string;
-  companyName: string;
-  onStart: () => void;
-  onJumpToSection: (section: 'highlights' | 'experience' | 'skills') => void;
+  estimatedTime: string;
+  onStartBuilding: () => void;
 }
 
 export const ResumeOverviewStep = ({
-  scores,
+  currentScore,
+  projectedScore,
+  scoreBreakdown,
   gaps,
   jobBlueprint,
-  jobTitle,
-  companyName,
-  onStart,
-  onJumpToSection
+  estimatedTime,
+  onStartBuilding
 }: ResumeOverviewStepProps) => {
   const criticalGaps = gaps.filter(g => g.severity === 'critical');
   const importantGaps = gaps.filter(g => g.severity === 'important');
-  const niceToHaveGaps = gaps.filter(g => g.severity === 'nice-to-have');
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-500';
@@ -63,35 +66,17 @@ export const ResumeOverviewStep = ({
     return 'Significant Gaps';
   };
 
-  const getProgressColor = (score: number) => {
-    if (score >= 80) return 'bg-green-500';
-    if (score >= 60) return 'bg-amber-500';
-    return 'bg-red-500';
-  };
-
-  const estimatedTime = Math.max(10, Math.min(25, gaps.length * 2 + 5));
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full text-sm mb-4">
           <Clock className="h-4 w-4 text-primary" />
-          <span>~{estimatedTime} minutes to must-interview résumé</span>
+          <span>~{estimatedTime} to must-interview résumé</span>
         </div>
         <h1 className="text-2xl font-bold mb-2">
-          Your Résumé Assessment for
+          Your Résumé Assessment
         </h1>
-        <div className="flex items-center justify-center gap-2 text-lg text-muted-foreground">
-          <Briefcase className="h-5 w-5" />
-          <span className="font-medium text-foreground">{jobTitle}</span>
-          {companyName && (
-            <>
-              <span>at</span>
-              <span className="font-medium text-foreground">{companyName}</span>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Score Card */}
@@ -103,16 +88,13 @@ export const ResumeOverviewStep = ({
               <div className="relative">
                 <div className={cn(
                   "w-24 h-24 rounded-full flex items-center justify-center border-4",
-                  scores.current >= 80 ? "border-green-500 bg-green-50" :
-                  scores.current >= 60 ? "border-amber-500 bg-amber-50" : "border-red-500 bg-red-50"
+                  currentScore >= 80 ? "border-green-500 bg-green-50" :
+                  currentScore >= 60 ? "border-amber-500 bg-amber-50" : "border-red-500 bg-red-50"
                 )}>
-                  <span className={cn("text-3xl font-bold", getScoreColor(scores.current))}>
-                    {scores.current}
+                  <span className={cn("text-3xl font-bold", getScoreColor(currentScore))}>
+                    {currentScore}
                   </span>
                 </div>
-                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
-                  / 100
-                </span>
               </div>
               
               {/* Score Details */}
@@ -121,29 +103,29 @@ export const ResumeOverviewStep = ({
                   variant="outline" 
                   className={cn(
                     "mb-2",
-                    scores.current >= 80 ? "bg-green-100 text-green-700 border-green-200" :
-                    scores.current >= 60 ? "bg-amber-100 text-amber-700 border-amber-200" : 
+                    currentScore >= 80 ? "bg-green-100 text-green-700 border-green-200" :
+                    currentScore >= 60 ? "bg-amber-100 text-amber-700 border-amber-200" : 
                     "bg-red-100 text-red-700 border-red-200"
                   )}
                 >
-                  {getScoreLabel(scores.current)}
+                  {getScoreLabel(currentScore)}
                 </Badge>
                 <h3 className="text-lg font-semibold">Current Alignment Score</h3>
                 <p className="text-sm text-muted-foreground">
-                  {scores.current >= 80 
+                  {currentScore >= 80 
                     ? "You're already in must-interview territory! Let's make it even stronger."
-                    : `${80 - scores.current} points needed to reach must-interview status`
+                    : `${80 - currentScore} points needed to reach must-interview status`
                   }
                 </p>
               </div>
             </div>
 
             {/* Projected Score */}
-            {scores.projected > scores.current && (
+            {projectedScore > currentScore && (
               <div className="text-right">
                 <div className="flex items-center gap-2 text-green-600 mb-1">
                   <TrendingUp className="h-5 w-5" />
-                  <span className="text-2xl font-bold">{scores.projected}</span>
+                  <span className="text-2xl font-bold">{projectedScore}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Projected after fixes
@@ -155,15 +137,15 @@ export const ResumeOverviewStep = ({
           {/* Score Breakdown */}
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center p-3 bg-muted/30 rounded-lg">
-              <p className="text-2xl font-semibold">{scores.breakdown.atsMatch}%</p>
+              <p className="text-2xl font-semibold">{scoreBreakdown.atsMatch}%</p>
               <p className="text-xs text-muted-foreground">ATS Keywords</p>
             </div>
             <div className="text-center p-3 bg-muted/30 rounded-lg">
-              <p className="text-2xl font-semibold">{scores.breakdown.requirementsCoverage}%</p>
+              <p className="text-2xl font-semibold">{scoreBreakdown.requirementsCoverage}%</p>
               <p className="text-xs text-muted-foreground">Requirements</p>
             </div>
             <div className="text-center p-3 bg-muted/30 rounded-lg">
-              <p className="text-2xl font-semibold">{scores.breakdown.competitiveStrength}/5</p>
+              <p className="text-2xl font-semibold">{scoreBreakdown.competitiveStrength}/5</p>
               <p className="text-xs text-muted-foreground">Competitive</p>
             </div>
           </div>
@@ -310,7 +292,7 @@ export const ResumeOverviewStep = ({
           <div className="space-y-3">
             {/* Highlights */}
             <button
-              onClick={() => onJumpToSection('highlights')}
+              onClick={onStartBuilding}
               className="w-full flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
@@ -329,7 +311,7 @@ export const ResumeOverviewStep = ({
 
             {/* Experience */}
             <button
-              onClick={() => onJumpToSection('experience')}
+              onClick={onStartBuilding}
               className="w-full flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
@@ -348,7 +330,7 @@ export const ResumeOverviewStep = ({
 
             {/* Skills */}
             <button
-              onClick={() => onJumpToSection('skills')}
+              onClick={onStartBuilding}
               className="w-full flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
@@ -370,7 +352,7 @@ export const ResumeOverviewStep = ({
 
       {/* CTA */}
       <div className="flex justify-center pt-4">
-        <Button size="lg" onClick={onStart} className="gap-2 px-8">
+        <Button size="lg" onClick={onStartBuilding} className="gap-2 px-8">
           <Sparkles className="h-5 w-5" />
           Start Fixing My Résumé
           <ArrowRight className="h-5 w-5" />

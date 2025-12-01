@@ -154,7 +154,7 @@ export function validateHighlights(acceptedCount: number): ValidationResult {
  */
 export function validateExperience(
   totalAccepted: number, 
-  rolesWithBullets: number,
+  _rolesWithBullets: number,
   unresolvedCriticalGaps: number
 ): ValidationResult {
   // Hard block if nothing at all
@@ -186,7 +186,7 @@ export function validateExperience(
 /**
  * Validate skills section (always allows proceed)
  */
-export function validateSkills(addedCount: number): ValidationResult {
+export function validateSkills(_addedCount: number): ValidationResult {
   // Skills is optional - always allow proceed
   return { canProceed: true, type: 'pass' };
 }
