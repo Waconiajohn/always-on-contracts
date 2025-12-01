@@ -120,6 +120,8 @@ export interface RoleData {
   startDate: string;
   endDate: string;
   isCurrent: boolean;
+  suggestions?: BulletSuggestion[];
+  relevantCompetencies?: string[];
   /** Why this role matters for the target job */
   relevanceToJob: string[];
   /** All bullet suggestions for this role */
