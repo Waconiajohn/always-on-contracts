@@ -13,7 +13,14 @@ import {
   Eye,
   Search,
   Users,
-  Award
+  Award,
+  Zap,
+  Target,
+  Brain,
+  FileCheck,
+  MessageSquare,
+  ArrowRight,
+  Sparkles
 } from "lucide-react";
 
 export default function Landing() {
@@ -24,7 +31,7 @@ export default function Landing() {
       name: "Michael Chen",
       age: 58,
       title: "VP of Operations",
-      quote: "After 18 months of rejection and watching my savings drain, CareerIQ positioned me for a VP role in 3 weeks. Despite AARP's 90% discrimination statistic, my experience finally became an asset.",
+      quote: "After 18 months of sending résumés into the void, CareerIQ helped me create a must-interview résumé. Three weeks later, I had the VP role I wanted. My experience finally became an asset.",
       image: "MC",
       rating: 5
     },
@@ -32,7 +39,7 @@ export default function Landing() {
       name: "Sarah Martinez",
       age: 52,
       title: "Senior Product Manager",
-      quote: "I was told I was 'overqualified' 23 times. CareerIQ helped me reframe decades of experience into strategic positioning—landed a $145K role, $35K more than my previous position. The average 15-25% salary degradation? Not my story.",
+      quote: "I was told I was 'overqualified' 23 times. CareerIQ helped me show why that experience mattered for the specific role. Landed at $145K—$35K more than before. Finally seen as must-interview, not must-skip.",
       image: "SM",
       rating: 5
     },
@@ -40,129 +47,92 @@ export default function Landing() {
       name: "David Thompson",
       age: 61,
       title: "Technology Consultant",
-      quote: "Traditional hiring was a dead end—14 months, zero offers. CareerIQ's contract pathway bypassed the bias entirely. I'm now consulting at $185/hour. Placed in 3 months vs the 18-month nightmare.",
+      quote: "14 months, zero offers. CareerIQ rewrote how I presented my career—same experience, completely different response. Now consulting at $185/hour. The must-interview résumé changed everything.",
       image: "DT",
       rating: 5
     }
   ];
 
-  const benefits = [
+  const howItWorks = [
     {
-      icon: Database,
-      title: "Build Your Intelligence Foundation",
-      description: "Extract your hidden value across decades of experience. Document everything you've accomplished and mastered. This intelligence powers all 5 dimensions—but it's step one, not the finish line."
+      step: "01",
+      title: "Upload Your Current Résumé",
+      description: "Drop in your existing résumé and a target job description. We'll analyze both to understand the gap between where you are and where you need to be."
     },
     {
-      icon: Shield,
-      title: "Stop Burning Bridges",
-      description: "Every bad résumé you submit gets permanently stored in their ATS with a low score. Fix this first before applying anywhere."
+      step: "02",
+      title: "We Build Your Career Brain",
+      description: "Our AI creates a structured profile of your entire career: achievements, metrics, scope, tools, and impact. This becomes the foundation for every future must-interview résumé."
     },
     {
-      icon: Eye,
-      title: "Access the Hidden 80%",
-      description: "Build visibility to employers who never post jobs externally. This is where 80% of opportunities live—and you're currently invisible."
+      step: "03",
+      title: "We Study the Role & Company",
+      description: "We analyze the job description (and when available, the company and industry) to build a Job Blueprint—the exact competencies, keywords, and structure that will resonate."
     },
     {
-      icon: Search,
-      title: "Find & Verify Real Jobs",
-      description: "Learn which job boards matter, how to search them correctly, and how to verify positions are legitimate before you waste time applying."
+      step: "04",
+      title: "We Match Your Best Self to This Job",
+      description: "We map your Career Brain to the Job Blueprint, selecting and organizing the most relevant achievements for this specific opportunity."
     },
     {
-      icon: Users,
-      title: "Network Without Burning Resources",
-      description: "You only get 1-2 touches per key contact. Learn the formula to network correctly without damaging relationships."
+      step: "05",
+      title: "Answer a Few Targeted Questions",
+      description: "We ask focused questions to fill in the gaps: metrics, scope, tools, budgets, team sizes, outcomes. No endless forms—just the details that unlock real impact."
     },
     {
-      icon: Award,
-      title: "Become the Benchmark Candidate",
-      description: "Excel across all dimensions for each role: resume positioning, LinkedIn brand, interview preparation (behavioral, psychological, panel formats), and strategic networking. One strong area isn't enough—benchmark candidates dominate everywhere."
+      step: "06",
+      title: "Get Your Must-Interview Résumé",
+      description: "We generate a tailored résumé designed for ATS systems, fast scanning by hiring teams, and clear alignment to the role. Export, edit, and reuse for future roles in minutes."
     }
   ];
 
-  const processSteps = [
-    {
-      number: "01",
-      title: "Build Your Vault",
-      subtitle: "15 Minutes",
-      description: "Upload your resume, answer smart questions, and let AI analyze decades of your career intelligence."
-    },
-    {
-      number: "02",
-      title: "Deploy Your Intelligence",
-      subtitle: "Ongoing",
-      description: "Customize resumes instantly, prep for interviews with precision, and track opportunities strategically."
-    },
-    {
-      number: "03",
-      title: "Win Premium Opportunities",
-      subtitle: "Results",
-      description: "Land roles that value your experience at the compensation you deserve—3-5X faster than traditional methods."
-    }
-  ];
-
-  const whyChooseUs = [
-    "Built specifically for 40+ professionals",
-    "AI analyzes decades of experience, not just keywords",
-    "Contract pathways that bypass age discrimination",
-    "15-minute setup, lifetime career intelligence",
-    "Executive positioning, not entry-level tactics",
-    "Real career coaches, not just algorithms",
-    "Concierge service for C-suite transitions",
-    "100+ successful placements in 6 months",
-    "Average salary increase: $35K",
-    "3-5X faster time-to-hire",
-    "Strategic intelligence, not spray-and-pray",
-    "Your experience becomes your advantage"
+  const whyDifferent = [
+    "We extract the best 1-2% of your career story",
+    "We align it to the job, company, and industry",
+    "We translate it into hiring-manager language",
+    "We never invent titles, roles, or fake wins",
+    "19+ years coaching 100,000+ executives",
+    "AI-powered but human-vetted methodology",
+    "Your experience, finally presented right",
+    "ATS-optimized and recruiter-approved",
+    "Reusable Career Brain for future roles",
+    "Built for executives 40+ fighting age bias",
+    "3-5X faster time-to-hire for our users",
+    "Average $35K salary increase"
   ];
 
   const faqs = [
     {
-      question: "What does the research say about age discrimination?",
-      answer: "AARP's 2024 study found 90% of executives over 50 experience age discrimination. AI screening systems eliminate 78% of older candidates before human review. Private equity acquisitions have eliminated 2.4M management positions since 2020. The bias isn't subtle—it's systematic. CareerIQ was built specifically to bypass these broken systems through strategic positioning and direct decision-maker access."
+      question: "What is a 'must-interview' résumé?",
+      answer: "A must-interview résumé is one that makes hiring teams think: 'This is exactly who we've been trying to hire. We need to meet this person.' It's not about buzzwords or fluff—it's about alignment, credibility, and clarity that's visible in a 6-20 second scan."
     },
     {
-      question: "Why do traditional job search methods fail for executives 50+?",
-      answer: "Because they weren't designed for you. Traditional methods rely on resume screening (where AI eliminates you), job boards (where 'cultural fit' filters you out), and outplacement services (47% success rate). CareerIQ uses strategic positioning, direct decision-maker access, and contract pathways that bypass age-biased hiring entirely. That's why our users place 3-5X faster."
+      question: "Do you make things up or exaggerate?",
+      answer: "Never. We don't fabricate experience, inflate titles, or invent achievements. You're already qualified for the roles you're targeting. Your résumé just shows 1/10th of 1% of what you've accomplished. We help you show the other 99.9%—truthfully and compellingly."
     },
     {
-      question: "How long should I expect my job search to take?",
-      answer: "Research shows average job search time for executives 50+ is 14+ months vs 4 months for younger candidates. With CareerIQ's strategic approach, our users average 3-5 months—a 3-5X acceleration. Contract pathway users often engage in 3 months or less, bypassing traditional hiring timelines completely."
+      question: "How is this different from ChatGPT or other AI tools?",
+      answer: "Generic AI tools don't understand career positioning. They might clean up grammar or suggest better words, but they don't know what hiring managers for your specific role actually look for. Our system is built on 19+ years of coaching executives—the prompts, the structure, the methodology all come from real hiring manager feedback and 100,000+ successful placements."
     },
     {
-      question: "What's the financial impact if I don't address this strategically?",
-      answer: "Extended unemployment typically costs $75K-$150K in depleted emergency savings. Forced acceptance of lower compensation reduces lifetime earnings by $500K-$1.2M. Early retirement penalties can reduce savings by 25-40%. The crisis isn't just unemployment—it's systematic wealth destruction. Strategic positioning protects both your timeline and your compensation."
+      question: "I'm over 50—will this really help with age discrimination?",
+      answer: "Yes. 90% of executives 50+ face age discrimination (AARP 2024). The résumé that gets you past that is one that's so aligned and compelling, hiring managers don't want to risk losing you. We focus on what matters: results, relevance, and readiness—not your graduation year."
     },
     {
-      question: "How is this different from LinkedIn or Indeed?",
-      answer: "LinkedIn and Indeed are job boards. CareerIQ is career intelligence. We transform your experience into strategic positioning—customized resumes, interview prep, and opportunity matching that actually understands your value. You're not just applying; you're strategically positioned to bypass age bias entirely."
+      question: "How long does it take?",
+      answer: "Your first must-interview résumé takes about 15-20 minutes: upload your résumé, paste a job description, answer a few targeted questions, and get your tailored result. Future résumés for new roles take just 3-5 minutes because your Career Brain is already built."
     },
     {
-      question: "I'm over 50—will this really work for me?",
-      answer: "Absolutely. CareerIQ was built specifically for experienced professionals facing the 90% discrimination statistic. Our AI turns your decades of experience into competitive advantages, and our contract pathways let you bypass traditional hiring discrimination entirely. 70% of our users are 45+, and they place 3-5X faster than traditional methods."
+      question: "Can I edit the résumé you generate?",
+      answer: "Absolutely. You own everything we create. Export as PDF or Word, make any edits you want, and use it however you need. Many users fine-tune the AI output before sending—that's expected and encouraged."
     },
     {
-      question: "Do I need to be tech-savvy?",
-      answer: "Not at all. If you can answer questions in a conversation, you can build your Career Vault. Our AI guides you through everything, and our interface is designed for clarity, not confusion. Plus, our Concierge tier includes white-glove support."
+      question: "What about LinkedIn, interview prep, and other career stuff?",
+      answer: "Great question. A must-interview résumé gets you in the door—but Benchmark Candidates dominate every dimension. That's why we also offer LinkedIn optimization, interview prep with real questions from your target companies, strategic networking guidance, and more. The résumé is step one of a complete system."
     },
     {
-      question: "How long does the Career Vault take to build?",
-      answer: "The initial build takes about 15 minutes—just upload your resume and answer AI-guided questions. Your vault then works for you indefinitely, customizing applications and preparing you for opportunities in seconds."
-    },
-    {
-      question: "What if I'm currently employed?",
-      answer: "Perfect. Many of our clients build their Career Vault while employed to stay 'always ready' for opportunities. You control when and how you deploy it—no one knows you're looking unless you decide to act."
-    },
-    {
-      question: "Can I use this for contract work?",
-      answer: "Yes! Our contract pathways are designed specifically for experienced professionals. We help you position yourself for high-value consulting and contract roles ($100-$250/hour) where your experience commands premium rates. Contract roles engage 83% faster than traditional positions—3 months vs 18 months average."
-    },
-    {
-      question: "Is my data private and secure?",
-      answer: "Completely. Your Career Vault is encrypted and private. We never share your data with employers or third parties without your explicit action. You control every application and every outreach."
-    },
-    {
-      question: "What's included in the free trial?",
-      answer: "Full access to build your Career Vault, analyze your positioning, and explore all features for 15 days. No credit card required. Experience the power of career intelligence risk-free."
+      question: "What's the free score all about?",
+      answer: "Before you commit to anything, you can score your current résumé for free. We'll show you how it stacks up against what hiring teams actually look for—and what's missing to make it must-interview worthy. No signup required for the initial score."
     }
   ];
 
@@ -172,115 +142,222 @@ export default function Landing() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            {/* Prominent CareerIQ Branding */}
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-amber-500 flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-xl">C</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                  CareerIQ
-                </h1>
-                <p className="text-xs text-slate-600 font-medium">AI-Powered Career Intelligence</p>
+                <h1 className="text-2xl font-bold text-slate-900">CareerIQ</h1>
+                <p className="text-xs text-slate-600 font-medium">Must-Interview Résumé Engine</p>
               </div>
             </div>
             
-            {/* Right Side Navigation */}
             <div className="flex items-center gap-4">
               <Button variant="ghost" onClick={() => navigate('/auth')}>
                 Sign In
               </Button>
-              <Button onClick={() => navigate('/pricing')}>
-                View Pricing
+              <Button onClick={() => navigate('/quick-score')} variant="outline">
+                Free Score
+              </Button>
+              <Button onClick={() => navigate('/auth')}>
+                Get Started
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* HERO SECTION */}
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        <div className="container relative mx-auto px-4 py-12 lg:py-20">
+        <div className="container relative mx-auto px-4 py-16 lg:py-24">
           <div className="max-w-4xl mx-auto text-center space-y-8">
+            <Badge variant="outline" className="px-4 py-1 text-sm">
+              19+ Years • 100,000+ Executives • Must-Interview Results
+            </Badge>
+            
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-              Get Re-employed 3-5X Faster—
+              Your résumé shows 1/10th of 1% of what you've accomplished.
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {" "}Without Age Holding You Back
+                {" "}Let's fix that.
               </span>
             </h1>
+            
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Turn your decades of experience into strategic career intelligence. 
-              Build your AI-powered Career Vault in 15 minutes and unlock opportunities 
-              that actually value your expertise.
+              We turn your real career into a <strong>must-interview résumé</strong> for every role—so hiring teams move you to the top of the interview list, not the bottom of the stack.
             </p>
+            
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button size="lg" className="text-lg px-8" onClick={() => navigate('/auth')}>
-                <Upload className="mr-2 h-5 w-5" />
-                Upload Resume & Start Free
+              <Button size="lg" className="text-lg px-8 gap-2" onClick={() => navigate('/auth')}>
+                <Sparkles className="h-5 w-5" />
+                Build My Must-Interview Résumé
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/pricing')}>
-                View Pricing
+              <Button size="lg" variant="outline" className="gap-2" onClick={() => navigate('/quick-score')}>
+                <Target className="h-5 w-5" />
+                Get My Free Score (90 Seconds)
               </Button>
             </div>
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+            
+            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground pt-4">
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 No credit card required
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
-                100+ 5-star reviews
+                We don't fabricate—ever
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                19+ years of methodology
               </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Problem Section */}
-      <section className="py-12 border-b bg-muted/20">
+      {/* PROBLEM SECTION */}
+      <section className="py-16 border-b bg-muted/20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <div className="space-y-4">
-              <h2 className="text-3xl md:text-5xl font-bold leading-tight">
-                You Have the Experience.
+              <Badge variant="destructive" className="mb-2">The Problem</Badge>
+              <h2 className="text-3xl md:text-4xl font-bold leading-tight">
+                Your career is impressive.
                 <br />
-                You're More Than Qualified.
-                <br />
-                <span className="text-destructive">Yet You're Being Ignored.</span>
+                <span className="text-destructive">Your résumé doesn't show it.</span>
               </h2>
-              <p className="text-lg text-muted-foreground">
-                We get it. You've seen this pattern before:
+            </div>
+            
+            <div className="text-left space-y-4 text-lg text-muted-foreground">
+              <p>
+                Most professionals—especially at senior levels—are terrible at talking about themselves on paper:
               </p>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
+            
+            <div className="grid md:grid-cols-2 gap-4">
               {[
-                {
-                  stat: "90% of executives over 50 face age discrimination",
-                  source: "AARP 2024",
-                  subtext: "You're not imagining it. The bias is real—and documented."
-                },
-                {
-                  stat: "Job search extends from 4 months to 14+ months after age 50",
-                  source: "Federal Reserve Data",
-                  subtext: "Your timeline expectations are calibrated to a market that no longer exists."
-                },
-                {
-                  stat: "AI screening eliminates 78% of older executive candidates before human review",
-                  source: "Harvard Business Review",
-                  subtext: "You're being filtered out by algorithms, not people."
-                },
-                {
-                  stat: "Average salary degradation: 15-25% even for equivalent positions",
-                  source: "Bureau of Labor Statistics",
-                  subtext: "Taking less money doesn't solve the problem—it validates the bias."
-                }
-              ].map((pain, index) => (
+                { issue: "Key wins are buried or missing", icon: "📉" },
+                { issue: "Bullets are generic and interchangeable", icon: "📝" },
+                { issue: "Résumé isn't aligned to any specific role or company", icon: "🎯" },
+                { issue: "For 50+, age bias magnifies the problem", icon: "⏰" }
+              ].map((item, index) => (
                 <Card key={index} className="border-destructive/20 hover:border-destructive/40 transition-colors">
-                  <CardContent className="pt-6 space-y-3">
-                    <p className="font-bold text-foreground text-lg">{pain.stat}</p>
-                    <p className="text-xs text-muted-foreground font-medium">Source: {pain.source}</p>
-                    <p className="text-sm text-muted-foreground italic">{pain.subtext}</p>
+                  <CardContent className="pt-6 flex items-start gap-3">
+                    <span className="text-2xl">{item.icon}</span>
+                    <p className="text-left text-muted-foreground">{item.issue}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <Card className="bg-destructive/5 border-destructive/20">
+              <CardContent className="pt-6">
+                <p className="text-lg">
+                  In <strong>6-20 seconds</strong>, a hiring team decides whether you move forward or disappear into the pile.
+                </p>
+                <p className="text-lg mt-4">
+                  Right now, your résumé probably makes you look <strong>"qualified."</strong>
+                  <br />
+                  Our goal is different: we want you to look <strong className="text-primary">must-interview</strong>.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* WHAT IS MUST-INTERVIEW SECTION */}
+      <section className="py-16 bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-4 mb-12">
+              <Badge variant="default" className="mb-2">The Solution</Badge>
+              <h2 className="text-3xl md:text-4xl font-bold">
+                What Is a "Must-Interview" Résumé?
+              </h2>
+            </div>
+            
+            <Card className="mb-8">
+              <CardContent className="pt-8 pb-8">
+                <blockquote className="text-xl md:text-2xl italic text-center text-muted-foreground">
+                  "This is exactly the kind of person we've been trying to hire.
+                  <br />
+                  <span className="text-foreground font-semibold">We need to meet them."</span>
+                </blockquote>
+              </CardContent>
+            </Card>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <Target className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle>Alignment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base">
+                    Your experience mapped directly to <em>this</em> role, <em>this</em> company, <em>this</em> industry.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <Shield className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle>Credibility</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base">
+                    Specific metrics, scope, tools, and impact that feel real and verifiable.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <Eye className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle>Clarity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base">
+                    A story that's easy to understand in under 20 seconds.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <p className="text-center text-lg mt-8 font-medium">
+              Not just <span className="text-muted-foreground">qualified</span>.
+              <span className="text-primary ml-2">Must-interview.</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS SECTION */}
+      <section className="py-16 border-b">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto space-y-12">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold">
+                How It Works
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                From invisible applicant to must-interview candidate in six steps
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {howItWorks.map((step, index) => (
+                <Card key={index} className="relative overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="absolute top-0 right-0 text-8xl font-bold text-primary/5">
+                    {step.step}
+                  </div>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{step.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-sm">{step.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -289,27 +366,48 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Solution Section */}
-      <section className="py-12 bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">
+      {/* TRUST SECTION */}
+      <section className="py-16 bg-muted/30 border-b">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <div className="space-y-4">
-              <Badge variant="default" className="mb-2">The Solution</Badge>
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-4 mb-12">
               <h2 className="text-3xl md:text-4xl font-bold">
-                What If Your Experience Became Your Competitive Edge?
+                We Don't Fabricate. We <span className="text-primary">Better Represent.</span>
               </h2>
             </div>
-            <Card className="text-left">
-              <CardContent className="pt-6 space-y-4">
+            
+            <Card className="mb-8">
+              <CardContent className="pt-8 space-y-4">
                 <p className="text-lg">
-                  <strong>CareerIQ</strong> turns your career history into strategic intelligence 
-                  that positions you for premium opportunities—<strong>in just 15 minutes</strong>.
+                  Lots of tools "pretty up" your résumé. We do something more important:
                 </p>
-                <p className="text-muted-foreground">
-                  Our AI-powered Career Vault analyzes your decades of experience, extracts 
-                  hidden competencies, and creates customized positioning for every opportunity. 
-                  Stop being filtered out. Start being strategically positioned as the exact 
-                  solution employers are searching for.
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-background border">
+                    <Database className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Extract</p>
+                      <p className="text-sm text-muted-foreground">The best 1-2% of your career story</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-background border">
+                    <Target className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Align</p>
+                      <p className="text-sm text-muted-foreground">To the job, company, and industry</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-background border">
+                    <MessageSquare className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Translate</p>
+                      <p className="text-sm text-muted-foreground">Into hiring-manager language</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-lg font-medium text-center pt-4">
+                  We never invent titles, roles, or fake wins. <span className="text-primary">You're already good enough.</span>
+                  <br />
+                  We just stop hiding it.
                 </p>
               </CardContent>
             </Card>
@@ -317,181 +415,44 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="py-12 border-b">
+      {/* FREE SCORE CTA SECTION */}
+      <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-primary/10 border-b">
         <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto space-y-12">
-            <div className="text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                After Coaching 200,000+ Job Seekers, We Discovered The Formula
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                It's not ONE thing. Benchmark candidates don't just score high on resumes—they excel across all dimensions: 
-                resume (90%+), LinkedIn positioning, interview mastery, market intelligence we provide, and strategic networking. 
-                One strong area gets you into the conversation. All five make you the standard.
-              </p>
+          <div className="max-w-3xl mx-auto text-center space-y-8">
+            <Zap className="h-12 w-12 text-primary mx-auto" />
+            <h2 className="text-3xl md:text-4xl font-bold">
+              See What Hiring Teams Actually See
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Most résumés only show a small fraction of your real value. Our free score analyzes your résumé the way a hiring team would—and shows how close you are to <strong>must-interview</strong> status.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" onClick={() => navigate('/quick-score')} className="gap-2">
+                <Target className="h-5 w-5" />
+                Score My Résumé (Free)
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => navigate('/auth')}>
+                Skip to Full Builder
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </div>
-            
-            <div className="max-w-4xl mx-auto bg-card border border-primary/20 rounded-lg p-8 space-y-4 mb-12">
-              <p className="text-lg text-muted-foreground">
-                You apply and apply—never hear back. So you start applying to lower-level jobs you're overqualified for. Still nothing.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                Meanwhile, your <span className="text-foreground font-semibold">perfect job is sitting right in front of you</span>, but you can't see it. You're using the wrong job boards. Searching incorrectly. Submitting résumés that damage your ATS score permanently. Networking in ways that burn your best contacts.
-              </p>
-              <p className="text-lg text-foreground font-semibold">
-                Getting hired is a sales job. You're the product. But you're using a brochure from 1995 and wondering why no one's buying.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                The Career Vault isn't just a résumé tool—it's a complete intelligence system that fixes every broken piece of your search.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {benefits.map((benefit, index) => {
-                const Icon = benefit.icon;
-                return (
-                  <Card key={index} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <CardTitle className="text-xl">{benefit.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-base">
-                        {benefit.description}
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            <p className="text-sm text-muted-foreground">
+              No signup required for your initial score
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Stakes Section */}
-      <section className="py-12 bg-gradient-to-br from-destructive/5 via-background to-destructive/5 border-b">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto space-y-12">
-            <div className="text-center space-y-4">
-              <Badge variant="destructive" className="mb-2">Why This Can't Wait</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Every Month You Wait Costs You—Financially and Emotionally
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                The research is clear: traditional job search methods for executives 50+ lead to wealth destruction. 
-                But when you fix these mistakes with the right system, everything changes.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Left Column: The Cost of Inaction */}
-              <Card className="border-destructive/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-destructive">
-                    <span className="text-2xl">⚠️</span>
-                    The Cost of Making These Mistakes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">14+ month job searches (vs 4 months for younger candidates)</p>
-                        <p className="text-sm text-muted-foreground">Every month depletes savings by $5K-$15K while permanent roles vanish</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Permanent ATS damage from low-scoring résumés</p>
-                        <p className="text-sm text-muted-foreground">Every bad application burns bridges—you can't apply to that company again</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">15-25% salary degradation when you finally accept an offer</p>
-                        <p className="text-sm text-muted-foreground">Desperation pricing—you lose $500K-$1.2M in lifetime earnings</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-destructive mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Networking resources burned incorrectly</p>
-                        <p className="text-sm text-muted-foreground">You only get 1-2 touches per key contact—once they're gone, they're gone forever</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Right Column: The Results When You Fix It */}
-              <Card className="border-primary/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
-                    <span className="text-2xl">✓</span>
-                    What Changes When You Fix These Mistakes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">3-5 month placements (3-5X faster)</p>
-                        <p className="text-sm text-muted-foreground">Stop the financial bleeding—savings protected, timeline compressed</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">High-scoring résumés that BUILD your reputation</p>
-                        <p className="text-sm text-muted-foreground">Every application strengthens your position—no more burning bridges</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Average $35K salary increase</p>
-                        <p className="text-sm text-muted-foreground">Negotiate from strength—your experience becomes premium value, not discount liability</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Access the hidden 80% of opportunities</p>
-                        <p className="text-sm text-muted-foreground">Stop competing for posted jobs—get direct access to decision-makers and unlisted roles</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="text-center pt-4">
-              <p className="text-sm text-muted-foreground">
-                <strong>Sources:</strong> AARP Foundation (2024), Harvard Business Review Executive Recruitment Analysis, 
-                Federal Reserve Economic Data, Bureau of Labor Statistics, SHRM Research
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-12 bg-muted/30 border-b">
+      {/* TESTIMONIALS SECTION */}
+      <section className="py-16 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Real Executives, Real Results
+                From Ignored to Must-Interview
               </h2>
               <p className="text-xl text-muted-foreground">
-                They fixed the mistakes. Here's what happened.
+                Real executives, real transformations
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
@@ -517,63 +478,24 @@ export default function Landing() {
                 </Card>
               ))}
             </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold flex items-center justify-center gap-2">
-                <span>100+ 5-star reviews on</span>
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
-                  G
-                </span>
-              </p>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Process Section */}
-      <section className="py-12 border-b">
+      {/* WHY DIFFERENT SECTION */}
+      <section className="py-16 bg-muted/30 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Three Steps to Fix Everything
+                What Makes This Different
               </h2>
-              <p className="text-xl text-muted-foreground">
-                From broken job search to strategic career intelligence
+              <p className="text-lg text-muted-foreground">
+                Built for serious candidates who want serious results
               </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {processSteps.map((step, index) => (
-                <Card key={index} className="relative overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="absolute top-0 right-0 text-8xl font-bold text-primary/5">
-                    {step.number}
-                  </div>
-                  <CardHeader>
-                    <CardTitle className="text-2xl">{step.title}</CardTitle>
-                    <CardDescription className="text-primary font-semibold">
-                      {step.subtitle}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{step.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Humble Brag Section */}
-      <section className="py-12 bg-muted/30 border-b">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto space-y-12">
-            <div className="text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                What Makes CareerIQ Different
-              </h2>
             </div>
             <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {whyChooseUs.map((reason, index) => (
+              {whyDifferent.map((reason, index) => (
                 <div key={index} className="flex items-start gap-3 p-4 rounded-lg bg-background border hover:border-primary/50 transition-colors">
                   <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <p className="text-sm">{reason}</p>
@@ -584,8 +506,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-12 border-b">
+      {/* FAQ SECTION */}
+      <section className="py-16 border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto space-y-12">
             <div className="text-center space-y-4">
@@ -609,59 +531,59 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="py-16 relative overflow-hidden">
+      {/* FINAL CTA SECTION */}
+      <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10" />
         <div className="container relative mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <Trophy className="h-16 w-16 text-primary mx-auto" />
             <div className="space-y-4">
               <h2 className="text-4xl md:text-5xl font-bold">
-                Ready to Get Re-employed 3-5X Faster?
+                Ready to Become Must-Interview?
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Your experience isn't a liability. It's power. Let us show you how.
+                Your career is impressive. It's time your résumé showed it.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="text-lg px-8" onClick={() => navigate('/auth')}>
-                <Upload className="mr-2 h-5 w-5" />
-                Build Your Career Vault Free
+              <Button size="lg" className="text-lg px-8 gap-2" onClick={() => navigate('/auth')}>
+                <Sparkles className="h-5 w-5" />
+                Build My Must-Interview Résumé
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/pricing')}>
-                View Pricing Plans
+              <Button size="lg" variant="outline" onClick={() => navigate('/quick-score')}>
+                Get My Free Score First
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Join 500+ professionals who've stopped letting age limit their careers
+              Join 100,000+ executives who stopped being ignored
             </p>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="border-t bg-muted/30">
         <div className="container mx-auto px-4 py-12">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <h3 className="font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><button onClick={() => navigate('/quick-score')} className="hover:text-foreground transition-colors">Free Résumé Score</button></li>
                 <li><button onClick={() => navigate('/pricing')} className="hover:text-foreground transition-colors">Pricing</button></li>
                 <li><button onClick={() => navigate('/ai-agents')} className="hover:text-foreground transition-colors">AI Agents</button></li>
-                <li><button onClick={() => navigate('/templates')} className="hover:text-foreground transition-colors">Templates</button></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Resources</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><button onClick={() => navigate('/learning-center')} className="hover:text-foreground transition-colors">Learning Center</button></li>
-                <li><button onClick={() => navigate('/coaching')} className="hover:text-foreground transition-colors">Coaching</button></li>
+                <li><button onClick={() => navigate('/coaching')} className="hover:text-foreground transition-colors">Executive Coaching</button></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Company</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">About (19+ Years)</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
               </ul>
             </div>
@@ -674,7 +596,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} CareerIQ. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} CareerIQ. 19+ years helping executives become must-interview candidates.</p>
           </div>
         </div>
       </footer>

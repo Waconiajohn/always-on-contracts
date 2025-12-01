@@ -183,15 +183,14 @@ export default function QuickScore() {
         >
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-primary/10 rounded-2xl">
-              <Sparkles className="h-10 w-10 text-primary" />
+              <Zap className="h-10 w-10 text-primary" />
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
-            Ultimate Resume Score
+            See What Hiring Teams Actually See
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            See exactly how your resume stacks up against the job — and industry standards. 
-            Get your score in seconds.
+            Most résumés only show a small fraction of your real value. Our free score analyzes your résumé the way hiring teams would—and shows how close you are to <strong>must-interview</strong> status.
           </p>
         </motion.div>
 
@@ -299,17 +298,17 @@ Include the job title, requirements, responsibilities, and qualifications for th
                   className="gap-2 px-8 py-6 text-lg"
                 >
                   <Zap className="h-5 w-5" />
-                  Score My Resume
+                  Score My Résumé (Free)
                 </Button>
               </div>
 
               {/* Features */}
               <div className="grid md:grid-cols-4 gap-4 mt-8">
                 {[
-                  { icon: '🎯', label: 'JD Match', desc: 'vs this job' },
-                  { icon: '📊', label: 'Industry Standard', desc: 'vs market' },
-                  { icon: '🤖', label: 'ATS Check', desc: 'parse test' },
-                  { icon: '👤', label: 'Human Voice', desc: 'AI detection' }
+                  { icon: '🎯', label: 'Role Alignment', desc: 'Match to this job' },
+                  { icon: '📊', label: 'Credibility Check', desc: 'Metrics & specifics' },
+                  { icon: '🤖', label: 'ATS Ready', desc: 'Parse & format' },
+                  { icon: '👤', label: 'Human Voice', desc: 'Natural writing' }
                 ].map((feature) => (
                   <div key={feature.label} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                     <span className="text-2xl">{feature.icon}</span>
@@ -320,6 +319,11 @@ Include the job title, requirements, responsibilities, and qualifications for th
                   </div>
                 ))}
               </div>
+              
+              {/* Trust statement */}
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                No signup required • 19+ years of methodology • We don't fabricate—ever
+              </p>
             </motion.div>
           )}
 
@@ -384,16 +388,30 @@ Include the job title, requirements, responsibilities, and qualifications for th
                 breakdown={scoreResult.breakdown}
               />
 
+              {/* Post-Score Conversion Message */}
+              <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                <CardContent className="pt-6">
+                  <p className="text-lg text-center">
+                    Right now, your résumé makes you look <strong>"qualified."</strong>
+                    <br />
+                    Our goal: make you look <strong className="text-primary">must-interview</strong>.
+                  </p>
+                  <p className="text-sm text-muted-foreground text-center mt-4">
+                    We don't fabricate. We extract, align, and translate your real experience into the language of the job you want.
+                  </p>
+                </CardContent>
+              </Card>
+
               {/* Priority Fixes */}
               {scoreResult.priorityFixes.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <AlertCircle className="h-5 w-5 text-amber-500" />
-                      Priority Improvements
+                      What's Missing for Must-Interview Status
                     </CardTitle>
                     <CardDescription>
-                      Fix these issues to boost your score the most
+                      These improvements will close the gap between "qualified" and "must-interview"
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -452,7 +470,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
                   size="lg"
                   onClick={handleStartOver}
                 >
-                  Analyze Another
+                  Score Another Résumé
                 </Button>
                 <Button
                   size="lg"
@@ -460,7 +478,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
                   className="gap-2"
                 >
                   <Sparkles className="h-5 w-5" />
-                  Fix My Resume with AI
+                  Build My Must-Interview Résumé
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
