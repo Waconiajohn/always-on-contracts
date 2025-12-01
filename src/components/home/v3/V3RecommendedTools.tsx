@@ -34,6 +34,18 @@ export function V3RecommendedTools({
 
   const allTools: Tool[] = [
     {
+      id: 'quick-score',
+      title: 'Quick Resume Score',
+      description: 'Get instant feedback on your resume vs any job',
+      icon: Sparkles,
+      path: '/quick-score',
+      isPrimary: vaultCompletion < 30,
+      requiredVault: 0,
+      aiModels: ['Gemini 2.5 Flash', 'GPT-5'],
+      vaultDeps: 'No vault required - works with any resume',
+      successMetric: 'See exactly how you stack up in seconds'
+    },
+    {
       id: 'interview-prep',
       title: 'Interview Prep',
       description: 'AI-powered practice with your vault data',

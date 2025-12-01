@@ -67,7 +67,6 @@ export function ThermometerScore({
   previousScore,
   tier,
   pointsToNextTier,
-  nextTierThreshold,
   animate = true,
   size = 'lg',
   showImprovement = false
