@@ -5,6 +5,9 @@ import { CoachingCalendarWidget } from "@/components/home/CoachingCalendarWidget
 import { JobMarketLiveDataWidget } from "@/components/home/JobMarketLiveDataWidget";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { useUserContext } from "@/hooks/useUserContext";
+import { useQuickScore } from "@/hooks/useQuickScore";
+import { useResumeProgress } from "@/hooks/useResumeProgress";
+import { useInterviewPrepStatus } from "@/hooks/useInterviewPrepStatus";
 import { V3HomeHero } from "@/components/home/v3/V3HomeHero";
 import { V3ActiveJobSearch } from "@/components/home/v3/V3ActiveJobSearch";
 import { V3MicroWins } from "@/components/home/v3/V3MicroWins";
@@ -19,10 +22,13 @@ import { Package, ChevronRight } from "lucide-react";
 const UnifiedHomeContent = () => {
   const { subscription } = useSubscription();
   const userContext = useUserContext();
+  const { data: quickScore, isLoading: scoreLoading } = useQuickScore();
+  const { data: resumeProgress, isLoading: progressLoading } = useResumeProgress();
+  const { data: interviewStatus, isLoading: interviewLoading } = useInterviewPrepStatus();
   const navigate = useNavigate();
   const isPlatinum = subscription?.tier === 'concierge_elite';
 
-  if (userContext.loading) {
+  if (userContext.loading || scoreLoading || progressLoading || interviewLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8 flex justify-center items-center min-h-[50vh]">
         <p className="text-muted-foreground">Loading your career center...</p>
@@ -36,18 +42,26 @@ const UnifiedHomeContent = () => {
     []
   );
 
-  // Mock data for score - in production this would come from user context/database
-  // For now, we'll show the "no score yet" state to encourage users to score first
-  const mockScoreData = {
-    lastScore: undefined as number | undefined, // Set to undefined to show "Score First" CTA
+  // Real score data from database
+  const scoreData = quickScore ? {
+    lastScore: quickScore.overall_score,
+    lastScoredDate: quickScore.scored_at,
+    tierInfo: {
+      tier: quickScore.tier_name,
+      emoji: quickScore.tier_emoji || "",
+      message: quickScore.tier_message || ""
+    }
+  } : {
+    lastScore: undefined as number | undefined,
     lastScoredDate: undefined as string | undefined,
     tierInfo: undefined
   };
 
   // Calculate states for Quick Actions
-  const hasScore = typeof mockScoreData.lastScore === 'number';
-  const hasActiveResume = false; // Would check if user has created a tailored resume
+  const hasScore = typeof scoreData.lastScore === 'number';
+  const hasActiveResume = resumeProgress?.has_active_resume || false;
   const applicationCount = userContext.activeApplications || 0;
+  const hasInterviewPrep = interviewStatus?.hasInterviewPrep || false;
 
   return (
     <ContentLayout
@@ -76,15 +90,16 @@ const UnifiedHomeContent = () => {
           hasScore={hasScore}
           hasActiveResume={hasActiveResume}
           applicationCount={applicationCount}
+          hasInterviewPrep={hasInterviewPrep}
         />
 
         {/* 3. Two-column layout: Score Status + Active Applications */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Score Status Card - Most prominent */}
           <V3ScoreStatusCard
-            lastScore={mockScoreData.lastScore}
-            lastScoredDate={mockScoreData.lastScoredDate}
-            tierInfo={mockScoreData.tierInfo}
+            lastScore={scoreData.lastScore}
+            lastScoredDate={scoreData.lastScoredDate}
+            tierInfo={scoreData.tierInfo}
           />
 
           {/* Active Job Search - Show applications/interviews */}

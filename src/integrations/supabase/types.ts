@@ -2960,6 +2960,81 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_score_results: {
+        Row: {
+          ats_compliance_score: number | null
+          ats_compliance_weight: number | null
+          breakdown_details: Json | null
+          created_at: string | null
+          human_voice_score: number | null
+          human_voice_weight: number | null
+          id: string
+          industry_benchmark_score: number | null
+          industry_benchmark_weight: number | null
+          jd_match_score: number | null
+          jd_match_weight: number | null
+          overall_score: number
+          resume_file_url: string | null
+          resume_text: string | null
+          scored_at: string
+          target_industry: string | null
+          target_role: string | null
+          tier_emoji: string | null
+          tier_message: string | null
+          tier_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ats_compliance_score?: number | null
+          ats_compliance_weight?: number | null
+          breakdown_details?: Json | null
+          created_at?: string | null
+          human_voice_score?: number | null
+          human_voice_weight?: number | null
+          id?: string
+          industry_benchmark_score?: number | null
+          industry_benchmark_weight?: number | null
+          jd_match_score?: number | null
+          jd_match_weight?: number | null
+          overall_score: number
+          resume_file_url?: string | null
+          resume_text?: string | null
+          scored_at?: string
+          target_industry?: string | null
+          target_role?: string | null
+          tier_emoji?: string | null
+          tier_message?: string | null
+          tier_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ats_compliance_score?: number | null
+          ats_compliance_weight?: number | null
+          breakdown_details?: Json | null
+          created_at?: string | null
+          human_voice_score?: number | null
+          human_voice_weight?: number | null
+          id?: string
+          industry_benchmark_score?: number | null
+          industry_benchmark_weight?: number | null
+          jd_match_score?: number | null
+          jd_match_weight?: number | null
+          overall_score?: number
+          resume_file_url?: string | null
+          resume_text?: string | null
+          scored_at?: string
+          target_industry?: string | null
+          target_role?: string | null
+          tier_emoji?: string | null
+          tier_message?: string | null
+          tier_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_history: {
         Row: {
           contract_length_months: number | null
@@ -3229,6 +3304,45 @@ export type Database = {
           started_at?: string | null
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      resume_progress: {
+        Row: {
+          active_resume_id: string | null
+          created_at: string | null
+          has_active_resume: boolean | null
+          id: string
+          last_resume_created_at: string | null
+          total_resumes_created: number | null
+          updated_at: string | null
+          user_id: string
+          wizard_completed_at: string | null
+          wizard_step_completed: number | null
+        }
+        Insert: {
+          active_resume_id?: string | null
+          created_at?: string | null
+          has_active_resume?: boolean | null
+          id?: string
+          last_resume_created_at?: string | null
+          total_resumes_created?: number | null
+          updated_at?: string | null
+          user_id: string
+          wizard_completed_at?: string | null
+          wizard_step_completed?: number | null
+        }
+        Update: {
+          active_resume_id?: string | null
+          created_at?: string | null
+          has_active_resume?: boolean | null
+          id?: string
+          last_resume_created_at?: string | null
+          total_resumes_created?: number | null
+          updated_at?: string | null
+          user_id?: string
+          wizard_completed_at?: string | null
+          wizard_step_completed?: number | null
         }
         Relationships: []
       }
