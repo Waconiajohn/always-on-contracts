@@ -15,8 +15,8 @@ serve(createAIHandler({
     if (!body.jobDescription || typeof body.jobDescription !== 'string') {
       throw new Error('jobDescription must be a string');
     }
-    if (!body.resumeContent) {
-      throw new Error('resumeContent is required');
+    if (!body.resumeContent || typeof body.resumeContent !== 'string') {
+      throw new Error('resumeContent must be a string');
     }
   },
 
@@ -25,7 +25,7 @@ serve(createAIHandler({
 
     logger.info('Scoring resume match', {
       jobDescriptionLength: jobDescription.length,
-      hasExecutiveSummary: !!resumeContent.executive_summary
+      resumeContentLength: resumeContent.length
     });
 
     const systemPrompt = `You are an expert ATS scoring specialist. Return ONLY valid JSON, no additional text or explanations.
@@ -35,31 +35,41 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
     const userPrompt = `Analyze this resume against the job description and provide detailed scoring:
 
 JOB DESCRIPTION:
-${resumeContent.executive_summary || ""}
+${jobDescription}
 
 RESUME CONTENT:
-Executive Summary: ${resumeContent.executive_summary || ""}
-Key Achievements: ${resumeContent.key_achievements?.join("; ") || ""}
-Core Competencies: ${resumeContent.core_competencies?.join(", ") || ""}
+${resumeContent}
 
 TASK:
-1. Calculate overall match percentage between resume and job requirements
-2. Score different categories (technical, leadership, domain)
-3. Identify 3-5 key strengths from the resume that match the job
-4. Identify 3-5 specific gaps or missing qualifications
-5. Provide an overall recommendation
+1. Detect the role, industry, and seniority level
+2. Calculate overall match score (0-100)
+3. Identify 3-5 priority gaps with fixes
+4. List missing keywords
+5. List key strengths
 
-Return this structure:
+Return this exact structure:
 {
-  "overallMatch": 85,
-  "categoryScores": {
-    "technical": 90,
-    "leadership": 80,
-    "domain": 85
+  "overallScore": 75,
+  "detected": {
+    "role": "Target Role Title",
+    "industry": "Industry Name",
+    "level": "senior"
   },
-  "strengths": ["Strong technical background in X", "Proven leadership experience"],
-  "gaps": ["Missing certification in Y", "Limited experience with Z technology"],
-  "recommendation": "Strong candidate with minor gaps in specific areas"
+  "priorityFixes": [
+    {
+      "category": "technical",
+      "issue": "Missing specific skill",
+      "fix": "Specific action to address gap",
+      "details": "Detailed explanation",
+      "priority": 1
+    }
+  ],
+  "missingKeywords": ["keyword1", "keyword2"],
+  "breakdown": {
+    "strengths": [
+      { "description": "Specific strength description" }
+    ]
+  }
 }`;
 
     const startTime = Date.now();
@@ -109,8 +119,8 @@ Return this structure:
     const responseData = result.data;
 
     logger.info('Scoring complete', {
-      overallMatch: responseData.overallMatch,
-      gapsCount: responseData.gaps?.length || 0
+      overallScore: responseData.overallScore,
+      gapsCount: responseData.priorityFixes?.length || 0
     });
 
     return responseData;
