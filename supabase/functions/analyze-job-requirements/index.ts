@@ -91,11 +91,13 @@ serve(async (req) => {
 
     // PHASE 1: Extract requirements from job description using Lovable AI
 
-    const systemPrompt = `You are an expert job requirements analyzer. Return ONLY valid JSON, no additional text or explanations.
+    const systemPrompt = `You are an expert job requirements analyzer with hiring manager perspective. Return ONLY valid JSON, no additional text or explanations.
+
+CRITICAL CONTEXT: Analyze from the HIRING MANAGER's viewpoint - what do they REALLY care about?
 
 CRITICAL: Return ONLY this exact JSON structure, nothing else:`;
 
-    const userPrompt = `Analyze this job description and extract detailed requirements:
+    const userPrompt = `Analyze this job from a HIRING MANAGER's perspective. What problems are they trying to solve?
 
 JOB TITLE: ${jobTitle || 'Not specified'}
 COMPANY: ${companyName || 'Not specified'}
@@ -105,9 +107,9 @@ JOB DESCRIPTION:
 ${jobDescription}
 
 Extract and categorize:
-1. REQUIRED qualifications (must-haves)
-2. PREFERRED qualifications (strong preference)
-3. NICE-TO-HAVE qualifications (bonus)
+1. REQUIRED qualifications (must-haves that will reject candidates if missing)
+2. PREFERRED qualifications (strong preference, competitive advantage)
+3. NICE-TO-HAVE qualifications (bonus points)
 
 For each requirement, identify:
 - Exact category (skill/experience/education/certification/soft-skill/tool/domain-knowledge)
@@ -115,16 +117,18 @@ For each requirement, identify:
 - Years of experience if mentioned
 - Importance level (1-10)
 - Whether it's ATS-critical
+- Business impact if missing
 
-Also identify:
-- Role level (entry/mid/senior/executive/c-level)
-- Primary function/department
-- Industry classification
+ALSO ANALYZE:
+- Core problem the hiring manager needs solved
+- Deal-breakers (instant rejection triggers)
+- Green flags (signals that excite them)
+- Optimal resume structure for this role
 
 Return valid JSON with this structure:
 {
   "requirements": {
-    "required": [{"type": "skill", "requirement": "...", "keywords": ["..."], "yearsExperience": 5, "importance": 9, "atsKeyword": true}],
+    "required": [{"type": "skill", "requirement": "...", "keywords": ["..."], "yearsExperience": 5, "importance": 9, "atsKeyword": true, "businessImpact": "why this matters"}],
     "preferred": [...],
     "niceToHave": [...]
   },
@@ -138,6 +142,16 @@ Return valid JSON with this structure:
     "critical": ["leadership", "agile"],
     "important": ["stakeholder management"],
     "bonus": ["certification"]
+  },
+  "hiringManagerInsights": {
+    "coreProblem": "What they're trying to solve",
+    "dealBreakers": ["Instant rejection triggers"],
+    "greenFlags": ["Signals that excite them"],
+    "resumeStructure": {
+      "optimalSections": ["Which sections matter most"],
+      "bulletsPerJob": 4,
+      "emphasisAreas": ["Where to focus detail"]
+    }
   }
 }`;
 
