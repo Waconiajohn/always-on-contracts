@@ -17,6 +17,7 @@ import {
   LogOut,
   FlaskConical,
   Settings,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -66,6 +67,7 @@ export const mainNavItems: NavItem[] = [
     label: 'Resume',
     icon: FileText,
     dropdown: [
+      { label: 'Quick Score', path: '/quick-score', icon: Zap },
       { label: 'Resume Builder', path: '/agents/resume-builder-wizard', icon: FileText },
       { label: 'My Resumes', path: '/my-resumes', icon: FileText },
       { label: 'Templates', path: '/templates', icon: FileText },
