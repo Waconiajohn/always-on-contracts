@@ -13,9 +13,9 @@ export function V3AIEngineCard() {
         </div>
         
         <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-2">Powered by Advanced AI</h3>
+          <h3 className="text-lg font-semibold mb-2">19+ Years of Must-Interview Methodology</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Your experience is powered by multiple AI models that analyze your vault in real-time to provide personalized guidance
+            Multiple AI models extract, align, and translate your career vault into must-interview positioning—not fabrication, better representation
           </p>
           
           <div className="flex flex-wrap gap-2 mb-3">
@@ -50,13 +50,13 @@ export function V3AIEngineCard() {
           {isExpanded && (
             <div className="mt-4 space-y-3 text-sm text-muted-foreground">
               <div>
-                <span className="font-medium text-foreground">Claude Sonnet 4</span> powers the core intelligence of the platform, analyzing your career vault to extract insights, generate content, and provide strategic recommendations.
+                <span className="font-medium text-foreground">Claude Sonnet 4</span> extracts hidden value from your career vault—achievements, transferable skills, and strategic positioning you didn't realize you had.
               </div>
               <div>
-                <span className="font-medium text-foreground">Gemini 3.0 Pro</span> handles complex reasoning tasks, identifies strategic positioning opportunities, and generates executive-level insights from your experience.
+                <span className="font-medium text-foreground">Gemini 3.0 Pro</span> aligns your experience to role requirements using real market intelligence, not guessing. Ensures you're positioned as must-interview, not just qualified.
               </div>
               <div>
-                <span className="font-medium text-foreground">Perplexity</span> provides real-time market research, industry trends, and competitive intelligence to keep your career strategy current.
+                <span className="font-medium text-foreground">Perplexity</span> translates your vault into hiring manager language by researching how top performers in your target role actually describe their work—then applies that to your profile.
               </div>
             </div>
           )}

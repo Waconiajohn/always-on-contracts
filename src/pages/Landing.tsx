@@ -6,18 +6,12 @@ import { useNavigate } from "react-router-dom";
 import { 
   CheckCircle2,
   Star,
-  Upload,
   Trophy,
   Database,
   Shield,
   Eye,
-  Search,
-  Users,
-  Award,
   Zap,
   Target,
-  Brain,
-  FileCheck,
   MessageSquare,
   ArrowRight,
   Sparkles
