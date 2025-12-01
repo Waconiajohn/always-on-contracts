@@ -75,6 +75,7 @@ export const TopNav = () => {
             }
 
             const isActive = location.pathname === item.path;
+            const isHighlighted = (item as any).highlight;
 
             return (
               <Link
@@ -84,10 +85,14 @@ export const TopNav = () => {
                   "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                   "hover:bg-accent hover:text-accent-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive && "bg-accent text-accent-foreground"
+                  isActive && "bg-accent text-accent-foreground",
+                  isHighlighted && !isActive && "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30"
                 )}
               >
-                <ItemIcon className={cn("h-4 w-4 transition-colors duration-500", iconColor)} />
+                <ItemIcon className={cn(
+                  "h-4 w-4 transition-colors duration-500", 
+                  isHighlighted ? "text-primary" : iconColor
+                )} />
                 <span>{item.label}</span>
               </Link>
             );

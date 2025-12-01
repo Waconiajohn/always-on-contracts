@@ -18,6 +18,9 @@ import {
   FlaskConical,
   Settings,
   Zap,
+  Target,
+  Briefcase,
+  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +29,7 @@ export interface NavItem {
   path?: string;
   icon: LucideIcon;
   dropdown?: DropdownItem[];
+  highlight?: boolean;
 }
 
 export interface DropdownItem {
@@ -42,6 +46,8 @@ export interface ProfileItem {
   type?: 'separator';
 }
 
+// NEW NAVIGATION: Score → Build → Apply → Win
+// Career Vault moves to background, Quick Score and Resume Builder front and center
 export const mainNavItems: NavItem[] = [
   { 
     label: 'Home', 
@@ -49,38 +55,25 @@ export const mainNavItems: NavItem[] = [
     icon: Home 
   },
   { 
-    label: 'Career Vault', 
-    path: '/career-vault', 
-    icon: Package 
+    label: 'Quick Score', 
+    path: '/quick-score', 
+    icon: Zap,
+    highlight: true // This will be styled prominently
   },
   { 
-    label: 'Job Search', 
+    label: 'Resume Builder', 
+    path: '/agents/resume-builder-wizard', 
+    icon: FileText 
+  },
+  { 
+    label: 'Find Jobs', 
     path: '/job-search', 
     icon: Search 
   },
   { 
-    label: 'Active Applications', 
+    label: 'My Applications', 
     path: '/active-applications', 
-    icon: Package 
-  },
-    {
-    label: 'Resume',
-    icon: FileText,
-    dropdown: [
-      { label: 'Quick Score', path: '/quick-score', icon: Zap },
-      { label: 'Resume Builder', path: '/agents/resume-builder-wizard', icon: FileText },
-      { label: 'My Resumes', path: '/my-resumes', icon: FileText },
-      { label: 'Templates', path: '/templates', icon: FileText },
-    ],
-  },
-  {
-    label: 'LinkedIn',
-    icon: Linkedin,
-    dropdown: [
-      { label: 'Profile', path: '/agents/linkedin-profile-builder', icon: Linkedin },
-      { label: 'Content', path: '/agents/linkedin-blogging', icon: MessageSquare },
-      { label: 'Networking', path: '/agents/networking', icon: Users },
-    ],
+    icon: Briefcase 
   },
   {
     label: 'Interview',
@@ -90,23 +83,39 @@ export const mainNavItems: NavItem[] = [
       { label: 'Salary Negotiation', path: '/salary-negotiation', icon: DollarSign },
     ],
   },
-  { 
-    label: 'Agencies', 
-    path: '/agencies', 
-    icon: Building2 
+  {
+    label: 'More',
+    icon: MoreHorizontal,
+    dropdown: [
+      // Career Vault - now secondary
+      { label: 'Career Vault', path: '/career-vault', icon: Package },
+      { label: 'My Resumes', path: '/my-resumes', icon: FileText },
+      { label: 'Resume Templates', path: '/templates', icon: FileText },
+      // LinkedIn tools
+      { label: 'LinkedIn Profile', path: '/agents/linkedin-profile-builder', icon: Linkedin },
+      { label: 'LinkedIn Content', path: '/agents/linkedin-blogging', icon: MessageSquare },
+      { label: 'Networking', path: '/agents/networking', icon: Users },
+      // Other
+      { label: 'Agencies', path: '/agencies', icon: Building2 },
+      { label: 'AI Coach', path: '/coaching', icon: Brain },
+      { label: 'Learning Center', path: '/learning-center', icon: BookOpen },
+    ],
   },
   {
     label: 'Settings',
     icon: Settings,
     dropdown: [
-      { label: 'Testing Dashboard', path: '/testing-dashboard', icon: FlaskConical },
       { label: 'Profile Settings', path: '/profile', icon: User },
       { label: 'API Keys', path: '/api-keys', icon: Key },
+      { label: 'Testing Dashboard', path: '/testing-dashboard', icon: FlaskConical },
     ],
   },
 ];
 
 export const profileDropdownItems: ProfileItem[] = [
+  { label: 'Quick Score', path: '/quick-score', icon: Zap },
+  { label: 'Career Vault', path: '/career-vault', icon: Package },
+  { type: 'separator' },
   { label: 'Financial Planning', path: '/agents/financial-planning', icon: DollarSign },
   { label: 'AI Coach', path: '/coaching', icon: Brain },
   { label: 'Learning Center', path: '/learning-center', icon: BookOpen },
