@@ -2,9 +2,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 // V3 Step Components
 import { TargetSetup } from "@/components/resume-builder/v3/TargetSetup";
@@ -36,7 +35,6 @@ const MustInterviewBuilderContent = () => {
 
   // Current step
   const [currentStep, setCurrentStep] = useState<BuilderStep>('target');
-  const [resumeId, setResumeId] = useState<string | null>(null);
 
   // State for the entire flow
   const [state, setState] = useState<MustInterviewState>({
@@ -86,29 +84,7 @@ const MustInterviewBuilderContent = () => {
     }
   }, [location.state]);
 
-  // Save progress periodically
-  useEffect(() => {
-    const saveProgress = async () => {
-      if (!resumeId || !state.assessment) return;
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        await supabase.from('resumes').update({
-          job_analysis: state.assessment,
-          sections: state.sections,
-          selected_format: state.selectedFormat,
-          updated_at: new Date().toISOString(),
-        }).eq('id', resumeId);
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-      }
-    };
-
-    const timeout = setTimeout(saveProgress, 30000); // Auto-save every 30s
-    return () => clearTimeout(timeout);
-  }, [resumeId, state.assessment, state.sections, state.selectedFormat]);
+  // Note: Auto-save removed as database schema doesn't support storing builder state yet
 
   // Step navigation
   const goToStep = (step: BuilderStep) => {
@@ -181,9 +157,7 @@ const MustInterviewBuilderContent = () => {
     }));
   };
 
-  // Calculate progress percentage
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
-  const progressPercent = Math.round(((currentStepIndex + 1) / STEPS.length) * 100);
 
   return (
     <div className="min-h-screen bg-background">
@@ -256,20 +230,14 @@ const MustInterviewBuilderContent = () => {
         {currentStep === 'assessment' && state.assessment && (
           <AIAssessmentPanel
             assessment={state.assessment}
-            resumeText={state.resumeText}
-            jobDescription={state.jobDescription}
-            selectedFormat={state.selectedFormat}
             onFormatSelected={handleFormatSelected}
-            onBack={goBack}
           />
         )}
 
-        {currentStep === 'build' && state.assessment && state.selectedFormat && (
+        {currentStep === 'build' && state.assessment && (
           <SectionBuilder
             assessment={state.assessment}
             resumeText={state.resumeText}
-            jobDescription={state.jobDescription}
-            selectedFormat={state.selectedFormat}
             sections={state.sections}
             onSectionsUpdated={handleSectionsUpdated}
             onComplete={handleBuildComplete}

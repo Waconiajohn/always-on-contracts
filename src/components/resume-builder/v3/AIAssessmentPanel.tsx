@@ -17,20 +17,12 @@ import {
 
 interface AIAssessmentPanelProps {
   assessment: ResumeAssessment;
-  resumeText: string;
-  jobDescription: string;
-  selectedFormat: string | null;
   onFormatSelected: (format: string) => void;
-  onBack: () => void;
 }
 
 export const AIAssessmentPanel = ({
   assessment,
-  resumeText,
-  jobDescription,
-  selectedFormat,
   onFormatSelected,
-  onBack
 }: AIAssessmentPanelProps) => {
   const [hoveredFormat, setHoveredFormat] = useState<string | null>(null);
 
@@ -48,7 +40,6 @@ export const AIAssessmentPanel = ({
   };
 
   const criticalGaps = assessment.gaps.filter(g => g.severity === 'critical');
-  const importantGaps = assessment.gaps.filter(g => g.severity === 'important');
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

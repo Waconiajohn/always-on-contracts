@@ -179,7 +179,7 @@ export const TargetSetup = ({
   };
 
   // Helper functions
-  const extractStrengths = (jobAnalysis: any, vaultMatches: any) => {
+  const extractStrengths = (_jobAnalysis: any, vaultMatches: any) => {
     const strengths = [];
     
     if (vaultMatches?.matchedItems) {
@@ -199,7 +199,7 @@ export const TargetSetup = ({
     return strengths;
   };
 
-  const extractGaps = (jobAnalysis: any, vaultMatches: any, resume: string): ResumeGap[] => {
+  const extractGaps = (jobAnalysis: any, vaultMatches: any, _resume: string): ResumeGap[] => {
     const gaps: ResumeGap[] = [];
     const requirements = [
       ...(jobAnalysis?.jobRequirements?.required || []),
