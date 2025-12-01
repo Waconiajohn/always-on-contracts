@@ -3,8 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { ResumeAssessment } from "@/types/mustInterviewBuilder";
+import type { ResumeAssessment, ResumeGap } from "@/types/mustInterviewBuilder";
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -12,7 +14,14 @@ import {
   ArrowRight,
   Sparkles,
   FileText,
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  Wrench,
+  BookOpen,
+  BarChart,
+  Building,
+  TrendingUpIcon,
+  Crosshair
 } from "lucide-react";
 
 interface AIAssessmentPanelProps {
@@ -40,6 +49,82 @@ export const AIAssessmentPanel = ({
   };
 
   const criticalGaps = assessment.gaps.filter(g => g.severity === 'critical');
+
+  // Gap type icon mapping
+  const getGapIcon = (gapId: string) => {
+    if (gapId.includes('skill') || gapId.includes('tool')) return <Wrench className="h-4 w-4" />;
+    if (gapId.includes('achievement') || gapId.includes('story')) return <BookOpen className="h-4 w-4" />;
+    if (gapId.includes('metrics') || gapId.includes('scope')) return <BarChart className="h-4 w-4" />;
+    if (gapId.includes('domain') || gapId.includes('experience')) return <Building className="h-4 w-4" />;
+    if (gapId.includes('level') || gapId.includes('seniority')) return <TrendingUpIcon className="h-4 w-4" />;
+    return <Crosshair className="h-4 w-4" />;
+  };
+
+  const getSeverityColor = (severity: string) => {
+    if (severity === 'critical') return 'text-red-500 bg-red-500/10 border-red-500/30';
+    if (severity === 'important') return 'text-amber-500 bg-amber-500/10 border-amber-500/30';
+    return 'text-blue-500 bg-blue-500/10 border-blue-500/30';
+  };
+
+  const renderGapCard = (gap: ResumeGap) => (
+    <Collapsible key={gap.id} className="mb-3">
+      <Card className={cn("border", getSeverityColor(gap.severity))}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="pb-3 cursor-pointer hover:bg-accent/50 transition-colors">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-3 flex-1">
+                <div className={cn("p-1.5 rounded", getSeverityColor(gap.severity))}>
+                  {getGapIcon(gap.id)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CardTitle className="text-sm font-medium line-clamp-1">{gap.requirement}</CardTitle>
+                    <Badge variant="outline" className={cn("text-xs", getSeverityColor(gap.severity))}>
+                      {gap.severity}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {gap.currentContent || 'Not addressed in current resume'}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <CardContent className="pt-0 pb-4 space-y-3">
+            {gap.suggestions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">AI Suggestions:</p>
+                {gap.suggestions.slice(0, 2).map((suggestion, i) => (
+                  <Alert key={i} className="py-2">
+                    <AlertDescription className="text-xs space-y-1">
+                      <p className="font-medium">{suggestion.text}</p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Badge variant="secondary" className="text-xs">{suggestion.approach}</Badge>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-xs",
+                            suggestion.confidence > 0.8 ? "text-green-600" :
+                            suggestion.confidence > 0.5 ? "text-amber-600" : "text-red-600"
+                          )}
+                        >
+                          {Math.round(suggestion.confidence * 100)}% confidence
+                        </Badge>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -94,26 +179,35 @@ export const AIAssessmentPanel = ({
           </CardContent>
         </Card>
 
-        {/* Critical Gaps */}
+        {/* Critical Gaps with Details */}
         <Card className="border-red-500/30 bg-red-500/5">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               <CardTitle className="text-base">Critical Gaps ({criticalGaps.length})</CardTitle>
             </div>
+            <CardDescription className="text-xs">
+              These are must-address items for this role
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
-              {criticalGaps.slice(0, 3).map((gap, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">!</span>
-                  <span className="text-muted-foreground line-clamp-2">{gap.requirement}</span>
-                </li>
-              ))}
-              {criticalGaps.length === 0 && (
-                <li className="text-green-600 text-sm">No critical gaps!</li>
-              )}
-            </ul>
+            {criticalGaps.length > 0 ? (
+              <div className="space-y-2">
+                {criticalGaps.slice(0, 3).map(gap => (
+                  <div key={gap.id} className="flex items-start gap-2 p-2 rounded border border-red-500/20">
+                    <span className="text-red-500 mt-0.5 flex-shrink-0">{getGapIcon(gap.id)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium line-clamp-1">{gap.requirement}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {gap.suggestions.length} suggestion{gap.suggestions.length !== 1 ? 's' : ''} available
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-green-600 text-sm">No critical gaps!</p>
+            )}
           </CardContent>
         </Card>
 
@@ -147,6 +241,31 @@ export const AIAssessmentPanel = ({
           </CardContent>
         </Card>
       </div>
+
+      {/* Detailed Gap Analysis */}
+      {assessment.gaps.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <div>
+                <CardTitle className="text-lg">Gap Analysis & Suggestions</CardTitle>
+                <CardDescription>
+                  AI-powered suggestions with confidence scores. Expand each gap to see details.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {assessment.gaps.slice(0, 6).map(renderGapCard)}
+            {assessment.gaps.length > 6 && (
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                {assessment.gaps.length - 6} more gaps will be addressed in the build phase
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Format Selection */}
       <Card>

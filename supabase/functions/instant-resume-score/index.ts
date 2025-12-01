@@ -98,12 +98,13 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
     // STEP 2: Comprehensive scoring analysis
     const systemPrompt = `You are an expert resume analyst combining ATS expertise, hiring manager perspective, and industry knowledge.
 
-Perform a comprehensive 4-dimensional analysis:
+Perform a comprehensive 4-dimensional analysis WITH GAP CLASSIFICATION:
 
 1. JD MATCH (40% weight): How well does the resume match THIS specific job description?
    - Keyword coverage (critical, important, nice-to-have)
    - Skills alignment
    - Experience relevance
+   - CLASSIFY GAPS by type and severity
 
 2. INDUSTRY BENCHMARK (35% weight): How does this resume compare to industry standards for ${detectedRole} at ${detectedLevel} level?
    - Typical requirements for this role/level
@@ -119,6 +120,14 @@ Perform a comprehensive 4-dimensional analysis:
    - Sentence variety
    - Specific vs generic language
    - Natural flow vs robotic patterns
+
+GAP TYPES TO CLASSIFY:
+- missing_skill_or_tool: Required skill not mentioned
+- weak_achievement_story: Bullets lack metrics/impact
+- missing_metrics_or_scope: Need quantification
+- missing_domain_experience: Industry background gap
+- unclear_level_or_seniority: Level not evident
+- positioning_issue: Right experience, wrong framing
 
 Return ONLY valid JSON with this structure:
 {
@@ -153,10 +162,20 @@ Return ONLY valid JSON with this structure:
       "humanElements": ["Element 1"]
     }
   },
+  "gaps": [
+    {
+      "gapType": "missing_skill_or_tool",
+      "severity": "critical|important|nice-to-have",
+      "requirement": "Python expertise",
+      "currentState": "No Python mentioned",
+      "impactOnScore": 15
+    }
+  ],
   "priorityFixes": [
     {
       "priority": 1,
       "category": "jdMatch|industryBenchmark|atsCompliance|humanVoice",
+      "gapType": "missing_skill_or_tool",
       "issue": "What's wrong",
       "fix": "How to fix it",
       "impact": "+X points"

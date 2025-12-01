@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS, cleanCitations } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { RESUME_ARCHITECT_SYSTEM_PROMPT } from '../_shared/resume-prompts.ts';
 
 // Dual Resume Section Generator - generates both ideal and personalized versions
 const corsHeaders = {
@@ -247,6 +248,8 @@ ${vaultMilestones.slice(0, 15).map((m: any) => `- ${m.milestone_title || m.descr
     console.log('Generating ideal version...');
     const idealPrompt = `You are an expert resume writer. Create a ${section_type} section for a ${seniority} ${job_title} in ${industry}.
 
+${RESUME_ARCHITECT_SYSTEM_PROMPT}
+
 CRITICAL CONTEXT - Real job market research:
 ${job_analysis_research}
 
@@ -278,6 +281,11 @@ Create an INDUSTRY STANDARD version that:
 5. Demonstrates competitive strength
 
 CRITICAL: Return ONLY the actual content bullets/text. DO NOT include the section heading or title (like "Experience", "Education", "Skills", etc.) in your response. Start directly with the content.
+
+For EACH suggestion, you MUST explain:
+- why_this_helps: Why this addresses the job requirement
+- source_basis: What industry research supports this
+- disclaimer: Mark as "INDUSTRY STANDARD - adapt to your experience"
 
 Return ONLY the content, no explanations or headings.`;
 
@@ -363,13 +371,15 @@ Keywords: ${item.atsKeywords.join(', ')}
 
     const personalizedPrompt = `You are an expert resume writer. Create a PERSONALIZED ${section_type} section for THIS SPECIFIC CANDIDATE.
 
+${RESUME_ARCHITECT_SYSTEM_PROMPT}
+
 CRITICAL CONTEXT - Real job market research:
 ${job_analysis_research}
 
 SECTION GUIDANCE:
 ${section_guidance}
 
-CANDIDATE'S ACTUAL WORK HISTORY:
+CANDIDATE'S ACTUAL WORK HISTORY (source of truth):
     ${workHistoryContext}
     ${educationContext}
     ${vaultMilestonesContext}
