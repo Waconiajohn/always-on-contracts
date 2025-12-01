@@ -64,20 +64,80 @@ const MustInterviewBuilderContent = () => {
     error: null,
   });
 
-  // Auto-load from job search navigation
+  // Auto-load from navigation (job search or quick score)
   useEffect(() => {
-    const jobData = location.state as any;
+    const navData = location.state as any;
     
-    if (jobData?.fromJobSearch && jobData?.jobDescription) {
+    // Handle job search navigation
+    if (navData?.fromJobSearch && navData?.jobDescription) {
       setState(prev => ({
         ...prev,
-        jobDescription: jobData.jobDescription,
-        jobUrl: jobData.applyUrl || '',
+        jobDescription: navData.jobDescription,
+        jobUrl: navData.applyUrl || '',
       }));
       
       toast({
         title: "Job loaded",
         description: "Ready to build your must-interview résumé",
+      });
+      
+      window.history.replaceState({}, document.title);
+    }
+    
+    // Handle quick score navigation - already analyzed, skip to format selection
+    if (navData?.fromQuickScore && navData?.resumeText && navData?.jobDescription && navData?.scoreResult) {
+      // Convert scoreResult to assessment format
+      const assessment: ResumeAssessment = {
+        roleTitle: navData.scoreResult.detected?.role || 'Target Role',
+        companyName: undefined,
+        profession: navData.scoreResult.detected?.role || 'Professional',
+        industry: navData.scoreResult.detected?.industry || 'General',
+        seniority: navData.scoreResult.detected?.level || 'Mid-Level',
+        alignmentScore: navData.scoreResult.overallScore,
+        strengths: (navData.scoreResult.breakdown?.strengths || []).map((s: any) => ({
+          area: s.category || s.area || String(s),
+          evidence: s.evidence || s.description || '',
+          confidence: s.confidence || 0.8
+        })),
+        gaps: (navData.scoreResult.priorityFixes || []).map((fix: any, i: number) => ({
+          id: `gap-${i}`,
+          requirement: fix.issue || fix.fix,
+          severity: (fix.priority === 1 ? 'critical' : fix.priority === 2 ? 'important' : 'nice-to-have') as 'critical' | 'important' | 'nice-to-have',
+          currentContent: null,
+          suggestions: fix.fix ? [{
+            id: `suggestion-${i}`,
+            text: fix.fix,
+            approach: 'industry_standard' as const,
+            confidence: 0.8
+          }] : [],
+          userSelection: null
+        })),
+        atsKeywords: {
+          critical: [],
+          important: [],
+          niceToHave: []
+        },
+        recommendedFormats: [
+          { id: 'achievement', name: 'Achievement-Driven', description: 'Focus on results and metrics', bestFor: 'Senior roles with strong track record' },
+          { id: 'skills', name: 'Skills-Forward', description: 'Highlight technical capabilities', bestFor: 'Technical or specialized roles' },
+          { id: 'chronological', name: 'Chronological', description: 'Traditional career progression', bestFor: 'Clear upward trajectory' }
+        ]
+      };
+
+      setState(prev => ({
+        ...prev,
+        resumeText: navData.resumeText,
+        jobDescription: navData.jobDescription,
+        assessment,
+        initialScore: navData.scoreResult.overallScore,
+        currentScore: navData.scoreResult.overallScore,
+      }));
+      
+      setCurrentStep('assessment');
+      
+      toast({
+        title: "Score loaded",
+        description: "Review your results and select a format to continue",
       });
       
       window.history.replaceState({}, document.title);
