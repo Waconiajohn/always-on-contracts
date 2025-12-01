@@ -54,35 +54,60 @@ export function safeValidateInput<T>(
 }
 
 /**
- * Invoke edge function with automatic error handling
+ * Invoke edge function with automatic error handling and retry logic
  */
 export async function invokeEdgeFunction<T = any>(
   functionName: string,
-  body?: Record<string, any>
+  body?: Record<string, any>,
+  maxRetries: number = 3
 ): Promise<{ data: T | null; error: EdgeFunctionError | null }> {
-  try {
-    const { data, error } = await supabase.functions.invoke(functionName, { body });
+  let lastError: EdgeFunctionError | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const { data, error } = await supabase.functions.invoke(functionName, { body });
 
-    if (error) {
+      if (error) {
+        const handledError = handleEdgeFunctionError(error, functionName);
+        
+        // Only retry on network errors
+        if (handledError.code === 'NETWORK_ERROR' && attempt < maxRetries) {
+          lastError = handledError;
+          const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        return { data: null, error: handledError };
+      }
+
+      // Handle application-level errors in the response
+      if (data?.error) {
+        return {
+          data: null,
+          error: {
+            message: data.error,
+            code: 'APPLICATION_ERROR',
+            details: data
+          }
+        };
+      }
+
+      return { data, error: null };
+    } catch (error) {
       const handledError = handleEdgeFunctionError(error, functionName);
+      
+      // Only retry on network errors
+      if (handledError.code === 'NETWORK_ERROR' && attempt < maxRetries) {
+        lastError = handledError;
+        const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
       return { data: null, error: handledError };
     }
-
-    // Handle application-level errors in the response
-    if (data?.error) {
-      return {
-        data: null,
-        error: {
-          message: data.error,
-          code: 'APPLICATION_ERROR',
-          details: data
-        }
-      };
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    const handledError = handleEdgeFunctionError(error, functionName);
-    return { data: null, error: handledError };
   }
+  
+  return { data: null, error: lastError };
 }
