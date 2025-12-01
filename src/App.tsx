@@ -73,7 +73,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const publicPaths = ['/', '/auth', '/pricing', '/quick-score'];
+  const publicPaths = ['/', '/auth', '/pricing'];
   const showTopNav = !publicPaths.includes(location.pathname);
 
   return (
