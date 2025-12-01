@@ -43,7 +43,7 @@ interface SkillsStepProps {
   onAcceptSkill: (skill: string) => void;
   onRejectSkill: (skill: string) => void;
   onAddCustomSkill: (skill: string) => void;
-  onRemoveExistingSkill: (skill: string) => void;
+  onRemoveExistingSkill?: (skill: string) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -232,14 +232,16 @@ export const SkillsStep = ({
                     className="gap-1 pr-1"
                   >
                     {skill}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-red-100 rounded-full"
-                      onClick={() => onRemoveExistingSkill(skill)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    {onRemoveExistingSkill && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-red-100 rounded-full"
+                        onClick={() => onRemoveExistingSkill(skill)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
                   </Badge>
                 ))}
               </div>
