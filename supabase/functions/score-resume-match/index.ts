@@ -94,7 +94,8 @@ Return this structure:
     const rawContent = response.choices[0].message.content;
     console.log('[score-resume-match] Raw AI response:', rawContent.substring(0, 500));
 
-    const result = extractJSON(rawContent, GenericAIResponseSchema);
+    // Extract JSON without schema validation (AI returns the response object directly)
+    const result = extractJSON(rawContent);
 
     if (!result.success || !result.data) {
       console.error('[score-resume-match] JSON parse failed:', result.error);
@@ -103,7 +104,8 @@ Return this structure:
       throw new Error(`Failed to parse AI response: ${result.error}`);
     }
 
-    const responseData = JSON.parse(result.data.content || '{}');
+    // result.data is already the parsed response object
+    const responseData = result.data;
 
     logger.info('Scoring complete', {
       overallMatch: responseData.overallMatch,
