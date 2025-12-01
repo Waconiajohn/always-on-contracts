@@ -58,6 +58,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const TestingDashboard = lazy(() => import("./pages/TestingDashboard"));
 const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
+const QuickScore = lazy(() => import("./pages/QuickScore"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -71,7 +72,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const publicPaths = ['/', '/auth', '/pricing'];
+  const publicPaths = ['/', '/auth', '/pricing', '/quick-score'];
   const showTopNav = !publicPaths.includes(location.pathname);
 
   return (
@@ -81,6 +82,7 @@ const AppContent = () => {
         <Suspense fallback={<PageLoader />}>
           <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/quick-score" element={<QuickScore />} />
           <Route path="/home" element={<ProtectedRoute><UnifiedHomepage /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/projects" element={<Navigate to="/active-applications" replace />} />
