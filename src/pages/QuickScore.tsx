@@ -136,16 +136,21 @@ export default function QuickScore() {
         jobDescription
       });
 
-      if (error || !data?.success) {
-        throw new Error(error || data?.error || 'Failed to analyze resume');
+      if (error) {
+        throw new Error(error.message || 'Failed to analyze resume');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Analysis returned unsuccessful result');
       }
 
       setScoreResult(data);
       setStep('results');
     } catch (error: any) {
+      console.error('Quick Score error:', error);
       toast({
         title: 'Analysis failed',
-        description: error.message,
+        description: error.message || 'An unexpected error occurred',
         variant: 'destructive'
       });
       setStep('upload');
