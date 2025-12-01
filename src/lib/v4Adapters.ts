@@ -22,7 +22,7 @@ export function transformScoreToBlueprint(scoreData: any): JobBlueprint {
     .map((fix: any, i: number) => ({
       id: `priority-${i}`,
       category: fix.category || "technical",
-      requirement: fix.issue || fix.fix,
+      requirement: fix.issue || fix.fix || "",
       why: fix.details || "",
       howToAddress: fix.fix || "",
       priority: fix.priority || 1,
