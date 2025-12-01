@@ -286,14 +286,14 @@ Create an INDUSTRY STANDARD version that:
 4. Uses quantified achievements (use realistic industry benchmarks)
 5. Demonstrates competitive strength
 
-CRITICAL: Return ONLY the actual content bullets/text. DO NOT include the section heading or title (like "Experience", "Education", "Skills", etc.) in your response. Start directly with the content.
+CRITICAL OUTPUT FORMAT:
+- Return ONLY the actual content bullets/text
+- DO NOT include section headings or titles (like "Experience", "Education", "Skills")
+- DO NOT add "DRAFT" or "verify this matches your actual experience" markers
+- DO NOT add "(Based on: ...)" source attributions
+- Return clean, professional content ready to use directly
 
-For EACH suggestion, you MUST explain:
-- why_this_helps: Why this addresses the job requirement
-- source_basis: What industry research supports this
-- disclaimer: Mark as "INDUSTRY STANDARD - adapt to your experience"
-
-Return ONLY the content, no explanations or headings.`;
+Start directly with the content.`;
 
     const { response: idealResponse, metrics: idealMetrics } = await callLovableAI({
       messages: [{ role: 'user', content: idealPrompt }],
