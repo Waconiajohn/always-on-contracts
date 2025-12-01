@@ -8,7 +8,6 @@ import { Zap, Target, ArrowRight, TrendingUp } from "lucide-react";
 interface V3ScoreStatusCardProps {
   lastScore?: number;
   lastScoredDate?: string;
-  targetRole?: string;
   tierInfo?: {
     tier: string;
     emoji: string;
@@ -19,7 +18,6 @@ interface V3ScoreStatusCardProps {
 export const V3ScoreStatusCard = ({ 
   lastScore, 
   lastScoredDate,
-  targetRole,
   tierInfo 
 }: V3ScoreStatusCardProps) => {
   const navigate = useNavigate();
@@ -33,12 +31,6 @@ export const V3ScoreStatusCard = ({
     if (score >= 80) return "text-green-500";
     if (score >= 60) return "text-amber-500";
     return "text-red-500";
-  };
-
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return "bg-green-500";
-    if (score >= 60) return "bg-amber-500";
-    return "bg-red-500";
   };
 
   return (

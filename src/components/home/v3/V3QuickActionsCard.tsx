@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Zap, FileText, Search, Briefcase, ArrowRight } from "lucide-react";
 
@@ -7,12 +6,14 @@ interface V3QuickActionsCardProps {
   hasScore: boolean;
   hasActiveResume: boolean;
   applicationCount: number;
+  hasInterviewPrep?: boolean;
 }
 
 export const V3QuickActionsCard = ({
   hasScore,
   hasActiveResume,
-  applicationCount
+  applicationCount,
+  hasInterviewPrep = false
 }: V3QuickActionsCardProps) => {
   const navigate = useNavigate();
 
@@ -60,7 +61,7 @@ export const V3QuickActionsCard = ({
       description: "Prep with real interview questions",
       icon: Briefcase,
       path: "/agents/interview-prep",
-      complete: false
+      complete: hasInterviewPrep
     }
   ];
 

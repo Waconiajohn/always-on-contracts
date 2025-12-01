@@ -18,7 +18,6 @@ import {
   FlaskConical,
   Settings,
   Zap,
-  Target,
   Briefcase,
   MoreHorizontal,
   type LucideIcon,
