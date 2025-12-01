@@ -17,11 +17,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { BulletSuggestion, RoleData, ConfidenceLevel } from "../types/builderV2Types";
+import type { BulletSuggestion, RoleData } from "../types/builderV2Types";
 import { BulletComparisonCard } from "./BulletComparisonCard";
 import { BUILDER_RULES } from "../config/resumeBuilderRules";
 import { EXPERIENCE_EMPTY_STATES } from "../config/emptyStates";
-import { BUTTON_LABELS, DISCLAIMERS } from "../config/uiCopy";
+import { BUTTON_LABELS } from "../config/uiCopy";
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -52,8 +52,6 @@ export const RoleEditorCard = ({
   acceptedCount,
   relevantCompetencies,
   hasOriginalBullets,
-  isExpanded = true,
-  onToggleExpand,
   onBulletAction,
   onApproveAllHighConfidence,
   onSkipRole,
@@ -66,15 +64,13 @@ export const RoleEditorCard = ({
   const { min: minRec, max: maxRec } = BUILDER_RULES.experiencePerRole.recommendedBullets;
   const fewThreshold = BUILDER_RULES.experiencePerRole.fewSuggestionsThreshold;
 
-  // Sort suggestions: pending first, then by severity + confidence
+  // Sort suggestions: pending first, then by confidence
   const sortedSuggestions = [...suggestions].sort((a, b) => {
     // Pending first
     if (a.status === 'pending' && b.status !== 'pending') return -1;
     if (b.status === 'pending' && a.status !== 'pending') return 1;
     
-    // Then by severity (critical > important > nice-to-have)
-    const severityOrder = { critical: 0, important: 1, 'nice-to-have': 2 };
-    // For now, use confidence as proxy for severity
+    // Then by confidence
     const confOrder = { high: 0, medium: 1, low: 2 };
     return confOrder[a.confidence] - confOrder[b.confidence];
   });
@@ -323,7 +319,7 @@ export const RoleEditorCard = ({
               {acceptedSuggestions.length} bullet{acceptedSuggestions.length !== 1 ? 's' : ''} accepted
             </p>
             <ul className="space-y-1">
-              {acceptedSuggestions.slice(0, 3).map((b, i) => (
+              {acceptedSuggestions.slice(0, 3).map((b) => (
                 <li key={b.id} className="text-xs text-green-700 flex items-start gap-1">
                   <span>✓</span>
                   <span className="line-clamp-1">{b.editedText || b.suggestedText}</span>

@@ -5,13 +5,12 @@
  * Shows 3-6 BulletComparisonCard items with accept/edit/reject controls.
  */
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
-import type { HighlightsSection, JobBlueprint, BulletSuggestion } from "../types/builderV2Types";
+import type { HighlightsSection, JobBlueprint } from "../types/builderV2Types";
 import { BulletComparisonCard } from "../cards/BulletComparisonCard";
 import { 
   ArrowLeft, 
@@ -138,7 +137,7 @@ export const HighlightsStep = ({
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {acceptedBullets.map((bullet, i) => (
+              {acceptedBullets.map((bullet) => (
                 <li key={bullet.id} className="flex items-start gap-2 text-sm">
                   <span className="text-green-500 mt-0.5">✓</span>
                   <span className="text-gray-700 line-clamp-2">

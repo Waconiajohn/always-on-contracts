@@ -165,16 +165,18 @@ export interface SummarySection {
   keywordsIncluded: string[];
 }
 
+export type SuggestedSkill = {
+  skill: string;
+  reason: string;
+  source: 'ats_critical' | 'ats_important' | 'competency' | 'must_have' | 'nice_to_have';
+  status: 'pending' | 'accepted' | 'rejected';
+};
+
 export interface SkillsData {
   /** Skills already in the resume/vault */
   existing: string[];
   /** AI-suggested skills from job blueprint */
-  suggested: Array<{
-    skill: string;
-    reason: string;
-    source: string;
-    status: 'pending' | 'accepted' | 'rejected';
-  }>;
+  suggested: SuggestedSkill[];
   /** Final list of accepted skills */
   accepted: string[];
 }
@@ -238,16 +240,23 @@ export interface BuilderState {
 // ============================================================================
 
 export interface OverviewStepProps {
-  scores: ScoreData;
+  currentScore: number;
+  projectedScore: number;
+  scoreBreakdown: {
+    atsMatch: number;
+    requirementsCoverage: number;
+    competitiveStrength: number;
+  };
   gaps: GapAnalysis[];
   jobBlueprint: JobBlueprint;
-  onStart: () => void;
-  onJumpToSection: (section: 'highlights' | 'experience' | 'skills') => void;
+  estimatedTime: string;
+  onStartBuilding: () => void;
 }
 
 export interface HighlightsStepProps {
-  highlights: HighlightsSection;
-  jobBlueprint: JobBlueprint;
+  highlights: {
+    bullets: BulletSuggestion[];
+  };
   onBulletAction: (bulletId: string, action: 'accept' | 'reject' | 'edit', editedText?: string) => void;
   onApproveAll: () => void;
   onNext: () => void;

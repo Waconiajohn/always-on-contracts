@@ -11,14 +11,14 @@
  */
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { FinalResume } from "../config/resumeExport";
-import { renderResumeToHTML, copyResumeToClipboard, formatDateRange } from "../config/resumeExport";
+import { renderResumeToHTML, copyResumeToClipboard } from "../config/resumeExport";
 import { validateForExport } from "../config/resumeBuilderRules";
 import { REVIEW_EMPTY_STATES } from "../config/emptyStates";
 import { SECTION_LABELS, BUTTON_LABELS, DISCLAIMERS, ERROR_MESSAGES, SUCCESS_MESSAGES } from "../config/uiCopy";
@@ -32,8 +32,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Target,
-  Loader2,
-  ExternalLink
+  Loader2
 } from "lucide-react";
 
 interface ReviewStepProps {

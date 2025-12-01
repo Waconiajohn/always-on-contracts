@@ -16,9 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+
 import { SKILLS_EMPTY_STATES } from "../config/emptyStates";
-import { SECTION_LABELS, BUTTON_LABELS, TOOLTIPS, DISCLAIMERS } from "../config/uiCopy";
+import { SECTION_LABELS, BUTTON_LABELS, TOOLTIPS } from "../config/uiCopy";
 import { 
   ArrowLeft, 
   ArrowRight, 

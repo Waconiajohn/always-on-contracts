@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -41,13 +41,12 @@ import { ReviewStep } from "./steps/ReviewStep";
 // Config
 import { STEP_CONFIG } from "./config/resumeBuilderRules";
 
-import { 
-  Target, 
-  Star, 
-  Briefcase, 
-  Wrench, 
+import {
+  Target,
+  Star,
+  Briefcase,
+  Wrench,
   FileCheck,
-  ChevronRight,
   AlertTriangle,
   Loader2,
   CheckCircle2
@@ -188,10 +187,12 @@ export const MustInterviewBuilderV2 = ({
       suggestedText: entry.aiSuggestedText,
       editedText: entry.status === 'edited' ? entry.finalText : undefined,
       status: entry.status,
-      confidence: 'high' as const, // Would come from original data
+      confidence: 'high' as const,
       whyThisHelps: '',
       supports: [],
       sourceBasis: '',
+      interviewQuestions: [],
+      order: 0,
     }));
   }, [builder.state.bulletStore]);
 
@@ -221,6 +222,8 @@ export const MustInterviewBuilderV2 = ({
           whyThisHelps: '',
           supports: [],
           sourceBasis: '',
+          interviewQuestions: [],
+          order: 0,
         })),
         acceptedCount,
         hasOriginalBullets: bullets.some(b => !!b.originalText),
@@ -245,7 +248,7 @@ export const MustInterviewBuilderV2 = ({
   }, [builder]);
 
   const handleExperienceBulletAction = useCallback((
-    roleId: string,
+    _roleId: string,
     bulletId: string,
     action: 'accept' | 'reject' | 'edit' | 'useOriginal',
     editedText?: string
@@ -492,7 +495,7 @@ export const MustInterviewBuilderV2 = ({
             onAcceptSkill={builder.acceptSkill}
             onRejectSkill={builder.rejectSkill}
             onAddCustomSkill={builder.addCustomSkill}
-            onRemoveExistingSkill={(skill) => {
+            onRemoveExistingSkill={(_skill) => {
               // For now, just filter out - would need to add to hook
             }}
             onNext={builder.nextStep}
