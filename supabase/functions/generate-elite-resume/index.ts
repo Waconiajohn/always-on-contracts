@@ -1,6 +1,6 @@
 /**
- * Elite Resume Generation Edge Function
- * Generates complete resume in one AI call with confidence tagging
+ * Elite Resume Generation Edge Function V2
+ * Sophisticated parsing with multi-role detection and accurate confidence tagging
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -28,7 +28,7 @@ serve(async (req) => {
       userId
     } = await req.json();
 
-    console.log('🚀 Generating elite resume', { userId, jobTitle, industry });
+    console.log('🚀 Generating elite resume v2', { userId, jobTitle, industry });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -44,7 +44,6 @@ serve(async (req) => {
         .maybeSingle();
 
       if (vault) {
-        // Fetch all vault items in parallel
         const [milestones, skills, positions, education] = await Promise.all([
           supabase.from('vault_resume_milestones').select('*').eq('vault_id', vault.id).limit(20),
           supabase.from('vault_confirmed_skills').select('*').eq('user_id', userId).limit(30),
@@ -70,8 +69,7 @@ ${(skills.data || []).map(s => s.skill_name).join(', ')}
       }
     }
 
-    // Main AI prompt for complete resume generation
-    const prompt = `You are an elite resume architect. Generate a COMPLETE, professionally formatted resume that will get this candidate an interview.
+    const prompt = `You are an elite resume architect with expertise in ATS optimization and precise data mapping.
 
 JOB TARGET:
 Title: ${jobTitle || 'Not specified'}
@@ -80,24 +78,51 @@ Industry: ${industry || 'Not specified'}
 JOB DESCRIPTION:
 ${jobDescription}
 
-${resumeText ? `CANDIDATE'S EXISTING RESUME (for reference):
-${resumeText.substring(0, 3000)}
+${resumeText ? `CANDIDATE'S EXISTING RESUME:
+${resumeText}
 ` : ''}
 
 ${vaultContent}
 
-CRITICAL INSTRUCTIONS:
-1. Generate a COMPLETE resume with all standard sections
-2. For each bullet/content item, tag it with confidence level:
-   - "exact" = directly from their resume/vault (verified)
-   - "enhanced" = AI improved their original content
-   - "invented" = AI created to fill a gap (must be realistic and verifiable)
+CRITICAL MULTI-STEP PROCESS:
 
-3. Use this EXACT JSON format for your response:
+STEP 1: PRE-PROCESS THE RESUME
+- Extract ALL work positions (detect multiple roles at same company by looking for same employer with different titles)
+- Extract education with DEGREE TYPES (BS, MS, MBA, PhD, etc.) and graduation years
+- Extract certifications (PMP, AWS, CISSP, etc.) - these are NOT job bullets
+- Extract technical skills as individual 1-4 word items (Python, React, SQL, etc.)
+- Extract quantified achievements per role
+
+STEP 2: MAP TO SECTIONS CORRECTLY
+- Professional Summary: 3-4 sentence paragraph highlighting fit for THIS job
+- Professional Experience: Each role with company, title, dates, and role-specific bullets
+  * CRITICAL: If same company appears multiple times with different titles, create separate role entries under same company
+  * Group bullets by the role they belong to
+- Education: Institution, degree type, field, graduation year (NO work bullets here)
+- Certifications: Actual certifications only (e.g., "PMP Certified", "AWS Solutions Architect")
+- Technical Skills: Individual skill keywords separated by commas or as pills
+
+STEP 3: CONFIDENCE TAGGING (BE HONEST)
+- "exact": Direct quote from resume (95%+ verbatim match) - THESE SHOULD APPEAR AS GREEN
+- "enhanced": Modified/improved version of their content (e.g., added metrics, better phrasing)
+- "invented": AI-generated to fill gaps (MUST be realistic and verifiable based on their background)
+
+STEP 4: DETECT MULTIPLE ROLES AT SAME COMPANY
+Example input: "Acme Corp, Senior Manager 2022-Present" and "Acme Corp, Manager 2020-2022"
+Output format:
+{
+  "company": "Acme Corp",
+  "positions": [
+    { "title": "Senior Manager", "dates": "2022 - Present", "bullets": [...] },
+    { "title": "Manager", "dates": "2020 - 2022", "bullets": [...] }
+  ]
+}
+
+EXACT JSON STRUCTURE TO RETURN:
 
 {
   "contactInfo": {
-    "name": "Candidate Name",
+    "name": "Full Name",
     "email": "email@example.com",
     "phone": "(555) 123-4567",
     "location": "City, State",
@@ -108,30 +133,77 @@ CRITICAL INSTRUCTIONS:
       "id": "summary",
       "type": "summary",
       "title": "Professional Summary",
-      "paragraph": "3-4 sentence powerful summary...",
+      "paragraph": "A results-driven professional with X years of experience...",
       "bullets": []
     },
     {
-      "id": "experience",
+      "id": "experience-1",
       "type": "experience",
       "title": "Professional Experience",
-      "bullets": [
+      "company": "Company Name",
+      "positions": [
         {
-          "id": "bullet-1",
-          "text": "Led team of 12 developers...",
-          "confidence": "exact",
-          "source": {
-            "type": "resume",
-            "originalText": "Managed developers"
-          },
-          "atsKeywords": ["leadership", "team management"]
+          "title": "Senior Role Title",
+          "dates": "Jan 2022 - Present",
+          "bullets": [
+            {
+              "id": "exp-1-1",
+              "text": "Led team of 12 developers resulting in 40% faster delivery",
+              "confidence": "enhanced",
+              "source": {
+                "type": "resume",
+                "originalText": "Managed team of developers"
+              },
+              "atsKeywords": ["leadership", "team management", "delivery"]
+            }
+          ]
+        },
+        {
+          "title": "Previous Role Title",
+          "dates": "Mar 2020 - Dec 2021",
+          "bullets": [
+            {
+              "id": "exp-1-2",
+              "text": "Implemented new CRM system saving $200K annually",
+              "confidence": "exact",
+              "source": {
+                "type": "resume",
+                "originalText": "Implemented new CRM system saving $200K annually"
+              },
+              "atsKeywords": ["CRM", "cost savings", "implementation"]
+            }
+          ]
         }
-      ],
-      "roleInfo": {
-        "company": "Company Name",
-        "title": "Job Title",
-        "dates": "Jan 2020 - Present"
-      }
+      ]
+    },
+    {
+      "id": "education",
+      "type": "education",
+      "title": "Education",
+      "entries": [
+        {
+          "institution": "University Name",
+          "degree": "Master of Business Administration (MBA)",
+          "field": "Business Administration",
+          "graduationYear": "2019",
+          "gpa": "3.8"
+        }
+      ]
+    },
+    {
+      "id": "certifications",
+      "type": "certifications",
+      "title": "Certifications",
+      "entries": [
+        { "name": "Project Management Professional (PMP)", "issuer": "PMI", "year": "2021" },
+        { "name": "AWS Solutions Architect", "issuer": "Amazon", "year": "2020" }
+      ]
+    },
+    {
+      "id": "skills",
+      "type": "skills",
+      "title": "Technical Skills",
+      "skills": ["Python", "JavaScript", "React", "Node.js", "AWS", "Docker", "SQL", "MongoDB"]
     }
   ],
   "overallScore": 85,
@@ -139,72 +211,64 @@ CRITICAL INSTRUCTIONS:
     "tier": "HOT",
     "emoji": "🔥",
     "color": "orange",
-    "message": "Strong candidate"
+    "message": "Strong candidate - ready to apply!"
   }
 }
 
-CRITICAL RULES:
-- If you create "invented" content, it MUST be realistic and verifiable
-- Mark anything stretched or enhanced honestly
-- Include quantified achievements
-- Use ATS-friendly keywords from job description
-- Keep bullet points concise and impactful
-- For experience sections, group bullets by role
+VALIDATION RULES:
+1. Education section: ONLY degrees, no job bullets
+2. Certifications: ONLY certifications (PMP, AWS, etc.), not job achievements
+3. Skills: Individual 1-4 word items, NOT full sentences
+4. Experience bullets: Quantified achievements with metrics when possible
+5. Multiple roles at same company: Group under company but show each title separately
+6. Confidence tagging: "exact" items should be 95%+ verbatim from resume
 
-Return ONLY the JSON, no markdown formatting.`;
+Return ONLY the JSON, no markdown.`;
 
-    // Call AI with higher token limit for complete resume generation
     const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
       model: LOVABLE_AI_MODELS.DEFAULT,
-      temperature: 0.5,
-      max_tokens: 8000, // Increased for complete resume JSON
+      temperature: 0.3,
+      max_tokens: 8000,
     }, 'generate-elite-resume', userId);
 
     await logAIUsage(metrics);
 
     let rawContent = cleanCitations(response.choices?.[0]?.message?.content || '');
-    
-    // Remove markdown code fences if present
     rawContent = rawContent.replace(/^```json\n?/i, '').replace(/\n?```$/i, '').trim();
 
-    console.log('📝 Raw AI response (first 500 chars):', rawContent.substring(0, 500));
+    console.log('📝 Raw AI response length:', rawContent.length);
 
-    // Parse JSON response with better error handling
     let resumeData;
     try {
       resumeData = JSON.parse(rawContent);
     } catch (parseError) {
       console.error('❌ Failed to parse AI response as JSON:', parseError);
-      console.error('Raw content length:', rawContent.length);
-      console.error('Raw content (first 1000 chars):', rawContent.substring(0, 1000));
-      console.error('Raw content (last 500 chars):', rawContent.substring(Math.max(0, rawContent.length - 500)));
+      console.error('First 1000 chars:', rawContent.substring(0, 1000));
       
-      // Check if response was truncated
       if (response.choices?.[0]?.finish_reason === 'length') {
-        throw new Error('AI response was truncated due to token limit. Please try again with a shorter job description.');
+        throw new Error('AI response truncated. Please try with a shorter job description.');
       }
       
       throw new Error('AI returned invalid JSON format. Please try again.');
     }
 
-    // Validate structure
     if (!resumeData.sections || !Array.isArray(resumeData.sections)) {
       throw new Error('Invalid resume structure returned by AI');
     }
 
-    console.log('✅ Elite resume generated successfully');
+    console.log('✅ Elite resume v2 generated successfully');
+    console.log(`📊 Stats: ${resumeData.sections.length} sections`);
 
     return new Response(
       JSON.stringify({
         success: true,
         resumeData,
         analysis: {
-          totalBullets: resumeData.sections.reduce((sum: number, s: any) => sum + (s.bullets?.length || 0), 0),
-          inventedCount: resumeData.sections.reduce(
-            (sum: number, s: any) => sum + (s.bullets?.filter((b: any) => b.confidence === 'invented').length || 0),
-            0
-          )
+          totalSections: resumeData.sections.length,
+          hasEducation: resumeData.sections.some((s: any) => s.type === 'education'),
+          hasCertifications: resumeData.sections.some((s: any) => s.type === 'certifications'),
+          hasSkills: resumeData.sections.some((s: any) => s.type === 'skills'),
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

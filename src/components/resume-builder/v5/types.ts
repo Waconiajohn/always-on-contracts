@@ -23,17 +23,54 @@ export interface ResumeBullet {
   userEditedText?: string;
 }
 
+export interface RolePosition {
+  title: string;
+  dates: string;
+  bullets: ResumeBullet[];
+}
+
+export interface CompanyExperience {
+  company: string;
+  positions: RolePosition[];
+}
+
+export interface EducationEntry {
+  institution: string;
+  degree: string;
+  field: string;
+  graduationYear: string;
+  gpa?: string;
+}
+
+export interface CertificationEntry {
+  name: string;
+  issuer?: string;
+  year?: string;
+}
+
 export interface ResumeSection {
   id: string;
   type: 'summary' | 'experience' | 'skills' | 'education' | 'certifications';
   title: string;
-  bullets: ResumeBullet[];
+  bullets?: ResumeBullet[];
   paragraph?: string;
+  
+  // For experience sections (multi-role support)
+  company?: string;
+  positions?: RolePosition[];
+  
+  // Legacy single-role format (backwards compatible)
   roleInfo?: {
     company: string;
     title: string;
     dates: string;
   };
+  
+  // For education sections
+  entries?: EducationEntry[] | CertificationEntry[];
+  
+  // For skills sections
+  skills?: string[];
 }
 
 export interface EliteResumeData {

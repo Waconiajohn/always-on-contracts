@@ -64,7 +64,7 @@ export function ResumeDraftPanel({
 
               {/* Bullet points */}
               <div className="space-y-2">
-                {section.bullets.map((bullet: ResumeBullet) => (
+                {section.bullets?.map((bullet: ResumeBullet) => (
                   <ContentBlock
                     key={bullet.id}
                     id={bullet.id}

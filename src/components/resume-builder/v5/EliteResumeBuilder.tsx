@@ -79,7 +79,7 @@ export default function EliteResumeBuilder({
 
     const updatedSections = resumeData.sections.map(section => ({
       ...section,
-      bullets: section.bullets.map(bullet =>
+      bullets: section.bullets?.map(bullet =>
         bullet.id === bulletId
           ? { ...bullet, userEditedText: newText, isEdited: true }
           : bullet
@@ -101,9 +101,9 @@ export default function EliteResumeBuilder({
     if (!resumeData) return;
 
     const section = resumeData.sections.find(s =>
-      s.bullets.some(b => b.id === bulletId)
+      s.bullets?.some(b => b.id === bulletId)
     );
-    const bullet = section?.bullets.find(b => b.id === bulletId);
+    const bullet = section?.bullets?.find(b => b.id === bulletId);
 
     if (!section || !bullet) return;
 
@@ -123,7 +123,7 @@ export default function EliteResumeBuilder({
 
     const updatedSections = resumeData.sections.map(section => ({
       ...section,
-      bullets: section.bullets.filter(bullet => bullet.id !== bulletId)
+      bullets: section.bullets?.filter(bullet => bullet.id !== bulletId)
     }));
 
     setResumeData({
@@ -206,7 +206,7 @@ export default function EliteResumeBuilder({
       }
 
       // Check regular bullets
-      const bullet = section.bullets.find(b => b.id === selectedBulletId);
+      const bullet = section.bullets?.find(b => b.id === selectedBulletId);
       if (bullet) return bullet;
     }
 
