@@ -66,7 +66,7 @@ export function useEliteResumeGeneration() {
 
   const regenerateBullet = async (
     bulletId: string,
-    context: { section: ResumeSection; jobDescription: string }
+    context: { section: ResumeSection; jobDescription: string; currentText: string }
   ): Promise<string | null> => {
     try {
       logger.info('Regenerating bullet', { bulletId });
@@ -76,7 +76,8 @@ export function useEliteResumeGeneration() {
         {
           bulletId,
           sectionType: context.section.type,
-          jobDescription: context.jobDescription
+          jobDescription: context.jobDescription,
+          currentText: context.currentText
         }
       );
 
