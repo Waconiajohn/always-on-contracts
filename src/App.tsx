@@ -61,7 +61,7 @@ const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
 const MustInterviewBuilder = lazy(() => import("./pages/MustInterviewBuilder"));
 const MustInterviewBuilderV2Page = lazy(() => import("./pages/MustInterviewBuilderV2Page"));
-const SinglePageBuilder = lazy(() => import("./components/resume-builder/v5/SinglePageBuilder"));
+const ResumeBuilderV2 = lazy(() => import("./pages/agents/ResumeBuilderV2"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -103,10 +103,10 @@ const AppContent = () => {
           <Route path="/api-keys" element={<ProtectedRoute><APIKeys /></ProtectedRoute>} />
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
         <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
-          <Route path="/agents/resume-builder" element={<ProtectedRoute><SinglePageBuilder /></ProtectedRoute>} />
-          <Route path="/agents/resume-builder-wizard" element={<ProtectedRoute><SinglePageBuilder /></ProtectedRoute>} />
-          <Route path="/must-interview-builder" element={<ProtectedRoute><SinglePageBuilder /></ProtectedRoute>} />
-          <Route path="/resume-builder-v5" element={<ProtectedRoute><SinglePageBuilder /></ProtectedRoute>} />
+          <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
+          <Route path="/agents/resume-builder-wizard" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
+          <Route path="/must-interview-builder" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
+          <Route path="/resume-builder-v5" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
         <Route path="/resume-builder-v4" element={<ProtectedRoute><MustInterviewBuilderV2Page /></ProtectedRoute>} />
         <Route path="/must-interview-builder-v3" element={<ProtectedRoute><MustInterviewBuilder /></ProtectedRoute>} />
         <Route path="/agents/resume-builder-legacy" element={<ProtectedRoute><ResumeBuilderWizard /></ProtectedRoute>} />
