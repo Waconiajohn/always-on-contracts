@@ -84,19 +84,16 @@ export function ResumeDraftPanel({
                   </h2>
                   {section.entries.map((entry, idx) => {
                     const eduEntry = entry as { institution: string; degree: string; field?: string; graduationYear?: string; gpa?: string };
+                    const eduText = `${eduEntry.degree}${eduEntry.field ? ` in ${eduEntry.field}` : ''} from ${eduEntry.institution}`;
                     return (
-                      <div key={`edu-${idx}`} className="space-y-0.5">
-                        <h3 className="font-semibold">{eduEntry.institution}</h3>
-                        <p className="text-sm">
-                          {eduEntry.degree} {eduEntry.field && `in ${eduEntry.field}`}
-                        </p>
-                        {eduEntry.graduationYear && (
-                          <p className="text-sm text-muted-foreground">{eduEntry.graduationYear}</p>
-                        )}
-                        {eduEntry.gpa && (
-                          <p className="text-sm text-muted-foreground">GPA: {eduEntry.gpa}</p>
-                        )}
-                      </div>
+                      <ContentBlock
+                        key={`edu-${idx}`}
+                        id={`edu-${idx}`}
+                        text={eduText}
+                        confidence="exact"
+                        isSelected={selectedBulletId === `edu-${idx}`}
+                        onClick={() => onSelectBullet(`edu-${idx}`)}
+                      />
                     );
                   })}
                 </div>
@@ -110,15 +107,19 @@ export function ResumeDraftPanel({
                   <h2 className="text-lg font-semibold uppercase tracking-wide border-b pb-2">
                     {section.title}
                   </h2>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {section.entries.map((entry, idx) => {
                       const certEntry = entry as { name: string; issuer?: string; year?: string };
+                      const certText = `${certEntry.name}${certEntry.issuer ? ` • ${certEntry.issuer}` : ''}${certEntry.year ? ` • ${certEntry.year}` : ''}`;
                       return (
-                        <p key={`cert-${idx}`} className="text-sm">
-                          <span className="font-medium">{certEntry.name}</span>
-                          {certEntry.issuer && <span className="text-muted-foreground"> • {certEntry.issuer}</span>}
-                          {certEntry.year && <span className="text-muted-foreground"> • {certEntry.year}</span>}
-                        </p>
+                        <ContentBlock
+                          key={`cert-${idx}`}
+                          id={`cert-${idx}`}
+                          text={certText}
+                          confidence="exact"
+                          isSelected={selectedBulletId === `cert-${idx}`}
+                          onClick={() => onSelectBullet(`cert-${idx}`)}
+                        />
                       );
                     })}
                   </div>
@@ -135,12 +136,14 @@ export function ResumeDraftPanel({
                   </h2>
                   <div className="flex flex-wrap gap-2">
                     {section.skills.map((skill, idx) => (
-                      <span
+                      <ContentBlock
                         key={`skill-${idx}`}
-                        className="px-2.5 py-1 bg-primary/10 text-primary rounded-md text-sm font-medium"
-                      >
-                        {skill}
-                      </span>
+                        id={`skill-${idx}`}
+                        text={skill}
+                        confidence="exact"
+                        isSelected={selectedBulletId === `skill-${idx}`}
+                        onClick={() => onSelectBullet(`skill-${idx}`)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -168,15 +171,29 @@ export function ResumeDraftPanel({
                 {/* Bullet points */}
                 <div className="space-y-2">
                   {section.bullets?.map((bullet: ResumeBullet) => (
-                    <ContentBlock
-                      key={bullet.id}
-                      id={bullet.id}
-                      text={bullet.userEditedText || bullet.text}
-                      confidence={bullet.confidence}
-                      isSelected={selectedBulletId === bullet.id}
-                      isEdited={bullet.isEdited}
-                      onClick={() => onSelectBullet(bullet.id)}
-                    />
+                    <div key={bullet.id} className="space-y-1">
+                      <ContentBlock
+                        id={bullet.id}
+                        text={bullet.userEditedText || bullet.text}
+                        confidence={bullet.confidence}
+                        isSelected={selectedBulletId === bullet.id}
+                        isEdited={bullet.isEdited}
+                        onClick={() => onSelectBullet(bullet.id)}
+                      />
+                      {/* Show ATS keywords as clickable badges */}
+                      {bullet.atsKeywords && bullet.atsKeywords.length > 0 && (
+                        <div className="flex flex-wrap gap-1 ml-6">
+                          {bullet.atsKeywords.map((keyword, i) => (
+                            <span
+                              key={i}
+                              className="text-[10px] px-1.5 py-0.5 bg-primary/5 text-primary/70 rounded cursor-default"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

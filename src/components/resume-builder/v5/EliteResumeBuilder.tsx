@@ -25,11 +25,13 @@ import type { EliteResumeData, ResumeBullet, MatchAnalysis } from './types';
 interface EliteResumeBuilderProps {
   initialJobDescription?: string;
   initialResumeText?: string;
+  userId?: string;
 }
 
 export default function EliteResumeBuilder({
   initialJobDescription = '',
-  initialResumeText = ''
+  initialResumeText = '',
+  userId
 }: EliteResumeBuilderProps) {
   const location = useLocation();
   const { toast } = useToast();
@@ -61,8 +63,8 @@ export default function EliteResumeBuilder({
       jobDescription: options?.jobDescription || jobDescription,
       jobTitle: options?.jobTitle,
       industry: options?.industry,
-      resumeText: initialResumeText,
-      userId: options?.userId
+      resumeText: options?.resumeText || initialResumeText,
+      userId: options?.userId || userId
     });
 
     if (result) {
@@ -194,7 +196,6 @@ export default function EliteResumeBuilder({
     for (const section of resumeData.sections) {
       // Check if this is a paragraph selection
       if (selectedBulletId === `${section.id}-paragraph` && section.paragraph) {
-        // Create a ResumeBullet-like object for the paragraph
         return {
           id: selectedBulletId,
           text: section.paragraph,
@@ -203,6 +204,53 @@ export default function EliteResumeBuilder({
             type: 'ai_generated'
           }
         };
+      }
+
+      // Check education entries
+      if (section.type === 'education' && section.entries && selectedBulletId.startsWith('edu-')) {
+        const idx = parseInt(selectedBulletId.split('-')[1]);
+        const entry = section.entries[idx] as any;
+        if (entry) {
+          return {
+            id: selectedBulletId,
+            text: `${entry.degree} in ${entry.field || ''} from ${entry.institution}`,
+            confidence: 'exact',
+            source: { type: 'vault' },
+            contentType: 'education',
+            educationData: entry
+          } as any;
+        }
+      }
+
+      // Check certification entries
+      if (section.type === 'certifications' && section.entries && selectedBulletId.startsWith('cert-')) {
+        const idx = parseInt(selectedBulletId.split('-')[1]);
+        const entry = section.entries[idx] as any;
+        if (entry) {
+          return {
+            id: selectedBulletId,
+            text: entry.name,
+            confidence: 'exact',
+            source: { type: 'vault' },
+            contentType: 'certification',
+            certificationData: entry
+          } as any;
+        }
+      }
+
+      // Check skills
+      if (section.type === 'skills' && section.skills && selectedBulletId.startsWith('skill-')) {
+        const idx = parseInt(selectedBulletId.split('-')[1]);
+        const skill = section.skills[idx];
+        if (skill) {
+          return {
+            id: selectedBulletId,
+            text: skill,
+            confidence: 'exact',
+            source: { type: 'vault' },
+            contentType: 'skill'
+          } as any;
+        }
       }
 
       // Check regular bullets
@@ -326,6 +374,7 @@ export default function EliteResumeBuilder({
               onRegenerate={handleBulletRegenerate}
               onRemove={handleBulletRemove}
               isProcessing={isGenerating}
+              jobDescription={jobDescription}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
