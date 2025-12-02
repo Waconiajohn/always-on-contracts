@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/jsonParser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,8 +87,7 @@ Return JSON:
       messages: [{ role: 'user', content: prompt }],
       model: LOVABLE_AI_MODELS.FAST,
       temperature: 0.4,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' }
+      max_tokens: 4000
     }, 'get-refinement-suggestions', userId);
 
     await logAIUsage(metrics);
@@ -96,10 +96,26 @@ Return JSON:
     let suggestions;
     
     try {
-      suggestions = JSON.parse(rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+      suggestions = extractJSON(rawContent);
     } catch (parseError) {
       console.error('Failed to parse suggestions:', parseError);
-      throw new Error('Failed to parse refinement suggestions');
+      // Return fallback suggestions instead of throwing
+      suggestions = {
+        keywordsToAdd: [],
+        likeKindSuggestions: [],
+        alternativeVersions: {
+          conservative: bulletText,
+          moderate: bulletText,
+          aggressive: bulletText
+        },
+        comparison: {
+          original: originalText || bulletText,
+          enhanced: bulletText,
+          differences: ["Unable to generate detailed comparison"]
+        },
+        gapFillingGuidance: "Please try again for detailed suggestions.",
+        metricsToAdd: []
+      };
     }
 
     console.log('✅ Refinement suggestions generated');
