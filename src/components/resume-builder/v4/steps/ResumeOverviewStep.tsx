@@ -179,7 +179,12 @@ export const ResumeOverviewStep = ({
             {criticalGaps.length > 0 ? (
               <ul className="space-y-2">
                 {criticalGaps.slice(0, 4).map((gap) => {
-                  const typeInfo = GAP_TYPE_INFO[gap.gapType];
+                  const typeInfo = GAP_TYPE_INFO[gap.gapType] || {
+                    icon: '⚠️',
+                    label: 'Gap',
+                    description: 'Issue to address',
+                    color: 'text-gray-500'
+                  };
                   return (
                     <li key={gap.id} className="flex items-start gap-2 text-sm">
                       <span>{typeInfo.icon}</span>
@@ -228,7 +233,12 @@ export const ResumeOverviewStep = ({
             {importantGaps.length > 0 ? (
               <ul className="space-y-2">
                 {importantGaps.slice(0, 4).map((gap) => {
-                  const typeInfo = GAP_TYPE_INFO[gap.gapType];
+                  const typeInfo = GAP_TYPE_INFO[gap.gapType] || {
+                    icon: '⚠️',
+                    label: 'Gap',
+                    description: 'Issue to address',
+                    color: 'text-gray-500'
+                  };
                   return (
                     <li key={gap.id} className="flex items-start gap-2 text-sm">
                       <span>{typeInfo.icon}</span>

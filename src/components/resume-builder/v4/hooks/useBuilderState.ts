@@ -101,6 +101,24 @@ export interface UseBuilderStateOptions {
 // ============================================================================
 
 /**
+ * Storage version for migration management
+ * Increment this when the data format changes
+ */
+const STORAGE_VERSION = 2;
+
+/**
+ * Valid gap types according to GAP_TYPE_INFO mapping
+ */
+const VALID_GAP_TYPES = new Set([
+  'missing_skill_or_tool',
+  'weak_achievement_story',
+  'missing_metrics_or_scope',
+  'missing_domain_experience',
+  'unclear_level_or_seniority',
+  'positioning_issue'
+]);
+
+/**
  * Generate a hash for job description to detect changes
  */
 function hashString(str: string): string {
@@ -157,10 +175,25 @@ export function useBuilderState(options: UseBuilderStateOptions) {
         const saved = localStorage.getItem(options.persistKey);
         if (saved) {
           const parsed = JSON.parse(saved);
+          
+          // Check storage version - clear if outdated
+          if (!parsed._version || parsed._version < STORAGE_VERSION) {
+            console.warn(`Clearing outdated builder state (v${parsed._version || 0} < v${STORAGE_VERSION})`);
+            localStorage.removeItem(options.persistKey);
+            return createInitialState(options);
+          }
+          
           // Check if same job
           if (parsed.jobId === hashString(options.jobDescription)) {
+            // Validate and fix gaps
+            const validatedGaps = (parsed.gaps || []).map((gap: GapAnalysis) => ({
+              ...gap,
+              gapType: VALID_GAP_TYPES.has(gap.gapType) ? gap.gapType : 'positioning_issue'
+            }));
+            
             return {
               ...parsed,
+              gaps: validatedGaps,
               bulletStore: new Map(Object.entries(parsed.bulletStore || {})),
               roleData: new Map(Object.entries(parsed.roleData || {})),
             };
@@ -204,6 +237,7 @@ export function useBuilderState(options: UseBuilderStateOptions) {
       const timer = setTimeout(() => {
         const serializable = {
           ...state,
+          _version: STORAGE_VERSION,
           bulletStore: Object.fromEntries(state.bulletStore),
           roleData: Object.fromEntries(state.roleData),
           lastSaved: new Date().toISOString(),
