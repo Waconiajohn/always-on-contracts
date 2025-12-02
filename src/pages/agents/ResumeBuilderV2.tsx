@@ -7,6 +7,7 @@ import { useResumeBuilderStore } from '@/stores/resumeBuilderStore';
 import { toast } from 'sonner';
 import { HiringManagerReviewPanel } from '@/components/resume-builder/HiringManagerReviewPanel';
 import { ATSScoreReportPanel } from '@/components/resume-builder/ATSScoreReportPanel';
+import EliteResumeBuilder from '@/components/resume-builder/v5/EliteResumeBuilder';
 
 type WizardStep = 
   | 'job-input' 
@@ -18,12 +19,13 @@ type WizardStep =
   | 'generation'
   | 'hiring-manager-review'
   | 'ats-score-report'
-  | 'final-review';
+  | 'final-review'
+  | 'elite-builder';
 
 export default function ResumeBuilderV2() {
   const navigate = useNavigate();
   const store = useResumeBuilderStore();
-  const [currentStep, setCurrentStep] = useState<WizardStep>('job-input');
+  const [currentStep, setCurrentStep] = useState<WizardStep>('elite-builder');
 
   // Main navigation between steps
   const handleStepComplete = (nextStep: WizardStep) => {
@@ -61,6 +63,14 @@ export default function ResumeBuilderV2() {
   // Render current step
   const renderStep = () => {
     switch (currentStep) {
+      case 'elite-builder':
+        return (
+          <EliteResumeBuilder
+            initialJobDescription={store.displayJobText}
+            initialResumeText=""
+          />
+        );
+
       case 'hiring-manager-review':
         return (
           <HiringManagerReviewPanel

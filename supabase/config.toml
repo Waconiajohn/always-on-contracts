@@ -3,6 +3,9 @@ project_id = "ubcghjlfxkamyyefnbkf"
 [functions.further-enhance-bullet]
 verify_jwt = true
 
+[functions.generate-elite-resume]
+verify_jwt = true
+
 [functions.generate-gap-suggestions]
 verify_jwt = true
 
