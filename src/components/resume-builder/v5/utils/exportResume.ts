@@ -33,35 +33,102 @@ export function exportResumeAsPDF(resumeData: EliteResumeData) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     
-    // Role info
-    if (section.roleInfo) {
-      doc.setFont('helvetica', 'bold');
-      doc.text(section.roleInfo.title, margin, y);
-      y += lineHeight;
+    // Experience section with multiple positions
+    if (section.type === 'experience' && section.positions) {
+      // Company header
+      if (section.company) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(section.company, margin, y);
+        y += lineHeight;
+      }
       
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${section.roleInfo.company} • ${section.roleInfo.dates}`, margin, y);
-      y += lineHeight;
-    }
-    
-    // Paragraph
-    if (section.paragraph) {
-      const splitParagraph = doc.splitTextToSize(section.paragraph, 170);
-      doc.text(splitParagraph, margin, y);
-      y += splitParagraph.length * lineHeight;
-    }
-    
-    // Bullets
-    if (section.bullets) {
-      for (const bullet of section.bullets) {
-        const bulletText = bullet.userEditedText || bullet.text;
-        const splitText = doc.splitTextToSize(`• ${bulletText}`, 165);
-        doc.text(splitText, margin + 5, y);
-        y += splitText.length * lineHeight;
+      // Each position under the company
+      for (const position of section.positions) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(position.title, margin + 5, y);
+        y += lineHeight;
         
-        if (y > 270) {
-          doc.addPage();
-          y = margin;
+        doc.setFont('helvetica', 'normal');
+        doc.text(position.dates, margin + 5, y);
+        y += lineHeight;
+        
+        // Position bullets
+        for (const bullet of position.bullets) {
+          const bulletText = bullet.userEditedText || bullet.text;
+          const splitText = doc.splitTextToSize(`• ${bulletText}`, 160);
+          doc.text(splitText, margin + 10, y);
+          y += splitText.length * lineHeight;
+          
+          if (y > 270) {
+            doc.addPage();
+            y = margin;
+          }
+        }
+        y += lineHeight / 2;
+      }
+    }
+    // Education section
+    else if (section.type === 'education' && section.entries) {
+      for (const entry of section.entries) {
+        const eduEntry = entry as { institution: string; degree: string; field?: string; graduationYear?: string; gpa?: string };
+        doc.setFont('helvetica', 'bold');
+        doc.text(eduEntry.institution, margin, y);
+        y += lineHeight;
+        
+        doc.setFont('helvetica', 'normal');
+        const degreeLine = `${eduEntry.degree}${eduEntry.field ? ` in ${eduEntry.field}` : ''}`;
+        doc.text(degreeLine, margin, y);
+        y += lineHeight;
+        
+        if (eduEntry.graduationYear) {
+          doc.text(eduEntry.graduationYear, margin, y);
+          y += lineHeight;
+        }
+        
+        if (eduEntry.gpa) {
+          doc.text(`GPA: ${eduEntry.gpa}`, margin, y);
+          y += lineHeight;
+        }
+        y += lineHeight / 2;
+      }
+    }
+    // Certifications section
+    else if (section.type === 'certifications' && section.entries) {
+      for (const entry of section.entries) {
+        const certEntry = entry as { name: string; issuer?: string; year?: string };
+        const certLine = [certEntry.name, certEntry.issuer, certEntry.year].filter(Boolean).join(' • ');
+        doc.text(certLine, margin, y);
+        y += lineHeight;
+      }
+    }
+    // Skills section
+    else if (section.type === 'skills' && section.skills) {
+      const skillsText = section.skills.join(', ');
+      const splitSkills = doc.splitTextToSize(skillsText, 170);
+      doc.text(splitSkills, margin, y);
+      y += splitSkills.length * lineHeight;
+    }
+    // Standard section (summary, etc.)
+    else {
+      // Paragraph
+      if (section.paragraph) {
+        const splitParagraph = doc.splitTextToSize(section.paragraph, 170);
+        doc.text(splitParagraph, margin, y);
+        y += splitParagraph.length * lineHeight;
+      }
+      
+      // Bullets
+      if (section.bullets) {
+        for (const bullet of section.bullets) {
+          const bulletText = bullet.userEditedText || bullet.text;
+          const splitText = doc.splitTextToSize(`• ${bulletText}`, 165);
+          doc.text(splitText, margin + 5, y);
+          y += splitText.length * lineHeight;
+          
+          if (y > 270) {
+            doc.addPage();
+            y = margin;
+          }
         }
       }
     }
@@ -88,22 +155,68 @@ export function exportResumeAsText(resumeData: EliteResumeData): string {
     text += `${section.title.toUpperCase()}\n`;
     text += '='.repeat(section.title.length) + '\n\n';
     
-    // Role info
-    if (section.roleInfo) {
-      text += `${section.roleInfo.title}\n`;
-      text += `${section.roleInfo.company} • ${section.roleInfo.dates}\n\n`;
+    // Experience section with multiple positions
+    if (section.type === 'experience' && section.positions) {
+      // Company header
+      if (section.company) {
+        text += `${section.company}\n`;
+      }
+      
+      // Each position under the company
+      for (const position of section.positions) {
+        text += `  ${position.title}\n`;
+        text += `  ${position.dates}\n`;
+        
+        // Position bullets
+        for (const bullet of position.bullets) {
+          const bulletText = bullet.userEditedText || bullet.text;
+          text += `    • ${bulletText}\n`;
+        }
+        text += '\n';
+      }
     }
-    
-    // Paragraph content
-    if (section.paragraph) {
-      text += `${section.paragraph}\n\n`;
+    // Education section
+    else if (section.type === 'education' && section.entries) {
+      for (const entry of section.entries) {
+        const eduEntry = entry as { institution: string; degree: string; field?: string; graduationYear?: string; gpa?: string };
+        text += `${eduEntry.institution}\n`;
+        text += `${eduEntry.degree}${eduEntry.field ? ` in ${eduEntry.field}` : ''}\n`;
+        if (eduEntry.graduationYear) {
+          text += `${eduEntry.graduationYear}\n`;
+        }
+        if (eduEntry.gpa) {
+          text += `GPA: ${eduEntry.gpa}\n`;
+        }
+        text += '\n';
+      }
     }
-    
-    // Bullets
-    if (section.bullets) {
-      for (const bullet of section.bullets) {
-        const bulletText = bullet.userEditedText || bullet.text;
-        text += `• ${bulletText}\n`;
+    // Certifications section
+    else if (section.type === 'certifications' && section.entries) {
+      for (const entry of section.entries) {
+        const certEntry = entry as { name: string; issuer?: string; year?: string };
+        text += `• ${certEntry.name}`;
+        if (certEntry.issuer) text += ` • ${certEntry.issuer}`;
+        if (certEntry.year) text += ` • ${certEntry.year}`;
+        text += '\n';
+      }
+    }
+    // Skills section
+    else if (section.type === 'skills' && section.skills) {
+      text += section.skills.join(', ') + '\n';
+    }
+    // Standard section (summary, etc.)
+    else {
+      // Paragraph content
+      if (section.paragraph) {
+        text += `${section.paragraph}\n\n`;
+      }
+      
+      // Bullets
+      if (section.bullets) {
+        for (const bullet of section.bullets) {
+          const bulletText = bullet.userEditedText || bullet.text;
+          text += `• ${bulletText}\n`;
+        }
       }
     }
     
