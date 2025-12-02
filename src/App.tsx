@@ -61,6 +61,7 @@ const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
 const MustInterviewBuilder = lazy(() => import("./pages/MustInterviewBuilder"));
 const MustInterviewBuilderV2Page = lazy(() => import("./pages/MustInterviewBuilderV2Page"));
+const SinglePageBuilder = lazy(() => import("./components/resume-builder/v5/SinglePageBuilder"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -102,9 +103,11 @@ const AppContent = () => {
           <Route path="/api-keys" element={<ProtectedRoute><APIKeys /></ProtectedRoute>} />
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
         <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
-        <Route path="/agents/resume-builder" element={<ProtectedRoute><MustInterviewBuilderV2Page /></ProtectedRoute>} />
-        <Route path="/agents/resume-builder-wizard" element={<ProtectedRoute><MustInterviewBuilderV2Page /></ProtectedRoute>} />
-        <Route path="/must-interview-builder" element={<ProtectedRoute><MustInterviewBuilderV2Page /></ProtectedRoute>} />
+        <Route path="/agents/resume-builder" element={<SinglePageBuilder />} />
+        <Route path="/agents/resume-builder-wizard" element={<SinglePageBuilder />} />
+        <Route path="/must-interview-builder" element={<SinglePageBuilder />} />
+        <Route path="/resume-builder-v5" element={<SinglePageBuilder />} />
+        <Route path="/resume-builder-v4" element={<ProtectedRoute><MustInterviewBuilderV2Page /></ProtectedRoute>} />
         <Route path="/must-interview-builder-v3" element={<ProtectedRoute><MustInterviewBuilder /></ProtectedRoute>} />
         <Route path="/agents/resume-builder-legacy" element={<ProtectedRoute><ResumeBuilderWizard /></ProtectedRoute>} />
         <Route path="/my-resumes" element={<ProtectedRoute><MyResumes /></ProtectedRoute>} />
