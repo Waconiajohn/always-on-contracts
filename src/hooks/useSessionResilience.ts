@@ -82,19 +82,18 @@ export function useSessionResilience(options: SessionResilienceOptions = {}) {
    */
   const ensureValidSession = useCallback(async (): Promise<boolean> => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Use getUser() to validate token server-side instead of just reading localStorage
+      const { data: { user }, error } = await supabase.auth.getUser();
       
-      if (error) throw error;
-      
-      if (!session) {
-        // No session at all - try to refresh
+      if (error || !user) {
+        // Token is invalid or expired - try to refresh
         return await refreshSessionWithRetry();
       }
       
-      // Check if session expires in less than 5 minutes
-      const expiresAt = session.expires_at;
-      if (expiresAt) {
-        const expiresInMs = (expiresAt * 1000) - Date.now();
+      // Also check session expiry for proactive refresh
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.expires_at) {
+        const expiresInMs = (session.expires_at * 1000) - Date.now();
         const fiveMinutesInMs = 5 * 60 * 1000;
         
         if (expiresInMs < fiveMinutesInMs) {
