@@ -19,22 +19,22 @@ export function ResumeDraftPanel({
 }: ResumeDraftPanelProps) {
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header with contact info */}
-      <div className="p-6 border-b">
-        <h1 className="text-2xl font-bold mb-1">{resumeData.contactInfo.name}</h1>
-        <div className="text-sm text-muted-foreground space-y-0.5">
-          {resumeData.contactInfo.email && <p>{resumeData.contactInfo.email}</p>}
-          {resumeData.contactInfo.phone && <p>{resumeData.contactInfo.phone}</p>}
-          {resumeData.contactInfo.location && <p>{resumeData.contactInfo.location}</p>}
-          {resumeData.contactInfo.linkedin && (
-            <p className="text-primary">{resumeData.contactInfo.linkedin}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Resume sections */}
+      {/* Resume sections with header inside scroll */}
       <ScrollArea className="flex-1">
         <div className="p-6 space-y-6">
+          {/* Header with contact info - now scrolls */}
+          <div className="pb-4 border-b mb-6">
+            <h1 className="text-2xl font-bold mb-1">{resumeData.contactInfo.name}</h1>
+            <div className="text-sm text-muted-foreground space-y-0.5">
+              {resumeData.contactInfo.email && <p>{resumeData.contactInfo.email}</p>}
+              {resumeData.contactInfo.phone && <p>{resumeData.contactInfo.phone}</p>}
+              {resumeData.contactInfo.location && <p>{resumeData.contactInfo.location}</p>}
+              {resumeData.contactInfo.linkedin && (
+                <p className="text-primary">{resumeData.contactInfo.linkedin}</p>
+              )}
+            </div>
+          </div>
+
           {resumeData.sections.map((section) => (
             <div key={section.id} className="space-y-3">
               <h2 className="text-lg font-semibold uppercase tracking-wide border-b pb-2">
@@ -81,20 +81,20 @@ export function ResumeDraftPanel({
         </div>
       </ScrollArea>
 
-      {/* Legend */}
-      <div className="p-4 border-t bg-muted/20">
-        <div className="text-xs space-y-1.5">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span>From your resume/vault (verified)</span>
+      {/* Compact Legend */}
+      <div className="px-3 py-2 border-t bg-muted/20">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 bg-green-500 rounded"></div>
+            <span>Verified</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-            <span>AI enhanced (review recommended)</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 bg-yellow-500 rounded"></div>
+            <span>AI enhanced</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded"></div>
-            <span>AI generated gap-filler (must verify)</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 bg-red-500 rounded"></div>
+            <span>AI generated</span>
           </div>
         </div>
       </div>
