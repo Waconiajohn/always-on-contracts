@@ -12,9 +12,8 @@
  * - Humanize / Polish / Export buttons
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,19 +22,17 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
 
 // Components
 import { ThermometerScore } from '@/components/quick-score/ThermometerScore';
-import { ScoreBreakdownCards } from '@/components/quick-score/ScoreBreakdownCards';
 import { BulletComparisonCard } from '../v4/cards/BulletComparisonCard';
 
 // Types
 import type { 
-  BulletSuggestion,
   BulletStatus
 } from '../v4/types/builderV2Types';
 
@@ -52,7 +49,6 @@ import {
   ChevronDown,
   ChevronRight,
   AlertCircle,
-  AlertTriangle,
   CheckCircle2,
   Sparkles,
   Wand2,
@@ -67,7 +63,6 @@ import {
   Eye,
   Copy,
   FileDown,
-  Zap,
   ThumbsUp
 } from 'lucide-react';
 
@@ -492,7 +487,6 @@ function SectionEditor({
   onApproveAllHigh
 }: SectionEditorProps) {
   const acceptedCount = section.bullets.filter(b => b.status === 'accepted' || b.status === 'edited').length;
-  const pendingCount = section.bullets.filter(b => b.status === 'pending').length;
   const highConfidenceCount = section.bullets.filter(b => b.status === 'pending' && b.confidence === 'high').length;
 
   const sectionIcon = {
@@ -631,7 +625,6 @@ export function SinglePageBuilder({
   const locationState = location.state as any;
   const resumeText = initialResumeText || locationState?.resumeText || '';
   const jobDescription = initialJobDescription || locationState?.jobDescription || '';
-  const fromQuickScore = locationState?.fromQuickScore || false;
 
   // Score state
   const [score, setScore] = useState<ScoreResult | null>(
@@ -684,13 +677,42 @@ export function SinglePageBuilder({
   const [isHumanizing, setIsHumanizing] = useState(false);
   const [isPolishing, setIsPolishing] = useState(false);
 
-  // Contact info (would be extracted from resume)
+  // Contact info (extracted from resume)
   const [contactInfo, setContactInfo] = useState({
     name: 'Candidate Name',
     email: 'email@example.com',
     phone: '',
     location: ''
   });
+
+  // Extract contact info from resume text
+  useEffect(() => {
+    if (!resumeText) return;
+    
+    const extractContactInfo = (text: string) => {
+      // Extract email
+      const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+      const email = emailMatch ? emailMatch[0] : '';
+      
+      // Extract phone
+      const phoneMatch = text.match(/(\+?1[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/);
+      const phone = phoneMatch ? phoneMatch[0] : '';
+      
+      // Extract location (City, ST pattern)
+      const locationMatch = text.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),?\s+([A-Z]{2})/);
+      const location = locationMatch ? `${locationMatch[1]}, ${locationMatch[2]}` : '';
+      
+      // Extract name (first line with capitalized words or first capitalized text)
+      const lines = text.split('\n').filter(l => l.trim());
+      const nameMatch = lines[0]?.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)/);
+      const name = nameMatch ? nameMatch[1] : '';
+      
+      return { name, email, phone, location };
+    };
+    
+    const extracted = extractContactInfo(resumeText);
+    setContactInfo(extracted);
+  }, [resumeText]);
 
   // Initialize gaps from score result
   useEffect(() => {
@@ -750,6 +772,16 @@ export function SinglePageBuilder({
     }
   }, [resumeText, jobDescription, score, toast]);
 
+  // Handle gap reanalysis with loading state
+  const handleReanalyzeGaps = useCallback(async () => {
+    setIsAnalyzingGaps(true);
+    try {
+      await handleRescore();
+    } finally {
+      setIsAnalyzingGaps(false);
+    }
+  }, [handleRescore]);
+
   const handleHumanize = useCallback(async () => {
     setIsHumanizing(true);
     try {
@@ -776,12 +808,27 @@ export function SinglePageBuilder({
 
       if (error) throw error;
 
+      // Update bullets with humanized content
+      if (data?.humanizedContent) {
+        const humanizedLines = data.humanizedContent.split('\n').filter((l: string) => l.trim());
+        let lineIndex = 0;
+        
+        setSections(prev => prev.map(section => ({
+          ...section,
+          bullets: section.bullets.map(bullet => {
+            if (bullet.status !== 'accepted' && bullet.status !== 'edited') return bullet;
+            const humanizedText = humanizedLines[lineIndex++];
+            return humanizedText 
+              ? { ...bullet, editedText: humanizedText, status: 'edited' as BulletStatus }
+              : bullet;
+          })
+        })));
+      }
+
       toast({
         title: 'Content Humanized',
         description: 'AI-speak removed from your resume',
       });
-
-      // In production, would update the bullets with humanized versions
 
     } catch (error: any) {
       toast({
@@ -820,12 +867,27 @@ export function SinglePageBuilder({
 
       if (error) throw error;
 
+      // Update bullets with polished content from refinements
+      if (data?.review?.refinements && Array.isArray(data.review.refinements)) {
+        const refinements = data.review.refinements;
+        let refinementIndex = 0;
+        
+        setSections(prev => prev.map(section => ({
+          ...section,
+          bullets: section.bullets.map(bullet => {
+            if (bullet.status !== 'accepted' && bullet.status !== 'edited') return bullet;
+            const refinement = refinements[refinementIndex++];
+            return refinement?.suggested_fix
+              ? { ...bullet, editedText: refinement.suggested_fix, status: 'edited' as BulletStatus }
+              : bullet;
+          })
+        })));
+      }
+
       toast({
         title: 'Final Polish Applied',
         description: 'Resume optimized with hiring manager perspective',
       });
-
-      // In production, would update the bullets with polished versions
 
     } catch (error: any) {
       toast({
@@ -1085,7 +1147,7 @@ export function SinglePageBuilder({
           <GapRadar
             gaps={gaps}
             resolvedGapIds={resolvedGapIds}
-            onReanalyze={() => {}}
+            onReanalyze={handleReanalyzeGaps}
             isAnalyzing={isAnalyzingGaps}
           />
         </div>
