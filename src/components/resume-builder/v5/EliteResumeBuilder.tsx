@@ -86,14 +86,32 @@ export default function EliteResumeBuilder({
   const handleBulletSave = (bulletId: string, newText: string) => {
     if (!resumeData) return;
 
-    const updatedSections = resumeData.sections.map(section => ({
-      ...section,
-      bullets: section.bullets?.map(bullet =>
-        bullet.id === bulletId
-          ? { ...bullet, userEditedText: newText, isEdited: true }
-          : bullet
-      )
-    }));
+    const updatedSections = resumeData.sections.map(section => {
+      // Handle experience sections with nested positions
+      if (section.type === 'experience' && section.positions) {
+        return {
+          ...section,
+          positions: section.positions.map(position => ({
+            ...position,
+            bullets: position.bullets?.map(bullet =>
+              bullet.id === bulletId
+                ? { ...bullet, userEditedText: newText, isEdited: true }
+                : bullet
+            )
+          }))
+        };
+      }
+      
+      // Handle regular sections
+      return {
+        ...section,
+        bullets: section.bullets?.map(bullet =>
+          bullet.id === bulletId
+            ? { ...bullet, userEditedText: newText, isEdited: true }
+            : bullet
+        )
+      };
+    });
 
     setResumeData({
       ...resumeData,
@@ -109,17 +127,33 @@ export default function EliteResumeBuilder({
   const handleBulletRegenerate = async (bulletId: string) => {
     if (!resumeData) return;
 
-    const section = resumeData.sections.find(s =>
-      s.bullets?.some(b => b.id === bulletId)
-    );
-    const bullet = section?.bullets?.find(b => b.id === bulletId);
+    // Find bullet in regular sections or nested experience positions
+    let foundSection = resumeData.sections.find(s => s.bullets?.some(b => b.id === bulletId));
+    let foundBullet = foundSection?.bullets?.find(b => b.id === bulletId);
 
-    if (!section || !bullet) return;
+    // Check experience sections with nested positions
+    if (!foundBullet) {
+      for (const section of resumeData.sections) {
+        if (section.type === 'experience' && section.positions) {
+          for (const position of section.positions) {
+            const bullet = position.bullets?.find(b => b.id === bulletId);
+            if (bullet) {
+              foundSection = section;
+              foundBullet = bullet;
+              break;
+            }
+          }
+          if (foundBullet) break;
+        }
+      }
+    }
+
+    if (!foundSection || !foundBullet) return;
 
     const newText = await regenerateBullet(bulletId, {
-      section,
+      section: foundSection,
       jobDescription,
-      currentText: bullet.userEditedText || bullet.text
+      currentText: foundBullet.userEditedText || foundBullet.text
     });
 
     if (newText) {
@@ -130,10 +164,24 @@ export default function EliteResumeBuilder({
   const handleBulletRemove = (bulletId: string) => {
     if (!resumeData) return;
 
-    const updatedSections = resumeData.sections.map(section => ({
-      ...section,
-      bullets: section.bullets?.filter(bullet => bullet.id !== bulletId)
-    }));
+    const updatedSections = resumeData.sections.map(section => {
+      // Handle experience sections with nested positions
+      if (section.type === 'experience' && section.positions) {
+        return {
+          ...section,
+          positions: section.positions.map(position => ({
+            ...position,
+            bullets: position.bullets?.filter(bullet => bullet.id !== bulletId)
+          }))
+        };
+      }
+      
+      // Handle regular sections
+      return {
+        ...section,
+        bullets: section.bullets?.filter(bullet => bullet.id !== bulletId)
+      };
+    });
 
     setResumeData({
       ...resumeData,
@@ -257,6 +305,16 @@ export default function EliteResumeBuilder({
             source: { type: 'vault' },
             contentType: 'skill'
           } as any;
+        }
+      }
+
+      // Check experience sections with nested positions
+      if (section.type === 'experience' && section.positions) {
+        for (const position of section.positions) {
+          const bullet = position.bullets?.find(b => b.id === selectedBulletId);
+          if (bullet) {
+            return bullet;
+          }
         }
       }
 

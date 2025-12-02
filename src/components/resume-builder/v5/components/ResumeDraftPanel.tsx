@@ -35,14 +35,22 @@ export function ResumeDraftPanel({
             </div>
           </div>
 
-          {resumeData.sections.map((section) => {
+        {(() => {
+          let experienceHeaderShown = false;
+          
+          return resumeData.sections.map((section) => {
             // Experience section with multiple positions
             if (section.type === 'experience' && section.positions) {
+              const showHeader = !experienceHeaderShown;
+              experienceHeaderShown = true;
+              
               return (
                 <div key={section.id} className="space-y-4">
-                  <h2 className="text-lg font-semibold uppercase tracking-wide border-b pb-2">
-                    {section.title}
-                  </h2>
+                  {showHeader && (
+                    <h2 className="text-lg font-semibold uppercase tracking-wide border-b pb-2">
+                      {section.title}
+                    </h2>
+                  )}
                   
                   {/* Company header */}
                   {section.company && (
@@ -198,7 +206,8 @@ export function ResumeDraftPanel({
                 </div>
               </div>
             );
-          })}
+          });
+        })()}
         </div>
       </ScrollArea>
 
