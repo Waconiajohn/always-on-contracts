@@ -37,12 +37,16 @@ serve(async (req) => {
 
     // Fetch vault data if userId provided
     let vaultContent = '';
+    let vault: any = null;
+    
     if (userId) {
-      const { data: vault } = await supabase
+      const { data: vaultData } = await supabase
         .from('career_vault')
-        .select('id')
+        .select('id, resume_raw_text')
         .eq('user_id', userId)
         .maybeSingle();
+      
+      vault = vaultData;
 
       if (vault) {
         const [milestones, skills, positions, education] = await Promise.all([
@@ -70,6 +74,12 @@ ${(skills.data || []).map(s => s.skill_name).join(', ')}
       }
     }
 
+    // Determine actual resume text to use (prioritize parameter, then vault)
+    const actualResumeText = resumeText || vault?.resume_raw_text || '';
+    console.log('📄 Resume text source:', resumeText ? 'parameter' : vault?.resume_raw_text ? 'vault' : 'none');
+    console.log('📄 Resume text length:', actualResumeText.length);
+    console.log('📄 Resume preview:', actualResumeText.substring(0, 200));
+
     const prompt = `You are an elite resume architect with expertise in ATS optimization and precise data mapping.
 
 JOB TARGET:
@@ -79,8 +89,8 @@ Industry: ${industry || 'Not specified'}
 JOB DESCRIPTION:
 ${jobDescription}
 
-${resumeText ? `CANDIDATE'S EXISTING RESUME:
-${resumeText}
+${actualResumeText ? `CANDIDATE'S EXISTING RESUME:
+${actualResumeText}
 ` : ''}
 
 ${vaultContent}
