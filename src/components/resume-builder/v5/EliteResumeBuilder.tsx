@@ -192,6 +192,20 @@ export default function EliteResumeBuilder({
     if (!resumeData || !selectedBulletId) return null;
 
     for (const section of resumeData.sections) {
+      // Check if this is a paragraph selection
+      if (selectedBulletId === `${section.id}-paragraph` && section.paragraph) {
+        // Create a ResumeBullet-like object for the paragraph
+        return {
+          id: selectedBulletId,
+          text: section.paragraph,
+          confidence: 'enhanced',
+          source: {
+            type: 'ai_generated'
+          }
+        };
+      }
+
+      // Check regular bullets
       const bullet = section.bullets.find(b => b.id === selectedBulletId);
       if (bullet) return bullet;
     }
@@ -288,7 +302,7 @@ export default function EliteResumeBuilder({
       {resumeData ? (
         <ResizablePanelGroup direction="horizontal" className="flex-1">
           {/* Left: Resume Draft */}
-          <ResizablePanel defaultSize={60} minSize={40}>
+          <ResizablePanel defaultSize={65} minSize={45} maxSize={75}>
             <ResumeDraftPanel
               resumeData={resumeData}
               selectedBulletId={selectedBulletId}
@@ -299,7 +313,7 @@ export default function EliteResumeBuilder({
           <ResizableHandle withHandle />
 
           {/* Right: Refinement Panel */}
-          <ResizablePanel defaultSize={40} minSize={30}>
+          <ResizablePanel defaultSize={35} minSize={25} maxSize={55}>
             <RefinementPanel
               selectedBullet={getSelectedBullet()}
               onSave={handleBulletSave}
