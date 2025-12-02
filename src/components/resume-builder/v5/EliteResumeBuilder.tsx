@@ -210,7 +210,7 @@ export default function EliteResumeBuilder({
               <div className="text-center flex-1 mx-4">
                 <h2 className="text-xl font-bold">Creating Your Ultimate Resume</h2>
                 <p className="text-sm text-muted-foreground">
-                  Building an elite, tailored resume as your starting point—review and refine as needed
+                  Building an elite resume to position you as the "must speak to" candidate—review and refine as needed
                 </p>
               </div>
               <div className="w-8" />

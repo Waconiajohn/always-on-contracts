@@ -42,7 +42,7 @@ export const AIAssessmentPanel = ({
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 80) return "Must-Interview";
+    if (score >= 80) return "Benchmark Candidate";
     if (score >= 60) return "Qualified";
     if (score >= 40) return "Needs Work";
     return "Major Gaps";
@@ -216,7 +216,7 @@ export const AIAssessmentPanel = ({
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base">To Must-Interview</CardTitle>
+              <CardTitle className="text-base">To Benchmark</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -224,13 +224,13 @@ export const AIAssessmentPanel = ({
               {assessment.alignmentScore >= 80 ? (
                 <div className="text-green-500">
                   <TrendingUp className="h-10 w-10 mx-auto mb-2" />
-                  <p className="font-medium">You're already must-interview!</p>
+                  <p className="font-medium">You're a benchmark candidate!</p>
                   <p className="text-xs text-muted-foreground">Let's polish it further</p>
                 </div>
               ) : (
                 <div>
                   <p className="text-3xl font-bold text-primary">+{80 - assessment.alignmentScore}</p>
-                  <p className="text-sm text-muted-foreground">points needed to reach 80</p>
+                  <p className="text-sm text-muted-foreground">points needed to reach benchmark status</p>
                   <Progress 
                     value={assessment.alignmentScore} 
                     className="mt-2 h-2"
@@ -338,7 +338,7 @@ export const AIAssessmentPanel = ({
               <p className="text-muted-foreground">
                 AI will generate improved content for each section and suggest specific text to address 
                 your gaps. You'll review, edit, and approve each suggestion. The goal: reach 80+ score 
-                and become a must-interview candidate.
+                and position you as the "must speak to" candidate.
               </p>
             </div>
           </div>

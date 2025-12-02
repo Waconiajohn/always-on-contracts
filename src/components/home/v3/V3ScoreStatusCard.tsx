@@ -43,7 +43,7 @@ export const V3ScoreStatusCard = ({
             </div>
             <div>
               <CardTitle className="text-lg">Resume Score</CardTitle>
-              <CardDescription>Your must-interview status</CardDescription>
+              <CardDescription>Your benchmark candidate status</CardDescription>
             </div>
           </div>
           {hasScore && tierInfo && (
@@ -72,16 +72,16 @@ export const V3ScoreStatusCard = ({
                 )}
               </div>
               
-              {/* Progress to Must-Interview */}
+              {/* Progress to Benchmark */}
               <div className="text-right">
                 {lastScore >= 80 ? (
                   <div className="text-green-500">
                     <Target className="h-8 w-8 mx-auto" />
-                    <p className="text-sm font-medium">Must-Interview!</p>
+                    <p className="text-sm font-medium">"Must Speak To"!</p>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-sm text-muted-foreground">To must-interview:</p>
+                    <p className="text-sm text-muted-foreground">To benchmark:</p>
                     <p className="text-2xl font-bold text-primary">+{gapToMustInterview} pts</p>
                   </div>
                 )}
@@ -92,7 +92,7 @@ export const V3ScoreStatusCard = ({
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Qualified</span>
-                <span>Must-Interview (80+)</span>
+                <span>Benchmark (80+)</span>
               </div>
               <div className="relative">
                 <Progress value={lastScore} className="h-3" />
@@ -138,7 +138,7 @@ export const V3ScoreStatusCard = ({
             <div>
               <p className="font-medium text-lg">See where you stand</p>
               <p className="text-sm text-muted-foreground">
-                Score your resume in 90 seconds. Know exactly what's missing to become must-interview.
+                Score your resume in 90 seconds. Know exactly what's missing to reach benchmark status.
               </p>
             </div>
             <Button 
