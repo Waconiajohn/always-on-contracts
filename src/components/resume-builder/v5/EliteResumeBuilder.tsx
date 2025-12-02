@@ -218,7 +218,7 @@ export default function EliteResumeBuilder({
     return (
       <div className="h-screen flex flex-col">
         <div className="border-b p-4 bg-background">
-          <div className="container max-w-7xl">
+          <div className="max-w-[1800px] mx-auto">
             <div className="flex items-center justify-between">
               <Sparkles className="h-8 w-8 text-primary animate-pulse" />
               <div className="text-center flex-1 mx-4">
@@ -233,7 +233,7 @@ export default function EliteResumeBuilder({
           </div>
         </div>
         <div className="flex-1 overflow-auto">
-          <div className="container max-w-7xl py-8 grid grid-cols-5 gap-6">
+          <div className="max-w-[1800px] mx-auto py-8 grid grid-cols-5 gap-6">
             <div className="col-span-3">
               <ResumeLoadingSkeleton />
             </div>
@@ -271,7 +271,7 @@ export default function EliteResumeBuilder({
     <div className="h-screen flex flex-col">
       {/* Header with score and actions */}
       <div className="border-b p-4 bg-background">
-        <div className="container max-w-7xl flex items-center justify-between">
+        <div className="max-w-[1800px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {resumeData && (
               <ThermometerScore
@@ -281,6 +281,12 @@ export default function EliteResumeBuilder({
                 nextTierThreshold={90}
               />
             )}
+            <div className="border-l pl-4">
+              <p className="text-sm font-medium">Your Ultimate Resume</p>
+              <p className="text-xs text-muted-foreground">
+                Built from your resume + career vault + industry research + job analysis
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -298,7 +304,7 @@ export default function EliteResumeBuilder({
         </div>
       </div>
 
-      {/* Two-column resizable layout */}
+      {/* Two-column resizable layout - FULL WIDTH */}
       {resumeData ? (
         <ResizablePanelGroup direction="horizontal" className="flex-1">
           {/* Left: Resume Draft */}
