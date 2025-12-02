@@ -4,7 +4,13 @@ project_id = "ubcghjlfxkamyyefnbkf"
 verify_jwt = true
 
 [functions.generate-elite-resume]
-verify_jwt = true
+verify_jwt = false
+
+[functions.regenerate-bullet]
+verify_jwt = false
+
+[functions.analyze-resume-match]
+verify_jwt = false
 
 [functions.generate-gap-suggestions]
 verify_jwt = true

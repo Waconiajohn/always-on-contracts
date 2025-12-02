@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles } from 'lucide-react';
+import { invokeEdgeFunction } from '@/lib/edgeFunction';
 
 import { ResumeDraftPanel } from './components/ResumeDraftPanel';
 import { RefinementPanel } from './components/RefinementPanel';
@@ -100,12 +101,14 @@ export default function EliteResumeBuilder({
     const section = resumeData.sections.find(s =>
       s.bullets.some(b => b.id === bulletId)
     );
+    const bullet = section?.bullets.find(b => b.id === bulletId);
 
-    if (!section) return;
+    if (!section || !bullet) return;
 
     const newText = await regenerateBullet(bulletId, {
       section,
-      jobDescription
+      jobDescription,
+      currentText: bullet.userEditedText || bullet.text
     });
 
     if (newText) {
@@ -134,21 +137,32 @@ export default function EliteResumeBuilder({
     });
   };
 
-  const handleViewAnalysis = () => {
-    // Generate match analysis
+  const handleViewAnalysis = async () => {
     if (!resumeData) return;
 
-    // TODO: Call edge function to analyze match
-    const mockAnalysis: MatchAnalysis = {
-      overallMatch: 85,
-      coveredRequirements: ['Experience with React', 'Team leadership', 'Project management'],
-      uncoveredRequirements: ['5+ years experience', 'Masters degree'],
-      strengthAreas: ['Technical skills', 'Leadership experience'],
-      improvementAreas: ['Education credentials', 'Years of experience']
-    };
+    try {
+      const { data, error } = await invokeEdgeFunction<{ matchAnalysis: MatchAnalysis }>(
+        'analyze-resume-match',
+        {
+          resumeData,
+          jobDescription
+        }
+      );
 
-    setMatchAnalysis(mockAnalysis);
-    setCurrentView('analysis');
+      if (error || !data) {
+        throw new Error('Failed to analyze match');
+      }
+
+      setMatchAnalysis(data.matchAnalysis);
+      setCurrentView('analysis');
+    } catch (error) {
+      console.error('Error analyzing match:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: 'Could not generate match analysis. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleExport = () => {
