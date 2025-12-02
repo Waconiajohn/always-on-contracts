@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles } from 'lucide-react';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 import { ResumeDraftPanel } from './components/ResumeDraftPanel';
 import { RefinementPanel } from './components/RefinementPanel';
@@ -207,9 +208,9 @@ export default function EliteResumeBuilder({
             <div className="flex items-center justify-between">
               <Sparkles className="h-8 w-8 text-primary animate-pulse" />
               <div className="text-center flex-1 mx-4">
-                <h2 className="text-xl font-bold">Crafting Your Elite Resume...</h2>
+                <h2 className="text-xl font-bold">Creating Your Ultimate Resume</h2>
                 <p className="text-sm text-muted-foreground">
-                  AI is analyzing the job description and building a perfectly tailored resume
+                  Building an elite, tailored resume as your starting point—review and refine as needed
                 </p>
               </div>
               <div className="w-8" />
@@ -283,20 +284,22 @@ export default function EliteResumeBuilder({
         </div>
       </div>
 
-      {/* Two-column layout */}
+      {/* Two-column resizable layout */}
       {resumeData ? (
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left: Resume Draft (60%) */}
-          <div className="w-3/5 border-r">
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
+          {/* Left: Resume Draft */}
+          <ResizablePanel defaultSize={60} minSize={40}>
             <ResumeDraftPanel
               resumeData={resumeData}
               selectedBulletId={selectedBulletId}
               onSelectBullet={setSelectedBulletId}
             />
-          </div>
+          </ResizablePanel>
 
-          {/* Right: Refinement Panel (40%) */}
-          <div className="w-2/5">
+          <ResizableHandle withHandle />
+
+          {/* Right: Refinement Panel */}
+          <ResizablePanel defaultSize={40} minSize={30}>
             <RefinementPanel
               selectedBullet={getSelectedBullet()}
               onSave={handleBulletSave}
@@ -304,8 +307,8 @@ export default function EliteResumeBuilder({
               onRemove={handleBulletRemove}
               isProcessing={isGenerating}
             />
-          </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
