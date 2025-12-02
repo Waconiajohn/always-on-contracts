@@ -1,13 +1,16 @@
 /**
- * RefinementPanel - Right column for AI-assisted editing with full enhancement features
+ * RefinementPanel - Sophisticated AI-assisted editing with full enhancement features
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { useEnhanceBullet } from '@/hooks/useEnhanceBullet';
+import { useRefinementSuggestions } from '@/hooks/useRefinementSuggestions';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -21,7 +24,10 @@ import {
   Crown,
   Hash,
   Eye,
-  EyeOff
+  EyeOff,
+  Lightbulb,
+  ArrowRight,
+  Copy
 } from 'lucide-react';
 import type { ResumeBullet } from '../types';
 
@@ -46,6 +52,7 @@ export function RefinementPanel({
   const [isEditing, setIsEditing] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [customGuidance, setCustomGuidance] = useState('');
+  const [selectedAlternative, setSelectedAlternative] = useState<'conservative' | 'moderate' | 'aggressive' | null>(null);
 
   const { enhance, isEnhancing } = useEnhanceBullet({
     originalBullet: selectedBullet?.source?.originalText || selectedBullet?.text || '',
@@ -57,6 +64,21 @@ export function RefinementPanel({
       setIsEditing(true);
     }
   });
+
+  const { suggestions, isLoading: isLoadingSuggestions, fetchSuggestions } = useRefinementSuggestions({
+    bulletText: selectedBullet?.text || '',
+    originalText: selectedBullet?.source?.originalText,
+    jobDescription: jobDescription || '',
+    requirement: (selectedBullet as any)?.gapAddressed,
+    userExperience: null // Could pass vault data here
+  });
+
+  // Fetch suggestions when bullet is selected
+  useEffect(() => {
+    if (selectedBullet && jobDescription) {
+      fetchSuggestions();
+    }
+  }, [selectedBullet?.id]);
 
   if (!selectedBullet) {
     return (
@@ -99,6 +121,19 @@ export function RefinementPanel({
   const insertKeyword = (keyword: string) => {
     const currentText = editedText || selectedBullet.text;
     setEditedText(`${currentText} ${keyword}`);
+    setIsEditing(true);
+  };
+
+  const applyAlternativeVersion = (version: 'conservative' | 'moderate' | 'aggressive') => {
+    if (suggestions?.alternativeVersions[version]) {
+      setEditedText(suggestions.alternativeVersions[version]);
+      setSelectedAlternative(version);
+      setIsEditing(true);
+    }
+  };
+
+  const applyLikeKindSuggestion = (suggestion: string) => {
+    setEditedText(suggestion);
     setIsEditing(true);
   };
 
@@ -161,7 +196,7 @@ export function RefinementPanel({
     switch (selectedBullet.confidence) {
       case 'exact':
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-start gap-2 p-3 bg-green-500/10 rounded-lg">
               <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
               <div>
@@ -174,7 +209,7 @@ export function RefinementPanel({
             
             {/* Quick AI Enhancement Buttons */}
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Quick AI Enhancements:</p>
+              <p className="text-xs font-semibold">Quick AI Enhancements:</p>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={() => handleQuickEnhance('quantifiable')}
@@ -184,7 +219,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  More Quantifiable
+                  Quantifiable
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('technical')}
@@ -194,7 +229,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Code className="h-3 w-3 mr-1" />
-                  More Technical
+                  Technical
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('leadership')}
@@ -204,7 +239,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Crown className="h-3 w-3 mr-1" />
-                  More Leadership
+                  Leadership
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('keywords')}
@@ -214,10 +249,90 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Hash className="h-3 w-3 mr-1" />
-                  Add Keywords
+                  Keywords
                 </Button>
               </div>
             </div>
+
+            {/* Alternative Versions from AI */}
+            {suggestions?.alternativeVersions && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3" />
+                  AI-Suggested Alternatives:
+                </p>
+                <div className="space-y-2">
+                  {(['conservative', 'moderate', 'aggressive'] as const).map((style) => (
+                    <Card
+                      key={style}
+                      className={`p-3 cursor-pointer hover:border-primary transition-colors ${
+                        selectedAlternative === style ? 'border-primary bg-primary/5' : ''
+                      }`}
+                      onClick={() => applyAlternativeVersion(style)}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <Badge variant={style === 'conservative' ? 'secondary' : style === 'moderate' ? 'default' : 'destructive'} className="text-[10px]">
+                          {style.toUpperCase()}
+                        </Badge>
+                        <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <p className="text-xs leading-relaxed">
+                        {suggestions.alternativeVersions[style]}
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Like-Kind Experience Suggestions */}
+            {suggestions?.likeKindSuggestions && suggestions.likeKindSuggestions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <ArrowRight className="h-3 w-3" />
+                  Leverage Similar Experience:
+                </p>
+                {suggestions.likeKindSuggestions.map((item, i) => (
+                  <Card
+                    key={i}
+                    className="p-3 cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => applyLikeKindSuggestion(item.suggestion)}
+                  >
+                    <div className="text-[10px] text-muted-foreground mb-1">
+                      You have: <span className="font-semibold text-foreground">{item.candidateHas}</span> → Job wants: <span className="font-semibold text-foreground">{item.jobRequires}</span>
+                    </div>
+                    <p className="text-xs leading-relaxed mb-1">{item.suggestion}</p>
+                    <p className="text-[10px] text-muted-foreground italic">{item.reasoning}</p>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Missing Keywords */}
+            {suggestions?.keywordsToAdd && suggestions.keywordsToAdd.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <Hash className="h-3 w-3" />
+                  Missing Keywords (click to add):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.keywordsToAdd.map((kw, i) => (
+                    <Badge
+                      key={i}
+                      variant={kw.relevance === 'critical' ? 'destructive' : 'secondary'}
+                      className="cursor-pointer hover:scale-105 transition-transform text-xs"
+                      onClick={() => insertKeyword(kw.keyword)}
+                    >
+                      {kw.keyword}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Separator />
 
             <div className="space-y-2">
               <Button
@@ -244,7 +359,7 @@ export function RefinementPanel({
 
       case 'enhanced':
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-start gap-2 p-3 bg-yellow-500/10 rounded-lg">
               <Sparkles className="h-5 w-5 text-yellow-500 mt-0.5" />
               <div>
@@ -255,8 +370,32 @@ export function RefinementPanel({
               </div>
             </div>
 
-            {/* Show/Hide Original Toggle */}
-            {selectedBullet.source?.originalText && (
+            {/* Comparison: Original vs Enhanced */}
+            {suggestions?.comparison && (
+              <Card className="p-3">
+                <p className="text-xs font-semibold mb-2">Original vs Enhanced:</p>
+                <div className="space-y-2">
+                  <div className="p-2 bg-muted/50 rounded">
+                    <p className="text-[10px] text-muted-foreground mb-1">Original:</p>
+                    <p className="text-xs">{suggestions.comparison.original}</p>
+                  </div>
+                  <div className="p-2 bg-primary/5 rounded">
+                    <p className="text-[10px] text-muted-foreground mb-1">Enhanced:</p>
+                    <p className="text-xs">{suggestions.comparison.enhanced}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestions.comparison.differences.map((diff, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px]">
+                        {diff}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Show/Hide Original Toggle (fallback if no comparison) */}
+            {!suggestions?.comparison && selectedBullet.source?.originalText && (
               <div className="space-y-2">
                 <Button
                   onClick={() => setShowOriginal(!showOriginal)}
@@ -278,7 +417,7 @@ export function RefinementPanel({
 
             {/* Quick AI Enhancement Buttons */}
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Further enhance:</p>
+              <p className="text-xs font-semibold">Further enhance:</p>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={() => handleQuickEnhance('quantifiable')}
@@ -288,7 +427,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  More Quantifiable
+                  Quantifiable
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('technical')}
@@ -298,7 +437,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Code className="h-3 w-3 mr-1" />
-                  More Technical
+                  Technical
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('leadership')}
@@ -308,7 +447,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Crown className="h-3 w-3 mr-1" />
-                  More Leadership
+                  Leadership
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('keywords')}
@@ -318,10 +457,42 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Hash className="h-3 w-3 mr-1" />
-                  Add Keywords
+                  Keywords
                 </Button>
               </div>
             </div>
+
+            {/* Alternative Versions from AI */}
+            {suggestions?.alternativeVersions && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3" />
+                  AI-Suggested Alternatives:
+                </p>
+                <div className="space-y-2">
+                  {(['conservative', 'moderate', 'aggressive'] as const).map((style) => (
+                    <Card
+                      key={style}
+                      className={`p-3 cursor-pointer hover:border-primary transition-colors ${
+                        selectedAlternative === style ? 'border-primary bg-primary/5' : ''
+                      }`}
+                      onClick={() => applyAlternativeVersion(style)}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <Badge variant={style === 'conservative' ? 'secondary' : style === 'moderate' ? 'default' : 'destructive'} className="text-[10px]">
+                          {style.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <p className="text-xs leading-relaxed">
+                        {suggestions.alternativeVersions[style]}
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Separator />
 
             <div className="space-y-2">
               <Button
@@ -348,7 +519,7 @@ export function RefinementPanel({
 
       case 'invented':
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-start gap-2 p-3 bg-red-500/10 rounded-lg">
               <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
               <div>
@@ -368,9 +539,43 @@ export function RefinementPanel({
               </div>
             )}
 
+            {/* Gap Filling Guidance */}
+            {suggestions?.gapFillingGuidance && (
+              <Card className="p-3 bg-amber-50 dark:bg-amber-950/20">
+                <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3" />
+                  How to Personalize This:
+                </p>
+                <p className="text-xs text-muted-foreground">{suggestions.gapFillingGuidance}</p>
+              </Card>
+            )}
+
+            {/* Like-Kind Experience Suggestions */}
+            {suggestions?.likeKindSuggestions && suggestions.likeKindSuggestions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <ArrowRight className="h-3 w-3" />
+                  Use Similar Experience:
+                </p>
+                {suggestions.likeKindSuggestions.map((item, i) => (
+                  <Card
+                    key={i}
+                    className="p-3 cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => applyLikeKindSuggestion(item.suggestion)}
+                  >
+                    <div className="text-[10px] text-muted-foreground mb-1">
+                      You have: <span className="font-semibold text-foreground">{item.candidateHas}</span> → Job wants: <span className="font-semibold text-foreground">{item.jobRequires}</span>
+                    </div>
+                    <p className="text-xs leading-relaxed mb-1">{item.suggestion}</p>
+                    <p className="text-[10px] text-muted-foreground italic">{item.reasoning}</p>
+                  </Card>
+                ))}
+              </div>
+            )}
+
             {/* Quick AI Enhancement Buttons */}
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Refine generated content:</p>
+              <p className="text-xs font-semibold">Refine generated content:</p>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={() => handleQuickEnhance('quantifiable')}
@@ -380,7 +585,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  More Quantifiable
+                  Quantifiable
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('technical')}
@@ -390,7 +595,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Code className="h-3 w-3 mr-1" />
-                  More Technical
+                  Technical
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('leadership')}
@@ -400,7 +605,7 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Crown className="h-3 w-3 mr-1" />
-                  More Leadership
+                  Leadership
                 </Button>
                 <Button
                   onClick={() => handleQuickEnhance('keywords')}
@@ -410,10 +615,42 @@ export function RefinementPanel({
                   className="text-xs h-auto py-2"
                 >
                   <Hash className="h-3 w-3 mr-1" />
-                  Add Keywords
+                  Keywords
                 </Button>
               </div>
             </div>
+
+            {/* Alternative Versions from AI */}
+            {suggestions?.alternativeVersions && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3" />
+                  AI-Suggested Alternatives:
+                </p>
+                <div className="space-y-2">
+                  {(['conservative', 'moderate', 'aggressive'] as const).map((style) => (
+                    <Card
+                      key={style}
+                      className={`p-3 cursor-pointer hover:border-primary transition-colors ${
+                        selectedAlternative === style ? 'border-primary bg-primary/5' : ''
+                      }`}
+                      onClick={() => applyAlternativeVersion(style)}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <Badge variant={style === 'conservative' ? 'secondary' : style === 'moderate' ? 'default' : 'destructive'} className="text-[10px]">
+                          {style.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <p className="text-xs leading-relaxed">
+                        {suggestions.alternativeVersions[style]}
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Separator />
 
             <div className="space-y-2">
               <Button
@@ -446,6 +683,12 @@ export function RefinementPanel({
           <Wand2 className="h-4 w-4" />
           Refine Content
         </h3>
+        {isLoadingSuggestions && (
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            Loading AI suggestions...
+          </p>
+        )}
       </div>
 
       <ScrollArea className="flex-1 p-4">
@@ -477,7 +720,7 @@ export function RefinementPanel({
         {/* Custom Enhancement Section */}
         {!isEditing && (
           <div className="mt-4 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Custom Enhancement:</p>
+            <p className="text-xs font-semibold">Custom Enhancement:</p>
             <Textarea
               value={customGuidance}
               onChange={(e) => setCustomGuidance(e.target.value)}
@@ -500,7 +743,7 @@ export function RefinementPanel({
         {/* Show ATS keywords as clickable badges */}
         {selectedBullet.atsKeywords && selectedBullet.atsKeywords.length > 0 && (
           <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
+            <p className="text-xs font-semibold mb-2">
               ATS Keywords (click to insert):
             </p>
             <div className="flex flex-wrap gap-1">
@@ -508,7 +751,7 @@ export function RefinementPanel({
                 <Badge
                   key={i}
                   variant="secondary"
-                  className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                  className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                   onClick={() => insertKeyword(keyword)}
                 >
                   {keyword}
@@ -523,6 +766,14 @@ export function RefinementPanel({
           <div className="mt-4 p-3 bg-primary/5 rounded-lg flex items-center gap-2">
             <RefreshCw className="h-4 w-4 animate-spin text-primary" />
             <span className="text-sm text-primary">Enhancing with AI...</span>
+          </div>
+        )}
+
+        {/* Suggestions Loading */}
+        {isLoadingSuggestions && !suggestions && (
+          <div className="mt-4 p-3 bg-muted/30 rounded-lg flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            <span className="text-xs text-muted-foreground">Analyzing enhancement opportunities...</span>
           </div>
         )}
       </ScrollArea>

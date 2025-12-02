@@ -1,5 +1,8 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
+[functions.get-refinement-suggestions]
+verify_jwt = false
+
 [functions.further-enhance-bullet]
 verify_jwt = true
 

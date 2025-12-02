@@ -53,10 +53,17 @@ export default function EliteResumeBuilder({
     }
 
     // Auto-generate on mount if we have job description
-    if (stateData?.jobDescription && !resumeData) {
-      handleGenerate(stateData);
+    // Wait for userId to be available before generating
+    if (stateData?.jobDescription && !resumeData && userId !== undefined) {
+      handleGenerate({
+        jobDescription: stateData.jobDescription,
+        resumeText: stateData.resumeText || initialResumeText,
+        userId: userId,
+        jobTitle: stateData.jobTitle,
+        industry: stateData.industry
+      });
     }
-  }, [location.state]);
+  }, [location.state, userId]);
 
   const handleGenerate = async (options?: any) => {
     const result = await generateEliteResume({
