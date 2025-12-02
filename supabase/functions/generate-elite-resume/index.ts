@@ -7,6 +7,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { callLovableAI, LOVABLE_AI_MODELS, cleanCitations } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -234,16 +235,14 @@ Return ONLY the JSON, no markdown.`;
 
     await logAIUsage(metrics);
 
-    let rawContent = cleanCitations(response.choices?.[0]?.message?.content || '');
-    rawContent = rawContent.replace(/^```json\n?/i, '').replace(/\n?```$/i, '').trim();
-
+    const rawContent = cleanCitations(response.choices?.[0]?.message?.content || '');
     console.log('📝 Raw AI response length:', rawContent.length);
 
-    let resumeData;
-    try {
-      resumeData = JSON.parse(rawContent);
-    } catch (parseError) {
-      console.error('❌ Failed to parse AI response as JSON:', parseError);
+    // Use robust JSON extraction to handle markdown code blocks and other formatting
+    const parseResult = extractJSON(rawContent);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('❌ Failed to parse AI response:', parseResult.error);
       console.error('First 1000 chars:', rawContent.substring(0, 1000));
       
       if (response.choices?.[0]?.finish_reason === 'length') {
@@ -252,6 +251,8 @@ Return ONLY the JSON, no markdown.`;
       
       throw new Error('AI returned invalid JSON format. Please try again.');
     }
+
+    const resumeData = parseResult.data;
 
     if (!resumeData.sections || !Array.isArray(resumeData.sections)) {
       throw new Error('Invalid resume structure returned by AI');
