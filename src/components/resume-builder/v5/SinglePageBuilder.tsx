@@ -111,6 +111,8 @@ interface SectionBullet {
   confidence: 'high' | 'medium' | 'low';
   whyThisHelps?: string;
   gapAddressed?: string;
+  supports?: string[]; // Job requirements this addresses
+  sourceBasis?: string; // Which role/company this came from
 }
 
 interface ResumeSection {
@@ -153,6 +155,149 @@ function getNextTierThreshold(score: number): number {
   if (score >= 40) return 60;
   if (score >= 20) return 40;
   return 20;
+}
+
+// ============================================================================
+// RESUME PARSING FUNCTIONS (Phase 1)
+// ============================================================================
+
+interface ParsedWorkExperience {
+  company: string;
+  title: string;
+  dates: string;
+  bullets: string[];
+}
+
+interface ParsedEducation {
+  institution: string;
+  degree: string;
+  dates: string;
+}
+
+interface ParsedResumeContent {
+  workHistory: ParsedWorkExperience[];
+  education: ParsedEducation[];
+  skills: string[];
+  summary: string;
+}
+
+function parseResumeContent(text: string): ParsedResumeContent {
+  if (!text) return { workHistory: [], education: [], skills: [], summary: '' };
+  
+  const lines = text.split('\n').filter(l => l.trim());
+  const result: ParsedResumeContent = {
+    workHistory: [],
+    education: [],
+    skills: [],
+    summary: ''
+  };
+  
+  // Extract work experience
+  // Look for patterns like "Company Name" followed by role and dates
+  const workPattern = /^([A-Z][A-Za-z\s&.,']+)\s*[|,]\s*([A-Z][A-Za-z\s]+)\s*[|,]\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}).+)$/;
+  const bulletPattern = /^[•\-\*]\s*(.+)$/;
+  
+  let currentJob: ParsedWorkExperience | null = null;
+  let inEducation = false;
+  let inSkills = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const lower = line.toLowerCase();
+    
+    // Section headers
+    if (lower.includes('education')) {
+      inEducation = true;
+      inSkills = false;
+      if (currentJob) result.workHistory.push(currentJob);
+      currentJob = null;
+      continue;
+    }
+    if (lower.includes('skill') || lower.includes('technical')) {
+      inSkills = true;
+      inEducation = false;
+      if (currentJob) result.workHistory.push(currentJob);
+      currentJob = null;
+      continue;
+    }
+    if (lower.includes('experience') || lower.includes('employment')) {
+      inEducation = false;
+      inSkills = false;
+      continue;
+    }
+    
+    // Parse education
+    if (inEducation) {
+      const eduMatch = line.match(/([A-Z][A-Za-z\s]+(?:University|College|Institute|School))/);
+      if (eduMatch) {
+        const institution = eduMatch[1];
+        const degreeMatch = line.match(/(Bachelor|Master|PhD|Associate|B\.S\.|M\.S\.|MBA)/i);
+        const dateMatch = line.match(/(\d{4})/);
+        result.education.push({
+          institution,
+          degree: degreeMatch ? degreeMatch[0] : 'Degree',
+          dates: dateMatch ? dateMatch[0] : ''
+        });
+      }
+      continue;
+    }
+    
+    // Parse skills
+    if (inSkills) {
+      const skillsText = line.replace(/^[•\-\*]\s*/, '');
+      const skills = skillsText.split(/[,;|]/).map(s => s.trim()).filter(s => s.length > 2);
+      result.skills.push(...skills);
+      continue;
+    }
+    
+    // Parse work experience
+    const workMatch = line.match(workPattern);
+    if (workMatch) {
+      if (currentJob) result.workHistory.push(currentJob);
+      currentJob = {
+        company: workMatch[1].trim(),
+        title: workMatch[2].trim(),
+        dates: workMatch[3].trim(),
+        bullets: []
+      };
+      continue;
+    }
+    
+    // Try alternate pattern: separate lines for company, title, dates
+    if (!currentJob && /^[A-Z][A-Za-z\s&.,']+$/.test(line) && line.length < 50) {
+      const nextLine = lines[i + 1]?.trim() || '';
+      if (/^[A-Z][A-Za-z\s]+$/.test(nextLine)) {
+        currentJob = {
+          company: line,
+          title: nextLine,
+          dates: lines[i + 2]?.trim() || 'Present',
+          bullets: []
+        };
+        i += 2;
+        continue;
+      }
+    }
+    
+    // Parse bullet points
+    const bulletMatch = line.match(bulletPattern);
+    if (bulletMatch && currentJob) {
+      currentJob.bullets.push(bulletMatch[1]);
+    }
+  }
+  
+  if (currentJob) result.workHistory.push(currentJob);
+  
+  // Extract summary (first few lines before experience)
+  const summaryLines = lines.slice(0, 5).filter(l => {
+    const lower = l.toLowerCase();
+    return !lower.includes('education') && 
+           !lower.includes('experience') && 
+           !lower.includes('skill') &&
+           l.length > 40;
+  });
+  result.summary = summaryLines[0] || '';
+  
+  return result;
 }
 
 // ============================================================================
@@ -575,8 +720,8 @@ function SectionEditor({
                     status: bullet.status,
                     confidence: bullet.confidence,
                     whyThisHelps: bullet.whyThisHelps || '',
-                    supports: [],
-                    sourceBasis: '',
+                    supports: bullet.supports || [],
+                    sourceBasis: bullet.sourceBasis || '',
                     interviewQuestions: [],
                     order: index,
                   }}
@@ -640,38 +785,110 @@ export function SinglePageBuilder({
   const [resolvedGapIds, setResolvedGapIds] = useState<Set<string>>(new Set());
   const [isAnalyzingGaps, setIsAnalyzingGaps] = useState(false);
 
-  // Section state
-  const [sections, setSections] = useState<ResumeSection[]>([
-    {
-      id: 'highlights',
-      type: 'highlights',
-      title: 'Key Highlights',
-      isExpanded: true,
-      isLoading: false,
-      bullets: []
-    },
-    {
-      id: 'experience-1',
-      type: 'experience',
-      title: 'Professional Experience',
-      isExpanded: false,
-      isLoading: false,
-      bullets: [],
-      roleInfo: {
-        company: 'Current Company',
-        title: 'Your Role',
-        dates: 'Present'
+  // Section state (Phase 3: Dynamic sections from parsed resume)
+  const [sections, setSections] = useState<ResumeSection[]>(() => {
+    const parsed = parseResumeContent(resumeText);
+    
+    const baseSections: ResumeSection[] = [
+      {
+        id: 'summary',
+        type: 'summary',
+        title: 'Professional Summary',
+        isExpanded: false,
+        isLoading: false,
+        bullets: parsed.summary ? [{
+          id: 'summary-1',
+          originalText: parsed.summary,
+          suggestedText: parsed.summary,
+          status: 'pending' as BulletStatus,
+          confidence: 'high' as const,
+          whyThisHelps: 'Strong opening summary'
+        }] : []
+      },
+      {
+        id: 'highlights',
+        type: 'highlights',
+        title: 'Key Highlights',
+        isExpanded: true,
+        isLoading: false,
+        bullets: []
       }
-    },
-    {
-      id: 'skills',
-      type: 'skills',
-      title: 'Skills',
+    ];
+    
+    // Add experience sections from parsed work history
+    const experienceSections: ResumeSection[] = parsed.workHistory.map((job, i) => ({
+      id: `experience-${i}`,
+      type: 'experience' as const,
+      title: job.title,
       isExpanded: false,
       isLoading: false,
-      bullets: []
+      bullets: job.bullets.map((bullet, j) => ({
+        id: `experience-${i}-bullet-${j}`,
+        originalText: bullet,
+        suggestedText: bullet,
+        status: 'pending' as BulletStatus,
+        confidence: 'medium' as const,
+        whyThisHelps: `Extracted from ${job.company}`
+      })),
+      roleInfo: {
+        company: job.company,
+        title: job.title,
+        dates: job.dates
+      }
+    }));
+    
+    // If no work history found, add a placeholder
+    if (experienceSections.length === 0) {
+      experienceSections.push({
+        id: 'experience-0',
+        type: 'experience',
+        title: 'Professional Experience',
+        isExpanded: false,
+        isLoading: false,
+        bullets: [],
+        roleInfo: {
+          company: 'Your Company',
+          title: 'Your Role',
+          dates: 'Present'
+        }
+      });
     }
-  ]);
+    
+    const endSections: ResumeSection[] = [
+      {
+        id: 'education',
+        type: 'summary' as const, // Using 'summary' type for education
+        title: 'Education',
+        isExpanded: false,
+        isLoading: false,
+        bullets: parsed.education.map((edu, i) => ({
+          id: `education-${i}`,
+          originalText: `${edu.degree} from ${edu.institution}${edu.dates ? ` (${edu.dates})` : ''}`,
+          suggestedText: `${edu.degree} from ${edu.institution}${edu.dates ? ` (${edu.dates})` : ''}`,
+          status: 'pending' as BulletStatus,
+          confidence: 'high' as const,
+          whyThisHelps: 'Educational background'
+        }))
+      },
+      {
+        id: 'skills',
+        type: 'skills',
+        title: 'Skills',
+        isExpanded: false,
+        isLoading: false,
+        bullets: parsed.skills.slice(0, 10).map((skill, i) => ({
+          id: `skill-${i}`,
+          originalText: skill,
+          suggestedText: skill,
+          status: 'pending' as BulletStatus,
+          confidence: 'medium' as const,
+          whyThisHelps: 'Relevant skill for role'
+        }))
+      }
+    ];
+    
+    return [...baseSections, ...experienceSections, ...endSections];
+  });
 
   // AI processing state
   const [isHumanizing, setIsHumanizing] = useState(false);
@@ -739,17 +956,65 @@ export function SinglePageBuilder({
     }
   }, [resumeText, jobDescription, navigate, toast]);
 
+  // Phase 6: Auto-generate Key Highlights on mount
+  useEffect(() => {
+    const highlightsSection = sections.find(s => s.type === 'highlights');
+    if (highlightsSection && highlightsSection.bullets.length === 0 && !highlightsSection.isLoading) {
+      // Trigger generation after a short delay to ensure component is fully mounted
+      setTimeout(() => {
+        handleGenerateSection('highlights');
+      }, 500);
+    }
+  }, []); // Only run once on mount
+
   // ========== AI FUNCTIONS ==========
 
+  // Phase 2: Fix Score Recalculation - Use reconstructed resume
+  const reconstructResumeFromSections = useCallback(() => {
+    let resumeText = '';
+    
+    // Add contact info
+    resumeText += `${contactInfo.name}\n`;
+    resumeText += `${contactInfo.email || ''} | ${contactInfo.phone || ''} | ${contactInfo.location || ''}\n\n`;
+    
+    // Add each section with accepted bullets
+    sections.forEach(section => {
+      const acceptedBullets = section.bullets.filter(
+        b => b.status === 'accepted' || b.status === 'edited'
+      );
+      
+      if (acceptedBullets.length > 0) {
+        resumeText += `${section.title.toUpperCase()}\n`;
+        
+        if (section.roleInfo) {
+          resumeText += `${section.roleInfo.title} | ${section.roleInfo.company} | ${section.roleInfo.dates}\n`;
+        }
+        
+        acceptedBullets.forEach(bullet => {
+          const text = bullet.editedText || bullet.suggestedText;
+          resumeText += `• ${text}\n`;
+        });
+        
+        resumeText += `\n`;
+      }
+    });
+    
+    return resumeText;
+  }, [sections, contactInfo]);
+
   const handleRescore = useCallback(async () => {
-    if (!resumeText || !jobDescription) return;
+    if (!jobDescription) return;
     
     setIsRescoring(true);
     setPreviousScore(score?.overallScore);
 
     try {
+      // Use reconstructed resume from accepted bullets
+      const reconstructedResume = reconstructResumeFromSections();
+      const resumeToScore = reconstructedResume || resumeText;
+      
       const { data, error } = await invokeEdgeFunction('instant-resume-score', {
-        resumeText: resumeText, // Would use reconstructed resume in production
+        resumeText: resumeToScore,
         jobDescription
       });
 
@@ -770,7 +1035,7 @@ export function SinglePageBuilder({
     } finally {
       setIsRescoring(false);
     }
-  }, [resumeText, jobDescription, score, toast]);
+  }, [reconstructResumeFromSections, resumeText, jobDescription, score, toast]);
 
   // Handle gap reanalysis with loading state
   const handleReanalyzeGaps = useCallback(async () => {
@@ -930,14 +1195,46 @@ export function SinglePageBuilder({
         .map((line: string) => line.replace(/^[•\-]\s*/, '').trim())
         .filter((text: string) => text.length > 10);
 
-      const newBullets: SectionBullet[] = bulletTexts.map((text: string, i: number) => ({
-        id: `${sectionId}-bullet-${i}`,
-        originalText: '',
-        suggestedText: text,
-        status: 'pending' as BulletStatus,
-        confidence: i < 2 ? 'high' : i < 4 ? 'medium' : 'low',
-        whyThisHelps: 'Generated to match job requirements'
-      }));
+      // Phase 4: Wire up gap addressing, supports, and source basis
+      const newBullets: SectionBullet[] = bulletTexts.map((text: string, i: number) => {
+        // Try to match bullet to a gap
+        const matchedGap = gaps.find(gap => {
+          const gapWords = gap.title.toLowerCase().split(' ');
+          const textLower = text.toLowerCase();
+          return gapWords.some(word => word.length > 4 && textLower.includes(word));
+        });
+        
+        // Extract potential job requirements this addresses
+        const supports: string[] = [];
+        if (score?.priorityFixes) {
+          score.priorityFixes.forEach(fix => {
+            const fixWords = fix.issue.toLowerCase().split(' ');
+            const textLower = text.toLowerCase();
+            if (fixWords.some(word => word.length > 4 && textLower.includes(word))) {
+              supports.push(fix.category);
+            }
+          });
+        }
+        
+        // Get original bullet text for comparison (if exists)
+        const originalBullet = section.bullets[i];
+        
+        return {
+          id: `${sectionId}-bullet-${i}`,
+          originalText: originalBullet?.originalText || '',
+          suggestedText: text,
+          status: 'pending' as BulletStatus,
+          confidence: i < 2 ? 'high' : i < 4 ? 'medium' : 'low',
+          whyThisHelps: matchedGap 
+            ? `Addresses "${matchedGap.title}"` 
+            : 'Optimized for ATS and job requirements',
+          gapAddressed: matchedGap?.id,
+          supports,
+          sourceBasis: section.roleInfo 
+            ? `${section.roleInfo.title} at ${section.roleInfo.company}`
+            : ''
+        };
+      });
 
       setSections(prev => prev.map(s => 
         s.id === sectionId ? { ...s, bullets: newBullets, isLoading: false } : s
