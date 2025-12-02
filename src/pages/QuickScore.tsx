@@ -172,7 +172,9 @@ export default function QuickScore() {
         fromQuickScore: true,
         resumeText,
         jobDescription,
-        scoreResult
+        scoreResult,
+        jobTitle: scoreResult?.detected?.role,
+        industry: scoreResult?.detected?.industry
       }
     });
   };
