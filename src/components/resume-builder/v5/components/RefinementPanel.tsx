@@ -383,11 +383,16 @@ export function RefinementPanel({
                     <p className="text-[10px] text-muted-foreground mb-1">Enhanced:</p>
                     <p className="text-xs">{suggestions.comparison.enhanced}</p>
                   </div>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="space-y-1.5 mt-2">
+                    <p className="text-[10px] font-medium text-muted-foreground">Why it's better:</p>
                     {suggestions.comparison.differences.map((diff, i) => (
-                      <Badge key={i} variant="outline" className="text-[10px]">
-                        {diff}
-                      </Badge>
+                      <div 
+                        key={i} 
+                        className="flex items-start gap-2 p-2 bg-muted/30 rounded text-xs leading-relaxed"
+                      >
+                        <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span className="break-words">{diff}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
