@@ -20,12 +20,16 @@ serve(async (req) => {
       jobContext
     } = await req.json();
 
-    if (!originalBullet || !currentEnhancedBullet || !requirement) {
+    if (!originalBullet || !currentEnhancedBullet) {
+      console.error('Missing required fields:', { originalBullet: !!originalBullet, currentEnhancedBullet: !!currentEnhancedBullet });
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Missing required fields: originalBullet and currentEnhancedBullet are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    // Use defaults if optional fields are empty
+    const effectiveRequirement = requirement || 'General resume improvement';
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -40,17 +44,19 @@ serve(async (req) => {
       enhancementInstruction = `Add more technical depth - mention specific technologies, methodologies, tools, frameworks, or technical approaches used.`;
     } else if (userGuidance === 'leadership') {
       enhancementInstruction = `Emphasize leadership aspects - team size, mentoring, decision-making authority, stakeholder management, or strategic influence.`;
-    } else if (userGuidance.startsWith('keyword:')) {
+    } else if (userGuidance === 'keywords') {
+      enhancementInstruction = `Optimize this bullet for ATS by incorporating relevant industry keywords and action verbs that align with the job requirement. Focus on impactful terminology used in job postings.`;
+    } else if (userGuidance?.startsWith('keyword:')) {
       const keyword = userGuidance.replace('keyword:', '').trim();
       enhancementInstruction = `Naturally incorporate the keyword "${keyword}" into this bullet while maintaining authenticity and flow.`;
     } else {
-      enhancementInstruction = userGuidance; // Custom user input
+      enhancementInstruction = userGuidance || 'Make this bullet more impactful and professional.'; // Custom user input or default
     }
 
     const prompt = `You are an expert resume writer. You need to further enhance an already-enhanced resume bullet.
 
 JOB REQUIREMENT TO ADDRESS:
-${requirement}
+${effectiveRequirement}
 
 ORIGINAL BULLET (before any enhancement):
 ${originalBullet}

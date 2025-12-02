@@ -27,8 +27,8 @@ export function useEnhanceBullet({
         body: {
           originalBullet,
           currentEnhancedBullet: currentBullet,
-          requirement,
-          guidance,
+          requirement: requirement || 'General resume improvement',
+          userGuidance: guidance,
           jobContext
         }
       });
