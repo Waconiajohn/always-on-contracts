@@ -153,12 +153,12 @@ CRITICAL RULES:
 
 Return ONLY the JSON, no markdown formatting.`;
 
-    // Call AI
+    // Call AI with higher token limit for complete resume generation
     const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
       model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.5,
-      max_tokens: 3000,
+      max_tokens: 8000, // Increased for complete resume JSON
     }, 'generate-elite-resume', userId);
 
     await logAIUsage(metrics);
@@ -170,14 +170,22 @@ Return ONLY the JSON, no markdown formatting.`;
 
     console.log('📝 Raw AI response (first 500 chars):', rawContent.substring(0, 500));
 
-    // Parse JSON response
+    // Parse JSON response with better error handling
     let resumeData;
     try {
       resumeData = JSON.parse(rawContent);
     } catch (parseError) {
       console.error('❌ Failed to parse AI response as JSON:', parseError);
-      console.error('Raw content:', rawContent);
-      throw new Error('AI returned invalid JSON format');
+      console.error('Raw content length:', rawContent.length);
+      console.error('Raw content (first 1000 chars):', rawContent.substring(0, 1000));
+      console.error('Raw content (last 500 chars):', rawContent.substring(Math.max(0, rawContent.length - 500)));
+      
+      // Check if response was truncated
+      if (response.choices?.[0]?.finish_reason === 'length') {
+        throw new Error('AI response was truncated due to token limit. Please try again with a shorter job description.');
+      }
+      
+      throw new Error('AI returned invalid JSON format. Please try again.');
     }
 
     // Validate structure
