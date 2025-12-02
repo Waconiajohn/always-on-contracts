@@ -15,6 +15,7 @@ import { invokeEdgeFunction } from '@/lib/edgeFunction';
 import { ResumeDraftPanel } from './components/ResumeDraftPanel';
 import { RefinementPanel } from './components/RefinementPanel';
 import { MatchAnalysisView } from './components/MatchAnalysisView';
+import { ResumeLoadingSkeleton } from './components/LoadingSkeleton';
 import { ThermometerScore } from '@/components/quick-score/ThermometerScore';
 import { useEliteResumeGeneration } from './hooks/useEliteResumeGeneration';
 
@@ -165,11 +166,25 @@ export default function EliteResumeBuilder({
     }
   };
 
-  const handleExport = () => {
-    toast({
-      title: 'Export Started',
-      description: 'Your resume is being prepared for download.'
-    });
+  const handleExport = async () => {
+    if (!resumeData) return;
+
+    try {
+      const { exportResumeAsPDF } = await import('./utils/exportResume');
+      await exportResumeAsPDF(resumeData);
+      
+      toast({
+        title: 'Export Complete',
+        description: 'Your resume has been downloaded.'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: 'Export Failed',
+        description: 'Could not export resume. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getSelectedBullet = (): ResumeBullet | null => {
@@ -186,14 +201,38 @@ export default function EliteResumeBuilder({
   // Loading state
   if (isGenerating && !resumeData) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-md">
-          <Sparkles className="h-12 w-12 mx-auto text-primary animate-pulse" />
-          <h2 className="text-2xl font-bold">Crafting Your Elite Resume...</h2>
-          <p className="text-muted-foreground">
-            AI is analyzing the job description and building a perfectly tailored resume
-          </p>
-          <Progress value={progress} className="h-2" />
+      <div className="h-screen flex flex-col">
+        <div className="border-b p-4 bg-background">
+          <div className="container max-w-7xl">
+            <div className="flex items-center justify-between">
+              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+              <div className="text-center flex-1 mx-4">
+                <h2 className="text-xl font-bold">Crafting Your Elite Resume...</h2>
+                <p className="text-sm text-muted-foreground">
+                  AI is analyzing the job description and building a perfectly tailored resume
+                </p>
+              </div>
+              <div className="w-8" />
+            </div>
+            <Progress value={progress} className="h-2 mt-4" />
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto">
+          <div className="container max-w-7xl py-8 grid grid-cols-5 gap-6">
+            <div className="col-span-3">
+              <ResumeLoadingSkeleton />
+            </div>
+            <div className="col-span-2">
+              <div className="p-6">
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>✓ Analyzing job requirements</p>
+                  <p>✓ Matching with your experience</p>
+                  <p>✓ Generating tailored content</p>
+                  <p className="animate-pulse">✓ Optimizing for ATS...</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
