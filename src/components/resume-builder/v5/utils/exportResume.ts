@@ -1,62 +1,97 @@
-/**
- * Export utilities for Elite Resume Builder
- */
-
+import jsPDF from 'jspdf';
 import type { EliteResumeData } from '../types';
 
-export async function exportResumeAsPDF(resumeData: EliteResumeData): Promise<void> {
-  // Create a simple text version for now
-  // In production, you'd use jspdf or similar
-  const text = formatResumeAsText(resumeData);
+export function exportResumeAsPDF(resumeData: EliteResumeData) {
+  const doc = new jsPDF();
   
-  const blob = new Blob([text], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${resumeData.contactInfo.name.replace(/\s+/g, '_')}_Resume.txt`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Set up fonts and margins
+  const margin = 20;
+  const lineHeight = 7;
+  let y = margin;
+  
+  // Contact Info
+  doc.setFontSize(18);
+  doc.text(resumeData.contactInfo.name, margin, y);
+  y += lineHeight + 3;
+  
+  doc.setFontSize(10);
+  const contactLine = [
+    resumeData.contactInfo.email,
+    resumeData.contactInfo.phone,
+    resumeData.contactInfo.location
+  ].filter(Boolean).join(' • ');
+  doc.text(contactLine, margin, y);
+  y += lineHeight * 2;
+  
+  // Sections
+  for (const section of resumeData.sections) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(section.title.toUpperCase(), margin, y);
+    y += lineHeight;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    
+    // Role info
+    if (section.roleInfo) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(section.roleInfo.title, margin, y);
+      y += lineHeight;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${section.roleInfo.company} • ${section.roleInfo.dates}`, margin, y);
+      y += lineHeight;
+    }
+    
+    // Paragraph
+    if (section.paragraph) {
+      const splitParagraph = doc.splitTextToSize(section.paragraph, 170);
+      doc.text(splitParagraph, margin, y);
+      y += splitParagraph.length * lineHeight;
+    }
+    
+    // Bullets
+    if (section.bullets) {
+      for (const bullet of section.bullets) {
+        const bulletText = bullet.userEditedText || bullet.text;
+        const splitText = doc.splitTextToSize(`• ${bulletText}`, 165);
+        doc.text(splitText, margin + 5, y);
+        y += splitText.length * lineHeight;
+        
+        if (y > 270) {
+          doc.addPage();
+          y = margin;
+        }
+      }
+    }
+    
+    y += lineHeight;
+  }
+  
+  doc.save('elite-resume.pdf');
 }
 
-export async function exportResumeAsDocx(resumeData: EliteResumeData): Promise<void> {
-  // Create a simple text version for now
-  // In production, you'd use docx library
-  const text = formatResumeAsText(resumeData);
-  
-  const blob = new Blob([text], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${resumeData.contactInfo.name.replace(/\s+/g, '_')}_Resume.txt`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-function formatResumeAsText(resumeData: EliteResumeData): string {
+export function exportResumeAsText(resumeData: EliteResumeData): string {
   let text = '';
   
-  // Header
+  // Contact Info
   text += `${resumeData.contactInfo.name}\n`;
-  text += `${resumeData.contactInfo.email} | ${resumeData.contactInfo.phone}\n`;
-  text += `${resumeData.contactInfo.location}`;
+  text += `${resumeData.contactInfo.email} • ${resumeData.contactInfo.phone} • ${resumeData.contactInfo.location}\n`;
   if (resumeData.contactInfo.linkedin) {
-    text += ` | ${resumeData.contactInfo.linkedin}`;
+    text += `${resumeData.contactInfo.linkedin}\n`;
   }
-  text += '\n\n';
+  text += '\n';
   
   // Sections
   for (const section of resumeData.sections) {
     text += `${section.title.toUpperCase()}\n`;
-    text += '─'.repeat(50) + '\n\n';
+    text += '='.repeat(section.title.length) + '\n\n';
     
-    // Role info for experience sections
+    // Role info
     if (section.roleInfo) {
       text += `${section.roleInfo.title}\n`;
-      text += `${section.roleInfo.company} | ${section.roleInfo.dates}\n\n`;
+      text += `${section.roleInfo.company} • ${section.roleInfo.dates}\n\n`;
     }
     
     // Paragraph content
@@ -65,9 +100,11 @@ function formatResumeAsText(resumeData: EliteResumeData): string {
     }
     
     // Bullets
-    for (const bullet of section.bullets) {
-      const bulletText = bullet.userEditedText || bullet.text;
-      text += `• ${bulletText}\n`;
+    if (section.bullets) {
+      for (const bullet of section.bullets) {
+        const bulletText = bullet.userEditedText || bullet.text;
+        text += `• ${bulletText}\n`;
+      }
     }
     
     text += '\n';

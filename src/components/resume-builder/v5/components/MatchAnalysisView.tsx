@@ -114,7 +114,7 @@ export function MatchAnalysisView({
                     <p className="text-sm mt-2">{section.paragraph}</p>
                   )}
                   <ul className="list-disc list-inside space-y-1 mt-2">
-                    {section.bullets.map((bullet) => (
+                    {section.bullets?.map((bullet) => (
                       <li key={bullet.id} className="text-sm">
                         {bullet.userEditedText || bullet.text}
                       </li>

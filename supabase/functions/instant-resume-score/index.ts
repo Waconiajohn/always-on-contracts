@@ -12,10 +12,10 @@ const corsHeaders = {
  * Instant Resume Score - The Quick Win Orchestrator
  * 
  * Combines multiple scoring dimensions into one fast response:
- * 1. JD Match Score (40% weight)
- * 2. Industry Benchmark Score (35% weight)
- * 3. ATS Compliance Score (15% weight)
- * 4. AI Detection Risk (10% weight)
+ * 1. JD Match Score (60% weight) - PRIMARY DRIVER
+ * 2. Industry Benchmark Score (20% weight)
+ * 3. ATS Compliance Score (12% weight)
+ * 4. AI Detection Risk (8% weight)
  * 
  * Returns thermometer tier and actionable recommendations.
  */
@@ -100,23 +100,23 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
 
 Perform a comprehensive 4-dimensional analysis WITH GAP CLASSIFICATION:
 
-1. JD MATCH (40% weight): How well does the resume match THIS specific job description?
+1. JD MATCH (60% weight): How well does the resume match THIS specific job description?
    - Keyword coverage (critical, important, nice-to-have)
    - Skills alignment
    - Experience relevance
    - CLASSIFY GAPS by type and severity
 
-2. INDUSTRY BENCHMARK (35% weight): How does this resume compare to industry standards for ${detectedRole} at ${detectedLevel} level?
+2. INDUSTRY BENCHMARK (20% weight): How does this resume compare to industry standards for ${detectedRole} at ${detectedLevel} level?
    - Typical requirements for this role/level
    - Missing critical industry-standard skills
    - Competitive positioning
 
-3. ATS COMPLIANCE (15% weight): Will this pass Applicant Tracking Systems?
+3. ATS COMPLIANCE (12% weight): Will this pass Applicant Tracking Systems?
    - Section headers (standard vs non-standard)
    - Format issues (tables, graphics, columns)
    - Keyword placement optimization
 
-4. AI DETECTION RISK (10% weight): Does this sound human-written?
+4. AI DETECTION RISK (8% weight): Does this sound human-written?
    - Sentence variety
    - Specific vs generic language
    - Natural flow vs robotic patterns
@@ -132,10 +132,10 @@ GAP TYPES TO CLASSIFY:
 Return ONLY valid JSON with this structure:
 {
   "scores": {
-    "jdMatch": { "score": 0-100, "weight": 40 },
-    "industryBenchmark": { "score": 0-100, "weight": 35 },
-    "atsCompliance": { "score": 0-100, "weight": 15 },
-    "humanVoice": { "score": 0-100, "weight": 10 }
+    "jdMatch": { "score": 0-100, "weight": 60 },
+    "industryBenchmark": { "score": 0-100, "weight": 20 },
+    "atsCompliance": { "score": 0-100, "weight": 12 },
+    "humanVoice": { "score": 0-100, "weight": 8 }
   },
   "overallScore": 0-100,
   "breakdown": {
@@ -220,12 +220,12 @@ Analyze comprehensively across all 4 dimensions.`;
       throw new Error('Failed to parse scoring response');
     }
 
-    // Calculate weighted overall score
+    // Calculate weighted overall score (60/20/12/8)
     const weightedScore = 
-      (scoreData.scores.jdMatch.score * 0.40) +
-      (scoreData.scores.industryBenchmark.score * 0.35) +
-      (scoreData.scores.atsCompliance.score * 0.15) +
-      (scoreData.scores.humanVoice.score * 0.10);
+      (scoreData.scores.jdMatch.score * 0.60) +
+      (scoreData.scores.industryBenchmark.score * 0.20) +
+      (scoreData.scores.atsCompliance.score * 0.12) +
+      (scoreData.scores.humanVoice.score * 0.08);
 
     const overallScore = Math.round(weightedScore);
     const tier = getScoreTier(overallScore);
