@@ -46,9 +46,9 @@ import type { ResumeBullet } from '../types';
 interface RefinementPanelProps {
   selectedBullet: ResumeBullet | null;
   onSave: (bulletId: string, newText: string) => void;
-  onRegenerate: (bulletId: string) => void;
+  onRegenerate?: (bulletId: string) => void;
   onRemove: (bulletId: string) => void;
-  isProcessing: boolean;
+  isProcessing?: boolean;
   jobDescription?: string;
 }
 
