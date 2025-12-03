@@ -10,12 +10,14 @@ interface ResumeDraftPanelProps {
   resumeData: EliteResumeData;
   selectedBulletId: string | null;
   onSelectBullet: (bulletId: string) => void;
+  justUpdatedBulletId?: string | null;
 }
 
 export function ResumeDraftPanel({
   resumeData,
   selectedBulletId,
-  onSelectBullet
+  onSelectBullet,
+  justUpdatedBulletId
 }: ResumeDraftPanelProps) {
   return (
     <div className="h-full flex flex-col bg-background">
@@ -73,6 +75,7 @@ export function ResumeDraftPanel({
                             confidence={bullet.confidence}
                             isSelected={selectedBulletId === bullet.id}
                             isEdited={bullet.isEdited}
+                            isJustUpdated={justUpdatedBulletId === bullet.id}
                             onClick={() => onSelectBullet(bullet.id)}
                           />
                         ))}
@@ -100,6 +103,7 @@ export function ResumeDraftPanel({
                         text={eduText}
                         confidence="exact"
                         isSelected={selectedBulletId === `edu-${idx}`}
+                        isJustUpdated={justUpdatedBulletId === `edu-${idx}`}
                         onClick={() => onSelectBullet(`edu-${idx}`)}
                       />
                     );
@@ -126,6 +130,7 @@ export function ResumeDraftPanel({
                           text={certText}
                           confidence="exact"
                           isSelected={selectedBulletId === `cert-${idx}`}
+                          isJustUpdated={justUpdatedBulletId === `cert-${idx}`}
                           onClick={() => onSelectBullet(`cert-${idx}`)}
                         />
                       );
@@ -150,6 +155,7 @@ export function ResumeDraftPanel({
                         text={skill}
                         confidence="exact"
                         isSelected={selectedBulletId === `skill-${idx}`}
+                        isJustUpdated={justUpdatedBulletId === `skill-${idx}`}
                         onClick={() => onSelectBullet(`skill-${idx}`)}
                       />
                     ))}
@@ -172,6 +178,7 @@ export function ResumeDraftPanel({
                     text={section.paragraph}
                     confidence="enhanced"
                     isSelected={selectedBulletId === `${section.id}-paragraph`}
+                    isJustUpdated={justUpdatedBulletId === `${section.id}-paragraph`}
                     onClick={() => onSelectBullet(`${section.id}-paragraph`)}
                   />
                 )}
@@ -186,6 +193,7 @@ export function ResumeDraftPanel({
                         confidence={bullet.confidence}
                         isSelected={selectedBulletId === bullet.id}
                         isEdited={bullet.isEdited}
+                        isJustUpdated={justUpdatedBulletId === bullet.id}
                         onClick={() => onSelectBullet(bullet.id)}
                       />
                       {/* Show ATS keywords as clickable badges */}

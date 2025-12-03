@@ -4,7 +4,7 @@
  * Page 2: Match Analysis
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -41,6 +41,7 @@ export default function EliteResumeBuilder({
   const [selectedBulletId, setSelectedBulletId] = useState<string | null>(null);
   const [jobDescription, setJobDescription] = useState(initialJobDescription);
   const [matchAnalysis, setMatchAnalysis] = useState<MatchAnalysis | null>(null);
+  const [justUpdatedBulletId, setJustUpdatedBulletId] = useState<string | null>(null);
 
   const { generateEliteResume, regenerateBullet, isGenerating, progress } = useEliteResumeGeneration();
 
@@ -65,6 +66,16 @@ export default function EliteResumeBuilder({
     }
   }, [location.state, userId]);
 
+  // Clear the just-updated animation after delay
+  useEffect(() => {
+    if (justUpdatedBulletId) {
+      const timer = setTimeout(() => {
+        setJustUpdatedBulletId(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [justUpdatedBulletId]);
+
   const handleGenerate = async (options?: any) => {
     const result = await generateEliteResume({
       jobDescription: options?.jobDescription || jobDescription,
@@ -83,7 +94,7 @@ export default function EliteResumeBuilder({
     }
   };
 
-  const handleBulletSave = (bulletId: string, newText: string) => {
+  const handleBulletSave = useCallback((bulletId: string, newText: string) => {
     if (!resumeData) return;
 
     const updatedSections = resumeData.sections.map(section => {
@@ -118,11 +129,14 @@ export default function EliteResumeBuilder({
       sections: updatedSections
     });
 
+    // Trigger success animation
+    setJustUpdatedBulletId(bulletId);
+
     toast({
-      title: 'Changes Saved',
-      description: 'Your edits have been applied.'
+      title: '✓ Applied to Resume',
+      description: 'Your change has been saved.',
     });
-  };
+  }, [resumeData, toast]);
 
   const handleBulletRegenerate = async (bulletId: string) => {
     if (!resumeData) return;
@@ -417,22 +431,23 @@ export default function EliteResumeBuilder({
         </div>
       </div>
 
-      {/* Two-column resizable layout - FULL WIDTH */}
+      {/* Two-column resizable layout - Wider right panel for better UX */}
       {resumeData ? (
         <ResizablePanelGroup direction="horizontal" className="flex-1">
           {/* Left: Resume Draft */}
-          <ResizablePanel defaultSize={65} minSize={45} maxSize={75}>
+          <ResizablePanel defaultSize={55} minSize={40} maxSize={70}>
             <ResumeDraftPanel
               resumeData={resumeData}
               selectedBulletId={selectedBulletId}
               onSelectBullet={setSelectedBulletId}
+              justUpdatedBulletId={justUpdatedBulletId}
             />
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
-          {/* Right: Refinement Panel */}
-          <ResizablePanel defaultSize={35} minSize={25} maxSize={55}>
+          {/* Right: Refinement Panel - More space for AI tools */}
+          <ResizablePanel defaultSize={45} minSize={30} maxSize={60}>
             <RefinementPanel
               selectedBullet={getSelectedBullet()}
               onSave={handleBulletSave}
