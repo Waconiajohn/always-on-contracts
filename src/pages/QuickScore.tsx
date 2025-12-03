@@ -166,8 +166,8 @@ export default function QuickScore() {
   };
 
   const handleFixResume = () => {
-    // Navigate to the AI rewrite wizard with the current data
-    navigate('/agents/resume-builder', {
+    // Navigate to the V6 Benchmark Resume Builder with the current data
+    navigate('/benchmark-builder', {
       state: {
         fromQuickScore: true,
         resumeText,
