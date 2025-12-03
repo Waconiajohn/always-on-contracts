@@ -3196,6 +3196,45 @@ export type Database = {
           },
         ]
       }
+      resume_builder_drafts: {
+        Row: {
+          builder_state: Json | null
+          created_at: string | null
+          current_step: string | null
+          id: string
+          job_description_hash: string
+          score_data: Json | null
+          section_content: Json
+          selected_template_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          builder_state?: Json | null
+          created_at?: string | null
+          current_step?: string | null
+          id?: string
+          job_description_hash: string
+          score_data?: Json | null
+          section_content?: Json
+          selected_template_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          builder_state?: Json | null
+          created_at?: string | null
+          current_step?: string | null
+          id?: string
+          job_description_hash?: string
+          score_data?: Json | null
+          section_content?: Json
+          selected_template_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       resume_cache: {
         Row: {
           analysis_result: Json | null
