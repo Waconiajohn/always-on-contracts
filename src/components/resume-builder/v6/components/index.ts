@@ -4,3 +4,4 @@ export { StepIndicator } from './StepIndicator';
 export { LiveResumePreview } from './LiveResumePreview';
 export { AIActionPanel, AI_ACTIONS } from './AIActionPanel';
 export { SectionTabs, SECTION_TABS } from './SectionTabs';
+export { ScoreBreakdownDisplay } from './ScoreBreakdownDisplay';

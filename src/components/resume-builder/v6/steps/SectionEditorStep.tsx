@@ -1,18 +1,24 @@
 /**
  * SectionEditorStep - Refactored full-width section editor
  * Uses smaller focused components for maintainability
+ * Integrates real data, draft persistence, and sophisticated scoring
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useToast } from '@/hooks/use-toast';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useResumePreviewData } from '@/hooks/useResumePreviewData';
+import { useResumeDraft } from '@/hooks/useResumeDraft';
+import { useResumeScoring } from '@/hooks/useResumeScoring';
 
 import { LiveResumePreview } from '../components/LiveResumePreview';
 import { AIActionPanel, AI_ACTIONS } from '../components/AIActionPanel';
 import { SectionTabs, SECTION_TABS } from '../components/SectionTabs';
+import { ScoreBreakdownDisplay } from '../components/ScoreBreakdownDisplay';
 import type { BenchmarkBuilderState, ScoreBreakdown } from '../types';
 
 interface SectionEditorStepProps {
@@ -29,16 +35,42 @@ export function SectionEditorStep({
   onBack
 }: SectionEditorStepProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   
-  // Section state management
+  // Get real vault data for preview
+  const previewData = useResumePreviewData(user?.id);
+  
+  // Persist section content
+  const { 
+    sectionContent, 
+    updateSection, 
+    isSaving, 
+    lastSaved
+  } = useResumeDraft(state.jobDescription);
+
+  // Sophisticated scoring
+  const { calculateScore, quickScore, isScoring, lastResult } = useResumeScoring();
+  
+  // Local state
   const [activeSection, setActiveSection] = useState('summary');
-  const [sectionContent, setSectionContent] = useState<Record<string, string>>({});
   const [completedSections, setCompletedSections] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentTab = SECTION_TABS.find(t => t.id === activeSection);
   const allSectionsComplete = SECTION_TABS.every(t => completedSections.has(t.id));
+
+  // Calculate score when section content changes
+  useEffect(() => {
+    const content = sectionContent[activeSection];
+    if (content && content.length > 50) {
+      // Quick local score for immediate feedback
+      const quickScoreValue = quickScore(content);
+      if (quickScoreValue > 0) {
+        onScoreUpdate(Math.max(state.currentScore, Math.round(state.initialScore + quickScoreValue * 0.3)));
+      }
+    }
+  }, [sectionContent, activeSection, quickScore, onScoreUpdate, state.currentScore, state.initialScore]);
 
   // Handle section change
   const handleSectionChange = useCallback((section: string) => {
@@ -48,13 +80,10 @@ export function SectionEditorStep({
 
   // Handle content change for current section
   const handleContentChange = useCallback((content: string) => {
-    setSectionContent(prev => ({
-      ...prev,
-      [activeSection]: content
-    }));
-  }, [activeSection]);
+    updateSection(activeSection, content);
+  }, [activeSection, updateSection]);
 
-  // Generate AI enhancement
+  // Generate AI enhancement with sophisticated scoring
   const generateEnhancement = useCallback(async (actionId: string): Promise<string> => {
     setIsGenerating(true);
     setError(null);
@@ -76,9 +105,26 @@ export function SectionEditorStep({
       });
 
       if (data?.enhancedContent) {
-        // Update score based on action
-        const scoreBoost = action?.scoreImpact || 3;
-        onScoreUpdate(Math.min(100, state.currentScore + scoreBoost));
+        // Calculate sophisticated score for the enhanced content
+        const scoringResult = await calculateScore({
+          content: data.enhancedContent,
+          sectionType: activeSection,
+          jobDescription: state.jobDescription,
+          targetRole: state.detected.role,
+          targetIndustry: state.detected.industry,
+          level: state.detected.level
+        });
+
+        // Update with the AI-calculated score
+        onScoreUpdate(
+          Math.min(100, Math.max(state.currentScore, scoringResult.breakdown.overall)),
+          {
+            ats: scoringResult.breakdown.ats,
+            requirements: scoringResult.breakdown.requirements,
+            competitive: scoringResult.breakdown.competitive
+          }
+        );
+
         return data.enhancedContent;
       }
 
@@ -87,11 +133,16 @@ export function SectionEditorStep({
     } catch (err) {
       console.error('AI enhancement error:', err);
       setError('Enhancement failed. Using fallback suggestions.');
+      
+      // Still give some score boost for the effort
+      const scoreBoost = action?.scoreImpact || 3;
+      onScoreUpdate(Math.min(100, state.currentScore + scoreBoost));
+      
       return generateFallbackContent(actionId, currentContent);
     } finally {
       setIsGenerating(false);
     }
-  }, [activeSection, sectionContent, state, onScoreUpdate]);
+  }, [activeSection, sectionContent, state, onScoreUpdate, calculateScore]);
 
   // Generate intelligent fallback content
   const generateFallbackContent = (actionId: string, baseContent: string): string => {
@@ -149,12 +200,32 @@ export function SectionEditorStep({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Section Tabs */}
-      <SectionTabs
-        activeSection={activeSection}
-        onSectionChange={handleSectionChange}
-        completedSections={completedSections}
-      />
+      {/* Section Tabs with save status */}
+      <div className="flex items-center justify-between px-4 border-b">
+        <SectionTabs
+          activeSection={activeSection}
+          onSectionChange={handleSectionChange}
+          completedSections={completedSections}
+        />
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {isSaving && (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Saving...</span>
+            </>
+          )}
+          {!isSaving && lastSaved && (
+            <span>Last saved {lastSaved.toLocaleTimeString()}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Score Breakdown (compact) */}
+      {lastResult && (
+        <div className="px-4 py-2 border-b bg-muted/30">
+          <ScoreBreakdownDisplay breakdown={lastResult.breakdown} compact isLoading={isScoring} />
+        </div>
+      )}
 
       {/* Main Content - Split View */}
       <ResizablePanelGroup direction="horizontal" className="flex-1">
@@ -164,6 +235,7 @@ export function SectionEditorStep({
             state={state}
             activeSection={activeSection}
             sectionContent={sectionContent}
+            previewData={previewData}
           />
         </ResizablePanel>
 
