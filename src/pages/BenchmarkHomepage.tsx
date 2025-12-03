@@ -116,7 +116,7 @@ const benchmarkPath = [
 
 const BenchmarkHomepageContent = () => {
   const navigate = useNavigate();
-  const { data: quickScore, isLoading: scoreLoading } = useQuickScore();
+  const { data: quickScore } = useQuickScore();
 
   const hasScore = quickScore?.overall_score !== undefined;
   const currentScore = quickScore?.overall_score || 0;

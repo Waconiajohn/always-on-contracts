@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -108,7 +108,6 @@ export function SectionEditorStep({
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [completedSections, setCompletedSections] = useState<Set<string>>(new Set());
-  const [sectionScores, setSectionScores] = useState<Record<string, number>>({});
 
   const currentTab = SECTION_TABS.find(t => t.id === activeSection);
   const allSectionsComplete = SECTION_TABS.every(t => completedSections.has(t.id));
@@ -121,8 +120,6 @@ export function SectionEditorStep({
     setAiSuggestion(null);
 
     try {
-      const action = AI_ACTIONS.find(a => a.id === actionId);
-      
       // Build the enhancement request based on action type
       let enhancementRequest = {
         sectionType: activeSection,
@@ -220,9 +217,6 @@ export function SectionEditorStep({
       return;
     }
 
-    // Calculate section score
-    const sectionScore = Math.min(100, 60 + (editedContent.length / 10));
-    setSectionScores(prev => ({ ...prev, [activeSection]: sectionScore }));
     setCompletedSections(prev => new Set([...prev, activeSection]));
     
     toast({ 
