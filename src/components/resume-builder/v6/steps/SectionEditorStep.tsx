@@ -3,12 +3,12 @@
  * Left: Live PDF preview | Right: AI editing studio
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import {
   FileText, Briefcase, Award, GraduationCap,
   CheckCircle2, ArrowLeft, ArrowRight, Loader2, Sparkles,
-  Wand2, RefreshCw, ThumbsUp, ThumbsDown, Star
+  RefreshCw, Star
 } from 'lucide-react';
 import type { BenchmarkBuilderState, ResumeSection, ScoreBreakdown } from '../types';
 
@@ -40,12 +40,10 @@ const SECTION_TABS = [
 
 export function SectionEditorStep({
   state,
-  onUpdateSection,
   onScoreUpdate,
   onNext,
-  onBack,
-  onUpdateState
-}: SectionEditorStepProps) {
+  onBack
+}: Omit<SectionEditorStepProps, 'onUpdateSection' | 'onUpdateState'>) {
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState('summary');
   const [editedContent, setEditedContent] = useState('');
@@ -60,7 +58,7 @@ export function SectionEditorStep({
   const generateAlternatives = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await invokeEdgeFunction('get-refinement-suggestions', {
+      const { data } = await invokeEdgeFunction('get-refinement-suggestions', {
         bulletText: editedContent || `Sample ${activeSection} content for ${state.detected.role}`,
         jobDescription: state.jobDescription,
         requirement: '',
@@ -77,8 +75,8 @@ export function SectionEditorStep({
           aggressive: `BENCHMARK-LEVEL ${activeSection.toUpperCase()}: Strategic ${state.detected.role} with proven track record of transformational leadership and measurable business impact across ${state.detected.industry}`
         });
       }
-    } catch (error) {
-      console.error('Error generating alternatives:', error);
+    } catch (e) {
+      console.error('Error generating alternatives:', e);
       toast({
         title: 'Generation failed',
         description: 'Could not generate alternatives. Please try again.',

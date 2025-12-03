@@ -5,11 +5,11 @@
 import { cn } from '@/lib/utils';
 import { CheckCircle2 } from 'lucide-react';
 
-interface StepIndicatorProps {
-  steps: string[];
-  currentStep: string;
-  labels: Record<string, string>;
-  onStepClick?: (step: string) => void;
+interface StepIndicatorProps<T extends string = string> {
+  steps: T[];
+  currentStep: T;
+  labels: Record<T, string>;
+  onStepClick?: (step: T) => void;
 }
 
 export function StepIndicator({

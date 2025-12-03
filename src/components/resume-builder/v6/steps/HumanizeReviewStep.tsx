@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { invokeEdgeFunction } from '@/lib/edgeFunction';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -25,7 +24,7 @@ interface HumanizeReviewStepProps {
 }
 
 export function HumanizeReviewStep({
-  state, onComplete, onScoreUpdate, onNext, onBack, onUpdateState
+  state, onComplete, onScoreUpdate, onNext, onBack
 }: HumanizeReviewStepProps) {
   const { toast } = useToast();
   const [step, setStep] = useState<'humanize' | 'review'>('humanize');
