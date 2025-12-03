@@ -429,3 +429,6 @@ verify_jwt = true
 
 [functions.hiring-manager-review]
 verify_jwt = true
+
+[functions.quick-glance-optimize]
+verify_jwt = true

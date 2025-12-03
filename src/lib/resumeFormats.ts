@@ -357,6 +357,104 @@ export const RESUME_FORMATS: ResumeFormat[] = [
         vaultCategories: ['resume_milestones']
       }
     ]
+  },
+  {
+    id: 'quick-glance',
+    templateId: 'quick-glance-impact-001',
+    name: 'Quick Glance Impact',
+    description: 'Front-loaded format designed to win the 8-10 second scan. Places your strongest qualifications above the fold.',
+    bestFor: ['Competitive Markets', 'High-Volume Applications', 'Senior Professionals 45-65', 'Executive'],
+    icon: '⚡',
+    sections: [
+      {
+        id: 'summary',
+        type: 'summary',
+        title: 'Professional Summary',
+        description: 'Compelling 3-4 sentence hook that immediately positions you as the ideal candidate',
+        required: true,
+        order: 1,
+        guidancePrompt: `Your summary is your first impression. In 3-4 sentences:
+• Lead with your strongest differentiator for THIS specific role
+• Include your years of relevant experience
+• Mention 1-2 headline achievements with metrics
+• Reference the exact industry/domain from the job posting
+• Make the reader think "I need to keep reading"`,
+        vaultCategories: ['power_phrases', 'resume_milestones', 'executive_presence']
+      },
+      {
+        id: 'key_skills_matrix',
+        type: 'skills_columns',
+        title: 'Key Competencies',
+        description: '3-column skills matrix for immediate visual scanning',
+        required: true,
+        order: 2,
+        guidancePrompt: `Organize 9-12 skills into 3 columns:
+• Column 1: Leadership & Strategy skills
+• Column 2: Technical/Domain expertise
+• Column 3: Soft skills & methodologies
+Each column should contain skills that directly map to job requirements`,
+        vaultCategories: ['transferable_skills', 'soft_skills', 'hidden_competencies']
+      },
+      {
+        id: 'selected_accomplishments',
+        type: 'top_achievements',
+        title: 'Selected Accomplishments',
+        description: 'Top 3 achievements that directly address the top 3 job requirements',
+        required: true,
+        order: 3,
+        guidancePrompt: `This is the "proof zone" - 3 achievement bullets that:
+• EACH addresses one of the top 3 job requirements directly
+• Includes specific, quantifiable results (%, $, scale)
+• Uses format: [Action] + [Scope/Scale] + [Result/Impact]
+• These should be your "mic drop" moments
+• If a hiring manager only reads this section, they should want to call you`,
+        vaultCategories: ['resume_milestones', 'power_phrases', 'behavioral_indicators']
+      },
+      {
+        id: 'professional_experience',
+        type: 'experience',
+        title: 'Professional Experience',
+        description: 'Chronological work history with company, title, dates',
+        required: true,
+        order: 4,
+        guidancePrompt: `For each position:
+• Company name, your title, dates (Month Year - Month Year)
+• Location (City, State)
+• 3-5 achievement bullets for recent roles
+• Older roles can be 2-3 bullets
+• CRITICAL: First job's bullets should reinforce the Selected Accomplishments`,
+        vaultCategories: ['resume_milestones', 'power_phrases']
+      },
+      {
+        id: 'additional_qualifications',
+        type: 'additional_skills',
+        title: 'Additional Skills & Certifications',
+        description: 'Secondary qualifications, certifications, and designations',
+        required: false,
+        order: 5,
+        guidancePrompt: `Include:
+• Professional certifications (PMP, CPA, Six Sigma, etc.)
+• Industry designations
+• Technical skills not covered above
+• Languages
+• Keep concise - these support, not lead`,
+        vaultCategories: ['transferable_skills', 'hidden_competencies']
+      },
+      {
+        id: 'education',
+        type: 'education',
+        title: 'Education',
+        description: 'Academic credentials',
+        required: true,
+        order: 6,
+        guidancePrompt: `Include:
+• Highest degree first
+• University name and graduation year
+• Honors if notable
+• For 15+ years experience, keep very brief`,
+        vaultCategories: ['resume_milestones']
+      }
+    ]
   }
 ];
 
@@ -391,6 +489,16 @@ export function recommendFormat(jobAnalysis: any): string {
     industry.includes('technology')
   ) {
     return 'technical';
+  }
+
+  // Quick Glance for competitive markets, senior professionals, high-volume applications
+  if (
+    seniority.includes('senior') ||
+    seniority.includes('manager') ||
+    jobAnalysis.competitiveLevel === 'high' ||
+    jobAnalysis.applicantVolume === 'high'
+  ) {
+    return 'quick-glance';
   }
 
   // Functional format for career changers or diverse backgrounds

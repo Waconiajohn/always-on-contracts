@@ -19,12 +19,20 @@ interface TemplateSelectionStepProps {
 
 const TEMPLATES: ResumeTemplate[] = [
   {
+    id: 'quick-glance',
+    name: 'Quick Glance Impact',
+    description: 'Front-loaded format that wins the 8-10 second scan. Your strongest content above the fold.',
+    bestFor: ['Competitive markets', 'High-volume applicants', 'Senior professionals'],
+    atsScore: 95,
+    recommended: true,
+    preview: 'quick-glance'
+  },
+  {
     id: 'chronological',
     name: 'Chronological',
     description: 'Classic format focusing on work history. Best for traditional industries.',
     bestFor: ['Linear career path', 'Same industry', 'Traditional employers'],
     atsScore: 98,
-    recommended: true,
     preview: 'chronological'
   },
   {
@@ -55,6 +63,30 @@ const TEMPLATES: ResumeTemplate[] = [
 
 function TemplatePreview({ template, state }: { template: ResumeTemplate; state: BenchmarkBuilderState }) {
   const role = state.detected.role || 'Candidate Name';
+  
+  if (template.id === 'quick-glance') {
+    return (
+      <div className="bg-white text-black p-6 rounded shadow-inner border-t-4 border-t-amber-500 text-xs">
+        <div className="text-center border-b pb-2 mb-2">
+          <p className="font-bold uppercase text-sm">{role}</p>
+          <p className="text-gray-600 text-[10px]">email@example.com | (555) 123-4567</p>
+        </div>
+        <div className="space-y-2">
+          <div className="bg-amber-50 p-1.5 rounded"><p className="font-bold text-amber-800 text-[10px]">SUMMARY</p><p className="text-gray-700 text-[9px]">Strategic leader with 15+ years...</p></div>
+          <div><p className="font-bold border-b text-gray-800 text-[10px]">KEY COMPETENCIES</p>
+            <div className="grid grid-cols-3 gap-1 mt-1 text-[8px] text-gray-600">
+              <div>• Leadership</div><div>• Strategy</div><div>• P&L</div>
+            </div>
+          </div>
+          <div className="bg-green-50 p-1.5 rounded border-l-2 border-green-500">
+            <p className="font-bold text-green-800 text-[10px]">SELECTED ACCOMPLISHMENTS</p>
+            <p className="text-[8px] text-gray-700">✓ Grew revenue 40%...</p>
+          </div>
+          <div><p className="font-bold border-b text-gray-800 text-[10px]">EXPERIENCE</p></div>
+        </div>
+      </div>
+    );
+  }
   
   if (template.id === 'chronological') {
     return (
