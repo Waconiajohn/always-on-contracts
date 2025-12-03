@@ -15,6 +15,7 @@ import { LayoutProvider } from "@/contexts/LayoutContext";
 // Lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
 const UnifiedHomepage = lazy(() => import("./pages/UnifiedHomepage"));
+const BenchmarkHomepage = lazy(() => import("./pages/BenchmarkHomepage"));
 const ResumeUpload = lazy(() => import("./pages/ResumeUpload"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -87,7 +88,8 @@ const AppContent = () => {
           <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/quick-score" element={<QuickScore />} />
-          <Route path="/home" element={<ProtectedRoute><UnifiedHomepage /></ProtectedRoute>} />
+          <Route path="/home" element={<ProtectedRoute><BenchmarkHomepage /></ProtectedRoute>} />
+          <Route path="/home-legacy" element={<ProtectedRoute><UnifiedHomepage /></ProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/projects" element={<Navigate to="/active-applications" replace />} />
           <Route path="/resume-upload" element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>} />
