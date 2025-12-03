@@ -21,6 +21,7 @@ import { invokeEdgeFunction } from '@/lib/edgeFunction';
 import { GapAssessmentStep } from './steps/GapAssessmentStep';
 import { TemplateSelectionStep } from './steps/TemplateSelectionStep';
 import { SectionEditorStep } from './steps/SectionEditorStep';
+import { QuickGlanceEditStep } from './steps/QuickGlanceEditStep';
 import { ATSAuditStep } from './steps/ATSAuditStep';
 import { HumanizeReviewStep } from './steps/HumanizeReviewStep';
 import { ExportStep } from './steps/ExportStep';
@@ -42,6 +43,7 @@ export type BuilderStep =
   | 'gap-assessment'
   | 'template-selection'
   | 'section-editor'
+  | 'quick-glance'
   | 'ats-audit'
   | 'humanize-review'
   | 'export';
@@ -50,6 +52,7 @@ const STEP_ORDER: BuilderStep[] = [
   'gap-assessment',
   'template-selection',
   'section-editor',
+  'quick-glance',
   'ats-audit',
   'humanize-review',
   'export'
@@ -59,6 +62,7 @@ const STEP_LABELS: Record<BuilderStep, string> = {
   'gap-assessment': 'Gap Analysis',
   'template-selection': 'Choose Format',
   'section-editor': 'Edit Sections',
+  'quick-glance': 'Quick Glance',
   'ats-audit': 'ATS Audit',
   'humanize-review': 'Final Polish',
   'export': 'Export'
@@ -294,6 +298,24 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
                 onScoreUpdate={handleScoreUpdate}
                 onNext={goToNextStep}
                 onBack={goToPrevStep}
+              />
+            </motion.div>
+          )}
+
+          {currentStep === 'quick-glance' && (
+            <motion.div
+              key="quick-glance"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="h-full"
+            >
+              <QuickGlanceEditStep
+                state={state}
+                onScoreUpdate={handleScoreUpdate}
+                onNext={goToNextStep}
+                onBack={goToPrevStep}
+                onUpdateState={updateState}
               />
             </motion.div>
           )}

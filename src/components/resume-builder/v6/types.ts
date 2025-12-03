@@ -28,7 +28,36 @@ export interface Gap {
 }
 
 // Resume templates
-export type TemplateType = 'chronological' | 'functional' | 'combination' | 'executive';
+export type TemplateType = 'chronological' | 'functional' | 'combination' | 'executive' | 'quick-glance';
+
+// Quick Glance optimization types
+export interface QuickGlanceCoverage {
+  requirementId: string;
+  requirementText: string;
+  coveredIn: ('summary' | 'accomplishments' | 'first_job')[];
+  strength: 'strong' | 'weak' | 'missing';
+}
+
+export interface QuickGlanceResult {
+  score: number; // 1-10
+  coverageAnalysis: QuickGlanceCoverage[];
+  scanSimulation: {
+    summaryHighlights: string[];
+    accomplishmentHighlights: string[];
+    firstJobHighlights: string[];
+  };
+  suggestions: {
+    section: 'summary' | 'accomplishments' | 'first_job';
+    current: string;
+    suggested: string;
+    reason: string;
+  }[];
+  optimizedContent?: {
+    summary?: string;
+    accomplishments?: string[];
+    firstJobBullets?: string[];
+  };
+}
 
 export interface ResumeTemplate {
   id: TemplateType;
