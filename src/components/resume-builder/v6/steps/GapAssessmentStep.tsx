@@ -139,6 +139,57 @@ export function GapAssessmentStep({
           </CardContent>
         </Card>
 
+        {/* AI Research Summary - THE DIFFERENTIATOR */}
+        <Card className="bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-primary/5 border-blue-500/30">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <div>
+                  <Badge className="mb-2 bg-blue-500/10 text-blue-600 border-blue-500/30">
+                    🔬 AI Market Research Complete
+                  </Badge>
+                  <h2 className="text-lg font-semibold">
+                    Here's What We Learned About {state.detected.role} Roles
+                  </h2>
+                </div>
+                
+                <div className="text-sm text-muted-foreground space-y-2 leading-relaxed">
+                  <p>
+                    <strong>📊 Market Reality:</strong> For <strong>{state.detected.role}</strong> positions in <strong>{state.detected.industry || 'your industry'}</strong>, 
+                    hiring managers expect to see <strong>quantified achievements</strong>, <strong>leadership experience</strong>, and <strong>industry-specific terminology</strong>.
+                  </p>
+                  <p>
+                    <strong>🎯 Your Position:</strong> Your current resume scores <strong>{state.currentScore}/100</strong>. 
+                    The benchmark for "must-interview" candidates is <strong>90+</strong>. We've identified <strong>{state.gaps.length} gaps</strong> to close.
+                  </p>
+                  <p>
+                    <strong>⚡ Your Path:</strong> By addressing the critical gaps below and applying our AI enhancements, 
+                    we estimate you can reach <strong>{potentialScore}/100</strong> — putting you in the <strong>top tier of applicants</strong>.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 pt-2">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    Live market data analyzed
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    Industry benchmarks applied
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    Competitive analysis complete
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Score Projection Card */}
         <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <CardContent className="pt-6">

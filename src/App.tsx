@@ -14,8 +14,8 @@ import { LayoutProvider } from "@/contexts/LayoutContext";
 
 // Lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
-const UnifiedHomepage = lazy(() => import("./pages/UnifiedHomepage"));
 const BenchmarkHomepage = lazy(() => import("./pages/BenchmarkHomepage"));
+const UnifiedHomepage = lazy(() => import("./pages/UnifiedHomepage"));
 const ResumeUpload = lazy(() => import("./pages/ResumeUpload"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Auth = lazy(() => import("./pages/Auth"));
