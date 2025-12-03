@@ -7,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   AlertCircle,
   AlertTriangle,
@@ -31,8 +29,7 @@ interface GapAssessmentStepProps {
 
 export function GapAssessmentStep({
   state,
-  onNext,
-  onUpdateState
+  onNext
 }: GapAssessmentStepProps) {
   const criticalGaps = state.gaps.filter(g => g.severity === 'critical');
   const importantGaps = state.gaps.filter(g => g.severity === 'important');
@@ -44,7 +41,7 @@ export function GapAssessmentStep({
     (niceToHaveGaps.length * 2)
   );
 
-  const GapCard = ({ gap, index }: { gap: Gap; index: number }) => (
+  const GapCard = ({ gap }: { gap: Gap }) => (
     <Card className={`border-l-4 ${
       gap.severity === 'critical' ? 'border-l-red-500' :
       gap.severity === 'important' ? 'border-l-amber-500' : 'border-l-blue-500'
@@ -209,8 +206,8 @@ export function GapAssessmentStep({
                 </span>
               </div>
               <div className="grid gap-3">
-                {criticalGaps.map((gap, i) => (
-                  <GapCard key={gap.id} gap={gap} index={i} />
+                {criticalGaps.map((gap) => (
+                  <GapCard key={gap.id} gap={gap} />
                 ))}
               </div>
             </div>
@@ -229,8 +226,8 @@ export function GapAssessmentStep({
                 </span>
               </div>
               <div className="grid gap-3">
-                {importantGaps.map((gap, i) => (
-                  <GapCard key={gap.id} gap={gap} index={i} />
+                {importantGaps.map((gap) => (
+                  <GapCard key={gap.id} gap={gap} />
                 ))}
               </div>
             </div>
@@ -249,8 +246,8 @@ export function GapAssessmentStep({
                 </span>
               </div>
               <div className="grid gap-3">
-                {niceToHaveGaps.map((gap, i) => (
-                  <GapCard key={gap.id} gap={gap} index={i} />
+                {niceToHaveGaps.map((gap) => (
+                  <GapCard key={gap.id} gap={gap} />
                 ))}
               </div>
             </div>

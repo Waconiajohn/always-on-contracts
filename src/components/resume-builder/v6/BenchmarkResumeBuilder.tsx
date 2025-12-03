@@ -33,7 +33,6 @@ import { LiveScoreHeader } from './components/LiveScoreHeader';
 import type { 
   BenchmarkBuilderState,
   ResumeTemplate,
-  ResumeSection,
   ScoreBreakdown,
   ATSAuditResult,
   HMReviewResult
@@ -164,7 +163,7 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
 
   const fetchIndustryResearch = async () => {
     try {
-      const { data, error } = await invokeEdgeFunction('perplexity-research', {
+      const { data } = await invokeEdgeFunction('perplexity-research', {
         topic: `${state.detected.role} resume best practices ${state.detected.industry}`,
         context: `Job seeker applying for ${state.detected.role} position in ${state.detected.industry}`
       });
@@ -213,16 +212,6 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
     goToNextStep();
   }, [goToNextStep]);
 
-  // Section update handler
-  const handleSectionUpdate = useCallback((sectionId: string, updates: Partial<ResumeSection>) => {
-    setState(prev => ({
-      ...prev,
-      sections: prev.sections.map(section =>
-        section.id === sectionId ? { ...section, ...updates } : section
-      )
-    }));
-  }, []);
-
   // ATS Audit completion handler
   const handleATSAuditComplete = useCallback((result: ATSAuditResult) => {
     setState(prev => ({ ...prev, atsAuditResult: result }));
@@ -238,10 +227,6 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Calculate step progress
-  const stepProgress = STEP_ORDER.indexOf(currentStep) + 1;
-  const totalSteps = STEP_ORDER.length;
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Live Score Header - Always visible */}
@@ -250,16 +235,15 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
         previousScore={state.previousScore}
         scores={state.scores}
         detected={state.detected}
-        step={currentStep}
         stepLabel={STEP_LABELS[currentStep]}
       />
 
       {/* Step Indicator */}
       <StepIndicator
-        steps={STEP_ORDER}
+        steps={STEP_ORDER as string[]}
         currentStep={currentStep}
-        labels={STEP_LABELS}
-        onStepClick={goToStep}
+        labels={STEP_LABELS as Record<string, string>}
+        onStepClick={(step) => goToStep(step as BuilderStep)}
       />
 
       {/* Main Content */}
@@ -307,11 +291,9 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
             >
               <SectionEditorStep
                 state={state}
-                onUpdateSection={handleSectionUpdate}
                 onScoreUpdate={handleScoreUpdate}
                 onNext={goToNextStep}
                 onBack={goToPrevStep}
-                onUpdateState={updateState}
               />
             </motion.div>
           )}

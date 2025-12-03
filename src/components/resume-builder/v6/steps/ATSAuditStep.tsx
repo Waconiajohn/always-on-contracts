@@ -6,15 +6,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { invokeEdgeFunction } from '@/lib/edgeFunction';
 import { useToast } from '@/hooks/use-toast';
 import {
   Cpu, CheckCircle2, AlertTriangle, XCircle, ArrowLeft, ArrowRight,
-  Loader2, Wrench, Search, FileText, Hash
+  Loader2, Wrench, Hash
 } from 'lucide-react';
-import type { BenchmarkBuilderState, ATSAuditResult, ATSIssue, KeywordAnalysis } from '../types';
+import type { BenchmarkBuilderState, ATSAuditResult, ATSIssue } from '../types';
 
 interface ATSAuditStepProps {
   state: BenchmarkBuilderState;
@@ -108,7 +105,6 @@ export function ATSAuditStep({ state, onComplete, onNext, onBack }: ATSAuditStep
   if (!auditResult) return null;
 
   const unfixedIssues = auditResult.issues.filter(i => !i.fixed);
-  const missingKeywords = auditResult.keywords.filter(k => !k.present);
 
   return (
     <div className="h-full overflow-auto">

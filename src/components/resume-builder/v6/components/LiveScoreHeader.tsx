@@ -22,7 +22,6 @@ interface LiveScoreHeaderProps {
   previousScore?: number;
   scores: ScoreBreakdown;
   detected: DetectedInfo;
-  step: string;
   stepLabel: string;
 }
 
@@ -50,7 +49,6 @@ export function LiveScoreHeader({
   previousScore,
   scores,
   detected,
-  step,
   stepLabel
 }: LiveScoreHeaderProps) {
   const tier = calculateTier(currentScore);
