@@ -11,7 +11,6 @@ import {
   Hammer, 
   Sparkles, 
   Trophy,
-  Globe,
   Shield,
   Eye,
   TrendingUp,
@@ -22,47 +21,47 @@ import {
   Play
 } from "lucide-react";
 
-// The 6 differentiators that make us worth paying for (vs ChatGPT)
+// The 6 differentiators - Human-friendly copy
 const differentiators = [
   {
-    icon: Globe,
-    title: "Live Market Grounding",
-    description: "We fetch REAL job postings to define what 'benchmark' actually means for YOUR target role. Not generic advice—actual market requirements.",
+    icon: Search,
+    title: "We Study Real Jobs—Not Generic Advice",
+    description: "We analyze actual job postings for YOUR target role. So you know exactly what employers want right now.",
     color: "text-blue-500",
     bgColor: "bg-blue-500/10"
   },
   {
-    icon: BarChart3,
-    title: "2-Layer Benchmark System",
-    description: "Foundations (skills, experience) + Intelligence (leadership, strategic impact). Tailored to your career level—Entry to Executive.",
+    icon: TrendingUp,
+    title: "Built for Your Level",
+    description: "Entry-level to C-Suite—we adjust everything based on where you are in your career.",
     color: "text-emerald-500",
     bgColor: "bg-emerald-500/10"
   },
   {
     icon: Shield,
-    title: "AI Detection Defeat",
-    description: "Our humanization engine removes AI-speak while preserving your voice. Track detection risk before/after. ChatGPT can't do this.",
+    title: "Sounds Like You, Not a Robot",
+    description: "AI-written resumes get rejected. We make sure yours sounds authentically human—and passes the tests employers use.",
     color: "text-purple-500",
     bgColor: "bg-purple-500/10"
   },
   {
     icon: Eye,
-    title: "Hiring Manager Simulation",
-    description: "Real HM review simulation with specific feedback. Know exactly what hiring teams will think before you submit.",
+    title: "See What Hiring Managers See",
+    description: "Before you apply, find out exactly how your resume will be judged. No more guessing.",
     color: "text-amber-500",
     bgColor: "bg-amber-500/10"
   },
   {
-    icon: TrendingUp,
-    title: "Live Score Updates",
-    description: "Watch your score climb as you edit. ATS score, JD match %, and benchmark fit—updated in real-time with every change.",
+    icon: BarChart3,
+    title: "Watch Your Score Improve—Live",
+    description: "Every edit updates your score in real-time. You'll know exactly when you're ready.",
     color: "text-rose-500",
     bgColor: "bg-rose-500/10"
   },
   {
     icon: Building2,
-    title: "Perplexity-Powered Research",
-    description: "Deep company research, industry standards, and competitive intelligence. We know what THIS company wants, not generic advice.",
+    title: "We Research the Company for You",
+    description: "We dig into who they hire, what they value, and what makes candidates stand out there—not generic tips.",
     color: "text-cyan-500",
     bgColor: "bg-cyan-500/10"
   }
@@ -138,15 +137,15 @@ const BenchmarkHomepageContent = () => {
 
             {/* Main Headline */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
-              Where Elite Coaching Meets{" "}
+              The AI-Powered Career Engine That Makes You{" "}
               <span className="bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent">
-                Intelligent Career Tech
+                Impossible to Ignore
               </span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-xl md:text-2xl text-foreground font-medium max-w-3xl mx-auto">
-              The AI-Powered Career Engine That Makes You Impossible to Ignore
+              Where Elite Coaching Meets Intelligent Career Tech
             </p>
             
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
@@ -211,7 +210,8 @@ const BenchmarkHomepageContent = () => {
               What Makes Us <span className="text-primary">Worth It</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              These are capabilities ChatGPT simply cannot match. This is the 19 years distilled.
+              These are capabilities ChatGPT simply cannot match.<br />
+              This is 19 years of expertise—distilled into technology.
             </p>
           </div>
 
