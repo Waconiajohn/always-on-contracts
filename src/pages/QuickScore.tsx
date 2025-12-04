@@ -410,7 +410,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
               </Card>
 
               {/* Priority Fixes */}
-              {scoreResult.priorityFixes.length > 0 && (
+              {scoreResult.priorityFixes?.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -446,7 +446,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
               )}
 
               {/* Quick Wins */}
-              {scoreResult.quickWins.length > 0 && (
+              {scoreResult.quickWins?.length > 0 && (
                 <Card className="border-green-500/20 bg-green-500/5">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
