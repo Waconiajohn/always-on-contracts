@@ -16,7 +16,43 @@ export interface DetectedInfo {
   level: string;
 }
 
-// Gap analysis
+// NEW: Structured Gap Analysis Types
+export interface RequirementMatch {
+  requirement: string;
+  evidence: string;
+}
+
+export interface PartialMatch {
+  requirement: string;
+  currentStatus: string;
+  recommendation: string;
+}
+
+export interface MissingRequirement {
+  requirement: string;
+  workaround: string;
+}
+
+export interface OverqualificationItem {
+  experience: string;
+  recommendation: string;
+}
+
+export interface IrrelevantContent {
+  content: string;
+  recommendation: string;
+}
+
+export interface GapAnalysisResult {
+  fullMatches: RequirementMatch[];
+  partialMatches: PartialMatch[];
+  missingRequirements: MissingRequirement[];
+  overqualifications: OverqualificationItem[];
+  irrelevantContent: IrrelevantContent[];
+  gapSummary: string[];
+}
+
+// Legacy Gap analysis (keep for backward compatibility)
 export interface Gap {
   id: string;
   severity: 'critical' | 'important' | 'nice-to-have';
@@ -174,6 +210,7 @@ export interface BenchmarkBuilderState {
   detected: DetectedInfo;
   gaps: Gap[];
   quickWins: string[];
+  gapAnalysis: GapAnalysisResult | null;
   selectedTemplate: ResumeTemplate | null;
   sections: ResumeSection[];
   currentSectionIndex: number;
