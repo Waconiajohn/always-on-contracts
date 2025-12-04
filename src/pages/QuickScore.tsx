@@ -16,14 +16,26 @@ import {
   Loader2,
   Sparkles,
   ArrowRight,
-  AlertCircle,
+  AlertTriangle,
   CheckCircle2,
+  XCircle,
+  Star,
+  Trash2,
   Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 type Step = 'upload' | 'analyzing' | 'results';
+
+interface GapAnalysis {
+  fullMatches: Array<{ requirement: string; evidence: string }>;
+  partialMatches: Array<{ requirement: string; currentStatus: string; recommendation: string }>;
+  missingRequirements: Array<{ requirement: string; workaround: string }>;
+  overqualifications: Array<{ experience: string; recommendation: string }>;
+  irrelevantContent: Array<{ content: string; recommendation: string }>;
+  gapSummary: string[];
+}
 
 interface ScoreResult {
   success: boolean;
@@ -38,14 +50,15 @@ interface ScoreResult {
   nextTierThreshold: number;
   scores: any;
   breakdown: any;
-  priorityFixes: Array<{
+  gapAnalysis?: GapAnalysis;
+  priorityFixes?: Array<{
     priority: number;
     category: string;
     issue: string;
     fix: string;
     impact: string;
   }>;
-  quickWins: string[];
+  quickWins?: string[];
   detected: {
     role: string;
     industry: string;
@@ -409,44 +422,217 @@ Include the job title, requirements, responsibilities, and qualifications for th
                 </CardContent>
               </Card>
 
-              {/* Priority Fixes */}
-              {scoreResult.priorityFixes?.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-amber-500" />
-                      What's Missing for Must-Interview Status
-                    </CardTitle>
-                    <CardDescription>
-                      These improvements will close the gap between "qualified" and "must-interview"
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {scoreResult.priorityFixes.map((fix, i) => (
-                      <div key={i} className="flex gap-4 p-4 bg-muted/50 rounded-lg">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                          <span className="font-bold text-amber-500">{fix.priority}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="secondary" className="text-xs">
-                              {fix.category.replace(/([A-Z])/g, ' $1').trim()}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs text-green-600">
-                              {fix.impact}
-                            </Badge>
-                          </div>
-                          <p className="font-medium text-sm">{fix.issue}</p>
-                          <p className="text-sm text-muted-foreground mt-1">{fix.fix}</p>
-                        </div>
+              {/* Gap Analysis Sections */}
+              {scoreResult.gapAnalysis && (
+                <div className="space-y-6">
+                  {/* Score Summary */}
+                  <div className="flex items-center gap-6 p-4 border rounded-lg bg-muted/30">
+                    <div className="flex gap-6 text-sm">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <span>{scoreResult.gapAnalysis.fullMatches?.length || 0} matched</span>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <span>{scoreResult.gapAnalysis.partialMatches?.length || 0} partial</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <XCircle className="h-4 w-4 text-red-500" />
+                        <span>{scoreResult.gapAnalysis.missingRequirements?.length || 0} missing</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Full Matches */}
+                  {(scoreResult.gapAnalysis.fullMatches?.length || 0) > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          What You Have That Matches
+                          <Badge variant="secondary">{scoreResult.gapAnalysis.fullMatches.length}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="text-left p-3 font-medium">Requirement</th>
+                                <th className="text-left p-3 font-medium">Your Evidence</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scoreResult.gapAnalysis.fullMatches.map((match, i) => (
+                                <tr key={i} className="border-b last:border-0">
+                                  <td className="p-3 align-top">{match.requirement}</td>
+                                  <td className="p-3 align-top text-muted-foreground">{match.evidence}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Partial Matches */}
+                  {(scoreResult.gapAnalysis.partialMatches?.length || 0) > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          Partial Matches – Need Enhancement
+                          <Badge variant="secondary">{scoreResult.gapAnalysis.partialMatches.length}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="text-left p-3 font-medium">Requirement</th>
+                                <th className="text-left p-3 font-medium">Current Status</th>
+                                <th className="text-left p-3 font-medium">Recommendation</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scoreResult.gapAnalysis.partialMatches.map((match, i) => (
+                                <tr key={i} className="border-b last:border-0">
+                                  <td className="p-3 align-top font-medium">{match.requirement}</td>
+                                  <td className="p-3 align-top text-muted-foreground">{match.currentStatus}</td>
+                                  <td className="p-3 align-top text-primary">{match.recommendation}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Missing Requirements */}
+                  {(scoreResult.gapAnalysis.missingRequirements?.length || 0) > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <XCircle className="h-5 w-5 text-red-500" />
+                          Missing or Underrepresented
+                          <Badge variant="secondary">{scoreResult.gapAnalysis.missingRequirements.length}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="text-left p-3 font-medium">Missing Requirement</th>
+                                <th className="text-left p-3 font-medium">Workaround / Strategy</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scoreResult.gapAnalysis.missingRequirements.map((item, i) => (
+                                <tr key={i} className="border-b last:border-0">
+                                  <td className="p-3 align-top font-medium">{item.requirement}</td>
+                                  <td className="p-3 align-top text-muted-foreground">{item.workaround}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Overqualifications */}
+                  {(scoreResult.gapAnalysis.overqualifications?.length || 0) > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Star className="h-5 w-5 text-primary" />
+                          High-Value Experience to Emphasize
+                          <Badge variant="secondary">{scoreResult.gapAnalysis.overqualifications.length}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="text-left p-3 font-medium">Your Experience</th>
+                                <th className="text-left p-3 font-medium">How to Position</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scoreResult.gapAnalysis.overqualifications.map((item, i) => (
+                                <tr key={i} className="border-b last:border-0">
+                                  <td className="p-3 align-top">{item.experience}</td>
+                                  <td className="p-3 align-top text-muted-foreground">{item.recommendation}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Irrelevant Content */}
+                  {(scoreResult.gapAnalysis.irrelevantContent?.length || 0) > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Trash2 className="h-5 w-5 text-muted-foreground" />
+                          Content to Remove or Compress
+                          <Badge variant="secondary">{scoreResult.gapAnalysis.irrelevantContent.length}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="text-left p-3 font-medium">Content</th>
+                                <th className="text-left p-3 font-medium">Recommendation</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scoreResult.gapAnalysis.irrelevantContent.map((item, i) => (
+                                <tr key={i} className="border-b last:border-0">
+                                  <td className="p-3 align-top">{item.content}</td>
+                                  <td className="p-3 align-top text-muted-foreground">{item.recommendation}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Gap Summary */}
+                  {(scoreResult.gapAnalysis.gapSummary?.length || 0) > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Summary of Key Gaps</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {scoreResult.gapAnalysis.gapSummary.map((gap, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="text-muted-foreground">•</span>
+                              <span>{gap}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               )}
 
               {/* Quick Wins */}
-              {scoreResult.quickWins?.length > 0 && (
+              {(scoreResult.quickWins?.length || 0) > 0 && (
                 <Card className="border-green-500/20 bg-green-500/5">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -459,7 +645,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {scoreResult.quickWins.map((win, i) => (
+                      {scoreResult.quickWins?.map((win, i) => (
                         <li key={i} className="flex items-start gap-2">
                           <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{win}</span>
