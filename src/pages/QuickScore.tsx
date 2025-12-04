@@ -633,7 +633,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
 
               {/* Quick Wins */}
               {(scoreResult.quickWins?.length || 0) > 0 && (
-                <Card className="border-green-500/20 bg-green-500/5">
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Zap className="h-5 w-5 text-green-500" />
