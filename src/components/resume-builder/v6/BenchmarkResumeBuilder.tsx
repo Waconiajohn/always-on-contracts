@@ -168,12 +168,15 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
   const fetchIndustryResearch = async () => {
     try {
       const { data } = await invokeEdgeFunction('perplexity-research', {
-        topic: `${state.detected.role} resume best practices ${state.detected.industry}`,
-        context: `Job seeker applying for ${state.detected.role} position in ${state.detected.industry}`
+        research_type: 'market_intelligence',
+        query_params: {
+          role: state.detected.role,
+          industry: state.detected.industry
+        }
       });
 
       if (data?.success) {
-        setState(prev => ({ ...prev, industryResearch: data.research }));
+        setState(prev => ({ ...prev, industryResearch: data.research_result }));
       }
     } catch (error) {
       console.error('Failed to fetch industry research:', error);
