@@ -6,15 +6,16 @@ import { useNavigate } from "react-router-dom";
 import { 
   CheckCircle2,
   Star,
-  Database,
-  Shield,
   Target,
   ArrowRight,
   Sparkles,
   Users,
-  FileText,
-  BarChart3,
-  UserCheck
+  Brain,
+  Eye,
+  TrendingUp,
+  Headphones,
+  Zap,
+  MessageCircle
 } from "lucide-react";
 
 export default function Landing() {
@@ -49,32 +50,25 @@ export default function Landing() {
 
   const benefits = [
     {
-      icon: Database,
-      title: "Real Hiring Data",
-      description: "Your resume learns from thousands of successful placements, not generic templates."
+      icon: TrendingUp,
+      title: "Real Hiring Intelligence",
+      description: "Our AI analyzes actual hiring patterns, not generic advice. Know what decision-makers are really looking for."
+    },
+    {
+      icon: Eye,
+      title: "Decision-Maker Simulation",
+      description: "See your resume through the eyes of hiring managers, recruiters, and ATS systems before you apply."
     },
     {
       icon: Target,
-      title: "Precision Tailoring",
-      description: "One click adapts your entire resume to match each job description with surgeon-level accuracy."
+      title: "Rise to the Shortlist",
+      description: "Position yourself in the top 5% of applicants with precision-tailored resumes that demand attention."
     },
     {
-      icon: Shield,
-      title: "The ATS + Human Test",
-      description: "Pass both machine filters and hiring manager expectations in the same document."
-    },
-    {
-      icon: UserCheck,
-      title: "Built on Proven Method",
-      description: "19 years of executive coaching distilled into an AI that knows what works."
+      icon: Headphones,
+      title: "Live Expert Coaching",
+      description: "AI does the heavy lifting. Real coaches ensure you cross the finish line. Because getting hired takes more than algorithms."
     }
-  ];
-
-  const differentiators = [
-    "Built by career coaches, not engineers",
-    "Powered by real market data, not assumptions",
-    "Designed for humans, optimized for systems",
-    "Your story stays intact. Your impact gets sharper."
   ];
 
   const faqs = [
@@ -116,16 +110,17 @@ export default function Landing() {
               </div>
               <div>
                 <h1 className="text-xl font-bold">CareerIQ</h1>
-                <p className="text-xs text-muted-foreground">AI-Powered Resume Tailoring</p>
+                <p className="text-xs text-muted-foreground">Elite Coaching × Intelligent Tech</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
+              <Badge variant="outline" className="hidden md:flex items-center gap-1.5 px-3 py-1 border-green-500/50 text-green-600 dark:text-green-400">
+                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                Live Coaches Available
+              </Badge>
               <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
                 Sign In
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/quick-score')}>
-                Free Analysis
               </Button>
               <Button size="sm" onClick={() => navigate('/auth')}>
                 Get Started
@@ -135,7 +130,7 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* HERO SECTION - Outcome-focused */}
+      {/* HERO SECTION */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-accent/5" />
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
@@ -144,19 +139,28 @@ export default function Landing() {
         <div className="container relative mx-auto px-4 py-20 lg:py-28">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <Badge variant="secondary" className="px-4 py-1.5 text-sm font-medium">
-              Built on 19 Years of Executive Coaching
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              Elite Coaching × Intelligent Tech
             </Badge>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
-              Turn Your Experience Into Your
+              Where Elite Coaching Meets
               <span className="block bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                Competitive Advantage
+                Intelligent Career Tech
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Every resume you submit matches what hiring managers actually want to see—
-              <span className="text-foreground font-medium"> without losing who you really are.</span>
+            <p className="text-xl md:text-2xl text-foreground font-medium max-w-3xl mx-auto">
+              The AI-Powered Career Engine That Makes You Impossible to Ignore
+            </p>
+            
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              More than resume rewrites—our platform analyzes real hiring trends, 
+              simulates decision-makers, and ensures you rise to the top of the shortlist.
+              <br /><br />
+              <span className="text-foreground font-medium">
+                Plus, continuous live coaching from real experts—because getting hired takes more than AI.
+              </span>
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
@@ -166,7 +170,7 @@ export default function Landing() {
                 onClick={() => navigate('/auth')}
               >
                 <Sparkles className="h-5 w-5" />
-                Create Your Benchmark Resume
+                Start Free
               </Button>
               <Button 
                 size="lg" 
@@ -174,13 +178,13 @@ export default function Landing() {
                 className="text-lg px-8 h-14 gap-2" 
                 onClick={() => navigate('/quick-score')}
               >
-                <Target className="h-5 w-5" />
-                Try Free Analysis
+                <MessageCircle className="h-5 w-5" />
+                Talk to a Coach
               </Button>
             </div>
             
             <p className="text-sm text-muted-foreground">
-              No credit card. No email required for analysis. Just honest results.
+              No credit card required. See results in 60 seconds.
             </p>
           </div>
         </div>
@@ -193,17 +197,17 @@ export default function Landing() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               <span className="font-semibold">100,000+</span>
-              <span className="text-muted-foreground">Executives Served</span>
+              <span className="text-muted-foreground">Executives Coached</span>
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
               <span className="font-semibold">19 Years</span>
-              <span className="text-muted-foreground">Coaching Experience</span>
+              <span className="text-muted-foreground">Coaching Excellence</span>
             </div>
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <span className="font-semibold">$35K</span>
-              <span className="text-muted-foreground">Avg. Salary Increase</span>
+              <Headphones className="h-5 w-5 text-green-500" />
+              <span className="font-semibold">Live</span>
+              <span className="text-muted-foreground">Expert Coaches Available</span>
             </div>
           </div>
         </div>
@@ -218,7 +222,7 @@ export default function Landing() {
                 What Makes This Different
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                AI-powered resume tailoring built on proven coaching methodology
+                The only platform that combines AI precision with human expertise
               </p>
             </div>
             
@@ -243,23 +247,81 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* WHY BOTH AI + COACHING SECTION */}
+      <section className="py-20 bg-muted/30 border-y">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <Badge variant="secondary" className="mb-2">The Hybrid Advantage</Badge>
+                <h2 className="text-3xl md:text-4xl font-bold">
+                  Why AI Alone Isn't Enough
+                </h2>
+                <div className="space-y-4 text-lg text-muted-foreground">
+                  <p>
+                    AI can analyze. AI can optimize. AI can tailor.
+                  </p>
+                  <p>
+                    But AI can't sit across from a hiring manager.<br />
+                    AI can't read the room in a final interview.<br />
+                    AI can't negotiate your offer.
+                  </p>
+                  <p className="text-foreground font-medium">
+                    That's why CareerIQ combines intelligent career tech with continuous access to real coaches who've placed thousands of executives.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Brain className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">The AI makes you impossible to ignore</h3>
+                        <p className="text-muted-foreground">Analyzes trends, optimizes positioning, tailors every application</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-2 border-accent/20 bg-gradient-to-br from-accent/5 to-transparent">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                        <Headphones className="h-5 w-5 text-accent-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">The coaches make sure you close the deal</h3>
+                        <p className="text-muted-foreground">Interview prep, salary negotiation, career strategy</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FREE ANALYSIS CTA */}
-      <section className="py-20 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-y">
+      <section className="py-20 bg-gradient-to-br from-primary/10 via-primary/5 to-background">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary font-medium">
-              <FileText className="h-4 w-4" />
-              Free Resume Analysis
+              <Zap className="h-4 w-4" />
+              See Where You Stand in 60 Seconds
             </div>
             
             <h2 className="text-3xl md:text-4xl font-bold">
-              Try Your Free Analysis
+              Get Your Free Analysis
             </h2>
             
             <p className="text-xl text-muted-foreground">
-              Paste a job description. Get immediate feedback on how your resume stacks up.
-              <br />
-              <span className="text-foreground font-medium">See where you're strong. See what's missing.</span>
+              Paste a job description. Our AI simulates how hiring managers will scan your resume—
+              <span className="text-foreground font-medium"> and shows you exactly what's working and what's not.</span>
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -275,39 +337,14 @@ export default function Landing() {
             </div>
             
             <p className="text-sm text-muted-foreground">
-              No credit card required. No email required. Just honest results.
+              No signup required. Just honest insights.
             </p>
           </div>
         </div>
       </section>
 
-      {/* THE REAL DIFFERENCE */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center space-y-4 mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                The Real Difference
-              </h2>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              {differentiators.map((item, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center gap-4 p-5 rounded-xl border bg-card hover:bg-accent/5 transition-colors"
-                >
-                  <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />
-                  <span className="text-lg">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* TESTIMONIALS */}
-      <section className="py-20 bg-muted/30 border-y">
+      <section className="py-20 border-y">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center space-y-4 mb-14">
@@ -381,11 +418,11 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <h2 className="text-3xl md:text-4xl font-bold">
-              Ready to Turn Your Experience Into Your Advantage?
+              Ready to Become Impossible to Ignore?
             </h2>
             
             <p className="text-xl text-muted-foreground">
-              Join 100,000+ executives who've transformed how they present their careers.
+              Join 100,000+ executives who've stopped competing and started commanding attention.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -395,7 +432,7 @@ export default function Landing() {
                 onClick={() => navigate('/auth')}
               >
                 <Sparkles className="h-5 w-5" />
-                Get Started Free
+                Start Free
               </Button>
               <Button 
                 size="lg" 
@@ -403,7 +440,8 @@ export default function Landing() {
                 className="text-lg px-8 h-14 gap-2"
                 onClick={() => navigate('/quick-score')}
               >
-                Try Free Analysis First
+                <MessageCircle className="h-5 w-5" />
+                Talk to a Coach
               </Button>
             </div>
             
@@ -414,17 +452,17 @@ export default function Landing() {
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
-                Cancel anytime
+                Live coaches available
               </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="py-12 border-t bg-muted/20">
+      {/* Footer */}
+      <footer className="border-t py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">C</span>
@@ -433,13 +471,13 @@ export default function Landing() {
             </div>
             
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} CareerIQ. All rights reserved.
+              © 2024 CareerIQ. Built on 19 years of executive coaching excellence.
             </p>
             
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-              <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-              <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm">Privacy</Button>
+              <Button variant="ghost" size="sm">Terms</Button>
+              <Button variant="ghost" size="sm">Contact</Button>
             </div>
           </div>
         </div>
