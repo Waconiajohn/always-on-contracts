@@ -216,6 +216,34 @@ Analyze comprehensively and provide structured comparison.`;
       gapSummary: scoreData.gapAnalysis?.gapSummary || []
     };
 
+    // Generate priorityFixes from gapAnalysis for backward compatibility
+    const priorityFixes: any[] = [];
+    let priority = 1;
+    
+    // Add missing requirements as critical fixes
+    for (const item of gapAnalysis.missingRequirements.slice(0, 2)) {
+      priorityFixes.push({
+        priority: priority++,
+        category: 'jdMatch',
+        gapType: 'missing_requirement',
+        issue: item.requirement,
+        fix: item.workaround,
+        impact: '+15 points'
+      });
+    }
+    
+    // Add partial matches as important fixes
+    for (const item of gapAnalysis.partialMatches.slice(0, 2)) {
+      priorityFixes.push({
+        priority: priority++,
+        category: 'jdMatch',
+        gapType: 'partial_match',
+        issue: item.currentStatus,
+        fix: item.recommendation,
+        impact: '+10 points'
+      });
+    }
+
     const result = {
       success: true,
       overallScore,
@@ -224,6 +252,7 @@ Analyze comprehensively and provide structured comparison.`;
       pointsToNextTier,
       scores: scoreData.scores,
       gapAnalysis,
+      priorityFixes: priorityFixes.slice(0, 5),
       quickWins: scoreData.quickWins?.slice(0, 4) || [],
       detected: {
         role: detectedRole,
