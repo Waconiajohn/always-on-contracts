@@ -162,7 +162,7 @@ const BenchmarkHomepageContent = () => {
               <Button 
                 size="lg" 
                 className="text-lg px-8 py-6 gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
-                onClick={() => navigate('/benchmark-builder')}
+                onClick={() => navigate('/quick-score')}
               >
                 <Zap className="h-5 w-5" />
                 Build My Benchmark Resume
@@ -296,7 +296,7 @@ const BenchmarkHomepageContent = () => {
             <Button 
               size="lg" 
               className="text-lg px-12 py-6 gap-2 shadow-lg"
-              onClick={() => navigate('/benchmark-builder')}
+              onClick={() => navigate('/quick-score')}
             >
               <Sparkles className="h-5 w-5" />
               Start My Benchmark Journey
@@ -329,7 +329,7 @@ const BenchmarkHomepageContent = () => {
 
                 <Button 
                   size="lg" 
-                  onClick={() => navigate('/benchmark-builder')}
+                  onClick={() => navigate('/quick-score')}
                   className="gap-2"
                 >
                   Continue Building
@@ -363,7 +363,7 @@ const BenchmarkHomepageContent = () => {
               <Button 
                 size="lg" 
                 className="text-lg px-10 py-6 gap-2"
-                onClick={() => navigate('/benchmark-builder')}
+                onClick={() => navigate('/quick-score')}
               >
                 <Zap className="h-5 w-5" />
                 Build My Benchmark Resume
