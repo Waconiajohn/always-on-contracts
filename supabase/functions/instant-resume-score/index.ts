@@ -96,6 +96,30 @@ Return ONLY valid JSON with this EXACT structure:
     "atsCompliance": { "score": 0-100, "weight": 12 },
     "humanVoice": { "score": 0-100, "weight": 8 }
   },
+  "breakdown": {
+    "jdMatch": {
+      "matchedKeywords": [{ "keyword": "Python", "priority": "critical" }],
+      "missingKeywords": [{ "keyword": "AWS", "priority": "critical", "prevalence": "87% of jobs" }],
+      "skillsMatch": 75,
+      "experienceMatch": 80
+    },
+    "industryBenchmark": {
+      "roleStandards": ["Standard 1"],
+      "meetingStandards": ["What they meet"],
+      "belowStandards": ["What they're missing"],
+      "competitiveRank": "Top 30%"
+    },
+    "atsCompliance": {
+      "headerIssues": ["Issue 1"],
+      "formatIssues": ["Issue 1"],
+      "keywordPlacement": "good"
+    },
+    "humanVoice": {
+      "aiProbability": 25,
+      "concerns": ["Concern 1"],
+      "humanElements": ["Element 1"]
+    }
+  },
   "gapAnalysis": {
     "fullMatches": [
       {
@@ -105,47 +129,46 @@ Return ONLY valid JSON with this EXACT structure:
     ],
     "partialMatches": [
       {
-        "requirement": "LLMs, RAG, vector DBs, AI agents",
-        "currentStatus": "AI/ML and generative AI mentioned broadly. No technical depth.",
-        "recommendation": "Add specific technical terms from JD to show command of these technologies."
+        "requirement": "LLMs, RAG, vector DBs",
+        "currentStatus": "AI/ML mentioned broadly, no technical depth",
+        "recommendation": "Add specific technical terms from JD"
       }
     ],
     "missingRequirements": [
       {
         "requirement": "STEM degree",
-        "workaround": "Address with technical certifications or emphasize technical skills used in roles."
+        "workaround": "Address with technical certifications or emphasize technical skills"
       }
     ],
     "overqualifications": [
       {
         "experience": "VP and Director experience (15+ years)",
-        "recommendation": "Emphasize as strategic asset - show ability to lead at scale."
+        "recommendation": "Emphasize as strategic asset"
       }
     ],
     "irrelevantContent": [
       {
         "content": "Early career marketing roles",
-        "recommendation": "Compress or reframe to highlight transferable product experience."
+        "recommendation": "Compress or reframe"
       }
     ],
     "gapSummary": [
-      "AI architecture detail (LLMs, agents, RAG)",
-      "STEM education or technical background",
-      "Specific tool stack fluency"
+      "AI architecture detail",
+      "STEM education"
     ]
   },
   "quickWins": [
-    "Add specific AI/ML technical terms to skills section",
-    "Quantify team sizes and budget responsibilities"
+    "Add specific AI/ML technical terms",
+    "Quantify team sizes"
   ]
 }
 
 ANALYSIS GUIDELINES:
 1. fullMatches: Requirements from JD that resume CLEARLY demonstrates with evidence
-2. partialMatches: Resume shows related experience but needs enhancement/specificity
+2. partialMatches: Resume shows related experience but needs enhancement
 3. missingRequirements: JD requirements not present - provide workaround strategies
 4. overqualifications: Experience exceeding requirements - frame as value-add
-5. irrelevantContent: Resume content not relevant to this role - suggest compression
+5. irrelevantContent: Resume content not relevant - suggest compression
 6. gapSummary: 3-6 bullet points summarizing key gaps
 7. quickWins: 2-4 easy changes that can be made immediately`;
 
@@ -216,6 +239,32 @@ Analyze comprehensively and provide structured comparison.`;
       gapSummary: scoreData.gapAnalysis?.gapSummary || []
     };
 
+    // Ensure breakdown has all required fields with defaults
+    const breakdown = {
+      jdMatch: {
+        matchedKeywords: scoreData.breakdown?.jdMatch?.matchedKeywords || [],
+        missingKeywords: scoreData.breakdown?.jdMatch?.missingKeywords || [],
+        skillsMatch: scoreData.breakdown?.jdMatch?.skillsMatch || 0,
+        experienceMatch: scoreData.breakdown?.jdMatch?.experienceMatch || 0
+      },
+      industryBenchmark: {
+        roleStandards: scoreData.breakdown?.industryBenchmark?.roleStandards || [],
+        meetingStandards: scoreData.breakdown?.industryBenchmark?.meetingStandards || [],
+        belowStandards: scoreData.breakdown?.industryBenchmark?.belowStandards || [],
+        competitiveRank: scoreData.breakdown?.industryBenchmark?.competitiveRank || 'Unknown'
+      },
+      atsCompliance: {
+        headerIssues: scoreData.breakdown?.atsCompliance?.headerIssues || [],
+        formatIssues: scoreData.breakdown?.atsCompliance?.formatIssues || [],
+        keywordPlacement: scoreData.breakdown?.atsCompliance?.keywordPlacement || 'unknown'
+      },
+      humanVoice: {
+        aiProbability: scoreData.breakdown?.humanVoice?.aiProbability || 0,
+        concerns: scoreData.breakdown?.humanVoice?.concerns || [],
+        humanElements: scoreData.breakdown?.humanVoice?.humanElements || []
+      }
+    };
+
     // Generate priorityFixes from gapAnalysis for backward compatibility
     const priorityFixes: any[] = [];
     let priority = 1;
@@ -251,6 +300,7 @@ Analyze comprehensively and provide structured comparison.`;
       nextTierThreshold,
       pointsToNextTier,
       scores: scoreData.scores,
+      breakdown,
       gapAnalysis,
       priorityFixes: priorityFixes.slice(0, 5),
       quickWins: scoreData.quickWins?.slice(0, 4) || [],
