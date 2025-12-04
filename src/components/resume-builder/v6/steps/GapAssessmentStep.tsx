@@ -1,23 +1,17 @@
 /**
- * GapAssessmentStep - Visual gap analysis dashboard
- * Shows what's missing and what we'll fix
+ * GapAssessmentStep - Clean, professional gap analysis
+ * Redesigned: No pastels, no duplicates, proper visual hierarchy
  */
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   AlertCircle,
   AlertTriangle,
-  CheckCircle2,
   ArrowRight,
-  Lightbulb,
-  TrendingUp,
-  Target,
-  Sparkles,
-  Zap,
-  Info
+  CheckCircle2,
+  Info,
+  Zap
 } from 'lucide-react';
 import type { BenchmarkBuilderState, Gap } from '../types';
 
@@ -41,403 +35,257 @@ export function GapAssessmentStep({
     (niceToHaveGaps.length * 2)
   );
 
-  const GapCard = ({ gap }: { gap: Gap }) => (
-    <Card className={`border-l-4 ${
-      gap.severity === 'critical' ? 'border-l-red-500' :
-      gap.severity === 'important' ? 'border-l-amber-500' : 'border-l-blue-500'
-    }`}>
-      <CardContent className="pt-4">
-        <div className="flex items-start gap-3">
-          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-            gap.severity === 'critical' ? 'bg-red-500/10' :
-            gap.severity === 'important' ? 'bg-amber-500/10' : 'bg-blue-500/10'
-          }`}>
-            {gap.severity === 'critical' ? (
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            ) : gap.severity === 'important' ? (
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-            ) : (
-              <Info className="h-4 w-4 text-blue-500" />
+  return (
+    <div className="h-full overflow-auto bg-background">
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
+        
+        {/* Compact Summary Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b">
+          <div>
+            <h1 className="text-2xl font-bold">Gap Analysis</h1>
+            <p className="text-muted-foreground mt-1">
+              {state.gaps.length} gaps to close for must-interview status
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="text-sm">
+              {state.detected.role || 'Role'}
+            </Badge>
+            {state.detected.industry && (
+              <Badge variant="outline" className="text-sm">
+                {state.detected.industry}
+              </Badge>
+            )}
+            {state.detected.level && (
+              <Badge variant="outline" className="text-sm">
+                {state.detected.level}
+              </Badge>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="secondary" className="text-xs">
-                {gap.category}
-              </Badge>
-              <Badge variant="outline" className="text-xs text-green-600">
-                {gap.impact}
-              </Badge>
-            </div>
-            <p className="font-medium text-sm">{gap.issue}</p>
-            <p className="text-sm text-muted-foreground mt-1">{gap.fix}</p>
+        </div>
+
+        {/* Score Summary - Single Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <ScoreBox 
+            label="Current" 
+            value={state.currentScore} 
+            variant="default" 
+          />
+          <ScoreBox 
+            label="ATS" 
+            value={state.scores.ats} 
+            variant="ats" 
+          />
+          <ScoreBox 
+            label="Requirements" 
+            value={state.scores.requirements} 
+            variant="requirements" 
+          />
+          <ScoreBox 
+            label="Competitive" 
+            value={state.scores.competitive} 
+            variant="competitive" 
+          />
+        </div>
+
+        {/* Score Projection - Compact */}
+        <div className="flex items-center gap-4 p-4 rounded-lg border bg-card">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl font-bold">{state.currentScore}</span>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
+            <span className="text-3xl font-bold text-primary">{potentialScore}</span>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  return (
-    <div className="h-full overflow-auto">
-      <div className="max-w-6xl mx-auto p-6 space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Gap Analysis Report</h1>
-          <p className="text-lg text-muted-foreground">
-            Here's what's standing between you and "must-interview" status
-          </p>
+          <div className="flex-1">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ width: `${potentialScore}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-sm font-medium text-primary">
+            +{potentialScore - state.currentScore} pts possible
+          </span>
         </div>
 
-        {/* AI Research Summary - THE DIFFERENTIATOR */}
-        <Card className="bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-primary/5 border-blue-500/30">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1 space-y-3">
-                <div>
-                  <Badge className="mb-2 bg-blue-500/10 text-blue-600 border-blue-500/30">
-                    🔬 AI Market Research Complete
-                  </Badge>
-                  <h2 className="text-lg font-semibold">
-                    Here's What We Learned About {state.detected.role} Roles
-                  </h2>
-                </div>
-                
-                <div className="text-sm text-muted-foreground space-y-2 leading-relaxed">
-                  <p>
-                    <strong>📊 Market Reality:</strong> For <strong>{state.detected.role}</strong> positions in <strong>{state.detected.industry || 'your industry'}</strong>, 
-                    hiring managers expect to see <strong>quantified achievements</strong>, <strong>leadership experience</strong>, and <strong>industry-specific terminology</strong>.
-                  </p>
-                  <p>
-                    <strong>🎯 Your Position:</strong> Your current resume scores <strong>{state.currentScore}/100</strong>. 
-                    The benchmark for "must-interview" candidates is <strong>90+</strong>. We've identified <strong>{state.gaps.length} gaps</strong> to close.
-                  </p>
-                  <p>
-                    <strong>⚡ Your Path:</strong> By addressing the critical gaps below and applying our AI enhancements, 
-                    we estimate you can reach <strong>{potentialScore}/100</strong> — putting you in the <strong>top tier of applicants</strong>.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4 pt-2">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                    Live market data analyzed
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                    Industry benchmarks applied
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                    Competitive analysis complete
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* AI Research Summary - THE DIFFERENTIATOR */}
-        <Card className="bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-primary/5 border-blue-500/30">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1 space-y-3">
-                <div>
-                  <Badge className="mb-2 bg-blue-500/10 text-blue-600 border-blue-500/30">
-                    🔬 AI Market Research Complete
-                  </Badge>
-                  <h2 className="text-lg font-semibold">
-                    Here's What We Learned About {state.detected.role} Roles
-                  </h2>
-                </div>
-                
-                <div className="text-sm text-muted-foreground space-y-2 leading-relaxed">
-                  <p>
-                    <strong>📊 Market Reality:</strong> For <strong>{state.detected.role}</strong> positions in <strong>{state.detected.industry || 'your industry'}</strong>, 
-                    hiring managers expect to see <strong>quantified achievements</strong>, <strong>leadership experience</strong>, and <strong>industry-specific terminology</strong>.
-                  </p>
-                  <p>
-                    <strong>🎯 Your Position:</strong> Your current resume scores <strong>{state.currentScore}/100</strong>. 
-                    The benchmark for "must-interview" candidates is <strong>90+</strong>. We've identified <strong>{state.gaps.length} gaps</strong> to close.
-                  </p>
-                  <p>
-                    <strong>⚡ Your Path:</strong> By addressing the critical gaps below and applying our AI enhancements, 
-                    we estimate you can reach <strong>{potentialScore}/100</strong> — putting you in the <strong>top tier of applicants</strong>.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4 pt-2">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                    Live market data analyzed
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                    Industry benchmarks applied
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                    Competitive analysis complete
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Score Projection Card */}
-        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Current Score</p>
-                <p className="text-4xl font-bold">{state.currentScore}</p>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <ArrowRight className="h-8 w-8 text-primary" />
-              </div>
-              
-              <div className="space-y-2 text-right">
-                <p className="text-sm text-muted-foreground">Potential Score</p>
-                <p className="text-4xl font-bold text-primary">{potentialScore}</p>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span>Progress to Benchmark (90+)</span>
-                <span className="font-medium">{state.currentScore}% → {potentialScore}%</span>
-              </div>
-              <div className="relative h-4 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="absolute inset-y-0 left-0 bg-muted-foreground/30 rounded-full"
-                  style={{ width: `${state.currentScore}%` }}
-                />
-                <div 
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-green-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${potentialScore}%` }}
-                />
-                {/* Benchmark line */}
-                <div className="absolute inset-y-0 left-[90%] w-0.5 bg-green-500" />
-              </div>
-              <p className="text-center text-sm text-muted-foreground mt-2">
-                Fixing these gaps could add <span className="font-bold text-primary">+{potentialScore - state.currentScore} points</span>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Score Breakdown */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Target className="h-4 w-4 text-blue-500" />
-                ATS Score
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2">
-                <p className="text-3xl font-bold">{state.scores.ats}%</p>
-                <p className="text-sm text-muted-foreground mb-1">/ 100</p>
-              </div>
-              <Progress value={state.scores.ats} className="h-2 mt-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                How well your resume parses through ATS systems
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-amber-500" />
-                Requirements Match
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2">
-                <p className="text-3xl font-bold">{state.scores.requirements}%</p>
-                <p className="text-sm text-muted-foreground mb-1">/ 100</p>
-              </div>
-              <Progress value={state.scores.requirements} className="h-2 mt-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                How well you match the job requirements
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-500" />
-                Competitive Score
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2">
-                <p className="text-3xl font-bold">{state.scores.competitive}%</p>
-                <p className="text-sm text-muted-foreground mb-1">/ 100</p>
-              </div>
-              <Progress value={state.scores.competitive} className="h-2 mt-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                How you stack up against other candidates
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Gaps by Severity */}
+        {/* Gaps List - Clean Format */}
         <div className="space-y-6">
+          
           {/* Critical Gaps */}
           {criticalGaps.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="destructive" className="gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Critical Gaps ({criticalGaps.length})
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Must fix for interview consideration
-                </span>
-              </div>
-              <div className="grid gap-3">
-                {criticalGaps.map((gap) => (
-                  <GapCard key={gap.id} gap={gap} />
-                ))}
-              </div>
-            </div>
+            <GapSection
+              title="Critical"
+              subtitle="Must fix for interview consideration"
+              count={criticalGaps.length}
+              severity="critical"
+              gaps={criticalGaps}
+            />
           )}
 
           {/* Important Gaps */}
           {importantGaps.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="outline" className="gap-1 border-amber-500 text-amber-500">
-                  <AlertTriangle className="h-3 w-3" />
-                  Important Gaps ({importantGaps.length})
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Strong impact on hiring decision
-                </span>
-              </div>
-              <div className="grid gap-3">
-                {importantGaps.map((gap) => (
-                  <GapCard key={gap.id} gap={gap} />
-                ))}
-              </div>
-            </div>
+            <GapSection
+              title="Important"
+              subtitle="Strong impact on hiring decision"
+              count={importantGaps.length}
+              severity="important"
+              gaps={importantGaps}
+            />
           )}
 
           {/* Nice to Have */}
           {niceToHaveGaps.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="outline" className="gap-1">
-                  <Info className="h-3 w-3" />
-                  Nice to Have ({niceToHaveGaps.length})
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Polish points that differentiate top candidates
-                </span>
-              </div>
-              <div className="grid gap-3">
-                {niceToHaveGaps.map((gap) => (
-                  <GapCard key={gap.id} gap={gap} />
-                ))}
-              </div>
-            </div>
+            <GapSection
+              title="Nice to Have"
+              subtitle="Differentiates top candidates"
+              count={niceToHaveGaps.length}
+              severity="nice-to-have"
+              gaps={niceToHaveGaps}
+            />
           )}
         </div>
 
-        {/* Quick Wins */}
+        {/* Quick Wins - Simple List */}
         {state.quickWins.length > 0 && (
-          <Card className="border-green-500/20 bg-green-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-green-500" />
-                Quick Wins
-              </CardTitle>
-              <CardDescription>
-                Easy changes you can make right now
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {state.quickWins.map((win, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">{win}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Industry Research (if available) */}
-        {state.industryResearch && (
-          <Card className="bg-gradient-to-br from-purple-500/5 to-purple-500/10 border-purple-500/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-purple-500" />
-                Industry Intelligence
-              </CardTitle>
-              <CardDescription>
-                Competitive insights for {state.detected.role} positions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {state.industryResearch}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* What We'll Do */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <Sparkles className="h-10 w-10 text-primary mx-auto" />
-              <h3 className="text-xl font-semibold">Here's What We'll Do</h3>
-              <div className="grid md:grid-cols-3 gap-4 text-left mt-4">
-                <div className="p-4 bg-background rounded-lg">
-                  <p className="font-medium text-sm mb-1">1. Choose Your Format</p>
-                  <p className="text-xs text-muted-foreground">
-                    Pick from 4 ATS-optimized templates
-                  </p>
-                </div>
-                <div className="p-4 bg-background rounded-lg">
-                  <p className="font-medium text-sm mb-1">2. Rewrite Each Section</p>
-                  <p className="text-xs text-muted-foreground">
-                    AI-powered editing with your control
-                  </p>
-                </div>
-                <div className="p-4 bg-background rounded-lg">
-                  <p className="font-medium text-sm mb-1">3. Polish & Export</p>
-                  <p className="text-xs text-muted-foreground">
-                    ATS audit, humanize, and export
-                  </p>
-                </div>
-              </div>
+          <div className="p-4 rounded-lg border bg-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="font-semibold">Quick Wins</span>
             </div>
-          </CardContent>
-        </Card>
+            <ul className="space-y-2">
+              {state.quickWins.map((win, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <span>{win}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-        {/* CTA */}
-        <div className="flex justify-center">
-          <Button size="lg" onClick={onNext} className="gap-2 px-8">
-            <Sparkles className="h-5 w-5" />
+        {/* Single CTA */}
+        <div className="flex justify-center pt-4">
+          <Button size="lg" onClick={onNext} className="gap-2">
             Start Building My Benchmark Resume
             <ArrowRight className="h-4 w-4" />
           </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================
+   Sub-components - Clean, Minimal
+============================================ */
+
+function ScoreBox({ 
+  label, 
+  value, 
+  variant 
+}: { 
+  label: string; 
+  value: number; 
+  variant: 'default' | 'ats' | 'requirements' | 'competitive';
+}) {
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-amber-600';
+    return 'text-red-600';
+  };
+
+  return (
+    <div className="p-3 rounded-lg border bg-card text-center">
+      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+        {label}
+      </p>
+      <p className={`text-2xl font-bold ${variant === 'default' ? '' : getScoreColor(value)}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function GapSection({
+  title,
+  subtitle,
+  count,
+  severity,
+  gaps
+}: {
+  title: string;
+  subtitle: string;
+  count: number;
+  severity: 'critical' | 'important' | 'nice-to-have';
+  gaps: Gap[];
+}) {
+  const getSeverityStyles = () => {
+    switch (severity) {
+      case 'critical':
+        return {
+          badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+          border: 'border-l-red-500',
+          icon: <AlertCircle className="h-4 w-4" />
+        };
+      case 'important':
+        return {
+          badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+          border: 'border-l-amber-500',
+          icon: <AlertTriangle className="h-4 w-4" />
+        };
+      default:
+        return {
+          badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+          border: 'border-l-blue-500',
+          icon: <Info className="h-4 w-4" />
+        };
+    }
+  };
+
+  const styles = getSeverityStyles();
+
+  return (
+    <div>
+      {/* Section Header */}
+      <div className="flex items-center gap-3 mb-3">
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium ${styles.badge}`}>
+          {styles.icon}
+          {title} ({count})
+        </span>
+        <span className="text-sm text-muted-foreground">{subtitle}</span>
+      </div>
+
+      {/* Gap Items */}
+      <div className="space-y-2">
+        {gaps.map((gap) => (
+          <GapItem key={gap.id} gap={gap} borderClass={styles.border} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GapItem({ 
+  gap, 
+  borderClass 
+}: { 
+  gap: Gap; 
+  borderClass: string;
+}) {
+  return (
+    <div className={`p-4 rounded-lg border bg-card border-l-4 ${borderClass}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="secondary" className="text-xs">
+              {gap.category}
+            </Badge>
+            <span className="text-xs text-green-600 font-medium">
+              {gap.impact}
+            </span>
+          </div>
+          <p className="font-medium text-sm">{gap.issue}</p>
+          <p className="text-sm text-muted-foreground mt-1">{gap.fix}</p>
         </div>
       </div>
     </div>
