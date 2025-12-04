@@ -8,18 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-/**
- * Instant Resume Score - The Quick Win Orchestrator
- * 
- * Combines multiple scoring dimensions into one fast response:
- * 1. JD Match Score (60% weight) - PRIMARY DRIVER
- * 2. Industry Benchmark Score (20% weight)
- * 3. ATS Compliance Score (12% weight)
- * 4. AI Detection Risk (8% weight)
- * 
- * Returns thermometer tier and actionable recommendations.
- */
-
 interface ScoreTier {
   tier: 'FREEZING' | 'COLD' | 'LUKEWARM' | 'WARM' | 'HOT' | 'ON_FIRE';
   emoji: string;
@@ -95,41 +83,12 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
       }
     }
 
-    // STEP 2: Comprehensive scoring analysis
-    const systemPrompt = `You are an expert resume analyst combining ATS expertise, hiring manager perspective, and industry knowledge.
+    // STEP 2: Comprehensive structured gap analysis
+    const systemPrompt = `You are an expert resume analyst. Your task is to perform a STRUCTURED COMPARISON between a resume and job description.
 
-Perform a comprehensive 4-dimensional analysis WITH GAP CLASSIFICATION:
+CRITICAL: Analyze BOTH documents thoroughly and produce a detailed comparison in the exact format below.
 
-1. JD MATCH (60% weight): How well does the resume match THIS specific job description?
-   - Keyword coverage (critical, important, nice-to-have)
-   - Skills alignment
-   - Experience relevance
-   - CLASSIFY GAPS by type and severity
-
-2. INDUSTRY BENCHMARK (20% weight): How does this resume compare to industry standards for ${detectedRole} at ${detectedLevel} level?
-   - Typical requirements for this role/level
-   - Missing critical industry-standard skills
-   - Competitive positioning
-
-3. ATS COMPLIANCE (12% weight): Will this pass Applicant Tracking Systems?
-   - Section headers (standard vs non-standard)
-   - Format issues (tables, graphics, columns)
-   - Keyword placement optimization
-
-4. AI DETECTION RISK (8% weight): Does this sound human-written?
-   - Sentence variety
-   - Specific vs generic language
-   - Natural flow vs robotic patterns
-
-GAP TYPES TO CLASSIFY:
-- missing_skill_or_tool: Required skill not mentioned
-- weak_achievement_story: Bullets lack metrics/impact
-- missing_metrics_or_scope: Need quantification
-- missing_domain_experience: Industry background gap
-- unclear_level_or_seniority: Level not evident
-- positioning_issue: Right experience, wrong framing
-
-Return ONLY valid JSON with this structure:
+Return ONLY valid JSON with this EXACT structure:
 {
   "scores": {
     "jdMatch": { "score": 0-100, "weight": 60 },
@@ -137,64 +96,70 @@ Return ONLY valid JSON with this structure:
     "atsCompliance": { "score": 0-100, "weight": 12 },
     "humanVoice": { "score": 0-100, "weight": 8 }
   },
-  "overallScore": 0-100,
-  "breakdown": {
-    "jdMatch": {
-      "matchedKeywords": [{ "keyword": "...", "priority": "critical|important|nice_to_have" }],
-      "missingKeywords": [{ "keyword": "...", "priority": "critical|important|nice_to_have", "prevalence": "87% of jobs" }],
-      "skillsMatch": 0-100,
-      "experienceMatch": 0-100
-    },
-    "industryBenchmark": {
-      "roleStandards": ["Standard 1", "Standard 2"],
-      "meetingStandards": ["What they meet"],
-      "belowStandards": ["What they're missing"],
-      "competitiveRank": "Top X%"
-    },
-    "atsCompliance": {
-      "headerIssues": ["Issue 1"],
-      "formatIssues": ["Issue 1"],
-      "keywordPlacement": "good|needs_work|poor"
-    },
-    "humanVoice": {
-      "aiProbability": 0-100,
-      "concerns": ["Concern 1"],
-      "humanElements": ["Element 1"]
-    }
+  "gapAnalysis": {
+    "fullMatches": [
+      {
+        "requirement": "8+ years in product management",
+        "evidence": "15+ years in product leadership across SaaS, RegTech, AI/ML"
+      }
+    ],
+    "partialMatches": [
+      {
+        "requirement": "LLMs, RAG, vector DBs, AI agents",
+        "currentStatus": "AI/ML and generative AI mentioned broadly. No technical depth.",
+        "recommendation": "Add specific technical terms from JD to show command of these technologies."
+      }
+    ],
+    "missingRequirements": [
+      {
+        "requirement": "STEM degree",
+        "workaround": "Address with technical certifications or emphasize technical skills used in roles."
+      }
+    ],
+    "overqualifications": [
+      {
+        "experience": "VP and Director experience (15+ years)",
+        "recommendation": "Emphasize as strategic asset - show ability to lead at scale."
+      }
+    ],
+    "irrelevantContent": [
+      {
+        "content": "Early career marketing roles",
+        "recommendation": "Compress or reframe to highlight transferable product experience."
+      }
+    ],
+    "gapSummary": [
+      "AI architecture detail (LLMs, agents, RAG)",
+      "STEM education or technical background",
+      "Specific tool stack fluency"
+    ]
   },
-  "gaps": [
-    {
-      "gapType": "missing_skill_or_tool",
-      "severity": "critical|important|nice-to-have",
-      "requirement": "Python expertise",
-      "currentState": "No Python mentioned",
-      "impactOnScore": 15
-    }
-  ],
-  "priorityFixes": [
-    {
-      "priority": 1,
-      "category": "jdMatch|industryBenchmark|atsCompliance|humanVoice",
-      "gapType": "missing_skill_or_tool",
-      "issue": "What's wrong",
-      "fix": "How to fix it",
-      "impact": "+X points"
-    }
-  ],
-  "quickWins": ["Easy fix 1", "Easy fix 2", "Easy fix 3"]
-}`;
+  "quickWins": [
+    "Add specific AI/ML technical terms to skills section",
+    "Quantify team sizes and budget responsibilities"
+  ]
+}
+
+ANALYSIS GUIDELINES:
+1. fullMatches: Requirements from JD that resume CLEARLY demonstrates with evidence
+2. partialMatches: Resume shows related experience but needs enhancement/specificity
+3. missingRequirements: JD requirements not present - provide workaround strategies
+4. overqualifications: Experience exceeding requirements - frame as value-add
+5. irrelevantContent: Resume content not relevant to this role - suggest compression
+6. gapSummary: 3-6 bullet points summarizing key gaps
+7. quickWins: 2-4 easy changes that can be made immediately`;
 
     const userPrompt = `ROLE: ${detectedRole}
 INDUSTRY: ${detectedIndustry}
 LEVEL: ${detectedLevel}
 
-JOB DESCRIPTION:
+=== JOB DESCRIPTION ===
 ${jobDescription}
 
-RESUME:
+=== RESUME ===
 ${resumeText}
 
-Analyze comprehensively across all 4 dimensions.`;
+Analyze comprehensively and provide structured comparison.`;
 
     const { response, metrics } = await callLovableAI({
       messages: [
@@ -241,6 +206,16 @@ Analyze comprehensively across all 4 dimensions.`;
 
     const executionTime = Date.now() - startTime;
 
+    // Ensure gapAnalysis has all required fields with defaults
+    const gapAnalysis = {
+      fullMatches: scoreData.gapAnalysis?.fullMatches || [],
+      partialMatches: scoreData.gapAnalysis?.partialMatches || [],
+      missingRequirements: scoreData.gapAnalysis?.missingRequirements || [],
+      overqualifications: scoreData.gapAnalysis?.overqualifications || [],
+      irrelevantContent: scoreData.gapAnalysis?.irrelevantContent || [],
+      gapSummary: scoreData.gapAnalysis?.gapSummary || []
+    };
+
     const result = {
       success: true,
       overallScore,
@@ -248,9 +223,8 @@ Analyze comprehensively across all 4 dimensions.`;
       nextTierThreshold,
       pointsToNextTier,
       scores: scoreData.scores,
-      breakdown: scoreData.breakdown,
-      priorityFixes: scoreData.priorityFixes?.slice(0, 5) || [],
-      quickWins: scoreData.quickWins?.slice(0, 3) || [],
+      gapAnalysis,
+      quickWins: scoreData.quickWins?.slice(0, 4) || [],
       detected: {
         role: detectedRole,
         industry: detectedIndustry,
@@ -259,6 +233,14 @@ Analyze comprehensively across all 4 dimensions.`;
       executionTimeMs: executionTime,
       analyzedAt: new Date().toISOString()
     };
+
+    console.log('[instant-resume-score] Analysis complete:', {
+      score: overallScore,
+      tier: tier.tier,
+      fullMatches: gapAnalysis.fullMatches.length,
+      partialMatches: gapAnalysis.partialMatches.length,
+      missing: gapAnalysis.missingRequirements.length
+    });
 
     return new Response(
       JSON.stringify(result),

@@ -119,6 +119,9 @@ export default function BenchmarkResumeBuilder({ initialState }: BenchmarkResume
     // Quick wins
     quickWins: locationState?.scoreResult?.quickWins || [],
     
+    // Structured gap analysis (new format)
+    gapAnalysis: locationState?.scoreResult?.gapAnalysis || null,
+    
     // Template
     selectedTemplate: null,
     
