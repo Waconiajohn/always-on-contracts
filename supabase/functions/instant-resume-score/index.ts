@@ -201,10 +201,25 @@ Analyze comprehensively and provide structured comparison.`;
     let scoreData;
     
     try {
-      const cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      // Remove markdown code fences more robustly
+      let cleanedContent = rawContent;
+      
+      // Handle ```json ... ``` format
+      const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        cleanedContent = jsonMatch[1];
+      } else {
+        // Fallback: simple replacement
+        cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      }
+      
+      cleanedContent = cleanedContent.trim();
+      console.log('[instant-resume-score] Parsing response, length:', cleanedContent.length);
+      
       scoreData = JSON.parse(cleanedContent);
     } catch (parseError) {
-      console.error('Failed to parse score data:', rawContent);
+      console.error('Failed to parse score data:', rawContent.substring(0, 500));
+      console.error('Parse error:', parseError);
       throw new Error('Failed to parse scoring response');
     }
 
