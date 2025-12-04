@@ -137,7 +137,7 @@ const BenchmarkHomepageContent = () => {
 
             {/* Main Headline */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
-              The AI-Powered Career Engine That Makes You{" "}
+              The AI-Powered Resume Engine That Makes You{" "}
               <span className="bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent">
                 Impossible to Ignore
               </span>
