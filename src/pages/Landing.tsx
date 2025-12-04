@@ -151,7 +151,7 @@ export default function Landing() {
             </h1>
             
             <p className="text-xl md:text-2xl text-foreground font-medium max-w-3xl mx-auto">
-              The AI-Powered Career Engine That Makes You Impossible to Ignore
+              The AI-Powered Resume Engine That Makes You Impossible to Ignore
             </p>
             
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
