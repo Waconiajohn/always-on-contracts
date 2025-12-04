@@ -133,22 +133,29 @@ const BenchmarkHomepageContent = () => {
             {/* Trust Badge */}
             <Badge variant="outline" className="px-4 py-2 text-sm font-medium border-primary/30 bg-primary/5">
               <Sparkles className="h-4 w-4 mr-2 text-primary" />
-              19+ Years of Executive Coaching → Converted to AI
+              Elite Coaching × Intelligent Tech
             </Badge>
 
             {/* Main Headline */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
-              We Converted 19 Years of Coaching Into{" "}
+              Where Elite Coaching Meets{" "}
               <span className="bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent">
-                The AI That Makes You THE Benchmark
+                Intelligent Career Tech
               </span>
             </h1>
 
-            {/* Subheadline - The ChatGPT Differentiator */}
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              ChatGPT rewrites resumes. We make you <span className="font-semibold text-foreground">UNIGNORABLE</span>.
-              <br />
-              <span className="text-lg">Real market data. Hiring manager simulation. AI detection defeat.</span>
+            {/* Subheadline */}
+            <p className="text-xl md:text-2xl text-foreground font-medium max-w-3xl mx-auto">
+              The AI-Powered Career Engine That Makes You Impossible to Ignore
+            </p>
+            
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              More than resume rewrites—our platform analyzes real hiring trends, 
+              simulates decision-makers, and ensures you rise to the top of the shortlist.
+              <br /><br />
+              <span className="text-foreground font-medium">
+                Plus, continuous live coaching from real experts—because getting hired takes more than AI.
+              </span>
             </p>
 
             {/* CTA Buttons */}
