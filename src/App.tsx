@@ -63,7 +63,6 @@ const QuickScore = lazy(() => import("./pages/QuickScore"));
 const MustInterviewBuilder = lazy(() => import("./pages/MustInterviewBuilder"));
 const MustInterviewBuilderV2Page = lazy(() => import("./pages/MustInterviewBuilderV2Page"));
 const ResumeBuilderV2 = lazy(() => import("./pages/agents/ResumeBuilderV2"));
-const BenchmarkResumeBuilder = lazy(() => import("./components/resume-builder/v6/BenchmarkResumeBuilder"));
 const ResumeBuilderV7 = lazy(() => import("./components/resume-builder/v7/ResumeBuilderV7"));
 
 // Loading fallback component
@@ -152,7 +151,6 @@ const AppContent = () => {
             <Route path="/resume-data-audit" element={<ProtectedRoute><ResumeDataAudit /></ProtectedRoute>} />
             <Route path="/benchmark-builder" element={<ProtectedRoute><ResumeBuilderV7 /></ProtectedRoute>} />
             <Route path="/resume-builder-v7" element={<ProtectedRoute><ResumeBuilderV7 /></ProtectedRoute>} />
-            <Route path="/resume-builder-v6" element={<ProtectedRoute><BenchmarkResumeBuilder /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           </Routes>
