@@ -5,7 +5,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { invokeEdgeFunction } from '@/lib/edgeFunction';
 
 import { FloatingScorePill } from './components/FloatingScorePill';
 import { StepProgress } from './components/StepProgress';
@@ -21,11 +20,7 @@ import type {
   V7Step, 
   V7BuilderState, 
   ResumeTemplate, 
-  SectionType,
-  QuickGlanceResult,
-  ATSAuditResult,
-  HumanizationResult,
-  HMReviewResult
+  SectionType
 } from './types';
 import { V7_STEP_ORDER } from './types';
 
@@ -144,9 +139,29 @@ export default function ResumeBuilderV7() {
       <main className="h-[calc(100vh-60px)]">
         {currentStep === 'gap-analysis' && (
           <GapAssessmentStep
-            state={state as any}
+            state={{
+              resumeText: state.resumeText,
+              jobDescription: state.jobDescription,
+              initialScore: state.initialScore,
+              currentScore: state.currentScore,
+              previousScore: state.previousScore,
+              scores: state.scores,
+              detected: state.detected,
+              gaps: [],
+              quickWins: state.quickWins,
+              gapAnalysis: state.gapAnalysis,
+              selectedTemplate: null,
+              sections: [],
+              currentSectionIndex: 0,
+              atsAuditResult: null,
+              hmReviewResult: null,
+              humanizedContent: null,
+              isProcessing: state.isProcessing,
+              processingMessage: state.processingMessage,
+              industryResearch: state.industryResearch
+            }}
             onNext={goToNextStep}
-            onUpdateState={(updates) => setState(prev => ({ ...prev, ...updates }))}
+            onUpdateState={() => {}}
           />
         )}
 
