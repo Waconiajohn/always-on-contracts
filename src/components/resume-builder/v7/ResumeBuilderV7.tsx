@@ -25,6 +25,8 @@ import type {
 import { V7_STEP_ORDER } from './types';
 
 import { GapAssessmentStep } from './components/GapAssessmentStep';
+import { exportAsPDF, exportAsDOCX, exportAsTXT } from './utils/exportResume';
+import { debouncedRecalculateScore } from './utils/scoreRecalculator';
 
 export default function ResumeBuilderV7() {
   const location = useLocation();
@@ -92,10 +94,27 @@ export default function ResumeBuilderV7() {
   };
 
   const handleSectionContentChange = (section: SectionType, content: string) => {
-    setState(prev => ({
-      ...prev,
-      sections: { ...prev.sections, [section]: { ...prev.sections[section], content } }
-    }));
+    setState(prev => {
+      const newState = {
+        ...prev,
+        sections: { ...prev.sections, [section]: { ...prev.sections[section], content } }
+      };
+      
+      // Trigger debounced score recalculation
+      debouncedRecalculateScore(
+        { sections: newState.sections, jobDescription: prev.jobDescription, targetRole: prev.detected.role },
+        (result) => {
+          setState(current => ({
+            ...current,
+            previousScore: current.currentScore,
+            currentScore: result.overallScore,
+            scores: result.scores
+          }));
+        }
+      );
+      
+      return newState;
+    });
   };
 
   const handleSectionComplete = (section: SectionType) => {
@@ -112,10 +131,27 @@ export default function ResumeBuilderV7() {
   const getResumeContent = () => Object.values(state.sections).map(s => s.content).join('\n\n');
 
   const handleExport = async (format: 'pdf' | 'docx' | 'txt') => {
-    // Placeholder export logic
     toast({ title: 'Exporting...', description: `Generating ${format.toUpperCase()} file` });
-    await new Promise(r => setTimeout(r, 1500));
-    toast({ title: 'Success!', description: `Resume exported as ${format.toUpperCase()}` });
+    
+    const exportData = {
+      sections: state.sections,
+      detected: state.detected,
+      finalScore: state.currentScore
+    };
+    
+    try {
+      if (format === 'pdf') {
+        await exportAsPDF(exportData);
+      } else if (format === 'docx') {
+        await exportAsDOCX(exportData);
+      } else {
+        await exportAsTXT(exportData);
+      }
+      toast({ title: 'Success!', description: `Resume downloaded as ${format.toUpperCase()}` });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({ title: 'Export failed', description: 'Please try again', variant: 'destructive' });
+    }
   };
 
   return (
