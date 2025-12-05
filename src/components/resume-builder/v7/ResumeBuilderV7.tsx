@@ -24,8 +24,7 @@ import type {
 } from './types';
 import { V7_STEP_ORDER } from './types';
 
-// Gap Assessment reuse from v6
-import { GapAssessmentStep } from '../v6/steps/GapAssessmentStep';
+import { GapAssessmentStep } from './components/GapAssessmentStep';
 
 export default function ResumeBuilderV7() {
   const location = useLocation();
@@ -139,29 +138,8 @@ export default function ResumeBuilderV7() {
       <main className="h-[calc(100vh-60px)]">
         {currentStep === 'gap-analysis' && (
           <GapAssessmentStep
-            state={{
-              resumeText: state.resumeText,
-              jobDescription: state.jobDescription,
-              initialScore: state.initialScore,
-              currentScore: state.currentScore,
-              previousScore: state.previousScore,
-              scores: state.scores,
-              detected: state.detected,
-              gaps: [],
-              quickWins: state.quickWins,
-              gapAnalysis: state.gapAnalysis,
-              selectedTemplate: null,
-              sections: [],
-              currentSectionIndex: 0,
-              atsAuditResult: null,
-              hmReviewResult: null,
-              humanizedContent: null,
-              isProcessing: state.isProcessing,
-              processingMessage: state.processingMessage,
-              industryResearch: state.industryResearch
-            }}
+            state={state}
             onNext={goToNextStep}
-            onUpdateState={() => {}}
           />
         )}
 
