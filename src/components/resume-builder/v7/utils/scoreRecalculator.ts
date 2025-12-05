@@ -9,7 +9,6 @@ import type { ScoreBreakdown, SectionContent, SectionType } from '../types';
 interface RecalculateParams {
   sections: Record<SectionType, SectionContent>;
   jobDescription: string;
-  targetRole: string;
 }
 
 interface RecalculateResult {

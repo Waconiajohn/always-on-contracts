@@ -102,7 +102,7 @@ export default function ResumeBuilderV7() {
       
       // Trigger debounced score recalculation
       debouncedRecalculateScore(
-        { sections: newState.sections, jobDescription: prev.jobDescription, targetRole: prev.detected.role },
+        { sections: newState.sections, jobDescription: prev.jobDescription },
         (result) => {
           setState(current => ({
             ...current,
