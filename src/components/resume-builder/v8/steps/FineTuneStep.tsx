@@ -32,7 +32,6 @@ export function FineTuneStep({
   atsAuditResult,
   hmReviewResult,
   isProcessing,
-  processingMessage,
   onRunHumanization,
   onRunATSAudit,
   onRunHMReview,

@@ -26,7 +26,7 @@ import { ExportStep } from './steps/ExportStep';
 import { useResumeBuilderState } from './hooks/useResumeBuilderState';
 
 // Types
-import { V8_STEP_CONFIG, type V8Step } from './types';
+import { V8_STEP_CONFIG } from './types';
 
 export default function ResumeBuilderV8() {
   const location = useLocation();
@@ -55,7 +55,6 @@ export default function ResumeBuilderV8() {
     runATSAudit,
     runHMReview,
     updateSectionContent,
-    markSectionComplete,
     toggleEvidenceSelection,
     canProceedFromStep,
     getFullResumeContent
@@ -108,14 +107,9 @@ export default function ResumeBuilderV8() {
         return (
           <BuildStep
             sections={state.sections}
-            evidenceMatrix={state.evidenceMatrix}
             detected={state.detected}
-            jobDescription={state.jobDescription}
-            currentScore={state.currentScore}
-            previousScore={state.previousScore}
             isProcessing={state.isProcessing}
             onContentChange={updateSectionContent}
-            onSectionComplete={markSectionComplete}
             onEnhance={enhanceSection}
             onNext={goToNextStep}
             onBack={goToPrevStep}

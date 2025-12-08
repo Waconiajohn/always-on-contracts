@@ -6,10 +6,9 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
-  Download, ArrowLeft, RotateCcw, FileText, FileType, File,
+  ArrowLeft, RotateCcw, FileText, File,
   TrendingUp, Target, CheckCircle2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import type { ResumeSection, SectionType, DetectedInfo, ScoreBreakdown } from '../types';
 
 interface ExportStepProps {

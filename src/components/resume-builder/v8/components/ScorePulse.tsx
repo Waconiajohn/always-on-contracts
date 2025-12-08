@@ -3,7 +3,7 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ScoreBreakdown } from '../types';
 
