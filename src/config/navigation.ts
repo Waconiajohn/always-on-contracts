@@ -61,7 +61,7 @@ export const mainNavItems: NavItem[] = [
   },
   { 
     label: 'Resume Builder', 
-    path: '/agents/resume-builder-wizard', 
+    path: '/resume-builder-v8', 
     icon: FileText 
   },
   { 
