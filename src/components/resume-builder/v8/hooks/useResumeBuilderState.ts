@@ -115,6 +115,43 @@ function reducer(state: V8BuilderState, action: V8Action): V8BuilderState {
     case 'MARK_SAVED':
       return { ...state, isDirty: false, lastSavedAt: new Date().toISOString() };
 
+    case 'PREFILL_SECTIONS_FROM_EVIDENCE': {
+      if (!state.evidenceMatrix) return state;
+      
+      // Group selected evidence by section type
+      const selectedMatches = state.evidenceMatrix.matches.filter(m => m.isSelected);
+      
+      // Build experience section from selected evidence
+      const experienceBullets = selectedMatches
+        .map(m => m.enhancedBullet || m.originalBullet)
+        .filter(Boolean)
+        .join('\n• ');
+      
+      const experienceContent = experienceBullets ? `• ${experienceBullets}` : '';
+      
+      // Build skills from ATS keywords
+      const skills = [...new Set(
+        selectedMatches.flatMap(m => m.atsKeywords || [])
+      )].join(', ');
+
+      return {
+        ...state,
+        sections: {
+          ...state.sections,
+          experience: {
+            ...state.sections.experience,
+            content: state.sections.experience.content || experienceContent,
+            originalContent: experienceContent
+          },
+          skills: {
+            ...state.sections.skills,
+            content: state.sections.skills.content || skills,
+            originalContent: skills
+          }
+        }
+      };
+    }
+
     default:
       return state;
   }
@@ -161,10 +198,14 @@ export function useResumeBuilderState(options: UseResumeBuilderStateOptions = {}
   const goToNextStep = useCallback(() => {
     const currentIndex = V8_STEPS.indexOf(state.currentStep);
     if (currentIndex < V8_STEPS.length - 1) {
+      // When leaving evidence-matrix step, pre-fill sections from selected evidence
+      if (state.currentStep === 'evidence-matrix' && state.evidenceMatrix) {
+        dispatch({ type: 'PREFILL_SECTIONS_FROM_EVIDENCE' });
+      }
       dispatch({ type: 'COMPLETE_STEP', step: state.currentStep });
       dispatch({ type: 'SET_STEP', step: V8_STEPS[currentIndex + 1] });
     }
-  }, [state.currentStep]);
+  }, [state.currentStep, state.evidenceMatrix]);
 
   const goToPrevStep = useCallback(() => {
     const currentIndex = V8_STEPS.indexOf(state.currentStep);
@@ -262,21 +303,77 @@ export function useResumeBuilderState(options: UseResumeBuilderStateOptions = {}
     
     dispatch({ type: 'SET_PROCESSING', isProcessing: true, message: `Enhancing ${section.title}...` });
 
+    // Section-specific guidance tips
+    const SECTION_GUIDANCE: Record<SectionType, string[]> = {
+      summary: ['Lead with strongest achievement', 'Keep to 3-4 sentences', 'Include key skills from JD'],
+      experience: ['Start with action verbs', 'Quantify achievements', 'Focus on impact and results'],
+      skills: ['Include JD keywords', 'Group by category if needed', 'List certifications'],
+      education: ['Most recent first', 'Include honors', 'Add relevant coursework'],
+      certifications: ['Include dates', 'Show active status', 'Prioritize job-relevant ones']
+    };
+
     try {
+      // Get selected evidence for this section
+      const selectedEvidence = state.evidenceMatrix?.matches.filter(m => m.isSelected) || [];
+      
+      // Build requirements list from gap analysis
+      const requirements = [
+        ...(state.gapAnalysis?.fullMatches?.map(m => m.requirement) || []),
+        ...(state.gapAnalysis?.partialMatches?.map(m => m.requirement) || []),
+        ...(state.gapAnalysis?.missingRequirements?.map(m => m.requirement) || [])
+      ];
+
       const { data, error } = await invokeEdgeFunction('generate-dual-resume-section', {
-        sectionType: sectionId,
-        currentContent: section.content,
-        jobDescription: state.jobDescription,
-        targetRole: state.detected.role,
-        targetIndustry: state.detected.industry,
-        careerLevel: state.detected.level,
-        enhancementType,
-        action: enhancementType
+        // Correct snake_case parameter names
+        section_type: sectionId,
+        section_guidance: SECTION_GUIDANCE[sectionId]?.join('. ') || '',
+        job_analysis_research: state.jobDescription,
+        
+        // User context
+        user_id: user?.id,
+        
+        // Role detection
+        job_title: state.detected.role,
+        industry: state.detected.industry,
+        seniority: state.detected.level,
+        
+        // Enhancement type
+        enhancement_type: enhancementType,
+        
+        // Content - use section content or fall back to original resume
+        existing_resume: section.content || state.resumeText,
+        
+        // Evidence matrix (if available)
+        evidenceMatrix: selectedEvidence.map(e => ({
+          requirementId: e.requirementId,
+          requirementText: e.requirementText,
+          originalBullet: e.originalBullet,
+          enhancedBullet: e.enhancedBullet,
+          matchScore: e.matchScore
+        })),
+        
+        // ATS keywords from gap analysis
+        ats_keywords: {
+          critical: state.gapAnalysis?.fullMatches?.map(m => m.requirement) || [],
+          important: state.gapAnalysis?.partialMatches?.map(m => m.requirement) || [],
+          nice_to_have: []
+        },
+        
+        // Requirements
+        requirements
       });
 
       if (error) throw new Error(error.message);
 
-      return data?.enhancedContent || null;
+      // Handle response format - edge function returns idealVersion, personalizedVersion, blendVersion
+      const enhancedContent = 
+        data?.personalizedVersion?.content || 
+        data?.blendVersion?.content || 
+        data?.idealVersion?.content || 
+        data?.enhancedContent ||
+        null;
+
+      return enhancedContent;
 
     } catch (error: any) {
       console.error('[V8] Enhancement error:', error);
@@ -289,7 +386,7 @@ export function useResumeBuilderState(options: UseResumeBuilderStateOptions = {}
     } finally {
       dispatch({ type: 'SET_PROCESSING', isProcessing: false });
     }
-  }, [state.sections, state.jobDescription, state.detected, toast]);
+  }, [user?.id, state.sections, state.jobDescription, state.detected, state.evidenceMatrix, state.gapAnalysis, state.resumeText, toast]);
 
   // ============================================================================
   // API CALLS - FINE-TUNE

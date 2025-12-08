@@ -322,4 +322,5 @@ export type V8Action =
   | { type: 'SET_ATS_AUDIT_RESULT'; result: ATSAuditResult }
   | { type: 'SET_HM_REVIEW_RESULT'; result: HMReviewResult }
   | { type: 'MARK_DIRTY' }
-  | { type: 'MARK_SAVED' };
+  | { type: 'MARK_SAVED' }
+  | { type: 'PREFILL_SECTIONS_FROM_EVIDENCE' };
