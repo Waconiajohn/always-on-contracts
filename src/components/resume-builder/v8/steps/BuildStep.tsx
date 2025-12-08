@@ -12,19 +12,13 @@ import {
   FileText, Briefcase, Code, GraduationCap, Award,
   ArrowLeft, ArrowRight, Sparkles, Check, Lightbulb
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { ResumeSection, SectionType, EvidenceMatrixResult, DetectedInfo } from '../types';
+import type { ResumeSection, SectionType, DetectedInfo } from '../types';
 
 interface BuildStepProps {
   sections: Record<SectionType, ResumeSection>;
-  evidenceMatrix: EvidenceMatrixResult | null;
   detected: DetectedInfo;
-  jobDescription: string;
-  currentScore: number;
-  previousScore?: number;
   isProcessing: boolean;
   onContentChange: (sectionId: SectionType, content: string) => void;
-  onSectionComplete: (sectionId: SectionType) => void;
   onEnhance: (sectionId: SectionType, type: 'expand' | 'ats-boost' | 'quantify' | 'benchmark') => Promise<string | null>;
   onNext: () => void;
   onBack: () => void;
@@ -41,12 +35,9 @@ const SECTION_CONFIG: Record<SectionType, { icon: React.ReactNode; tips: string[
 
 export function BuildStep({
   sections,
-  evidenceMatrix,
   detected,
-  currentScore,
   isProcessing,
   onContentChange,
-  onSectionComplete,
   onEnhance,
   onNext,
   onBack,
@@ -55,8 +46,6 @@ export function BuildStep({
   const [activeSection, setActiveSection] = useState<SectionType>('summary');
   const [enhancingSuggestion, setEnhancingSuggestion] = useState<string | null>(null);
 
-  const currentSection = sections[activeSection];
-  const config = SECTION_CONFIG[activeSection];
   const completedCount = Object.values(sections).filter(s => s.content.trim()).length;
 
   const handleEnhance = async (type: 'expand' | 'ats-boost' | 'quantify' | 'benchmark') => {

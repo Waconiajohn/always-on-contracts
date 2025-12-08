@@ -15,7 +15,7 @@ import {
   type V8Step,
   type SectionType,
   type EvidenceMatrixResult,
-  type ScoreBreakdown
+  type JobRequirement
 } from '../types';
 
 // ============================================================================
@@ -187,21 +187,24 @@ export function useResumeBuilderState(options: UseResumeBuilderStateOptions = {}
 
     try {
       // Extract requirements from gap analysis
-      const jobRequirements = [
+      const jobRequirements: JobRequirement[] = [
         ...state.gapAnalysis.fullMatches.map((m, i) => ({ 
           id: `full-${i}`, 
           text: m.requirement, 
-          priority: 'critical' as const 
+          priority: 'critical' as const,
+          category: 'experience' as const
         })),
         ...state.gapAnalysis.partialMatches.map((m, i) => ({ 
           id: `partial-${i}`, 
           text: m.requirement, 
-          priority: 'important' as const 
+          priority: 'important' as const,
+          category: 'skill' as const
         })),
         ...state.gapAnalysis.missingRequirements.map((m, i) => ({ 
           id: `missing-${i}`, 
           text: m.requirement, 
-          priority: 'nice-to-have' as const 
+          priority: 'nice-to-have' as const,
+          category: 'skill' as const
         }))
       ];
 
