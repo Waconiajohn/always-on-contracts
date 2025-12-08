@@ -12,3 +12,7 @@ export * from './types';
 
 // Hooks
 export { useResumeBuilderState } from './hooks/useResumeBuilderState';
+export { useSessionPersistence } from './hooks/useSessionPersistence';
+
+// Utils
+export * from './utils/exportResume';

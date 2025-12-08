@@ -7,6 +7,7 @@
  * - Real-time score updates
  * - Split-screen editing with live preview
  * - Full Career Vault integration
+ * - Session persistence
  */
 
 import { useEffect } from 'react';
@@ -24,6 +25,7 @@ import { ExportStep } from './steps/ExportStep';
 
 // Hooks
 import { useResumeBuilderState } from './hooks/useResumeBuilderState';
+import { useSessionPersistence } from './hooks/useSessionPersistence';
 
 // Types
 import { V8_STEP_CONFIG } from './types';
@@ -66,6 +68,9 @@ export default function ResumeBuilderV8() {
     } : undefined
   });
 
+  // Session persistence
+  const { completeSession } = useSessionPersistence(state);
+
   // Redirect if no data
   useEffect(() => {
     if (!state.resumeText || !state.jobDescription) {
@@ -84,6 +89,13 @@ export default function ResumeBuilderV8() {
       fetchEvidenceMatrix();
     }
   }, [state.gapAnalysis, state.evidenceMatrix, state.currentStep, fetchEvidenceMatrix]);
+
+  // Mark session complete when reaching export
+  useEffect(() => {
+    if (state.currentStep === 'export') {
+      completeSession();
+    }
+  }, [state.currentStep, completeSession]);
 
   // Render current step
   const renderStep = () => {
@@ -172,14 +184,12 @@ export default function ResumeBuilderV8() {
               </div>
             </div>
 
-            {/* Score Pulse (shows during build step) */}
-            {state.currentStep === 'build' && (
-              <ScorePulse
-                score={state.currentScore}
-                previousScore={state.previousScore}
-                breakdown={state.scoreBreakdown}
-              />
-            )}
+            {/* Score Pulse - NOW SHOWS ON ALL STEPS */}
+            <ScorePulse
+              score={state.currentScore}
+              previousScore={state.previousScore}
+              breakdown={state.scoreBreakdown}
+            />
           </div>
 
           {/* Progress Rail */}

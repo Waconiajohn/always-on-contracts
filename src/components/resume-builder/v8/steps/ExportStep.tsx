@@ -1,14 +1,17 @@
 /**
- * ExportStep - Step 4: Celebration and download
+ * ExportStep - Step 4: Celebration and download with PDF/DOCX support
  */
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { 
-  ArrowLeft, RotateCcw, FileText, File,
-  TrendingUp, Target, CheckCircle2
+  ArrowLeft, RotateCcw, FileText, File, FileType, Download,
+  TrendingUp, Target, CheckCircle2, Loader2, Copy
 } from 'lucide-react';
+import { exportAsPDF, exportAsDOCX, exportAsTXT, copyToClipboard } from '../utils/exportResume';
 import type { ResumeSection, SectionType, DetectedInfo, ScoreBreakdown } from '../types';
 
 interface ExportStepProps {
@@ -23,7 +26,6 @@ interface ExportStepProps {
 }
 
 export function ExportStep({
-  resumeContent,
   sections,
   detected,
   initialScore,
@@ -32,20 +34,62 @@ export function ExportStep({
   onBack,
   onStartNew
 }: ExportStepProps) {
+  const { toast } = useToast();
+  const [exporting, setExporting] = useState<string | null>(null);
   const improvement = finalScore - initialScore;
 
-  const downloadTxt = () => {
-    const blob = new Blob([resumeContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${detected.role.replace(/\s+/g, '_')}_resume.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportData = { sections, detected, finalScore };
+
+  const handleExportPDF = async () => {
+    setExporting('pdf');
+    try {
+      await exportAsPDF(exportData);
+      toast({ title: 'PDF downloaded!', description: 'Your resume has been saved as PDF.' });
+    } catch (error) {
+      toast({ title: 'Export failed', description: 'Could not generate PDF.', variant: 'destructive' });
+    } finally {
+      setExporting(null);
+    }
   };
 
-  const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(resumeContent);
+  const handleExportDOCX = async () => {
+    setExporting('docx');
+    try {
+      await exportAsDOCX(exportData);
+      toast({ title: 'DOCX downloaded!', description: 'Your resume has been saved as Word document.' });
+    } catch (error) {
+      toast({ title: 'Export failed', description: 'Could not generate DOCX.', variant: 'destructive' });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleExportTXT = async () => {
+    setExporting('txt');
+    try {
+      await exportAsTXT(exportData);
+      toast({ title: 'TXT downloaded!', description: 'Your resume has been saved as plain text.' });
+    } catch (error) {
+      toast({ title: 'Export failed', description: 'Could not generate TXT.', variant: 'destructive' });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleCopy = async () => {
+    setExporting('copy');
+    try {
+      const success = await copyToClipboard(exportData);
+      if (success) {
+        toast({ title: 'Copied!', description: 'Resume copied to clipboard.' });
+      } else {
+        throw new Error('Copy failed');
+      }
+    } catch (error) {
+      toast({ title: 'Copy failed', description: 'Could not copy to clipboard.', variant: 'destructive' });
+    } finally {
+      setExporting(null);
+    }
   };
 
   return (
@@ -110,23 +154,67 @@ export function ExportStep({
         ))}
       </div>
 
-      {/* Download Options */}
+      {/* Download Options - Now with PDF & DOCX */}
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-semibold mb-4">Download Your Resume</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={downloadTxt} variant="outline" className="h-24 flex-col gap-2">
-              <FileText className="h-6 w-6" />
-              <span>Plain Text (.txt)</span>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            Download Your Resume
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Button 
+              onClick={handleExportPDF} 
+              variant="default" 
+              className="h-24 flex-col gap-2"
+              disabled={exporting !== null}
+            >
+              {exporting === 'pdf' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <FileText className="h-6 w-6" />
+              )}
+              <span>PDF</span>
             </Button>
-            <Button onClick={copyToClipboard} variant="outline" className="h-24 flex-col gap-2">
-              <File className="h-6 w-6" />
-              <span>Copy to Clipboard</span>
+            <Button 
+              onClick={handleExportDOCX} 
+              variant="outline" 
+              className="h-24 flex-col gap-2"
+              disabled={exporting !== null}
+            >
+              {exporting === 'docx' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <FileType className="h-6 w-6" />
+              )}
+              <span>Word (.docx)</span>
+            </Button>
+            <Button 
+              onClick={handleExportTXT} 
+              variant="outline" 
+              className="h-24 flex-col gap-2"
+              disabled={exporting !== null}
+            >
+              {exporting === 'txt' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <File className="h-6 w-6" />
+              )}
+              <span>Plain Text</span>
+            </Button>
+            <Button 
+              onClick={handleCopy} 
+              variant="outline" 
+              className="h-24 flex-col gap-2"
+              disabled={exporting !== null}
+            >
+              {exporting === 'copy' ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <Copy className="h-6 w-6" />
+              )}
+              <span>Copy</span>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-3 text-center">
-            For PDF export, copy to your favorite document editor
-          </p>
         </CardContent>
       </Card>
 
