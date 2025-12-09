@@ -164,10 +164,10 @@ serve(async (req) => {
         workPositions.forEach((wp: any) => {
           if (wp.description) {
             // Parse description into individual bullets if it contains line breaks
-            const descBullets = wp.description.split(/[\n\r]+/).filter((l: string) => l.trim().length > 20);
+            const descBullets = wp.description.split(/[\n\r]+/).filter((l: string) => l.trim().length > 10);
             descBullets.forEach((bullet: string, idx: number) => {
               const cleanBullet = bullet.replace(/^[-•*]\s*/, '').trim();
-              if (cleanBullet.length > 15) {
+              if (cleanBullet.length > 8) {
                 bullets.push({
                   id: `wp-${wp.id}-${idx}`,
                   content: cleanBullet,
@@ -242,6 +242,12 @@ serve(async (req) => {
     }
 
     console.log('[MATCH-REQ-TO-BULLETS] Total vault bullets:', bullets.length);
+    console.log('[MATCH-REQ-TO-BULLETS] Bullet sources breakdown:', {
+      milestones: bullets.filter((b: any) => b.source.type === 'milestone').length,
+      workPositions: bullets.filter((b: any) => b.source.type === 'work_position').length,
+      powerPhrases: bullets.filter((b: any) => b.source.type === 'power_phrase').length,
+      skills: bullets.filter((b: any) => b.source.type === 'transferable_skill').length
+    });
 
     // ========================
     // FALLBACK: Parse from uploaded resume text if vault is empty
@@ -274,6 +280,10 @@ serve(async (req) => {
     // ========================
     // AI MATCHING
     // ========================
+    // Cap bullets to prevent token overflow
+    const bulletsForAI = bullets.slice(0, 100);
+    console.log(`[MATCH-REQ-TO-BULLETS] Sending ${bulletsForAI.length} of ${bullets.length} bullets to AI`);
+
     const prompt = `You are analyzing a candidate's actual work history to find the BEST evidence for job requirements.
 
 JOB REQUIREMENTS (${validRequirements.length} valid):
@@ -283,8 +293,8 @@ ATS KEYWORDS (Include these if possible):
 Critical: ${(atsKeywords?.critical || []).join(', ')}
 Important: ${(atsKeywords?.important || []).join(', ')}
 
-CANDIDATE'S EVIDENCE FROM CAREER HISTORY (${bullets.length} items):
-${JSON.stringify(bullets.map((b: any, i: number) => `[${i}] ${b.content} (Source: ${b.source.jobTitle} at ${b.source.company})`), null, 2)}
+CANDIDATE'S EVIDENCE FROM CAREER HISTORY (${bulletsForAI.length} items):
+${JSON.stringify(bulletsForAI.map((b: any, i: number) => `[${i}] ${b.content} (Source: ${b.source.jobTitle} at ${b.source.company})`), null, 2)}
 
 TASK:
 For each JOB REQUIREMENT, find the SINGLE BEST bullet from the candidate's history that proves they meet it.
