@@ -241,12 +241,78 @@ serve(async (req) => {
       }
     }
 
+    // SOURCE E: Education
+    const { data: education, error: eduError } = await supabase
+      .from('vault_education')
+      .select('id, institution_name, degree_type, degree_name, field_of_study, graduation_year, honors, relevant_coursework')
+      .eq('vault_id', vaultData!.id);
+
+    if (!eduError && education) {
+      console.log('[MATCH-REQ-TO-BULLETS] Found', education.length, 'education records');
+      education.forEach((edu: any) => {
+        // Build a comprehensive education statement
+        const degreeStatement = [
+          edu.degree_type,
+          edu.degree_name,
+          edu.field_of_study ? `in ${edu.field_of_study}` : '',
+          edu.institution_name ? `from ${edu.institution_name}` : '',
+          edu.graduation_year ? `(${edu.graduation_year})` : ''
+        ].filter(Boolean).join(' ');
+
+        if (degreeStatement.length > 10) {
+          bullets.push({
+            id: `edu-${edu.id}`,
+            content: degreeStatement,
+            source: {
+              type: 'education',
+              institution: edu.institution_name || 'Unknown',
+              company: edu.institution_name || 'Education',
+              jobTitle: edu.degree_type || 'Degree',
+              dateRange: edu.graduation_year ? `Graduated ${edu.graduation_year}` : ''
+            }
+          });
+        }
+
+        // Also add honors as separate evidence if available
+        if (edu.honors) {
+          bullets.push({
+            id: `edu-${edu.id}-honors`,
+            content: `${edu.honors} - ${edu.degree_type} from ${edu.institution_name}`,
+            source: {
+              type: 'education',
+              company: edu.institution_name || 'Education',
+              jobTitle: 'Academic Achievement',
+              dateRange: ''
+            }
+          });
+        }
+
+        // Add relevant coursework if available
+        if (edu.relevant_coursework && edu.relevant_coursework.length > 0) {
+          const coursework = Array.isArray(edu.relevant_coursework) 
+            ? edu.relevant_coursework.join(', ')
+            : edu.relevant_coursework;
+          bullets.push({
+            id: `edu-${edu.id}-coursework`,
+            content: `Relevant coursework: ${coursework} (${edu.degree_type} - ${edu.institution_name})`,
+            source: {
+              type: 'education',
+              company: edu.institution_name || 'Education',
+              jobTitle: 'Coursework',
+              dateRange: ''
+            }
+          });
+        }
+      });
+    }
+
     console.log('[MATCH-REQ-TO-BULLETS] Total vault bullets:', bullets.length);
     console.log('[MATCH-REQ-TO-BULLETS] Bullet sources breakdown:', {
       milestones: bullets.filter((b: any) => b.source.type === 'milestone').length,
       workPositions: bullets.filter((b: any) => b.source.type === 'work_position').length,
       powerPhrases: bullets.filter((b: any) => b.source.type === 'power_phrase').length,
-      skills: bullets.filter((b: any) => b.source.type === 'transferable_skill').length
+      skills: bullets.filter((b: any) => b.source.type === 'transferable_skill').length,
+      education: bullets.filter((b: any) => b.source.type === 'education').length
     });
 
     // ========================
