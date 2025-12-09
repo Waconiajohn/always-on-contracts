@@ -179,8 +179,8 @@ export default function QuickScore() {
   };
 
   const handleFixResume = () => {
-    // Navigate to the V6 Benchmark Resume Builder with the current data
-    navigate('/benchmark-builder', {
+    // Navigate to the V8 Resume Builder with the current data
+    navigate('/resume-builder-v8', {
       state: {
         fromQuickScore: true,
         resumeText,
