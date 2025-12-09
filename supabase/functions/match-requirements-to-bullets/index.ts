@@ -9,33 +9,85 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Parse resume text into bullet points
+ * Smart extraction of accomplishments from raw resume text
+ */
+function parseResumeBullets(resumeText: string): { id: string; content: string; source: any }[] {
+  const bullets: { id: string; content: string; source: any }[] = [];
+  
+  if (!resumeText || typeof resumeText !== 'string') return bullets;
+  
+  // Split by common resume line formats
+  const lines = resumeText.split(/[\n\r]+/).map(l => l.trim()).filter(Boolean);
+  
+  let currentCompany = '';
+  let currentTitle = '';
+  
+  lines.forEach((line, index) => {
+    // Skip very short lines or headers
+    if (line.length < 20) return;
+    
+    // Detect company/title patterns (simplified)
+    if (line.match(/^(Company|Employer|Organization):/i)) {
+      currentCompany = line.replace(/^(Company|Employer|Organization):\s*/i, '');
+      return;
+    }
+    if (line.match(/^(Title|Position|Role):/i)) {
+      currentTitle = line.replace(/^(Title|Position|Role):\s*/i, '');
+      return;
+    }
+    
+    // Extract bullet points (lines starting with -, •, *, or containing action verbs)
+    const isBullet = line.match(/^[-•*]\s*/) || line.match(/^(Led|Managed|Developed|Created|Implemented|Reduced|Increased|Achieved|Delivered|Built|Designed|Launched|Streamlined|Optimized|Transformed)/i);
+    
+    if (isBullet || line.length > 50) {
+      const cleanLine = line.replace(/^[-•*]\s*/, '').trim();
+      if (cleanLine.length > 15) {
+        bullets.push({
+          id: `resume-bullet-${index}`,
+          content: cleanLine,
+          source: {
+            type: 'uploaded_resume',
+            company: currentCompany || 'From Resume',
+            jobTitle: currentTitle || 'Uploaded Resume',
+            dateRange: 'From uploaded resume'
+          }
+        });
+      }
+    }
+  });
+  
+  return bullets;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-  // Parse request body
-  const { userId, jobRequirements, atsKeywords } = await req.json();
-  
-  // Sprint 1: Filter out null/empty requirements
-  const validRequirements = (jobRequirements || []).filter((r: any) => 
-    r && r.text && typeof r.text === 'string' && r.text.trim().length > 0
-  );
-  
-  if (validRequirements.length === 0) {
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        error: 'No valid requirements provided',
-        evidenceMatrix: [],
-        stats: { totalRequirements: 0, matchedRequirements: 0, coverageScore: 0 }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    // Parse request body - now accepts resumeText as fallback
+    const { userId, jobRequirements, atsKeywords, resumeText } = await req.json();
+    
+    // Filter out null/empty requirements
+    const validRequirements = (jobRequirements || []).filter((r: any) => 
+      r && r.text && typeof r.text === 'string' && r.text.trim().length > 0
     );
-  }
-  
-  console.log(`[MATCH-REQ-TO-BULLETS] Filtered ${jobRequirements?.length || 0} requirements down to ${validRequirements.length} valid ones`);
+    
+    if (validRequirements.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          error: 'No valid requirements provided',
+          evidenceMatrix: [],
+          stats: { totalRequirements: 0, matchedRequirements: 0, coverageScore: 0 }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log(`[MATCH-REQ-TO-BULLETS] Filtered ${jobRequirements?.length || 0} requirements down to ${validRequirements.length} valid ones`);
 
     if (!userId) throw new Error('userId is required');
     if (!jobRequirements) throw new Error('jobRequirements is required');
@@ -43,6 +95,11 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // ========================
+    // BUILD BULLETS FROM ALL SOURCES
+    // ========================
+    const bullets: any[] = [];
 
     // 1. Fetch Vault Data - First get vault_id
     const { data: vaultData, error: vaultError } = await supabase
@@ -53,68 +110,150 @@ serve(async (req) => {
 
     if (vaultError) {
       console.error('[MATCH-REQ-TO-BULLETS] Vault fetch error:', vaultError);
-      throw vaultError;
+      // Don't throw - continue with resume text fallback
     }
 
-    if (!vaultData) {
-      console.log('[MATCH-REQ-TO-BULLETS] No vault found for user');
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          evidenceMatrix: [],
-          statistics: { totalRequirements: 0, matchedRequirements: 0, unmatchedRequirements: 0, averageMatchScore: 0 }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (vaultData) {
+      console.log('[MATCH-REQ-TO-BULLETS] Found vault_id:', vaultData.id);
 
-    console.log('[MATCH-REQ-TO-BULLETS] Found vault_id:', vaultData.id);
+      // SOURCE A: Resume Milestones (original)
+      const { data: milestonesWithPositions, error: milestoneError } = await supabase
+        .from('vault_resume_milestones')
+        .select(`
+          *,
+          work_position:vault_work_positions!work_position_id (
+            id,
+            company_name,
+            job_title,
+            start_date,
+            end_date,
+            is_current,
+            description
+          )
+        `)
+        .eq('vault_id', vaultData.id);
 
-    // ✅ THE FIX: Use SQL JOIN to fetch milestones with their linked work positions
-    const { data: milestonesWithPositions, error: fetchError } = await supabase
-      .from('vault_resume_milestones')
-      .select(`
-        *,
-        work_position:vault_work_positions!work_position_id (
-          id,
-          company_name,
-          job_title,
-          start_date,
-          end_date,
-          is_current,
-          description
-        )
-      `)
-      .eq('vault_id', vaultData.id);
-
-    if (fetchError) {
-      console.error('[MATCH-REQ-TO-BULLETS] Error fetching milestones:', fetchError);
-      throw fetchError;
-    }
-
-    console.log('[MATCH-REQ-TO-BULLETS] Fetched', milestonesWithPositions?.length || 0, 'milestones with positions');
-
-    // Build bullets from milestones (each milestone now has work_position data via JOIN)
-    const bullets: any[] = [];
-
-    (milestonesWithPositions || []).forEach((m: any) => {
-      if (m.description && m.work_position) {
-        bullets.push({
-          id: m.id,
-          content: m.description,
-          source: {
-            milestoneId: m.id,
-            workPositionId: m.work_position.id, // ← Clean reference via FK
-            company: m.work_position.company_name || 'Unknown',
-            jobTitle: m.work_position.job_title || 'Unknown',
-            dateRange: `${m.work_position.start_date || ''} - ${m.work_position.end_date || 'Present'}`
+      if (!milestoneError && milestonesWithPositions) {
+        console.log('[MATCH-REQ-TO-BULLETS] Found', milestonesWithPositions.length, 'milestones');
+        milestonesWithPositions.forEach((m: any) => {
+          if (m.description && m.work_position) {
+            bullets.push({
+              id: m.id,
+              content: m.description,
+              source: {
+                type: 'milestone',
+                milestoneId: m.id,
+                workPositionId: m.work_position.id,
+                company: m.work_position.company_name || 'Unknown',
+                jobTitle: m.work_position.job_title || 'Unknown',
+                dateRange: `${m.work_position.start_date || ''} - ${m.work_position.end_date || 'Present'}`
+              }
+            });
           }
         });
       }
-    });
 
-    console.log('[MATCH-REQ-TO-BULLETS] Built', bullets.length, 'total bullets from vault data');
-    
+      // SOURCE B: Work Position Descriptions
+      const { data: workPositions, error: wpError } = await supabase
+        .from('vault_work_positions')
+        .select('id, company_name, job_title, description, start_date, end_date, is_current')
+        .eq('vault_id', vaultData.id);
+
+      if (!wpError && workPositions) {
+        console.log('[MATCH-REQ-TO-BULLETS] Found', workPositions.length, 'work positions');
+        workPositions.forEach((wp: any) => {
+          if (wp.description) {
+            // Parse description into individual bullets if it contains line breaks
+            const descBullets = wp.description.split(/[\n\r]+/).filter((l: string) => l.trim().length > 20);
+            descBullets.forEach((bullet: string, idx: number) => {
+              const cleanBullet = bullet.replace(/^[-•*]\s*/, '').trim();
+              if (cleanBullet.length > 15) {
+                bullets.push({
+                  id: `wp-${wp.id}-${idx}`,
+                  content: cleanBullet,
+                  source: {
+                    type: 'work_position',
+                    workPositionId: wp.id,
+                    company: wp.company_name || 'Unknown',
+                    jobTitle: wp.job_title || 'Unknown',
+                    dateRange: `${wp.start_date || ''} - ${wp.is_current ? 'Present' : wp.end_date || ''}`
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // SOURCE C: Power Phrases
+      const { data: powerPhrases, error: ppError } = await supabase
+        .from('vault_power_phrases')
+        .select('id, power_phrase, impact_metrics, category')
+        .eq('vault_id', vaultData.id);
+
+      if (!ppError && powerPhrases) {
+        console.log('[MATCH-REQ-TO-BULLETS] Found', powerPhrases.length, 'power phrases');
+        powerPhrases.forEach((pp: any) => {
+          if (pp.power_phrase) {
+            let content = pp.power_phrase;
+            // Append metrics if available
+            if (pp.impact_metrics?.metric) {
+              content += ` (${pp.impact_metrics.metric}: ${pp.impact_metrics.result || 'improvement'})`;
+            }
+            bullets.push({
+              id: pp.id,
+              content,
+              source: {
+                type: 'power_phrase',
+                category: pp.category || 'Achievement',
+                company: 'Career Vault',
+                jobTitle: 'Power Phrase',
+                dateRange: ''
+              }
+            });
+          }
+        });
+      }
+
+      // SOURCE D: Transferable Skills with Evidence
+      const { data: skills, error: skillError } = await supabase
+        .from('vault_transferable_skills')
+        .select('id, stated_skill, evidence, skill_category')
+        .eq('vault_id', vaultData.id);
+
+      if (!skillError && skills) {
+        console.log('[MATCH-REQ-TO-BULLETS] Found', skills.length, 'transferable skills');
+        skills.forEach((skill: any) => {
+          if (skill.stated_skill && skill.evidence) {
+            bullets.push({
+              id: skill.id,
+              content: `${skill.stated_skill}: ${skill.evidence}`,
+              source: {
+                type: 'transferable_skill',
+                category: skill.skill_category || 'Skill',
+                company: 'Career Vault',
+                jobTitle: 'Transferable Skill',
+                dateRange: ''
+              }
+            });
+          }
+        });
+      }
+    }
+
+    console.log('[MATCH-REQ-TO-BULLETS] Total vault bullets:', bullets.length);
+
+    // ========================
+    // FALLBACK: Parse from uploaded resume text if vault is empty
+    // ========================
+    if (bullets.length === 0 && resumeText) {
+      console.log('[MATCH-REQ-TO-BULLETS] Vault empty, parsing bullets from uploaded resume text');
+      const resumeBullets = parseResumeBullets(resumeText);
+      bullets.push(...resumeBullets);
+      console.log('[MATCH-REQ-TO-BULLETS] Extracted', resumeBullets.length, 'bullets from resume text');
+    }
+
+    // If still no bullets, return helpful message
     if (bullets.length === 0) {
       console.error('[MATCH-REQ-TO-BULLETS] WARNING: No bullets extracted! Returning empty result.');
       return new Response(
@@ -122,16 +261,19 @@ serve(async (req) => {
           success: true, 
           evidenceMatrix: [],
           stats: { 
-            totalRequirements: jobRequirements.length, 
+            totalRequirements: validRequirements.length, 
             matchedRequirements: 0, 
             coverageScore: 0 
-          }
+          },
+          message: 'No career evidence found. Please upload a resume or build your Career Vault to get started.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 2. AI Matching
+    // ========================
+    // AI MATCHING
+    // ========================
     const prompt = `You are analyzing a candidate's actual work history to find the BEST evidence for job requirements.
 
 JOB REQUIREMENTS (${validRequirements.length} valid):
@@ -141,7 +283,7 @@ ATS KEYWORDS (Include these if possible):
 Critical: ${(atsKeywords?.critical || []).join(', ')}
 Important: ${(atsKeywords?.important || []).join(', ')}
 
-CANDIDATE'S ACTUAL WORK HISTORY BULLETS (${bullets.length} items):
+CANDIDATE'S EVIDENCE FROM CAREER HISTORY (${bullets.length} items):
 ${JSON.stringify(bullets.map((b: any, i: number) => `[${i}] ${b.content} (Source: ${b.source.jobTitle} at ${b.source.company})`), null, 2)}
 
 TASK:
@@ -191,7 +333,9 @@ Return JSON:
     
     console.log('[MATCH-REQ-TO-BULLETS] Successfully parsed response with', parseResult.data.matches?.length || 0, 'matches');
 
-    // 3. Construct Evidence Matrix with Sprint 4 quality scoring
+    // ========================
+    // CONSTRUCT EVIDENCE MATRIX
+    // ========================
     const evidenceMatrix = (parseResult.data.matches || []).map((match: any) => {
       const req = validRequirements[match.requirementIndex];
       const bullet = bullets[match.bestBulletIndex];
@@ -214,7 +358,7 @@ Return JSON:
         
         matchScore: matchScore,
         matchReasons: match.matchReasons,
-        qualityScore, // Sprint 4 enhancement
+        qualityScore,
         
         enhancedBullet: match.enhancedBullet,
         atsKeywords: match.atsKeywordsAdded
@@ -228,7 +372,14 @@ Return JSON:
         stats: {
           totalRequirements: validRequirements.length,
           matchedRequirements: evidenceMatrix.length,
-          coverageScore: Math.round((evidenceMatrix.length / validRequirements.length) * 100)
+          coverageScore: Math.round((evidenceMatrix.length / validRequirements.length) * 100),
+          bulletSources: {
+            milestones: bullets.filter((b: any) => b.source.type === 'milestone').length,
+            workPositions: bullets.filter((b: any) => b.source.type === 'work_position').length,
+            powerPhrases: bullets.filter((b: any) => b.source.type === 'power_phrase').length,
+            skills: bullets.filter((b: any) => b.source.type === 'transferable_skill').length,
+            resumeText: bullets.filter((b: any) => b.source.type === 'uploaded_resume').length
+          }
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

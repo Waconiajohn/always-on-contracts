@@ -255,7 +255,9 @@ export function useResumeBuilderState(options: UseResumeBuilderStateOptions = {}
         atsKeywords: {
           critical: [], // Could extract from gap analysis
           important: []
-        }
+        },
+        // Fallback: Pass resume text for parsing if Career Vault is empty
+        resumeText: state.resumeText
       });
 
       if (error) throw new Error(error.message);
