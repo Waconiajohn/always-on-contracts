@@ -14,7 +14,7 @@ import { SkillsTagInput } from "@/components/linkedin/SkillsTagInput";
 import { ProfileProgressTracker } from "@/components/linkedin/ProfileProgressTracker";
 import { RecruiterSearchSimulator } from "@/components/linkedin/RecruiterSearchSimulator";
 import { ProfileSectionCompare } from "@/components/linkedin/ProfileSectionCompare";
-import { trackLinkedInAction } from "@/lib/linkedinTelemetry";
+import { trackVaultTelemetry } from '@/lib/services/vaultTracking';
 import { 
   safeValidateInput, 
   invokeEdgeFunction, 
@@ -325,15 +325,10 @@ export default function LinkedInProfileBuilder() {
                 setCurrentHeadline(text);
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
-                  trackLinkedInAction({
-                    user_id: user.id,
-                    action_type: 'profile_section_accepted',
-                    content_type: 'headline',
-                    metadata: {
-                      hadWarnings: !!optimizationResult.headline?.warnings?.length,
-                      atsKeywordCount: optimizationResult.headline?.atsKeywords?.length || 0,
-                      characterLength: text.length
-                    }
+                  trackVaultTelemetry({
+                    featureName: 'linkedin_profile',
+                    action: 'profile_section_accepted',
+                    metadata: { contentType: 'headline', characterLength: text.length }
                   });
                 }
                 toast({ title: "Headline accepted", description: "Applied to your profile" });
@@ -353,15 +348,10 @@ export default function LinkedInProfileBuilder() {
                 setCurrentAbout(text);
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
-                  trackLinkedInAction({
-                    user_id: user.id,
-                    action_type: 'profile_section_accepted',
-                    content_type: 'about',
-                    metadata: {
-                      hadWarnings: !!optimizationResult.about?.warnings?.length,
-                      atsKeywordCount: optimizationResult.about?.atsKeywords?.length || 0,
-                      characterLength: text.length
-                    }
+                  trackVaultTelemetry({
+                    featureName: 'linkedin_profile',
+                    action: 'profile_section_accepted',
+                    metadata: { contentType: 'about', characterLength: text.length }
                   });
                 }
                 toast({ title: "About section accepted", description: "Applied to your profile" });
