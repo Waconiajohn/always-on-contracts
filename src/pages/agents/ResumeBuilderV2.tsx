@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { HiringManagerReviewPanel } from '@/components/resume-builder/HiringManagerReviewPanel';
 import { ATSScoreReportPanel } from '@/components/resume-builder/ATSScoreReportPanel';
-import EliteResumeBuilder from '@/components/resume-builder/v5/EliteResumeBuilder';
+import ResumeBuilderV8 from '@/components/resume-builder/v8/ResumeBuilderV8';
 
 type WizardStep = 
   | 'job-input' 
@@ -28,9 +28,9 @@ export default function ResumeBuilderV2() {
   const location = useLocation();
   const store = useResumeBuilderStore();
   const [currentStep, setCurrentStep] = useState<WizardStep>('elite-builder');
-  const [userId, setUserId] = useState<string | undefined>();
-  const [resumeText, setResumeText] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
+  const [_userId, setUserId] = useState<string | undefined>();
+  const [_resumeText, setResumeText] = useState('');
+  const [_jobDescription, setJobDescription] = useState('');
 
   // Get userId and data from location state
   useEffect(() => {
@@ -88,11 +88,7 @@ export default function ResumeBuilderV2() {
     switch (currentStep) {
       case 'elite-builder':
         return (
-          <EliteResumeBuilder
-            initialJobDescription={jobDescription || store.displayJobText}
-            initialResumeText={resumeText}
-            userId={userId}
-          />
+          <ResumeBuilderV8 />
         );
 
       case 'hiring-manager-review':

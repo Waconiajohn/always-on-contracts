@@ -31,7 +31,6 @@ const Templates = lazy(() => import("./pages/Templates"));
 const APIKeys = lazy(() => import("./pages/APIKeys"));
 const AIAgents = lazy(() => import("./pages/AIAgents"));
 const CorporateAssistant = lazy(() => import("./pages/agents/CorporateAssistant"));
-const ResumeBuilderWizard = lazy(() => import("./pages/agents/ResumeBuilderWizard"));
 const MyResumes = lazy(() => import("./pages/MyResumes"));
 const InterviewPrepAgent = lazy(() => import("./pages/agents/InterviewPrepAgent"));
 const LinkedInBloggingAgent = lazy(() => import("./pages/agents/LinkedInBloggingAgent"));
@@ -60,10 +59,7 @@ const TestingDashboard = lazy(() => import("./pages/TestingDashboard"));
 const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
-const MustInterviewBuilder = lazy(() => import("./pages/MustInterviewBuilder"));
-const MustInterviewBuilderV2Page = lazy(() => import("./pages/MustInterviewBuilderV2Page"));
 const ResumeBuilderV2 = lazy(() => import("./pages/agents/ResumeBuilderV2"));
-const ResumeBuilderV7 = lazy(() => import("./components/resume-builder/v7/ResumeBuilderV7"));
 const ResumeBuilderV8 = lazy(() => import("./components/resume-builder/v8/ResumeBuilderV8"));
 
 // Loading fallback component
@@ -111,9 +107,9 @@ const AppContent = () => {
           <Route path="/agents/resume-builder-wizard" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
           <Route path="/must-interview-builder" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
           <Route path="/resume-builder-v5" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
-        <Route path="/resume-builder-v4" element={<ProtectedRoute><MustInterviewBuilderV2Page /></ProtectedRoute>} />
-        <Route path="/must-interview-builder-v3" element={<ProtectedRoute><MustInterviewBuilder /></ProtectedRoute>} />
-        <Route path="/agents/resume-builder-legacy" element={<ProtectedRoute><ResumeBuilderWizard /></ProtectedRoute>} />
+        <Route path="/resume-builder-v4" element={<Navigate to="/resume-builder" replace />} />
+        <Route path="/must-interview-builder-v3" element={<Navigate to="/resume-builder" replace />} />
+        <Route path="/agents/resume-builder-legacy" element={<Navigate to="/resume-builder" replace />} />
         <Route path="/my-resumes" element={<ProtectedRoute><MyResumes /></ProtectedRoute>} />
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-blogging" element={<ProtectedRoute><LinkedInBloggingAgent /></ProtectedRoute>} />
@@ -150,8 +146,8 @@ const AppContent = () => {
             <Route path="/testing-dashboard" element={<ProtectedRoute><TestingDashboard /></ProtectedRoute>} />
             <Route path="/experimental-lab" element={<ProtectedRoute><ExperimentalLab /></ProtectedRoute>} />
             <Route path="/resume-data-audit" element={<ProtectedRoute><ResumeDataAudit /></ProtectedRoute>} />
-            <Route path="/benchmark-builder" element={<ProtectedRoute><ResumeBuilderV7 /></ProtectedRoute>} />
-            <Route path="/resume-builder-v7" element={<ProtectedRoute><ResumeBuilderV7 /></ProtectedRoute>} />
+            <Route path="/benchmark-builder" element={<Navigate to="/resume-builder" replace />} />
+            <Route path="/resume-builder-v7" element={<Navigate to="/resume-builder" replace />} />
             {/* V8 Resume Builder - State-of-the-art evidence-first builder */}
             <Route path="/resume-builder-v8" element={<ProtectedRoute><ResumeBuilderV8 /></ProtectedRoute>} />
             <Route path="/resume-builder" element={<ProtectedRoute><ResumeBuilderV8 /></ProtectedRoute>} />
