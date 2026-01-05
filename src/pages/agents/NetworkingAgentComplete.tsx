@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Users, Calendar, MessageSquare, Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import { useNetworkingContacts } from "@/hooks/useNetworkingContacts";
 import { format } from "date-fns";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 
-export default function NetworkingAgentComplete() {
+function NetworkingAgentCompleteContent() {
   const { contacts, loading, createContact, updateContact, deleteContact } = useNetworkingContacts();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any>(null);
@@ -366,5 +368,15 @@ export default function NetworkingAgentComplete() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function NetworkingAgentComplete() {
+  return (
+    <ProtectedRoute>
+      <ModuleGate module="linkedin_pro">
+        <NetworkingAgentCompleteContent />
+      </ModuleGate>
+    </ProtectedRoute>
   );
 }

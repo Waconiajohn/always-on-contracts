@@ -1,4 +1,5 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -463,7 +464,9 @@ const InterviewPrepAgentContent = () => {
 export default function InterviewPrepAgent() {
   return (
     <ProtectedRoute>
-      <InterviewPrepAgentContent />
+      <ModuleGate module="interview_mastery">
+        <InterviewPrepAgentContent />
+      </ModuleGate>
     </ProtectedRoute>
   );
 }

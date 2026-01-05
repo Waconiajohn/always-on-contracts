@@ -12,6 +12,8 @@ import { DollarSign, TrendingUp, Copy, Check, Sparkles, AlertCircle } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { invokeEdgeFunction, GenerateSalaryReportSchema, safeValidateInput } from "@/lib/edgeFunction";
 import { logger } from "@/lib/logger";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 
 const SalaryNegotiation = () => {
   const { toast } = useToast();
@@ -520,4 +522,12 @@ I'm happy to discuss this further and find a mutually beneficial arrangement.`;
   );
 };
 
-export default SalaryNegotiation;
+export default function SalaryNegotiationPage() {
+  return (
+    <ProtectedRoute>
+      <ModuleGate module="interview_mastery">
+        <SalaryNegotiation />
+      </ModuleGate>
+    </ProtectedRoute>
+  );
+}

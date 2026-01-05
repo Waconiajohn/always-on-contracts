@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Clock, TrendingUp, Copy, Download, Trash2, Loader2, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 
 export const MyResumes = () => {
   const [resumes, setResumes] = useState<any[]>([]);
@@ -230,4 +232,12 @@ export const MyResumes = () => {
   );
 };
 
-export default MyResumes;
+export default function MyResumesPage() {
+  return (
+    <ProtectedRoute>
+      <ModuleGate module="resume_jobs_studio">
+        <MyResumes />
+      </ModuleGate>
+    </ProtectedRoute>
+  );
+}

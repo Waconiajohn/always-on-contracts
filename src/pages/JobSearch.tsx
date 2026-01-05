@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -597,7 +598,9 @@ const JobSearchContent = () => {
 export default function JobSearch() {
   return (
     <ProtectedRoute>
-      <JobSearchContent />
+      <ModuleGate module="resume_jobs_studio">
+        <JobSearchContent />
+      </ModuleGate>
     </ProtectedRoute>
   );
 }
