@@ -19,9 +19,10 @@ import {
   Settings,
   Zap,
   Briefcase,
-  MoreHorizontal,
+  Mic,
   type LucideIcon,
 } from "lucide-react";
+import { ModuleId } from "./modules";
 
 export interface NavItem {
   label: string;
@@ -29,12 +30,14 @@ export interface NavItem {
   icon: LucideIcon;
   dropdown?: DropdownItem[];
   highlight?: boolean;
+  module?: ModuleId; // Which module this belongs to
 }
 
 export interface DropdownItem {
   label: string;
   path: string;
   icon: LucideIcon;
+  module?: ModuleId;
 }
 
 export interface ProfileItem {
@@ -45,71 +48,120 @@ export interface ProfileItem {
   type?: 'separator';
 }
 
-// NEW NAVIGATION: Score → Build → Apply → Win
-// Career Vault moves to background, Quick Score and Resume Builder front and center
+// ==========================================
+// 5-MODULE NAVIGATION STRUCTURE
+// ==========================================
+// Module 1: Quick Score (FREE)
+// Module 2: Resume & Jobs Studio
+// Module 3: Career Vault  
+// Module 4: LinkedIn Pro
+// Module 5: Interview Mastery
+// ==========================================
+
 export const mainNavItems: NavItem[] = [
   { 
     label: 'Home', 
     path: '/home', 
     icon: Home 
   },
+  // MODULE 1: Quick Score (FREE)
   { 
     label: 'Quick Score', 
     path: '/quick-score', 
     icon: Zap,
-    highlight: true // This will be styled prominently
+    highlight: true,
+    module: 'quick_score',
   },
+  // MODULE 2: Resume & Jobs Studio
   { 
     label: 'Resume Builder', 
     path: '/resume-builder-v8', 
-    icon: FileText 
+    icon: FileText,
+    module: 'resume_jobs_studio',
   },
   { 
     label: 'Find Jobs', 
     path: '/job-search', 
-    icon: Search 
+    icon: Search,
+    module: 'resume_jobs_studio',
   },
   { 
     label: 'My Applications', 
     path: '/active-applications', 
-    icon: Briefcase 
+    icon: Briefcase,
+    module: 'resume_jobs_studio',
   },
+  // MODULE 3: Career Vault
+  {
+    label: 'Career Vault',
+    path: '/career-vault',
+    icon: Package,
+    module: 'career_vault',
+  },
+  // MODULE 4: LinkedIn Pro
+  {
+    label: 'LinkedIn',
+    icon: Linkedin,
+    module: 'linkedin_pro',
+    dropdown: [
+      { label: 'Profile Builder', path: '/agents/linkedin-profile-builder', icon: Linkedin, module: 'linkedin_pro' },
+      { label: 'Networking', path: '/agents/networking', icon: Users, module: 'linkedin_pro' },
+      { label: 'Content Creator', path: '/agents/linkedin-blogging', icon: MessageSquare, module: 'linkedin_pro' },
+    ],
+  },
+  // MODULE 5: Interview Mastery
   {
     label: 'Interview',
-    icon: MessageSquare,
+    icon: Mic,
+    module: 'interview_mastery',
     dropdown: [
-      { label: 'Interview Prep', path: '/agents/interview-prep', icon: MessageSquare },
-      { label: 'Salary Negotiation', path: '/salary-negotiation', icon: DollarSign },
+      { label: 'Interview Prep', path: '/agents/interview-prep', icon: Mic, module: 'interview_mastery' },
+      { label: 'Salary Negotiation', path: '/salary-negotiation', icon: DollarSign, module: 'interview_mastery' },
     ],
   },
-  {
-    label: 'More',
-    icon: MoreHorizontal,
-    dropdown: [
-      // Career Vault - now secondary
-      { label: 'Career Vault', path: '/career-vault', icon: Package },
-      { label: 'My Resumes', path: '/my-resumes', icon: FileText },
-      { label: 'Resume Templates', path: '/templates', icon: FileText },
-      // LinkedIn tools
-      { label: 'LinkedIn Profile', path: '/agents/linkedin-profile-builder', icon: Linkedin },
-      { label: 'LinkedIn Content', path: '/agents/linkedin-blogging', icon: MessageSquare },
-      { label: 'Networking', path: '/agents/networking', icon: Users },
-      // Other
-      { label: 'Agencies', path: '/agencies', icon: Building2 },
-      { label: 'AI Coach', path: '/coaching', icon: Brain },
-      { label: 'Learning Center', path: '/learning-center', icon: BookOpen },
-    ],
-  },
+  // Settings & More
   {
     label: 'Settings',
     icon: Settings,
     dropdown: [
+      { label: 'My Resumes', path: '/my-resumes', icon: FileText, module: 'resume_jobs_studio' },
+      { label: 'Resume Templates', path: '/templates', icon: FileText, module: 'resume_jobs_studio' },
+      { label: 'AI Coach', path: '/coaching', icon: Brain, module: 'career_vault' },
+      { label: 'Agencies', path: '/agencies', icon: Building2 },
+      { label: 'Learning Center', path: '/learning-center', icon: BookOpen },
       { label: 'Profile Settings', path: '/profile', icon: User },
       { label: 'API Keys', path: '/api-keys', icon: Key },
       { label: 'Testing Dashboard', path: '/testing-dashboard', icon: FlaskConical },
     ],
   },
 ];
+
+// Module-grouped navigation for UI rendering
+export const moduleNavGroups = {
+  quick_score: [
+    { label: 'Quick Score', path: '/quick-score', icon: Zap }
+  ],
+  resume_jobs_studio: [
+    { label: 'Resume Builder', path: '/resume-builder-v8', icon: FileText },
+    { label: 'My Resumes', path: '/my-resumes', icon: FileText },
+    { label: 'Templates', path: '/templates', icon: FileText },
+    { label: 'Find Jobs', path: '/job-search', icon: Search },
+    { label: 'My Applications', path: '/active-applications', icon: Briefcase },
+  ],
+  career_vault: [
+    { label: 'Career Vault', path: '/career-vault', icon: Package },
+    { label: 'AI Coach', path: '/coaching', icon: Brain },
+  ],
+  linkedin_pro: [
+    { label: 'Profile Builder', path: '/agents/linkedin-profile-builder', icon: Linkedin },
+    { label: 'Networking', path: '/agents/networking', icon: Users },
+    { label: 'Content Creator', path: '/agents/linkedin-blogging', icon: MessageSquare },
+  ],
+  interview_mastery: [
+    { label: 'Interview Prep', path: '/agents/interview-prep', icon: Mic },
+    { label: 'Salary Negotiation', path: '/salary-negotiation', icon: DollarSign },
+  ],
+};
 
 export const profileDropdownItems: ProfileItem[] = [
   { label: 'Quick Score', path: '/quick-score', icon: Zap },

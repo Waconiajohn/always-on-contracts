@@ -2344,6 +2344,36 @@ export type Database = {
         }
         Relationships: []
       }
+      module_access: {
+        Row: {
+          access_type: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          module: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_type: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          module: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          module?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       networking_contacts: {
         Row: {
           contact_company: string | null
