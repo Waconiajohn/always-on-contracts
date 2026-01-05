@@ -2,12 +2,13 @@ import { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VaultContentsTable } from '../VaultContentsTable';
 import { FreshnessManager } from '../FreshnessManager';
-
 import { VaultNuclearReset } from '../VaultNuclearReset';
 import { VaultMigrationTool } from '../VaultMigrationTool';
 import { MilestoneManager } from '../MilestoneManager';
 import { CategoryRegenerateButton } from '../CategoryRegenerateButton';
+import { EnhancementQueue } from '@/components/EnhancementQueue';
 import { Card } from '@/components/ui/card';
+import { Sparkles } from 'lucide-react';
 import {
   VaultItemsTableSkeleton,
   VaultSettingsSkeleton
@@ -26,15 +27,19 @@ interface VaultTabsProps {
 
 /**
  * Simplified 3-tab structure:
- * - Dashboard: Strategic Command Center, missions, quick wins (shown above)
  * - Items: All vault items with filters
+ * - Enhance: AI enhancement queue for responses needing improvement
  * - Settings: Resume management, milestones, advanced tools
  */
 export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTab = 'items', onRefresh, onEdit, onView }: VaultTabsProps) => {
   return (
     <Tabs defaultValue={defaultTab} className="vault-tabs w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-6">
+      <TabsList className="grid w-full grid-cols-3 mb-6">
         <TabsTrigger value="items">Items</TabsTrigger>
+        <TabsTrigger value="enhance" className="flex items-center gap-1">
+          <Sparkles className="h-3.5 w-3.5" />
+          Enhance
+        </TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
 
@@ -65,6 +70,13 @@ export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTa
             onView={onView}
           />
         </Suspense>
+      </TabsContent>
+
+      <TabsContent value="enhance">
+        <EnhancementQueue 
+          vaultId={vaultId} 
+          onEnhancementComplete={onRefresh}
+        />
       </TabsContent>
 
       <TabsContent value="settings">

@@ -23,7 +23,7 @@ interface EnhancementItem {
 
 interface EnhancementQueueProps {
   vaultId: string;
-  onEnhancementComplete?: () => Promise<void>;
+  onEnhancementComplete?: () => void | Promise<void>;
 }
 
 export function EnhancementQueue({ vaultId, onEnhancementComplete }: EnhancementQueueProps) {
