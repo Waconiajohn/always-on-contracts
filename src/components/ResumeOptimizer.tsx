@@ -16,6 +16,8 @@ import {
   invokeEdgeFunction 
 } from '@/lib/edgeFunction';
 import { logger } from '@/lib/logger';
+import { generateResumeHTML } from '@/components/resume/ResumeTemplate';
+import { generateResumeHTML } from '@/components/resume/ResumeTemplate';
 
 export function ResumeOptimizer() {
   const [step, setStep] = useState<'input' | 'analysis' | 'optimization'>('input');
