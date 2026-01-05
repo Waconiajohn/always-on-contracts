@@ -1,15 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Target, Sparkles } from "lucide-react";
+import { Brain, Target, Sparkles, MessageSquare, Loader2 } from "lucide-react";
 import { CoachingChat } from "@/components/CoachingChat";
 import { StarStoryBuilder } from "@/components/StarStoryBuilder";
 import { WebinarSchedule } from "@/components/coaching/WebinarSchedule";
+import { WhyMeBuilder } from "@/components/WhyMeBuilder";
+import { supabase } from "@/integrations/supabase/client";
+
+interface WhyMeNarrative {
+  id: string;
+  category: string;
+  narrative: string;
+  keywords: string[];
+  created_at: string;
+}
 
 const CoachingContent = () => {
   const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [narratives, setNarratives] = useState<WhyMeNarrative[]>([]);
+  const [loadingNarratives, setLoadingNarratives] = useState(true);
+
+  const fetchNarratives = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setUserId(user.id);
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('why_me_narratives')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data?.why_me_narratives && Array.isArray(data.why_me_narratives)) {
+        setNarratives(data.why_me_narratives as unknown as WhyMeNarrative[]);
+      }
+    } catch (error) {
+      console.error('Error fetching narratives:', error);
+    } finally {
+      setLoadingNarratives(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNarratives();
+  }, []);
 
   const coaches = [
     {
@@ -48,10 +88,14 @@ const CoachingContent = () => {
       </div>
 
       <Tabs defaultValue="coaching" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="coaching">AI Coaching</TabsTrigger>
           <TabsTrigger value="star-stories">STAR Stories</TabsTrigger>
-          <TabsTrigger value="webinars">Live Webinars</TabsTrigger>
+          <TabsTrigger value="success-stories">
+            <MessageSquare className="h-4 w-4 mr-1" />
+            Success Stories
+          </TabsTrigger>
+          <TabsTrigger value="webinars">Webinars</TabsTrigger>
         </TabsList>
 
         <TabsContent value="coaching" className="space-y-6">
@@ -160,6 +204,26 @@ const CoachingContent = () => {
 
         <TabsContent value="star-stories">
           <StarStoryBuilder />
+        </TabsContent>
+
+        <TabsContent value="success-stories">
+          {loadingNarratives ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : userId ? (
+            <WhyMeBuilder 
+              userId={userId} 
+              narratives={narratives} 
+              onUpdate={fetchNarratives} 
+            />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Please log in to manage your success stories.
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="webinars">

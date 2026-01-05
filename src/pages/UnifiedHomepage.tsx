@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WebinarScheduleWidget } from "@/components/home/WebinarScheduleWidget";
@@ -13,11 +14,13 @@ import { V3ActiveJobSearch } from "@/components/home/v3/V3ActiveJobSearch";
 import { V3MicroWins } from "@/components/home/v3/V3MicroWins";
 import { V3ScoreStatusCard } from "@/components/home/v3/V3ScoreStatusCard";
 import { V3QuickActionsCard } from "@/components/home/v3/V3QuickActionsCard";
+import { ExplorationModal } from "@/components/ExplorationModal";
 import { getNextActionPrompt } from "@/lib/utils/vaultQualitativeHelpers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
-import { Package, ChevronRight } from "lucide-react";
+import { Package, ChevronRight, Lock, ArrowRight } from "lucide-react";
 
 const UnifiedHomeContent = () => {
   const { subscription } = useSubscription();
@@ -27,6 +30,9 @@ const UnifiedHomeContent = () => {
   const { data: interviewStatus, isLoading: interviewLoading } = useInterviewPrepStatus();
   const navigate = useNavigate();
   const isPlatinum = subscription?.tier === 'concierge_elite';
+  const [explorationModal, setExplorationModal] = useState<{ isOpen: boolean; feature: string; description: string } | null>(null);
+
+  const showVaultCTA = userContext.vaultCompletion < 30;
 
   if (userContext.loading || scoreLoading || progressLoading || interviewLoading) {
     return (
@@ -112,56 +118,113 @@ const UnifiedHomeContent = () => {
         {/* 4. Micro Wins - Motivational progress indicators */}
         <V3MicroWins vaultCompletion={userContext.vaultCompletion} />
 
-        {/* 5. Career Vault - Now secondary, collapsible */}
-        <Card className="bg-muted/30">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-muted-foreground" />
+        {/* 5. Vault CTA - Show when vault completion is low */}
+        {showVaultCTA && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Lock className="h-5 w-5 text-primary" />
+                </div>
                 <div>
-                  <CardTitle className="text-base">Career Vault</CardTitle>
-                  <CardDescription className="text-xs">
-                    Your achievement library — evidence for your must-interview resumes
+                  <CardTitle className="text-lg">Unlock Your Full Potential</CardTitle>
+                  <CardDescription>
+                    Complete your Career Vault to unlock AI-powered features
                   </CardDescription>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate('/career-vault')}
-              >
-                Manage Vault
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex gap-6">
-                <div>
-                  <p className="text-muted-foreground">Completion</p>
-                  <p className="font-medium">{userContext.vaultCompletion}%</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Career Vault Progress</span>
+                  <span className="text-muted-foreground">{userContext.vaultCompletion}%</span>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Sections</p>
-                  <p className="font-medium">8 areas</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <p className="font-medium text-amber-500">
-                    {userContext.vaultCompletion < 50 ? 'Building' : 
-                     userContext.vaultCompletion < 80 ? 'Expanding' : 'Complete'}
-                  </p>
-                </div>
+                <Progress value={userContext.vaultCompletion} className="h-2" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                The vault provides evidence for your resumes. Build it as you go.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => navigate('/career-vault')}>
+                  Continue Setup
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setExplorationModal({
+                    isOpen: true,
+                    feature: "AI-Powered Features",
+                    description: "Complete your Career Vault to unlock personalized job matching, intelligent resume optimization, and interview preparation tailored to your unique experience."
+                  })}
+                >
+                  Learn More
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 6. Career Vault - Now secondary, collapsible */}
+        {!showVaultCTA && (
+          <Card className="bg-muted/30">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <CardTitle className="text-base">Career Vault</CardTitle>
+                    <CardDescription className="text-xs">
+                      Your achievement library — evidence for your must-interview resumes
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/career-vault')}
+                >
+                  Manage Vault
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex gap-6">
+                  <div>
+                    <p className="text-muted-foreground">Completion</p>
+                    <p className="font-medium">{userContext.vaultCompletion}%</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Sections</p>
+                    <p className="font-medium">8 areas</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <p className="font-medium text-amber-500">
+                      {userContext.vaultCompletion < 50 ? 'Building' : 
+                       userContext.vaultCompletion < 80 ? 'Expanding' : 'Complete'}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  The vault provides evidence for your resumes. Build it as you go.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       </div>
+
+      {/* Exploration Modal */}
+      {explorationModal && (
+        <ExplorationModal
+          isOpen={explorationModal.isOpen}
+          onClose={() => setExplorationModal(null)}
+          featureName={explorationModal.feature}
+          featureDescription={explorationModal.description}
+          vaultCompletion={userContext.vaultCompletion}
+        />
+      )}
     </ContentLayout>
   );
 };

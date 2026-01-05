@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Trash2, List, LayoutGrid, Calendar, DollarSign, MessageSquare, Briefcase } from "lucide-react";
+import { Loader2, Sparkles, Trash2, List, LayoutGrid, Calendar, Briefcase } from "lucide-react";
 import { useApplicationQueue } from "@/hooks/useApplicationQueue";
 import { EmptyState } from "@/components/EmptyState";
 import { AISuggestionItem } from "@/components/AISuggestionItem";
+import { EnhancedQueueItem } from "@/components/EnhancedQueueItem";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -216,98 +217,20 @@ export default function ApplicationQueue() {
             />
           ) : viewMode === "list" ? (
             <div className="space-y-4">
-              {filteredQueueItems.map((item) => {
-                const matchBadge = getMatchScoreBadge(item.match_score || 0);
-                return (
-                  <Card key={item.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CardTitle className="text-xl">
-                              {item.company_name || item.opportunity?.job_title}
-                            </CardTitle>
-                            {item.match_score && item.match_score > 0 && (
-                              <Badge className={matchBadge.color}>
-                                {Math.round(item.match_score)}% {matchBadge.label}
-                              </Badge>
-                            )}
-                          </div>
-                          <CardDescription>
-                            <div className="space-y-1">
-                              {item.opportunity?.job_title && <div className="font-medium">{item.opportunity.job_title}</div>}
-                              {item.opportunity?.location && <span className="block">📍 {item.opportunity.location}</span>}
-                              {item.interview_date && (
-                                <div className="flex items-center gap-2 text-primary">
-                                  <Calendar className="h-4 w-4" />
-                                  Interview: {format(new Date(item.interview_date), "MMM d, yyyy 'at' h:mm a")}
-                                </div>
-                              )}
-                              {item.offer_amount && (
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                  <DollarSign className="h-4 w-4" />
-                                  Offer: ${item.offer_amount.toLocaleString()}
-                                  {item.offer_bonus && ` + $${item.offer_bonus.toLocaleString()} bonus`}
-                                </div>
-                              )}
-                              {item.notes && (
-                                <div className="flex items-start gap-2 text-muted-foreground text-sm mt-2">
-                                  <MessageSquare className="h-4 w-4 mt-0.5" />
-                                  <span>{item.notes}</span>
-                                </div>
-                              )}
-                            </div>
-                          </CardDescription>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 mt-4">
-                        <Select 
-                          value={item.application_status || 'not_applied'} 
-                          onValueChange={(value) => updateApplicationStatus(item.id, value)}
-                        >
-                          <SelectTrigger className="w-[200px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="not_applied">Not Applied</SelectItem>
-                            <SelectItem value="applied">Applied</SelectItem>
-                            <SelectItem value="interviewing">Interviewing</SelectItem>
-                            <SelectItem value="offer">Offer</SelectItem>
-                            <SelectItem value="rejected_by_employer">Rejected by Employer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        
-                        <Button
-                          variant="outline"
-                          onClick={() => navigate('/agents/resume-builder', {
-                            state: {
-                              fromJobSearch: true,
-                              opportunityId: item.opportunity_id,
-                              jobTitle: item.opportunity?.job_title,
-                              jobDescription: item.opportunity?.job_description,
-                              companyName: item.company_name,
-                              location: item.opportunity?.location,
-                              applyUrl: item.opportunity?.external_url,
-                              salary: item.offer_amount ? `$${item.offer_amount.toLocaleString()}` : undefined
-                            }
-                          })}
-                        >
-                          Create Resume
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteApplication(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
+              {filteredQueueItems.map((item) => (
+                <EnhancedQueueItem
+                  key={item.id}
+                  item={item}
+                  onApprove={async (id) => {
+                    await updateApplicationStatus(id, 'applied');
+                    await refetch();
+                  }}
+                  onReject={async (id) => {
+                    await deleteApplication(id);
+                  }}
+                  isPending={item.application_status === 'not_applied'}
+                />
+              ))}
             </div>
           ) : (
             // Board View
