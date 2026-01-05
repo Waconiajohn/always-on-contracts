@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 // Internal maintenance and management tools
 import { VaultNuclearReset } from "@/components/career-vault/VaultNuclearReset";
 import { VaultMigrationTool } from "@/components/career-vault/VaultMigrationTool";
-import { AutoDuplicateCleanup } from "@/components/career-vault/AutoDuplicateCleanup";
+
 import { FreshnessManager } from "@/components/career-vault/FreshnessManager";
 import AdvancedVaultSearch from "@/components/career-vault/AdvancedVaultSearch";
 
@@ -77,11 +77,6 @@ function VaultAdminToolsContent() {
           <CardDescription>Tools for cleaning and maintaining vault data integrity</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium mb-2">Duplicate Cleanup</h3>
-            <AutoDuplicateCleanup vaultId={vaultId} />
-          </div>
-
           <div>
             <h3 className="text-sm font-medium mb-2">Freshness Manager</h3>
             <FreshnessManager vaultId={vaultId} />

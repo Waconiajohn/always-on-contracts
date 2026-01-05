@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VaultContentsTable } from '../VaultContentsTable';
 import { FreshnessManager } from '../FreshnessManager';
-import { AutoDuplicateCleanup } from '../AutoDuplicateCleanup';
+
 import { VaultNuclearReset } from '../VaultNuclearReset';
 import { VaultMigrationTool } from '../VaultMigrationTool';
 import { MilestoneManager } from '../MilestoneManager';
@@ -136,7 +136,7 @@ export const VaultTabs = ({ vaultId, vault, vaultData, highlightedGap, defaultTa
                   onDataChange={onRefresh}
                 />
                 <FreshnessManager vaultId={vaultId} />
-                <AutoDuplicateCleanup vaultId={vaultId} onCleanupComplete={onRefresh} />
+                
               </div>
             </Card>
           </div>
