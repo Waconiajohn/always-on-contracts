@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
-import { trackLinkedInAction } from '@/lib/linkedinTelemetry';
+import { trackVaultTelemetry } from '@/lib/services/vaultTracking';
 
 export default function LinkedInNetworkingAgent() {
   const [scenario, setScenario] = useState<string>('cold_connection');
@@ -111,14 +111,10 @@ export default function LinkedInNetworkingAgent() {
       setMessages(data.messages);
       
       // Track telemetry
-      trackLinkedInAction({
-        user_id: user.id,
-        action_type: 'networking_message_sent',
-        content_type: 'connection_request',
-        metadata: {
-          scenario,
-          variantsGenerated: data.messages.length
-        }
+      trackVaultTelemetry({
+        featureName: 'linkedin_networking',
+        action: 'networking_message_sent',
+        metadata: { scenario, variantsGenerated: data.messages.length }
       });
 
       toast({
