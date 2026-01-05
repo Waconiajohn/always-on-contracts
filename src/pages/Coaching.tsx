@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -237,7 +238,9 @@ const CoachingContent = () => {
 export default function Coaching() {
   return (
     <ProtectedRoute>
-      <CoachingContent />
+      <ModuleGate module="career_vault">
+        <CoachingContent />
+      </ModuleGate>
     </ProtectedRoute>
   );
 }

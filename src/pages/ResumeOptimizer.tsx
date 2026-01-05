@@ -1,4 +1,5 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 import { ResumeOptimizer as ResumeOptimizerComponent } from "@/components/ResumeOptimizer";
 
 const ResumeOptimizerContent = () => {
@@ -8,7 +9,9 @@ const ResumeOptimizerContent = () => {
 export default function ResumeOptimizer() {
   return (
     <ProtectedRoute>
-      <ResumeOptimizerContent />
+      <ModuleGate module="resume_jobs_studio">
+        <ResumeOptimizerContent />
+      </ModuleGate>
     </ProtectedRoute>
   );
 }

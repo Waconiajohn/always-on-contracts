@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -333,7 +334,9 @@ const BooleanSearchContent = () => {
 export default function BooleanSearch() {
   return (
     <ProtectedRoute>
-      <BooleanSearchContent />
+      <ModuleGate module="resume_jobs_studio">
+        <BooleanSearchContent />
+      </ModuleGate>
     </ProtectedRoute>
   );
 }

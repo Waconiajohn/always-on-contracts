@@ -21,8 +21,10 @@ import {
   logger,
   OptimizeLinkedInProfileSchema
 } from "@/lib/edgeFunction";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 
-export default function LinkedInProfileBuilder() {
+function LinkedInProfileBuilderContent() {
   const [currentHeadline, setCurrentHeadline] = useState("");
   const [currentAbout, setCurrentAbout] = useState("");
   const [targetRole, setTargetRole] = useState("");
@@ -600,5 +602,15 @@ export default function LinkedInProfileBuilder() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LinkedInProfileBuilder() {
+  return (
+    <ProtectedRoute>
+      <ModuleGate module="linkedin_pro">
+        <LinkedInProfileBuilderContent />
+      </ModuleGate>
+    </ProtectedRoute>
   );
 }

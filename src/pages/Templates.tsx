@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Pencil, Trash2, Mail, MessageSquare, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 
 interface Template {
   id: string;
@@ -323,7 +324,9 @@ const TemplatesContent = () => {
 const Templates = () => {
   return (
     <ProtectedRoute>
-      <TemplatesContent />
+      <ModuleGate module="resume_jobs_studio">
+        <TemplatesContent />
+      </ModuleGate>
     </ProtectedRoute>
   );
 };

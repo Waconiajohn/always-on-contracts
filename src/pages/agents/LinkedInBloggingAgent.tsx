@@ -20,8 +20,10 @@ import { QualityCheckModal } from "@/components/linkedin/QualityCheckModal";
 import { SeriesDashboard } from "@/components/linkedin/SeriesDashboard";
 import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
 import { VaultContentTracker } from "@/components/linkedin/VaultContentTracker";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 
-export default function LinkedInBloggingAgent() {
+function LinkedInBloggingAgentContent() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("professional");
   const [postType, setPostType] = useState("thought-leadership");
@@ -683,5 +685,15 @@ export default function LinkedInBloggingAgent() {
         onSave={handleSave}
       />
     </div>
+  );
+}
+
+export default function LinkedInBloggingAgent() {
+  return (
+    <ProtectedRoute>
+      <ModuleGate module="linkedin_pro">
+        <LinkedInBloggingAgentContent />
+      </ModuleGate>
+    </ProtectedRoute>
   );
 }

@@ -13,8 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { trackVaultTelemetry } from '@/lib/services/vaultTracking';
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ModuleGate } from "@/components/ModuleGate";
 
-export default function LinkedInNetworkingAgent() {
+function LinkedInNetworkingAgentContent() {
   const [scenario, setScenario] = useState<string>('cold_connection');
   const [targetName, setTargetName] = useState('');
   const [targetTitle, setTargetTitle] = useState('');
@@ -342,5 +344,15 @@ export default function LinkedInNetworkingAgent() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function LinkedInNetworkingAgent() {
+  return (
+    <ProtectedRoute>
+      <ModuleGate module="linkedin_pro">
+        <LinkedInNetworkingAgentContent />
+      </ModuleGate>
+    </ProtectedRoute>
   );
 }
