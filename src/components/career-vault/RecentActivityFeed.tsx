@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { getRecentActivities } from '@/lib/services/vaultActivityLogger';
+import { getRecentActivities } from '@/lib/services/vaultTracking';
 import { formatDistanceToNow } from 'date-fns';
 import { Activity, FileText, Brain, Target, Trophy, Sparkles } from 'lucide-react';
 

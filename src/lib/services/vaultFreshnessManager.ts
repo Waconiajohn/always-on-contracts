@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { logActivity } from './vaultActivityLogger';
+import { logActivity } from './vaultTracking';
 import { VAULT_TABLE_NAMES, getTableConfig } from '@/lib/constants/vaultTables';
 
 export interface StaleItem {

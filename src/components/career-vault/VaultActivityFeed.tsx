@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Activity, FileText, CheckCircle, Plus, TrendingUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { getRecentActivities } from '@/lib/services/vaultActivityLogger';
+import { getRecentActivities } from '@/lib/services/vaultTracking';
 
 interface ActivityItem {
   id: string;
