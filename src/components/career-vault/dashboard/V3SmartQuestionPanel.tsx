@@ -9,8 +9,8 @@ import {
   runVaultStrategicAudit,
   submitSmartQuestionAnswer,
   type SmartQuestion,
-} from "@/lib/services/vaultStrategicAudit";
-import { trackSmartQuestion } from "@/lib/services/vaultTelemetry";
+} from "@/lib/services/vaultAnalysis";
+import { trackSmartQuestion } from "@/lib/services/vaultTracking";
 
 interface V3SmartQuestionPanelProps {
   vaultId: string;

@@ -7,7 +7,7 @@ import { useResumeBuilderStore } from '@/stores/resumeBuilderStore';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { HiringManagerReviewPanel } from '@/components/resume-builder/HiringManagerReviewPanel';
-import { ATSScoreReportPanel } from '@/components/resume-builder/ATSScoreReportPanel';
+import { SmartATSScore } from '@/components/resume/SmartATSScore';
 import ResumeBuilderV8 from '@/components/resume-builder/v8/ResumeBuilderV8';
 
 type WizardStep = 
@@ -105,8 +105,9 @@ export default function ResumeBuilderV2() {
 
       case 'ats-score-report':
         return (
-          <ATSScoreReportPanel
-            resumeContent={store.displayJobText} // This should be the actual resume content
+          <SmartATSScore
+            viewMode="panel"
+            resumeContent={store.displayJobText}
             jobDescription={store.displayJobText}
             jobTitle={store.jobAnalysis?.roleProfile?.title}
             industry={store.jobAnalysis?.roleProfile?.industry}
