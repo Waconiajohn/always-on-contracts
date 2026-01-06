@@ -1,5 +1,14 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
+[functions.deep-fit-analysis]
+verify_jwt = true
+
+[functions.generate-strategic-language]
+verify_jwt = true
+
+[functions.generate-resume-versions]
+verify_jwt = true
+
 [functions.get-refinement-suggestions]
 verify_jwt = false
 
