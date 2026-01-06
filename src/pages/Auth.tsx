@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,38 +16,51 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the return URL from location state (set by ProtectedRoute)
+  const returnTo = (location.state as { returnTo?: string })?.returnTo;
   
   // Rate limiting state
   const loginAttemptsRef = useRef<{ count: number; timestamp: number }>({ count: 0, timestamp: Date.now() });
   const MAX_LOGIN_ATTEMPTS = 5;
   const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
+  // Helper to determine where to navigate after login
+  const getPostLoginDestination = async (userId: string): Promise<string> => {
+    // If there's a specific return destination, use it
+    if (returnTo && returnTo !== '/auth') {
+      return returnTo;
+    }
+    
+    // Otherwise, check vault and determine default destination
+    try {
+      const { data: vault, error } = await supabase
+        .from('career_vault')
+        .select('resume_raw_text, review_completion_percentage')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking vault:', error);
+        return "/career-vault";
+      }
+      
+      return vault?.resume_raw_text ? "/home" : "/career-vault";
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      return "/career-vault";
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        // Defer vault check to avoid blocking auth state changes
+        // Defer navigation to avoid blocking auth state changes
         setTimeout(async () => {
-          try {
-            const { data: vault, error } = await supabase
-              .from('career_vault')
-              .select('resume_raw_text, review_completion_percentage')
-              .eq('user_id', session.user.id)
-              .maybeSingle();
-            
-            if (error) {
-              console.error('Error checking vault:', error);
-              // If error, default to onboarding
-              navigate("/career-vault");
-              return;
-            }
-            
-            // If vault exists and has resume, go to home, otherwise start onboarding
-            navigate(vault?.resume_raw_text ? "/home" : "/career-vault");
-          } catch (err) {
-            console.error('Unexpected error:', err);
-            navigate("/career-vault");
-          }
+          const destination = await getPostLoginDestination(session.user.id);
+          navigate(destination, { replace: true });
         }, 0);
       }
     });
@@ -56,30 +69,14 @@ const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setTimeout(async () => {
-          try {
-            const { data: vault, error } = await supabase
-              .from('career_vault')
-              .select('resume_raw_text, review_completion_percentage')
-              .eq('user_id', session.user.id)
-              .maybeSingle();
-            
-            if (error) {
-              console.error('Error checking vault:', error);
-              navigate("/career-vault");
-              return;
-            }
-            
-            navigate(vault?.resume_raw_text ? "/home" : "/career-vault");
-          } catch (err) {
-            console.error('Unexpected error:', err);
-            navigate("/career-vault");
-          }
+          const destination = await getPostLoginDestination(session.user.id);
+          navigate(destination, { replace: true });
         }, 0);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, returnTo]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

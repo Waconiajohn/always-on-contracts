@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 
@@ -11,6 +11,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -33,9 +34,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Only redirect after loading is complete and there's no session
   useEffect(() => {
     if (!loading && !session) {
-      navigate("/auth");
+      // Preserve the intended destination so we can return after login
+      const returnTo = location.pathname + location.search;
+      navigate("/auth", { 
+        state: { returnTo },
+        replace: true 
+      });
     }
-  }, [loading, session, navigate]);
+  }, [loading, session, navigate, location]);
 
   if (loading) {
     return (
