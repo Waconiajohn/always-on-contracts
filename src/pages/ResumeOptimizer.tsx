@@ -1,9 +1,13 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ModuleGate } from "@/components/ModuleGate";
-import { ResumeOptimizer as ResumeOptimizerComponent } from "@/components/ResumeOptimizer";
+import { ResumeMatchWorkspace } from "@/components/resume-match";
 
 const ResumeOptimizerContent = () => {
-  return <ResumeOptimizerComponent />;
+  return (
+    <div className="container mx-auto py-6 px-4 h-[calc(100vh-4rem)]">
+      <ResumeMatchWorkspace className="h-full" />
+    </div>
+  );
 };
 
 export default function ResumeOptimizer() {
