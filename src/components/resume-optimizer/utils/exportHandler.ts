@@ -24,12 +24,15 @@ export function prepareForExport(
   careerProfile?: CareerProfile | null,
   jobTitle?: string
 ): ExportableResumeData {
-  // Extract name from career profile or use a default
-  const name = careerProfile?.uniqueValueProposition?.split(' ')[0] || 'Your Name';
+  // Use fullName from career profile, fallback to extracting from UVP or default
+  const name = careerProfile?.fullName || 'Your Name';
   
   return {
     name: name,
     contact: {
+      email: careerProfile?.email,
+      phone: careerProfile?.phone,
+      location: careerProfile?.location,
       headline: jobTitle || careerProfile?.careerTrajectory || 'Professional'
     },
     sections: version.sections.map(section => ({
@@ -55,6 +58,13 @@ export function generateResumeHTML(data: ExportableResumeData): string {
       </section>
     `;
   }).join('');
+
+  // Build contact info string
+  const contactParts = [
+    data.contact.email,
+    data.contact.phone,
+    data.contact.location
+  ].filter(Boolean);
 
   return `
     <!DOCTYPE html>
@@ -123,9 +133,7 @@ export function generateResumeHTML(data: ExportableResumeData): string {
       <header>
         <h1>${data.name}</h1>
         ${data.contact.headline ? `<p class="headline">${data.contact.headline}</p>` : ''}
-        <p class="contact">
-          ${[data.contact.email, data.contact.phone, data.contact.location].filter(Boolean).join(' | ')}
-        </p>
+        ${contactParts.length > 0 ? `<p class="contact">${contactParts.join(' | ')}</p>` : ''}
       </header>
       <main>
         ${sectionsHTML}

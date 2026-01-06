@@ -5,7 +5,7 @@ interface UseAutoSaveOptions {
   enabled?: boolean;
 }
 
-export function useAutoSave(options: UseAutoSaveOptions = {}) {
+export function useOptimizerAutoSave(options: UseAutoSaveOptions = {}) {
   const { enabled = true } = options;
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);

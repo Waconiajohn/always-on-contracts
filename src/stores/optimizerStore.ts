@@ -7,9 +7,20 @@ import {
   GapAnalysisResult, 
   CustomizationSettings, 
   ResumeVersion,
+  HiringManagerReview,
   VersionHistoryEntry,
   createInitialState
 } from '@/components/resume-optimizer/types';
+
+// Step order for navigation
+const STEP_ORDER: OptimizerStep[] = [
+  'career-profile',
+  'gap-analysis',
+  'answer-assistant',
+  'customization',
+  'strategic-versions',
+  'hiring-manager'
+];
 
 interface OptimizerStore extends OptimizerState {
   sessionId: string | null;
@@ -19,6 +30,7 @@ interface OptimizerStore extends OptimizerState {
   setInput: (resumeText: string, jobDescription: string, jobTitle?: string, company?: string) => void;
   setStep: (step: OptimizerStep) => void;
   setCareerProfile: (profile: CareerProfile) => void;
+  confirmProfile: () => void;
   setGapAnalysis: (analysis: GapAnalysisResult) => void;
   addSelectedAnswer: (questionId: string, answer: string) => void;
   setCustomization: (customization: CustomizationSettings) => void;
@@ -26,9 +38,17 @@ interface OptimizerStore extends OptimizerState {
   selectVersion: (versionId: string) => void;
   selectTemplate: (template: { id: string; name: string }) => void;
   updateSection: (versionId: string, sectionId: string, content: string[]) => void;
+  setHMReview: (review: HiringManagerReview) => void;
   setProcessing: (isProcessing: boolean, message?: string) => void;
+  setError: (error: string | null) => void;
   addVersionHistory: (entry: Omit<VersionHistoryEntry, 'id' | 'timestamp'>) => void;
   restoreVersion: (historyId: string) => void;
+  reset: () => void;
+  
+  // Navigation
+  goToStep: (step: OptimizerStep) => void;
+  goToNextStep: () => void;
+  goToPrevStep: () => void;
   
   // Session management
   hasActiveSession: () => boolean;
@@ -85,6 +105,8 @@ export const useOptimizerStore = create<OptimizerStore>()(
       
       setCareerProfile: (profile) => set({ careerProfile: profile, lastSaved: Date.now() }),
       
+      confirmProfile: () => set({ isProfileConfirmed: true, lastSaved: Date.now() }),
+      
       setGapAnalysis: (analysis) => set({ gapAnalysis: analysis, lastSaved: Date.now() }),
       
       addSelectedAnswer: (questionId, answer) => set(state => ({
@@ -110,7 +132,7 @@ export const useOptimizerStore = create<OptimizerStore>()(
             ? {
                 ...v,
                 sections: v.sections.map(s => 
-                  s.id === sectionId ? { ...s, content } : s
+                  s.id === sectionId ? { ...s, content, isEdited: true } : s
                 )
               }
             : v
@@ -118,10 +140,14 @@ export const useOptimizerStore = create<OptimizerStore>()(
         lastSaved: Date.now()
       })),
       
+      setHMReview: (review) => set({ hiringManagerReview: review, lastSaved: Date.now() }),
+      
       setProcessing: (isProcessing, message) => set({ 
         isProcessing, 
         processingMessage: message || '' 
       }),
+      
+      setError: (error) => set({ error }),
       
       addVersionHistory: (entry) => set(state => ({
         versionHistory: [
@@ -151,6 +177,33 @@ export const useOptimizerStore = create<OptimizerStore>()(
           selectedVersionId: restoredVersion.id,
           lastSaved: Date.now()
         });
+      },
+      
+      reset: () => set({
+        ...createInitialState(),
+        sessionId: null,
+        lastSaved: null,
+      }),
+      
+      // Navigation helpers
+      goToStep: (step) => {
+        get().setStep(step);
+      },
+      
+      goToNextStep: () => {
+        const { currentStep } = get();
+        const currentIndex = STEP_ORDER.indexOf(currentStep);
+        if (currentIndex < STEP_ORDER.length - 1) {
+          get().setStep(STEP_ORDER[currentIndex + 1]);
+        }
+      },
+      
+      goToPrevStep: () => {
+        const { currentStep } = get();
+        const currentIndex = STEP_ORDER.indexOf(currentStep);
+        if (currentIndex > 0) {
+          get().setStep(STEP_ORDER[currentIndex - 1]);
+        }
       },
       
       // Session management
@@ -185,12 +238,14 @@ export const useOptimizerStore = create<OptimizerStore>()(
         jobTitle: state.jobTitle,
         company: state.company,
         careerProfile: state.careerProfile,
+        isProfileConfirmed: state.isProfileConfirmed,
         gapAnalysis: state.gapAnalysis,
         selectedAnswers: state.selectedAnswers,
         customization: state.customization,
         resumeVersions: state.resumeVersions,
         selectedVersionId: state.selectedVersionId,
         selectedTemplate: state.selectedTemplate,
+        hiringManagerReview: state.hiringManagerReview,
         versionHistory: state.versionHistory,
         currentStep: state.currentStep,
         sessionId: state.sessionId,

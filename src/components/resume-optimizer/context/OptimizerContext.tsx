@@ -1,4 +1,16 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+/**
+ * @deprecated This context is deprecated. Use useOptimizerStore from '@/stores/optimizerStore' instead.
+ * This file is kept for backward compatibility during migration.
+ * 
+ * Migration guide:
+ * - Replace: import { useOptimizer } from './context/OptimizerContext'
+ * - With: import { useOptimizerStore } from '@/stores/optimizerStore'
+ * 
+ * The Zustand store provides the same functionality with persistence built-in.
+ */
+
+import { createContext, useContext, ReactNode } from 'react';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 import { 
   OptimizerState, 
   OptimizerStep, 
@@ -6,11 +18,10 @@ import {
   GapAnalysisResult,
   CustomizationSettings,
   ResumeVersion,
-  HiringManagerReview,
-  createInitialState 
+  HiringManagerReview
 } from '../types';
 
-// Actions
+// Legacy action types for compatibility
 type OptimizerAction =
   | { type: 'SET_INPUT'; resumeText: string; jobDescription: string; jobTitle?: string; company?: string }
   | { type: 'SET_STEP'; step: OptimizerStep }
@@ -27,80 +38,10 @@ type OptimizerAction =
   | { type: 'SET_ERROR'; error: string | null }
   | { type: 'RESET' };
 
-function optimizerReducer(state: OptimizerState, action: OptimizerAction): OptimizerState {
-  switch (action.type) {
-    case 'SET_INPUT':
-      return {
-        ...state,
-        resumeText: action.resumeText,
-        jobDescription: action.jobDescription,
-        jobTitle: action.jobTitle,
-        company: action.company
-      };
-    
-    case 'SET_STEP':
-      return { ...state, currentStep: action.step };
-    
-    case 'SET_CAREER_PROFILE':
-      return { ...state, careerProfile: action.profile };
-    
-    case 'CONFIRM_PROFILE':
-      return { ...state, isProfileConfirmed: true };
-    
-    case 'SET_GAP_ANALYSIS':
-      return { ...state, gapAnalysis: action.analysis };
-    
-    case 'SELECT_ANSWER':
-      return {
-        ...state,
-        selectedAnswers: {
-          ...state.selectedAnswers,
-          [action.requirementId]: action.answer
-        }
-      };
-    
-    case 'SET_CUSTOMIZATION':
-      return { ...state, customization: action.settings };
-    
-    case 'SET_RESUME_VERSIONS':
-      return { ...state, resumeVersions: action.versions };
-    
-    case 'SELECT_VERSION':
-      return { ...state, selectedVersionId: action.versionId };
-    
-    case 'SELECT_TEMPLATE':
-      return { 
-        ...state, 
-        selectedTemplate: { id: action.templateId, name: action.templateName } 
-      };
-    
-    case 'SET_HM_REVIEW':
-      return { ...state, hiringManagerReview: action.review };
-    
-    case 'SET_PROCESSING':
-      return { 
-        ...state, 
-        isProcessing: action.isProcessing, 
-        processingMessage: action.message || '' 
-      };
-    
-    case 'SET_ERROR':
-      return { ...state, error: action.error };
-    
-    case 'RESET':
-      return createInitialState();
-    
-    default:
-      return state;
-  }
-}
-
-// Context
+// Context interface wrapping Zustand store
 interface OptimizerContextValue {
   state: OptimizerState;
-  dispatch: React.Dispatch<OptimizerAction>;
-  
-  // Convenience methods
+  dispatch: (action: OptimizerAction) => void;
   goToStep: (step: OptimizerStep) => void;
   goToNextStep: () => void;
   goToPrevStep: () => void;
@@ -108,43 +49,98 @@ interface OptimizerContextValue {
 
 const OptimizerContext = createContext<OptimizerContextValue | null>(null);
 
-const STEP_ORDER: OptimizerStep[] = [
-  'career-profile',
-  'gap-analysis',
-  'answer-assistant',
-  'customization',
-  'strategic-versions',
-  'hiring-manager'
-];
-
+/**
+ * @deprecated Use useOptimizerStore directly instead
+ */
 export function OptimizerProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(optimizerReducer, createInitialState());
+  const store = useOptimizerStore();
   
-  const goToStep = (step: OptimizerStep) => {
-    dispatch({ type: 'SET_STEP', step });
+  // Build state object from store
+  const state: OptimizerState = {
+    resumeText: store.resumeText,
+    jobDescription: store.jobDescription,
+    jobTitle: store.jobTitle,
+    company: store.company,
+    careerProfile: store.careerProfile,
+    isProfileConfirmed: store.isProfileConfirmed,
+    gapAnalysis: store.gapAnalysis,
+    selectedAnswers: store.selectedAnswers,
+    customization: store.customization,
+    resumeVersions: store.resumeVersions,
+    selectedVersionId: store.selectedVersionId,
+    selectedTemplate: store.selectedTemplate,
+    hiringManagerReview: store.hiringManagerReview,
+    versionHistory: store.versionHistory,
+    currentStep: store.currentStep,
+    isProcessing: store.isProcessing,
+    processingMessage: store.processingMessage,
+    error: store.error,
   };
   
-  const goToNextStep = () => {
-    const currentIndex = STEP_ORDER.indexOf(state.currentStep);
-    if (currentIndex < STEP_ORDER.length - 1) {
-      dispatch({ type: 'SET_STEP', step: STEP_ORDER[currentIndex + 1] });
-    }
-  };
-  
-  const goToPrevStep = () => {
-    const currentIndex = STEP_ORDER.indexOf(state.currentStep);
-    if (currentIndex > 0) {
-      dispatch({ type: 'SET_STEP', step: STEP_ORDER[currentIndex - 1] });
+  // Dispatch adapter that maps legacy actions to Zustand store methods
+  const dispatch = (action: OptimizerAction) => {
+    switch (action.type) {
+      case 'SET_INPUT':
+        store.setInput(action.resumeText, action.jobDescription, action.jobTitle, action.company);
+        break;
+      case 'SET_STEP':
+        store.setStep(action.step);
+        break;
+      case 'SET_CAREER_PROFILE':
+        store.setCareerProfile(action.profile);
+        break;
+      case 'CONFIRM_PROFILE':
+        store.confirmProfile();
+        break;
+      case 'SET_GAP_ANALYSIS':
+        store.setGapAnalysis(action.analysis);
+        break;
+      case 'SELECT_ANSWER':
+        store.addSelectedAnswer(action.requirementId, action.answer);
+        break;
+      case 'SET_CUSTOMIZATION':
+        store.setCustomization(action.settings);
+        break;
+      case 'SET_RESUME_VERSIONS':
+        store.setResumeVersions(action.versions);
+        break;
+      case 'SELECT_VERSION':
+        store.selectVersion(action.versionId);
+        break;
+      case 'SELECT_TEMPLATE':
+        store.selectTemplate({ id: action.templateId, name: action.templateName });
+        break;
+      case 'SET_HM_REVIEW':
+        store.setHMReview(action.review);
+        break;
+      case 'SET_PROCESSING':
+        store.setProcessing(action.isProcessing, action.message);
+        break;
+      case 'SET_ERROR':
+        store.setError(action.error);
+        break;
+      case 'RESET':
+        store.reset();
+        break;
     }
   };
   
   return (
-    <OptimizerContext.Provider value={{ state, dispatch, goToStep, goToNextStep, goToPrevStep }}>
+    <OptimizerContext.Provider value={{ 
+      state, 
+      dispatch, 
+      goToStep: store.goToStep,
+      goToNextStep: store.goToNextStep, 
+      goToPrevStep: store.goToPrevStep 
+    }}>
       {children}
     </OptimizerContext.Provider>
   );
 }
 
+/**
+ * @deprecated Use useOptimizerStore directly instead
+ */
 export function useOptimizer() {
   const context = useContext(OptimizerContext);
   if (!context) {

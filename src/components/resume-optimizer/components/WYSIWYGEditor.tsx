@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,15 +6,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResumeSection } from '../types';
 import { 
-  Bold, 
-  Italic, 
   List, 
-  Undo2, 
-  Redo2, 
   Edit3, 
   Eye,
   Check,
-  X
+  X,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +26,6 @@ export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: W
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string[]>([]);
   const [modifiedSections, setModifiedSections] = useState<Set<string>>(new Set());
-  const editorRef = useRef<HTMLDivElement>(null);
 
   const handleStartEdit = (section: ResumeSection) => {
     if (readOnly) return;
@@ -56,64 +53,26 @@ export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: W
     setEditedContent(newContent);
   };
 
-  const handleAddBullet = () => {
-    setEditedContent([...editedContent, '']);
-  };
+  const handleAddBullet = useCallback(() => {
+    setEditedContent(prev => [...prev, '']);
+  }, []);
 
-  const handleRemoveBullet = (index: number) => {
-    setEditedContent(editedContent.filter((_, i) => i !== index));
-  };
-
-  const execCommand = useCallback((command: string) => {
-    document.execCommand(command, false);
+  const handleRemoveBullet = useCallback((index: number) => {
+    setEditedContent(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
+      {/* Toolbar - Simplified: removed deprecated execCommand buttons */}
       {!readOnly && editingSection && (
         <div className="sticky top-0 z-10 flex items-center gap-1 p-2 bg-muted/80 backdrop-blur rounded-lg border">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={() => execCommand('bold')}>
-                <Bold className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Bold</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={() => execCommand('italic')}>
-                <Italic className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Italic</TooltipContent>
-          </Tooltip>
-          <div className="w-px h-6 bg-border mx-1" />
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={handleAddBullet}>
-                <List className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Add bullet</TooltipContent>
-          </Tooltip>
-          <div className="w-px h-6 bg-border mx-1" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={() => execCommand('undo')}>
-                <Undo2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Undo</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={() => execCommand('redo')}>
-                <Redo2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Redo</TooltipContent>
+            <TooltipContent>Add bullet point</TooltipContent>
           </Tooltip>
           
           <div className="flex-1" />
@@ -131,7 +90,7 @@ export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: W
 
       {/* Sections */}
       <ScrollArea className="h-[55vh]">
-        <div ref={editorRef} className="space-y-6 pr-4">
+        <div className="space-y-6 pr-4">
           {sections.map((section) => {
             const isEditing = editingSection === section.id;
             const isModified = modifiedSections.has(section.id);
@@ -179,7 +138,7 @@ export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: W
                             type="text"
                             value={item}
                             onChange={(e) => handleContentChange(idx, e.target.value)}
-                            className="flex-1 text-sm px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="flex-1 text-sm px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                             placeholder="Enter content..."
                           />
                           <Button
@@ -191,7 +150,7 @@ export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: W
                             }}
                             className="text-destructive hover:text-destructive"
                           >
-                            <X className="h-4 w-4" />
+                            <Minus className="h-4 w-4" />
                           </Button>
                         </div>
                       ))}
