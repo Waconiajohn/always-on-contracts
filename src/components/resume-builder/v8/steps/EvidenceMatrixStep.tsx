@@ -38,6 +38,7 @@ export function EvidenceMatrixStep({
   evidenceMatrix,
   detected,
   isProcessing,
+  processingMessage: _processingMessage, // Unused but kept for interface compatibility
   onToggleEvidence,
   onRefresh,
   onNext,
