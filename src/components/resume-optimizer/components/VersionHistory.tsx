@@ -19,6 +19,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { VersionHistoryEntry, STEP_CONFIG, ResumeSection } from '../types';
 import { useOptimizerStore } from '@/stores/optimizerStore';
 import { format } from 'date-fns';
@@ -31,6 +41,7 @@ export function VersionHistory({ className }: VersionHistoryProps) {
   const { versionHistory, restoreVersion } = useOptimizerStore();
   const [previewEntry, setPreviewEntry] = useState<VersionHistoryEntry | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
 
   if (versionHistory.length === 0) {
     return null;
@@ -44,10 +55,21 @@ export function VersionHistory({ className }: VersionHistoryProps) {
     return STEP_CONFIG[step as keyof typeof STEP_CONFIG]?.title || step;
   };
 
-  const handleRestore = (historyId: string) => {
-    restoreVersion(historyId);
-    setIsOpen(false);
+  const handleRestoreClick = (historyId: string) => {
+    setConfirmRestoreId(historyId);
   };
+
+  const handleConfirmRestore = () => {
+    if (confirmRestoreId) {
+      restoreVersion(confirmRestoreId);
+      setConfirmRestoreId(null);
+      setPreviewEntry(null);
+      setIsOpen(false);
+    }
+  };
+
+  // Reversed for display (newest first)
+  const reversedHistory = versionHistory.slice().reverse();
 
   return (
     <>
@@ -74,10 +96,7 @@ export function VersionHistory({ className }: VersionHistoryProps) {
           
           <ScrollArea className="h-[calc(100vh-140px)] mt-6 pr-4">
             <div className="space-y-4">
-              {versionHistory
-                .slice()
-                .reverse()
-                .map((entry: VersionHistoryEntry, index: number) => (
+              {reversedHistory.map((entry: VersionHistoryEntry, index: number) => (
                   <motion.div
                     key={entry.id}
                     initial={{ opacity: 0, x: 20 }}
@@ -85,8 +104,8 @@ export function VersionHistory({ className }: VersionHistoryProps) {
                     transition={{ delay: index * 0.05 }}
                     className="relative"
                   >
-                    {/* Timeline connector */}
-                    {index < versionHistory.length - 1 && (
+                    {/* Timeline connector - show for all except the last item */}
+                    {index < reversedHistory.length - 1 && (
                       <div className="absolute left-4 top-12 w-0.5 h-[calc(100%+1rem)] bg-border" />
                     )}
                     
@@ -100,9 +119,16 @@ export function VersionHistory({ className }: VersionHistoryProps) {
                       <div className="flex-1 rounded-lg border bg-card p-4">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="font-medium text-sm">
-                              {entry.versionSnapshot.name}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">
+                                {entry.versionSnapshot.name}
+                              </p>
+                              {index === 0 && (
+                                <Badge variant="default" className="text-xs">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground mt-1">
                               {formatTime(entry.timestamp)}
                             </p>
@@ -125,14 +151,16 @@ export function VersionHistory({ className }: VersionHistoryProps) {
                             <Eye className="h-3 w-3 mr-1" />
                             Preview
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRestore(entry.id)}
-                          >
-                            <RotateCcw className="h-3 w-3 mr-1" />
-                            Restore
-                          </Button>
+                          {index !== 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRestoreClick(entry.id)}
+                            >
+                              <RotateCcw className="h-3 w-3 mr-1" />
+                              Restore
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -142,6 +170,25 @@ export function VersionHistory({ className }: VersionHistoryProps) {
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={!!confirmRestoreId} onOpenChange={() => setConfirmRestoreId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore this version?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace your current resume with this version. Your current work will be saved to history before restoring.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmRestore}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restore Version
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Preview Dialog */}
       <Dialog open={!!previewEntry} onOpenChange={() => setPreviewEntry(null)}>
@@ -179,8 +226,7 @@ export function VersionHistory({ className }: VersionHistoryProps) {
             </Button>
             <Button onClick={() => {
               if (previewEntry) {
-                handleRestore(previewEntry.id);
-                setPreviewEntry(null);
+                handleRestoreClick(previewEntry.id);
               }
             }}>
               <RotateCcw className="h-4 w-4 mr-2" />

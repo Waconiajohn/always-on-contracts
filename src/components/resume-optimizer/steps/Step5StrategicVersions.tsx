@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,15 @@ import { ArrowRight, ArrowLeft, Loader2, FileText, Check, Star, Eye, Edit3 } fro
 import { cn } from '@/lib/utils';
 import { TemplateSelector, ResumeTemplate, TEMPLATES } from '../components/TemplateSelector';
 import { WYSIWYGEditor } from '../components/WYSIWYGEditor';
+
+// Debounce utility
+function debounce<T extends (...args: Parameters<T>) => void>(fn: T, delay: number): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
 
 export function Step5StrategicVersions() {
   const { state, dispatch, goToNextStep, goToPrevStep } = useOptimizer();
@@ -53,11 +62,12 @@ export function Step5StrategicVersions() {
         setPreviewVersion(versions[0]);
         dispatch({ type: 'SELECT_VERSION', versionId: versions[0].id });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Could not generate resume versions';
       console.error('Generate versions error:', error);
       toast({
         title: 'Generation Failed',
-        description: error.message || 'Could not generate resume versions',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -76,7 +86,15 @@ export function Step5StrategicVersions() {
     dispatch({ type: 'SELECT_TEMPLATE', templateId: template.id, templateName: template.name });
   };
 
-  const handleSectionUpdate = (sectionId: string, content: string[]) => {
+  // Debounced state update to reduce store writes
+  const debouncedDispatch = useMemo(
+    () => debounce((versions: ResumeVersion[]) => {
+      dispatch({ type: 'SET_RESUME_VERSIONS', versions });
+    }, 500),
+    [dispatch]
+  );
+
+  const handleSectionUpdate = useCallback((sectionId: string, content: string[]) => {
     if (!previewVersion) return;
     
     const updatedSections = previewVersion.sections.map(section =>
@@ -88,12 +106,12 @@ export function Step5StrategicVersions() {
     const updatedVersion = { ...previewVersion, sections: updatedSections };
     setPreviewVersion(updatedVersion);
     
-    // Update in state
+    // Update in state with debounce
     const updatedVersions = state.resumeVersions.map(v =>
       v.id === previewVersion.id ? updatedVersion : v
     );
-    dispatch({ type: 'SET_RESUME_VERSIONS', versions: updatedVersions });
-  };
+    debouncedDispatch(updatedVersions);
+  }, [previewVersion, state.resumeVersions, debouncedDispatch]);
   
   if (isGenerating) {
     return (
