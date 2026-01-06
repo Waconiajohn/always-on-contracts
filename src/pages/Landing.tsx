@@ -145,7 +145,7 @@ export default function Landing() {
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
               Where Elite Coaching Meets
-              <span className="block bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent pb-2">
                 Intelligent Career Tech
               </span>
             </h1>
