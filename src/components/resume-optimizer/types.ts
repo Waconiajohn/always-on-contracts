@@ -226,6 +226,7 @@ export interface OptimizerState {
   // Step 5
   resumeVersions: ResumeVersion[];
   selectedVersionId?: string;
+  selectedTemplate?: { id: string; name: string };
   
   // Step 6
   hiringManagerReview: HiringManagerReview | null;

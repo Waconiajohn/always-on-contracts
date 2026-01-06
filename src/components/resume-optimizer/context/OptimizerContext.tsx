@@ -21,6 +21,7 @@ type OptimizerAction =
   | { type: 'SET_CUSTOMIZATION'; settings: CustomizationSettings }
   | { type: 'SET_RESUME_VERSIONS'; versions: ResumeVersion[] }
   | { type: 'SELECT_VERSION'; versionId: string }
+  | { type: 'SELECT_TEMPLATE'; templateId: string; templateName: string }
   | { type: 'SET_HM_REVIEW'; review: HiringManagerReview }
   | { type: 'SET_PROCESSING'; isProcessing: boolean; message?: string }
   | { type: 'SET_ERROR'; error: string | null }
@@ -66,6 +67,12 @@ function optimizerReducer(state: OptimizerState, action: OptimizerAction): Optim
     
     case 'SELECT_VERSION':
       return { ...state, selectedVersionId: action.versionId };
+    
+    case 'SELECT_TEMPLATE':
+      return { 
+        ...state, 
+        selectedTemplate: { id: action.templateId, name: action.templateName } 
+      };
     
     case 'SET_HM_REVIEW':
       return { ...state, hiringManagerReview: action.review };
