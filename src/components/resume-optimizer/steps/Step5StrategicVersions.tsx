@@ -2,19 +2,23 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOptimizer } from '../context/OptimizerContext';
 import { ResumeVersion } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, ArrowLeft, Loader2, FileText, Check, Star } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, FileText, Check, Star, Eye, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TemplateSelector, ResumeTemplate, TEMPLATES } from '../components/TemplateSelector';
+import { WYSIWYGEditor } from '../components/WYSIWYGEditor';
 
 export function Step5StrategicVersions() {
   const { state, dispatch, goToNextStep, goToPrevStep } = useOptimizer();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<ResumeVersion | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(TEMPLATES[0]);
+  const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
   
   useEffect(() => {
     if (state.resumeVersions.length === 0) {
@@ -66,6 +70,30 @@ export function Step5StrategicVersions() {
     setPreviewVersion(version);
     dispatch({ type: 'SELECT_VERSION', versionId: version.id });
   };
+
+  const handleSelectTemplate = (template: ResumeTemplate) => {
+    setSelectedTemplate(template);
+    dispatch({ type: 'SELECT_TEMPLATE', templateId: template.id, templateName: template.name });
+  };
+
+  const handleSectionUpdate = (sectionId: string, content: string[]) => {
+    if (!previewVersion) return;
+    
+    const updatedSections = previewVersion.sections.map(section =>
+      section.id === sectionId 
+        ? { ...section, content, isEdited: true }
+        : section
+    );
+    
+    const updatedVersion = { ...previewVersion, sections: updatedSections };
+    setPreviewVersion(updatedVersion);
+    
+    // Update in state
+    const updatedVersions = state.resumeVersions.map(v =>
+      v.id === previewVersion.id ? updatedVersion : v
+    );
+    dispatch({ type: 'SET_RESUME_VERSIONS', versions: updatedVersions });
+  };
   
   if (isGenerating) {
     return (
@@ -81,6 +109,23 @@ export function Step5StrategicVersions() {
   
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Template Selector */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Choose Template</CardTitle>
+          <CardDescription className="text-xs">
+            Select a template style for your resume
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TemplateSelector
+            selectedTemplateId={selectedTemplate.id}
+            onSelectTemplate={handleSelectTemplate}
+            compact
+          />
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Version Selection */}
         <div className="lg:col-span-1 space-y-4">
@@ -139,7 +184,7 @@ export function Step5StrategicVersions() {
           </Card>
         </div>
         
-        {/* Resume Preview */}
+        {/* Resume Preview/Editor */}
         <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader className="pb-3">
@@ -148,31 +193,36 @@ export function Step5StrategicVersions() {
                   <CardTitle>{previewVersion?.name || 'Resume Preview'}</CardTitle>
                   <CardDescription>{previewVersion?.description}</CardDescription>
                 </div>
-                {previewVersion?.score && (
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-primary">{previewVersion.score}%</div>
-                    <div className="text-xs text-muted-foreground">Match Score</div>
-                  </div>
-                )}
+                <div className="flex items-center gap-4">
+                  {previewVersion?.score && (
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-primary">{previewVersion.score}%</div>
+                      <div className="text-xs text-muted-foreground">Match Score</div>
+                    </div>
+                  )}
+                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'preview' | 'edit')}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="preview" className="gap-1">
+                        <Eye className="h-3 w-3" />
+                        Preview
+                      </TabsTrigger>
+                      <TabsTrigger value="edit" className="gap-1">
+                        <Edit3 className="h-3 w-3" />
+                        Edit
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[60vh] pr-4">
-                {previewVersion?.sections.map((section) => (
-                  <div key={section.id} className="mb-6">
-                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-2">
-                      {section.title}
-                    </h3>
-                    <ul className="space-y-2">
-                      {section.content.map((item, idx) => (
-                        <li key={idx} className="text-sm pl-4 border-l-2 border-muted">
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </ScrollArea>
+              {previewVersion && (
+                <WYSIWYGEditor
+                  sections={previewVersion.sections}
+                  onSectionUpdate={handleSectionUpdate}
+                  readOnly={viewMode === 'preview'}
+                />
+              )}
             </CardContent>
           </Card>
         </div>

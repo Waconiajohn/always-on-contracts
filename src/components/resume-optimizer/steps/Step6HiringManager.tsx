@@ -20,6 +20,8 @@ import {
   FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ExportDialog, ExportFormat } from '../components/ExportDialog';
+import { exportResume } from '../utils/exportHandler';
 
 const RECOMMENDATION_CONFIG: Record<string, {
   label: string;
@@ -58,6 +60,7 @@ export function Step6HiringManager() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   
   useEffect(() => {
     if (!state.hiringManagerReview) {
@@ -98,11 +101,37 @@ export function Step6HiringManager() {
     }
   };
   
-  const handleExport = () => {
-    toast({
-      title: 'Export Coming Soon',
-      description: 'PDF and DOCX export will be available shortly.'
-    });
+  const handleExport = async (format: ExportFormat) => {
+    const selectedVersion = state.resumeVersions.find(v => v.id === state.selectedVersionId);
+    if (!selectedVersion) {
+      toast({
+        title: 'No version selected',
+        description: 'Please select a resume version to export',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      await exportResume(
+        format,
+        selectedVersion,
+        state.careerProfile,
+        state.jobTitle,
+        state.selectedTemplate?.id
+      );
+      toast({
+        title: 'Export successful',
+        description: `Your resume has been downloaded as ${format.toUpperCase()}`
+      });
+    } catch (error: any) {
+      console.error('Export error:', error);
+      toast({
+        title: 'Export failed',
+        description: error.message || 'Could not export resume',
+        variant: 'destructive'
+      });
+    }
   };
   
   const handleFinish = () => {
@@ -263,7 +292,7 @@ export function Step6HiringManager() {
           </Button>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport} className="gap-2">
+          <Button variant="outline" onClick={() => setShowExportDialog(true)} className="gap-2">
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -273,6 +302,14 @@ export function Step6HiringManager() {
           </Button>
         </div>
       </div>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleExport}
+        resumeName={state.resumeVersions.find(v => v.id === state.selectedVersionId)?.name}
+      />
     </div>
   );
 }
