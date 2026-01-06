@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useOptimizer } from '../context/OptimizerContext';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 import { ConfidenceIndicator } from '../components/ConfidenceIndicator';
 import { AnalyzedRequirement, RequirementCategory } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,9 +59,20 @@ const CATEGORY_CONFIG: Record<RequirementCategory, {
 };
 
 export function Step2GapAnalysis() {
-  const { state, dispatch, goToNextStep, goToPrevStep } = useOptimizer();
   const { toast } = useToast();
+  
+  // Zustand store
+  const resumeText = useOptimizerStore(state => state.resumeText);
+  const jobDescription = useOptimizerStore(state => state.jobDescription);
+  const careerProfile = useOptimizerStore(state => state.careerProfile);
+  const gapAnalysis = useOptimizerStore(state => state.gapAnalysis);
+  const setGapAnalysis = useOptimizerStore(state => state.setGapAnalysis);
+  const setProcessing = useOptimizerStore(state => state.setProcessing);
+  const goToNextStep = useOptimizerStore(state => state.goToNextStep);
+  const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
+  
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<RequirementCategory, boolean>>({
     'highly-qualified': true,
     'partially-qualified': true,
@@ -70,37 +81,60 @@ export function Step2GapAnalysis() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
   useEffect(() => {
-    if (!state.gapAnalysis && state.resumeText && state.jobDescription) {
+    if (!gapAnalysis && resumeText && jobDescription) {
       runAnalysis();
     }
   }, []);
   
   const runAnalysis = async () => {
     setIsLoading(true);
-    dispatch({ type: 'SET_PROCESSING', isProcessing: true, message: 'Performing deep fit analysis...' });
+    setError(null);
+    setProcessing(true, 'Performing deep fit analysis...');
     
     try {
-      const { data, error } = await supabase.functions.invoke('deep-fit-analysis', {
+      const { data, error: apiError } = await supabase.functions.invoke('deep-fit-analysis', {
         body: {
-          resumeText: state.resumeText,
-          jobDescription: state.jobDescription,
-          careerProfile: state.careerProfile
+          resumeText,
+          jobDescription,
+          careerProfile
         }
       });
       
-      if (error) throw error;
+      if (apiError) {
+        // Handle rate limit and payment errors
+        if (apiError.message?.includes('429') || apiError.message?.includes('rate limit')) {
+          setError('You\'ve reached your usage limit. Please try again later.');
+          toast({
+            title: 'Rate Limit Reached',
+            description: 'Please wait a moment before trying again.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        if (apiError.message?.includes('402') || apiError.message?.includes('payment')) {
+          setError('This feature requires an active subscription.');
+          toast({
+            title: 'Subscription Required',
+            description: 'Please upgrade to access this feature.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        throw apiError;
+      }
       
-      dispatch({ type: 'SET_GAP_ANALYSIS', analysis: data });
-    } catch (error: any) {
-      console.error('Gap analysis error:', error);
+      setGapAnalysis(data);
+    } catch (err: any) {
+      console.error('Gap analysis error:', err);
+      setError(err.message || 'Could not perform gap analysis');
       toast({
         title: 'Analysis Failed',
-        description: error.message || 'Could not perform gap analysis',
+        description: err.message || 'Could not perform gap analysis',
         variant: 'destructive'
       });
     } finally {
       setIsLoading(false);
-      dispatch({ type: 'SET_PROCESSING', isProcessing: false });
+      setProcessing(false);
     }
   };
   
@@ -231,7 +265,7 @@ export function Step2GapAnalysis() {
     );
   };
   
-  if (isLoading || !state.gapAnalysis) {
+  if (isLoading || (!gapAnalysis && !error)) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -243,7 +277,26 @@ export function Step2GapAnalysis() {
     );
   }
   
-  const { highlyQualified, partiallyQualified, experienceGaps, overallFitScore, summary } = state.gapAnalysis;
+  if (error) {
+    return (
+      <Card className="max-w-4xl mx-auto">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <p className="text-destructive mb-4">{error}</p>
+          <div className="flex gap-2">
+            <Button onClick={goToPrevStep} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <Button onClick={runAnalysis}>
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  const { highlyQualified, partiallyQualified, experienceGaps, overallFitScore, summary } = gapAnalysis!;
   
   return (
     <div className="max-w-4xl mx-auto space-y-6">

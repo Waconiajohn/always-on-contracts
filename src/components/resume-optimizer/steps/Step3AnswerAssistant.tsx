@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { useOptimizer } from '../context/OptimizerContext';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 import { ConfidenceIndicator } from '../components/ConfidenceIndicator';
 import { AnalyzedRequirement, TonePreference } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,8 +30,17 @@ const TONE_LABELS: Record<TonePreference, string> = {
 };
 
 export function Step3AnswerAssistant() {
-  const { state, dispatch, goToNextStep, goToPrevStep } = useOptimizer();
   const { toast } = useToast();
+  
+  // Zustand store
+  const gapAnalysis = useOptimizerStore(state => state.gapAnalysis);
+  const jobTitle = useOptimizerStore(state => state.jobTitle);
+  const company = useOptimizerStore(state => state.company);
+  const selectedAnswers = useOptimizerStore(state => state.selectedAnswers);
+  const addSelectedAnswer = useOptimizerStore(state => state.addSelectedAnswer);
+  const goToNextStep = useOptimizerStore(state => state.goToNextStep);
+  const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
+  
   const [selectedRequirement, setSelectedRequirement] = useState<AnalyzedRequirement | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [alternatives, setAlternatives] = useState<Partial<Record<TonePreference, string>>>({});
@@ -40,14 +49,14 @@ export function Step3AnswerAssistant() {
   
   // Combine all requirements for selection
   const allRequirements = [
-    ...(state.gapAnalysis?.highlyQualified || []),
-    ...(state.gapAnalysis?.partiallyQualified || []),
-    ...(state.gapAnalysis?.experienceGaps || [])
+    ...(gapAnalysis?.highlyQualified || []),
+    ...(gapAnalysis?.partiallyQualified || []),
+    ...(gapAnalysis?.experienceGaps || [])
   ];
   
   const handleSelectRequirement = async (req: AnalyzedRequirement) => {
     setSelectedRequirement(req);
-    setCustomEdit(state.selectedAnswers[req.id] || req.suggestedLanguage);
+    setCustomEdit(selectedAnswers[req.id] || req.suggestedLanguage);
     
     // Generate alternatives if we don't have them
     if (!req.alternatives || req.alternatives.length === 0) {
@@ -74,8 +83,8 @@ export function Step3AnswerAssistant() {
           currentLanguage: req.suggestedLanguage,
           resumeEvidence: req.resumeEvidence,
           jobContext: {
-            title: state.jobTitle,
-            company: state.company
+            title: jobTitle,
+            company: company
           }
         }
       });
@@ -103,11 +112,7 @@ export function Step3AnswerAssistant() {
   
   const handleSelectAnswer = (text: string) => {
     if (selectedRequirement) {
-      dispatch({ 
-        type: 'SELECT_ANSWER', 
-        requirementId: selectedRequirement.id, 
-        answer: text 
-      });
+      addSelectedAnswer(selectedRequirement.id, text);
       setCustomEdit(text);
       toast({ title: 'Answer saved' });
     }
@@ -155,7 +160,7 @@ export function Step3AnswerAssistant() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-xs font-medium line-clamp-2">{req.requirement}</p>
-                    {state.selectedAnswers[req.id] && (
+                    {selectedAnswers[req.id] && (
                       <Check className="h-4 w-4 text-green-600 shrink-0" />
                     )}
                   </div>

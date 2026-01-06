@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useOptimizer } from '../context/OptimizerContext';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -56,53 +56,103 @@ const RECOMMENDATION_CONFIG: Record<string, {
 };
 
 export function Step6HiringManager() {
-  const { state, dispatch, goToPrevStep } = useOptimizer();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Zustand store
+  const resumeVersions = useOptimizerStore(state => state.resumeVersions);
+  const selectedVersionId = useOptimizerStore(state => state.selectedVersionId);
+  const jobDescription = useOptimizerStore(state => state.jobDescription);
+  const jobTitle = useOptimizerStore(state => state.jobTitle);
+  const careerProfile = useOptimizerStore(state => state.careerProfile);
+  const selectedTemplate = useOptimizerStore(state => state.selectedTemplate);
+  const hiringManagerReview = useOptimizerStore(state => state.hiringManagerReview);
+  const setHMReview = useOptimizerStore(state => state.setHMReview);
+  const setProcessing = useOptimizerStore(state => state.setProcessing);
+  const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
+  
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   
   useEffect(() => {
-    if (!state.hiringManagerReview) {
+    if (!hiringManagerReview) {
       runReview();
     }
   }, []);
   
   const runReview = async () => {
     setIsLoading(true);
-    dispatch({ type: 'SET_PROCESSING', isProcessing: true, message: 'Getting hiring manager perspective...' });
+    setError(null);
+    setProcessing(true, 'Getting hiring manager perspective...');
     
     try {
       // Get the selected version
-      const selectedVersion = state.resumeVersions.find(v => v.id === state.selectedVersionId);
+      const selectedVersion = resumeVersions.find(v => v.id === selectedVersionId);
       
-      const { data, error } = await supabase.functions.invoke('hiring-manager-review', {
+      const { data, error: apiError } = await supabase.functions.invoke('hiring-manager-review', {
         body: {
           resumeContent: selectedVersion?.sections || [],
-          jobDescription: state.jobDescription,
-          jobTitle: state.jobTitle,
-          industry: state.careerProfile?.industries?.[0]
+          jobDescription,
+          jobTitle,
+          industry: careerProfile?.industries?.[0]
         }
       });
       
-      if (error) throw error;
+      if (apiError) {
+        // Handle rate limit and payment errors
+        if (apiError.message?.includes('429') || apiError.message?.includes('rate limit')) {
+          setError('You\'ve reached your usage limit. Please try again later.');
+          toast({
+            title: 'Rate Limit Reached',
+            description: 'Please wait a moment before trying again.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        if (apiError.message?.includes('402') || apiError.message?.includes('payment')) {
+          setError('This feature requires an active subscription.');
+          toast({
+            title: 'Subscription Required',
+            description: 'Please upgrade to access this feature.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        throw apiError;
+      }
       
-      dispatch({ type: 'SET_HM_REVIEW', review: data });
-    } catch (error: any) {
-      console.error('HM review error:', error);
+      // Map edge function response to expected format
+      const review = data?.review || data;
+      setHMReview({
+        recommendation: review.would_interview ? 'yes' : 'maybe',
+        overallImpression: review.overall_impression || review.overallImpression || '',
+        strengthsIdentified: review.strengths?.map((s: any) => s.point || s) || review.strengthsIdentified || [],
+        specificConcerns: review.critical_gaps?.map((g: any) => ({
+          area: g.gap || g.area,
+          concern: g.why_matters || g.concern,
+          suggestion: g.recommendation || g.suggestion,
+          severity: g.severity === 'deal_breaker' ? 'critical' : g.severity === 'concerning' ? 'moderate' : 'minor'
+        })) || review.specificConcerns || [],
+        areasForImprovement: review.improvement_suggestions?.map((s: any) => s.suggested_improvement || s) || review.areasForImprovement || [],
+        suggestedQuestions: review.market_intelligence?.typical_requirements || review.suggestedQuestions || []
+      });
+    } catch (err: any) {
+      console.error('HM review error:', err);
+      setError(err.message || 'Could not get hiring manager review');
       toast({
         title: 'Review Failed',
-        description: error.message || 'Could not get hiring manager review',
+        description: err.message || 'Could not get hiring manager review',
         variant: 'destructive'
       });
     } finally {
       setIsLoading(false);
-      dispatch({ type: 'SET_PROCESSING', isProcessing: false });
+      setProcessing(false);
     }
   };
   
   const handleExport = async (format: ExportFormat) => {
-    const selectedVersion = state.resumeVersions.find(v => v.id === state.selectedVersionId);
+    const selectedVersion = resumeVersions.find(v => v.id === selectedVersionId);
     if (!selectedVersion) {
       toast({
         title: 'No version selected',
@@ -116,19 +166,19 @@ export function Step6HiringManager() {
       await exportResume(
         format,
         selectedVersion,
-        state.careerProfile,
-        state.jobTitle,
-        state.selectedTemplate?.id
+        careerProfile,
+        jobTitle,
+        selectedTemplate?.id
       );
       toast({
         title: 'Export successful',
         description: `Your resume has been downloaded as ${format.toUpperCase()}`
       });
-    } catch (error: any) {
-      console.error('Export error:', error);
+    } catch (err: any) {
+      console.error('Export error:', err);
       toast({
         title: 'Export failed',
-        description: error.message || 'Could not export resume',
+        description: err.message || 'Could not export resume',
         variant: 'destructive'
       });
     }
@@ -142,7 +192,7 @@ export function Step6HiringManager() {
     navigate('/my-resumes');
   };
   
-  if (isLoading || !state.hiringManagerReview) {
+  if (isLoading || (!hiringManagerReview && !error)) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardContent className="flex flex-col items-center justify-center py-16">
@@ -153,8 +203,27 @@ export function Step6HiringManager() {
     );
   }
   
-  const review = state.hiringManagerReview;
-  const recConfig = RECOMMENDATION_CONFIG[review.recommendation];
+  if (error) {
+    return (
+      <Card className="max-w-4xl mx-auto">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <p className="text-destructive mb-4">{error}</p>
+          <div className="flex gap-2">
+            <Button onClick={goToPrevStep} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <Button onClick={runReview}>
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  const review = hiringManagerReview!;
+  const recConfig = RECOMMENDATION_CONFIG[review.recommendation] || RECOMMENDATION_CONFIG['maybe'];
   
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -180,27 +249,29 @@ export function Step6HiringManager() {
       </Card>
       
       {/* Strengths */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            Strengths Identified
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {review.strengthsIdentified.map((strength, idx) => (
-              <li key={idx} className="text-sm flex items-start gap-2">
-                <ThumbsUp className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
-                {strength}
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      {review.strengthsIdentified?.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              Strengths Identified
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {review.strengthsIdentified.map((strength, idx) => (
+                <li key={idx} className="text-sm flex items-start gap-2">
+                  <ThumbsUp className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                  {strength}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Concerns */}
-      {review.specificConcerns.length > 0 && (
+      {review.specificConcerns?.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -236,7 +307,7 @@ export function Step6HiringManager() {
       )}
       
       {/* Areas for Improvement */}
-      {review.areasForImprovement.length > 0 && (
+      {review.areasForImprovement?.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -258,7 +329,7 @@ export function Step6HiringManager() {
       )}
       
       {/* Likely Interview Questions */}
-      {review.suggestedQuestions.length > 0 && (
+      {review.suggestedQuestions?.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -308,7 +379,7 @@ export function Step6HiringManager() {
         open={showExportDialog}
         onClose={() => setShowExportDialog(false)}
         onExport={handleExport}
-        resumeName={state.resumeVersions.find(v => v.id === state.selectedVersionId)?.name}
+        resumeName={resumeVersions.find(v => v.id === selectedVersionId)?.name}
       />
     </div>
   );
