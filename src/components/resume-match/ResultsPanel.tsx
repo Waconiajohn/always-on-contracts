@@ -9,6 +9,7 @@ import { ResumeMatchResult } from './types';
 import { KeywordBreakdown } from './KeywordBreakdown';
 import { ATSCompliancePanel } from './ATSCompliancePanel';
 import { ExportReportButton } from './ExportReportButton';
+import { ScoreTooltip } from './ScoreTooltip';
 
 interface ResultsPanelProps {
   result: ResumeMatchResult | null;
@@ -149,6 +150,9 @@ export function ResultsPanel({
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold">{result.overallScore}%</span>
                   <span className="text-2xl">{tier?.emoji}</span>
+                  <div className="ml-1">
+                    <ScoreTooltip />
+                  </div>
                 </div>
                 <p className="text-sm opacity-90 mt-1">{tier?.message}</p>
               </div>

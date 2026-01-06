@@ -43,9 +43,10 @@ ${resumeContent}
 TASK:
 1. Detect the role, industry, and seniority level
 2. Calculate overall match score (0-100)
-3. Identify 3-5 priority gaps with fixes
-4. List missing keywords
-5. List key strengths
+3. Identify ALL priority gaps with fixes (not just top 5)
+4. List ALL missing keywords from the job description
+5. List ALL matching keywords found in resume
+6. List key strengths
 
 Return this exact structure:
 {
@@ -64,8 +65,17 @@ Return this exact structure:
       "priority": 1
     }
   ],
-  "missingKeywords": ["keyword1", "keyword2"],
+  "missingKeywords": ["keyword1", "keyword2", "...all missing keywords"],
+  "matchedKeywords": ["keyword1", "keyword2", "...all matched keywords"],
   "breakdown": {
+    "hardSkills": {
+      "matched": ["Python", "JavaScript"],
+      "missing": ["AWS", "Docker"]
+    },
+    "softSkills": {
+      "matched": ["Leadership"],
+      "missing": ["Communication"]
+    },
     "strengths": [
       { "description": "Specific strength description" }
     ]

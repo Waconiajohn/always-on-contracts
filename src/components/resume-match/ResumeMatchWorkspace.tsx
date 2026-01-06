@@ -7,6 +7,8 @@ import { useRealtimeResumeScore } from '@/hooks/useRealtimeResumeScore';
 import { ResumeInputPanel } from './ResumeInputPanel';
 import { JobDescriptionPanel } from './JobDescriptionPanel';
 import { ResultsPanel } from './ResultsPanel';
+import { PrivacyNotice } from './PrivacyNotice';
+import { useKeyboardShortcuts, KeyboardShortcutsTooltip } from './KeyboardShortcuts';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -79,6 +81,18 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
     toast.success('Workspace cleared');
   }, [clearAll, clearResult]);
 
+  const handleExport = useCallback(() => {
+    // Trigger export from results panel (handled there)
+    toast.info('Use the export button in results panel');
+  }, []);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onAnalyze: handleAnalyze,
+    onReset: handleReset,
+    onExport: handleExport
+  });
+
   const canAnalyze = resumeText.length >= 100 && jobDescription.length >= 50;
   const hasContent = resumeText.length > 0 || jobDescription.length > 0;
 
@@ -93,6 +107,7 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <KeyboardShortcutsTooltip />
           {hasContent && (
             <Button 
               variant="ghost" 
@@ -160,6 +175,9 @@ export function ResumeMatchWorkspace({ className }: ResumeMatchWorkspaceProps) {
       <div className="lg:hidden flex justify-center py-2">
         <ArrowRight className="h-5 w-5 text-muted-foreground" />
       </div>
+
+      {/* Privacy Notice Footer */}
+      <PrivacyNotice />
     </div>
   );
 }
