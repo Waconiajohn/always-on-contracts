@@ -30,7 +30,14 @@ export function SessionRecoveryDialog({
   const sessionAge = getSessionAge();
 
   return (
-    <AlertDialog open={open}>
+    <AlertDialog 
+      open={open} 
+      onOpenChange={(isOpen) => {
+        // Prevent closing by clicking outside or pressing Escape
+        // User must choose an explicit action
+        if (!isOpen) return;
+      }}
+    >
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">

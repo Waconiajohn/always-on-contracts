@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { OptimizerProvider, useOptimizer } from './context/OptimizerContext';
 import { ProgressStepper } from './components/ProgressStepper';
 import { Step1CareerProfile } from './steps/Step1CareerProfile';
 import { Step2GapAnalysis } from './steps/Step2GapAnalysis';
@@ -16,21 +15,21 @@ import { STEP_CONFIG } from './types';
 import { Loader2 } from 'lucide-react';
 import { useOptimizerStore } from '@/stores/optimizerStore';
 
-function OptimizerContent() {
-  const { state, dispatch } = useOptimizer();
+export default function ResumeOptimizerV9() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const { 
+    currentStep,
+    isProcessing,
+    processingMessage,
+    resumeText,
+    jobDescription,
     hasActiveSession, 
     clearSession, 
     setInput,
-    currentStep: storedStep,
-    resumeText: storedResume,
-    jobDescription: storedJD,
-    jobTitle: storedJobTitle,
-    company: storedCompany
   } = useOptimizerStore();
   
   // Check for existing session on mount
@@ -45,43 +44,28 @@ function OptimizerContent() {
     
     // If coming from QuickScore with fresh data, use that
     if (stateData?.resumeText && stateData?.jobDescription) {
-      dispatch({
-        type: 'SET_INPUT',
-        resumeText: stateData.resumeText,
-        jobDescription: stateData.jobDescription,
-        jobTitle: stateData.jobTitle,
-        company: stateData.company
-      });
-      // Also store in Zustand for persistence
       setInput(stateData.resumeText, stateData.jobDescription, stateData.jobTitle, stateData.company);
+      setIsInitialized(true);
       return;
     }
     
     // Check for existing session
     if (hasActiveSession() && !stateData?.fromQuickScore) {
       setShowRecoveryDialog(true);
-    } else if (!state.resumeText || !state.jobDescription) {
+    } else if (!resumeText || !jobDescription) {
       // Redirect to quick-score if no input data
       navigate('/quick-score');
+      return;
     }
+    
+    setIsInitialized(true);
   }, []);
   
   const handleContinueSession = () => {
-    // Restore from Zustand store
-    if (storedResume && storedJD) {
-      dispatch({
-        type: 'SET_INPUT',
-        resumeText: storedResume,
-        jobDescription: storedJD,
-        jobTitle: storedJobTitle,
-        company: storedCompany
-      });
-      // If there's a stored step, navigate to it
-      if (storedStep !== 'career-profile') {
-        dispatch({ type: 'SET_STEP', step: storedStep });
-      }
-    }
+    // Zustand already has the persisted state, just close dialog
+    // State is automatically loaded from localStorage
     setShowRecoveryDialog(false);
+    setIsInitialized(true);
   };
   
   const handleStartFresh = () => {
@@ -90,10 +74,10 @@ function OptimizerContent() {
     navigate('/quick-score');
   };
   
-  const stepConfig = STEP_CONFIG[state.currentStep];
+  const stepConfig = STEP_CONFIG[currentStep];
   
   const renderStep = () => {
-    switch (state.currentStep) {
+    switch (currentStep) {
       case 'career-profile':
         return <Step1CareerProfile />;
       case 'gap-analysis':
@@ -110,6 +94,15 @@ function OptimizerContent() {
         return null;
     }
   };
+  
+  // Show loading while checking session
+  if (!isInitialized && !showRecoveryDialog) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-background">
@@ -141,7 +134,7 @@ function OptimizerContent() {
           </div>
           
           <ProgressStepper 
-            currentStep={state.currentStep} 
+            currentStep={currentStep} 
             className="mt-4" 
           />
         </div>
@@ -151,7 +144,7 @@ function OptimizerContent() {
       <main className="container py-6">
         <AnimatePresence mode="wait">
           <motion.div
-            key={state.currentStep}
+            key={currentStep}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -163,22 +156,14 @@ function OptimizerContent() {
       </main>
       
       {/* Processing Overlay */}
-      {state.isProcessing && (
+      {isProcessing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4 rounded-lg border bg-card p-8 shadow-lg">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">{state.processingMessage}</p>
+            <p className="text-sm text-muted-foreground">{processingMessage}</p>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-export default function ResumeOptimizerV9() {
-  return (
-    <OptimizerProvider>
-      <OptimizerContent />
-    </OptimizerProvider>
   );
 }

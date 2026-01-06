@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
-import { useAutoSave } from '../hooks/useAutoSave';
+import { useOptimizerAutoSave } from '../hooks/useOptimizerAutoSave';
 import { cn } from '@/lib/utils';
 
 interface AutoSaveIndicatorProps {
@@ -8,7 +8,7 @@ interface AutoSaveIndicatorProps {
 }
 
 export function AutoSaveIndicator({ className }: AutoSaveIndicatorProps) {
-  const { isSaving, formatLastSave } = useAutoSave();
+  const { isSaving, formatLastSave } = useOptimizerAutoSave();
   const lastSaveText = formatLastSave();
 
   return (

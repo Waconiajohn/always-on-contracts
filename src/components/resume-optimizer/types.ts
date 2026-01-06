@@ -95,6 +95,13 @@ export const CONFIDENCE_CONFIG: Record<ConfidenceLevel, {
 
 // Career Profile (Step 1)
 export interface CareerProfile {
+  // Contact info for export
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  
+  // Career data
   yearsOfExperience: number;
   seniority: string;
   industries: string[];
