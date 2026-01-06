@@ -57,6 +57,7 @@ interface OptimizerStore extends OptimizerState {
 }
 
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+const MAX_VERSION_HISTORY = 20; // Limit version history to prevent unbounded growth
 
 export const useOptimizerStore = create<OptimizerStore>()(
   persist(
@@ -149,17 +150,22 @@ export const useOptimizerStore = create<OptimizerStore>()(
       
       setError: (error) => set({ error }),
       
-      addVersionHistory: (entry) => set(state => ({
-        versionHistory: [
-          ...state.versionHistory.slice(-9),
-          {
-            ...entry,
-            id: crypto.randomUUID(),
-            timestamp: Date.now()
-          }
-        ],
-        lastSaved: Date.now()
-      })),
+      addVersionHistory: (entry) => set(state => {
+        const newEntry = {
+          ...entry,
+          id: crypto.randomUUID(),
+          timestamp: Date.now()
+        };
+        // Keep first entry (original) and trim to MAX_VERSION_HISTORY
+        const trimmedHistory = state.versionHistory.length >= MAX_VERSION_HISTORY
+          ? [state.versionHistory[0], ...state.versionHistory.slice(-(MAX_VERSION_HISTORY - 2)), newEntry]
+          : [...state.versionHistory, newEntry];
+        
+        return {
+          versionHistory: trimmedHistory,
+          lastSaved: Date.now()
+        };
+      }),
       
       restoreVersion: (historyId) => {
         const state = get();
