@@ -414,7 +414,7 @@ Include the job title, requirements, responsibilities, and qualifications for th
                   <p className="text-lg text-center">
                     Right now, your résumé makes you look <strong>"qualified."</strong>
                     <br />
-                    Our goal: make you look <strong className="text-primary">must-interview</strong>.
+                    Our goal: make you <strong className="text-primary">impossible to ignore</strong>.
                   </p>
                   <p className="text-sm text-muted-foreground text-center mt-4">
                     We don't fabricate. We extract, align, and translate your real experience into the language of the job you want.
