@@ -202,6 +202,15 @@ export interface HMConcern {
   severity: 'critical' | 'moderate' | 'minor';
 }
 
+// Version History Entry
+export interface VersionHistoryEntry {
+  id: string;
+  timestamp: number;
+  stepCompleted: OptimizerStep;
+  versionSnapshot: ResumeVersion;
+  changeDescription: string;
+}
+
 // Main State
 export interface OptimizerState {
   // Input data
@@ -231,6 +240,9 @@ export interface OptimizerState {
   // Step 6
   hiringManagerReview: HiringManagerReview | null;
   
+  // Version History
+  versionHistory: VersionHistoryEntry[];
+  
   // UI State
   currentStep: OptimizerStep;
   isProcessing: boolean;
@@ -254,6 +266,7 @@ export const createInitialState = (): OptimizerState => ({
   resumeVersions: [],
   selectedVersionId: undefined,
   hiringManagerReview: null,
+  versionHistory: [],
   currentStep: 'career-profile',
   isProcessing: false,
   processingMessage: '',

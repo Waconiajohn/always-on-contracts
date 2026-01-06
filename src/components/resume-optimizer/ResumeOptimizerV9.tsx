@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OptimizerProvider, useOptimizer } from './context/OptimizerContext';
@@ -9,17 +9,41 @@ import { Step3AnswerAssistant } from './steps/Step3AnswerAssistant';
 import { Step4Customization } from './steps/Step4Customization';
 import { Step5StrategicVersions } from './steps/Step5StrategicVersions';
 import { Step6HiringManager } from './steps/Step6HiringManager';
+import { SessionRecoveryDialog } from './components/SessionRecoveryDialog';
+import { AutoSaveIndicator } from './components/AutoSaveIndicator';
+import { VersionHistory } from './components/VersionHistory';
 import { STEP_CONFIG } from './types';
 import { Loader2 } from 'lucide-react';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 
 function OptimizerContent() {
   const { state, dispatch } = useOptimizer();
   const location = useLocation();
   const navigate = useNavigate();
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   
-  // Initialize from location state (from QuickScore)
+  const { 
+    hasActiveSession, 
+    clearSession, 
+    setInput,
+    currentStep: storedStep,
+    resumeText: storedResume,
+    jobDescription: storedJD,
+    jobTitle: storedJobTitle,
+    company: storedCompany
+  } = useOptimizerStore();
+  
+  // Check for existing session on mount
   useEffect(() => {
-    const stateData = location.state as any;
+    const stateData = location.state as { 
+      resumeText?: string; 
+      jobDescription?: string; 
+      jobTitle?: string; 
+      company?: string; 
+      fromQuickScore?: boolean 
+    } | null;
+    
+    // If coming from QuickScore with fresh data, use that
     if (stateData?.resumeText && stateData?.jobDescription) {
       dispatch({
         type: 'SET_INPUT',
@@ -28,11 +52,43 @@ function OptimizerContent() {
         jobTitle: stateData.jobTitle,
         company: stateData.company
       });
+      // Also store in Zustand for persistence
+      setInput(stateData.resumeText, stateData.jobDescription, stateData.jobTitle, stateData.company);
+      return;
+    }
+    
+    // Check for existing session
+    if (hasActiveSession() && !stateData?.fromQuickScore) {
+      setShowRecoveryDialog(true);
     } else if (!state.resumeText || !state.jobDescription) {
       // Redirect to quick-score if no input data
       navigate('/quick-score');
     }
-  }, [location.state, dispatch, navigate, state.resumeText, state.jobDescription]);
+  }, []);
+  
+  const handleContinueSession = () => {
+    // Restore from Zustand store
+    if (storedResume && storedJD) {
+      dispatch({
+        type: 'SET_INPUT',
+        resumeText: storedResume,
+        jobDescription: storedJD,
+        jobTitle: storedJobTitle,
+        company: storedCompany
+      });
+      // If there's a stored step, navigate to it
+      if (storedStep !== 'career-profile') {
+        dispatch({ type: 'SET_STEP', step: storedStep });
+      }
+    }
+    setShowRecoveryDialog(false);
+  };
+  
+  const handleStartFresh = () => {
+    clearSession();
+    setShowRecoveryDialog(false);
+    navigate('/quick-score');
+  };
   
   const stepConfig = STEP_CONFIG[state.currentStep];
   
@@ -57,6 +113,13 @@ function OptimizerContent() {
   
   return (
     <div className="min-h-screen bg-background">
+      {/* Session Recovery Dialog */}
+      <SessionRecoveryDialog
+        open={showRecoveryDialog}
+        onContinue={handleContinueSession}
+        onStartFresh={handleStartFresh}
+      />
+      
       {/* Header */}
       <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container py-4">
@@ -68,8 +131,12 @@ function OptimizerContent() {
                 <p className="text-sm text-muted-foreground">{stepConfig.subtitle}</p>
               </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              ~{stepConfig.estimatedTime}
+            <div className="flex items-center gap-4">
+              <AutoSaveIndicator />
+              <VersionHistory />
+              <div className="text-sm text-muted-foreground">
+                ~{stepConfig.estimatedTime}
+              </div>
             </div>
           </div>
           
