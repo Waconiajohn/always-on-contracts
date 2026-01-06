@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useOptimizer } from '../context/OptimizerContext';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 import { IntensityLevel, TonePreference } from '../types';
 import { ArrowRight, ArrowLeft, Shield, Zap, Flame, MessageSquare, Code, User, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -56,20 +56,18 @@ const TONE_OPTIONS: { value: TonePreference; label: string; description: string;
 ];
 
 export function Step4Customization() {
-  const { state, dispatch, goToNextStep, goToPrevStep } = useOptimizer();
+  // Zustand store
+  const customization = useOptimizerStore(state => state.customization);
+  const setCustomization = useOptimizerStore(state => state.setCustomization);
+  const goToNextStep = useOptimizerStore(state => state.goToNextStep);
+  const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
   
   const handleIntensityChange = (value: IntensityLevel) => {
-    dispatch({
-      type: 'SET_CUSTOMIZATION',
-      settings: { ...state.customization, intensity: value }
-    });
+    setCustomization({ ...customization, intensity: value });
   };
   
   const handleToneChange = (value: TonePreference) => {
-    dispatch({
-      type: 'SET_CUSTOMIZATION',
-      settings: { ...state.customization, tone: value }
-    });
+    setCustomization({ ...customization, tone: value });
   };
   
   return (
@@ -84,7 +82,7 @@ export function Step4Customization() {
         </CardHeader>
         <CardContent>
           <RadioGroup
-            value={state.customization.intensity}
+            value={customization.intensity}
             onValueChange={(v) => handleIntensityChange(v as IntensityLevel)}
             className="grid grid-cols-1 md:grid-cols-3 gap-4"
           >
@@ -94,7 +92,7 @@ export function Step4Customization() {
                 htmlFor={option.value}
                 className={cn(
                   'flex flex-col items-center gap-3 p-6 rounded-lg border-2 cursor-pointer transition-all',
-                  state.customization.intensity === option.value
+                  customization.intensity === option.value
                     ? 'border-primary bg-primary/5'
                     : 'border-muted hover:border-muted-foreground/50'
                 )}
@@ -102,7 +100,7 @@ export function Step4Customization() {
                 <RadioGroupItem value={option.value} id={option.value} className="sr-only" />
                 <div className={cn(
                   'p-3 rounded-full',
-                  state.customization.intensity === option.value
+                  customization.intensity === option.value
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted'
                 )}>
@@ -128,7 +126,7 @@ export function Step4Customization() {
         </CardHeader>
         <CardContent>
           <RadioGroup
-            value={state.customization.tone}
+            value={customization.tone}
             onValueChange={(v) => handleToneChange(v as TonePreference)}
             className="grid grid-cols-2 md:grid-cols-4 gap-4"
           >
@@ -138,7 +136,7 @@ export function Step4Customization() {
                 htmlFor={`tone-${option.value}`}
                 className={cn(
                   'flex flex-col items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
-                  state.customization.tone === option.value
+                  customization.tone === option.value
                     ? 'border-primary bg-primary/5'
                     : 'border-muted hover:border-muted-foreground/50'
                 )}
@@ -146,7 +144,7 @@ export function Step4Customization() {
                 <RadioGroupItem value={option.value} id={`tone-${option.value}`} className="sr-only" />
                 <div className={cn(
                   'p-2 rounded-full',
-                  state.customization.tone === option.value
+                  customization.tone === option.value
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted'
                 )}>
@@ -166,8 +164,8 @@ export function Step4Customization() {
       <Card className="bg-muted/30">
         <CardContent className="py-4">
           <p className="text-sm text-center text-muted-foreground">
-            Your resume will be generated with <strong>{state.customization.intensity}</strong> optimization 
-            and a <strong>{state.customization.tone}</strong> tone.
+            Your resume will be generated with <strong>{customization.intensity}</strong> optimization 
+            and a <strong>{customization.tone}</strong> tone.
           </p>
         </CardContent>
       </Card>
