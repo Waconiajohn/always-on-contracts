@@ -12,9 +12,13 @@ import {
   ArrowRight, 
   RefreshCw,
   Building,
-  Briefcase
+  Briefcase,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSmartAnswers } from '@/hooks/useSmartAnswers';
+import { SmartAnswerCard } from '@/components/resume-builder/SmartAnswerCard';
 import type { GapAnalysis, EvidenceMatrixResult, DetectedInfo } from '../types';
 
 interface EvidenceMatrixStepProps {
@@ -40,6 +44,27 @@ export function EvidenceMatrixStep({
   canProceed
 }: EvidenceMatrixStepProps) {
   const selectedCount = evidenceMatrix?.matches.filter(m => m.isSelected).length || 0;
+
+  // AI suggestions for missing requirements
+  const {
+    suggestions,
+    loadingSuggestions,
+    loadingAlternatives,
+    generateSuggestion,
+    generateMoreAlternatives,
+    selectAnswer,
+    provideFeedback
+  } = useSmartAnswers({
+    jobContext: {
+      title: detected.role,
+      company: undefined
+    }
+  });
+
+  const handleRequestAISuggestion = (requirement: string, workaround: string, index: number) => {
+    const key = `gap-${index}`;
+    generateSuggestion(key, requirement, 'experienceGaps', workaround);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -169,7 +194,7 @@ export function EvidenceMatrixStep({
           </Card>
         ))}
 
-        {/* Gaps Warning */}
+        {/* Gaps with AI Suggestions */}
         {gapAnalysis && gapAnalysis.missingRequirements.length > 0 && (
           <Card className="border-amber-500/50">
             <CardHeader>
@@ -178,18 +203,58 @@ export function EvidenceMatrixStep({
                 Missing Requirements ({gapAnalysis.missingRequirements.length})
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {gapAnalysis.missingRequirements.slice(0, 3).map((req, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <XCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                    <div>
-                      <span className="font-medium">{req.requirement}</span>
-                      <p className="text-muted-foreground">{req.workaround}</p>
+            <CardContent className="space-y-4">
+              {gapAnalysis.missingRequirements.map((req, i) => {
+                const suggestionKey = `gap-${i}`;
+                const suggestion = suggestions[suggestionKey];
+                const isLoading = loadingSuggestions.has(suggestionKey);
+                const isLoadingAlts = loadingAlternatives.has(suggestionKey);
+
+                return (
+                  <div key={i} className="space-y-3 pb-4 border-b last:border-0">
+                    <div className="flex items-start gap-2">
+                      <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="font-medium">{req.requirement}</span>
+                        <p className="text-sm text-muted-foreground mt-1">{req.workaround}</p>
+                      </div>
                     </div>
-                  </li>
-                ))}
-              </ul>
+
+                    {/* AI Suggestion or Button */}
+                    {suggestion ? (
+                      <SmartAnswerCard
+                        suggestedAnswer={suggestion.suggestedAnswer}
+                        reasoning={suggestion.reasoning}
+                        confidenceScore={suggestion.confidenceScore}
+                        resumeEvidence={suggestion.resumeEvidence}
+                        alternatives={suggestion.alternatives}
+                        onSelectAnswer={(answer) => selectAnswer(suggestionKey, answer)}
+                        onRequestAlternatives={() => generateMoreAlternatives(suggestionKey)}
+                        onProvideFeedback={(type) => provideFeedback(suggestionKey, type as 'helpful' | 'not_helpful')}
+                        isLoadingAlternatives={isLoadingAlts}
+                      />
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRequestAISuggestion(req.requirement, req.workaround, i);
+                        }}
+                        disabled={isLoading}
+                        className="ml-6"
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4 mr-2" />
+                        )}
+                        {isLoading ? 'Generating...' : 'Get AI Suggestion'}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         )}
