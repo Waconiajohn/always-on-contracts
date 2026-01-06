@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { HiringManagerReviewPanel } from '@/components/resume-builder/HiringManagerReviewPanel';
 import { SmartATSScore } from '@/components/resume/SmartATSScore';
-import ResumeBuilderV8 from '@/components/resume-builder/v8/ResumeBuilderV8';
+import ResumeOptimizerV9 from '@/components/resume-optimizer/ResumeOptimizerV9';
 
 type WizardStep = 
   | 'job-input' 
@@ -88,7 +88,7 @@ export default function ResumeBuilderV2() {
     switch (currentStep) {
       case 'elite-builder':
         return (
-          <ResumeBuilderV8 />
+          <ResumeOptimizerV9 />
         );
 
       case 'hiring-manager-review':
