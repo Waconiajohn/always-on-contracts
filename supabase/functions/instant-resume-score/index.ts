@@ -281,11 +281,12 @@ Analyze comprehensively and provide structured comparison.`;
     };
 
     // Generate priorityFixes from gapAnalysis for backward compatibility
+    // Now returns ALL fixes, not just top 5
     const priorityFixes: any[] = [];
     let priority = 1;
     
-    // Add missing requirements as critical fixes
-    for (const item of gapAnalysis.missingRequirements.slice(0, 2)) {
+    // Add ALL missing requirements as critical fixes
+    for (const item of gapAnalysis.missingRequirements) {
       priorityFixes.push({
         priority: priority++,
         category: 'jdMatch',
@@ -296,8 +297,8 @@ Analyze comprehensively and provide structured comparison.`;
       });
     }
     
-    // Add partial matches as important fixes
-    for (const item of gapAnalysis.partialMatches.slice(0, 2)) {
+    // Add ALL partial matches as important fixes
+    for (const item of gapAnalysis.partialMatches) {
       priorityFixes.push({
         priority: priority++,
         category: 'jdMatch',
@@ -317,8 +318,9 @@ Analyze comprehensively and provide structured comparison.`;
       scores: scoreData.scores,
       breakdown,
       gapAnalysis,
-      priorityFixes: priorityFixes.slice(0, 5),
-      quickWins: scoreData.quickWins?.slice(0, 4) || [],
+      // Return ALL priorityFixes and quickWins for comprehensive display
+      priorityFixes,
+      quickWins: scoreData.quickWins || [],
       detected: {
         role: detectedRole,
         industry: detectedIndustry,

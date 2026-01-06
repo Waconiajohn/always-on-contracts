@@ -6,3 +6,6 @@ export * from './ResultsPanel';
 export * from './KeywordBreakdown';
 export * from './ATSCompliancePanel';
 export * from './ExportReportButton';
+export * from './PrivacyNotice';
+export * from './KeyboardShortcuts';
+export * from './ScoreTooltip';
