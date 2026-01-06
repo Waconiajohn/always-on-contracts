@@ -15,7 +15,7 @@ export interface ResumeTemplate {
   icon: React.ReactNode;
 }
 
-const TEMPLATES: ResumeTemplate[] = [
+export const TEMPLATES: ResumeTemplate[] = [
   {
     id: 'executive',
     name: 'Executive Classic',
@@ -147,4 +147,4 @@ export function TemplateSelector({ selectedTemplateId, onSelectTemplate, compact
   );
 }
 
-export { TEMPLATES };
+

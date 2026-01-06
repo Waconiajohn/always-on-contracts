@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,19 +33,47 @@ export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: W
     setEditedContent([...section.content]);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     if (editingSection) {
       onSectionUpdate(editingSection, editedContent);
       setModifiedSections(prev => new Set(prev).add(editingSection));
       setEditingSection(null);
       setEditedContent([]);
     }
-  };
+  }, [editingSection, editedContent, onSectionUpdate]);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingSection(null);
     setEditedContent([]);
-  };
+  }, []);
+  
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!editingSection) return;
+      
+      // Escape to cancel
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancelEdit();
+      }
+      
+      // Cmd/Ctrl+S to save
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveEdit();
+      }
+      
+      // Cmd/Ctrl+Enter to save
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSaveEdit();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingSection, handleSaveEdit, handleCancelEdit]);
 
   const handleContentChange = (index: number, value: string) => {
     const newContent = [...editedContent];

@@ -166,14 +166,29 @@ export const useOptimizerStore = create<OptimizerStore>()(
         const historyEntry = state.versionHistory.find(h => h.id === historyId);
         if (!historyEntry) return;
         
+        // Find if a version with the same base name exists and update it instead of adding duplicate
+        const baseVersionName = historyEntry.versionSnapshot.name.replace(' (Restored)', '');
+        const existingVersionIndex = state.resumeVersions.findIndex(
+          v => v.name === baseVersionName || v.name === `${baseVersionName} (Restored)`
+        );
+        
         const restoredVersion: ResumeVersion = {
           ...historyEntry.versionSnapshot,
           id: crypto.randomUUID(),
-          name: `${historyEntry.versionSnapshot.name} (Restored)`
+          name: `${baseVersionName} (Restored)`
         };
         
+        let updatedVersions: ResumeVersion[];
+        if (existingVersionIndex >= 0) {
+          // Replace existing version instead of adding duplicate
+          updatedVersions = [...state.resumeVersions];
+          updatedVersions[existingVersionIndex] = restoredVersion;
+        } else {
+          updatedVersions = [...state.resumeVersions, restoredVersion];
+        }
+        
         set({
-          resumeVersions: [...state.resumeVersions, restoredVersion],
+          resumeVersions: updatedVersions,
           selectedVersionId: restoredVersion.id,
           lastSaved: Date.now()
         });
