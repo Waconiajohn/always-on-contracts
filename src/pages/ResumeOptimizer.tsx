@@ -1,6 +1,8 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ModuleGate } from "@/components/ModuleGate";
 import { ResumeMatchWorkspace } from "@/components/resume-match";
+import { OptimizerErrorBoundary } from "@/components/resume-optimizer/components/OptimizerErrorBoundary";
+import { useOptimizerStore } from "@/stores/optimizerStore";
 
 const ResumeOptimizerContent = () => {
   return (
@@ -11,10 +13,14 @@ const ResumeOptimizerContent = () => {
 };
 
 export default function ResumeOptimizer() {
+  const clearSession = useOptimizerStore(state => state.clearSession);
+  
   return (
     <ProtectedRoute>
       <ModuleGate module="resume_jobs_studio">
-        <ResumeOptimizerContent />
+        <OptimizerErrorBoundary onReset={clearSession}>
+          <ResumeOptimizerContent />
+        </OptimizerErrorBoundary>
       </ModuleGate>
     </ProtectedRoute>
   );
