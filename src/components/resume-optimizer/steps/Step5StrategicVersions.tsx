@@ -1,9 +1,9 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useOptimizer } from '../context/OptimizerContext';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 import { ResumeVersion } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,55 +12,67 @@ import { cn } from '@/lib/utils';
 import { TemplateSelector, ResumeTemplate, TEMPLATES } from '../components/TemplateSelector';
 import { WYSIWYGEditor } from '../components/WYSIWYGEditor';
 
-// Debounce utility
-function debounce<T extends (...args: Parameters<T>) => void>(fn: T, delay: number): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  };
-}
-
 export function Step5StrategicVersions() {
-  const { state, dispatch, goToNextStep, goToPrevStep } = useOptimizer();
   const { toast } = useToast();
+  
+  // Zustand store
+  const resumeText = useOptimizerStore(state => state.resumeText);
+  const jobDescription = useOptimizerStore(state => state.jobDescription);
+  const gapAnalysis = useOptimizerStore(state => state.gapAnalysis);
+  const selectedAnswers = useOptimizerStore(state => state.selectedAnswers);
+  const customization = useOptimizerStore(state => state.customization);
+  const careerProfile = useOptimizerStore(state => state.careerProfile);
+  const resumeVersions = useOptimizerStore(state => state.resumeVersions);
+  const selectedVersionId = useOptimizerStore(state => state.selectedVersionId);
+  const selectedTemplateState = useOptimizerStore(state => state.selectedTemplate);
+  const setResumeVersions = useOptimizerStore(state => state.setResumeVersions);
+  const selectVersion = useOptimizerStore(state => state.selectVersion);
+  const selectTemplate = useOptimizerStore(state => state.selectTemplate);
+  const updateSection = useOptimizerStore(state => state.updateSection);
+  const setProcessing = useOptimizerStore(state => state.setProcessing);
+  const goToNextStep = useOptimizerStore(state => state.goToNextStep);
+  const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<ResumeVersion | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(TEMPLATES[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(
+    TEMPLATES.find(t => t.id === selectedTemplateState?.id) || TEMPLATES[0]
+  );
   const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
   
   useEffect(() => {
-    if (state.resumeVersions.length === 0) {
+    if (resumeVersions.length === 0) {
       generateVersions();
     } else {
-      setPreviewVersion(state.resumeVersions[0]);
+      const currentVersion = resumeVersions.find(v => v.id === selectedVersionId) || resumeVersions[0];
+      setPreviewVersion(currentVersion);
     }
   }, []);
   
   const generateVersions = async () => {
     setIsGenerating(true);
-    dispatch({ type: 'SET_PROCESSING', isProcessing: true, message: 'Generating strategic resume versions...' });
+    setProcessing(true, 'Generating strategic resume versions...');
     
     try {
       const { data, error } = await supabase.functions.invoke('generate-resume-versions', {
         body: {
-          resumeText: state.resumeText,
-          jobDescription: state.jobDescription,
-          gapAnalysis: state.gapAnalysis,
-          selectedAnswers: state.selectedAnswers,
-          customization: state.customization,
-          careerProfile: state.careerProfile
+          resumeText,
+          jobDescription,
+          gapAnalysis,
+          selectedAnswers,
+          customization,
+          careerProfile
         }
       });
       
       if (error) throw error;
       
       const versions: ResumeVersion[] = data.versions || [];
-      dispatch({ type: 'SET_RESUME_VERSIONS', versions });
+      setResumeVersions(versions);
       
       if (versions.length > 0) {
         setPreviewVersion(versions[0]);
-        dispatch({ type: 'SELECT_VERSION', versionId: versions[0].id });
+        selectVersion(versions[0].id);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Could not generate resume versions';
@@ -72,31 +84,24 @@ export function Step5StrategicVersions() {
       });
     } finally {
       setIsGenerating(false);
-      dispatch({ type: 'SET_PROCESSING', isProcessing: false });
+      setProcessing(false);
     }
   };
   
   const handleSelectVersion = (version: ResumeVersion) => {
     setPreviewVersion(version);
-    dispatch({ type: 'SELECT_VERSION', versionId: version.id });
+    selectVersion(version.id);
   };
 
   const handleSelectTemplate = (template: ResumeTemplate) => {
     setSelectedTemplate(template);
-    dispatch({ type: 'SELECT_TEMPLATE', templateId: template.id, templateName: template.name });
+    selectTemplate({ id: template.id, name: template.name });
   };
-
-  // Debounced state update to reduce store writes
-  const debouncedDispatch = useMemo(
-    () => debounce((versions: ResumeVersion[]) => {
-      dispatch({ type: 'SET_RESUME_VERSIONS', versions });
-    }, 500),
-    [dispatch]
-  );
 
   const handleSectionUpdate = useCallback((sectionId: string, content: string[]) => {
     if (!previewVersion) return;
     
+    // Update local preview state
     const updatedSections = previewVersion.sections.map(section =>
       section.id === sectionId 
         ? { ...section, content, isEdited: true }
@@ -106,12 +111,9 @@ export function Step5StrategicVersions() {
     const updatedVersion = { ...previewVersion, sections: updatedSections };
     setPreviewVersion(updatedVersion);
     
-    // Update in state with debounce
-    const updatedVersions = state.resumeVersions.map(v =>
-      v.id === previewVersion.id ? updatedVersion : v
-    );
-    debouncedDispatch(updatedVersions);
-  }, [previewVersion, state.resumeVersions, debouncedDispatch]);
+    // Update in store
+    updateSection(previewVersion.id, sectionId, content);
+  }, [previewVersion, updateSection]);
   
   if (isGenerating) {
     return (
@@ -155,13 +157,13 @@ export function Step5StrategicVersions() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {state.resumeVersions.map((version) => (
+              {resumeVersions.map((version) => (
                 <div
                   key={version.id}
                   onClick={() => handleSelectVersion(version)}
                   className={cn(
                     'p-4 rounded-lg border cursor-pointer transition-all',
-                    state.selectedVersionId === version.id
+                    selectedVersionId === version.id
                       ? 'border-primary bg-primary/5'
                       : 'hover:bg-muted/50'
                   )}
@@ -171,7 +173,7 @@ export function Step5StrategicVersions() {
                       <FileText className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium text-sm">{version.name}</span>
                     </div>
-                    {state.selectedVersionId === version.id && (
+                    {selectedVersionId === version.id && (
                       <Check className="h-4 w-4 text-primary" />
                     )}
                   </div>
