@@ -32,6 +32,14 @@ export default function ResumeOptimizerV9() {
     setInput,
   } = useOptimizerStore();
   
+  // Track if new data was passed in
+  const [pendingNewData, setPendingNewData] = useState<{
+    resumeText: string;
+    jobDescription: string;
+    jobTitle?: string;
+    company?: string;
+  } | null>(null);
+  
   // Check for existing session on mount
   useEffect(() => {
     const stateData = location.state as { 
@@ -42,15 +50,30 @@ export default function ResumeOptimizerV9() {
       fromQuickScore?: boolean 
     } | null;
     
-    // If coming from QuickScore with fresh data, use that
-    if (stateData?.resumeText && stateData?.jobDescription) {
-      setInput(stateData.resumeText, stateData.jobDescription, stateData.jobTitle, stateData.company);
+    const hasNewData = stateData?.resumeText && stateData?.jobDescription;
+    const hasExistingSession = hasActiveSession();
+    
+    // If there's both new data AND an existing session, let user choose
+    if (hasNewData && hasExistingSession) {
+      setPendingNewData({
+        resumeText: stateData.resumeText!,
+        jobDescription: stateData.jobDescription!,
+        jobTitle: stateData.jobTitle,
+        company: stateData.company
+      });
+      setShowRecoveryDialog(true);
+      return;
+    }
+    
+    // If only new data, use it
+    if (hasNewData) {
+      setInput(stateData.resumeText!, stateData.jobDescription!, stateData.jobTitle, stateData.company);
       setIsInitialized(true);
       return;
     }
     
-    // Check for existing session
-    if (hasActiveSession() && !stateData?.fromQuickScore) {
+    // Check for existing session without new data
+    if (hasExistingSession) {
       setShowRecoveryDialog(true);
     } else if (!resumeText || !jobDescription) {
       // Redirect to quick-score if no input data
@@ -64,14 +87,24 @@ export default function ResumeOptimizerV9() {
   const handleContinueSession = () => {
     // Zustand already has the persisted state, just close dialog
     // State is automatically loaded from localStorage
+    setPendingNewData(null);
     setShowRecoveryDialog(false);
     setIsInitialized(true);
   };
   
   const handleStartFresh = () => {
-    clearSession();
-    setShowRecoveryDialog(false);
-    navigate('/quick-score');
+    // If there's pending new data, use it instead of redirecting
+    if (pendingNewData) {
+      clearSession();
+      setInput(pendingNewData.resumeText, pendingNewData.jobDescription, pendingNewData.jobTitle, pendingNewData.company);
+      setPendingNewData(null);
+      setShowRecoveryDialog(false);
+      setIsInitialized(true);
+    } else {
+      clearSession();
+      setShowRecoveryDialog(false);
+      navigate('/quick-score');
+    }
   };
   
   const stepConfig = STEP_CONFIG[currentStep];

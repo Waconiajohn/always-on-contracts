@@ -45,7 +45,32 @@ export function prepareForExport(
   };
 }
 
-export function generateResumeHTML(data: ExportableResumeData): string {
+// Template-specific styles
+const TEMPLATE_STYLES: Record<string, { primaryColor: string; fontFamily: string; layout: string }> = {
+  executive: {
+    primaryColor: '#1e3a8a',
+    fontFamily: "'Georgia', 'Times New Roman', serif",
+    layout: 'single-column'
+  },
+  technical: {
+    primaryColor: '#059669',
+    fontFamily: "'Consolas', 'Monaco', monospace",
+    layout: 'hybrid'
+  },
+  modern: {
+    primaryColor: '#7c3aed',
+    fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    layout: 'single-column'
+  },
+  creative: {
+    primaryColor: '#db2777',
+    fontFamily: "'Poppins', 'Helvetica Neue', sans-serif",
+    layout: 'two-column'
+  }
+};
+
+export function generateResumeHTML(data: ExportableResumeData, templateId: string = 'modern'): string {
+  const template = TEMPLATE_STYLES[templateId] || TEMPLATE_STYLES.modern;
   const sectionsHTML = data.sections.map(section => {
     const bulletsHTML = section.bullets?.length 
       ? `<ul>${section.bullets.map(b => `<li>${b}</li>`).join('')}</ul>`
@@ -73,10 +98,10 @@ export function generateResumeHTML(data: ExportableResumeData): string {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${data.name} - Resume</title>
-      <style>
+        <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-family: ${template.fontFamily};
           line-height: 1.6;
           color: #333;
           max-width: 800px;
@@ -87,11 +112,11 @@ export function generateResumeHTML(data: ExportableResumeData): string {
           text-align: center;
           margin-bottom: 30px;
           padding-bottom: 20px;
-          border-bottom: 2px solid #2563eb;
+          border-bottom: 2px solid ${template.primaryColor};
         }
         h1 { 
           font-size: 28px;
-          color: #1e3a8a;
+          color: ${template.primaryColor};
           margin-bottom: 8px;
         }
         .headline {
@@ -110,7 +135,7 @@ export function generateResumeHTML(data: ExportableResumeData): string {
           font-size: 14px;
           text-transform: uppercase;
           letter-spacing: 1px;
-          color: #1e3a8a;
+          color: ${template.primaryColor};
           border-bottom: 1px solid #e2e8f0;
           padding-bottom: 8px;
           margin-bottom: 12px;
@@ -155,7 +180,7 @@ export async function exportResume(
 
   switch (format) {
     case 'pdf': {
-      const html = generateResumeHTML(data);
+      const html = generateResumeHTML(data, templateId);
       await exportFormats.standardPDF(html, fileName);
       break;
     }
@@ -164,7 +189,7 @@ export async function exportResume(
       break;
     }
     case 'html': {
-      const html = generateResumeHTML(data);
+      const html = generateResumeHTML(data, templateId);
       await exportFormats.htmlExport(html, fileName);
       break;
     }
