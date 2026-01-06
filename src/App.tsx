@@ -60,7 +60,7 @@ const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
 const ResumeBuilderV2 = lazy(() => import("./pages/agents/ResumeBuilderV2"));
-const ResumeBuilderV8 = lazy(() => import("./components/resume-builder/v8/ResumeBuilderV8"));
+const ResumeOptimizerV9 = lazy(() => import("./components/resume-optimizer/ResumeOptimizerV9"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -148,9 +148,9 @@ const AppContent = () => {
             <Route path="/resume-data-audit" element={<ProtectedRoute><ResumeDataAudit /></ProtectedRoute>} />
             <Route path="/benchmark-builder" element={<Navigate to="/resume-builder" replace />} />
             <Route path="/resume-builder-v7" element={<Navigate to="/resume-builder" replace />} />
-            {/* V8 Resume Builder - State-of-the-art evidence-first builder */}
-            <Route path="/resume-builder-v8" element={<ProtectedRoute><ResumeBuilderV8 /></ProtectedRoute>} />
-            <Route path="/resume-builder" element={<ProtectedRoute><ResumeBuilderV8 /></ProtectedRoute>} />
+            {/* V9 Resume Optimizer - 6-step collaborative system */}
+            <Route path="/resume-builder-v8" element={<ProtectedRoute><ResumeOptimizerV9 /></ProtectedRoute>} />
+            <Route path="/resume-builder" element={<ProtectedRoute><ResumeOptimizerV9 /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           </Routes>
