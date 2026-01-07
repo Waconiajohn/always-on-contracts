@@ -231,6 +231,9 @@ export interface VersionHistoryEntry {
   stepCompleted: OptimizerStep;
   resumeSnapshot: string;
   changeDescription: string;
+  // For restore functionality
+  fitBlueprint?: FitBlueprint;
+  benchmarkResume?: BenchmarkResume;
 }
 
 // ============= Legacy Types (for backwards compatibility) =============

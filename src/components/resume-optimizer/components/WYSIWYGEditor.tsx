@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ResumeSection } from '../types';
+import { ResumeSection, EvidenceUnit, AtomicRequirement } from '../types';
+import { useOptimizerStore } from '@/stores/optimizerStore';
 import { 
   List, 
   Edit3, 
@@ -16,6 +17,76 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Parse evidence/requirement tags like [E1], [R2], etc.
+function parseContentWithTags(
+  content: string,
+  evidenceUnits: EvidenceUnit[],
+  requirements: AtomicRequirement[]
+): React.ReactNode[] {
+  const tagPattern = /\[(E\d+|R\d+)\]/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = tagPattern.exec(content)) !== null) {
+    // Add text before the tag
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    const tag = match[1];
+    const isEvidence = tag.startsWith('E');
+    const index = parseInt(tag.slice(1), 10) - 1;
+
+    if (isEvidence) {
+      const evidence = evidenceUnits[index];
+      parts.push(
+        <Tooltip key={`${tag}-${match.index}`}>
+          <TooltipTrigger asChild>
+            <Badge 
+              variant="secondary" 
+              className="mx-0.5 cursor-help text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+            >
+              {tag}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-xs font-medium mb-1">Evidence {index + 1}</p>
+            <p className="text-xs">{evidence?.text || 'Evidence not found'}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    } else {
+      const requirement = requirements[index];
+      parts.push(
+        <Tooltip key={`${tag}-${match.index}`}>
+          <TooltipTrigger asChild>
+            <Badge 
+              variant="secondary" 
+              className="mx-0.5 cursor-help text-xs bg-blue-100 text-blue-700 hover:bg-blue-200"
+            >
+              {tag}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-xs font-medium mb-1">Requirement {index + 1}</p>
+            <p className="text-xs">{requirement?.requirement || 'Requirement not found'}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after the last tag
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [content];
+}
+
 interface WYSIWYGEditorProps {
   sections: ResumeSection[];
   onSectionUpdate: (sectionId: string, content: string[]) => void;
@@ -23,6 +94,11 @@ interface WYSIWYGEditorProps {
 }
 
 export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: WYSIWYGEditorProps) {
+  // Get evidence and requirements from the store for tag parsing
+  const fitBlueprint = useOptimizerStore(state => state.fitBlueprint);
+  const evidenceUnits = fitBlueprint?.evidenceInventory || [];
+  const requirements = fitBlueprint?.requirements || [];
+  
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string[]>([]);
   const [modifiedSections, setModifiedSections] = useState<Set<string>>(new Set());
@@ -199,7 +275,7 @@ export function WYSIWYGEditor({ sections, onSectionUpdate, readOnly = false }: W
                     <ul className="space-y-2">
                       {section.content.map((item, idx) => (
                         <li key={idx} className="text-sm pl-4 border-l-2 border-muted">
-                          {item}
+                          {parseContentWithTags(item, evidenceUnits, requirements)}
                         </li>
                       ))}
                     </ul>
