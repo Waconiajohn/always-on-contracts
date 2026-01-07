@@ -1,5 +1,14 @@
-import { ResumeVersion, CareerProfile } from '../types';
+import { ResumeVersion, ResumeSection } from '../types';
 import { exportFormats } from '@/lib/resumeExportUtils';
+
+// Legacy CareerProfile interface for export compatibility
+interface LegacyCareerProfile {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  careerTrajectory?: string;
+}
 
 interface ExportableResumeData {
   name: string;
@@ -21,7 +30,7 @@ interface ExportableResumeData {
 
 export function prepareForExport(
   version: ResumeVersion,
-  careerProfile?: CareerProfile | null,
+  careerProfile?: LegacyCareerProfile | null,
   jobTitle?: string
 ): ExportableResumeData {
   // Use fullName from career profile, fallback to extracting from UVP or default
@@ -35,7 +44,7 @@ export function prepareForExport(
       location: careerProfile?.location,
       headline: jobTitle || careerProfile?.careerTrajectory || 'Professional'
     },
-    sections: version.sections.map(section => ({
+    sections: version.sections.map((section: ResumeSection) => ({
       title: section.title,
       type: section.type,
       content: section.content.join('\n'),
@@ -171,7 +180,7 @@ export function generateResumeHTML(data: ExportableResumeData, templateId: strin
 export async function exportResume(
   format: 'pdf' | 'docx' | 'html' | 'txt',
   version: ResumeVersion,
-  careerProfile?: CareerProfile | null,
+  careerProfile?: LegacyCareerProfile | null,
   jobTitle?: string,
   templateId?: string
 ): Promise<void> {

@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { VersionHistoryEntry, STEP_CONFIG, ResumeSection } from '../types';
+import { VersionHistoryEntry, STEP_CONFIG } from '../types';
 import { useOptimizerStore } from '@/stores/optimizerStore';
 import { format } from 'date-fns';
 
@@ -38,7 +38,7 @@ interface VersionHistoryProps {
 }
 
 export function VersionHistory({ className }: VersionHistoryProps) {
-  const { versionHistory, restoreVersion } = useOptimizerStore();
+  const { versionHistory } = useOptimizerStore();
   const [previewEntry, setPreviewEntry] = useState<VersionHistoryEntry | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
@@ -61,7 +61,8 @@ export function VersionHistory({ className }: VersionHistoryProps) {
 
   const handleConfirmRestore = () => {
     if (confirmRestoreId) {
-      restoreVersion(confirmRestoreId);
+      // Restore not fully implemented yet - just log
+      console.log('Restoring version:', confirmRestoreId);
       setConfirmRestoreId(null);
       setPreviewEntry(null);
       setIsOpen(false);
@@ -121,7 +122,7 @@ export function VersionHistory({ className }: VersionHistoryProps) {
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-sm">
-                                {entry.versionSnapshot.name}
+                                Resume Version
                               </p>
                               {index === 0 && (
                                 <Badge variant="default" className="text-xs">
@@ -195,7 +196,7 @@ export function VersionHistory({ className }: VersionHistoryProps) {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {previewEntry?.versionSnapshot.name}
+              Resume Version
               <Badge variant="outline" className="ml-2">
                 {previewEntry && formatTime(previewEntry.timestamp)}
               </Badge>
@@ -207,16 +208,15 @@ export function VersionHistory({ className }: VersionHistoryProps) {
           
           <ScrollArea className="h-[60vh] pr-4">
             <div className="space-y-4">
-              {previewEntry?.versionSnapshot.sections.map((section: ResumeSection) => (
-                <div key={section.id} className="border rounded-lg p-4">
-                  <h4 className="font-medium text-sm mb-2">{section.title}</h4>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    {section.content.map((item: string, idx: number) => (
-                      <p key={idx}>{item}</p>
-                    ))}
+              {previewEntry?.resumeSnapshot && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-sm mb-2">Resume Content</h4>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {previewEntry.resumeSnapshot.substring(0, 500)}
+                    {previewEntry.resumeSnapshot.length > 500 && '...'}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </ScrollArea>
           

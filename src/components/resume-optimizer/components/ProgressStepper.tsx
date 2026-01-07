@@ -3,7 +3,6 @@ import { Check } from 'lucide-react';
 import { OptimizerStep, STEP_CONFIG } from '../types';
 
 const STEP_ORDER: OptimizerStep[] = [
-  'career-profile',
   'gap-analysis',
   'answer-assistant',
   'customization',

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProgressStepper } from './components/ProgressStepper';
-import { Step1CareerProfile } from './steps/Step1CareerProfile';
 import { Step2GapAnalysis } from './steps/Step2GapAnalysis';
 import { Step3AnswerAssistant } from './steps/Step3AnswerAssistant';
 import { Step4Customization } from './steps/Step4Customization';
@@ -86,7 +85,6 @@ export default function ResumeOptimizerV9() {
   
   const handleContinueSession = () => {
     // Zustand already has the persisted state, just close dialog
-    // State is automatically loaded from localStorage
     setPendingNewData(null);
     setShowRecoveryDialog(false);
     setIsInitialized(true);
@@ -111,8 +109,6 @@ export default function ResumeOptimizerV9() {
   
   const renderStep = () => {
     switch (currentStep) {
-      case 'career-profile':
-        return <Step1CareerProfile />;
       case 'gap-analysis':
         return <Step2GapAnalysis />;
       case 'answer-assistant':
@@ -124,7 +120,7 @@ export default function ResumeOptimizerV9() {
       case 'hiring-manager':
         return <Step6HiringManager />;
       default:
-        return null;
+        return <Step2GapAnalysis />;
     }
   };
   
