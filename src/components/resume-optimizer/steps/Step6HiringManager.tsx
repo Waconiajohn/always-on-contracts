@@ -22,6 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ExportDialog, ExportFormat } from '../components/ExportDialog';
 import { exportResume } from '../utils/exportHandler';
+import { ResumeVersion } from '../types';
 
 const RECOMMENDATION_CONFIG: Record<string, {
   label: string;
@@ -59,12 +60,10 @@ export function Step6HiringManager() {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Zustand store
-  const resumeVersions = useOptimizerStore(state => state.resumeVersions);
-  const selectedVersionId = useOptimizerStore(state => state.selectedVersionId);
+  // Zustand store - use benchmarkResume instead of resumeVersions
+  const benchmarkResume = useOptimizerStore(state => state.benchmarkResume);
   const jobDescription = useOptimizerStore(state => state.jobDescription);
   const jobTitle = useOptimizerStore(state => state.jobTitle);
-  const careerProfile = useOptimizerStore(state => state.careerProfile);
   const selectedTemplate = useOptimizerStore(state => state.selectedTemplate);
   const hiringManagerReview = useOptimizerStore(state => state.hiringManagerReview);
   const setHMReview = useOptimizerStore(state => state.setHMReview);
@@ -87,15 +86,11 @@ export function Step6HiringManager() {
     setProcessing(true, 'Getting hiring manager perspective...');
     
     try {
-      // Get the selected version
-      const selectedVersion = resumeVersions.find(v => v.id === selectedVersionId);
-      
       const { data, error: apiError } = await supabase.functions.invoke('hiring-manager-review', {
         body: {
-          resumeContent: selectedVersion?.sections || [],
+          resumeContent: benchmarkResume?.sections || [],
           jobDescription,
-          jobTitle,
-          industry: careerProfile?.industries?.[0]
+          jobTitle
         }
       });
       
@@ -152,21 +147,29 @@ export function Step6HiringManager() {
   };
   
   const handleExport = async (format: ExportFormat) => {
-    const selectedVersion = resumeVersions.find(v => v.id === selectedVersionId);
-    if (!selectedVersion) {
+    if (!benchmarkResume) {
       toast({
-        title: 'No version selected',
-        description: 'Please select a resume version to export',
+        title: 'No resume available',
+        description: 'Please generate a benchmark resume first',
         variant: 'destructive'
       });
       return;
     }
 
     try {
+      // Convert BenchmarkResume to ResumeVersion format for export
+      const exportVersion: ResumeVersion = {
+        id: 'benchmark',
+        name: 'Benchmark Resume',
+        description: 'Optimized resume',
+        emphasis: 'balanced',
+        sections: benchmarkResume.sections
+      };
+
       await exportResume(
         format,
-        selectedVersion,
-        careerProfile,
+        exportVersion,
+        null,
         jobTitle,
         selectedTemplate?.id
       );
@@ -379,7 +382,7 @@ export function Step6HiringManager() {
         open={showExportDialog}
         onClose={() => setShowExportDialog(false)}
         onExport={handleExport}
-        resumeName={resumeVersions.find(v => v.id === selectedVersionId)?.name}
+        resumeName="Benchmark Resume"
       />
     </div>
   );

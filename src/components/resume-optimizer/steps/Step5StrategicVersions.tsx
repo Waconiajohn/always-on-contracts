@@ -3,80 +3,105 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useOptimizerStore } from '@/stores/optimizerStore';
-import { ResumeVersion } from '../types';
+import { BenchmarkResume, ResumeSection, ChangelogEntry } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, ArrowLeft, Loader2, FileText, Check, Star, Eye, Edit3 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowRight, ArrowLeft, Loader2, FileText, Star, Eye, Edit3, ChevronDown, ChevronRight, History, RefreshCw, MessageSquare } from 'lucide-react';
+
 import { TemplateSelector, ResumeTemplate, TEMPLATES } from '../components/TemplateSelector';
 import { WYSIWYGEditor } from '../components/WYSIWYGEditor';
 
 export function Step5StrategicVersions() {
   const { toast } = useToast();
   
-  // Zustand store
+  // Zustand store - new benchmark resume system
   const resumeText = useOptimizerStore(state => state.resumeText);
   const jobDescription = useOptimizerStore(state => state.jobDescription);
-  const gapAnalysis = useOptimizerStore(state => state.gapAnalysis);
-  const selectedAnswers = useOptimizerStore(state => state.selectedAnswers);
+  const fitBlueprint = useOptimizerStore(state => state.fitBlueprint);
+  const missingBulletResponses = useOptimizerStore(state => state.missingBulletResponses);
   const customization = useOptimizerStore(state => state.customization);
-  const careerProfile = useOptimizerStore(state => state.careerProfile);
-  const resumeVersions = useOptimizerStore(state => state.resumeVersions);
-  const selectedVersionId = useOptimizerStore(state => state.selectedVersionId);
+  const benchmarkResume = useOptimizerStore(state => state.benchmarkResume);
   const selectedTemplateState = useOptimizerStore(state => state.selectedTemplate);
-  const setResumeVersions = useOptimizerStore(state => state.setResumeVersions);
-  const selectVersion = useOptimizerStore(state => state.selectVersion);
+  const setBenchmarkResume = useOptimizerStore(state => state.setBenchmarkResume);
+  const updateBenchmarkSection = useOptimizerStore(state => state.updateBenchmarkSection);
   const selectTemplate = useOptimizerStore(state => state.selectTemplate);
-  const updateSection = useOptimizerStore(state => state.updateSection);
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToNextStep = useOptimizerStore(state => state.goToNextStep);
   const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
   
   const [isGenerating, setIsGenerating] = useState(false);
-  const [previewVersion, setPreviewVersion] = useState<ResumeVersion | null>(null);
+  const [previewSections, setPreviewSections] = useState<ResumeSection[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(
     TEMPLATES.find(t => t.id === selectedTemplateState?.id) || TEMPLATES[0]
   );
   const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [showFollowUp, setShowFollowUp] = useState(false);
   
   useEffect(() => {
-    if (resumeVersions.length === 0) {
-      generateVersions();
+    if (!benchmarkResume) {
+      generateBenchmark();
     } else {
-      const currentVersion = resumeVersions.find(v => v.id === selectedVersionId) || resumeVersions[0];
-      setPreviewVersion(currentVersion);
+      setPreviewSections(benchmarkResume.sections);
     }
   }, []);
   
-  const generateVersions = async () => {
+  const generateBenchmark = async () => {
     setIsGenerating(true);
-    setProcessing(true, 'Generating strategic resume versions...');
+    setProcessing(true, 'Generating benchmark resume...');
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-resume-versions', {
+      const { data, error } = await supabase.functions.invoke('benchmark-resume', {
         body: {
           resumeText,
           jobDescription,
-          gapAnalysis,
-          selectedAnswers,
-          customization,
-          careerProfile
+          fitBlueprint,
+          missingBulletResponses,
+          customization
         }
       });
       
-      if (error) throw error;
-      
-      const versions: ResumeVersion[] = data.versions || [];
-      setResumeVersions(versions);
-      
-      if (versions.length > 0) {
-        setPreviewVersion(versions[0]);
-        selectVersion(versions[0].id);
+      if (error) {
+        // Handle rate limit and payment errors
+        if (error.message?.includes('429') || error.message?.includes('rate limit')) {
+          toast({
+            title: 'Rate Limit Reached',
+            description: 'Please wait a moment before trying again.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        if (error.message?.includes('402') || error.message?.includes('payment')) {
+          toast({
+            title: 'Subscription Required',
+            description: 'Please upgrade to access this feature.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        throw error;
       }
+      
+      const benchmark: BenchmarkResume = {
+        resumeText: data.resumeText || '',
+        sections: data.sections || [],
+        changelog: data.changelog || [],
+        followUpQuestions: data.followUpQuestions || []
+      };
+      
+      setBenchmarkResume(benchmark);
+      setPreviewSections(benchmark.sections);
+      
+      toast({
+        title: 'Benchmark Resume Generated',
+        description: 'Your optimized resume is ready for review.'
+      });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Could not generate resume versions';
-      console.error('Generate versions error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Could not generate benchmark resume';
+      console.error('Generate benchmark error:', error);
       toast({
         title: 'Generation Failed',
         description: errorMessage,
@@ -87,11 +112,6 @@ export function Step5StrategicVersions() {
       setProcessing(false);
     }
   };
-  
-  const handleSelectVersion = (version: ResumeVersion) => {
-    setPreviewVersion(version);
-    selectVersion(version.id);
-  };
 
   const handleSelectTemplate = (template: ResumeTemplate) => {
     setSelectedTemplate(template);
@@ -99,29 +119,45 @@ export function Step5StrategicVersions() {
   };
 
   const handleSectionUpdate = useCallback((sectionId: string, content: string[]) => {
-    if (!previewVersion) return;
-    
     // Update local preview state
-    const updatedSections = previewVersion.sections.map(section =>
+    const updatedSections = previewSections.map(section =>
       section.id === sectionId 
         ? { ...section, content, isEdited: true }
         : section
     );
     
-    const updatedVersion = { ...previewVersion, sections: updatedSections };
-    setPreviewVersion(updatedVersion);
+    setPreviewSections(updatedSections);
     
     // Update in store
-    updateSection(previewVersion.id, sectionId, content);
-  }, [previewVersion, updateSection]);
+    updateBenchmarkSection(sectionId, content);
+  }, [previewSections, updateBenchmarkSection]);
+
+  const renderChangelogEntry = (entry: ChangelogEntry, index: number) => (
+    <div key={index} className="p-3 rounded-lg border bg-muted/30">
+      <div className="flex items-start gap-2">
+        <Badge variant="outline" className="text-xs shrink-0">{entry.section}</Badge>
+        <div className="flex-1">
+          <p className="text-sm">{entry.change}</p>
+          <p className="text-xs text-muted-foreground mt-1">{entry.rationale}</p>
+          {entry.evidenceUsed && entry.evidenceUsed.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {entry.evidenceUsed.map((ev, idx) => (
+                <Badge key={idx} variant="secondary" className="text-xs">{ev}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
   
   if (isGenerating) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardContent className="flex flex-col items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">Generating strategic resume versions...</p>
-          <p className="text-xs text-muted-foreground mt-2">This may take a moment</p>
+          <p className="text-muted-foreground">Generating benchmark resume...</p>
+          <p className="text-xs text-muted-foreground mt-2">This may take 30-60 seconds</p>
         </CardContent>
       </Card>
     );
@@ -147,61 +183,87 @@ export function Step5StrategicVersions() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Version Selection */}
+        {/* Changelog & Follow-up Panel */}
         <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Strategic Versions</CardTitle>
-              <CardDescription className="text-xs">
-                Compare different positioning strategies
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {resumeVersions.map((version) => (
-                <div
-                  key={version.id}
-                  onClick={() => handleSelectVersion(version)}
-                  className={cn(
-                    'p-4 rounded-lg border cursor-pointer transition-all',
-                    selectedVersionId === version.id
-                      ? 'border-primary bg-primary/5'
-                      : 'hover:bg-muted/50'
-                  )}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{version.name}</span>
+          {/* Changelog */}
+          {benchmarkResume?.changelog && benchmarkResume.changelog.length > 0 && (
+            <Collapsible open={showChangelog} onOpenChange={setShowChangelog}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <History className="h-4 w-4" />
+                        What Changed
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{benchmarkResume.changelog.length}</Badge>
+                        {showChangelog ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </div>
                     </div>
-                    {selectedVersionId === version.id && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{version.description}</p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Badge variant="secondary" className="text-xs">
-                      {version.emphasis}
-                    </Badge>
-                    {version.score && (
-                      <Badge variant="outline" className="text-xs">
-                        <Star className="h-3 w-3 mr-1 fill-amber-400 text-amber-400" />
-                        {version.score}%
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={generateVersions}
-                className="w-full mt-4"
-              >
-                Regenerate Versions
-              </Button>
-            </CardContent>
-          </Card>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <ScrollArea className="h-[300px]">
+                      <div className="space-y-2">
+                        {benchmarkResume.changelog.map(renderChangelogEntry)}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Follow-up Questions */}
+          {benchmarkResume?.followUpQuestions && benchmarkResume.followUpQuestions.length > 0 && (
+            <Collapsible open={showFollowUp} onOpenChange={setShowFollowUp}>
+              <Card className="border-amber-200 bg-amber-50/30">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-amber-100/50 transition-colors pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2 text-amber-700">
+                        <MessageSquare className="h-4 w-4" />
+                        Optional Enhancements
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="border-amber-300 text-amber-700">
+                          {benchmarkResume.followUpQuestions.length}
+                        </Badge>
+                        {showFollowUp ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </div>
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Answer these to further strengthen your resume
+                    </p>
+                    <div className="space-y-2">
+                      {benchmarkResume.followUpQuestions.map((question, idx) => (
+                        <div key={idx} className="p-3 rounded-lg border bg-background">
+                          <p className="text-sm">{question}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Regenerate Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateBenchmark}
+            className="w-full gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Regenerate Resume
+          </Button>
         </div>
         
         {/* Resume Preview/Editor */}
@@ -210,13 +272,19 @@ export function Step5StrategicVersions() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>{previewVersion?.name || 'Resume Preview'}</CardTitle>
-                  <CardDescription>{previewVersion?.description}</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Benchmark Resume
+                  </CardTitle>
+                  <CardDescription>Your optimized resume tailored to the job</CardDescription>
                 </div>
                 <div className="flex items-center gap-4">
-                  {previewVersion?.score && (
+                  {fitBlueprint?.overallFitScore && (
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">{previewVersion.score}%</div>
+                      <div className="text-2xl font-bold text-primary flex items-center gap-1">
+                        <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                        {fitBlueprint.overallFitScore}%
+                      </div>
                       <div className="text-xs text-muted-foreground">Match Score</div>
                     </div>
                   )}
@@ -236,12 +304,16 @@ export function Step5StrategicVersions() {
               </div>
             </CardHeader>
             <CardContent>
-              {previewVersion && (
+              {previewSections.length > 0 ? (
                 <WYSIWYGEditor
-                  sections={previewVersion.sections}
+                  sections={previewSections}
                   onSectionUpdate={handleSectionUpdate}
                   readOnly={viewMode === 'preview'}
                 />
+              ) : (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  No resume content available
+                </div>
               )}
             </CardContent>
           </Card>

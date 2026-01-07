@@ -182,9 +182,11 @@ export interface BenchmarkResume {
 }
 
 export interface ChangelogEntry {
+  section: string;
   change: string;
-  reason: string;
-  requirementIds: string[];
+  rationale: string;
+  evidenceUsed?: string[];
+  requirementIds?: string[];
 }
 
 export interface ResumeSection {

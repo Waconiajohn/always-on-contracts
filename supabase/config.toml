@@ -1,10 +1,10 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
 [functions.fit-blueprint]
-verify_jwt = true
+verify_jwt = false
 
 [functions.benchmark-resume]
-verify_jwt = true
+verify_jwt = false
 
 [functions.deep-fit-analysis]
 verify_jwt = true
@@ -230,7 +230,6 @@ verify_jwt = true
 
 [functions.suggest-keywords]
 verify_jwt = true
-verify_jwt = true
 
 [functions.generate-resume-with-perplexity]
 verify_jwt = true
@@ -410,9 +409,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.career-vault-chat]
-verify_jwt = true
-
-[functions.assess-vault-quality]
 verify_jwt = true
 
 [functions.generate-roadmap-suggestions]
