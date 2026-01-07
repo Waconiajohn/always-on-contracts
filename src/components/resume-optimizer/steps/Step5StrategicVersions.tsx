@@ -31,8 +31,10 @@ export function Step5StrategicVersions() {
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToNextStep = useOptimizerStore(state => state.goToNextStep);
   const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
+  const addVersionHistory = useOptimizerStore(state => state.addVersionHistory);
   
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [previewSections, setPreviewSections] = useState<ResumeSection[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(
     TEMPLATES.find(t => t.id === selectedTemplateState?.id) || TEMPLATES[0]
@@ -51,6 +53,7 @@ export function Step5StrategicVersions() {
   
   const generateBenchmark = async () => {
     setIsGenerating(true);
+    setGenerateError(null);
     setProcessing(true, 'Generating benchmark resume...');
     
     try {
@@ -67,6 +70,7 @@ export function Step5StrategicVersions() {
       if (error) {
         // Handle rate limit and payment errors
         if (error.message?.includes('429') || error.message?.includes('rate limit')) {
+          setGenerateError('You\'ve reached your usage limit. Please try again later.');
           toast({
             title: 'Rate Limit Reached',
             description: 'Please wait a moment before trying again.',
@@ -75,6 +79,7 @@ export function Step5StrategicVersions() {
           return;
         }
         if (error.message?.includes('402') || error.message?.includes('payment')) {
+          setGenerateError('This feature requires an active subscription.');
           toast({
             title: 'Subscription Required',
             description: 'Please upgrade to access this feature.',
@@ -95,6 +100,14 @@ export function Step5StrategicVersions() {
       setBenchmarkResume(benchmark);
       setPreviewSections(benchmark.sections);
       
+      // Save version history
+      addVersionHistory({
+        stepCompleted: 'strategic-versions',
+        resumeSnapshot: benchmark.resumeText,
+        changeDescription: 'Benchmark resume generated',
+        benchmarkResume: benchmark
+      });
+      
       toast({
         title: 'Benchmark Resume Generated',
         description: 'Your optimized resume is ready for review.'
@@ -102,6 +115,7 @@ export function Step5StrategicVersions() {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Could not generate benchmark resume';
       console.error('Generate benchmark error:', error);
+      setGenerateError(errorMessage);
       toast({
         title: 'Generation Failed',
         description: errorMessage,
@@ -158,6 +172,26 @@ export function Step5StrategicVersions() {
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <p className="text-muted-foreground">Generating benchmark resume...</p>
           <p className="text-xs text-muted-foreground mt-2">This may take 30-60 seconds</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (generateError) {
+    return (
+      <Card className="max-w-4xl mx-auto">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <p className="text-destructive mb-4">{generateError}</p>
+          <div className="flex gap-2">
+            <Button onClick={goToPrevStep} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <Button onClick={generateBenchmark}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

@@ -9,6 +9,14 @@ export type OptimizerStep =
   | 'strategic-versions'  // Step 4: Benchmark Resume (Pass 2)
   | 'hiring-manager';     // Step 5: Hiring manager review
 
+// Single source of truth for step order
+export const STEP_ORDER: OptimizerStep[] = [
+  'gap-analysis',
+  'answer-assistant',
+  'customization',
+  'strategic-versions',
+  'hiring-manager'
+];
 export const STEP_CONFIG: Record<OptimizerStep, {
   title: string;
   subtitle: string;

@@ -1,4 +1,4 @@
-import { ResumeVersion, ResumeSection } from '../types';
+import { ResumeVersion, ResumeSection, BenchmarkResume } from '../types';
 import { exportFormats } from '@/lib/resumeExportUtils';
 
 // Legacy CareerProfile interface for export compatibility
@@ -28,13 +28,21 @@ interface ExportableResumeData {
   }>;
 }
 
+// Type guard to check if input is a BenchmarkResume
+function isBenchmarkResume(version: ResumeVersion | BenchmarkResume): version is BenchmarkResume {
+  return 'resumeText' in version && 'changelog' in version;
+}
+
 export function prepareForExport(
-  version: ResumeVersion,
+  version: ResumeVersion | BenchmarkResume,
   careerProfile?: LegacyCareerProfile | null,
   jobTitle?: string
 ): ExportableResumeData {
   // Use fullName from career profile, fallback to extracting from UVP or default
   const name = careerProfile?.fullName || 'Your Name';
+  
+  // Get sections from either type
+  const sections = isBenchmarkResume(version) ? version.sections : version.sections;
   
   return {
     name: name,
@@ -44,7 +52,7 @@ export function prepareForExport(
       location: careerProfile?.location,
       headline: jobTitle || careerProfile?.careerTrajectory || 'Professional'
     },
-    sections: version.sections.map((section: ResumeSection) => ({
+    sections: sections.map((section: ResumeSection) => ({
       title: section.title,
       type: section.type,
       content: section.content.join('\n'),
@@ -179,7 +187,7 @@ export function generateResumeHTML(data: ExportableResumeData, templateId: strin
 
 export async function exportResume(
   format: 'pdf' | 'docx' | 'html' | 'txt',
-  version: ResumeVersion,
+  version: ResumeVersion | BenchmarkResume,
   careerProfile?: LegacyCareerProfile | null,
   jobTitle?: string,
   templateId?: string
