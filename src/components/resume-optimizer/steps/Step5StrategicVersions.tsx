@@ -49,7 +49,8 @@ export function Step5StrategicVersions() {
     } else {
       setPreviewSections(benchmarkResume.sections);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [benchmarkResume]);
   
   const generateBenchmark = async () => {
     setIsGenerating(true);

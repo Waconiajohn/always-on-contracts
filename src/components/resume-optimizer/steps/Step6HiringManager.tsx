@@ -78,7 +78,8 @@ export function Step6HiringManager() {
     if (!hiringManagerReview) {
       runReview();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hiringManagerReview]);
   
   const runReview = async () => {
     setIsLoading(true);
@@ -90,7 +91,8 @@ export function Step6HiringManager() {
         body: {
           resumeContent: benchmarkResume?.sections || [],
           jobDescription,
-          jobTitle
+          jobTitle,
+          industry: undefined // Optional: could be derived from job description
         }
       });
       

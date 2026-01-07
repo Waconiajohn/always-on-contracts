@@ -107,7 +107,8 @@ export function Step2GapAnalysis() {
     if (!fitBlueprint && resumeText && jobDescription) {
       runAnalysis();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitBlueprint, resumeText, jobDescription]);
   
   const runAnalysis = async () => {
     setIsLoading(true);
