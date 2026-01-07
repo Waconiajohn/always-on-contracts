@@ -20,9 +20,14 @@ export function Step3AnswerAssistant() {
   const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
   
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentResponse, setCurrentResponse] = useState('');
   
+  // Initialize response from saved responses
   const missingBullets = fitBlueprint?.missingBulletPlan || [];
+  const firstBullet = missingBullets[0] as MissingBulletPlan | undefined;
+  const [currentResponse, setCurrentResponse] = useState(
+    firstBullet?.id ? missingBulletResponses[firstBullet.id] || '' : ''
+  );
+  
   const currentBullet = missingBullets[currentIndex] as MissingBulletPlan | undefined;
   
   const answeredCount = Object.keys(missingBulletResponses).length;

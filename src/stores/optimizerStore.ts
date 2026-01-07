@@ -266,8 +266,14 @@ export const useOptimizerStore = create<OptimizerStore>()(
         const state = get();
         const historyEntry = state.versionHistory.find(h => h.id === historyId);
         if (!historyEntry) return;
-        // For now, just log - would need to implement proper restore
-        console.log('Restoring version:', historyEntry);
+        
+        // Restore the state from the history entry
+        set({
+          currentStep: historyEntry.stepCompleted,
+          fitBlueprint: historyEntry.fitBlueprint || state.fitBlueprint,
+          benchmarkResume: historyEntry.benchmarkResume || state.benchmarkResume,
+          lastSaved: Date.now()
+        });
       },
     }),
     {
@@ -287,13 +293,7 @@ export const useOptimizerStore = create<OptimizerStore>()(
         currentStep: state.currentStep,
         sessionId: state.sessionId,
         lastSaved: state.lastSaved,
-        // Legacy
-        resumeVersions: state.resumeVersions,
-        selectedVersionId: state.selectedVersionId,
-        gapAnalysis: state.gapAnalysis,
-        careerProfile: state.careerProfile,
-        isProfileConfirmed: state.isProfileConfirmed,
-        selectedAnswers: state.selectedAnswers,
+        // Note: Legacy state no longer persisted to reduce localStorage bloat
       }),
     }
   )
