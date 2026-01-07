@@ -1,5 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
+import { extractJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,15 +15,37 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError?.message);
+      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Authenticated user:', user.id);
+
     const { resumeText, jobDescription } = await req.json();
     
     if (!resumeText || !jobDescription) {
       throw new Error('Resume text and job description are required');
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const systemPrompt = `You are a senior hiring manager + executive recruiter + resume architect. You evaluate candidates like a panel: CEO, VP, and functional leader. You are rigorous about truthfulness and evidence.
@@ -139,128 +164,101 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
 
     console.log('Calling Lovable AI for Fit Blueprint analysis...');
     
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+    const { response, metrics } = await callLovableAI(
+      {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        model: LOVABLE_AI_MODELS.PREMIUM,
         temperature: 0.7,
-      }),
-    });
+      },
+      'fit-blueprint',
+      user.id,
+      60000 // 60 second timeout for complex analysis
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Payment required. Please add credits to continue.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
+    console.log('AI response received, usage:', metrics);
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    
+    const content = response.choices?.[0]?.message?.content;
     if (!content) {
       throw new Error('No response from AI');
     }
 
-    console.log('AI response received, parsing...');
-
-    // Parse the JSON response
-    let blueprint;
-    try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : content;
-      const rawBlueprint = JSON.parse(jsonStr.trim());
-      
-      // Transform to camelCase for frontend
-      blueprint = {
-        evidenceInventory: (rawBlueprint.evidence_inventory || []).map((e: any) => ({
-          id: e.id,
-          sourceRole: e.source_role,
-          text: e.text,
-          strength: e.strength
-        })),
-        requirements: (rawBlueprint.requirements || []).map((r: any) => ({
-          id: r.id,
-          requirement: r.requirement,
-          type: r.type,
-          senioritySignal: r.seniority_signal,
-          outcomeTarget: r.outcome_target
-        })),
-        fitMap: (rawBlueprint.fit_map || []).map((f: any) => ({
-          requirementId: f.requirement_id,
-          category: f.category,
-          rationale: f.rationale,
-          evidenceIds: f.evidence_ids || [],
-          gapTaxonomy: f.gap_taxonomy || [],
-          riskLevel: f.risk_level,
-          confidence: f.confidence
-        })),
-        benchmarkThemes: (rawBlueprint.benchmark_themes || []).map((t: any) => ({
-          theme: t.theme,
-          evidenceIds: t.evidence_ids || [],
-          requirementIds: t.requirement_ids || []
-        })),
-        bulletBank: (rawBlueprint.bullet_bank || []).map((b: any) => ({
-          bullet: b.bullet,
-          evidenceIds: b.evidence_ids || [],
-          requirementIds: b.requirement_ids || []
-        })),
-        missingBulletPlan: (rawBlueprint.missing_bullet_plan || []).map((m: any, idx: number) => ({
-          id: m.id || `mb${idx + 1}`,
-          targetRequirementIds: m.target_requirement_ids || [],
-          whatToAskCandidate: m.what_to_ask_candidate,
-          whereToPlace: m.where_to_place,
-          templateBullet: m.template_bullet
-        })),
-        atsAlignment: {
-          topKeywords: rawBlueprint.ats_alignment?.top_keywords || [],
-          covered: (rawBlueprint.ats_alignment?.covered || []).map((c: any) => ({
-            keyword: c.keyword,
-            evidenceIds: c.evidence_ids || []
-          })),
-          missingButAddable: (rawBlueprint.ats_alignment?.missing_but_addable || []).map((m: any) => ({
-            keyword: m.keyword,
-            whereToAdd: m.where_to_add,
-            template: m.template
-          })),
-          missingRequiresExperience: (rawBlueprint.ats_alignment?.missing_requires_experience || []).map((m: any) => ({
-            keyword: m.keyword,
-            whyGap: m.why_gap
-          }))
-        },
-        executiveSummary: {
-          hireSignal: rawBlueprint.executive_summary?.hire_signal || '',
-          likelyObjections: rawBlueprint.executive_summary?.likely_objections || [],
-          mitigationStrategy: rawBlueprint.executive_summary?.mitigation_strategy || [],
-          bestPositioningAngle: rawBlueprint.executive_summary?.best_positioning_angle || ''
-        },
-        overallFitScore: rawBlueprint.overall_fit_score || 70
-      };
-    } catch (parseError) {
+    // Parse the JSON response using shared parser
+    const parseResult = extractJSON(content);
+    if (!parseResult.success || !parseResult.data) {
       console.error('Failed to parse AI response:', content);
       throw new Error('Failed to parse fit blueprint result');
     }
+
+    const rawBlueprint = parseResult.data;
+    
+    // Transform to camelCase for frontend
+    const blueprint = {
+      evidenceInventory: (rawBlueprint.evidence_inventory || []).map((e: any) => ({
+        id: e.id,
+        sourceRole: e.source_role,
+        text: e.text,
+        strength: e.strength
+      })),
+      requirements: (rawBlueprint.requirements || []).map((r: any) => ({
+        id: r.id,
+        requirement: r.requirement,
+        type: r.type,
+        senioritySignal: r.seniority_signal,
+        outcomeTarget: r.outcome_target
+      })),
+      fitMap: (rawBlueprint.fit_map || []).map((f: any) => ({
+        requirementId: f.requirement_id,
+        category: f.category,
+        rationale: f.rationale,
+        evidenceIds: f.evidence_ids || [],
+        gapTaxonomy: f.gap_taxonomy || [],
+        riskLevel: f.risk_level,
+        confidence: f.confidence
+      })),
+      benchmarkThemes: (rawBlueprint.benchmark_themes || []).map((t: any) => ({
+        theme: t.theme,
+        evidenceIds: t.evidence_ids || [],
+        requirementIds: t.requirement_ids || []
+      })),
+      bulletBank: (rawBlueprint.bullet_bank || []).map((b: any) => ({
+        bullet: b.bullet,
+        evidenceIds: b.evidence_ids || [],
+        requirementIds: b.requirement_ids || []
+      })),
+      missingBulletPlan: (rawBlueprint.missing_bullet_plan || []).map((m: any, idx: number) => ({
+        id: m.id || `mb${idx + 1}`,
+        targetRequirementIds: m.target_requirement_ids || [],
+        whatToAskCandidate: m.what_to_ask_candidate,
+        whereToPlace: m.where_to_place,
+        templateBullet: m.template_bullet
+      })),
+      atsAlignment: {
+        topKeywords: rawBlueprint.ats_alignment?.top_keywords || [],
+        covered: (rawBlueprint.ats_alignment?.covered || []).map((c: any) => ({
+          keyword: c.keyword,
+          evidenceIds: c.evidence_ids || []
+        })),
+        missingButAddable: (rawBlueprint.ats_alignment?.missing_but_addable || []).map((m: any) => ({
+          keyword: m.keyword,
+          whereToAdd: m.where_to_add,
+          template: m.template
+        })),
+        missingRequiresExperience: (rawBlueprint.ats_alignment?.missing_requires_experience || []).map((m: any) => ({
+          keyword: m.keyword,
+          whyGap: m.why_gap
+        }))
+      },
+      executiveSummary: {
+        hireSignal: rawBlueprint.executive_summary?.hire_signal || '',
+        likelyObjections: rawBlueprint.executive_summary?.likely_objections || [],
+        mitigationStrategy: rawBlueprint.executive_summary?.mitigation_strategy || [],
+        bestPositioningAngle: rawBlueprint.executive_summary?.best_positioning_angle || ''
+      },
+      overallFitScore: rawBlueprint.overall_fit_score || 70
+    };
 
     console.log('Fit Blueprint generated successfully');
 
