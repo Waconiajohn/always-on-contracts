@@ -8,7 +8,7 @@ import { useOptimizerStore } from '@/stores/optimizerStore';
 import { MissingBulletPlan } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowRight, ArrowLeft, Check, SkipForward } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
 
 export function Step3AnswerAssistant() {
   const { toast } = useToast();
