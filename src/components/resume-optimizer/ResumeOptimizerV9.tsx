@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useBlocker } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProgressStepper } from './components/ProgressStepper';
 import { Step2GapAnalysis } from './steps/Step2GapAnalysis';
@@ -10,9 +10,20 @@ import { Step6HiringManager } from './steps/Step6HiringManager';
 import { SessionRecoveryDialog } from './components/SessionRecoveryDialog';
 import { AutoSaveIndicator } from './components/AutoSaveIndicator';
 import { VersionHistory } from './components/VersionHistory';
+import { OptimizerErrorBoundary } from './components/OptimizerErrorBoundary';
 import { STEP_CONFIG } from './types';
 import { Loader2 } from 'lucide-react';
 import { useOptimizerStore } from '@/stores/optimizerStore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ResumeOptimizerV9() {
   const location = useLocation();
@@ -29,7 +40,28 @@ export default function ResumeOptimizerV9() {
     hasActiveSession, 
     clearSession, 
     setInput,
+    reset,
   } = useOptimizerStore();
+  
+  // Block navigation when there's unsaved work
+  const hasUnsavedWork = Boolean(resumeText && jobDescription);
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedWork && currentLocation.pathname !== nextLocation.pathname
+  );
+  
+  // Browser beforeunload warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedWork) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedWork]);
   
   // Track if new data was passed in
   const [pendingNewData, setPendingNewData] = useState<{
@@ -171,17 +203,19 @@ export default function ResumeOptimizerV9() {
       
       {/* Main Content */}
       <main className="container py-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {renderStep()}
-          </motion.div>
-        </AnimatePresence>
+        <OptimizerErrorBoundary onReset={reset}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {renderStep()}
+            </motion.div>
+          </AnimatePresence>
+        </OptimizerErrorBoundary>
       </main>
       
       {/* Processing Overlay */}
@@ -193,6 +227,26 @@ export default function ResumeOptimizerV9() {
           </div>
         </div>
       )}
+      
+      {/* Navigation Blocker Dialog */}
+      <AlertDialog open={blocker.state === "blocked"}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Resume Optimizer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your progress is auto-saved, but you'll leave the optimization flow. Are you sure you want to leave?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => blocker.reset?.()}>
+              Stay
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => blocker.proceed?.()}>
+              Leave
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

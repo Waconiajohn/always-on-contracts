@@ -92,6 +92,7 @@ export function Step2GapAnalysis() {
   const setFitBlueprint = useOptimizerStore(state => state.setFitBlueprint);
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToNextStep = useOptimizerStore(state => state.goToNextStep);
+  const addVersionHistory = useOptimizerStore(state => state.addVersionHistory);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +147,14 @@ export function Step2GapAnalysis() {
       }
       
       setFitBlueprint(data);
+      
+      // Add to version history
+      addVersionHistory({
+        stepCompleted: 'gap-analysis',
+        resumeSnapshot: resumeText,
+        changeDescription: 'Fit Blueprint analysis complete',
+        fitBlueprint: data
+      });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Could not build fit blueprint';
       console.error('Fit blueprint error:', err);

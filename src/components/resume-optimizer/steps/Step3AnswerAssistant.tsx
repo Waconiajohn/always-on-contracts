@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,13 +20,17 @@ export function Step3AnswerAssistant() {
   const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
   
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentResponse, setCurrentResponse] = useState('');
   
-  // Initialize response from saved responses
   const missingBullets = fitBlueprint?.missingBulletPlan || [];
-  const firstBullet = missingBullets[0] as MissingBulletPlan | undefined;
-  const [currentResponse, setCurrentResponse] = useState(
-    firstBullet?.id ? missingBulletResponses[firstBullet.id] || '' : ''
-  );
+  
+  // Sync currentResponse when currentIndex changes
+  useEffect(() => {
+    const bullet = missingBullets[currentIndex] as MissingBulletPlan | undefined;
+    if (bullet?.id) {
+      setCurrentResponse(missingBulletResponses[bullet.id] || '');
+    }
+  }, [currentIndex, missingBullets, missingBulletResponses]);
   
   const currentBullet = missingBullets[currentIndex] as MissingBulletPlan | undefined;
   
