@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { useResumeBuilderStore } from '@/stores/resumeBuilderStore';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { HiringManagerReviewPanel } from '@/components/resume-builder/HiringManagerReviewPanel';
 import { SmartATSScore } from '@/components/resume/SmartATSScore';
 import ResumeOptimizerV9 from '@/components/resume-optimizer/ResumeOptimizerV9';
@@ -25,30 +24,8 @@ type WizardStep =
 
 export default function ResumeBuilderV2() {
   const navigate = useNavigate();
-  const location = useLocation();
   const store = useResumeBuilderStore();
   const [currentStep, setCurrentStep] = useState<WizardStep>('elite-builder');
-  const [_userId, setUserId] = useState<string | undefined>();
-  const [_resumeText, setResumeText] = useState('');
-  const [_jobDescription, setJobDescription] = useState('');
-
-  // Get userId and data from location state
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id);
-    };
-    fetchUser();
-
-    // Get data from location state (from QuickScore)
-    const stateData = location.state as any;
-    if (stateData?.resumeText) {
-      setResumeText(stateData.resumeText);
-    }
-    if (stateData?.jobDescription) {
-      setJobDescription(stateData.jobDescription);
-    }
-  }, [location.state]);
 
   // Main navigation between steps
   const handleStepComplete = (nextStep: WizardStep) => {
@@ -94,7 +71,7 @@ export default function ResumeBuilderV2() {
       case 'hiring-manager-review':
         return (
           <HiringManagerReviewPanel
-            resumeContent={store.displayJobText} // This should be the actual resume content
+            resumeContent={store.displayJobText}
             jobDescription={store.displayJobText}
             jobTitle={store.jobAnalysis?.roleProfile?.title}
             industry={store.jobAnalysis?.roleProfile?.industry}

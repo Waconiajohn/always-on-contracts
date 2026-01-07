@@ -26,7 +26,9 @@ import {
   TrendingUp,
   AlertTriangle,
   Lightbulb,
-  Search
+  Search,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -99,7 +101,7 @@ export function Step2GapAnalysis() {
     'EXPERIENCE GAP': true
   });
   const [showEvidence, setShowEvidence] = useState(false);
-  
+  const [showBulletBank, setShowBulletBank] = useState(false);
   
   useEffect(() => {
     if (!fitBlueprint && resumeText && jobDescription) {
@@ -587,6 +589,50 @@ export function Step2GapAnalysis() {
 
       {/* Evidence Inventory (collapsible) */}
       {renderEvidenceInventory()}
+
+      {/* Bullet Bank (collapsible) */}
+      {fitBlueprint!.bulletBank && fitBlueprint!.bulletBank.length > 0 && (
+        <Collapsible open={showBulletBank} onOpenChange={setShowBulletBank}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-primary" />
+                    Pre-Generated Bullets ({fitBlueprint!.bulletBank.length})
+                  </CardTitle>
+                  {showBulletBank ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </div>
+                <CardDescription>
+                  AI-generated bullets ready to use in your optimized resume
+                </CardDescription>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2">
+                    {fitBlueprint!.bulletBank.map((bullet, idx) => (
+                      <div 
+                        key={idx} 
+                        className="p-3 rounded-lg border bg-muted/30"
+                      >
+                        <p className="text-sm">{bullet.bullet}</p>
+                        {bullet.evidenceIds && bullet.evidenceIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            <span className="text-xs text-muted-foreground mr-1">Based on:</span>
+                            {bullet.evidenceIds.map(renderEvidenceTag)}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
       
       {/* Requirement Sections */}
       <div className="space-y-4">
@@ -617,10 +663,23 @@ export function Step2GapAnalysis() {
       
       {/* Navigation */}
       <div className="flex justify-between">
-        <Button variant="outline" onClick={() => navigate('/quick-score')} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/quick-score')} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              runAnalysis();
+            }} 
+            className="gap-2"
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            Re-analyze
+          </Button>
+        </div>
         <Button onClick={goToNextStep} className="gap-2">
           {fitBlueprint!.missingBulletPlan.length > 0 
             ? 'Complete Your Profile' 
