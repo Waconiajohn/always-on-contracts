@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -26,6 +27,14 @@ import { ProcessSteps } from "@/components/marketing/ProcessSteps";
 
 const ResumeOptimizerMarketing = () => {
   const navigate = useNavigate();
+
+  // Set document title for SEO
+  useEffect(() => {
+    document.title = "Resume Optimizer - AI-Powered Resume Builder | CareerIQ";
+    return () => {
+      document.title = "CareerIQ";
+    };
+  }, []);
 
   const scrollToWalkthrough = () => {
     document.getElementById("walkthrough")?.scrollIntoView({ behavior: "smooth" });

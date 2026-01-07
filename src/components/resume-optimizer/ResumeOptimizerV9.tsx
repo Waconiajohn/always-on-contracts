@@ -25,6 +25,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface SavedResumeState {
+  savedResumeId?: string;
+  savedContent?: {
+    sections?: any[];
+    changelog?: any[];
+    resumeText?: string;
+  };
+  savedCustomizations?: any;
+  savedTemplatId?: string;
+}
+
 export default function ResumeOptimizerV9() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,6 +52,10 @@ export default function ResumeOptimizerV9() {
     clearSession, 
     setInput,
     reset,
+    setBenchmarkResume,
+    setCustomization,
+    selectTemplate,
+    setStep,
   } = useOptimizerStore();
   
   // Block navigation when there's unsaved work
@@ -73,13 +88,44 @@ export default function ResumeOptimizerV9() {
   
   // Check for existing session on mount
   useEffect(() => {
-    const stateData = location.state as { 
+    const stateData = location.state as ({ 
       resumeText?: string; 
       jobDescription?: string; 
       jobTitle?: string; 
       company?: string; 
       fromQuickScore?: boolean 
-    } | null;
+    } & SavedResumeState) | null;
+    
+    // Handle loading a saved resume from My Resumes
+    if (stateData?.savedResumeId && stateData?.savedContent) {
+      // Load the saved resume into the store
+      const content = stateData.savedContent;
+      
+      // Set the benchmark resume from saved content
+      if (content.sections || content.resumeText) {
+        setBenchmarkResume({
+          sections: content.sections || [],
+          changelog: content.changelog || [],
+          resumeText: content.resumeText || '',
+          followUpQuestions: []
+        });
+      }
+      
+      // Set customizations if available
+      if (stateData.savedCustomizations) {
+        setCustomization(stateData.savedCustomizations);
+      }
+      
+      // Set template if available
+      if (stateData.savedTemplatId) {
+        selectTemplate({ id: stateData.savedTemplatId, name: 'Saved Template' });
+      }
+      
+      // Navigate to strategic versions to review/edit the saved resume
+      setStep('strategic-versions');
+      setIsInitialized(true);
+      return;
+    }
     
     const hasNewData = stateData?.resumeText && stateData?.jobDescription;
     const hasExistingSession = hasActiveSession();
