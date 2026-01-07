@@ -177,7 +177,7 @@ export function Step4Customization() {
           Back
         </Button>
         <Button onClick={goToNextStep} className="gap-2">
-          Generate Strategic Versions
+          Generate Benchmark Resume
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
