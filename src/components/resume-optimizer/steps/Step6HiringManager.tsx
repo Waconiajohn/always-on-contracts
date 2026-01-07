@@ -210,7 +210,7 @@ export function Step6HiringManager() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Save to resume_versions table
+      // Save to resume_versions table with template_id
       const { error: saveError } = await supabase
         .from('resume_versions')
         .insert([{
@@ -222,7 +222,8 @@ export function Step6HiringManager() {
             resumeText: benchmarkResume.resumeText
           })) as Json,
           customizations: JSON.parse(JSON.stringify(customization || {})) as Json,
-          match_score: fitBlueprint?.overallFitScore || null
+          match_score: fitBlueprint?.overallFitScore || null,
+          template_id: selectedTemplate?.id || null
         }]);
 
       if (saveError) throw saveError;
