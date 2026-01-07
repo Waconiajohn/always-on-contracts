@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CommandMenu } from "@/components/CommandMenu";
 import { TopNav } from "@/components/navigation/TopNav";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ModuleGate } from "./components/ModuleGate";
 import { AdminRoute } from "./components/admin/AdminRoute";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,7 +60,6 @@ const TestingDashboard = lazy(() => import("./pages/TestingDashboard"));
 const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
-const ResumeBuilderV2 = lazy(() => import("./pages/agents/ResumeBuilderV2"));
 const ResumeOptimizerV9 = lazy(() => import("./components/resume-optimizer/ResumeOptimizerV9"));
 const ResumeOptimizerMarketing = lazy(() => import("./pages/ResumeOptimizerMarketing"));
 
@@ -104,13 +104,14 @@ const AppContent = () => {
           <Route path="/api-keys" element={<ProtectedRoute><APIKeys /></ProtectedRoute>} />
           <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
         <Route path="/agents/corporate-assistant" element={<ProtectedRoute><CorporateAssistant /></ProtectedRoute>} />
-          <Route path="/agents/resume-builder" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
-          <Route path="/agents/resume-builder-wizard" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
-          <Route path="/must-interview-builder" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
-          <Route path="/resume-builder-v5" element={<ProtectedRoute><ResumeBuilderV2 /></ProtectedRoute>} />
-        <Route path="/resume-builder-v4" element={<Navigate to="/resume-builder" replace />} />
-        <Route path="/must-interview-builder-v3" element={<Navigate to="/resume-builder" replace />} />
-        <Route path="/agents/resume-builder-legacy" element={<Navigate to="/resume-builder" replace />} />
+        {/* Legacy resume builder routes - redirect to canonical */}
+          <Route path="/agents/resume-builder" element={<Navigate to="/resume-builder" replace />} />
+          <Route path="/agents/resume-builder-wizard" element={<Navigate to="/resume-builder" replace />} />
+          <Route path="/must-interview-builder" element={<Navigate to="/resume-builder" replace />} />
+          <Route path="/resume-builder-v5" element={<Navigate to="/resume-builder" replace />} />
+          <Route path="/resume-builder-v4" element={<Navigate to="/resume-builder" replace />} />
+          <Route path="/must-interview-builder-v3" element={<Navigate to="/resume-builder" replace />} />
+          <Route path="/agents/resume-builder-legacy" element={<Navigate to="/resume-builder" replace />} />
         <Route path="/my-resumes" element={<ProtectedRoute><MyResumes /></ProtectedRoute>} />
         <Route path="/agents/interview-prep" element={<ProtectedRoute><InterviewPrepAgent /></ProtectedRoute>} />
         <Route path="/agents/linkedin-blogging" element={<ProtectedRoute><LinkedInBloggingAgent /></ProtectedRoute>} />
@@ -150,8 +151,14 @@ const AppContent = () => {
             <Route path="/benchmark-builder" element={<Navigate to="/resume-builder" replace />} />
             <Route path="/resume-builder-v7" element={<Navigate to="/resume-builder" replace />} />
             {/* V9 Resume Optimizer - 6-step collaborative system */}
-            <Route path="/resume-builder-v8" element={<ProtectedRoute><ResumeOptimizerV9 /></ProtectedRoute>} />
-            <Route path="/resume-builder" element={<ProtectedRoute><ResumeOptimizerV9 /></ProtectedRoute>} />
+            <Route path="/resume-builder-v8" element={<Navigate to="/resume-builder" replace />} />
+            <Route path="/resume-builder" element={
+              <ProtectedRoute>
+                <ModuleGate module="resume_jobs_studio">
+                  <ResumeOptimizerV9 />
+                </ModuleGate>
+              </ProtectedRoute>
+            } />
             {/* Resume Optimizer Marketing Page */}
             <Route path="/resume-optimizer-info" element={<ResumeOptimizerMarketing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

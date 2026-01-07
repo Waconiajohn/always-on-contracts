@@ -9,7 +9,9 @@ import { useOptimizerStore } from '@/stores/optimizerStore';
 import { BenchmarkResume, ResumeSection, ChangelogEntry } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, ArrowLeft, Loader2, FileText, Star, Eye, Edit3, ChevronDown, ChevronRight, History, RefreshCw, MessageSquare } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, FileText, Star, Eye, Edit3, ChevronDown, ChevronRight, History, RefreshCw, MessageSquare, Download } from 'lucide-react';
+import { ExportDialog, ExportFormat } from '../components/ExportDialog';
+import { exportResume } from '../utils/exportHandler';
 
 import { TemplateSelector, ResumeTemplate, TEMPLATES } from '../components/TemplateSelector';
 import { WYSIWYGEditor } from '../components/WYSIWYGEditor';
@@ -41,6 +43,7 @@ export function Step5StrategicVersions() {
   );
   const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [showFollowUp, setShowFollowUp] = useState(false);
   
   useEffect(() => {
@@ -125,6 +128,25 @@ export function Step5StrategicVersions() {
     } finally {
       setIsGenerating(false);
       setProcessing(false);
+    }
+  };
+
+  const jobTitle = useOptimizerStore(state => state.jobTitle);
+  
+  const handleExport = async (format: ExportFormat) => {
+    if (!benchmarkResume) return;
+    try {
+      await exportResume(format, benchmarkResume, null, jobTitle, selectedTemplate?.id);
+      toast({
+        title: 'Export successful',
+        description: `Resume downloaded as ${format.toUpperCase()}`
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Export failed',
+        description: err.message,
+        variant: 'destructive'
+      });
     }
   };
 
@@ -361,11 +383,25 @@ export function Step5StrategicVersions() {
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
-        <Button onClick={goToNextStep} className="gap-2">
-          Get Hiring Manager Review
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowExportDialog(true)} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export Now
+          </Button>
+          <Button onClick={goToNextStep} className="gap-2">
+            Get Hiring Manager Review
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleExport}
+        resumeName="Benchmark Resume"
+      />
     </div>
   );
 }
