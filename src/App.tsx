@@ -61,6 +61,7 @@ const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
 const ResumeBuilderV2 = lazy(() => import("./pages/agents/ResumeBuilderV2"));
 const ResumeOptimizerV9 = lazy(() => import("./components/resume-optimizer/ResumeOptimizerV9"));
+const ResumeOptimizerMarketing = lazy(() => import("./pages/ResumeOptimizerMarketing"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -151,6 +152,8 @@ const AppContent = () => {
             {/* V9 Resume Optimizer - 6-step collaborative system */}
             <Route path="/resume-builder-v8" element={<ProtectedRoute><ResumeOptimizerV9 /></ProtectedRoute>} />
             <Route path="/resume-builder" element={<ProtectedRoute><ResumeOptimizerV9 /></ProtectedRoute>} />
+            {/* Resume Optimizer Marketing Page */}
+            <Route path="/resume-optimizer-info" element={<ResumeOptimizerMarketing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           </Routes>
