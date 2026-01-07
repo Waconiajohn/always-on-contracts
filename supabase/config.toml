@@ -433,7 +433,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.hiring-manager-review]
-verify_jwt = true
+verify_jwt = false
 
 [functions.quick-glance-optimize]
 verify_jwt = true
