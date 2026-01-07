@@ -235,9 +235,13 @@ const ResumeGenerationScene = () => {
   ];
 
   useEffect(() => {
+    const timeouts: NodeJS.Timeout[] = [];
     resumeLines.forEach((line, i) => {
-      setTimeout(() => setLines((prev) => [...prev, line]), (i + 1) * 800);
+      const timeout = setTimeout(() => setLines((prev) => [...prev, line]), (i + 1) * 800);
+      timeouts.push(timeout);
     });
+    return () => timeouts.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -374,6 +378,7 @@ export const AnimatedWalkthrough = () => {
                   <button
                     key={step.id}
                     onClick={() => setCurrentStep(i)}
+                    aria-label={`Go to ${step.title}`}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
                       currentStep === i
                         ? "bg-primary/10 text-primary"
@@ -405,10 +410,11 @@ export const AnimatedWalkthrough = () => {
 
           {/* Progress Dots */}
           <div className="flex justify-center gap-2 mt-6">
-            {steps.map((_, i) => (
+            {steps.map((step, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentStep(i)}
+                aria-label={`Go to step ${i + 1}: ${step.title}`}
                 className={`w-2 h-2 rounded-full transition-all ${
                   currentStep === i ? "w-8 bg-primary" : "bg-muted-foreground/30"
                 }`}

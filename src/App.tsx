@@ -75,7 +75,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const publicPaths = ['/', '/auth', '/pricing'];
+  const publicPaths = ['/', '/auth', '/pricing', '/resume-optimizer-info'];
   const showTopNav = !publicPaths.includes(location.pathname);
 
   return (
