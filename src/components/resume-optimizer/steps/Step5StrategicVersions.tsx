@@ -9,6 +9,7 @@ import { useOptimizerStore } from '@/stores/optimizerStore';
 import { BenchmarkResume, ResumeSection, ChangelogEntry } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { handleEdgeFunctionError, isRateLimitError, isPaymentError } from '@/lib/edgeFunction/errorHandler';
 import { ArrowRight, ArrowLeft, Loader2, FileText, Star, Eye, Edit3, ChevronDown, ChevronRight, History, RefreshCw, MessageSquare, Download } from 'lucide-react';
 import { ExportDialog, ExportFormat } from '../components/ExportDialog';
 import { exportResume } from '../utils/exportHandler';
@@ -72,23 +73,9 @@ export function Step5StrategicVersions() {
       });
       
       if (error) {
-        // Handle rate limit and payment errors
-        if (error.message?.includes('429') || error.message?.includes('rate limit')) {
-          setGenerateError('You\'ve reached your usage limit. Please try again later.');
-          toast({
-            title: 'Rate Limit Reached',
-            description: 'Please wait a moment before trying again.',
-            variant: 'destructive'
-          });
-          return;
-        }
-        if (error.message?.includes('402') || error.message?.includes('payment')) {
-          setGenerateError('This feature requires an active subscription.');
-          toast({
-            title: 'Subscription Required',
-            description: 'Please upgrade to access this feature.',
-            variant: 'destructive'
-          });
+        const handledError = handleEdgeFunctionError(error, 'benchmark-resume');
+        if (isRateLimitError(handledError) || isPaymentError(handledError)) {
+          setGenerateError(handledError.message);
           return;
         }
         throw error;

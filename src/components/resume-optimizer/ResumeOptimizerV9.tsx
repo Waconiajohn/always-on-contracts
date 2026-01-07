@@ -266,10 +266,17 @@ export default function ResumeOptimizerV9() {
       
       {/* Processing Overlay */}
       {isProcessing && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          role="alertdialog"
+          aria-busy="true"
+          aria-live="assertive"
+          aria-label="Processing in progress"
+        >
           <div className="flex flex-col items-center gap-4 rounded-lg border bg-card p-8 shadow-lg">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">{processingMessage}</p>
+            <span className="sr-only">Please wait, processing your resume...</span>
           </div>
         </div>
       )}

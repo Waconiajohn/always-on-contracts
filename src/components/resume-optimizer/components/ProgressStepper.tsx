@@ -11,7 +11,11 @@ export function ProgressStepper({ currentStep, className }: ProgressStepperProps
   const currentIndex = STEP_ORDER.indexOf(currentStep);
   
   return (
-    <div className={cn('flex items-center justify-between', className)}>
+    <nav 
+      className={cn('flex items-center justify-between', className)}
+      role="navigation"
+      aria-label="Resume optimization progress"
+    >
       {STEP_ORDER.map((step, index) => {
         const config = STEP_CONFIG[step];
         const isCompleted = index < currentIndex;
@@ -59,6 +63,6 @@ export function ProgressStepper({ currentStep, className }: ProgressStepperProps
           </div>
         );
       })}
-    </div>
+    </nav>
   );
 }
