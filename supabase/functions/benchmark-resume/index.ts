@@ -205,8 +205,10 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
           isEdited: false
         })),
         changelog: (rawResume.changelog || []).map((c: any) => ({
+          section: c.section || 'General',
           change: c.change,
-          reason: c.reason,
+          rationale: c.reason || c.rationale || '',
+          evidenceUsed: c.evidence_used || [],
           requirementIds: c.requirement_ids || []
         })),
         followUpQuestions: rawResume.follow_up_questions || []

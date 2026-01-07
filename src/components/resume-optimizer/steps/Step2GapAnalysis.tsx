@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,7 @@ const STRENGTH_COLORS = {
 
 export function Step2GapAnalysis() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Zustand store
   const resumeText = useOptimizerStore(state => state.resumeText);
@@ -88,7 +90,6 @@ export function Step2GapAnalysis() {
   const setFitBlueprint = useOptimizerStore(state => state.setFitBlueprint);
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToNextStep = useOptimizerStore(state => state.goToNextStep);
-  const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -497,7 +498,7 @@ export function Step2GapAnalysis() {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <p className="text-destructive mb-4">{error}</p>
           <div className="flex gap-2">
-            <Button onClick={goToPrevStep} variant="outline">
+            <Button onClick={() => navigate('/quick-score')} variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
@@ -616,7 +617,7 @@ export function Step2GapAnalysis() {
       
       {/* Navigation */}
       <div className="flex justify-between">
-        <Button variant="outline" onClick={goToPrevStep} className="gap-2">
+        <Button variant="outline" onClick={() => navigate('/quick-score')} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
