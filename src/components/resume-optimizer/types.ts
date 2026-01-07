@@ -1,13 +1,13 @@
 // Resume Optimizer V9 - Types
-// 6-Step Collaborative Resume Optimization System
+// 5-Step 2-Pass Benchmark Resume System
 
+// ============= Step Types =============
 export type OptimizerStep = 
-  | 'career-profile'      // Step 1: Review career trajectory
-  | 'gap-analysis'        // Step 2: Categorized requirements
-  | 'answer-assistant'    // Step 3: AI-powered language help  
-  | 'customization'       // Step 4: Intensity/tone controls
-  | 'strategic-versions'  // Step 5: Multiple resume versions
-  | 'hiring-manager';     // Step 6: Hiring manager review
+  | 'gap-analysis'        // Step 1: Fit Blueprint (Pass 1)
+  | 'answer-assistant'    // Step 2: Missing Bullet Collector
+  | 'customization'       // Step 3: Intensity/tone controls
+  | 'strategic-versions'  // Step 4: Benchmark Resume (Pass 2)
+  | 'hiring-manager';     // Step 5: Hiring manager review
 
 export const STEP_CONFIG: Record<OptimizerStep, {
   title: string;
@@ -15,22 +15,16 @@ export const STEP_CONFIG: Record<OptimizerStep, {
   icon: string;
   estimatedTime: string;
 }> = {
-  'career-profile': {
-    title: 'Career Profile Review',
-    subtitle: 'Confirm your career trajectory and expertise',
-    icon: '👤',
+  'gap-analysis': {
+    title: 'Fit Blueprint',
+    subtitle: 'Deep evidence-backed analysis of your qualifications',
+    icon: '🎯',
     estimatedTime: '2 min'
   },
-  'gap-analysis': {
-    title: 'Intelligent Gap Analysis',
-    subtitle: 'See how you match each requirement',
-    icon: '🎯',
-    estimatedTime: '1 min'
-  },
   'answer-assistant': {
-    title: 'AI Answer Assistant',
-    subtitle: 'Get help crafting strategic language',
-    icon: '✨',
+    title: 'Complete Your Profile',
+    subtitle: 'Provide details to strengthen your resume',
+    icon: '✍️',
     estimatedTime: '5 min'
   },
   'customization': {
@@ -40,10 +34,10 @@ export const STEP_CONFIG: Record<OptimizerStep, {
     estimatedTime: '1 min'
   },
   'strategic-versions': {
-    title: 'Strategic Versions',
-    subtitle: 'Compare different positioning strategies',
+    title: 'Benchmark Resume',
+    subtitle: 'Your optimized, interview-ready resume',
     icon: '📄',
-    estimatedTime: '3 min'
+    estimatedTime: '2 min'
   },
   'hiring-manager': {
     title: 'Hiring Manager Review',
@@ -53,7 +47,7 @@ export const STEP_CONFIG: Record<OptimizerStep, {
   }
 };
 
-// Confidence levels for suggestions
+// ============= Confidence Levels =============
 export type ConfidenceLevel = 'very-high' | 'high' | 'moderate' | 'low';
 
 export const CONFIDENCE_CONFIG: Record<ConfidenceLevel, {
@@ -65,23 +59,23 @@ export const CONFIDENCE_CONFIG: Record<ConfidenceLevel, {
 }> = {
   'very-high': {
     label: 'Very High',
-    color: 'text-amber-700',
-    bgColor: 'bg-amber-100',
-    borderColor: 'border-amber-300',
+    color: 'text-emerald-700',
+    bgColor: 'bg-emerald-100',
+    borderColor: 'border-emerald-300',
     icon: '🥇'
   },
   'high': {
     label: 'High',
-    color: 'text-slate-600',
-    bgColor: 'bg-slate-100',
-    borderColor: 'border-slate-300',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    borderColor: 'border-blue-300',
     icon: '🥈'
   },
   'moderate': {
     label: 'Moderate',
-    color: 'text-orange-700',
-    bgColor: 'bg-orange-100',
-    borderColor: 'border-orange-300',
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-100',
+    borderColor: 'border-amber-300',
     icon: '🥉'
   },
   'low': {
@@ -93,79 +87,116 @@ export const CONFIDENCE_CONFIG: Record<ConfidenceLevel, {
   }
 };
 
-// Career Profile (Step 1)
-export interface CareerProfile {
-  // Contact info for export
-  fullName?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  
-  // Career data
-  yearsOfExperience: number;
-  seniority: string;
-  industries: string[];
-  leadershipRoles: string[];
-  technicalExpertise: string[];
-  softSkills: string[];
-  careerTrajectory: string;
-  uniqueValueProposition: string;
-  certifications?: string[];
-  education?: string[];
-}
+// ============= Pass 1: Fit Blueprint Types =============
 
-// Requirement Categories (Step 2)
-export type RequirementCategory = 'highly-qualified' | 'partially-qualified' | 'experience-gap';
-
-export interface AnalyzedRequirement {
-  id: string;
-  requirement: string;
-  category: RequirementCategory;
-  
-  // Why this matters
-  explanation: string;
-  
-  // What's in your background
-  yourExperience?: string;
-  
-  // What's missing (for partial/gaps)
-  whatsGap?: string;
-  
-  // Suggested language
-  suggestedLanguage: string;
-  
-  // Alternative positioning options
-  alternatives: AlternativeLanguage[];
-  
-  // Confidence level
-  confidence: ConfidenceLevel;
-  
-  // Evidence from resume
-  resumeEvidence: string[];
-  
-  // User selection state
-  selectedLanguage?: string;
-  userEdited?: boolean;
-  isAccepted?: boolean;
-}
-
-export interface AlternativeLanguage {
-  id: string;
-  tone: 'formal' | 'technical' | 'conversational' | 'executive';
+// Evidence from resume (E1, E2, E3...)
+export interface EvidenceUnit {
+  id: string;           // E1, E2, etc.
+  sourceRole: string;
   text: string;
+  strength: 'strong' | 'moderate' | 'weak' | 'inference';
+}
+
+// Atomic job requirement (R1, R2, R3...)
+export interface AtomicRequirement {
+  id: string;           // R1, R2, etc.
+  requirement: string;
+  type: 'Leadership' | 'Domain' | 'Execution' | 'Metrics' | 'Tooling' | 'Communication' | 'Strategy';
+  senioritySignal: 'Director-level' | 'Manager-level' | 'IC-level';
+  outcomeTarget: 'Retention' | 'Expansion' | 'Adoption' | 'Quality' | 'Revenue' | 'Risk' | 'Efficiency';
+}
+
+// Gap taxonomy types
+export type GapTaxonomy = 'Domain' | 'Scope' | 'Ownership' | 'Metric' | 'Tooling' | 'Recency';
+
+// Fit classification per requirement
+export interface FitMapEntry {
+  requirementId: string;
+  category: 'HIGHLY QUALIFIED' | 'PARTIALLY QUALIFIED' | 'EXPERIENCE GAP';
   rationale: string;
+  evidenceIds: string[];
+  gapTaxonomy: GapTaxonomy[];
+  riskLevel: 'Low' | 'Medium' | 'High';
+  confidence: ConfidenceLevel;
 }
 
-// Gap Analysis Result (Step 2)
-export interface GapAnalysisResult {
-  highlyQualified: AnalyzedRequirement[];
-  partiallyQualified: AnalyzedRequirement[];
-  experienceGaps: AnalyzedRequirement[];
+// Pre-generated bullets
+export interface BulletBankItem {
+  bullet: string;
+  evidenceIds: string[];
+  requirementIds: string[];
+}
+
+// Missing bullets the user needs to provide info for
+export interface MissingBulletPlan {
+  id: string;
+  targetRequirementIds: string[];
+  whatToAskCandidate: string;
+  whereToPlace: string;
+  templateBullet: string;
+}
+
+// ATS keyword analysis
+export interface ATSAlignment {
+  topKeywords: string[];
+  covered: { keyword: string; evidenceIds: string[] }[];
+  missingButAddable: { keyword: string; whereToAdd: string; template: string }[];
+  missingRequiresExperience: { keyword: string; whyGap: string }[];
+}
+
+// Executive summary from Pass 1
+export interface ExecutiveSummary {
+  hireSignal: string;
+  likelyObjections: string[];
+  mitigationStrategy: string[];
+  bestPositioningAngle: string;
+}
+
+// Benchmark themes
+export interface BenchmarkTheme {
+  theme: string;
+  evidenceIds: string[];
+  requirementIds: string[];
+}
+
+// Complete Fit Blueprint (Pass 1 output)
+export interface FitBlueprint {
+  evidenceInventory: EvidenceUnit[];
+  requirements: AtomicRequirement[];
+  fitMap: FitMapEntry[];
+  benchmarkThemes: BenchmarkTheme[];
+  bulletBank: BulletBankItem[];
+  missingBulletPlan: MissingBulletPlan[];
+  atsAlignment: ATSAlignment;
+  executiveSummary: ExecutiveSummary;
   overallFitScore: number;
-  summary: string;
 }
 
-// Customization Options (Step 4)
+// ============= Pass 2: Benchmark Resume Types =============
+
+export interface BenchmarkResume {
+  resumeText: string;
+  sections: ResumeSection[];
+  changelog: ChangelogEntry[];
+  followUpQuestions: string[];
+}
+
+export interface ChangelogEntry {
+  change: string;
+  reason: string;
+  requirementIds: string[];
+}
+
+export interface ResumeSection {
+  id: string;
+  type: 'summary' | 'experience' | 'skills' | 'education' | 'certifications' | 'achievements' | 'competencies';
+  title: string;
+  content: string[];
+  evidenceTags?: Record<number, string[]>; // index -> [E1, R2, ...]
+  isEdited?: boolean;
+}
+
+// ============= Customization Types =============
 export type IntensityLevel = 'conservative' | 'moderate' | 'aggressive';
 export type TonePreference = 'formal' | 'conversational' | 'technical' | 'executive';
 
@@ -174,25 +205,7 @@ export interface CustomizationSettings {
   tone: TonePreference;
 }
 
-// Resume Version (Step 5)
-export interface ResumeVersion {
-  id: string;
-  name: string;
-  emphasis: string;
-  description: string;
-  sections: ResumeSection[];
-  score?: number;
-}
-
-export interface ResumeSection {
-  id: string;
-  type: 'summary' | 'experience' | 'skills' | 'education' | 'certifications' | 'achievements';
-  title: string;
-  content: string[];
-  isEdited?: boolean;
-}
-
-// Hiring Manager Review (Step 6)
+// ============= Hiring Manager Review Types =============
 export interface HiringManagerReview {
   overallImpression: string;
   recommendation: 'strong-yes' | 'yes' | 'maybe' | 'no';
@@ -209,16 +222,26 @@ export interface HMConcern {
   severity: 'critical' | 'moderate' | 'minor';
 }
 
-// Version History Entry
+// ============= Version History =============
 export interface VersionHistoryEntry {
   id: string;
   timestamp: number;
   stepCompleted: OptimizerStep;
-  versionSnapshot: ResumeVersion;
+  resumeSnapshot: string;
   changeDescription: string;
 }
 
-// Main State
+// ============= Legacy Types (for backwards compatibility) =============
+export interface ResumeVersion {
+  id: string;
+  name: string;
+  emphasis: string;
+  description: string;
+  sections: ResumeSection[];
+  score?: number;
+}
+
+// ============= Main State =============
 export interface OptimizerState {
   // Input data
   resumeText: string;
@@ -226,25 +249,20 @@ export interface OptimizerState {
   jobTitle?: string;
   company?: string;
   
-  // Step 1
-  careerProfile: CareerProfile | null;
-  isProfileConfirmed: boolean;
+  // Step 1: Fit Blueprint (Pass 1)
+  fitBlueprint: FitBlueprint | null;
   
-  // Step 2
-  gapAnalysis: GapAnalysisResult | null;
+  // Step 2: Missing Bullet Responses
+  missingBulletResponses: Record<string, string>;
   
-  // Step 3 - tracked per requirement
-  selectedAnswers: Record<string, string>;
-  
-  // Step 4
+  // Step 3: Customization
   customization: CustomizationSettings;
   
-  // Step 5
-  resumeVersions: ResumeVersion[];
-  selectedVersionId?: string;
+  // Step 4: Benchmark Resume (Pass 2)
+  benchmarkResume: BenchmarkResume | null;
   selectedTemplate?: { id: string; name: string };
   
-  // Step 6
+  // Step 5: Hiring Manager Review
   hiringManagerReview: HiringManagerReview | null;
   
   // Version History
@@ -255,6 +273,14 @@ export interface OptimizerState {
   isProcessing: boolean;
   processingMessage: string;
   error: string | null;
+  
+  // Legacy (for backwards compatibility during transition)
+  resumeVersions: ResumeVersion[];
+  selectedVersionId?: string;
+  gapAnalysis: any | null;
+  careerProfile: any | null;
+  isProfileConfirmed: boolean;
+  selectedAnswers: Record<string, string>;
 }
 
 export const createInitialState = (): OptimizerState => ({
@@ -262,20 +288,25 @@ export const createInitialState = (): OptimizerState => ({
   jobDescription: '',
   jobTitle: undefined,
   company: undefined,
-  careerProfile: null,
-  isProfileConfirmed: false,
-  gapAnalysis: null,
-  selectedAnswers: {},
+  fitBlueprint: null,
+  missingBulletResponses: {},
   customization: {
     intensity: 'moderate',
     tone: 'formal'
   },
-  resumeVersions: [],
-  selectedVersionId: undefined,
+  benchmarkResume: null,
+  selectedTemplate: undefined,
   hiringManagerReview: null,
   versionHistory: [],
-  currentStep: 'career-profile',
+  currentStep: 'gap-analysis',
   isProcessing: false,
   processingMessage: '',
-  error: null
+  error: null,
+  // Legacy defaults
+  resumeVersions: [],
+  selectedVersionId: undefined,
+  gapAnalysis: null,
+  careerProfile: null,
+  isProfileConfirmed: false,
+  selectedAnswers: {}
 });

@@ -1,12 +1,6 @@
 /**
  * @deprecated This context is deprecated. Use useOptimizerStore from '@/stores/optimizerStore' instead.
  * This file is kept for backward compatibility during migration.
- * 
- * Migration guide:
- * - Replace: import { useOptimizer } from './context/OptimizerContext'
- * - With: import { useOptimizerStore } from '@/stores/optimizerStore'
- * 
- * The Zustand store provides the same functionality with persistence built-in.
  */
 
 import { createContext, useContext, ReactNode } from 'react';
@@ -14,8 +8,6 @@ import { useOptimizerStore } from '@/stores/optimizerStore';
 import { 
   OptimizerState, 
   OptimizerStep, 
-  CareerProfile, 
-  GapAnalysisResult,
   CustomizationSettings,
   ResumeVersion,
   HiringManagerReview
@@ -25,9 +17,9 @@ import {
 type OptimizerAction =
   | { type: 'SET_INPUT'; resumeText: string; jobDescription: string; jobTitle?: string; company?: string }
   | { type: 'SET_STEP'; step: OptimizerStep }
-  | { type: 'SET_CAREER_PROFILE'; profile: CareerProfile }
+  | { type: 'SET_CAREER_PROFILE'; profile: any }
   | { type: 'CONFIRM_PROFILE' }
-  | { type: 'SET_GAP_ANALYSIS'; analysis: GapAnalysisResult }
+  | { type: 'SET_GAP_ANALYSIS'; analysis: any }
   | { type: 'SELECT_ANSWER'; requirementId: string; answer: string }
   | { type: 'SET_CUSTOMIZATION'; settings: CustomizationSettings }
   | { type: 'SET_RESUME_VERSIONS'; versions: ResumeVersion[] }
@@ -55,19 +47,16 @@ const OptimizerContext = createContext<OptimizerContextValue | null>(null);
 export function OptimizerProvider({ children }: { children: ReactNode }) {
   const store = useOptimizerStore();
   
-  // Build state object from store
+  // Build state object from store - all fields from OptimizerState
   const state: OptimizerState = {
     resumeText: store.resumeText,
     jobDescription: store.jobDescription,
     jobTitle: store.jobTitle,
     company: store.company,
-    careerProfile: store.careerProfile,
-    isProfileConfirmed: store.isProfileConfirmed,
-    gapAnalysis: store.gapAnalysis,
-    selectedAnswers: store.selectedAnswers,
+    fitBlueprint: store.fitBlueprint,
+    missingBulletResponses: store.missingBulletResponses,
     customization: store.customization,
-    resumeVersions: store.resumeVersions,
-    selectedVersionId: store.selectedVersionId,
+    benchmarkResume: store.benchmarkResume,
     selectedTemplate: store.selectedTemplate,
     hiringManagerReview: store.hiringManagerReview,
     versionHistory: store.versionHistory,
@@ -75,6 +64,13 @@ export function OptimizerProvider({ children }: { children: ReactNode }) {
     isProcessing: store.isProcessing,
     processingMessage: store.processingMessage,
     error: store.error,
+    // Legacy fields
+    resumeVersions: store.resumeVersions,
+    selectedVersionId: store.selectedVersionId,
+    gapAnalysis: store.gapAnalysis,
+    careerProfile: store.careerProfile,
+    isProfileConfirmed: store.isProfileConfirmed,
+    selectedAnswers: store.selectedAnswers,
   };
   
   // Dispatch adapter that maps legacy actions to Zustand store methods

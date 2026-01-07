@@ -1,5 +1,11 @@
 project_id = "ubcghjlfxkamyyefnbkf"
 
+[functions.fit-blueprint]
+verify_jwt = true
+
+[functions.benchmark-resume]
+verify_jwt = true
+
 [functions.deep-fit-analysis]
 verify_jwt = true
 

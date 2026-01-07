@@ -3,8 +3,8 @@ import { persist } from 'zustand/middleware';
 import { 
   OptimizerState, 
   OptimizerStep, 
-  CareerProfile, 
-  GapAnalysisResult, 
+  FitBlueprint,
+  BenchmarkResume,
   CustomizationSettings, 
   ResumeVersion,
   HiringManagerReview,
@@ -12,9 +12,8 @@ import {
   createInitialState
 } from '@/components/resume-optimizer/types';
 
-// Step order for navigation
+// Step order for navigation (5 steps now)
 const STEP_ORDER: OptimizerStep[] = [
-  'career-profile',
   'gap-analysis',
   'answer-assistant',
   'customization',
@@ -29,20 +28,33 @@ interface OptimizerStore extends OptimizerState {
   // Actions
   setInput: (resumeText: string, jobDescription: string, jobTitle?: string, company?: string) => void;
   setStep: (step: OptimizerStep) => void;
-  setCareerProfile: (profile: CareerProfile) => void;
-  confirmProfile: () => void;
-  setGapAnalysis: (analysis: GapAnalysisResult) => void;
-  addSelectedAnswer: (questionId: string, answer: string) => void;
+  
+  // Pass 1: Fit Blueprint
+  setFitBlueprint: (blueprint: FitBlueprint) => void;
+  
+  // Step 2: Missing Bullet Responses
+  addMissingBulletResponse: (bulletId: string, response: string) => void;
+  clearMissingBulletResponses: () => void;
+  
+  // Step 3: Customization
   setCustomization: (customization: CustomizationSettings) => void;
-  setResumeVersions: (versions: ResumeVersion[]) => void;
-  selectVersion: (versionId: string) => void;
+  
+  // Pass 2: Benchmark Resume
+  setBenchmarkResume: (resume: BenchmarkResume) => void;
+  updateBenchmarkSection: (sectionId: string, content: string[]) => void;
   selectTemplate: (template: { id: string; name: string }) => void;
-  updateSection: (versionId: string, sectionId: string, content: string[]) => void;
+  
+  // Step 5: Hiring Manager Review
   setHMReview: (review: HiringManagerReview) => void;
+  
+  // UI State
   setProcessing: (isProcessing: boolean, message?: string) => void;
   setError: (error: string | null) => void;
+  
+  // Version History
   addVersionHistory: (entry: Omit<VersionHistoryEntry, 'id' | 'timestamp'>) => void;
-  restoreVersion: (historyId: string) => void;
+  
+  // Reset
   reset: () => void;
   
   // Navigation
@@ -54,10 +66,20 @@ interface OptimizerStore extends OptimizerState {
   hasActiveSession: () => boolean;
   clearSession: () => void;
   getSessionAge: () => string | null;
+  
+  // Legacy actions (for backwards compatibility)
+  setCareerProfile: (profile: any) => void;
+  confirmProfile: () => void;
+  setGapAnalysis: (analysis: any) => void;
+  addSelectedAnswer: (questionId: string, answer: string) => void;
+  setResumeVersions: (versions: ResumeVersion[]) => void;
+  selectVersion: (versionId: string) => void;
+  updateSection: (versionId: string, sectionId: string, content: string[]) => void;
+  restoreVersion: (historyId: string) => void;
 }
 
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
-const MAX_VERSION_HISTORY = 20; // Limit version history to prevent unbounded growth
+const MAX_VERSION_HISTORY = 20;
 
 export const useOptimizerStore = create<OptimizerStore>()(
   persist(
@@ -81,68 +103,63 @@ export const useOptimizerStore = create<OptimizerStore>()(
       },
       
       setStep: (step) => {
-        const state = get();
-        // Add to version history when moving to a new step
-        if (state.selectedVersionId && state.resumeVersions.length > 0) {
-          const currentVersion = state.resumeVersions.find(v => v.id === state.selectedVersionId);
-          if (currentVersion) {
-            const historyEntry: VersionHistoryEntry = {
-              id: crypto.randomUUID(),
-              timestamp: Date.now(),
-              stepCompleted: state.currentStep,
-              versionSnapshot: JSON.parse(JSON.stringify(currentVersion)),
-              changeDescription: `Completed ${state.currentStep} step`
-            };
-            set({ 
-              currentStep: step, 
-              lastSaved: Date.now(),
-              versionHistory: [...state.versionHistory.slice(-9), historyEntry]
-            });
-            return;
-          }
-        }
         set({ currentStep: step, lastSaved: Date.now() });
       },
       
-      setCareerProfile: (profile) => set({ careerProfile: profile, lastSaved: Date.now() }),
-      
-      confirmProfile: () => set({ isProfileConfirmed: true, lastSaved: Date.now() }),
-      
-      setGapAnalysis: (analysis) => set({ gapAnalysis: analysis, lastSaved: Date.now() }),
-      
-      addSelectedAnswer: (questionId, answer) => set(state => ({
-        selectedAnswers: { ...state.selectedAnswers, [questionId]: answer },
-        lastSaved: Date.now()
-      })),
-      
-      setCustomization: (customization) => set({ customization, lastSaved: Date.now() }),
-      
-      setResumeVersions: (versions) => set({ 
-        resumeVersions: versions, 
-        selectedVersionId: versions[0]?.id,
+      // Pass 1: Fit Blueprint
+      setFitBlueprint: (blueprint) => set({ 
+        fitBlueprint: blueprint, 
         lastSaved: Date.now() 
       }),
       
-      selectVersion: (versionId) => set({ selectedVersionId: versionId, lastSaved: Date.now() }),
-      
-      selectTemplate: (template) => set({ selectedTemplate: template, lastSaved: Date.now() }),
-      
-      updateSection: (versionId, sectionId, content) => set(state => ({
-        resumeVersions: state.resumeVersions.map(v => 
-          v.id === versionId 
-            ? {
-                ...v,
-                sections: v.sections.map(s => 
-                  s.id === sectionId ? { ...s, content, isEdited: true } : s
-                )
-              }
-            : v
-        ),
+      // Step 2: Missing Bullet Responses
+      addMissingBulletResponse: (bulletId, response) => set(state => ({
+        missingBulletResponses: { ...state.missingBulletResponses, [bulletId]: response },
         lastSaved: Date.now()
       })),
       
-      setHMReview: (review) => set({ hiringManagerReview: review, lastSaved: Date.now() }),
+      clearMissingBulletResponses: () => set({ 
+        missingBulletResponses: {}, 
+        lastSaved: Date.now() 
+      }),
       
+      // Step 3: Customization
+      setCustomization: (customization) => set({ 
+        customization, 
+        lastSaved: Date.now() 
+      }),
+      
+      // Pass 2: Benchmark Resume
+      setBenchmarkResume: (resume) => set({ 
+        benchmarkResume: resume, 
+        lastSaved: Date.now() 
+      }),
+      
+      updateBenchmarkSection: (sectionId, content) => set(state => {
+        if (!state.benchmarkResume) return state;
+        return {
+          benchmarkResume: {
+            ...state.benchmarkResume,
+            sections: state.benchmarkResume.sections.map(s => 
+              s.id === sectionId ? { ...s, content, isEdited: true } : s
+            )
+          },
+          lastSaved: Date.now()
+        };
+      }),
+      
+      selectTemplate: (template) => set({ 
+        selectedTemplate: template, 
+        lastSaved: Date.now() 
+      }),
+      
+      // Step 5: Hiring Manager Review
+      setHMReview: (review) => set({ 
+        hiringManagerReview: review, 
+        lastSaved: Date.now() 
+      }),
+      
+      // UI State
       setProcessing: (isProcessing, message) => set({ 
         isProcessing, 
         processingMessage: message || '' 
@@ -150,13 +167,13 @@ export const useOptimizerStore = create<OptimizerStore>()(
       
       setError: (error) => set({ error }),
       
+      // Version History
       addVersionHistory: (entry) => set(state => {
         const newEntry = {
           ...entry,
           id: crypto.randomUUID(),
           timestamp: Date.now()
         };
-        // Keep first entry (original) and trim to MAX_VERSION_HISTORY
         const trimmedHistory = state.versionHistory.length >= MAX_VERSION_HISTORY
           ? [state.versionHistory[0], ...state.versionHistory.slice(-(MAX_VERSION_HISTORY - 2)), newEntry]
           : [...state.versionHistory, newEntry];
@@ -166,39 +183,6 @@ export const useOptimizerStore = create<OptimizerStore>()(
           lastSaved: Date.now()
         };
       }),
-      
-      restoreVersion: (historyId) => {
-        const state = get();
-        const historyEntry = state.versionHistory.find(h => h.id === historyId);
-        if (!historyEntry) return;
-        
-        // Find if a version with the same base name exists and update it instead of adding duplicate
-        const baseVersionName = historyEntry.versionSnapshot.name.replace(' (Restored)', '');
-        const existingVersionIndex = state.resumeVersions.findIndex(
-          v => v.name === baseVersionName || v.name === `${baseVersionName} (Restored)`
-        );
-        
-        const restoredVersion: ResumeVersion = {
-          ...historyEntry.versionSnapshot,
-          id: crypto.randomUUID(),
-          name: `${baseVersionName} (Restored)`
-        };
-        
-        let updatedVersions: ResumeVersion[];
-        if (existingVersionIndex >= 0) {
-          // Replace existing version instead of adding duplicate
-          updatedVersions = [...state.resumeVersions];
-          updatedVersions[existingVersionIndex] = restoredVersion;
-        } else {
-          updatedVersions = [...state.resumeVersions, restoredVersion];
-        }
-        
-        set({
-          resumeVersions: updatedVersions,
-          selectedVersionId: restoredVersion.id,
-          lastSaved: Date.now()
-        });
-      },
       
       reset: () => set({
         ...createInitialState(),
@@ -250,6 +234,41 @@ export const useOptimizerStore = create<OptimizerStore>()(
         if (hours > 0) return `${hours}h ${minutes}m ago`;
         return `${minutes}m ago`;
       },
+      
+      // Legacy actions (for backwards compatibility)
+      setCareerProfile: (profile) => set({ careerProfile: profile, lastSaved: Date.now() }),
+      confirmProfile: () => set({ isProfileConfirmed: true, lastSaved: Date.now() }),
+      setGapAnalysis: (analysis) => set({ gapAnalysis: analysis, lastSaved: Date.now() }),
+      addSelectedAnswer: (questionId, answer) => set(state => ({
+        selectedAnswers: { ...state.selectedAnswers, [questionId]: answer },
+        lastSaved: Date.now()
+      })),
+      setResumeVersions: (versions) => set({ 
+        resumeVersions: versions, 
+        selectedVersionId: versions[0]?.id,
+        lastSaved: Date.now() 
+      }),
+      selectVersion: (versionId) => set({ selectedVersionId: versionId, lastSaved: Date.now() }),
+      updateSection: (versionId, sectionId, content) => set(state => ({
+        resumeVersions: state.resumeVersions.map(v => 
+          v.id === versionId 
+            ? {
+                ...v,
+                sections: v.sections.map(s => 
+                  s.id === sectionId ? { ...s, content, isEdited: true } : s
+                )
+              }
+            : v
+        ),
+        lastSaved: Date.now()
+      })),
+      restoreVersion: (historyId) => {
+        const state = get();
+        const historyEntry = state.versionHistory.find(h => h.id === historyId);
+        if (!historyEntry) return;
+        // For now, just log - would need to implement proper restore
+        console.log('Restoring version:', historyEntry);
+      },
     }),
     {
       name: 'resume-optimizer-session',
@@ -258,19 +277,23 @@ export const useOptimizerStore = create<OptimizerStore>()(
         jobDescription: state.jobDescription,
         jobTitle: state.jobTitle,
         company: state.company,
-        careerProfile: state.careerProfile,
-        isProfileConfirmed: state.isProfileConfirmed,
-        gapAnalysis: state.gapAnalysis,
-        selectedAnswers: state.selectedAnswers,
+        fitBlueprint: state.fitBlueprint,
+        missingBulletResponses: state.missingBulletResponses,
         customization: state.customization,
-        resumeVersions: state.resumeVersions,
-        selectedVersionId: state.selectedVersionId,
+        benchmarkResume: state.benchmarkResume,
         selectedTemplate: state.selectedTemplate,
         hiringManagerReview: state.hiringManagerReview,
         versionHistory: state.versionHistory,
         currentStep: state.currentStep,
         sessionId: state.sessionId,
         lastSaved: state.lastSaved,
+        // Legacy
+        resumeVersions: state.resumeVersions,
+        selectedVersionId: state.selectedVersionId,
+        gapAnalysis: state.gapAnalysis,
+        careerProfile: state.careerProfile,
+        isProfileConfirmed: state.isProfileConfirmed,
+        selectedAnswers: state.selectedAnswers,
       }),
     }
   )
