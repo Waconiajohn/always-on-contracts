@@ -119,6 +119,9 @@ export default function Landing() {
                 <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                 Live Coaches Available
               </Badge>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/resume-optimizer-info')}>
+                Resume Optimizer
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
                 Sign In
               </Button>

@@ -85,7 +85,7 @@ const ResumeOptimizerMarketing = () => {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6"
-              onClick={() => navigate("/agents/resume-builder-v2")}
+              onClick={() => navigate("/resume-builder")}
             >
               <Sparkles className="w-5 h-5 mr-2" />
               Build My Resume
@@ -232,7 +232,7 @@ const ResumeOptimizerMarketing = () => {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6"
-              onClick={() => navigate("/agents/resume-builder-v2")}
+              onClick={() => navigate("/resume-builder")}
             >
               <Sparkles className="w-5 h-5 mr-2" />
               Start Building Now
