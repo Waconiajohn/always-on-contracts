@@ -6,6 +6,7 @@ import { useOptimizerStore } from '@/stores/optimizerStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import type { Json } from '@/integrations/supabase/types';
 import { 
   ArrowLeft, 
   Loader2, 
@@ -63,14 +64,18 @@ export function Step6HiringManager() {
   const benchmarkResume = useOptimizerStore(state => state.benchmarkResume);
   const jobDescription = useOptimizerStore(state => state.jobDescription);
   const jobTitle = useOptimizerStore(state => state.jobTitle);
+  const customization = useOptimizerStore(state => state.customization);
+  const fitBlueprint = useOptimizerStore(state => state.fitBlueprint);
   const selectedTemplate = useOptimizerStore(state => state.selectedTemplate);
   const hiringManagerReview = useOptimizerStore(state => state.hiringManagerReview);
   const setHMReview = useOptimizerStore(state => state.setHMReview);
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
   const addVersionHistory = useOptimizerStore(state => state.addVersionHistory);
+  const clearSession = useOptimizerStore(state => state.clearSession);
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   
@@ -133,7 +138,7 @@ export function Step6HiringManager() {
           severity: (g.severity === 'deal_breaker' ? 'critical' : g.severity === 'concerning' ? 'moderate' : 'minor') as 'critical' | 'moderate' | 'minor'
         })) || review.specificConcerns || [],
         areasForImprovement: review.improvement_suggestions?.map((s: any) => s.suggested_improvement || s) || review.areasForImprovement || [],
-        suggestedQuestions: review.market_intelligence?.typical_requirements || review.suggestedQuestions || []
+        suggestedQuestions: review.interview_questions || review.suggestedQuestions || []
       };
       setHMReview(mappedReview);
       
@@ -190,12 +195,57 @@ export function Step6HiringManager() {
     }
   };
   
-  const handleFinish = () => {
-    toast({
-      title: 'Resume Optimization Complete!',
-      description: 'Your optimized resume is ready.'
-    });
-    navigate('/my-resumes');
+  const handleFinish = async () => {
+    if (!benchmarkResume) {
+      toast({
+        title: 'No resume to save',
+        description: 'Please generate a benchmark resume first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Save to resume_versions table
+      const { error: saveError } = await supabase
+        .from('resume_versions')
+        .insert([{
+          user_id: user.id,
+          version_name: `${jobTitle || 'Optimized Resume'} - ${new Date().toLocaleDateString()}`,
+          content: JSON.parse(JSON.stringify({
+            sections: benchmarkResume.sections,
+            changelog: benchmarkResume.changelog,
+            resumeText: benchmarkResume.resumeText
+          })) as Json,
+          customizations: JSON.parse(JSON.stringify(customization || {})) as Json,
+          match_score: fitBlueprint?.overallFitScore || null
+        }]);
+
+      if (saveError) throw saveError;
+
+      // Clear the session after successful save
+      clearSession();
+
+      toast({
+        title: 'Resume Saved!',
+        description: 'Your optimized resume has been saved to My Resumes.'
+      });
+
+      navigate('/my-resumes');
+    } catch (err: any) {
+      console.error('Save error:', err);
+      toast({
+        title: 'Save Failed',
+        description: err.message || 'Could not save resume',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   if (isLoading || (!hiringManagerReview && !error)) {
@@ -373,9 +423,18 @@ export function Step6HiringManager() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button onClick={handleFinish} className="gap-2">
-            <FileText className="h-4 w-4" />
-            Finish & Save
+          <Button onClick={handleFinish} disabled={isSaving} className="gap-2">
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4" />
+                Finish & Save
+              </>
+            )}
           </Button>
         </div>
       </div>
