@@ -38,7 +38,7 @@ interface VersionHistoryProps {
 }
 
 export function VersionHistory({ className }: VersionHistoryProps) {
-  const { versionHistory } = useOptimizerStore();
+  const { versionHistory, restoreVersion } = useOptimizerStore();
   const [previewEntry, setPreviewEntry] = useState<VersionHistoryEntry | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
@@ -61,8 +61,7 @@ export function VersionHistory({ className }: VersionHistoryProps) {
 
   const handleConfirmRestore = () => {
     if (confirmRestoreId) {
-      // Restore not fully implemented yet - just log
-      console.log('Restoring version:', confirmRestoreId);
+      restoreVersion(confirmRestoreId);
       setConfirmRestoreId(null);
       setPreviewEntry(null);
       setIsOpen(false);
