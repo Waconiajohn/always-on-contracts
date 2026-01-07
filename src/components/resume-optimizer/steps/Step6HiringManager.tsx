@@ -22,7 +22,6 @@ import {
 import { cn } from '@/lib/utils';
 import { ExportDialog, ExportFormat } from '../components/ExportDialog';
 import { exportResume } from '../utils/exportHandler';
-import { ResumeVersion } from '../types';
 
 const RECOMMENDATION_CONFIG: Record<string, {
   label: string;
@@ -69,6 +68,7 @@ export function Step6HiringManager() {
   const setHMReview = useOptimizerStore(state => state.setHMReview);
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
+  const addVersionHistory = useOptimizerStore(state => state.addVersionHistory);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,18 +119,27 @@ export function Step6HiringManager() {
       
       // Map edge function response to expected format
       const review = data?.review || data;
-      setHMReview({
-        recommendation: review.would_interview ? 'yes' : 'maybe',
+      const recommendation = review.would_interview ? 'yes' : 'maybe';
+      const mappedReview = {
+        recommendation: recommendation as 'strong-yes' | 'yes' | 'maybe' | 'no',
         overallImpression: review.overall_impression || review.overallImpression || '',
         strengthsIdentified: review.strengths?.map((s: any) => s.point || s) || review.strengthsIdentified || [],
         specificConcerns: review.critical_gaps?.map((g: any) => ({
           area: g.gap || g.area,
           concern: g.why_matters || g.concern,
           suggestion: g.recommendation || g.suggestion,
-          severity: g.severity === 'deal_breaker' ? 'critical' : g.severity === 'concerning' ? 'moderate' : 'minor'
+          severity: (g.severity === 'deal_breaker' ? 'critical' : g.severity === 'concerning' ? 'moderate' : 'minor') as 'critical' | 'moderate' | 'minor'
         })) || review.specificConcerns || [],
         areasForImprovement: review.improvement_suggestions?.map((s: any) => s.suggested_improvement || s) || review.areasForImprovement || [],
         suggestedQuestions: review.market_intelligence?.typical_requirements || review.suggestedQuestions || []
+      };
+      setHMReview(mappedReview);
+      
+      // Save version history
+      addVersionHistory({
+        stepCompleted: 'hiring-manager',
+        resumeSnapshot: benchmarkResume?.resumeText || '',
+        changeDescription: `Hiring manager review complete: ${mappedReview.recommendation}`
       });
     } catch (err: any) {
       console.error('HM review error:', err);
@@ -157,18 +166,10 @@ export function Step6HiringManager() {
     }
 
     try {
-      // Convert BenchmarkResume to ResumeVersion format for export
-      const exportVersion: ResumeVersion = {
-        id: 'benchmark',
-        name: 'Benchmark Resume',
-        description: 'Optimized resume',
-        emphasis: 'balanced',
-        sections: benchmarkResume.sections
-      };
-
+      // BenchmarkResume can now be passed directly to exportResume
       await exportResume(
         format,
-        exportVersion,
+        benchmarkResume,
         null,
         jobTitle,
         selectedTemplate?.id

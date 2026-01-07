@@ -9,17 +9,9 @@ import {
   ResumeVersion,
   HiringManagerReview,
   VersionHistoryEntry,
-  createInitialState
+  createInitialState,
+  STEP_ORDER
 } from '@/components/resume-optimizer/types';
-
-// Step order for navigation (5 steps now)
-const STEP_ORDER: OptimizerStep[] = [
-  'gap-analysis',
-  'answer-assistant',
-  'customization',
-  'strategic-versions',
-  'hiring-manager'
-];
 
 interface OptimizerStore extends OptimizerState {
   sessionId: string | null;

@@ -1,14 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
-import { OptimizerStep, STEP_CONFIG } from '../types';
-
-const STEP_ORDER: OptimizerStep[] = [
-  'gap-analysis',
-  'answer-assistant',
-  'customization',
-  'strategic-versions',
-  'hiring-manager'
-];
+import { OptimizerStep, STEP_CONFIG, STEP_ORDER } from '../types';
 
 interface ProgressStepperProps {
   currentStep: OptimizerStep;
