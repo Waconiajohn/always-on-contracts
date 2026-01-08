@@ -17,7 +17,7 @@ serve(async (req) => {
   try {
     // Authentication check
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       console.error('No authorization header provided');
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
@@ -31,9 +31,11 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Validate the JWT by getting user info
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
     if (authError || !user) {
-      console.error('Auth error:', authError?.message);
+      console.error('Auth error:', authError?.message || 'No user returned');
       return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
