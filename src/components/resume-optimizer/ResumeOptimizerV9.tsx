@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useBlocker } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProgressStepper } from './components/ProgressStepper';
 import { Step2GapAnalysis } from './steps/Step2GapAnalysis';
@@ -14,16 +14,6 @@ import { OptimizerErrorBoundary } from './components/OptimizerErrorBoundary';
 import { STEP_CONFIG } from './types';
 import { Loader2 } from 'lucide-react';
 import { useOptimizerStore } from '@/stores/optimizerStore';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface SavedResumeState {
   savedResumeId?: string;
@@ -58,12 +48,8 @@ export default function ResumeOptimizerV9() {
     setStep,
   } = useOptimizerStore();
   
-  // Block navigation when there's unsaved work
+  // Track if there's unsaved work for beforeunload warning
   const hasUnsavedWork = Boolean(resumeText && jobDescription);
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnsavedWork && currentLocation.pathname !== nextLocation.pathname
-  );
   
   // Browser beforeunload warning
   useEffect(() => {
@@ -286,26 +272,6 @@ export default function ResumeOptimizerV9() {
           </div>
         </div>
       )}
-      
-      {/* Navigation Blocker Dialog */}
-      <AlertDialog open={blocker.state === "blocked"}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Leave Resume Optimizer?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your progress is auto-saved, but you'll leave the optimization flow. Are you sure you want to leave?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => blocker.reset?.()}>
-              Stay
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => blocker.proceed?.()}>
-              Leave
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
