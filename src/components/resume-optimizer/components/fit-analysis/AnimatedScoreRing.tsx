@@ -43,19 +43,18 @@ export function AnimatedScoreRing({
   }, [score]);
   
   // Determine color based on score
-  const getScoreColor = () => {
-    if (score >= 80) return 'hsl(142 76% 36%)'; // emerald
-    if (score >= 60) return 'hsl(45 93% 47%)'; // amber
-    return 'hsl(0 84% 60%)'; // red
-  };
+  const scoreColor = score >= 80 
+    ? 'hsl(142 76% 36%)' 
+    : score >= 60 
+      ? 'hsl(45 93% 47%)' 
+      : 'hsl(0 84% 60%)';
   
-  const getScoreGradient = () => {
-    if (score >= 80) return ['hsl(142 76% 36%)', 'hsl(160 84% 39%)'];
-    if (score >= 60) return ['hsl(45 93% 47%)', 'hsl(38 92% 50%)'];
-    return ['hsl(0 84% 60%)', 'hsl(15 75% 55%)'];
-  };
+  const gradientColors = score >= 80 
+    ? ['hsl(142 76% 36%)', 'hsl(160 84% 39%)']
+    : score >= 60 
+      ? ['hsl(45 93% 47%)', 'hsl(38 92% 50%)']
+      : ['hsl(0 84% 60%)', 'hsl(15 75% 55%)'];
   
-  const gradientColors = getScoreGradient();
   const gradientId = `score-gradient-${score}`;
   
   return (
@@ -104,7 +103,7 @@ export function AnimatedScoreRing({
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span 
           className="text-4xl font-bold"
-          style={{ color: getScoreColor() }}
+          style={{ color: scoreColor }}
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.5 }}
