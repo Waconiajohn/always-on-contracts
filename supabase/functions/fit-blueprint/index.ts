@@ -225,19 +225,29 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
         senioritySignal: r.seniority_signal,
         outcomeTarget: r.outcome_target
       })),
-      fitMap: (rawBlueprint.fit_map || []).map((f: any) => ({
-        requirementId: f.requirement_id,
-        category: f.category,
-        whyQualified: f.why_qualified || '',
-        resumeLanguage: f.resume_language || '',
-        gapExplanation: f.gap_explanation || '',
-        bridgingStrategy: f.bridging_strategy || '',
-        rationale: f.rationale,
-        evidenceIds: f.evidence_ids || [],
-        gapTaxonomy: f.gap_taxonomy || [],
-        riskLevel: f.risk_level,
-        confidence: f.confidence
-      })),
+      fitMap: (rawBlueprint.fit_map || []).map((f: any) => {
+        // Validate mandatory resumeLanguage - generate fallback if missing
+        let resumeLanguage = f.resume_language || '';
+        if (!resumeLanguage && f.rationale) {
+          // Use rationale as fallback resume language if resume_language wasn't provided
+          resumeLanguage = f.rationale;
+          console.warn(`Missing resume_language for requirement ${f.requirement_id}, using rationale as fallback`);
+        }
+        
+        return {
+          requirementId: f.requirement_id,
+          category: f.category,
+          whyQualified: f.why_qualified || '',
+          resumeLanguage,
+          gapExplanation: f.gap_explanation || '',
+          bridgingStrategy: f.bridging_strategy || '',
+          rationale: f.rationale,
+          evidenceIds: f.evidence_ids || [],
+          gapTaxonomy: f.gap_taxonomy || [],
+          riskLevel: f.risk_level,
+          confidence: f.confidence
+        };
+      }),
       benchmarkThemes: (rawBlueprint.benchmark_themes || []).map((t: any) => ({
         theme: t.theme,
         evidenceIds: t.evidence_ids || [],
