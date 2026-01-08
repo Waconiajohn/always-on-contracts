@@ -121,11 +121,22 @@ export type GapTaxonomy = 'Domain' | 'Scope' | 'Ownership' | 'Metric' | 'Tooling
 export interface FitMapEntry {
   requirementId: string;
   category: 'HIGHLY QUALIFIED' | 'PARTIALLY QUALIFIED' | 'EXPERIENCE GAP';
+  whyQualified?: string;        // Conversational explanation (2-3 sentences)
+  resumeLanguage: string;       // Ready-to-paste resume bullet (mandatory)
+  gapExplanation?: string;      // What's specifically missing (for partial/gaps)
+  bridgingStrategy?: string;    // How to address the gap (for gaps only)
   rationale: string;
   evidenceIds: string[];
   gapTaxonomy: GapTaxonomy[];
   riskLevel: 'Low' | 'Medium' | 'High';
   confidence: ConfidenceLevel;
+}
+
+// Staged bullet for user to collect during gap analysis
+export interface StagedBullet {
+  text: string;
+  sectionHint?: string;
+  requirementId?: string;
 }
 
 // Pre-generated bullets
@@ -268,6 +279,9 @@ export interface OptimizerState {
   // Step 2: Missing Bullet Responses
   missingBulletResponses: Record<string, string>;
   
+  // Step 2: Staged Bullets (user-collected suggestions)
+  stagedBullets: StagedBullet[];
+  
   // Step 3: Customization
   customization: CustomizationSettings;
   
@@ -303,6 +317,7 @@ export const createInitialState = (): OptimizerState => ({
   company: undefined,
   fitBlueprint: null,
   missingBulletResponses: {},
+  stagedBullets: [],
   customization: {
     intensity: 'moderate',
     tone: 'formal'

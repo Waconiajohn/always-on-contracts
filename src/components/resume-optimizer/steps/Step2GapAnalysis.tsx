@@ -14,7 +14,9 @@ import {
   ArrowLeft,
   Sparkles,
   Lightbulb,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +44,8 @@ export function Step2GapAnalysis() {
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToNextStep = useOptimizerStore(state => state.goToNextStep);
   const addVersionHistory = useOptimizerStore(state => state.addVersionHistory);
+  const stagedBullets = useOptimizerStore(state => state.stagedBullets);
+  const removeStagedBullet = useOptimizerStore(state => state.removeStagedBullet);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +55,6 @@ export function Step2GapAnalysis() {
     'EXPERIENCE GAP': true
   });
   const [showEvidence, setShowEvidence] = useState(false);
-  const [showBulletBank, setShowBulletBank] = useState(false);
   
   useEffect(() => {
     if (!fitBlueprint && resumeText && jobDescription) {
@@ -168,6 +171,51 @@ export function Step2GapAnalysis() {
         experienceGapsCount={experienceGaps.length}
       />
 
+      {/* Staged Bullets Indicator - Shows when user has collected bullets */}
+      {stagedBullets.length > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Resume Draft ({stagedBullets.length} bullet{stagedBullets.length !== 1 ? 's' : ''} staged)
+            </CardTitle>
+            <CardDescription>
+              These bullets will be included in your optimized resume
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {stagedBullets.map((bullet, index) => (
+                <div 
+                  key={index}
+                  className="flex items-start justify-between gap-2 p-2 bg-background rounded border text-sm"
+                >
+                  <p className="flex-1 text-xs italic">{bullet.text}</p>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => removeStagedBullet(index)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI-Generated Content Suggestions (Bullet Bank) - Promoted to top */}
+      {fitBlueprint?.bulletBank && fitBlueprint.bulletBank.length > 0 && (
+        <BulletBankPanel
+          bulletBank={fitBlueprint.bulletBank}
+          isOpen={true}
+          onOpenChange={() => {}}
+          getEvidenceById={getEvidenceById}
+        />
+      )}
+
       {/* Benchmark Themes */}
       {fitBlueprint!.benchmarkThemes.length > 0 && (
         <Card>
@@ -210,16 +258,6 @@ export function Step2GapAnalysis() {
           evidenceInventory={fitBlueprint.evidenceInventory}
           isOpen={showEvidence}
           onOpenChange={setShowEvidence}
-        />
-      )}
-
-      {/* Bullet Bank (collapsible) */}
-      {fitBlueprint?.bulletBank && (
-        <BulletBankPanel
-          bulletBank={fitBlueprint.bulletBank}
-          isOpen={showBulletBank}
-          onOpenChange={setShowBulletBank}
-          getEvidenceById={getEvidenceById}
         />
       )}
       

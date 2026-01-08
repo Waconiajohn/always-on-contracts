@@ -9,6 +9,7 @@ import {
   ResumeVersion,
   HiringManagerReview,
   VersionHistoryEntry,
+  StagedBullet,
   createInitialState,
   STEP_ORDER
 } from '@/components/resume-optimizer/types';
@@ -27,6 +28,11 @@ interface OptimizerStore extends OptimizerState {
   // Step 2: Missing Bullet Responses
   addMissingBulletResponse: (bulletId: string, response: string) => void;
   clearMissingBulletResponses: () => void;
+  
+  // Step 2: Staged Bullets
+  addStagedBullet: (bullet: StagedBullet) => void;
+  removeStagedBullet: (index: number) => void;
+  clearStagedBullets: () => void;
   
   // Step 3: Customization
   setCustomization: (customization: CustomizationSettings) => void;
@@ -112,6 +118,22 @@ export const useOptimizerStore = create<OptimizerStore>()(
       
       clearMissingBulletResponses: () => set({ 
         missingBulletResponses: {}, 
+        lastSaved: Date.now() 
+      }),
+      
+      // Step 2: Staged Bullets
+      addStagedBullet: (bullet) => set(state => ({
+        stagedBullets: [...state.stagedBullets, bullet],
+        lastSaved: Date.now()
+      })),
+      
+      removeStagedBullet: (index) => set(state => ({
+        stagedBullets: state.stagedBullets.filter((_, i) => i !== index),
+        lastSaved: Date.now()
+      })),
+      
+      clearStagedBullets: () => set({ 
+        stagedBullets: [], 
         lastSaved: Date.now() 
       }),
       
@@ -277,6 +299,7 @@ export const useOptimizerStore = create<OptimizerStore>()(
         company: state.company,
         fitBlueprint: state.fitBlueprint,
         missingBulletResponses: state.missingBulletResponses,
+        stagedBullets: state.stagedBullets,
         customization: state.customization,
         benchmarkResume: state.benchmarkResume,
         selectedTemplate: state.selectedTemplate,
