@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { EvidenceTag } from './EvidenceTag';
 import { BenchmarkThemeCardProps } from './types';
 
-export function BenchmarkThemeCard({ theme, getEvidenceById }: Omit<BenchmarkThemeCardProps, 'index'>) {
+export function BenchmarkThemeCard({ theme, getEvidenceById }: BenchmarkThemeCardProps) {
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardContent className="p-3">

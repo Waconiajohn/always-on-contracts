@@ -99,6 +99,5 @@ export interface BulletBankPanelProps {
 
 export interface BenchmarkThemeCardProps {
   theme: BenchmarkTheme;
-  index: number;
   getEvidenceById: (id: string) => EvidenceUnit | undefined;
 }
