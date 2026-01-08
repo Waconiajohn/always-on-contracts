@@ -70,7 +70,18 @@ export function Step2GapAnalysis() {
     setProcessing(true, 'Building Fit Blueprint...');
     
     try {
+      // Get auth session for edge function
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        throw new Error('Authentication required. Please sign in.');
+      }
+      
       const { data, error: apiError } = await supabase.functions.invoke('fit-blueprint', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
         body: {
           resumeText,
           jobDescription
