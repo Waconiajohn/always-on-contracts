@@ -55,6 +55,7 @@ export function Step2GapAnalysis() {
     'EXPERIENCE GAP': true
   });
   const [showEvidence, setShowEvidence] = useState(false);
+  const [showBulletBank, setShowBulletBank] = useState(true);
   
   useEffect(() => {
     if (!fitBlueprint && resumeText && jobDescription) {
@@ -210,8 +211,8 @@ export function Step2GapAnalysis() {
       {fitBlueprint?.bulletBank && fitBlueprint.bulletBank.length > 0 && (
         <BulletBankPanel
           bulletBank={fitBlueprint.bulletBank}
-          isOpen={true}
-          onOpenChange={() => {}}
+          isOpen={showBulletBank}
+          onOpenChange={setShowBulletBank}
           getEvidenceById={getEvidenceById}
         />
       )}
