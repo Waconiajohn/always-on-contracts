@@ -88,9 +88,11 @@ CRITICAL - For each requirement you MUST provide:
 1. "why_qualified": A conversational explanation (2-3 sentences) explaining WHY the candidate fits or partially fits this requirement. Write like you're explaining to the candidate: "You have 15+ years of leadership experience guiding teams across technical support, NOC operations..." Be specific and reference their actual experience.
 
 2. "resume_language": A MANDATORY ready-to-paste resume bullet that the candidate can use. This must be:
-   - Written in first-person resume style
-   - Based ONLY on evidence from their resume (no fabrication)
-   - Italics-worthy, professional language
+   - Written in first-person resume style (action verb start)
+   - INSPIRED by their evidence but CREATIVELY REWRITTEN to best address the job requirement
+   - You may infer reasonable scope/impact and polish the language professionally
+   - Do NOT copy-paste sentences from the resume verbatim - rewrite into polished, compelling bullets
+   - The goal is a ready-to-paste bullet that positions the candidate strongly
    - Example: "Led multi-department operational and technical teams, building scalable workflows and reporting structures..."
 
 3. "gap_explanation" (for PARTIALLY QUALIFIED and EXPERIENCE GAP only): What specific experience or skill is missing? Be direct: "Direct experience with AI-driven CS tooling is not evident in your resume."
