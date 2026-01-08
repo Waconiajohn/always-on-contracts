@@ -18,25 +18,29 @@ serve(async (req) => {
   }
 
   try {
-    const { bulletId, sectionType, jobDescription, currentText } = await req.json();
+    const { bulletId, sectionType, jobDescription, currentText, requirementText } = await req.json();
 
     console.log('🔄 Regenerating bullet', { bulletId, sectionType });
 
-    const prompt = `You are an elite resume writer. Regenerate this resume bullet point with fresh wording while keeping the core achievement.
+    const prompt = `You are an elite resume writer. Rewrite this bullet to better address the specific job requirement.
 
-SECTION TYPE: ${sectionType}
-CURRENT BULLET: ${currentText}
+REQUIREMENT BEING ADDRESSED:
+${requirementText || 'General experience requirement'}
+
+CURRENT BULLET:
+${currentText}
 
 JOB CONTEXT:
-${jobDescription.substring(0, 1000)}
+${jobDescription.substring(0, 1500)}
 
 INSTRUCTIONS:
-- Keep the same core achievement/responsibility
-- Use different action verbs and phrasing
-- Maintain professional tone
-- Include quantifiable metrics if present
-- Optimize for ATS keywords from the job description
-- Keep it concise (1-2 lines)
+- Rewrite to directly address the requirement above
+- Use strong, compelling action verbs
+- Include scope/metrics where reasonable (you may infer reasonable details)
+- Make it compelling and ATS-optimized for this specific job
+- Polish aggressively - this should be better than the original
+- Don't just rephrase; make it more impactful and targeted
+- Keep it to 1-2 lines maximum
 
 Return ONLY the new bullet point text, no JSON, no formatting.`;
 

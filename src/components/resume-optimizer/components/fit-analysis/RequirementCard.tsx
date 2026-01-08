@@ -2,30 +2,39 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EvidenceTag } from './EvidenceTag';
 import { RequirementCardProps, RISK_COLORS } from './types';
 import { useOptimizerStore } from '@/stores/optimizerStore';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Plus, Check, Lightbulb } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Copy, Plus, Check, Lightbulb, RefreshCw, Pencil, X } from 'lucide-react';
 
 export function RequirementCard({ entry, getRequirementById, getEvidenceById }: RequirementCardProps) {
   const { toast } = useToast();
   const requirement = getRequirementById(entry.requirementId);
   const addStagedBullet = useOptimizerStore(state => state.addStagedBullet);
   const stagedBullets = useOptimizerStore(state => state.stagedBullets);
+  const jobDescription = useOptimizerStore(state => state.jobDescription);
   
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [customText, setCustomText] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   
   if (!requirement) return null;
   
-  const isStaged = stagedBullets.some(b => b.text === entry.resumeLanguage);
+  // Use custom text if edited/regenerated, otherwise use original
+  const displayedLanguage = customText ?? entry.resumeLanguage;
+  const isStaged = stagedBullets.some(b => b.text === displayedLanguage);
   
   const handleCopy = async () => {
-    if (!entry.resumeLanguage) return;
+    if (!displayedLanguage) return;
     
     try {
-      await navigator.clipboard.writeText(entry.resumeLanguage);
+      await navigator.clipboard.writeText(displayedLanguage);
       setCopied(true);
       toast({
         title: 'Copied!',
@@ -42,10 +51,10 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
   };
   
   const handleAddToResume = () => {
-    if (!entry.resumeLanguage || isStaged) return;
+    if (!displayedLanguage || isStaged) return;
     
     addStagedBullet({
-      text: entry.resumeLanguage,
+      text: displayedLanguage,
       requirementId: entry.requirementId,
       sectionHint: 'experience'
     });
@@ -54,6 +63,63 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
       title: 'Added to Resume Draft',
       description: 'This bullet will be included in your optimized resume',
     });
+  };
+  
+  const handleRegenerate = async () => {
+    if (!displayedLanguage || !requirement) return;
+    
+    setIsRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('regenerate-bullet', {
+        body: {
+          bulletId: entry.requirementId,
+          sectionType: requirement.type,
+          jobDescription: jobDescription || '',
+          currentText: displayedLanguage,
+          requirementText: requirement.requirement
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.newText) {
+        setCustomText(data.newText);
+        toast({
+          title: 'Regenerated!',
+          description: 'New version created. Click again for another variation.',
+        });
+      }
+    } catch (err) {
+      console.error('Regenerate error:', err);
+      toast({
+        title: 'Regeneration failed',
+        description: 'Please try again',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+  
+  const handleStartEdit = () => {
+    setEditText(displayedLanguage || '');
+    setIsEditing(true);
+  };
+  
+  const handleSaveEdit = () => {
+    if (editText.trim()) {
+      setCustomText(editText.trim());
+      toast({
+        title: 'Saved!',
+        description: 'Your edit has been saved.',
+      });
+    }
+    setIsEditing(false);
+  };
+  
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditText('');
   };
   
   return (
@@ -135,7 +201,7 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
         )}
         
         {/* Resume Language Box - Prominent for all categories */}
-        {entry.resumeLanguage && (
+        {displayedLanguage && (
           <div className={cn(
             "p-3 rounded-lg border-l-4",
             entry.category === 'HIGHLY QUALIFIED' && "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500",
@@ -144,28 +210,69 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
           )}>
             <p className="text-xs font-semibold mb-2 flex items-center gap-1">
               📝 {entry.category === 'EXPERIENCE GAP' ? 'Suggested bridging language:' : 'Resume Language:'}
+              {customText && <Badge variant="outline" className="text-xs ml-2">Edited</Badge>}
             </p>
-            <p className="text-sm italic mb-3 leading-relaxed">{entry.resumeLanguage}</p>
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleCopy}
-                className="h-7 text-xs"
-              >
-                {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                {copied ? 'Copied' : 'Copy'}
-              </Button>
-              <Button 
-                size="sm" 
-                onClick={handleAddToResume}
-                disabled={isStaged}
-                className="h-7 text-xs"
-              >
-                {isStaged ? <Check className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                {isStaged ? 'Added' : 'Add to Resume'}
-              </Button>
-            </div>
+            
+            {isEditing ? (
+              <div className="space-y-2">
+                <Textarea 
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="text-sm min-h-[80px]"
+                  placeholder="Edit your resume bullet..."
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSaveEdit} className="h-7 text-xs">
+                    <Check className="h-3 w-3 mr-1" /> Save
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCancelEdit} className="h-7 text-xs">
+                    <X className="h-3 w-3 mr-1" /> Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm italic mb-3 leading-relaxed">{displayedLanguage}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleRegenerate}
+                    disabled={isRegenerating}
+                    className="h-7 text-xs"
+                  >
+                    <RefreshCw className={cn("h-3 w-3 mr-1", isRegenerating && "animate-spin")} />
+                    {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleStartEdit}
+                    className="h-7 text-xs"
+                  >
+                    <Pencil className="h-3 w-3 mr-1" /> Edit
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleCopy}
+                    className="h-7 text-xs"
+                  >
+                    {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                    {copied ? 'Copied' : 'Copy'}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={handleAddToResume}
+                    disabled={isStaged}
+                    className="h-7 text-xs"
+                  >
+                    {isStaged ? <Check className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                    {isStaged ? 'Added' : 'Add to Resume'}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         )}
         
