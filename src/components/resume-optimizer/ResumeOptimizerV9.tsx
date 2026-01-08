@@ -88,6 +88,9 @@ export default function ResumeOptimizerV9() {
   
   // Check for existing session on mount
   useEffect(() => {
+    // Avoid running if already initialized
+    if (isInitialized) return;
+    
     const stateData = location.state as ({ 
       resumeText?: string; 
       jobDescription?: string; 
@@ -152,14 +155,17 @@ export default function ResumeOptimizerV9() {
     // Check for existing session without new data
     if (hasExistingSession) {
       setShowRecoveryDialog(true);
-    } else if (!resumeText || !jobDescription) {
-      // Redirect to quick-score if no input data
-      navigate('/quick-score');
       return;
     }
     
-    setIsInitialized(true);
-  }, []);
+    // No data and no session - redirect to quick-score
+    // Use a slight delay to avoid React navigation-during-render issues
+    const redirectTimer = setTimeout(() => {
+      navigate('/quick-score', { replace: true });
+    }, 0);
+    
+    return () => clearTimeout(redirectTimer);
+  }, [isInitialized]);
   
   const handleContinueSession = () => {
     // Zustand already has the persisted state, just close dialog
