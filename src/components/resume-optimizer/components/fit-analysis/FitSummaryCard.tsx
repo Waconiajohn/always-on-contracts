@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, AlertCircle, XCircle, Target, Sparkles } from 'lucide-react';
 import { AnimatedScoreRing } from './AnimatedScoreRing';
 import { FitSummaryCardProps } from './types';
-import { cn } from '@/lib/utils';
 
 export function FitSummaryCard({
   overallFitScore,
@@ -26,7 +25,7 @@ export function FitSummaryCard({
     {
       count: highlyQualifiedCount,
       label: "Strong Matches",
-      icon: CheckCircle2,
+      Icon: CheckCircle2,
       bgClass: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30",
       borderClass: "border-emerald-200 dark:border-emerald-800",
       iconClass: "text-emerald-600 dark:text-emerald-400",
@@ -35,7 +34,7 @@ export function FitSummaryCard({
     {
       count: partiallyQualifiedCount,
       label: "Partial Matches",
-      icon: AlertCircle,
+      Icon: AlertCircle,
       bgClass: "bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30",
       borderClass: "border-amber-200 dark:border-amber-800",
       iconClass: "text-amber-600 dark:text-amber-400",
@@ -44,7 +43,7 @@ export function FitSummaryCard({
     {
       count: experienceGapsCount,
       label: "Gaps to Address",
-      icon: XCircle,
+      Icon: XCircle,
       bgClass: "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30",
       borderClass: "border-red-200 dark:border-red-800",
       iconClass: "text-red-600 dark:text-red-400",
@@ -117,21 +116,17 @@ export function FitSummaryCard({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 + index * 0.1, duration: 0.4 }}
-                className={cn(
-                  "relative p-5 rounded-xl border-2 transition-all hover:scale-[1.02]",
-                  stat.bgClass,
-                  stat.borderClass
-                )}
+                className={`relative p-5 rounded-xl border-2 transition-all hover:scale-[1.02] ${stat.bgClass} ${stat.borderClass}`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={cn("p-3 rounded-lg bg-background/80 shadow-sm", stat.borderClass)}>
-                    <stat.icon className={cn("h-6 w-6", stat.iconClass)} />
+                  <div className={`p-3 rounded-lg bg-background/80 shadow-sm ${stat.borderClass}`}>
+                    <stat.Icon className={`h-6 w-6 ${stat.iconClass}`} />
                   </div>
                   <div>
-                    <div className={cn("text-3xl font-bold", stat.textClass)}>
+                    <div className={`text-3xl font-bold ${stat.textClass}`}>
                       {stat.count}
                     </div>
-                    <div className={cn("text-sm font-medium", stat.textClass)}>
+                    <div className={`text-sm font-medium ${stat.textClass}`}>
                       {stat.label}
                     </div>
                   </div>
