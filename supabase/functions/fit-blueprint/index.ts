@@ -78,15 +78,27 @@ Tag each requirement with:
 - Seniority signal: {Director-level, Manager-level, IC-level}
 - Business outcome target: {Retention, Expansion, Adoption, Quality, Revenue, Risk, Efficiency}
 
-STEP C — REQUIREMENT-BY-REQUIREMENT FIT CLASSIFICATION
-For every requirement R#, assign exactly one:
+STEP C — REQUIREMENT-BY-REQUIREMENT FIT CLASSIFICATION (CONVERSATIONAL ANALYSIS)
+For every requirement R#, assign exactly one category:
 - HIGHLY QUALIFIED
-- PARTIALLY QUALIFIED
+- PARTIALLY QUALIFIED  
 - EXPERIENCE GAP
 
-For each requirement include:
+CRITICAL - For each requirement you MUST provide:
+1. "why_qualified": A conversational explanation (2-3 sentences) explaining WHY the candidate fits or partially fits this requirement. Write like you're explaining to the candidate: "You have 15+ years of leadership experience guiding teams across technical support, NOC operations..." Be specific and reference their actual experience.
+
+2. "resume_language": A MANDATORY ready-to-paste resume bullet that the candidate can use. This must be:
+   - Written in first-person resume style
+   - Based ONLY on evidence from their resume (no fabrication)
+   - Italics-worthy, professional language
+   - Example: "Led multi-department operational and technical teams, building scalable workflows and reporting structures..."
+
+3. "gap_explanation" (for PARTIALLY QUALIFIED and EXPERIENCE GAP only): What specific experience or skill is missing? Be direct: "Direct experience with AI-driven CS tooling is not evident in your resume."
+
+4. "bridging_strategy" (for EXPERIENCE GAP only): How can the candidate address this gap? "Emphasize your structured workflow design experience, which aligns with AI system requirements."
+
+Also include:
 - Fit category
-- Why (explicit comparison of JD expectation vs resume evidence)
 - Evidence citations (E# list)
 - Gap taxonomy (if partial/gap): {Domain / Scope / Ownership / Metric / Tooling / Recency}
 - Risk level if unaddressed: {Low / Medium / High}
@@ -132,7 +144,11 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
   "fit_map": [{
     "requirement_id":"R1",
     "category":"HIGHLY QUALIFIED|PARTIALLY QUALIFIED|EXPERIENCE GAP",
-    "rationale":"...",
+    "why_qualified":"Conversational 2-3 sentence explanation of why they fit or partially fit...",
+    "resume_language":"Ready-to-paste resume bullet based on their evidence...",
+    "gap_explanation":"What specific experience is missing (for partial/gap only)...",
+    "bridging_strategy":"How to address the gap (for gaps only)...",
+    "rationale":"Brief technical rationale",
     "evidence_ids":["E1","E4"],
     "gap_taxonomy":["Domain","Metric"],
     "risk_level":"Low|Medium|High",
@@ -212,6 +228,10 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
       fitMap: (rawBlueprint.fit_map || []).map((f: any) => ({
         requirementId: f.requirement_id,
         category: f.category,
+        whyQualified: f.why_qualified || '',
+        resumeLanguage: f.resume_language || '',
+        gapExplanation: f.gap_explanation || '',
+        bridgingStrategy: f.bridging_strategy || '',
         rationale: f.rationale,
         evidenceIds: f.evidence_ids || [],
         gapTaxonomy: f.gap_taxonomy || [],
