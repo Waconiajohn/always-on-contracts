@@ -161,7 +161,7 @@ export function Step2GapAnalysis() {
   const experienceGaps = fitBlueprint!.fitMap.filter(e => e.category === 'EXPERIENCE GAP');
   
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-8">
       {/* Summary Card */}
       <FitSummaryCard
         overallFitScore={fitBlueprint!.overallFitScore}
@@ -174,9 +174,9 @@ export function Step2GapAnalysis() {
 
       {/* Staged Bullets Indicator - Shows when user has collected bullets */}
       {stagedBullets.length > 0 && (
-        <Card className="border-primary bg-primary/5">
+        <Card className="border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5 shadow-lg">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               Resume Draft ({stagedBullets.length} bullet{stagedBullets.length !== 1 ? 's' : ''} staged)
             </CardTitle>
@@ -189,13 +189,13 @@ export function Step2GapAnalysis() {
               {stagedBullets.map((bullet, index) => (
                 <div 
                   key={index}
-                  className="flex items-start justify-between gap-2 p-2 bg-background rounded border text-sm"
+                  className="flex items-start justify-between gap-2 p-3 bg-background rounded-lg border text-sm shadow-sm"
                 >
-                  <p className="flex-1 text-xs italic">{bullet.text}</p>
+                  <p className="flex-1 text-sm">{bullet.text}</p>
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive flex-shrink-0"
                     onClick={() => removeStagedBullet(index)}
                   >
                     <X className="h-3 w-3" />
@@ -217,20 +217,25 @@ export function Step2GapAnalysis() {
         />
       )}
 
+      {/* Executive Summary */}
+      {fitBlueprint?.executiveSummary && (
+        <ExecutiveSummaryCard executiveSummary={fitBlueprint.executiveSummary} />
+      )}
+
       {/* Benchmark Themes */}
       {fitBlueprint!.benchmarkThemes.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+        <Card className="shadow-lg border-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Sparkles className="h-6 w-6 text-primary" />
               Benchmark Candidate Themes
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               These themes position you as the reference standard
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {fitBlueprint!.benchmarkThemes.map((theme, index) => (
                 <BenchmarkThemeCard
                   key={index}
@@ -241,11 +246,6 @@ export function Step2GapAnalysis() {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Executive Summary */}
-      {fitBlueprint?.executiveSummary && (
-        <ExecutiveSummaryCard executiveSummary={fitBlueprint.executiveSummary} />
       )}
 
       {/* ATS Alignment */}
@@ -263,7 +263,7 @@ export function Step2GapAnalysis() {
       )}
       
       {/* Requirement Sections */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <FitCategorySection
           category="HIGHLY QUALIFIED"
           entries={highlyQualified}
@@ -292,28 +292,32 @@ export function Step2GapAnalysis() {
       
       {/* Missing Bullet Plan Preview */}
       {fitBlueprint!.missingBulletPlan.length > 0 && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="p-4">
+        <Card className="border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5 shadow-lg">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <Lightbulb className="h-6 w-6 text-primary" />
+                </div>
                 <div>
-                  <p className="font-medium">Missing Bullet Plan</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-semibold text-lg">Missing Bullet Plan</p>
+                  <p className="text-muted-foreground">
                     {fitBlueprint!.missingBulletPlan.length} prompts to strengthen your resume
                   </p>
                 </div>
               </div>
-              <Badge variant="secondary">{fitBlueprint!.missingBulletPlan.length} questions</Badge>
+              <Badge variant="secondary" className="text-base px-4 py-1.5">
+                {fitBlueprint!.missingBulletPlan.length} questions
+              </Badge>
             </div>
           </CardContent>
         </Card>
       )}
       
       {/* Navigation */}
-      <div className="flex justify-between">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/quick-score')} className="gap-2">
+      <div className="flex justify-between pt-4 border-t">
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => navigate('/quick-score')} className="gap-2 h-11">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
@@ -322,14 +326,14 @@ export function Step2GapAnalysis() {
             onClick={() => {
               runAnalysis();
             }} 
-            className="gap-2"
+            className="gap-2 h-11"
             disabled={isLoading}
           >
             <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             Re-analyze
           </Button>
         </div>
-        <Button onClick={goToNextStep} className="gap-2">
+        <Button onClick={goToNextStep} className="gap-2 h-11 text-base px-6">
           {fitBlueprint!.missingBulletPlan.length > 0 
             ? 'Complete Your Profile' 
             : 'Continue to Customization'}
