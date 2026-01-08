@@ -425,256 +425,429 @@ Include the job title, requirements, responsibilities, and qualifications for th
               {/* Gap Analysis Sections */}
               {scoreResult.gapAnalysis && (
                 <div className="space-y-6">
-                  {/* Score Summary */}
-                  <div className="flex items-center gap-6 p-4 border rounded-lg bg-muted/30">
-                    <div className="flex gap-6 text-sm">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span>{scoreResult.gapAnalysis.fullMatches?.length || 0} matched</span>
+                  {/* Score Summary - Premium Stats Cards */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                  >
+                    {/* Full Matches Stat */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1, duration: 0.4 }}
+                      className="relative p-5 rounded-xl border-2 transition-all hover:scale-[1.02] bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30 border-emerald-200 dark:border-emerald-800"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-lg bg-background/80 shadow-sm border-emerald-200 dark:border-emerald-800">
+                          <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+                            {scoreResult.gapAnalysis.fullMatches?.length || 0}
+                          </div>
+                          <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                            Full Matches
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        <span>{scoreResult.gapAnalysis.partialMatches?.length || 0} partial</span>
+                    </motion.div>
+                    
+                    {/* Partial Matches Stat */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.4 }}
+                      className="relative p-5 rounded-xl border-2 transition-all hover:scale-[1.02] bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30 border-amber-200 dark:border-amber-800"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-lg bg-background/80 shadow-sm border-amber-200 dark:border-amber-800">
+                          <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-amber-700 dark:text-amber-300">
+                            {scoreResult.gapAnalysis.partialMatches?.length || 0}
+                          </div>
+                          <div className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                            Partial Matches
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <XCircle className="h-4 w-4 text-red-500" />
-                        <span>{scoreResult.gapAnalysis.missingRequirements?.length || 0} missing</span>
+                    </motion.div>
+                    
+                    {/* Missing Requirements Stat */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
+                      className="relative p-5 rounded-xl border-2 transition-all hover:scale-[1.02] bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30 border-red-200 dark:border-red-800"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-lg bg-background/80 shadow-sm border-red-200 dark:border-red-800">
+                          <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <div className="text-3xl font-bold text-red-700 dark:text-red-300">
+                            {scoreResult.gapAnalysis.missingRequirements?.length || 0}
+                          </div>
+                          <div className="text-sm font-medium text-red-700 dark:text-red-300">
+                            Gaps to Address
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
 
                   {/* Full Matches */}
                   {(scoreResult.gapAnalysis.fullMatches?.length || 0) > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          What You Have That Matches
-                          <Badge variant="secondary">{scoreResult.gapAnalysis.fullMatches.length}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="border rounded-lg overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b bg-muted/50">
-                                <th className="text-left p-3 font-medium">Requirement</th>
-                                <th className="text-left p-3 font-medium">Your Evidence</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scoreResult.gapAnalysis.fullMatches.map((match, i) => (
-                                <tr key={i} className="border-b last:border-0">
-                                  <td className="p-3 align-top">{match.requirement}</td>
-                                  <td className="p-3 align-top text-muted-foreground">{match.evidence}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4, duration: 0.4 }}
+                    >
+                      <Card className="overflow-hidden border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200 dark:border-emerald-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-3 text-lg">
+                            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
+                              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            What You Have That Matches
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600">
+                              {scoreResult.gapAnalysis.fullMatches.length}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {scoreResult.gapAnalysis.fullMatches.map((match, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.5 + i * 0.05 }}
+                                className="p-4 rounded-lg bg-background/80 border border-emerald-200 dark:border-emerald-800 hover:shadow-md transition-all"
+                              >
+                                <div className="font-medium text-sm mb-1">{match.requirement}</div>
+                                <div className="text-sm text-muted-foreground flex items-start gap-2">
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                  {match.evidence}
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   )}
 
                   {/* Partial Matches */}
                   {(scoreResult.gapAnalysis.partialMatches?.length || 0) > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <AlertTriangle className="h-5 w-5 text-amber-500" />
-                          Partial Matches – Need Enhancement
-                          <Badge variant="secondary">{scoreResult.gapAnalysis.partialMatches.length}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="border rounded-lg overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b bg-muted/50">
-                                <th className="text-left p-3 font-medium">Requirement</th>
-                                <th className="text-left p-3 font-medium">Current Status</th>
-                                <th className="text-left p-3 font-medium">Recommendation</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scoreResult.gapAnalysis.partialMatches.map((match, i) => (
-                                <tr key={i} className="border-b last:border-0">
-                                  <td className="p-3 align-top font-medium">{match.requirement}</td>
-                                  <td className="p-3 align-top text-muted-foreground">{match.currentStatus}</td>
-                                  <td className="p-3 align-top text-primary">{match.recommendation}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5, duration: 0.4 }}
+                    >
+                      <Card className="overflow-hidden border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-50/50 to-amber-100/30 dark:from-amber-950/30 dark:to-amber-900/20 border-amber-200 dark:border-amber-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-3 text-lg">
+                            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50">
+                              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            Partial Matches – Need Enhancement
+                            <Badge className="bg-amber-500 hover:bg-amber-600">
+                              {scoreResult.gapAnalysis.partialMatches.length}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {scoreResult.gapAnalysis.partialMatches.map((match, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.6 + i * 0.05 }}
+                                className="p-4 rounded-lg bg-background/80 border border-amber-200 dark:border-amber-800 hover:shadow-md transition-all"
+                              >
+                                <div className="font-medium text-sm mb-2">{match.requirement}</div>
+                                <div className="text-sm text-muted-foreground mb-2">
+                                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Current: </span>
+                                  {match.currentStatus}
+                                </div>
+                                <div className="text-sm flex items-start gap-2 p-2 rounded bg-primary/5 border border-primary/20">
+                                  <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                  <span className="text-primary font-medium">{match.recommendation}</span>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   )}
 
                   {/* Missing Requirements */}
                   {(scoreResult.gapAnalysis.missingRequirements?.length || 0) > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <XCircle className="h-5 w-5 text-red-500" />
-                          Missing or Underrepresented
-                          <Badge variant="secondary">{scoreResult.gapAnalysis.missingRequirements.length}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="border rounded-lg overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b bg-muted/50">
-                                <th className="text-left p-3 font-medium">Missing Requirement</th>
-                                <th className="text-left p-3 font-medium">Workaround / Strategy</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scoreResult.gapAnalysis.missingRequirements.map((item, i) => (
-                                <tr key={i} className="border-b last:border-0">
-                                  <td className="p-3 align-top font-medium">{item.requirement}</td>
-                                  <td className="p-3 align-top text-muted-foreground">{item.workaround}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6, duration: 0.4 }}
+                    >
+                      <Card className="overflow-hidden border-l-4 border-l-red-500 bg-gradient-to-br from-red-50/50 to-red-100/30 dark:from-red-950/30 dark:to-red-900/20 border-red-200 dark:border-red-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-3 text-lg">
+                            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50">
+                              <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                            </div>
+                            Missing or Underrepresented
+                            <Badge className="bg-red-500 hover:bg-red-600">
+                              {scoreResult.gapAnalysis.missingRequirements.length}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {scoreResult.gapAnalysis.missingRequirements.map((item, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.7 + i * 0.05 }}
+                                className="p-4 rounded-lg bg-background/80 border border-red-200 dark:border-red-800 hover:shadow-md transition-all"
+                              >
+                                <div className="font-medium text-sm mb-2 flex items-start gap-2">
+                                  <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                  {item.requirement}
+                                </div>
+                                <div className="text-sm flex items-start gap-2 p-2 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                                  <Zap className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                  <span className="text-emerald-700 dark:text-emerald-300">{item.workaround}</span>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   )}
 
                   {/* Overqualifications */}
                   {(scoreResult.gapAnalysis.overqualifications?.length || 0) > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Star className="h-5 w-5 text-primary" />
-                          High-Value Experience to Emphasize
-                          <Badge variant="secondary">{scoreResult.gapAnalysis.overqualifications.length}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="border rounded-lg overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b bg-muted/50">
-                                <th className="text-left p-3 font-medium">Your Experience</th>
-                                <th className="text-left p-3 font-medium">How to Position</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scoreResult.gapAnalysis.overqualifications.map((item, i) => (
-                                <tr key={i} className="border-b last:border-0">
-                                  <td className="p-3 align-top">{item.experience}</td>
-                                  <td className="p-3 align-top text-muted-foreground">{item.recommendation}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7, duration: 0.4 }}
+                    >
+                      <Card className="overflow-hidden border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 border-primary/30">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-3 text-lg">
+                            <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/50">
+                              <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                            </div>
+                            High-Value Experience to Emphasize
+                            <Badge className="bg-primary hover:bg-primary/90">
+                              {scoreResult.gapAnalysis.overqualifications.length}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {scoreResult.gapAnalysis.overqualifications.map((item, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.8 + i * 0.05 }}
+                                className="p-4 rounded-lg bg-background/80 border border-primary/20 hover:shadow-md transition-all"
+                              >
+                                <div className="font-medium text-sm mb-2 flex items-start gap-2">
+                                  <Star className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                                  {item.experience}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <span className="text-xs font-medium text-primary">How to Position: </span>
+                                  {item.recommendation}
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   )}
 
                   {/* Irrelevant Content */}
                   {(scoreResult.gapAnalysis.irrelevantContent?.length || 0) > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Trash2 className="h-5 w-5 text-muted-foreground" />
-                          Content to Remove or Compress
-                          <Badge variant="secondary">{scoreResult.gapAnalysis.irrelevantContent.length}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="border rounded-lg overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b bg-muted/50">
-                                <th className="text-left p-3 font-medium">Content</th>
-                                <th className="text-left p-3 font-medium">Recommendation</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scoreResult.gapAnalysis.irrelevantContent.map((item, i) => (
-                                <tr key={i} className="border-b last:border-0">
-                                  <td className="p-3 align-top">{item.content}</td>
-                                  <td className="p-3 align-top text-muted-foreground">{item.recommendation}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.8, duration: 0.4 }}
+                    >
+                      <Card className="overflow-hidden border-l-4 border-l-muted-foreground/50 bg-gradient-to-br from-muted/30 to-muted/50 border-muted">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-3 text-lg">
+                            <div className="p-2 rounded-lg bg-muted">
+                              <Trash2 className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            Content to Remove or Compress
+                            <Badge variant="secondary">
+                              {scoreResult.gapAnalysis.irrelevantContent.length}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {scoreResult.gapAnalysis.irrelevantContent.map((item, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.9 + i * 0.05 }}
+                                className="p-4 rounded-lg bg-background/80 border border-muted hover:shadow-md transition-all"
+                              >
+                                <div className="font-medium text-sm mb-2 line-through text-muted-foreground">
+                                  {item.content}
+                                </div>
+                                <div className="text-sm flex items-start gap-2">
+                                  <ArrowRight className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                  <span className="text-muted-foreground">{item.recommendation}</span>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   )}
 
                   {/* Gap Summary */}
                   {(scoreResult.gapAnalysis.gapSummary?.length || 0) > 0 && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg">Summary of Key Gaps</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-2">
-                          {scoreResult.gapAnalysis.gapSummary.map((gap, i) => (
-                            <li key={i} className="flex items-start gap-2 text-sm">
-                              <span className="text-muted-foreground">•</span>
-                              <span>{gap}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.9, duration: 0.4 }}
+                    >
+                      <Card className="border-2 border-dashed">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg">Summary of Key Gaps</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-2">
+                            {scoreResult.gapAnalysis.gapSummary.map((gap, i) => (
+                              <li key={i} className="flex items-start gap-3 text-sm p-2 rounded hover:bg-muted/50 transition-colors">
+                                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                  {i + 1}
+                                </span>
+                                <span>{gap}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   )}
                 </div>
               )}
 
               {/* Quick Wins */}
               {(scoreResult.quickWins?.length || 0) > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="h-5 w-5 text-green-500" />
-                      Quick Wins
-                    </CardTitle>
-                    <CardDescription>
-                      Easy changes you can make right now
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {scoreResult.quickWins?.map((win, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{win}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.0, duration: 0.4 }}
+                >
+                  <Card className="overflow-hidden border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200 dark:border-emerald-800">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3">
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                          className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50"
+                        >
+                          <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        </motion.div>
+                        Quick Wins
+                        <Badge className="bg-emerald-500 hover:bg-emerald-600">
+                          {scoreResult.quickWins?.length || 0} easy fixes
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        High-impact changes you can make right now
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {scoreResult.quickWins?.map((win, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 1.1 + i * 0.05 }}
+                            className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-emerald-200 dark:border-emerald-800 hover:shadow-md transition-all group"
+                          >
+                            <span className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:scale-110 transition-transform">
+                              {i + 1}
+                            </span>
+                            <div className="flex-1">
+                              <span className="text-sm">{win}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+                              Quick Fix
+                            </Badge>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={handleStartOver}
-                >
-                  Score Another Résumé
-                </Button>
-                <Button
-                  size="lg"
-                  onClick={handleFixResume}
-                  className="gap-2"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  Build My Must-Interview Résumé
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* Action Buttons - Enhanced CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2, duration: 0.4 }}
+                className="pt-6"
+              >
+                <Card className="overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5">
+                  <CardContent className="pt-6 pb-6">
+                    <div className="text-center mb-6">
+                      <p className="text-lg font-medium mb-2">
+                        You're <span className="text-primary font-bold">{100 - scoreResult.overallScore} points</span> away from "must-interview" status
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Our AI will transform your resume to address every gap—without fabricating anything
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={handleStartOver}
+                        className="px-6"
+                      >
+                        Score Another Résumé
+                      </Button>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button
+                          size="lg"
+                          onClick={handleFixResume}
+                          className="gap-2 px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-primary to-primary/80"
+                        >
+                          <Sparkles className="h-5 w-5" />
+                          Build My Must-Interview Résumé
+                          <ArrowRight className="h-5 w-5" />
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
               {/* Analysis time */}
               <p className="text-center text-xs text-muted-foreground">
