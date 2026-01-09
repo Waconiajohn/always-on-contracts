@@ -202,7 +202,30 @@ function cleanAIFormatting(text: string): string {
 }
 
 /**
- * Parse AI tool call response
+ * Repair common JSON issues from AI responses
+ */
+function repairJSON(str: string): string {
+  let repaired = str;
+  
+  // Remove trailing commas before } or ]
+  repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+  
+  // Fix unescaped newlines in strings (common AI issue)
+  repaired = repaired.replace(/([^\\])"([^"]*)\n([^"]*)"([,}\]])/g, '$1"$2\\n$3"$4');
+  
+  // Remove control characters except valid JSON whitespace
+  repaired = repaired.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  
+  // Fix single quotes used instead of double quotes (be careful with apostrophes)
+  // Only fix obvious cases like {'key': 'value'}
+  repaired = repaired.replace(/([{,]\s*)'([^']+)'(\s*:)/g, '$1"$2"$3');
+  repaired = repaired.replace(/(:\s*)'([^']*)'(\s*[,}])/g, '$1"$2"$3');
+  
+  return repaired;
+}
+
+/**
+ * Parse AI tool call response with robust fallbacks
  */
 export function extractToolCallJSON<T = any>(
   response: any,
@@ -217,23 +240,57 @@ export function extractToolCallJSON<T = any>(
       );
       
       if (toolCall?.function?.arguments) {
-        const parsed = typeof toolCall.function.arguments === 'string'
-          ? JSON.parse(toolCall.function.arguments)
-          : toolCall.function.arguments;
+        const argsRaw = toolCall.function.arguments;
+        let parsed: any;
         
-        if (schema) {
-          const validated = schema.safeParse(parsed);
-          if (validated.success) {
-            return { success: true, data: validated.data };
+        // Strategy 1: Direct parse (strict)
+        if (typeof argsRaw === 'object') {
+          parsed = argsRaw;
+        } else if (typeof argsRaw === 'string') {
+          try {
+            parsed = JSON.parse(argsRaw);
+          } catch {
+            // Strategy 2: Use extractJSON with its cleanup strategies
+            const extractResult = extractJSON(argsRaw);
+            if (extractResult.success) {
+              parsed = extractResult.data;
+            } else {
+              // Strategy 3: Repair JSON and retry
+              try {
+                const repaired = repairJSON(argsRaw);
+                parsed = JSON.parse(repaired);
+              } catch (repairError) {
+                console.error('All JSON parsing strategies failed for tool arguments');
+                return {
+                  success: false,
+                  error: `Failed to parse tool arguments after all strategies: ${repairError instanceof Error ? repairError.message : String(repairError)}`
+                };
+              }
+            }
           }
-          return { success: false, error: `Schema validation failed: ${validated.error.message}` };
         }
-        return { success: true, data: parsed };
+        
+        if (parsed) {
+          if (schema) {
+            const validated = schema.safeParse(parsed);
+            if (validated.success) {
+              return { success: true, data: validated.data };
+            }
+            return { success: false, error: `Schema validation failed: ${validated.error.message}` };
+          }
+          return { success: true, data: parsed };
+        }
       }
     }
     
     // Fallback: extract from content
     const content = response.choices?.[0]?.message?.content || '';
+    if (!content) {
+      return {
+        success: false,
+        error: 'No tool calls found and no content to parse'
+      };
+    }
     return extractJSON<T>(content, schema);
   } catch (error) {
     return {

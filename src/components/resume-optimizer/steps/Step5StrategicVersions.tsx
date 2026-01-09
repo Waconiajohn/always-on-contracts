@@ -60,9 +60,32 @@ export function Step5StrategicVersions() {
   }, [benchmarkResume]);
   
   const generateBenchmark = async () => {
+    // Validate prerequisites before starting
+    if (!resumeText || !jobDescription || !fitBlueprint) {
+      const missing = [];
+      if (!resumeText) missing.push('resume');
+      if (!jobDescription) missing.push('job description');
+      if (!fitBlueprint) missing.push('fit analysis');
+      
+      setGenerateError(`Missing required data: ${missing.join(', ')}. Please go back and complete previous steps.`);
+      toast({
+        title: 'Missing Data',
+        description: 'Please complete previous steps before generating the benchmark resume.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setIsGenerating(true);
     setGenerateError(null);
     setProcessing(true, 'Generating benchmark resume...');
+    
+    // Client-side timeout (2 minutes)
+    const TIMEOUT_MS = 120000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, TIMEOUT_MS);
     
     try {
       // Get auth session for edge function
@@ -89,6 +112,8 @@ export function Step5StrategicVersions() {
         }
       });
       
+      clearTimeout(timeoutId);
+      
       if (error) {
         const handledError = handleEdgeFunctionError(error, 'benchmark-resume');
         if (isRateLimitError(handledError) || isPaymentError(handledError)) {
@@ -96,6 +121,13 @@ export function Step5StrategicVersions() {
           return;
         }
         throw error;
+      }
+      
+      // Check for error in response body (our edge function returns errors this way)
+      if (data?.error) {
+        const meta = data._meta || {};
+        console.error('Benchmark generation failed:', data.error, meta);
+        throw new Error(data.error);
       }
       
       const benchmark: BenchmarkResume = {
@@ -121,7 +153,18 @@ export function Step5StrategicVersions() {
         description: 'Your optimized resume is ready for review.'
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Could not generate benchmark resume';
+      clearTimeout(timeoutId);
+      
+      let errorMessage = 'Could not generate benchmark resume';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || error.message.includes('abort')) {
+          errorMessage = 'Generation is taking longer than expected. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       console.error('Generate benchmark error:', error);
       setGenerateError(errorMessage);
       toast({

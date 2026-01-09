@@ -1,7 +1,7 @@
 /**
  * Lovable AI Gateway Configuration
  * 
- * Provides access to Google Gemini models via Lovable AI Gateway
+ * Provides access to OpenAI and Google Gemini models via Lovable AI Gateway
  * Used for: structured extraction, content generation, and conversational AI
  */
 
@@ -9,14 +9,20 @@ export const LOVABLE_AI_MODELS = {
   // Default: Balanced performance and cost
   DEFAULT: 'google/gemini-2.5-flash',
   
-  // Premium: Best quality for complex reasoning
-  PREMIUM: 'google/gemini-3-pro-preview',
+  // Premium: OpenAI GPT-5 for complex reasoning and reliable structured output
+  PREMIUM: 'openai/gpt-5',
+  
+  // Advanced: Latest OpenAI model for most complex tasks
+  ADVANCED: 'openai/gpt-5.2',
   
   // Fast: Cheapest for simple tasks
   FAST: 'google/gemini-2.5-flash-lite',
   
   // Image generation
   IMAGE: 'google/gemini-2.5-flash-image',
+  
+  // Mini models for cost-effective mid-tier tasks
+  MINI: 'openai/gpt-5-mini',
 } as const;
 
 export const LOVABLE_AI_CONFIG = {
@@ -29,6 +35,10 @@ export const LOVABLE_AI_CONFIG = {
     'google/gemini-2.5-flash': { input: 0.30, output: 2.50 },
     'google/gemini-3-pro-preview': { input: 2.50, output: 10.00 },
     'google/gemini-2.5-flash-lite': { input: 0.10, output: 0.80 },
+    'openai/gpt-5': { input: 10.00, output: 30.00 },
+    'openai/gpt-5.2': { input: 15.00, output: 45.00 },
+    'openai/gpt-5-mini': { input: 1.50, output: 6.00 },
+    'openai/gpt-5-nano': { input: 0.50, output: 2.00 },
   },
   
   // Retry configuration
