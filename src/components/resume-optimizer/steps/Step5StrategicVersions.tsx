@@ -65,7 +65,18 @@ export function Step5StrategicVersions() {
     setProcessing(true, 'Generating benchmark resume...');
     
     try {
+      // Get auth session for edge function
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        throw new Error('Authentication required. Please sign in.');
+      }
+      
       const { data, error } = await supabase.functions.invoke('benchmark-resume', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
         body: {
           resumeText,
           jobDescription,
