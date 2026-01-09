@@ -437,3 +437,6 @@ verify_jwt = false
 
 [functions.quick-glance-optimize]
 verify_jwt = true
+
+[functions.resume-builder-v3]
+verify_jwt = false
