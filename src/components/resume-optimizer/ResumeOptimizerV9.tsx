@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProgressStepper } from './components/ProgressStepper';
 import { Step2GapAnalysis } from './steps/Step2GapAnalysis';
-import { Step3AnswerAssistant } from './steps/Step3AnswerAssistant';
+import { Step3ProofCollector } from './steps/Step3ProofCollector';
 import { Step4Customization } from './steps/Step4Customization';
 import { Step5StrategicVersions } from './steps/Step5StrategicVersions';
 import { Step6HiringManager } from './steps/Step6HiringManager';
@@ -182,7 +182,7 @@ export default function ResumeOptimizerV9() {
       case 'gap-analysis':
         return <Step2GapAnalysis />;
       case 'proof-collector':
-        return <Step3AnswerAssistant />;
+        return <Step3ProofCollector />;
       case 'customization':
         return <Step4Customization />;
       case 'strategic-versions':
