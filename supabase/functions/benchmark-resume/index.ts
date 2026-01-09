@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
-import { extractJSON } from "../_shared/json-parser.ts";
+import { extractJSON, extractToolCallJSON } from "../_shared/json-parser.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -360,7 +360,46 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
           { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.PREMIUM,
-        temperature: 0.6, // Slightly lower for more consistent output
+        // The output can be very large; raise the completion limit to avoid truncated JSON.
+        max_tokens: 8000,
+        // Use tool-calling to force valid structured output (more reliable than "JSON only").
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'benchmark_resume_result',
+              description: 'Return the generated benchmark resume in the required structured format.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  resume_text: { type: 'string' },
+                  sections: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        type: { type: 'string' },
+                        title: { type: 'string' },
+                        content: { type: 'array', items: { type: 'string' } },
+                        evidence_tags: { type: 'object' }
+                      },
+                      required: ['id', 'type', 'title', 'content'],
+                      additionalProperties: true
+                    }
+                  },
+                  changelog: { type: 'array', items: { type: 'object' } },
+                  verification_report: { type: 'object' },
+                  follow_up_questions: { type: 'array', items: { type: 'string' } }
+                },
+                required: ['resume_text', 'sections'],
+                additionalProperties: true
+              }
+            }
+          }
+        ],
+        tool_choice: { type: 'function', function: { name: 'benchmark_resume_result' } },
+        temperature: 0.6
       },
       'benchmark-resume',
       user.id,
@@ -369,39 +408,43 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
 
     console.log('AI response received, usage:', metrics);
 
+    // Prefer tool-call output for reliability
+    let parseResult = extractToolCallJSON<any>(response, 'benchmark_resume_result');
+
+    // Fallback to content parsing if tool-calling isn't present for any reason
     const content = response.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error('No response from AI');
+    if ((!parseResult.success || !parseResult.data) && content) {
+      console.log('Tool-call extraction failed, falling back to content JSON parsing. Reason:', parseResult.error);
+
+      console.log('AI response length:', content.length);
+      console.log('AI response starts with:', content.substring(0, 100));
+      console.log('AI response ends with:', content.substring(content.length - 100));
+
+      parseResult = extractJSON(content);
+
+      // Fallback: Try direct JSON parse if extractJSON fails
+      if (!parseResult.success || !parseResult.data) {
+        console.log('extractJSON failed, trying direct parse...');
+        try {
+          let jsonStr = content.trim();
+          if (jsonStr.startsWith('```')) {
+            jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+          }
+          const directParse = JSON.parse(jsonStr);
+          parseResult = { success: true, data: directParse };
+          console.log('Direct parse succeeded');
+        } catch (directError) {
+          console.error('Direct parse also failed:', directError);
+          console.error('Failed to parse AI response (first 1000 chars):', content.substring(0, 1000));
+          console.error('Parse error from extractJSON:', parseResult.error);
+          throw new Error('Failed to parse benchmark resume result');
+        }
+      }
     }
 
-    console.log('AI response length:', content.length);
-    console.log('AI response starts with:', content.substring(0, 100));
-    console.log('AI response ends with:', content.substring(content.length - 100));
-
-    // Parse the JSON response using shared parser
-    let parseResult = extractJSON(content);
-    
-    // Fallback: Try direct JSON parse if extractJSON fails
     if (!parseResult.success || !parseResult.data) {
-      console.log('extractJSON failed, trying direct parse...');
-      try {
-        // Try to find JSON between code blocks or parse directly
-        let jsonStr = content.trim();
-        
-        // Remove markdown code blocks if present
-        if (jsonStr.startsWith('```')) {
-          jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
-        }
-        
-        const directParse = JSON.parse(jsonStr);
-        parseResult = { success: true, data: directParse };
-        console.log('Direct parse succeeded');
-      } catch (directError) {
-        console.error('Direct parse also failed:', directError);
-        console.error('Failed to parse AI response (first 1000 chars):', content.substring(0, 1000));
-        console.error('Parse error from extractJSON:', parseResult.error);
-        throw new Error('Failed to parse benchmark resume result');
-      }
+      console.error('Failed to parse benchmark resume result. Tool-call error:', parseResult.error);
+      throw new Error('Failed to parse benchmark resume result');
     }
 
     const rawResume = parseResult.data;
