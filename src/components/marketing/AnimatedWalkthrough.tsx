@@ -12,7 +12,7 @@ const steps = [
   },
   {
     id: 2,
-    title: "Answer Assistant",
+    title: "Proof Collector",
     icon: MessageCircle,
     description: "Targeted questions fill your gaps",
   },
