@@ -374,11 +374,34 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
       throw new Error('No response from AI');
     }
 
+    console.log('AI response length:', content.length);
+    console.log('AI response starts with:', content.substring(0, 100));
+    console.log('AI response ends with:', content.substring(content.length - 100));
+
     // Parse the JSON response using shared parser
-    const parseResult = extractJSON(content);
+    let parseResult = extractJSON(content);
+    
+    // Fallback: Try direct JSON parse if extractJSON fails
     if (!parseResult.success || !parseResult.data) {
-      console.error('Failed to parse AI response:', content.substring(0, 500));
-      throw new Error('Failed to parse benchmark resume result');
+      console.log('extractJSON failed, trying direct parse...');
+      try {
+        // Try to find JSON between code blocks or parse directly
+        let jsonStr = content.trim();
+        
+        // Remove markdown code blocks if present
+        if (jsonStr.startsWith('```')) {
+          jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+        }
+        
+        const directParse = JSON.parse(jsonStr);
+        parseResult = { success: true, data: directParse };
+        console.log('Direct parse succeeded');
+      } catch (directError) {
+        console.error('Direct parse also failed:', directError);
+        console.error('Failed to parse AI response (first 1000 chars):', content.substring(0, 1000));
+        console.error('Parse error from extractJSON:', parseResult.error);
+        throw new Error('Failed to parse benchmark resume result');
+      }
     }
 
     const rawResume = parseResult.data;
