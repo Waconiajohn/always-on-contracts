@@ -24,8 +24,11 @@ export function Step5StrategicVersions() {
   const resumeText = useOptimizerStore(state => state.resumeText);
   const jobDescription = useOptimizerStore(state => state.jobDescription);
   const fitBlueprint = useOptimizerStore(state => state.fitBlueprint);
+  const confirmedFacts = useOptimizerStore(state => state.confirmedFacts);
   const missingBulletResponses = useOptimizerStore(state => state.missingBulletResponses);
   const customization = useOptimizerStore(state => state.customization);
+  const executive50PlusPrefs = useOptimizerStore(state => state.executive50PlusPrefs);
+  const resumeMode = useOptimizerStore(state => state.resumeMode);
   const benchmarkResume = useOptimizerStore(state => state.benchmarkResume);
   const selectedTemplateState = useOptimizerStore(state => state.selectedTemplate);
   const setBenchmarkResume = useOptimizerStore(state => state.setBenchmarkResume);
@@ -67,8 +70,11 @@ export function Step5StrategicVersions() {
           resumeText,
           jobDescription,
           fitBlueprint,
-          missingBulletResponses,
-          customization
+          confirmedFacts,
+          missingBulletResponses, // Legacy support
+          customization,
+          executive50PlusPrefs,
+          resumeMode
         }
       });
       
