@@ -39,11 +39,12 @@ export function extractJSON<T = any>(
     // Continue to next strategy
   }
 
-  // Strategy 2: Extract from markdown code blocks
-  const codeBlockMatch = cleanedContent.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  // Strategy 2: Extract from markdown code blocks (greedy match for full content)
+  const codeBlockMatch = cleanedContent.match(/```(?:json)?[\s\n]*([\s\S]*?)```/);
   if (codeBlockMatch) {
     try {
-      const parsed = JSON.parse(codeBlockMatch[1].trim());
+      const jsonContent = codeBlockMatch[1].trim();
+      const parsed = JSON.parse(jsonContent);
       if (schema) {
         const validated = schema.safeParse(parsed);
         if (validated.success) {
@@ -52,7 +53,8 @@ export function extractJSON<T = any>(
       } else {
         return { success: true, data: parsed };
       }
-    } catch {
+    } catch (e) {
+      console.log('Code block parse failed, trying next strategy:', e);
       // Continue to next strategy
     }
   }
