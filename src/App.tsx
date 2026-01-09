@@ -61,6 +61,7 @@ const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
 const ResumeOptimizerV9 = lazy(() => import("./components/resume-optimizer/ResumeOptimizerV9"));
+const ResumeBuilderV3 = lazy(() => import("./components/resume-builder-v3/ResumeBuilderV3").then(m => ({ default: m.ResumeBuilderV3 })));
 const ResumeOptimizerMarketing = lazy(() => import("./pages/ResumeOptimizerMarketing"));
 
 // Loading fallback component
@@ -156,6 +157,14 @@ const AppContent = () => {
               <ProtectedRoute>
                 <ModuleGate module="resume_jobs_studio">
                   <ResumeOptimizerV9 />
+                </ModuleGate>
+              </ProtectedRoute>
+            } />
+            {/* Resume Builder V3 - New structured output agent architecture */}
+            <Route path="/resume-builder-v3" element={
+              <ProtectedRoute>
+                <ModuleGate module="resume_jobs_studio">
+                  <ResumeBuilderV3 />
                 </ModuleGate>
               </ProtectedRoute>
             } />
