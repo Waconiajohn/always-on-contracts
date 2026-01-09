@@ -181,7 +181,7 @@ export default function ResumeOptimizerV9() {
     switch (currentStep) {
       case 'gap-analysis':
         return <Step2GapAnalysis />;
-      case 'answer-assistant':
+      case 'proof-collector':
         return <Step3AnswerAssistant />;
       case 'customization':
         return <Step4Customization />;

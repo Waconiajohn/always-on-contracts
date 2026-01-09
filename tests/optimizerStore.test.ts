@@ -80,7 +80,7 @@ describe('optimizerStore', () => {
         store.goToNextStep();
       });
       
-      expect(useOptimizerStore.getState().currentStep).toBe('answer-assistant');
+      expect(useOptimizerStore.getState().currentStep).toBe('proof-collector');
     });
 
     it('should navigate to previous step', () => {
@@ -94,7 +94,7 @@ describe('optimizerStore', () => {
         store.goToPrevStep();
       });
       
-      expect(useOptimizerStore.getState().currentStep).toBe('answer-assistant');
+      expect(useOptimizerStore.getState().currentStep).toBe('proof-collector');
     });
 
     it('should not go past first step', () => {
