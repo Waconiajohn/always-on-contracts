@@ -120,7 +120,7 @@ serve(async (req) => {
   try {
     // Authentication check
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       console.error('No authorization header provided');
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
@@ -128,13 +128,16 @@ serve(async (req) => {
       });
     }
 
+    const token = authHeader.replace('Bearer ', '');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Use getUser with the token
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
       console.error('Auth error:', authError?.message);
       return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
