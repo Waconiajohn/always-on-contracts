@@ -1,10 +1,10 @@
-// Resume Optimizer V9 - Types
-// 5-Step 2-Pass Benchmark Resume System
+// Resume Optimizer V10 - Types
+// Rubric-First, Evidence-Safe Benchmark Resume System
 
 // ============= Step Types =============
 export type OptimizerStep = 
   | 'gap-analysis'        // Step 1: Fit Blueprint (Pass 1)
-  | 'answer-assistant'    // Step 2: Missing Bullet Collector
+  | 'proof-collector'     // Step 2: Executive Proof Collector (NEW)
   | 'customization'       // Step 3: Intensity/tone controls
   | 'strategic-versions'  // Step 4: Benchmark Resume (Pass 2)
   | 'hiring-manager';     // Step 5: Hiring manager review
@@ -12,11 +12,12 @@ export type OptimizerStep =
 // Single source of truth for step order
 export const STEP_ORDER: OptimizerStep[] = [
   'gap-analysis',
-  'answer-assistant',
+  'proof-collector',
   'customization',
   'strategic-versions',
   'hiring-manager'
 ];
+
 export const STEP_CONFIG: Record<OptimizerStep, {
   title: string;
   subtitle: string;
@@ -25,25 +26,25 @@ export const STEP_CONFIG: Record<OptimizerStep, {
 }> = {
   'gap-analysis': {
     title: 'Fit Blueprint',
-    subtitle: 'Deep evidence-backed analysis of your qualifications',
+    subtitle: 'Rubric-first analysis with role success criteria',
     icon: '🎯',
     estimatedTime: '2 min'
   },
-  'answer-assistant': {
-    title: 'Complete Your Profile',
-    subtitle: 'Provide details to strengthen your resume',
-    icon: '✍️',
-    estimatedTime: '5 min'
+  'proof-collector': {
+    title: 'Executive Proof Collector',
+    subtitle: 'Provide missing facts to strengthen claims',
+    icon: '📝',
+    estimatedTime: '3 min'
   },
   'customization': {
     title: 'Customize Your Approach',
-    subtitle: 'Set intensity and tone preferences',
+    subtitle: 'Set intensity, tone, and 50+ preferences',
     icon: '⚙️',
     estimatedTime: '1 min'
   },
   'strategic-versions': {
     title: 'Benchmark Resume',
-    subtitle: 'Your optimized, interview-ready resume',
+    subtitle: 'Interview-safe, evidence-backed resume',
     icon: '📄',
     estimatedTime: '2 min'
   },
@@ -178,8 +179,105 @@ export interface BenchmarkTheme {
   requirementIds: string[];
 }
 
-// Complete Fit Blueprint (Pass 1 output)
+// ============= NEW: Role Success Rubric Types =============
+
+export interface CompetencyDef {
+  id: string;
+  name: string;
+  definition: string;
+  proofExamples: string[];
+  antiPatterns: string[];
+}
+
+export interface MetricNorm {
+  metric: string;
+  typicalRange: string;
+  unit: string;
+  sources: string[];
+  riskIfMissing: 'high' | 'medium' | 'low';
+}
+
+export interface RoleSuccessRubric {
+  roleArchetype: string;
+  industryContext: string;
+  coreOutcomes: string[];
+  topCompetencies: CompetencyDef[];
+  benchmarkProofPoints: string[];
+  metricsNorms: MetricNorm[];
+  commonPitfalls: string[];
+  executiveSignals: string[];
+}
+
+export interface BenchmarkResumePattern {
+  targetTitleRules: string[];
+  sectionOrder: string[];
+  signatureWinsPattern: {
+    description: string;
+    bulletFormula: string;
+    examples: string[];
+  };
+  summaryPattern: {
+    description: string;
+    requiredElements: string[];
+  };
+  bulletFormula: string;
+  orderingRules: string[];
+  executive50PlusRules: string[];
+}
+
+// ============= NEW: Inference Map Types =============
+
+export interface PlausibleInference {
+  inference: string;
+  constraint: string;
+  riskOfOverreach: 'Low' | 'Medium' | 'High';
+}
+
+export interface ValidationQuestion {
+  question: string;
+  fieldKey: string;
+  fieldType: 'text' | 'number' | 'range' | 'select' | 'multi';
+  exampleAnswer?: string;
+  options?: string[];
+}
+
+export interface DraftBulletPlaceholder {
+  status: 'NEEDS_CONFIRMATION';
+  bullet: string;
+  requiredFields: string[];
+  targetRequirementIds: string[];
+}
+
+export interface InferenceMapEntry {
+  requirementId: string;
+  verifiedClaims: { claim: string; evidenceIds: string[] }[];
+  plausibleInferences: PlausibleInference[];
+  validationQuestions: ValidationQuestion[];
+  draftBulletsPlaceholders: DraftBulletPlaceholder[];
+}
+
+// ============= NEW: Proof Collector Types =============
+
+export type ProofFieldCategory = 'Scope' | 'Leadership' | 'Outcomes' | 'Stakeholders' | 'Tools' | 'Timeline';
+
+export interface ProofCollectorField {
+  fieldKey: string;
+  label: string;
+  description: string;
+  fieldType: 'text' | 'number' | 'range' | 'select' | 'multi';
+  options?: string[];
+  examples?: string[];
+  priority: 'high' | 'medium' | 'low';
+  category: ProofFieldCategory;
+}
+
+// Complete Fit Blueprint (Pass 1 output) - ENHANCED
 export interface FitBlueprint {
+  // NEW: Rubric-first data
+  roleSuccessRubric?: RoleSuccessRubric;
+  benchmarkResumePattern?: BenchmarkResumePattern;
+  
+  // Existing fields
   evidenceInventory: EvidenceUnit[];
   requirements: AtomicRequirement[];
   fitMap: FitMapEntry[];
@@ -189,6 +287,12 @@ export interface FitBlueprint {
   atsAlignment: ATSAlignment;
   executiveSummary: ExecutiveSummary;
   overallFitScore: number;
+  
+  // NEW: Inference safety layer
+  inferenceMap?: InferenceMapEntry[];
+  bulletBankVerified?: BulletBankItem[];
+  bulletBankInferredPlaceholders?: DraftBulletPlaceholder[];
+  proofCollectorFields?: ProofCollectorField[];
 }
 
 // ============= Pass 2: Benchmark Resume Types =============
@@ -265,6 +369,24 @@ export interface ResumeVersion {
   score?: number;
 }
 
+// ============= NEW: Confirmed Facts (from Proof Collector) =============
+export type ConfirmedFactValue = string | number | string[] | { min: number; max: number };
+
+export interface ConfirmedFacts {
+  [fieldKey: string]: ConfirmedFactValue;
+}
+
+// ============= NEW: Executive 50+ Preferences =============
+export interface Executive50PlusPreferences {
+  hideGraduationYears: boolean;
+  experienceCondensationYears: number; // e.g., 15 means condense beyond 15 years
+  includeAdditionalExperience: boolean;
+  signatureWinsPosition: 'top' | 'inline';
+}
+
+// ============= NEW: Resume Mode =============
+export type ResumeMode = 'interview-safe' | 'brainstorm';
+
 // ============= Main State =============
 export interface OptimizerState {
   // Input data
@@ -276,7 +398,10 @@ export interface OptimizerState {
   // Step 1: Fit Blueprint (Pass 1)
   fitBlueprint: FitBlueprint | null;
   
-  // Step 2: Missing Bullet Responses
+  // Step 2: Proof Collector (NEW - replaces missingBulletResponses)
+  confirmedFacts: ConfirmedFacts;
+  
+  // Legacy Step 2: Missing Bullet Responses (kept for backwards compatibility)
   missingBulletResponses: Record<string, string>;
   
   // Step 2: Staged Bullets (user-collected suggestions)
@@ -284,6 +409,8 @@ export interface OptimizerState {
   
   // Step 3: Customization
   customization: CustomizationSettings;
+  executive50PlusPrefs: Executive50PlusPreferences;
+  resumeMode: ResumeMode;
   
   // Step 4: Benchmark Resume (Pass 2)
   benchmarkResume: BenchmarkResume | null;
@@ -316,12 +443,20 @@ export const createInitialState = (): OptimizerState => ({
   jobTitle: undefined,
   company: undefined,
   fitBlueprint: null,
+  confirmedFacts: {},
   missingBulletResponses: {},
   stagedBullets: [],
   customization: {
     intensity: 'moderate',
     tone: 'formal'
   },
+  executive50PlusPrefs: {
+    hideGraduationYears: true,
+    experienceCondensationYears: 15,
+    includeAdditionalExperience: true,
+    signatureWinsPosition: 'top'
+  },
+  resumeMode: 'interview-safe',
   benchmarkResume: null,
   selectedTemplate: undefined,
   hiringManagerReview: null,
