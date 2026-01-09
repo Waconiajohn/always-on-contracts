@@ -2,12 +2,41 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { callLovableAI, LOVABLE_AI_MODELS } from "../_shared/lovable-ai-config.ts";
-import { extractJSON, extractToolCallJSON } from "../_shared/json-parser.ts";
+import { extractToolCallJSON } from "../_shared/json-parser.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// ============= Zod Schema for Validation =============
+const ResumeSectionSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  title: z.string(),
+  content: z.array(z.string()),
+  evidence_tags: z.record(z.array(z.string())).optional().default({})
+});
+
+const BenchmarkResumeOutputSchema = z.object({
+  sections: z.array(ResumeSectionSchema),
+  changelog: z.array(z.object({
+    section: z.string().optional(),
+    change: z.string().optional(),
+    reason: z.string().optional(),
+    rationale: z.string().optional(),
+    evidence_used: z.array(z.string()).optional(),
+    requirement_ids: z.array(z.string()).optional()
+  })).optional().default([]),
+  verification_report: z.object({
+    total_claims: z.number().optional(),
+    verified_claims: z.number().optional(),
+    inferred_claims: z.number().optional(),
+    unverifiable_omitted: z.number().optional()
+  }).optional().nullable(),
+  follow_up_questions: z.array(z.string()).optional().default([])
+});
 
 // ============= Types =============
 interface ConfirmedFacts {
@@ -108,6 +137,32 @@ RESUME MODE: BRAINSTORM
   }
 }
 
+/**
+ * Build resume_text from sections server-side to reduce AI output size
+ */
+function buildResumeTextFromSections(sections: any[]): string {
+  const lines: string[] = [];
+  
+  for (const section of sections) {
+    if (section.title && section.type !== 'header') {
+      lines.push(`\n${section.title.toUpperCase()}\n${'─'.repeat(section.title.length)}`);
+    }
+    
+    if (Array.isArray(section.content)) {
+      for (const line of section.content) {
+        // Remove evidence tags for clean resume text
+        const cleanLine = line.replace(/\s*\[E\d+(?:,\s*[ER]\d+)*\]\s*$/g, '').trim();
+        if (cleanLine) {
+          lines.push(cleanLine);
+        }
+      }
+    }
+    lines.push('');
+  }
+  
+  return lines.join('\n').trim();
+}
+
 // ============= Main Handler =============
 
 serve(async (req) => {
@@ -116,6 +171,9 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
+  let requestId = 'unknown';
+  let finishReason = 'unknown';
+  let hadToolCalls = false;
 
   try {
     // Authentication check
@@ -218,9 +276,11 @@ STRUCTURE FOR BENCHMARK RESUME:
 7. EDUCATION & CERTIFICATIONS
    - Follow 50+ rules if specified
 
-${buildExecutive50PlusInstructions(executive50PlusPrefs)}`;
+${buildExecutive50PlusInstructions(executive50PlusPrefs)}
 
-    // ============= Build User Prompt =============
+IMPORTANT: Use the tool call ONLY to return your response. Do NOT include any text outside the tool call.`;
+
+    // ============= Build User Prompt (streamlined) =============
     const confirmedFactsBlock = formatConfirmedFacts(confirmedFacts || {});
     const legacyResponses = missingBulletResponses || {};
     const legacyResponsesBlock = Object.keys(legacyResponses).length > 0 
@@ -278,80 +338,9 @@ ${JSON.stringify(fitBlueprint.executiveSummary || {}, null, 2)}
 ATS KEYWORDS TO INCLUDE:
 ${JSON.stringify(fitBlueprint.atsAlignment?.topKeywords || [], null, 2)}
 
-Return valid JSON only, no markdown, no commentary. Use this exact schema:
+Call the benchmark_resume_result tool with the structured output. Do NOT output any text outside the tool call.`;
 
-{
-  "resume_text": "Full resume as plain text, ATS-friendly format",
-  "sections": [
-    {
-      "id": "header",
-      "type": "header",
-      "title": "Header",
-      "content": ["CANDIDATE NAME", "Target Title | Branding Line"],
-      "evidence_tags": {}
-    },
-    {
-      "id": "signature-wins",
-      "type": "achievements",
-      "title": "Signature Wins",
-      "content": ["• Executive outcome 1 [E1]", "• Executive outcome 2 [E3, E5]"],
-      "evidence_tags": {"0": ["E1"], "1": ["E3", "E5"]}
-    },
-    {
-      "id": "summary",
-      "type": "summary",
-      "title": "Professional Summary",
-      "content": ["5-7 line summary paragraph..."],
-      "evidence_tags": {"0": ["E1", "E4", "E7"]}
-    },
-    {
-      "id": "competencies",
-      "type": "competencies",
-      "title": "Core Competencies",
-      "content": ["Competency 1", "Competency 2"],
-      "evidence_tags": {}
-    },
-    {
-      "id": "experience-1",
-      "type": "experience",
-      "title": "Professional Experience",
-      "content": ["COMPANY | Title | Dates", "Role framing line", "• Bullet 1 [E1, R2]", "• Bullet 2 [E3]"],
-      "evidence_tags": {"2": ["E1", "R2"], "3": ["E3"]}
-    },
-    {
-      "id": "skills",
-      "type": "skills",
-      "title": "Tools & Platforms",
-      "content": ["Tool 1", "Tool 2", "Workflow platforms (multiple)"],
-      "evidence_tags": {}
-    },
-    {
-      "id": "education",
-      "type": "education",
-      "title": "Education",
-      "content": ["Degree, University"],
-      "evidence_tags": {}
-    }
-  ],
-  "changelog": [
-    {
-      "section": "Summary",
-      "change": "Added quantified retention metric",
-      "reason": "Addresses R3 requirement for retention experience",
-      "evidence_used": ["E4"],
-      "requirement_ids": ["R3"]
-    }
-  ],
-  "verification_report": {
-    "total_claims": 25,
-    "verified_claims": 23,
-    "inferred_claims": 2,
-    "unverifiable_omitted": 3
-  },
-  "follow_up_questions": []
-}`;
-
-    console.log('Calling Lovable AI for Benchmark Resume generation...');
+    console.log('Calling Lovable AI (OpenAI GPT-5) for Benchmark Resume generation...');
 
     const { response, metrics } = await callLovableAI(
       {
@@ -359,99 +348,121 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM,
-        // The output can be very large; raise the completion limit to avoid truncated JSON.
+        model: LOVABLE_AI_MODELS.PREMIUM, // Now uses openai/gpt-5
         max_tokens: 8000,
-        // Use tool-calling to force valid structured output (more reliable than "JSON only").
+        // OpenAI JSON mode for more reliable structured output
+        response_format: { type: 'json_object' },
+        // Tool calling for structured output
         tools: [
           {
             type: 'function',
             function: {
               name: 'benchmark_resume_result',
-              description: 'Return the generated benchmark resume in the required structured format.',
+              description: 'Return the generated benchmark resume in structured format. Do NOT include resume_text - it will be computed server-side from sections.',
               parameters: {
                 type: 'object',
                 properties: {
-                  resume_text: { type: 'string' },
                   sections: {
                     type: 'array',
+                    description: 'Resume sections in order',
                     items: {
                       type: 'object',
                       properties: {
-                        id: { type: 'string' },
-                        type: { type: 'string' },
-                        title: { type: 'string' },
-                        content: { type: 'array', items: { type: 'string' } },
-                        evidence_tags: { type: 'object' }
+                        id: { type: 'string', description: 'Unique section ID like header, summary, experience-1' },
+                        type: { type: 'string', description: 'Section type: header, summary, achievements, competencies, experience, skills, education' },
+                        title: { type: 'string', description: 'Display title for the section' },
+                        content: { type: 'array', items: { type: 'string' }, description: 'Lines of content for this section' },
+                        evidence_tags: { type: 'object', description: 'Map of content index to evidence IDs used' }
                       },
-                      required: ['id', 'type', 'title', 'content'],
-                      additionalProperties: true
+                      required: ['id', 'type', 'title', 'content']
                     }
                   },
-                  changelog: { type: 'array', items: { type: 'object' } },
-                  verification_report: { type: 'object' },
-                  follow_up_questions: { type: 'array', items: { type: 'string' } }
+                  changelog: {
+                    type: 'array',
+                    description: 'List of changes made from original resume',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        section: { type: 'string' },
+                        change: { type: 'string' },
+                        reason: { type: 'string' },
+                        evidence_used: { type: 'array', items: { type: 'string' } },
+                        requirement_ids: { type: 'array', items: { type: 'string' } }
+                      }
+                    }
+                  },
+                  verification_report: {
+                    type: 'object',
+                    properties: {
+                      total_claims: { type: 'number' },
+                      verified_claims: { type: 'number' },
+                      inferred_claims: { type: 'number' },
+                      unverifiable_omitted: { type: 'number' }
+                    }
+                  },
+                  follow_up_questions: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Optional questions to further improve the resume'
+                  }
                 },
-                required: ['resume_text', 'sections'],
-                additionalProperties: true
+                required: ['sections']
               }
             }
           }
         ],
         tool_choice: { type: 'function', function: { name: 'benchmark_resume_result' } },
-        temperature: 0.6
+        temperature: 0.5
       },
       'benchmark-resume',
       user.id,
-      90000 // 90 second timeout for complex generation
+      120000 // 120 second timeout for complex generation
     );
 
-    console.log('AI response received, usage:', metrics);
+    // Capture diagnostics
+    requestId = response.id || metrics.request_id || 'unknown';
+    finishReason = response.choices?.[0]?.finish_reason || 'unknown';
+    hadToolCalls = !!(response.choices?.[0]?.message?.tool_calls?.length);
 
-    // Prefer tool-call output for reliability
-    let parseResult = extractToolCallJSON<any>(response, 'benchmark_resume_result');
+    console.log('AI response received:', {
+      requestId,
+      finishReason,
+      hadToolCalls,
+      inputTokens: metrics.input_tokens,
+      outputTokens: metrics.output_tokens
+    });
 
-    // Fallback to content parsing if tool-calling isn't present for any reason
-    const content = response.choices?.[0]?.message?.content;
-    if ((!parseResult.success || !parseResult.data) && content) {
-      console.log('Tool-call extraction failed, falling back to content JSON parsing. Reason:', parseResult.error);
-
-      console.log('AI response length:', content.length);
-      console.log('AI response starts with:', content.substring(0, 100));
-      console.log('AI response ends with:', content.substring(content.length - 100));
-
-      parseResult = extractJSON(content);
-
-      // Fallback: Try direct JSON parse if extractJSON fails
-      if (!parseResult.success || !parseResult.data) {
-        console.log('extractJSON failed, trying direct parse...');
-        try {
-          let jsonStr = content.trim();
-          if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
-          }
-          const directParse = JSON.parse(jsonStr);
-          parseResult = { success: true, data: directParse };
-          console.log('Direct parse succeeded');
-        } catch (directError) {
-          console.error('Direct parse also failed:', directError);
-          console.error('Failed to parse AI response (first 1000 chars):', content.substring(0, 1000));
-          console.error('Parse error from extractJSON:', parseResult.error);
-          throw new Error('Failed to parse benchmark resume result');
-        }
-      }
-    }
+    // Parse with robust extraction
+    const parseResult = extractToolCallJSON(response, 'benchmark_resume_result', BenchmarkResumeOutputSchema);
 
     if (!parseResult.success || !parseResult.data) {
-      console.error('Failed to parse benchmark resume result. Tool-call error:', parseResult.error);
-      throw new Error('Failed to parse benchmark resume result');
+      console.error('Failed to parse benchmark resume result:', parseResult.error);
+      console.error('Response had tool_calls:', hadToolCalls);
+      console.error('Finish reason:', finishReason);
+      
+      return new Response(JSON.stringify({
+        error: 'Failed to parse AI response. Please try again.',
+        _meta: {
+          request_id: requestId,
+          finish_reason: finishReason,
+          had_tool_calls: hadToolCalls,
+          parse_error: parseResult.error,
+          executionTimeMs: Date.now() - startTime
+        }
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const rawResume = parseResult.data;
     
+    // Build resume_text server-side from sections
+    const computedResumeText = buildResumeTextFromSections(rawResume.sections || []);
+    
     // Transform to camelCase for frontend
     const benchmarkResume = {
-      resumeText: rawResume.resume_text || '',
+      resumeText: computedResumeText,
       sections: (rawResume.sections || []).map((s: any) => ({
         id: s.id,
         type: s.type,
@@ -474,7 +485,10 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
         mode: resumeMode,
         confirmedFactsUsed: Object.keys(confirmedFacts || {}).length,
         executionTimeMs: Date.now() - startTime,
-        model: LOVABLE_AI_MODELS.PREMIUM
+        model: LOVABLE_AI_MODELS.PREMIUM,
+        request_id: requestId,
+        finish_reason: finishReason,
+        had_tool_calls: hadToolCalls
       }
     };
 
@@ -482,7 +496,8 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
       sectionsCount: benchmarkResume.sections.length,
       changelogCount: benchmarkResume.changelog.length,
       mode: resumeMode,
-      executionTimeMs: benchmarkResume._meta.executionTimeMs
+      executionTimeMs: benchmarkResume._meta.executionTimeMs,
+      requestId
     });
 
     return new Response(JSON.stringify(benchmarkResume), {
@@ -490,11 +505,39 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
     });
 
   } catch (error) {
-    console.error('Benchmark Resume error:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error',
+    const executionTimeMs = Date.now() - startTime;
+    console.error('Benchmark resume generation error:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    // Check for specific error types
+    if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
+      return new Response(JSON.stringify({
+        error: 'Rate limit exceeded. Please wait a moment and try again.',
+        _meta: { request_id: requestId, executionTimeMs }
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    if (errorMessage.includes('credits') || errorMessage.includes('402')) {
+      return new Response(JSON.stringify({
+        error: 'AI credits depleted. Please add credits to continue.',
+        _meta: { request_id: requestId, executionTimeMs }
+      }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({
+      error: errorMessage,
       _meta: {
-        executionTimeMs: Date.now() - startTime
+        request_id: requestId,
+        finish_reason: finishReason,
+        had_tool_calls: hadToolCalls,
+        executionTimeMs
       }
     }), {
       status: 500,
