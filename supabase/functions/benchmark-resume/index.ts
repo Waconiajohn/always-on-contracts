@@ -9,10 +9,113 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============= Types =============
+interface ConfirmedFacts {
+  [fieldKey: string]: string | number | string[] | { min: number; max: number };
+}
+
+interface Executive50PlusPreferences {
+  hideGraduationYears: boolean;
+  experienceCondensationYears: number;
+  includeAdditionalExperience: boolean;
+  signatureWinsPosition: 'top' | 'inline';
+}
+
+type ResumeMode = 'interview-safe' | 'brainstorm';
+
+interface CustomizationSettings {
+  intensity: 'conservative' | 'moderate' | 'aggressive';
+  tone: 'formal' | 'conversational' | 'technical' | 'executive';
+}
+
+interface BenchmarkResumeRequest {
+  resumeText: string;
+  jobDescription: string;
+  fitBlueprint: any;
+  confirmedFacts?: ConfirmedFacts;
+  missingBulletResponses?: Record<string, string>; // Legacy support
+  customization?: CustomizationSettings;
+  executive50PlusPrefs?: Executive50PlusPreferences;
+  resumeMode?: ResumeMode;
+}
+
+// ============= Helper Functions =============
+
+function formatConfirmedFacts(confirmedFacts: ConfirmedFacts): string {
+  if (!confirmedFacts || Object.keys(confirmedFacts).length === 0) {
+    return '';
+  }
+  
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(confirmedFacts)) {
+    if (value === null || value === undefined || value === '') continue;
+    
+    if (typeof value === 'object' && 'min' in value && 'max' in value) {
+      lines.push(`- ${key}: ${value.min}-${value.max}`);
+    } else if (Array.isArray(value)) {
+      lines.push(`- ${key}: ${value.join(', ')}`);
+    } else {
+      lines.push(`- ${key}: ${value}`);
+    }
+  }
+  
+  return lines.length > 0 
+    ? `USER-CONFIRMED FACTS (verified, use these exact figures):\n${lines.join('\n')}` 
+    : '';
+}
+
+function buildExecutive50PlusInstructions(prefs?: Executive50PlusPreferences): string {
+  if (!prefs) return '';
+  
+  const instructions: string[] = [];
+  
+  if (prefs.hideGraduationYears) {
+    instructions.push('- OMIT graduation years from education section');
+  }
+  
+  if (prefs.experienceCondensationYears) {
+    instructions.push(`- Condense experience older than ${prefs.experienceCondensationYears} years into "Additional Experience" section`);
+    if (!prefs.includeAdditionalExperience) {
+      instructions.push('- Do NOT include the Additional Experience section at all');
+    }
+  }
+  
+  if (prefs.signatureWinsPosition === 'top') {
+    instructions.push('- Place "Signature Wins" or "Career Highlights" section BEFORE detailed experience');
+  }
+  
+  return instructions.length > 0
+    ? `\nEXECUTIVE 50+ FORMATTING RULES:\n${instructions.join('\n')}`
+    : '';
+}
+
+function buildModeInstructions(mode: ResumeMode): string {
+  if (mode === 'interview-safe') {
+    return `
+RESUME MODE: INTERVIEW-SAFE (DEFAULT)
+- ONLY use claims backed by verified evidence (E tags) or user-confirmed facts
+- Every metric, scope claim, and achievement MUST have evidence support
+- Do NOT extrapolate or embellish beyond what's proven
+- If evidence is weak, use softer language or omit the claim
+- Mark any inference with [NEEDS-CONFIRMATION] if included`;
+  } else {
+    return `
+RESUME MODE: BRAINSTORM
+- You may include plausible inferences and suggestions
+- Mark speculative content with [SUGGESTION] tag
+- Still avoid outright fabrication
+- User understands this is a working draft`;
+  }
+}
+
+// ============= Main Handler =============
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startTime = Date.now();
 
   try {
     // Authentication check
@@ -42,60 +145,102 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
+    const body: BenchmarkResumeRequest = await req.json();
     const { 
       resumeText, 
       jobDescription, 
       fitBlueprint, 
-      missingBulletResponses, 
-      customization 
-    } = await req.json();
+      confirmedFacts,
+      missingBulletResponses, // Legacy
+      customization,
+      executive50PlusPrefs,
+      resumeMode = 'interview-safe'
+    } = body;
     
     if (!resumeText || !jobDescription || !fitBlueprint) {
       throw new Error('Resume text, job description, and fit blueprint are required');
     }
 
-    const systemPrompt = `You are a resume writer who produces "benchmark resumes" that hiring teams compare others against. Your writing is crisp, metrics-forward, and structurally aligned to the job's evaluation rubric. You never fabricate.
+    console.log('Generating benchmark resume with mode:', resumeMode);
+    console.log('Confirmed facts count:', Object.keys(confirmedFacts || {}).length);
 
-HARD RULES:
-- No fabricated metrics, tools, titles, or ownership
-- Every bullet must be supported by evidence IDs from the blueprint
-- If a requirement is a true gap, you may only: de-emphasize it, reframe adjacent experience, or include it in a "Development / Exposure" line (optional), never as a claim
+    // ============= Build System Prompt =============
+    const systemPrompt = `You are an elite resume writer producing "Benchmark Resumes" — the resumes hiring teams measure other candidates against. Your writing is crisp, metrics-forward, and structurally aligned to the role's success criteria.
 
-BUILD INSTRUCTIONS:
+CRITICAL PRINCIPLES:
+1. EVIDENCE-FIRST: Every claim must map to evidence IDs (E1, E2) or user-confirmed facts
+2. NO FABRICATION: Never invent metrics, tools, titles, scope, or ownership
+3. INTERVIEW-SAFE: Everything you write must be defensible in an interview
+4. RUBRIC-ALIGNED: Structure resume to highlight competencies in the role success rubric
 
-STEP 1 — CHOOSE THE TARGET TITLE & BRANDING LINE
-Use the JD title or a close match (truthful).
-Add a branding line that matches the role's core outcomes.
+${buildModeInstructions(resumeMode)}
 
-STEP 2 — WRITE A "BENCHMARK" SUMMARY (5–7 lines)
-Must include:
-- Scope (years, domains)
-- Lifecycle ownership (onboarding → adoption → support → renewal)
-- Cross-functional leadership
-- 1–2 concrete proof points (from evidence)
+VERIFICATION RULES:
+- Verified bullets use evidence tags: [E1, E3] or confirmed fact references
+- If a requirement has a gap, you may:
+  a) De-emphasize it (don't highlight)
+  b) Reframe adjacent experience truthfully
+  c) Include in "Exposure" line (if truly minimal exposure exists)
+  d) NEVER claim ownership you don't have evidence for
 
-STEP 3 — CORE COMPETENCIES SECTION
-12–16 items aligned to the JD keywords and requirements.
+STRUCTURE FOR BENCHMARK RESUME:
 
-STEP 4 — EXPERIENCE REWRITE
-For each role:
-- 1-line role framing that matches the JD outcomes
-- 5–8 bullets that map to requirements
-- Order bullets by: business outcomes → leadership → systems → tooling
-- Each bullet ends with evidence tag in brackets for internal traceability: [E4, R7]
+1. HEADER & BRANDING
+   - Use target title from JD (or truthful equivalent)
+   - Add 1-line branding statement aligned to role outcomes
 
-STEP 5 — "IMPACT HIGHLIGHTS" (Optional but powerful)
-A short section with 3–5 bullets that read like executive outcomes.
-Only if evidence supports it.
+2. SIGNATURE WINS (Optional - for senior roles)
+   - 3-5 executive-level outcomes
+   - Only if evidence strongly supports
 
-STEP 6 — TOOLS / PLATFORMS
-Only list tools explicitly in evidence inventory.
-If a JD tool is missing but the candidate has equivalent tooling, say: "Workflow/ticketing platforms (multiple)" — only if truthful.
+3. PROFESSIONAL SUMMARY (5-7 lines)
+   - Scope (years, domains)
+   - Lifecycle ownership
+   - Leadership dimension
+   - 1-2 concrete proof points with evidence
 
-STEP 7 — EDUCATION & CERTIFICATIONS`;
+4. CORE COMPETENCIES (12-16 items)
+   - Aligned to JD keywords
+   - Only include what's evidenced
 
-    // Build user prompt with all the context
-    const userPrompt = `Generate a benchmark resume based on this analysis.
+5. PROFESSIONAL EXPERIENCE
+   - 1-line role framing per position
+   - 5-8 bullets per role, ordered by: outcomes → leadership → systems → tools
+   - Each bullet ends with [E#, R#] traceability tags
+
+6. TOOLS & PLATFORMS
+   - Only list evidenced tools
+   - Use "Workflow platforms (multiple)" for gaps with equivalents
+
+7. EDUCATION & CERTIFICATIONS
+   - Follow 50+ rules if specified
+
+${buildExecutive50PlusInstructions(executive50PlusPrefs)}`;
+
+    // ============= Build User Prompt =============
+    const confirmedFactsBlock = formatConfirmedFacts(confirmedFacts || {});
+    const legacyResponses = missingBulletResponses || {};
+    const legacyResponsesBlock = Object.keys(legacyResponses).length > 0 
+      ? `LEGACY USER RESPONSES:\n${Object.entries(legacyResponses).map(([id, resp]) => `- ${id}: ${resp}`).join('\n')}`
+      : '';
+
+    // Extract rubric and pattern if available
+    const rubricContext = fitBlueprint.roleSuccessRubric 
+      ? `\nROLE SUCCESS RUBRIC:\n${JSON.stringify(fitBlueprint.roleSuccessRubric, null, 2)}`
+      : '';
+    
+    const patternContext = fitBlueprint.benchmarkResumePattern
+      ? `\nBENCHMARK PATTERN TO FOLLOW:\n${JSON.stringify(fitBlueprint.benchmarkResumePattern, null, 2)}`
+      : '';
+
+    // Use verified bullet bank if available
+    const verifiedBullets = fitBlueprint.bulletBankVerified 
+      ? `\nVERIFIED BULLETS (use these directly):\n${JSON.stringify(fitBlueprint.bulletBankVerified, null, 2)}`
+      : fitBlueprint.bulletBank 
+        ? `\nBULLET BANK:\n${JSON.stringify(fitBlueprint.bulletBank, null, 2)}`
+        : '';
+
+    const userPrompt = `Generate a Benchmark Resume for this candidate-job match.
 
 ORIGINAL RESUME:
 ${resumeText}
@@ -103,65 +248,104 @@ ${resumeText}
 JOB DESCRIPTION:
 ${jobDescription}
 
-FIT BLUEPRINT:
-${JSON.stringify(fitBlueprint, null, 2)}
+FIT ANALYSIS:
+- Overall Fit Score: ${fitBlueprint.overallFitScore || 'N/A'}
+- Evidence Units: ${fitBlueprint.evidenceInventory?.length || 0}
+- Requirements Analyzed: ${fitBlueprint.requirements?.length || 0}
+${rubricContext}
+${patternContext}
 
-${Object.keys(missingBulletResponses || {}).length > 0 ? `USER-PROVIDED INFORMATION FOR MISSING BULLETS:
-${Object.entries(missingBulletResponses).map(([id, response]) => `- ${id}: ${response}`).join('\n')}` : ''}
+EVIDENCE INVENTORY:
+${JSON.stringify(fitBlueprint.evidenceInventory || [], null, 2)}
+
+FIT MAP (requirement -> qualification status):
+${JSON.stringify(fitBlueprint.fitMap || [], null, 2)}
+${verifiedBullets}
+
+${confirmedFactsBlock}
+${legacyResponsesBlock}
 
 CUSTOMIZATION:
-- Intensity: ${customization?.intensity || 'moderate'}
+- Intensity: ${customization?.intensity || 'moderate'} (${customization?.intensity === 'conservative' ? 'very cautious claims' : customization?.intensity === 'aggressive' ? 'bolder framing within evidence' : 'balanced approach'})
 - Tone: ${customization?.tone || 'formal'}
+
+EXECUTIVE SUMMARY GUIDANCE:
+${JSON.stringify(fitBlueprint.executiveSummary || {}, null, 2)}
+
+ATS KEYWORDS TO INCLUDE:
+${JSON.stringify(fitBlueprint.atsAlignment?.topKeywords || [], null, 2)}
 
 Return valid JSON only, no markdown, no commentary. Use this exact schema:
 
 {
-  "resume_text": "Full resume as plain text, ATS-friendly",
+  "resume_text": "Full resume as plain text, ATS-friendly format",
   "sections": [
+    {
+      "id": "header",
+      "type": "header",
+      "title": "Header",
+      "content": ["CANDIDATE NAME", "Target Title | Branding Line"],
+      "evidence_tags": {}
+    },
+    {
+      "id": "signature-wins",
+      "type": "achievements",
+      "title": "Signature Wins",
+      "content": ["• Executive outcome 1 [E1]", "• Executive outcome 2 [E3, E5]"],
+      "evidence_tags": {"0": ["E1"], "1": ["E3", "E5"]}
+    },
     {
       "id": "summary",
       "type": "summary",
       "title": "Professional Summary",
-      "content": ["Paragraph 1...", "Paragraph 2..."],
-      "evidence_tags": {"0": ["E1", "E3"]}
+      "content": ["5-7 line summary paragraph..."],
+      "evidence_tags": {"0": ["E1", "E4", "E7"]}
     },
     {
       "id": "competencies",
       "type": "competencies",
       "title": "Core Competencies",
-      "content": ["Competency 1", "Competency 2", "..."],
+      "content": ["Competency 1", "Competency 2"],
       "evidence_tags": {}
     },
     {
       "id": "experience-1",
       "type": "experience",
       "title": "Professional Experience",
-      "content": ["COMPANY NAME | Title | Dates", "• Bullet 1 [E1, R2]", "• Bullet 2 [E3, R4]"],
-      "evidence_tags": {"1": ["E1", "R2"], "2": ["E3", "R4"]}
+      "content": ["COMPANY | Title | Dates", "Role framing line", "• Bullet 1 [E1, R2]", "• Bullet 2 [E3]"],
+      "evidence_tags": {"2": ["E1", "R2"], "3": ["E3"]}
     },
     {
       "id": "skills",
       "type": "skills",
       "title": "Tools & Platforms",
-      "content": ["Tool 1", "Tool 2"],
+      "content": ["Tool 1", "Tool 2", "Workflow platforms (multiple)"],
       "evidence_tags": {}
     },
     {
       "id": "education",
       "type": "education",
       "title": "Education",
-      "content": ["Degree, University, Year"],
+      "content": ["Degree, University"],
       "evidence_tags": {}
     }
   ],
   "changelog": [
     {
-      "change": "Added quantified retention metric to summary",
-      "reason": "Directly addresses R3 requirement for retention experience",
+      "section": "Summary",
+      "change": "Added quantified retention metric",
+      "reason": "Addresses R3 requirement for retention experience",
+      "evidence_used": ["E4"],
       "requirement_ids": ["R3"]
     }
   ],
-  "follow_up_questions": ["Question for candidate if more info needed"]
+  "verification_report": {
+    "total_claims": 25,
+    "verified_claims": 23,
+    "inferred_claims": 2,
+    "unverifiable_omitted": 3
+  },
+  "follow_up_questions": []
 }`;
 
     console.log('Calling Lovable AI for Benchmark Resume generation...');
@@ -173,11 +357,11 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
           { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.PREMIUM,
-        temperature: 0.7,
+        temperature: 0.6, // Slightly lower for more consistent output
       },
       'benchmark-resume',
       user.id,
-      60000 // 60 second timeout
+      90000 // 90 second timeout for complex generation
     );
 
     console.log('AI response received, usage:', metrics);
@@ -190,7 +374,7 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
     // Parse the JSON response using shared parser
     const parseResult = extractJSON(content);
     if (!parseResult.success || !parseResult.data) {
-      console.error('Failed to parse AI response:', content);
+      console.error('Failed to parse AI response:', content.substring(0, 500));
       throw new Error('Failed to parse benchmark resume result');
     }
 
@@ -214,10 +398,23 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
         evidenceUsed: c.evidence_used || [],
         requirementIds: c.requirement_ids || []
       })),
-      followUpQuestions: rawResume.follow_up_questions || []
+      verificationReport: rawResume.verification_report || null,
+      followUpQuestions: rawResume.follow_up_questions || [],
+      _meta: {
+        generatedAt: new Date().toISOString(),
+        mode: resumeMode,
+        confirmedFactsUsed: Object.keys(confirmedFacts || {}).length,
+        executionTimeMs: Date.now() - startTime,
+        model: LOVABLE_AI_MODELS.PREMIUM
+      }
     };
 
-    console.log('Benchmark Resume generated successfully');
+    console.log('Benchmark Resume generated successfully:', {
+      sectionsCount: benchmarkResume.sections.length,
+      changelogCount: benchmarkResume.changelog.length,
+      mode: resumeMode,
+      executionTimeMs: benchmarkResume._meta.executionTimeMs
+    });
 
     return new Response(JSON.stringify(benchmarkResume), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -226,7 +423,10 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
   } catch (error) {
     console.error('Benchmark Resume error:', error);
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      _meta: {
+        executionTimeMs: Date.now() - startTime
+      }
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
