@@ -2,7 +2,7 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { MODULES, ModuleId } from "@/config/modules";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, Crown, Sparkles } from "lucide-react";
+import { Lock, Crown, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface ModuleGateProps {
@@ -17,14 +17,20 @@ export const ModuleGate = ({ module, children, fallback }: ModuleGateProps) => {
 
   const moduleInfo = MODULES[module];
 
+  // Show a neutral loading state while checking access
+  // This prevents flashing the subscription/pricing card before access is determined
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
 
+  // Only show the locked state AFTER loading is complete and access is denied
   if (!hasModule(module)) {
     if (fallback) {
       return <>{fallback}</>;
