@@ -346,15 +346,21 @@ Return valid JSON:
           { role: 'system', content: pass2SystemPrompt },
           { role: 'user', content: pass2UserPrompt }
         ],
-        model: LOVABLE_AI_MODELS.FAST,
-        temperature: 0.3,
-        max_tokens: 4000,
+        model: LOVABLE_AI_MODELS.DEFAULT, // FIX: Use Gemini for better JSON handling
+        temperature: 0.2,
+        max_tokens: 12000, // FIX: Increased from 4000 to prevent truncation
         response_mime_type: "application/json"
       },
       'fit-blueprint-pass2',
       authedUser.id,
-      60000
+      90000 // Increased timeout
     );
+    
+    // Check for truncation
+    const pass2FinishReason = pass2Response.choices?.[0]?.finish_reason;
+    if (pass2FinishReason === 'length') {
+      console.warn('⚠️ Pass 2 response was TRUNCATED - output may be incomplete');
+    }
 
     const pass2Duration = Date.now() - pass2Start;
     console.log(`✅ PASS 2 complete in ${pass2Duration}ms, tokens:`, pass2Metrics);
