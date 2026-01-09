@@ -97,7 +97,9 @@ export function Step6HiringManager() {
           resumeContent: benchmarkResume?.sections || [],
           jobDescription,
           jobTitle,
-          industry: undefined // Optional: could be derived from job description
+          industry: undefined, // Optional: could be derived from job description
+          fitBlueprint, // Pass the fit blueprint for rubric-based evaluation
+          benchmarkResume // Pass the full benchmark resume
         }
       });
       
