@@ -32,9 +32,9 @@ serve(async (req) => {
     );
 
     // Validate the JWT by getting user info
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    if (authError || !user) {
+    const { data: { user: authedUser }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !authedUser) {
       console.error('Auth error:', authError?.message || 'No user returned');
       return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
         status: 401,
@@ -42,7 +42,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Authenticated user:', user.id);
+    console.log('Authenticated user:', authedUser.id);
 
     const { resumeText, jobDescription } = await req.json();
     
@@ -182,8 +182,8 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
   "overall_fit_score": 75
 }`;
 
-    console.log('Calling Lovable AI for Fit Blueprint analysis...');
-    
+    console.log('Calling Lovable AI for Fit Blueprint analysis...', { userId: authedUser.id });
+
     const { response, metrics } = await callLovableAI(
       {
         messages: [
@@ -194,9 +194,10 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
         temperature: 0.7,
       },
       'fit-blueprint',
-      user.id,
+      authedUser.id,
       60000 // 60 second timeout for complex analysis
     );
+
 
     console.log('AI response received, usage:', metrics);
 
