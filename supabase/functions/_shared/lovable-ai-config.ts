@@ -143,16 +143,24 @@ export async function callLovableAI(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // Determine if this is a Gemini model
+    // Determine model type for parameter compatibility
     const isGeminiModel = model.includes('gemini');
+    const isOpenAIModel = model.includes('openai') || model.includes('gpt');
+    const maxTokens = request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS;
     
-    // Build the request body with proper JSON mode for each model type
+    // Build the request body with proper parameters for each model type
     const requestBody: any = {
       model,
       messages: request.messages,
       temperature: request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE,
-      max_tokens: request.max_tokens ?? LOVABLE_AI_CONFIG.DEFAULT_MAX_TOKENS,
     };
+
+    // OpenAI newer models use max_completion_tokens, Gemini uses max_tokens
+    if (isOpenAIModel) {
+      requestBody.max_completion_tokens = maxTokens;
+    } else {
+      requestBody.max_tokens = maxTokens;
+    }
 
     // Handle JSON output mode based on model type
     if (request.response_mime_type) {
