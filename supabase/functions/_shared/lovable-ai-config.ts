@@ -152,14 +152,15 @@ export async function callLovableAI(
     const requestBody: any = {
       model,
       messages: request.messages,
-      temperature: request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE,
     };
 
-    // OpenAI newer models use max_completion_tokens, Gemini uses max_tokens
+    // OpenAI newer models (GPT-5+) don't support temperature or max_tokens parameters
     if (isOpenAIModel) {
       requestBody.max_completion_tokens = maxTokens;
+      // GPT-5 models only support temperature=1, so we omit it entirely
     } else {
       requestBody.max_tokens = maxTokens;
+      requestBody.temperature = request.temperature ?? LOVABLE_AI_CONFIG.DEFAULT_TEMPERATURE;
     }
 
     // Handle JSON output mode based on model type
