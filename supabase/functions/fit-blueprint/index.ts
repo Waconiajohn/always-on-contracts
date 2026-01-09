@@ -216,9 +216,10 @@ Return valid JSON only:
           { role: 'user', content: pass1UserPrompt }
         ],
         model: LOVABLE_AI_MODELS.PREMIUM,
-        temperature: 0.2,
+        // NOTE: GPT-5 only supports default temperature=1; callLovableAI will omit temperature for OpenAI models.
         max_tokens: 6000,
-        response_mime_type: "application/json"
+        // Use OpenAI JSON mode (callLovableAI converts as needed)
+        response_format: { type: 'json_object' },
       },
       'fit-blueprint-pass1',
       authedUser.id,
@@ -228,8 +229,18 @@ Return valid JSON only:
     const pass1Duration = Date.now() - pass1Start;
     console.log(`✅ PASS 1 complete in ${pass1Duration}ms, tokens:`, pass1Metrics);
 
-    const pass1Content = pass1Response.choices?.[0]?.message?.content;
-    if (!pass1Content) {
+    const pass1Message = pass1Response.choices?.[0]?.message;
+    let pass1Content: string | undefined = pass1Message?.content;
+
+    // Fallback: some model/providers may return tool_calls without message.content
+    if ((!pass1Content || !pass1Content.trim()) && Array.isArray(pass1Message?.tool_calls) && pass1Message.tool_calls.length > 0) {
+      const tc = pass1Message.tool_calls[0];
+      pass1Content = tc?.function?.arguments;
+      console.log('Pass 1 returned tool_calls; using tool_call.arguments as content');
+    }
+
+    if (!pass1Content || !pass1Content.trim()) {
+      console.error('Pass 1 empty content. finish_reason:', pass1Response.choices?.[0]?.finish_reason, 'message keys:', pass1Message ? Object.keys(pass1Message) : null);
       throw new Error('No response from Pass 1 analysis');
     }
 
