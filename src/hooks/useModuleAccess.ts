@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ModuleId, TIER_MODULES, getModulesForTier } from "@/config/modules";
@@ -28,16 +28,23 @@ const DEFAULT_ACCESS: ModuleAccessState = {
 };
 
 export function useModuleAccess(): UseModuleAccessReturn {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [modules, setModules] = useState<ModuleAccessState>(DEFAULT_ACCESS);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<string | null>(null);
+  const [hasFetched, setHasFetched] = useState(false);
 
-  const fetchAccess = async () => {
+  const fetchAccess = useCallback(async () => {
+    // Don't fetch until auth is done loading
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       setModules(DEFAULT_ACCESS);
       setTier(null);
       setLoading(false);
+      setHasFetched(true);
       return;
     }
 
@@ -86,20 +93,33 @@ export function useModuleAccess(): UseModuleAccessReturn {
       setModules(DEFAULT_ACCESS);
     } finally {
       setLoading(false);
+      setHasFetched(true);
     }
-  };
+  }, [user?.id, authLoading]);
 
   useEffect(() => {
-    fetchAccess();
+    // Only fetch if auth is done loading and we haven't fetched yet
+    if (!authLoading && !hasFetched) {
+      fetchAccess();
+    }
+  }, [authLoading, hasFetched, fetchAccess]);
+
+  // Reset hasFetched when user changes (login/logout)
+  useEffect(() => {
+    setHasFetched(false);
+    setLoading(true);
   }, [user?.id]);
 
   const hasModule = (moduleId: ModuleId): boolean => {
     return modules[moduleId] ?? false;
   };
 
+  // Loading is true if auth is loading OR we haven't fetched module access yet
+  const isLoading = authLoading || loading;
+
   return {
     modules,
-    loading,
+    loading: isLoading,
     hasModule,
     tier,
     refetch: fetchAccess,
