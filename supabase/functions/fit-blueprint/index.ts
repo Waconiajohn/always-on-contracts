@@ -192,13 +192,14 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
           { role: 'user', content: userPrompt }
         ],
         model: LOVABLE_AI_MODELS.PREMIUM,
-        temperature: 0.7,
+        temperature: 0.2, // Low temperature for consistent structured output
+        max_tokens: 8000, // Sufficient for complex 8-section blueprint
+        response_mime_type: "application/json" // Force clean JSON output
       },
       'fit-blueprint',
       authedUser.id,
-      60000 // 60 second timeout for complex analysis
+      90000 // 90 second timeout for complex analysis
     );
-
 
     console.log('AI response received, usage:', metrics);
 
@@ -207,10 +208,15 @@ Return valid JSON only, no markdown, no commentary. Use this exact schema:
       throw new Error('No response from AI');
     }
 
+    console.log('Raw AI response preview:', content.substring(0, 500));
+
     // Parse the JSON response using shared parser
     const parseResult = extractJSON(content);
     if (!parseResult.success || !parseResult.data) {
-      console.error('Failed to parse AI response:', content);
+      console.error('JSON parse failed. Error:', parseResult.error);
+      console.error('Full response length:', content.length);
+      console.error('Response starts with:', content.substring(0, 200));
+      console.error('Response ends with:', content.substring(content.length - 200));
       throw new Error('Failed to parse fit blueprint result');
     }
 
