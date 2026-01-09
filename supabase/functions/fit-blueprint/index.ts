@@ -157,6 +157,8 @@ For each requirement, identify:
 - validation_questions: Questions to confirm inferences
 - draft_bullets_placeholders: Bullets needing confirmation`;
 
+    // IMPORTANT: Simplified schema to prevent token truncation
+    // Limits: max 15 evidence items, max 10 requirements, concise fields
     const pass1UserPrompt = `Analyze this resume against the job description. Focus on evidence extraction and fit analysis.
 
 RESUME:
@@ -165,46 +167,38 @@ ${resumeText}
 JOB DESCRIPTION:
 ${jobDescription}
 
+CRITICAL OUTPUT RULES:
+- Maximum 15 evidence items (prioritize strongest)
+- Maximum 10 requirements (focus on most critical)
+- Keep text fields under 100 characters each
+- Omit empty or optional fields
+
 Return valid JSON only:
 {
   "role_success_rubric": {
     "role_archetype": "detected role type",
-    "industry_context": "industry and market context",
-    "core_outcomes": ["outcome1", "outcome2"],
-    "top_competencies": [{"id": "comp1", "name": "...", "definition": "...", "proof_examples": ["..."], "anti_patterns": ["..."]}],
-    "benchmark_proof_points": ["..."],
-    "metrics_norms": [{"metric": "...", "typical_range": "...", "sources": ["..."]}],
-    "common_pitfalls": ["..."],
-    "executive_signals": ["..."]
+    "industry_context": "industry context",
+    "core_outcomes": ["outcome1", "outcome2", "outcome3"],
+    "top_competencies": [{"id": "comp1", "name": "name", "definition": "brief def"}],
+    "executive_signals": ["signal1", "signal2"]
   },
-  "evidence_inventory": [{"id":"E1","source_role":"...","text":"...","type":"Metric|Story|Artifact|Credential","proof_type":"strong|moderate|weak|inference","strength":"strong|moderate|weak|inference"}],
-  "requirements": [{"id":"R1","requirement":"...","type":"Leadership|Domain|Execution|Metrics|Tooling|Communication|Strategy","seniority_signal":"Director-level|Manager-level|IC-level","outcome_target":"Retention|Expansion|Adoption|Quality|Revenue|Risk|Efficiency","competency_id":"comp1"}],
+  "evidence_inventory": [{"id":"E1","source_role":"role","text":"concise evidence text","proof_type":"strong|moderate|weak"}],
+  "requirements": [{"id":"R1","requirement":"requirement text","type":"Leadership|Domain|Execution","seniority_signal":"Director|Manager|IC"}],
   "fit_map": [{
     "requirement_id":"R1",
     "category":"HIGHLY QUALIFIED|PARTIALLY QUALIFIED|EXPERIENCE GAP",
-    "why_qualified":"Conversational 2-3 sentence explanation...",
-    "resume_language":"Ready-to-paste resume bullet...",
-    "gap_explanation":"What specific experience is missing...",
-    "bridging_strategy":"How to address the gap...",
-    "rationale":"Brief technical rationale",
-    "evidence_ids":["E1","E4"],
-    "gap_taxonomy":["Domain","Metric"],
-    "risk_level":"Low|Medium|High",
-    "confidence":"very-high|high|moderate|low"
+    "why_qualified":"Brief 1-sentence explanation",
+    "resume_language":"Resume bullet text",
+    "evidence_ids":["E1"],
+    "risk_level":"Low|Medium|High"
   }],
   "inference_map": [{
     "requirement_id": "R1",
-    "verified_claims": [{"claim": "...", "evidence_ids": ["E1"]}],
-    "plausible_inferences": [{"inference": "...", "constraint": "...", "risk_of_overreach": "Low|Medium|High"}],
-    "validation_questions": [{"question": "...", "field_key": "team_size", "field_type": "number", "example_answer": "15"}],
-    "draft_bullets_placeholders": [{"status": "NEEDS_CONFIRMATION", "bullet": "...", "required_fields": ["team_size"]}]
+    "validation_questions": [{"question": "question text", "field_key": "key", "field_type": "text|number"}]
   }],
-  "benchmark_themes": [{"theme":"...","evidence_ids":["E2","E7"],"requirement_ids":["R3","R9"]}],
   "executive_summary": {
-    "hire_signal":"...",
-    "likely_objections":["..."],
-    "mitigation_strategy":["..."],
-    "best_positioning_angle":"..."
+    "hire_signal":"One sentence signal",
+    "best_positioning_angle":"One sentence angle"
   },
   "overall_fit_score": 75
 }`;
