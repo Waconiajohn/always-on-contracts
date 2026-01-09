@@ -10,6 +10,9 @@ import {
   HiringManagerReview,
   VersionHistoryEntry,
   StagedBullet,
+  ConfirmedFacts,
+  Executive50PlusPreferences,
+  ResumeMode,
   createInitialState,
   STEP_ORDER
 } from '@/components/resume-optimizer/types';
@@ -25,9 +28,15 @@ interface OptimizerStore extends OptimizerState {
   // Pass 1: Fit Blueprint
   setFitBlueprint: (blueprint: FitBlueprint) => void;
   
-  // Step 2: Missing Bullet Responses
+  // Step 2: Missing Bullet Responses (legacy)
   addMissingBulletResponse: (bulletId: string, response: string) => void;
   clearMissingBulletResponses: () => void;
+  
+  // Step 2: Proof Collector - Confirmed Facts
+  setConfirmedFact: (fieldKey: string, value: string | number | string[]) => void;
+  setConfirmedFacts: (facts: ConfirmedFacts) => void;
+  clearConfirmedFacts: () => void;
+  getConfirmableBullets: () => Array<{ bullet: string; requiredFields: string[]; canConfirm: boolean }>;
   
   // Step 2: Staged Bullets
   addStagedBullet: (bullet: StagedBullet) => void;
@@ -36,6 +45,12 @@ interface OptimizerStore extends OptimizerState {
   
   // Step 3: Customization
   setCustomization: (customization: CustomizationSettings) => void;
+  
+  // Executive 50+ Preferences
+  setExecutive50PlusPrefs: (prefs: Partial<Executive50PlusPreferences>) => void;
+  
+  // Resume Mode
+  setResumeMode: (mode: ResumeMode) => void;
   
   // Pass 2: Benchmark Resume
   setBenchmarkResume: (resume: BenchmarkResume) => void;
@@ -121,6 +136,41 @@ export const useOptimizerStore = create<OptimizerStore>()(
         lastSaved: Date.now() 
       }),
       
+      // Step 2: Proof Collector - Confirmed Facts
+      setConfirmedFact: (fieldKey, value) => set(state => ({
+        confirmedFacts: { ...state.confirmedFacts, [fieldKey]: value },
+        lastSaved: Date.now()
+      })),
+      
+      setConfirmedFacts: (facts) => set({
+        confirmedFacts: facts,
+        lastSaved: Date.now()
+      }),
+      
+      clearConfirmedFacts: () => set({
+        confirmedFacts: {},
+        lastSaved: Date.now()
+      }),
+      
+      getConfirmableBullets: () => {
+        const state = get();
+        const { fitBlueprint, confirmedFacts } = state;
+        
+        if (!fitBlueprint?.bulletBankInferredPlaceholders) return [];
+        
+        return fitBlueprint.bulletBankInferredPlaceholders.map(placeholder => {
+          const requiredFields = placeholder.requiredFields || [];
+          const canConfirm = requiredFields.every(field => 
+            confirmedFacts[field] !== undefined && confirmedFacts[field] !== ''
+          );
+          return {
+            bullet: placeholder.bullet,
+            requiredFields,
+            canConfirm
+          };
+        });
+      },
+      
       // Step 2: Staged Bullets
       addStagedBullet: (bullet) => set(state => ({
         stagedBullets: [...state.stagedBullets, bullet],
@@ -141,6 +191,18 @@ export const useOptimizerStore = create<OptimizerStore>()(
       setCustomization: (customization) => set({ 
         customization, 
         lastSaved: Date.now() 
+      }),
+      
+      // Executive 50+ Preferences
+      setExecutive50PlusPrefs: (prefs) => set(state => ({
+        executive50PlusPrefs: { ...state.executive50PlusPrefs, ...prefs },
+        lastSaved: Date.now()
+      })),
+      
+      // Resume Mode
+      setResumeMode: (mode) => set({
+        resumeMode: mode,
+        lastSaved: Date.now()
       }),
       
       // Pass 2: Benchmark Resume
@@ -299,6 +361,9 @@ export const useOptimizerStore = create<OptimizerStore>()(
         company: state.company,
         fitBlueprint: state.fitBlueprint,
         missingBulletResponses: state.missingBulletResponses,
+        confirmedFacts: state.confirmedFacts,
+        executive50PlusPrefs: state.executive50PlusPrefs,
+        resumeMode: state.resumeMode,
         stagedBullets: state.stagedBullets,
         customization: state.customization,
         benchmarkResume: state.benchmarkResume,
@@ -308,7 +373,6 @@ export const useOptimizerStore = create<OptimizerStore>()(
         currentStep: state.currentStep,
         sessionId: state.sessionId,
         lastSaved: state.lastSaved,
-        // Note: Legacy state no longer persisted to reduce localStorage bloat
       }),
     }
   )
