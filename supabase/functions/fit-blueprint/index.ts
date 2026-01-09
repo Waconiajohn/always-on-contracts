@@ -209,28 +209,35 @@ Return valid JSON only:
   "overall_fit_score": 75
 }`;
 
+    // FIX: Switch to Gemini (DEFAULT) for Pass 1 - it handles large structured JSON better
+    // and doesn't have the token truncation issues that GPT-5 has with complex outputs
     const { response: pass1Response, metrics: pass1Metrics } = await callLovableAI(
       {
         messages: [
           { role: 'system', content: pass1SystemPrompt },
           { role: 'user', content: pass1UserPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM,
-        // NOTE: GPT-5 only supports default temperature=1; callLovableAI will omit temperature for OpenAI models.
-        max_tokens: 6000,
-        // Use OpenAI JSON mode (callLovableAI converts as needed)
-        response_format: { type: 'json_object' },
+        model: LOVABLE_AI_MODELS.DEFAULT, // Use Gemini instead of GPT-5 for better JSON handling
+        temperature: 0.2,
+        max_tokens: 16000, // Increased from 6000 to prevent truncation
+        response_mime_type: "application/json" // Gemini JSON mode
       },
       'fit-blueprint-pass1',
       authedUser.id,
-      90000
+      120000 // Longer timeout for larger response
     );
 
     const pass1Duration = Date.now() - pass1Start;
     console.log(`✅ PASS 1 complete in ${pass1Duration}ms, tokens:`, pass1Metrics);
 
     const pass1Message = pass1Response.choices?.[0]?.message;
+    const finishReason = pass1Response.choices?.[0]?.finish_reason;
     let pass1Content: string | undefined = pass1Message?.content;
+
+    // Check for truncation - if finish_reason is 'length', the output was cut off
+    if (finishReason === 'length') {
+      console.warn('⚠️ Pass 1 response was TRUNCATED (finish_reason: length). Output may be incomplete.');
+    }
 
     // Fallback: some model/providers may return tool_calls without message.content
     if ((!pass1Content || !pass1Content.trim()) && Array.isArray(pass1Message?.tool_calls) && pass1Message.tool_calls.length > 0) {
@@ -240,13 +247,13 @@ Return valid JSON only:
     }
 
     if (!pass1Content || !pass1Content.trim()) {
-      console.error('Pass 1 empty content. finish_reason:', pass1Response.choices?.[0]?.finish_reason, 'message keys:', pass1Message ? Object.keys(pass1Message) : null);
+      console.error('Pass 1 empty content. finish_reason:', finishReason, 'message keys:', pass1Message ? Object.keys(pass1Message) : null);
       throw new Error('No response from Pass 1 analysis');
     }
 
     const pass1Result = extractJSON(pass1Content);
     if (!pass1Result.success || !pass1Result.data) {
-      console.error('Pass 1 JSON parse failed:', pass1Result.error);
+      console.error('Pass 1 JSON parse failed:', pass1Result.error, 'Content preview:', pass1Content.substring(0, 500));
       throw new Error('Failed to parse Pass 1 analysis');
     }
 

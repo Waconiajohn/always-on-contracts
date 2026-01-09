@@ -118,8 +118,21 @@ export default function ResumeOptimizerV9() {
     
     const hasNewData = stateData?.resumeText && stateData?.jobDescription;
     const hasExistingSession = hasActiveSession();
+    const isFromQuickScore = stateData?.fromQuickScore === true;
     
-    // If there's both new data AND an existing session, let user choose
+    // KEY FIX: If coming from Quick Score with new data, ALWAYS use the new data
+    // This prevents the confusing "continue session?" dialog when starting a new analysis
+    if (hasNewData && isFromQuickScore) {
+      // Clear any existing session and use the fresh data
+      clearSession();
+      setInput(stateData.resumeText!, stateData.jobDescription!, stateData.jobTitle, stateData.company);
+      setIsInitialized(true);
+      // Clear the location state to prevent re-triggering on navigation
+      window.history.replaceState({}, document.title);
+      return;
+    }
+    
+    // If there's new data (not from Quick Score) AND an existing session, let user choose
     if (hasNewData && hasExistingSession) {
       setPendingNewData({
         resumeText: stateData.resumeText!,
@@ -131,14 +144,14 @@ export default function ResumeOptimizerV9() {
       return;
     }
     
-    // If only new data, use it
+    // If only new data (no existing session), use it directly
     if (hasNewData) {
       setInput(stateData.resumeText!, stateData.jobDescription!, stateData.jobTitle, stateData.company);
       setIsInitialized(true);
       return;
     }
     
-    // Check for existing session without new data
+    // Check for existing session without new data - only show recovery dialog if session is less than 2 hours old
     if (hasExistingSession) {
       setShowRecoveryDialog(true);
       return;
