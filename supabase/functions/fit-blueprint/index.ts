@@ -31,8 +31,9 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Validate the JWT by getting user info
-    const { data: { user: authedUser }, error: authError } = await supabaseClient.auth.getUser();
+    // Validate the JWT by getting user info (must pass token in edge-runtime)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: authedUser }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !authedUser) {
       console.error('Auth error:', authError?.message || 'No user returned');
