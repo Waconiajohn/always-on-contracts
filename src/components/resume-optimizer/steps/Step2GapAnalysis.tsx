@@ -94,6 +94,21 @@ export function Step2GapAnalysis() {
         throw apiError;
       }
       
+      // Check for application-level errors in response
+      if (data?.error) {
+        const isTimeout = data.errorCode === 'TIMEOUT';
+        const errorMsg = isTimeout 
+          ? 'Analysis timed out. Long resumes may take extra time. Please try again.'
+          : data.error;
+        setError(errorMsg);
+        toast({
+          title: isTimeout ? 'Analysis Timed Out' : 'Analysis Failed',
+          description: errorMsg,
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       setFitBlueprint(data);
       
       // Add to version history
@@ -104,12 +119,22 @@ export function Step2GapAnalysis() {
         fitBlueprint: data
       });
     } catch (err: unknown) {
+      // Detect timeout/network errors
       const errorMessage = err instanceof Error ? err.message : 'Could not build fit blueprint';
+      const isNetworkError = errorMessage.includes('Load failed') || 
+                             errorMessage.includes('fetch') || 
+                             errorMessage.includes('network');
+      
       console.error('Fit blueprint error:', err);
-      setError(errorMessage);
+      
+      const displayMessage = isNetworkError 
+        ? 'Analysis timed out or connection lost. This can happen with long resumes. Please try again.'
+        : errorMessage;
+        
+      setError(displayMessage);
       toast({
-        title: 'Analysis Failed',
-        description: errorMessage,
+        title: isNetworkError ? 'Connection Issue' : 'Analysis Failed',
+        description: displayMessage,
         variant: 'destructive'
       });
     } finally {
@@ -137,7 +162,7 @@ export function Step2GapAnalysis() {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <p className="text-muted-foreground">Building your Fit Blueprint...</p>
-          <p className="text-xs text-muted-foreground mt-2">This thorough analysis may take 30-60 seconds</p>
+          <p className="text-xs text-muted-foreground mt-2">Typically 20-45 seconds. Longer resumes may take up to 90 seconds.</p>
         </CardContent>
       </Card>
     );
