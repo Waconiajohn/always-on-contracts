@@ -12,7 +12,6 @@ import {
   Loader2, 
   ArrowRight, 
   ArrowLeft,
-  Sparkles,
   Lightbulb,
   RefreshCw,
   FileText,
@@ -24,11 +23,9 @@ import { cn } from '@/lib/utils';
 import {
   FitSummaryCard,
   FitCategorySection,
-  ExecutiveSummaryCard,
   ATSAlignmentCard,
   EvidenceInventoryPanel,
-  BulletBankPanel,
-  BenchmarkThemeCard
+  BulletBankPanel
 } from '../components/fit-analysis';
 import { FitCategory } from '../components/fit-analysis/types';
 
@@ -228,36 +225,6 @@ export function Step2GapAnalysis() {
         />
       )}
 
-      {/* Executive Summary */}
-      {fitBlueprint?.executiveSummary && (
-        <ExecutiveSummaryCard executiveSummary={fitBlueprint.executiveSummary} />
-      )}
-
-      {/* Benchmark Themes */}
-      {fitBlueprint!.benchmarkThemes.length > 0 && (
-        <Card className="shadow-lg border-0">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              Benchmark Candidate Themes
-            </CardTitle>
-            <CardDescription className="text-base">
-              These themes position you as the reference standard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {fitBlueprint!.benchmarkThemes.map((theme, index) => (
-                <BenchmarkThemeCard
-                  key={index}
-                  theme={theme}
-                  getEvidenceById={getEvidenceById}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ATS Alignment */}
       {fitBlueprint?.atsAlignment && (
