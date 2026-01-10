@@ -6,13 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EvidenceTag } from './EvidenceTag';
-import { RequirementCardProps, RISK_COLORS } from './types';
+import { BulletOptionsPanel, BulletOption } from './BulletOptionsPanel';
+import { DisputeGapModal, DisputeResult } from './DisputeGapModal';
+import { RequirementCardProps } from './types';
 import { useOptimizerStore } from '@/stores/optimizerStore';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Copy, Plus, Check, Lightbulb, RefreshCw, Pencil, X, 
-  FileText, AlertTriangle, Target, Sparkles 
+  FileText, AlertTriangle, Target, Sparkles, Wand2, MessageSquarePlus
 } from 'lucide-react';
 
 export function RequirementCard({ entry, getRequirementById, getEvidenceById }: RequirementCardProps) {
@@ -25,13 +27,23 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isGeneratingOptions, setIsGeneratingOptions] = useState(false);
   const [customText, setCustomText] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [bulletOptions, setBulletOptions] = useState<BulletOption[]>([]);
+  const [selectedOption, setSelectedOption] = useState<string | undefined>();
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeResult, setDisputeResult] = useState<DisputeResult | null>(null);
   
   if (!requirement) return null;
   
   const displayedLanguage = customText ?? entry.resumeLanguage;
   const isStaged = stagedBullets.some(b => b.text === displayedLanguage);
+  
+  // Determine effective category (may be updated by dispute)
+  const effectiveCategory = disputeResult?.categoryChanged 
+    ? disputeResult.newCategory 
+    : entry.category;
   
   const handleCopy = async () => {
     if (!displayedLanguage) return;
@@ -87,6 +99,7 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
       
       if (data?.newText) {
         setCustomText(data.newText);
+        setBulletOptions([]); // Clear options when regenerating single
         toast({
           title: 'Regenerated!',
           description: 'New version created. Click again for another variation.',
@@ -102,6 +115,58 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
     } finally {
       setIsRegenerating(false);
     }
+  };
+
+  const handleGenerateOptions = async () => {
+    if (!requirement) return;
+    
+    setIsGeneratingOptions(true);
+    setBulletOptions([]);
+    setSelectedOption(undefined);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-bullet-options', {
+        body: {
+          requirementText: requirement.requirement,
+          currentBullet: displayedLanguage,
+          jobDescription: jobDescription || '',
+          evidenceContext: entry.evidenceIds?.map(id => {
+            const ev = getEvidenceById(id);
+            return ev ? `${ev.id}: ${ev.text}` : '';
+          }).filter(Boolean).join('\n'),
+          gapExplanation: entry.gapExplanation,
+          bridgingStrategy: entry.bridgingStrategy
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.options) {
+        setBulletOptions(data.options);
+        toast({
+          title: '3 Options Generated!',
+          description: 'Choose your preferred style below.',
+        });
+      }
+    } catch (err) {
+      console.error('Generate options error:', err);
+      toast({
+        title: 'Generation failed',
+        description: 'Please try again',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeneratingOptions(false);
+    }
+  };
+
+  const handleSelectOption = (option: BulletOption) => {
+    setSelectedOption(option.id);
+    setCustomText(option.bullet);
+    toast({
+      title: `Option ${option.id} selected`,
+      description: option.label,
+    });
   };
   
   const handleStartEdit = () => {
@@ -124,240 +189,284 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
     setIsEditing(false);
     setEditText('');
   };
+
+  const handleDisputeResolved = (result: DisputeResult) => {
+    setDisputeResult(result);
+    if (result.suggestedBullet) {
+      setCustomText(result.suggestedBullet);
+    }
+  };
   
+  // Professional neutral color scheme - only subtle left border for category
   const getCategoryBorderColor = () => {
-    if (entry.category === 'HIGHLY QUALIFIED') return 'border-l-emerald-500';
-    if (entry.category === 'PARTIALLY QUALIFIED') return 'border-l-amber-500';
-    return 'border-l-red-500';
+    if (effectiveCategory === 'HIGHLY QUALIFIED') return 'border-l-primary';
+    if (effectiveCategory === 'PARTIALLY QUALIFIED') return 'border-l-muted-foreground';
+    return 'border-l-muted-foreground/50';
+  };
+
+  const getCategoryBadge = () => {
+    if (effectiveCategory === 'HIGHLY QUALIFIED') {
+      return <Badge variant="outline" className="text-xs border-primary/50 text-primary bg-primary/5">Strong Match</Badge>;
+    }
+    if (effectiveCategory === 'PARTIALLY QUALIFIED') {
+      return <Badge variant="outline" className="text-xs border-muted-foreground/50 text-muted-foreground">Partial Match</Badge>;
+    }
+    return <Badge variant="outline" className="text-xs border-muted-foreground/30 text-muted-foreground">Gap</Badge>;
   };
   
   return (
-    <Card className={cn(
-      "overflow-hidden border-l-4 shadow-md hover:shadow-lg transition-all",
-      getCategoryBorderColor()
-    )}>
-      {/* Header */}
-      <div className="px-6 py-4 bg-gradient-to-r from-muted/50 to-transparent border-b">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge variant="outline" className="text-xs font-mono bg-background">
-                {requirement.id}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                {requirement.type}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {requirement.senioritySignal}
-              </Badge>
+    <>
+      <Card className={cn(
+        "overflow-hidden border-l-4 shadow-sm hover:shadow-md transition-all bg-card",
+        getCategoryBorderColor()
+      )}>
+        {/* Header - Clean, minimal */}
+        <div className="px-6 py-4 border-b bg-muted/30">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs font-mono">
+                  {requirement.id}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {requirement.type}
+                </Badge>
+                {getCategoryBadge()}
+              </div>
+              <div className="flex items-start gap-2">
+                <Target className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <h4 className="font-medium text-base text-foreground">{requirement.requirement}</h4>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <Target className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <h4 className="font-semibold text-base">{requirement.requirement}</h4>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <Badge className={cn("text-xs font-medium", RISK_COLORS[entry.riskLevel])}>
-              {entry.riskLevel} Risk
-            </Badge>
-            <span className="text-xs text-muted-foreground font-medium">{entry.confidence}</span>
           </div>
         </div>
-      </div>
-      
-      <CardContent className="p-6 space-y-5">
-        {/* Category-specific content */}
-        {entry.category === 'HIGHLY QUALIFIED' && entry.whyQualified && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-start gap-3 p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/50"
-          >
-            <Sparkles className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Why you're highly qualified:</p>
-              <p className="text-base text-foreground/80">{entry.whyQualified}</p>
-            </div>
-          </motion.div>
-        )}
         
-        {entry.category === 'PARTIALLY QUALIFIED' && (
-          <div className="space-y-4">
-            {entry.whyQualified && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/50">
-                <FileText className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-1">Partial match:</p>
-                  <p className="text-base text-foreground/80">{entry.whyQualified}</p>
+        <CardContent className="p-6 space-y-5">
+          {/* Category-specific content - Neutral styling */}
+          {effectiveCategory === 'HIGHLY QUALIFIED' && (entry.whyQualified || disputeResult?.newWhyQualified) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border border-border"
+            >
+              <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-primary mb-1">Why you're qualified:</p>
+                <p className="text-sm text-foreground/80">{disputeResult?.newWhyQualified || entry.whyQualified}</p>
+              </div>
+            </motion.div>
+          )}
+          
+          {effectiveCategory === 'PARTIALLY QUALIFIED' && (
+            <div className="space-y-3">
+              {(entry.whyQualified || disputeResult?.newWhyQualified) && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border">
+                  <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">What you have:</p>
+                    <p className="text-sm text-foreground/80">{disputeResult?.newWhyQualified || entry.whyQualified}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {entry.gapExplanation && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-100/50 dark:bg-amber-900/20 border-l-4 border-l-amber-500">
-                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-1">Gap to address:</p>
-                  <p className="text-base text-foreground/80">{entry.gapExplanation}</p>
+              )}
+              {(entry.gapExplanation || disputeResult?.newGapExplanation) && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border-l-4 border-l-muted-foreground/50 border border-border">
+                  <AlertTriangle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground mb-1">What's missing:</p>
+                    <p className="text-sm text-foreground/80">{disputeResult?.newGapExplanation || entry.gapExplanation}</p>
+                    {/* Dispute Button */}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 h-8 text-xs"
+                      onClick={() => setShowDisputeModal(true)}
+                    >
+                      <MessageSquarePlus className="h-3 w-3 mr-1.5" />
+                      I have this skill
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {entry.category === 'EXPERIENCE GAP' && (
-          <div className="space-y-4">
-            {entry.gapExplanation && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-red-100/50 dark:bg-red-900/20 border-l-4 border-l-red-500">
-                <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Experience gap:</p>
-                  <p className="text-base text-foreground/80">{entry.gapExplanation}</p>
-                </div>
-              </div>
-            )}
-            {entry.whyQualified && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border border-border/50">
-                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-1">Transferable strengths:</p>
-                  <p className="text-base text-foreground/80">{entry.whyQualified}</p>
-                </div>
-              </div>
-            )}
-            {entry.bridgingStrategy && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-primary mb-1">Bridging Strategy:</p>
-                  <p className="text-base text-foreground/80">{entry.bridgingStrategy}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Resume Language Box - Prominent */}
-        {displayedLanguage && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "p-5 rounded-xl border-2 relative overflow-hidden",
-              entry.category === 'HIGHLY QUALIFIED' && "bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-300 dark:border-emerald-700",
-              entry.category === 'PARTIALLY QUALIFIED' && "bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 border-amber-300 dark:border-amber-700",
-              entry.category === 'EXPERIENCE GAP' && "bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-300 dark:border-blue-700"
-            )}
-          >
-            {/* Label */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-background/80 shadow-sm">
-                <FileText className="h-4 w-4 text-primary" />
-              </div>
-              <span className="text-sm font-bold uppercase tracking-wider text-primary">
-                {entry.category === 'EXPERIENCE GAP' ? 'Suggested Bridging Language' : 'Add This to Your Resume'}
-              </span>
-              {customText && (
-                <Badge variant="secondary" className="text-xs ml-auto">Edited</Badge>
               )}
             </div>
-            
-            {isEditing ? (
-              <div className="space-y-3">
-                <Textarea 
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  className="text-base min-h-[100px] bg-background/80"
-                  placeholder="Edit your resume bullet..."
-                />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSaveEdit} className="h-9">
-                    <Check className="h-4 w-4 mr-1" /> Save Changes
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleCancelEdit} className="h-9">
-                    <X className="h-4 w-4 mr-1" /> Cancel
-                  </Button>
+          )}
+          
+          {effectiveCategory === 'EXPERIENCE GAP' && (
+            <div className="space-y-3">
+              {(entry.gapExplanation || disputeResult?.newGapExplanation) && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border-l-4 border-l-muted-foreground/30 border border-border">
+                  <AlertTriangle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground mb-1">Experience Gap:</p>
+                    <p className="text-sm text-foreground/80">{disputeResult?.newGapExplanation || entry.gapExplanation}</p>
+                    {/* Dispute Button */}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 h-8 text-xs"
+                      onClick={() => setShowDisputeModal(true)}
+                    >
+                      <MessageSquarePlus className="h-3 w-3 mr-1.5" />
+                      Actually, I have this
+                    </Button>
+                  </div>
                 </div>
+              )}
+              {entry.whyQualified && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border">
+                  <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Transferable strengths:</p>
+                    <p className="text-sm text-foreground/80">{entry.whyQualified}</p>
+                  </div>
+                </div>
+              )}
+              {entry.bridgingStrategy && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
+                  <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-primary mb-1">Bridging Strategy:</p>
+                    <p className="text-sm text-foreground/80">{entry.bridgingStrategy}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Bullet Options Panel */}
+          {(bulletOptions.length > 0 || isGeneratingOptions) && (
+            <BulletOptionsPanel
+              options={bulletOptions}
+              isLoading={isGeneratingOptions}
+              onSelect={handleSelectOption}
+              selectedId={selectedOption}
+            />
+          )}
+          
+          {/* Resume Language Box - Clean, professional */}
+          {displayedLanguage && !bulletOptions.length && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-5 rounded-xl border-2 border-border bg-card relative overflow-hidden"
+            >
+              {/* Label */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-muted">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  {effectiveCategory === 'EXPERIENCE GAP' ? 'Suggested Bridging Language' : 'Resume Bullet'}
+                </span>
+                {customText && (
+                  <Badge variant="secondary" className="text-xs ml-auto">Edited</Badge>
+                )}
               </div>
-            ) : (
-              <>
-                <p className="text-base leading-relaxed mb-4 font-medium">{displayedLanguage}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={handleRegenerate}
-                    disabled={isRegenerating}
-                    className="h-9 bg-background/80 hover:bg-background"
-                  >
-                    <RefreshCw className={cn("h-4 w-4 mr-1.5", isRegenerating && "animate-spin")} />
-                    {isRegenerating ? 'Regenerating...' : 'Regenerate'}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={handleStartEdit}
-                    className="h-9 bg-background/80 hover:bg-background"
-                  >
-                    <Pencil className="h-4 w-4 mr-1.5" /> Edit
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={handleCopy}
-                    className="h-9 bg-background/80 hover:bg-background"
-                  >
-                    {copied ? <Check className="h-4 w-4 mr-1.5" /> : <Copy className="h-4 w-4 mr-1.5" />}
-                    {copied ? 'Copied!' : 'Copy'}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={handleAddToResume}
-                    disabled={isStaged}
-                    className={cn(
-                      "h-9",
-                      isStaged && "bg-emerald-600 hover:bg-emerald-600"
-                    )}
-                  >
-                    {isStaged ? <Check className="h-4 w-4 mr-1.5" /> : <Plus className="h-4 w-4 mr-1.5" />}
-                    {isStaged ? 'Added!' : 'Add to Resume'}
-                  </Button>
+              
+              {isEditing ? (
+                <div className="space-y-3">
+                  <Textarea 
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="text-sm min-h-[100px] bg-background"
+                    placeholder="Edit your resume bullet..."
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSaveEdit} className="h-8">
+                      <Check className="h-3 w-3 mr-1" /> Save
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleCancelEdit} className="h-8">
+                      <X className="h-3 w-3 mr-1" /> Cancel
+                    </Button>
+                  </div>
                 </div>
-              </>
-            )}
-          </motion.div>
-        )}
-        
-        {/* Fallback to rationale */}
-        {!entry.whyQualified && entry.rationale && (
-          <p className="text-sm text-muted-foreground">{entry.rationale}</p>
-        )}
-        
-        {/* Gap Taxonomy */}
-        {entry.gapTaxonomy && entry.gapTaxonomy.length > 0 && (
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-sm text-muted-foreground font-medium">Gap Type:</span>
-            {entry.gapTaxonomy.map((gap, idx) => (
-              <Badge key={idx} variant="destructive" className="text-xs">
-                {gap}
-              </Badge>
-            ))}
-          </div>
-        )}
-        
-        {/* Evidence Citations */}
-        {entry.evidenceIds && entry.evidenceIds.length > 0 && (
-          <div className="flex flex-wrap gap-2 items-center pt-2 border-t">
-            <span className="text-sm text-muted-foreground font-medium">Evidence:</span>
-            {entry.evidenceIds.map((evidenceId) => (
-              <EvidenceTag 
-                key={evidenceId}
-                evidenceId={evidenceId} 
-                getEvidenceById={getEvidenceById} 
-              />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ) : (
+                <>
+                  <p className="text-sm leading-relaxed mb-4">{displayedLanguage}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleGenerateOptions}
+                      disabled={isGeneratingOptions}
+                      className="h-8 text-xs"
+                    >
+                      <Wand2 className={cn("h-3 w-3 mr-1.5", isGeneratingOptions && "animate-spin")} />
+                      {isGeneratingOptions ? 'Generating...' : '3 Options'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleRegenerate}
+                      disabled={isRegenerating}
+                      className="h-8 text-xs"
+                    >
+                      <RefreshCw className={cn("h-3 w-3 mr-1.5", isRegenerating && "animate-spin")} />
+                      {isRegenerating ? 'Working...' : 'Regenerate'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleStartEdit}
+                      className="h-8 text-xs"
+                    >
+                      <Pencil className="h-3 w-3 mr-1.5" /> Edit
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleCopy}
+                      className="h-8 text-xs"
+                    >
+                      {copied ? <Check className="h-3 w-3 mr-1.5" /> : <Copy className="h-3 w-3 mr-1.5" />}
+                      {copied ? 'Copied!' : 'Copy'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={handleAddToResume}
+                      disabled={isStaged}
+                      className="h-8 text-xs"
+                    >
+                      {isStaged ? <Check className="h-3 w-3 mr-1.5" /> : <Plus className="h-3 w-3 mr-1.5" />}
+                      {isStaged ? 'Added!' : 'Add to Resume'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+          
+          {/* Fallback to rationale */}
+          {!entry.whyQualified && entry.rationale && (
+            <p className="text-sm text-muted-foreground">{entry.rationale}</p>
+          )}
+          
+          {/* Evidence Citations */}
+          {entry.evidenceIds && entry.evidenceIds.length > 0 && (
+            <div className="flex flex-wrap gap-2 items-center pt-3 border-t">
+              <span className="text-xs text-muted-foreground font-medium">Evidence:</span>
+              {entry.evidenceIds.map((evidenceId) => (
+                <EvidenceTag 
+                  key={evidenceId}
+                  evidenceId={evidenceId} 
+                  getEvidenceById={getEvidenceById} 
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dispute Modal */}
+      <DisputeGapModal
+        isOpen={showDisputeModal}
+        onClose={() => setShowDisputeModal(false)}
+        requirementId={entry.requirementId}
+        requirementText={requirement.requirement}
+        currentCategory={entry.category}
+        gapExplanation={entry.gapExplanation}
+        jobDescription={jobDescription || ''}
+        onDisputeResolved={handleDisputeResolved}
+      />
+    </>
   );
 }

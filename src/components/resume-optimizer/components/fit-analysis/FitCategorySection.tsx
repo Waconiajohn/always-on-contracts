@@ -6,37 +6,38 @@ import { cn } from '@/lib/utils';
 import { RequirementCard } from './RequirementCard';
 import { FitCategorySectionProps, CATEGORY_CONFIG, FitCategory } from './types';
 
+// Professional neutral color scheme - no colored backgrounds
 const CATEGORY_STYLES: Record<FitCategory, {
   icon: typeof CheckCircle2;
-  gradientFrom: string;
-  gradientTo: string;
+  iconColor: string;
   borderColor: string;
+  headerBg: string;
   badgeBg: string;
   badgeText: string;
 }> = {
   'HIGHLY QUALIFIED': {
     icon: CheckCircle2,
-    gradientFrom: 'from-emerald-500',
-    gradientTo: 'to-emerald-600',
-    borderColor: 'border-emerald-200 dark:border-emerald-800',
-    badgeBg: 'bg-emerald-100 dark:bg-emerald-900/50',
-    badgeText: 'text-emerald-700 dark:text-emerald-300'
+    iconColor: 'text-primary',
+    borderColor: 'border-primary/30',
+    headerBg: 'bg-primary/5',
+    badgeBg: 'bg-primary/10',
+    badgeText: 'text-primary'
   },
   'PARTIALLY QUALIFIED': {
     icon: AlertCircle,
-    gradientFrom: 'from-amber-500',
-    gradientTo: 'to-amber-600',
-    borderColor: 'border-amber-200 dark:border-amber-800',
-    badgeBg: 'bg-amber-100 dark:bg-amber-900/50',
-    badgeText: 'text-amber-700 dark:text-amber-300'
+    iconColor: 'text-muted-foreground',
+    borderColor: 'border-border',
+    headerBg: 'bg-muted/50',
+    badgeBg: 'bg-muted',
+    badgeText: 'text-muted-foreground'
   },
   'EXPERIENCE GAP': {
     icon: XCircle,
-    gradientFrom: 'from-red-500',
-    gradientTo: 'to-red-600',
-    borderColor: 'border-red-200 dark:border-red-800',
-    badgeBg: 'bg-red-100 dark:bg-red-900/50',
-    badgeText: 'text-red-700 dark:text-red-300'
+    iconColor: 'text-muted-foreground/70',
+    borderColor: 'border-border/50',
+    headerBg: 'bg-muted/30',
+    badgeBg: 'bg-muted/50',
+    badgeText: 'text-muted-foreground'
   }
 };
 
@@ -64,7 +65,7 @@ export function FitCategorySection({
         open={isExpanded}
         onOpenChange={onToggle}
         className={cn(
-          "rounded-2xl border-2 overflow-hidden shadow-lg transition-all",
+          "rounded-xl border overflow-hidden shadow-sm transition-all",
           styles.borderColor
         )}
       >
@@ -74,27 +75,26 @@ export function FitCategorySection({
           aria-controls={`category-${category.replace(/\s/g, '-').toLowerCase()}`}
         >
           <div className="cursor-pointer group">
-            {/* Gradient Header */}
+            {/* Clean Header */}
             <div className={cn(
-              "relative px-6 py-5 bg-gradient-to-r text-white transition-all",
-              styles.gradientFrom,
-              styles.gradientTo,
-              "group-hover:shadow-md"
+              "relative px-6 py-4 transition-all border-b",
+              styles.headerBg,
+              "group-hover:bg-muted/60"
             )}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
-                    <Icon className="h-7 w-7 text-white" />
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-lg bg-background shadow-sm border", styles.borderColor)}>
+                    <Icon className={cn("h-5 w-5", styles.iconColor)} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold">{config.title}</h3>
-                    <p className="text-white/80 text-sm mt-0.5">{config.description}</p>
+                    <h3 className="text-lg font-semibold text-foreground">{config.title}</h3>
+                    <p className="text-sm text-muted-foreground">{config.description}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <Badge className={cn(
-                    "text-base font-bold px-4 py-1.5 rounded-full",
+                    "text-sm font-semibold px-3 py-1 rounded-full border-0",
                     styles.badgeBg,
                     styles.badgeText
                   )}>
@@ -103,21 +103,11 @@ export function FitCategorySection({
                   <motion.div
                     animate={{ rotate: isExpanded ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
-                    className="p-2 rounded-lg bg-white/20"
+                    className="p-1.5 rounded-md bg-muted/50"
                   >
-                    <ChevronDown className="h-5 w-5 text-white" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </motion.div>
                 </div>
-              </div>
-              
-              {/* Progress indicator */}
-              <div className="mt-4 h-1.5 rounded-full bg-white/20 overflow-hidden">
-                <motion.div 
-                  className="h-full bg-white/60 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(entries.length / entries.length) * 100}%` }}
-                  transition={{ delay: 0.3, duration: 0.8 }}
-                />
               </div>
             </div>
           </div>
@@ -131,7 +121,7 @@ export function FitCategorySection({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="p-6 space-y-5 bg-gradient-to-b from-muted/30 to-background"
+                className="p-4 space-y-4 bg-background"
               >
                 {entries.map((entry, index) => (
                   <motion.div

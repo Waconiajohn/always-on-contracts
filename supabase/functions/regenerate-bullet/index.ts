@@ -46,9 +46,9 @@ Return ONLY the new bullet point text, no JSON, no formatting.`;
 
     const { response, metrics } = await callLovableAI({
       messages: [{ role: 'user', content: prompt }],
-      model: LOVABLE_AI_MODELS.DEFAULT,
+      model: LOVABLE_AI_MODELS.PREMIUM, // Upgraded to GPT-5 for better quality
       temperature: 0.7,
-      max_tokens: 200,
+      max_tokens: 300,
     }, 'regenerate-bullet', undefined);
 
     await logAIUsage(metrics);

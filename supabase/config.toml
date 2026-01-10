@@ -440,3 +440,12 @@ verify_jwt = true
 
 [functions.resume-builder-v3]
 verify_jwt = false
+
+[functions.generate-bullet-options]
+verify_jwt = false
+
+[functions.dispute-gap]
+verify_jwt = false
+
+[functions.instant-resume-score]
+verify_jwt = false
