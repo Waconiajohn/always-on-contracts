@@ -334,43 +334,78 @@ Return valid JSON:
   }
 }`;
 
-    const { response: pass2Response, metrics: pass2Metrics } = await callLovableAI(
-      {
-        messages: [
-          { role: 'system', content: pass2SystemPrompt },
-          { role: 'user', content: pass2UserPrompt }
-        ],
-        model: LOVABLE_AI_MODELS.DEFAULT, // FIX: Use Gemini for better JSON handling
-        temperature: 0.2,
-        max_tokens: 12000, // FIX: Increased from 4000 to prevent truncation
-        response_mime_type: "application/json"
-      },
-      'fit-blueprint-pass2',
-      authedUser.id,
-      90000 // Increased timeout
-    );
+    // Track pass2 duration outside the helper
+    let pass2Duration = 0;
     
-    // Check for truncation
-    const pass2FinishReason = pass2Response.choices?.[0]?.finish_reason;
-    if (pass2FinishReason === 'length') {
-      console.warn('⚠️ Pass 2 response was TRUNCATED - output may be incomplete');
-    }
+    // Helper function to attempt Pass 2 with retry logic
+    const attemptPass2 = async (retryCount = 0): Promise<any> => {
+      const attemptStart = Date.now();
+      
+      const { response: pass2Response, metrics: pass2Metrics } = await callLovableAI(
+        {
+          messages: [
+            { role: 'system', content: pass2SystemPrompt + (retryCount > 0 ? '\n\nCRITICAL: You MUST respond with ONLY valid JSON. No explanatory text, no markdown, just the JSON object.' : '') },
+            { role: 'user', content: pass2UserPrompt }
+          ],
+          model: LOVABLE_AI_MODELS.DEFAULT,
+          temperature: 0.1, // Lower temperature for more consistent JSON
+          max_tokens: 12000,
+          response_mime_type: "application/json"
+        },
+        'fit-blueprint-pass2',
+        authedUser.id,
+        90000
+      );
+      
+      const pass2FinishReason = pass2Response.choices?.[0]?.finish_reason;
+      if (pass2FinishReason === 'length') {
+        console.warn('⚠️ Pass 2 response was TRUNCATED - output may be incomplete');
+      }
 
-    const pass2Duration = Date.now() - pass2Start;
-    console.log(`✅ PASS 2 complete in ${pass2Duration}ms, tokens:`, pass2Metrics);
+      pass2Duration = Date.now() - pass2Start; // Update outer variable
+      console.log(`✅ PASS 2 complete in ${pass2Duration}ms, tokens:`, pass2Metrics);
 
-    const pass2Content = pass2Response.choices?.[0]?.message?.content;
-    if (!pass2Content) {
-      throw new Error('No response from Pass 2 generation');
-    }
+      const pass2Content = pass2Response.choices?.[0]?.message?.content;
+      if (!pass2Content) {
+        throw new Error('No response from Pass 2 generation');
+      }
 
-    const pass2Result = extractJSON(pass2Content);
-    if (!pass2Result.success || !pass2Result.data) {
-      console.error('Pass 2 JSON parse failed:', pass2Result.error);
-      throw new Error('Failed to parse Pass 2 generation');
-    }
+      const pass2Result = extractJSON(pass2Content);
+      if (!pass2Result.success || !pass2Result.data) {
+        console.error('Pass 2 JSON parse failed:', pass2Result.error);
+        console.error('Pass 2 raw content (first 1000 chars):', pass2Content.substring(0, 1000));
+        
+        // Retry once with stricter prompt
+        if (retryCount < 1) {
+          console.log('🔄 Retrying Pass 2 with stricter JSON prompt...');
+          return attemptPass2(retryCount + 1);
+        }
+        
+        // Return default generation data as fallback
+        console.warn('⚠️ Using fallback generation data after Pass 2 parse failure');
+        return {
+          benchmark_resume_pattern: {
+            target_title_rules: [],
+            section_order: ["Summary", "Experience", "Skills", "Education"],
+            bullet_formula: "Action + Scope + Outcome + Method"
+          },
+          bullet_bank_verified: [],
+          bullet_bank_inferred_placeholders: [],
+          proof_collector_fields: [],
+          missing_bullet_plan: [],
+          ats_alignment: {
+            top_keywords: [],
+            covered: [],
+            missing_but_addable: [],
+            missing_requires_experience: []
+          }
+        };
+      }
+      
+      return pass2Result.data;
+    };
 
-    const generationData = pass2Result.data;
+    const generationData = await attemptPass2();
 
     // =========================================================================
     // MERGE PASSES INTO FINAL BLUEPRINT
