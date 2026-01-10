@@ -54,13 +54,21 @@ export function handleEdgeFunctionError(error: unknown, functionName: string): E
     };
   }
 
-  // Network/relay errors
+  // Network/relay errors (including timeouts that manifest as fetch failures)
   if (error instanceof FunctionsRelayError || error instanceof FunctionsFetchError) {
-    const message = "Network error. Please check your connection and try again.";
+    // Check if this looks like a timeout
+    const errorMsg = error.message || '';
+    const isLikelyTimeout = errorMsg.includes('Load failed') || 
+                            errorMsg.includes('timeout') ||
+                            errorMsg.includes('aborted');
+    
+    const message = isLikelyTimeout 
+      ? "Request timed out. This can happen with long content. Please try again."
+      : "Network error. Please check your connection and try again.";
     toast.error(message);
     return {
       message,
-      code: 'NETWORK_ERROR'
+      code: isLikelyTimeout ? 'TIMEOUT' : 'NETWORK_ERROR'
     };
   }
 

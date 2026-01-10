@@ -15,15 +15,55 @@ const corsHeaders = {
 };
 
 // =============================================================================
-// PHASE 2: SPLIT AI CALLS
-// Pass 1: Analysis (Evidence + Requirements + Fit Map + Inference Map)
-// Pass 2: Generation (Bullet Banks + Proof Collector + ATS)
+// SINGLE-PASS GPT-5 FIT BLUEPRINT
+// Combines analysis + generation into one AI call for reliability
 // =============================================================================
+
+// Input trimming functions to prevent token bloat
+function trimResume(text: string, maxChars: number = 15000): string {
+  if (text.length <= maxChars) return text;
+  
+  // Try to keep structure: summary + recent roles + key achievements
+  const lines = text.split('\n');
+  let result: string[] = [];
+  let charCount = 0;
+  
+  for (const line of lines) {
+    if (charCount + line.length > maxChars) break;
+    result.push(line);
+    charCount += line.length + 1;
+  }
+  
+  console.log(`Resume trimmed: ${text.length} → ${charCount} chars`);
+  return result.join('\n');
+}
+
+function trimJobDescription(text: string, maxChars: number = 12000): string {
+  if (text.length <= maxChars) return text;
+  
+  // Remove common boilerplate patterns
+  let cleaned = text
+    .replace(/Equal Opportunity Employer[^]*?(?=\n\n|\n[A-Z]|$)/gi, '')
+    .replace(/About (the company|us)[^]*?(?=\n\n|\n[A-Z]|$)/gi, '')
+    .replace(/Benefits[^]*?(?=\n\n|\n[A-Z]|$)/gi, '')
+    .replace(/We are an equal[^]*?(?=\n\n|$)/gi, '')
+    .trim();
+  
+  if (cleaned.length <= maxChars) return cleaned;
+  
+  // Truncate to maxChars
+  cleaned = cleaned.substring(0, maxChars);
+  console.log(`JD trimmed: ${text.length} → ${cleaned.length} chars`);
+  return cleaned;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const requestStart = Date.now();
+  console.log('🚀 fit-blueprint request started');
 
   try {
     // Authentication check
@@ -55,111 +95,60 @@ serve(async (req) => {
 
     console.log('Authenticated user:', authedUser.id);
 
-    const { resumeText, jobDescription } = await req.json();
+    const { resumeText: rawResume, jobDescription: rawJD } = await req.json();
     
-    if (!resumeText || !jobDescription) {
+    if (!rawResume || !rawJD) {
       throw new Error('Resume text and job description are required');
     }
 
-    // STEP 0: Detect role archetype and get matching rubric
+    // Apply input trimming to prevent token bloat
+    const resumeText = trimResume(rawResume);
+    const jobDescription = trimJobDescription(rawJD);
+    
+    console.log(`Input sizes: resume=${resumeText.length} chars, JD=${jobDescription.length} chars`);
+
+    // Detect role archetype and get matching rubric
     const detectedArchetype = detectRoleArchetype(jobDescription);
     const matchedRubric = findExecutiveRubric(detectedArchetype);
     const resumePattern = getDefaultResumePattern();
     
     console.log('Detected role archetype:', detectedArchetype, '| Matched rubric:', matchedRubric?.roleArchetype || 'none');
 
-    // Build rubric context for the AI
+    // Build compact rubric context (reduced verbosity)
     const rubricContext = matchedRubric ? `
-ROLE SUCCESS RUBRIC (Use this as your evaluation framework):
-Role Archetype: ${matchedRubric.roleArchetype}
-Industry Context: ${matchedRubric.industryContext}
-
-Core Outcomes Expected:
-${matchedRubric.coreOutcomes.map((o, i) => `${i + 1}. ${o}`).join('\n')}
-
-Top Competencies to Evaluate:
-${matchedRubric.topCompetencies.map(c => `- ${c.name}: ${c.definition}
-  Proof Examples: ${c.proofExamples.join('; ')}
-  Anti-Patterns to Avoid: ${c.antiPatterns.join('; ')}`).join('\n\n')}
-
-Benchmark Proof Points (What "best-in-class" looks like):
-${matchedRubric.benchmarkProofPoints.map(p => `• ${p}`).join('\n')}
-
-Metrics Norms for This Role:
-${matchedRubric.metricsNorms.map(m => `- ${m.metric} (${m.typicalRange}) - Sources: ${m.sources.join(', ')}`).join('\n')}
-
-Common Pitfalls (Mistakes candidates make):
-${matchedRubric.commonPitfalls.map(p => `• ${p}`).join('\n')}
-
-Executive Signals (What hiring managers look for):
-${matchedRubric.executiveSignals.map(s => `• ${s}`).join('\n')}
+ROLE EVALUATION FRAMEWORK:
+Archetype: ${matchedRubric.roleArchetype}
+Core Outcomes: ${matchedRubric.coreOutcomes.slice(0, 3).join('; ')}
+Key Competencies: ${matchedRubric.topCompetencies.slice(0, 4).map(c => c.name).join(', ')}
+Executive Signals: ${matchedRubric.executiveSignals.slice(0, 3).join('; ')}
 ` : '';
 
     // =========================================================================
-    // PASS 1: ANALYSIS (Evidence + Requirements + Fit Map + Inference Map)
+    // SINGLE-PASS GPT-5: Combined Analysis + Generation
     // =========================================================================
-    console.log('🔍 PASS 1: Starting Analysis Pass...');
-    const pass1Start = Date.now();
+    console.log('🔍 Starting single-pass GPT-5 analysis...');
+    const aiStart = Date.now();
 
-    const pass1SystemPrompt = `You are a senior hiring manager + executive recruiter. You evaluate candidates like a panel: CEO, VP, and functional leader. You are rigorous about truthfulness and evidence.
+    const systemPrompt = `You are an expert hiring evaluator and resume architect. Analyze candidates rigorously and generate actionable resume content.
 
-Your task is to ANALYZE the candidate's fit for this role. Focus on extraction and classification only.
+Your task: Analyze the candidate's fit for this role and generate resume optimization content in ONE response.
 ${rubricContext}
 
-STEP A — NORMALIZE THE RESUME INTO EVIDENCE UNITS
-Extract and list:
-- Roles (title, company, dates)
-- Scope indicators (team size, budget, customers, geographies, scale)
-- Outcomes (metrics, deltas, KPIs)
-- Tools/platforms
-- Domain contexts (industry, customer type, buyer persona)
+OUTPUT REQUIREMENTS:
+1. Evidence Inventory: Extract 10-12 strongest evidence items from resume (E1, E2...)
+2. Requirements: Extract 8-10 key job requirements (R1, R2...)
+3. Fit Map: Classify each requirement as HIGHLY QUALIFIED, PARTIALLY QUALIFIED, or EXPERIENCE GAP
+4. Bullet Bank: Generate 5-8 ready-to-use resume bullets backed by evidence
+5. ATS Keywords: Identify covered and missing keywords
+6. Missing Bullet Plan: Questions to gather missing proof
 
-Create an Evidence Inventory of short, referenceable items (E1, E2, E3…).
-For each evidence item, classify:
-- proof_type: {Metric, Story, Artifact, Credential, Inference}
-- strength: {strong, moderate, weak, inference}
+CRITICAL RULES:
+- Only create bullets backed by explicit evidence
+- Mark inferences as needing confirmation
+- Be truthful - don't invent metrics or claims
+- Keep text fields concise (under 100 chars each)`;
 
-Rules:
-- Do not paraphrase into new claims
-- If a metric isn't present, don't invent it
-- If something is implied but not explicit, mark it "inference"
-
-STEP B — DECOMPOSE THE JOB INTO ATOMIC REQUIREMENTS
-Turn the JD into a numbered list (R1…Rn) of atomic requirements.
-Each requirement must be one expectation only (no bundling).
-
-Tag each requirement with:
-- Type: {Leadership, Domain, Execution, Metrics, Tooling, Communication, Strategy}
-- Seniority signal: {Director-level, Manager-level, IC-level}
-- Business outcome target: {Retention, Expansion, Adoption, Quality, Revenue, Risk, Efficiency}
-- competency_id: Link to a rubric competency if applicable
-
-STEP C — REQUIREMENT-BY-REQUIREMENT FIT CLASSIFICATION
-For every requirement R#, assign exactly one category:
-- HIGHLY QUALIFIED
-- PARTIALLY QUALIFIED  
-- EXPERIENCE GAP
-
-For each requirement provide:
-1. "why_qualified": 2-3 sentence explanation
-2. "resume_language": Ready-to-paste resume bullet
-3. "gap_explanation" (for gaps): What's missing?
-4. "bridging_strategy" (for gaps): How to address?
-5. Evidence citations (E# list)
-6. Gap taxonomy: {Domain / Scope / Ownership / Metric / Tooling / Recency}
-7. Risk level: {Low / Medium / High}
-8. Confidence: {very-high / high / moderate / low}
-
-STEP D — INFERENCE MAP (CRITICAL FOR EVIDENCE SAFETY)
-For each requirement, identify:
-- verified_claims: Claims backed by direct evidence
-- plausible_inferences: Reasonable inferences NOT proven
-- validation_questions: Questions to confirm inferences
-- draft_bullets_placeholders: Bullets needing confirmation`;
-
-    // IMPORTANT: Simplified schema to prevent token truncation
-    // Limits: max 15 evidence items, max 10 requirements, concise fields
-    const pass1UserPrompt = `Analyze this resume against the job description. Focus on evidence extraction and fit analysis.
+    const userPrompt = `Analyze this resume against the job and return a complete Fit Blueprint.
 
 RESUME:
 ${resumeText}
@@ -167,222 +156,122 @@ ${resumeText}
 JOB DESCRIPTION:
 ${jobDescription}
 
-CRITICAL OUTPUT RULES:
-- Maximum 15 evidence items (prioritize strongest)
-- Maximum 10 requirements (focus on most critical)
-- Keep text fields under 100 characters each
-- Omit empty or optional fields
-
-Return valid JSON only:
+Return valid JSON with this exact structure:
 {
   "role_success_rubric": {
     "role_archetype": "detected role type",
-    "industry_context": "industry context",
+    "industry_context": "brief context",
     "core_outcomes": ["outcome1", "outcome2", "outcome3"],
-    "top_competencies": [{"id": "comp1", "name": "name", "definition": "brief def"}],
+    "top_competencies": [{"id": "comp1", "name": "name", "definition": "brief"}],
     "executive_signals": ["signal1", "signal2"]
   },
-  "evidence_inventory": [{"id":"E1","source_role":"role","text":"concise evidence text","proof_type":"strong|moderate|weak"}],
-  "requirements": [{"id":"R1","requirement":"requirement text","type":"Leadership|Domain|Execution","seniority_signal":"Director|Manager|IC"}],
-  "fit_map": [{
-    "requirement_id":"R1",
-    "category":"HIGHLY QUALIFIED|PARTIALLY QUALIFIED|EXPERIENCE GAP",
-    "why_qualified":"Brief 1-sentence explanation",
-    "resume_language":"Resume bullet text",
-    "evidence_ids":["E1"],
-    "risk_level":"Low|Medium|High"
-  }],
-  "inference_map": [{
-    "requirement_id": "R1",
-    "validation_questions": [{"question": "question text", "field_key": "key", "field_type": "text|number"}]
-  }],
+  "evidence_inventory": [
+    {"id": "E1", "source_role": "role at company", "text": "concise evidence", "proof_type": "strong|moderate|weak"}
+  ],
+  "requirements": [
+    {"id": "R1", "requirement": "requirement text", "type": "Leadership|Domain|Execution", "seniority_signal": "Director|Manager|IC"}
+  ],
+  "fit_map": [
+    {
+      "requirement_id": "R1",
+      "category": "HIGHLY QUALIFIED|PARTIALLY QUALIFIED|EXPERIENCE GAP",
+      "why_qualified": "Brief explanation",
+      "resume_language": "Ready-to-use resume bullet",
+      "gap_explanation": "For gaps only",
+      "bridging_strategy": "For gaps only",
+      "evidence_ids": ["E1", "E2"],
+      "risk_level": "Low|Medium|High"
+    }
+  ],
+  "inference_map": [
+    {
+      "requirement_id": "R1",
+      "validation_questions": [{"question": "text", "field_key": "key", "field_type": "text|number"}]
+    }
+  ],
+  "benchmark_resume_pattern": {
+    "section_order": ["Summary", "Experience", "Skills", "Education"],
+    "bullet_formula": "Action + Scope + Outcome"
+  },
+  "bullet_bank_verified": [
+    {"bullet": "Achievement bullet backed by evidence", "evidence_ids": ["E1"], "requirement_ids": ["R1"]}
+  ],
+  "bullet_bank_inferred_placeholders": [
+    {"status": "NEEDS_CONFIRMATION", "bullet": "Bullet needing verification", "required_fields": ["field_key"]}
+  ],
+  "proof_collector_fields": [
+    {"field_key": "team_size", "label": "Team Size", "description": "How many people?", "field_type": "number", "priority": "high"}
+  ],
+  "missing_bullet_plan": [
+    {"id": "mb1", "target_requirement_ids": ["R6"], "what_to_ask_candidate": "Question", "template_bullet": "Template"}
+  ],
+  "ats_alignment": {
+    "top_keywords": ["keyword1", "keyword2"],
+    "covered": [{"keyword": "word", "evidence_ids": ["E1"]}],
+    "missing_but_addable": [{"keyword": "word", "template": "How to add"}],
+    "missing_requires_experience": [{"keyword": "word", "why_gap": "reason"}]
+  },
   "executive_summary": {
-    "hire_signal":"One sentence signal",
-    "best_positioning_angle":"One sentence angle"
+    "hire_signal": "One sentence recommendation",
+    "best_positioning_angle": "Best angle for this candidate"
   },
   "overall_fit_score": 75
 }`;
 
-    // Use GPT-5 for high-quality analysis with reliable JSON output
-    const { response: pass1Response, metrics: pass1Metrics } = await callLovableAI(
+    const { response, metrics } = await callLovableAI(
       {
         messages: [
-          { role: 'system', content: pass1SystemPrompt },
-          { role: 'user', content: pass1UserPrompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
-        model: LOVABLE_AI_MODELS.PREMIUM, // GPT-5 for best quality analysis
+        model: LOVABLE_AI_MODELS.PREMIUM, // GPT-5
         max_tokens: 16000,
-        response_format: { type: 'json_object' } // OpenAI JSON mode
+        response_format: { type: 'json_object' }
       },
-      'fit-blueprint-pass1',
+      'fit-blueprint',
       authedUser.id,
-      120000
+      110000 // 110s timeout (under Supabase's ~120s limit)
     );
 
-    const pass1Duration = Date.now() - pass1Start;
-    console.log(`✅ PASS 1 complete in ${pass1Duration}ms, tokens:`, pass1Metrics);
+    const aiDuration = Date.now() - aiStart;
+    console.log(`✅ AI call complete in ${aiDuration}ms, tokens:`, metrics);
 
-    const pass1Message = pass1Response.choices?.[0]?.message;
-    const finishReason = pass1Response.choices?.[0]?.finish_reason;
-    let pass1Content: string | undefined = pass1Message?.content;
-
-    // Check for truncation - if finish_reason is 'length', the output was cut off
+    // Check for truncation
+    const finishReason = response.choices?.[0]?.finish_reason;
     if (finishReason === 'length') {
-      console.warn('⚠️ Pass 1 response was TRUNCATED (finish_reason: length). Output may be incomplete.');
+      console.warn('⚠️ Response was TRUNCATED (finish_reason: length)');
     }
 
-    // Fallback: some model/providers may return tool_calls without message.content
-    if ((!pass1Content || !pass1Content.trim()) && Array.isArray(pass1Message?.tool_calls) && pass1Message.tool_calls.length > 0) {
-      const tc = pass1Message.tool_calls[0];
-      pass1Content = tc?.function?.arguments;
-      console.log('Pass 1 returned tool_calls; using tool_call.arguments as content');
+    const message = response.choices?.[0]?.message;
+    let content: string | undefined = message?.content;
+
+    // Fallback for tool_calls response format
+    if ((!content || !content.trim()) && Array.isArray(message?.tool_calls) && message.tool_calls.length > 0) {
+      content = message.tool_calls[0]?.function?.arguments;
+      console.log('Using tool_call.arguments as content');
     }
 
-    if (!pass1Content || !pass1Content.trim()) {
-      console.error('Pass 1 empty content. finish_reason:', finishReason, 'message keys:', pass1Message ? Object.keys(pass1Message) : null);
-      throw new Error('No response from Pass 1 analysis');
+    if (!content || !content.trim()) {
+      console.error('Empty AI response. finish_reason:', finishReason);
+      throw new Error('No response from AI analysis');
     }
 
-    const pass1Result = extractJSON(pass1Content);
-    if (!pass1Result.success || !pass1Result.data) {
-      console.error('Pass 1 JSON parse failed:', pass1Result.error, 'Content preview:', pass1Content.substring(0, 500));
-      throw new Error('Failed to parse Pass 1 analysis');
+    const parseResult = extractJSON(content);
+    if (!parseResult.success || !parseResult.data) {
+      console.error('JSON parse failed:', parseResult.error);
+      console.error('Content preview:', content.substring(0, 500));
+      throw new Error('Failed to parse AI response');
     }
 
-    const analysisData = pass1Result.data;
+    const rawBlueprint = parseResult.data;
 
     // =========================================================================
-    // PASS 2: GENERATION (Bullet Banks + Proof Collector + ATS)
+    // TRANSFORM TO FRONTEND FORMAT
     // =========================================================================
-    console.log('✍️ PASS 2: Starting Generation Pass...');
+    console.log('🔗 Transforming blueprint to frontend format...');
 
-    // Summarize Pass 1 for Pass 2 context
-    const evidenceSummary = (analysisData.evidence_inventory || [])
-      .slice(0, 20)
-      .map((e: any) => `${e.id}: ${e.text?.substring(0, 100)}...`)
-      .join('\n');
-
-    const fitSummary = (analysisData.fit_map || [])
-      .map((f: any) => `${f.requirement_id}: ${f.category} - ${f.resume_language?.substring(0, 80)}...`)
-      .join('\n');
-
-    const gapRequirements = (analysisData.fit_map || [])
-      .filter((f: any) => f.category === 'PARTIALLY QUALIFIED' || f.category === 'EXPERIENCE GAP')
-      .map((f: any) => `${f.requirement_id}: ${f.gap_explanation || 'Gap not specified'}`);
-
-    const pass2SystemPrompt = `You are an expert resume architect. Given the analysis from Pass 1, generate:
-1. Bullet Bank (verified bullets only using evidence)
-2. Proof Collector Fields (structured questions to gather missing information)
-3. ATS Alignment (keyword coverage)
-
-Be TRUTHFUL - only create bullets backed by evidence. Flag anything needing confirmation.`;
-
-    const pass2UserPrompt = `Based on this analysis, generate resume content and proof collection fields.
-
-EVIDENCE INVENTORY:
-${evidenceSummary}
-
-FIT ANALYSIS:
-${fitSummary}
-
-GAPS TO ADDRESS:
-${gapRequirements.length > 0 ? gapRequirements.join('\n') : 'No significant gaps identified'}
-
-INFERENCE MAP (validation questions needed):
-${JSON.stringify(analysisData.inference_map || [], null, 2)}
-
-JOB DESCRIPTION KEYWORDS TO MATCH:
-${jobDescription.substring(0, 1500)}
-
-Return valid JSON:
-{
-  "benchmark_resume_pattern": {
-    "target_title_rules": ["..."],
-    "section_order": ["Summary", "Signature Wins", "Experience", "Skills", "Education"],
-    "signature_wins_pattern": {"description": "...", "bullet_formula": "...", "examples": ["..."]},
-    "summary_pattern": {"description": "...", "required_elements": ["..."]},
-    "bullet_formula": "Action + Scope + Outcome + Method",
-    "executive_50plus_rules": ["Hide graduation years", "Emphasize last 10-15 years", "Condense early career"]
-  },
-  "bullet_bank_verified": [{"bullet":"...","evidence_ids":["E3"],"requirement_ids":["R2","R5"]}],
-  "bullet_bank_inferred_placeholders": [{"status": "NEEDS_CONFIRMATION", "bullet":"...","required_fields":["field_key"],"target_requirements":["R6"]}],
-  "proof_collector_fields": [{
-    "field_key": "team_size",
-    "label": "Team Size",
-    "description": "How many people did you directly manage?",
-    "field_type": "number",
-    "category": "Scope",
-    "priority": "high",
-    "examples": ["5", "15", "50+"],
-    "unlocks_requirements": ["R3", "R7"]
-  }],
-  "missing_bullet_plan": [{
-    "id":"mb1",
-    "target_requirement_ids":["R6"],
-    "what_to_ask_candidate":"...",
-    "where_to_place":"Role / section",
-    "template_bullet":"..."
-  }],
-  "ats_alignment": {
-    "top_keywords":["..."],
-    "covered":[{"keyword":"...","evidence_ids":["E1"]}],
-    "missing_but_addable":[{"keyword":"...","where_to_add":"...","template":"..."}],
-    "missing_requires_experience":[{"keyword":"...","why_gap":"..."}]
-  }
-}`;
-
-    const pass2Start = Date.now();
-    
-    const { response: pass2Response, metrics: pass2Metrics } = await callLovableAI(
-      {
-        messages: [
-          { role: 'system', content: pass2SystemPrompt },
-          { role: 'user', content: pass2UserPrompt }
-        ],
-        model: LOVABLE_AI_MODELS.PREMIUM, // GPT-5 for reliable JSON output
-        max_tokens: 12000,
-        response_format: { type: 'json_object' } // OpenAI JSON mode
-      },
-      'fit-blueprint-pass2',
-      authedUser.id,
-      90000
-    );
-    
-    const pass2FinishReason = pass2Response.choices?.[0]?.finish_reason;
-    if (pass2FinishReason === 'length') {
-      console.warn('⚠️ Pass 2 response was TRUNCATED - output may be incomplete');
-    }
-
-    const pass2Duration = Date.now() - pass2Start;
-    console.log(`✅ PASS 2 complete in ${pass2Duration}ms, tokens:`, pass2Metrics);
-
-    const pass2Content = pass2Response.choices?.[0]?.message?.content;
-    if (!pass2Content) {
-      throw new Error('No response from Pass 2 generation');
-    }
-
-    const pass2Result = extractJSON(pass2Content);
-    if (!pass2Result.success || !pass2Result.data) {
-      console.error('Pass 2 JSON parse failed:', pass2Result.error);
-      console.error('Pass 2 raw content (first 500 chars):', pass2Content.substring(0, 500));
-      throw new Error('Failed to parse Pass 2 generation');
-    }
-
-    const generationData = pass2Result.data;
-
-    // =========================================================================
-    // MERGE PASSES INTO FINAL BLUEPRINT
-    // =========================================================================
-    console.log('🔗 Merging Pass 1 + Pass 2 into final blueprint...');
-
-    const rawBlueprint = {
-      ...analysisData,
-      ...generationData
-    };
-    
-    // Transform to camelCase for frontend
     const blueprint = {
-      // From Pass 1: Role Success Rubric
+      // Role Success Rubric
       roleSuccessRubric: rawBlueprint.role_success_rubric ? {
         roleArchetype: rawBlueprint.role_success_rubric.role_archetype || detectedArchetype,
         industryContext: rawBlueprint.role_success_rubric.industry_context || '',
@@ -404,7 +293,7 @@ Return valid JSON:
         executiveSignals: rawBlueprint.role_success_rubric.executive_signals || []
       } : null,
       
-      // From Pass 2: Benchmark Resume Pattern
+      // Benchmark Resume Pattern
       benchmarkResumePattern: rawBlueprint.benchmark_resume_pattern ? {
         targetTitleRules: rawBlueprint.benchmark_resume_pattern.target_title_rules || [],
         sectionOrder: rawBlueprint.benchmark_resume_pattern.section_order || resumePattern.sectionOrder,
@@ -414,7 +303,7 @@ Return valid JSON:
         executive50PlusRules: rawBlueprint.benchmark_resume_pattern.executive_50plus_rules || resumePattern.executive50PlusRules
       } : resumePattern,
       
-      // From Pass 1: Evidence Inventory
+      // Evidence Inventory
       evidenceInventory: (rawBlueprint.evidence_inventory || []).map((e: any) => ({
         id: e.id,
         sourceRole: e.source_role,
@@ -424,7 +313,7 @@ Return valid JSON:
         strength: e.strength
       })),
       
-      // From Pass 1: Requirements
+      // Requirements
       requirements: (rawBlueprint.requirements || []).map((r: any) => ({
         id: r.id,
         requirement: r.requirement,
@@ -434,7 +323,7 @@ Return valid JSON:
         competencyId: r.competency_id
       })),
       
-      // From Pass 1: Fit Map
+      // Fit Map
       fitMap: (rawBlueprint.fit_map || []).map((f: any) => {
         let resumeLanguage = f.resume_language || '';
         if (!resumeLanguage && f.rationale) {
@@ -456,7 +345,7 @@ Return valid JSON:
         };
       }),
       
-      // From Pass 1: Inference Map
+      // Inference Map
       inferenceMap: (rawBlueprint.inference_map || []).map((im: any) => ({
         requirementId: im.requirement_id,
         verifiedClaims: (im.verified_claims || []).map((vc: any) => ({
@@ -481,7 +370,7 @@ Return valid JSON:
         }))
       })),
       
-      // From Pass 1: Benchmark Themes
+      // Benchmark Themes
       benchmarkThemes: (rawBlueprint.benchmark_themes || []).map((t: any) => ({
         theme: t.theme,
         evidenceIds: t.evidence_ids || [],
@@ -495,7 +384,7 @@ Return valid JSON:
         requirementIds: b.requirement_ids || []
       })),
       
-      // From Pass 2: Separated bullet banks
+      // Separated bullet banks
       bulletBankVerified: (rawBlueprint.bullet_bank_verified || rawBlueprint.bullet_bank || []).map((b: any) => ({
         bullet: b.bullet,
         evidenceIds: b.evidence_ids || [],
@@ -509,7 +398,7 @@ Return valid JSON:
         targetRequirements: b.target_requirements || []
       })),
       
-      // From Pass 2: Proof Collector Fields
+      // Proof Collector Fields
       proofCollectorFields: (rawBlueprint.proof_collector_fields || []).map((f: any) => ({
         fieldKey: f.field_key,
         label: f.label,
@@ -522,7 +411,7 @@ Return valid JSON:
         unlocksRequirements: f.unlocks_requirements || []
       })),
       
-      // From Pass 2: Missing Bullet Plan
+      // Missing Bullet Plan
       missingBulletPlan: (rawBlueprint.missing_bullet_plan || []).map((m: any, idx: number) => ({
         id: m.id || `mb${idx + 1}`,
         targetRequirementIds: m.target_requirement_ids || [],
@@ -531,7 +420,7 @@ Return valid JSON:
         templateBullet: m.template_bullet
       })),
       
-      // From Pass 2: ATS Alignment
+      // ATS Alignment
       atsAlignment: {
         topKeywords: rawBlueprint.ats_alignment?.top_keywords || [],
         covered: (rawBlueprint.ats_alignment?.covered || []).map((c: any) => ({
@@ -549,7 +438,7 @@ Return valid JSON:
         }))
       },
       
-      // From Pass 1: Executive Summary
+      // Executive Summary
       executiveSummary: {
         hireSignal: rawBlueprint.executive_summary?.hire_signal || '',
         likelyObjections: rawBlueprint.executive_summary?.likely_objections || [],
@@ -559,28 +448,40 @@ Return valid JSON:
       
       overallFitScore: rawBlueprint.overall_fit_score || 70,
       
-      // Metadata about the split pass execution
+      // Metadata
       _meta: {
-        pass1DurationMs: pass1Duration,
-        pass2DurationMs: pass2Duration,
-        totalDurationMs: pass1Duration + pass2Duration,
+        aiDurationMs: aiDuration,
+        totalDurationMs: Date.now() - requestStart,
         detectedArchetype,
-        hasMatchedRubric: !!matchedRubric
+        hasMatchedRubric: !!matchedRubric,
+        model: 'gpt-5',
+        singlePass: true
       }
     };
 
-    console.log(`✅ Fit Blueprint complete! Total time: ${pass1Duration + pass2Duration}ms (Pass1: ${pass1Duration}ms, Pass2: ${pass2Duration}ms)`);
+    const totalDuration = Date.now() - requestStart;
+    console.log(`✅ Fit Blueprint complete! Total time: ${totalDuration}ms (AI: ${aiDuration}ms)`);
 
     return new Response(JSON.stringify(blueprint), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Fit Blueprint error:', error);
+    const totalDuration = Date.now() - requestStart;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Classify error type for better frontend handling
+    const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
+    const errorCode = isTimeout ? 'TIMEOUT' : 'ANALYSIS_ERROR';
+    
+    console.error(`❌ Fit Blueprint error after ${totalDuration}ms:`, errorMessage);
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: errorMessage,
+      errorCode,
+      durationMs: totalDuration
     }), {
-      status: 500,
+      status: isTimeout ? 504 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
