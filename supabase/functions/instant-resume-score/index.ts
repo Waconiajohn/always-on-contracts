@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { callLovableAI, LOVABLE_AI_MODELS } from '../_shared/lovable-ai-config.ts';
 import { logAIUsage } from '../_shared/cost-tracking.ts';
+import { extractJSON } from '../_shared/json-parser.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -191,37 +192,24 @@ Analyze comprehensively and provide structured comparison.`;
       ],
       model: LOVABLE_AI_MODELS.DEFAULT,
       temperature: 0.2,
-      max_tokens: 4000,
+      max_tokens: 8000, // Increased from 4000 to prevent truncation
       response_format: { type: 'json_object' }
     }, 'instant-resume-score');
 
     await logAIUsage(metrics);
 
     const rawContent = response.choices[0].message.content;
-    let scoreData;
     
-    try {
-      // Remove markdown code fences more robustly
-      let cleanedContent = rawContent;
-      
-      // Handle ```json ... ``` format
-      const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        cleanedContent = jsonMatch[1];
-      } else {
-        // Fallback: simple replacement
-        cleanedContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      }
-      
-      cleanedContent = cleanedContent.trim();
-      console.log('[instant-resume-score] Parsing response, length:', cleanedContent.length);
-      
-      scoreData = JSON.parse(cleanedContent);
-    } catch (parseError) {
+    // Use robust extractJSON utility to handle markdown fences and other formatting
+    const parseResult = extractJSON(rawContent);
+    if (!parseResult.success || !parseResult.data) {
       console.error('Failed to parse score data:', rawContent.substring(0, 500));
-      console.error('Parse error:', parseError);
+      console.error('Parse error:', parseResult.error);
       throw new Error('Failed to parse scoring response');
     }
+    
+    const scoreData = parseResult.data;
+    console.log('[instant-resume-score] Parsing successful');
 
     // Calculate weighted overall score (60/20/12/8)
     const weightedScore = 
