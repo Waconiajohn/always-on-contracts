@@ -303,7 +303,7 @@ IMPORTANT: Use the tool call ONLY to return your response. Do NOT include any te
         ? `\nBULLET BANK:\n${JSON.stringify(fitBlueprint.bulletBank, null, 2)}`
         : '';
 
-    const userPrompt = `Generate a Benchmark Resume for this candidate-job match.
+    const userPrompt = `Generate a Benchmark Resume for this candidate-job match. Return your response as valid JSON via the tool call.
 
 ORIGINAL RESUME:
 ${resumeText}
@@ -338,7 +338,7 @@ ${JSON.stringify(fitBlueprint.executiveSummary || {}, null, 2)}
 ATS KEYWORDS TO INCLUDE:
 ${JSON.stringify(fitBlueprint.atsAlignment?.topKeywords || [], null, 2)}
 
-Call the benchmark_resume_result tool with the structured output. Do NOT output any text outside the tool call.`;
+Call the benchmark_resume_result tool with the structured JSON output. Do NOT output any text outside the tool call.`;
 
     console.log('Calling Lovable AI (OpenAI GPT-5) for Benchmark Resume generation...');
 
@@ -350,8 +350,7 @@ Call the benchmark_resume_result tool with the structured output. Do NOT output 
         ],
         model: LOVABLE_AI_MODELS.PREMIUM, // Now uses openai/gpt-5
         max_tokens: 8000,
-        // OpenAI JSON mode for more reliable structured output
-        response_format: { type: 'json_object' },
+        // Tool calling for structured output (removed response_format to avoid conflicts)
         // Tool calling for structured output
         tools: [
           {
