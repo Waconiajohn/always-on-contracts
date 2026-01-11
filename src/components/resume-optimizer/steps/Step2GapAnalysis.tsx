@@ -25,7 +25,8 @@ import {
   FitCategorySection,
   ATSAlignmentCard,
   EvidenceInventoryPanel,
-  BulletBankPanel
+  BulletBankPanel,
+  BenchmarkCandidatePanel
 } from '../components/fit-analysis';
 import { FitCategory } from '../components/fit-analysis/types';
 
@@ -195,6 +196,15 @@ export function Step2GapAnalysis() {
   
   return (
     <div className="max-w-5xl mx-auto space-y-8">
+      {/* Benchmark Candidate Profile - NEW: Shows what a top candidate looks like */}
+      {(fitBlueprint?.benchmarkCandidateProfile || fitBlueprint?.roleSuccessRubric) && (
+        <BenchmarkCandidatePanel
+          benchmarkProfile={fitBlueprint.benchmarkCandidateProfile}
+          roleSuccessRubric={fitBlueprint.roleSuccessRubric}
+          evidenceInventory={fitBlueprint.evidenceInventory}
+        />
+      )}
+
       {/* Summary Card */}
       <FitSummaryCard
         overallFitScore={fitBlueprint!.overallFitScore}
