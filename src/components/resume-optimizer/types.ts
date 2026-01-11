@@ -118,6 +118,14 @@ export interface AtomicRequirement {
 // Gap taxonomy types
 export type GapTaxonomy = 'Domain' | 'Scope' | 'Ownership' | 'Metric' | 'Tooling' | 'Recency';
 
+// Forward declaration for BulletTiers (defined below)
+export interface BulletTierOption {
+  bullet: string;
+  emphasis: string;
+  requiresConfirmation?: boolean;
+  confirmationFields?: string[];
+}
+
 // Fit classification per requirement
 export interface FitMapEntry {
   requirementId: string;
@@ -131,6 +139,12 @@ export interface FitMapEntry {
   gapTaxonomy: GapTaxonomy[];
   riskLevel: 'Low' | 'Medium' | 'High';
   confidence: ConfidenceLevel;
+  // NEW: Pre-generated bullet tiers (Conservative/Strong/Aggressive)
+  bulletTiers?: {
+    conservative: BulletTierOption;
+    strong: BulletTierOption;
+    aggressive: BulletTierOption;
+  };
 }
 
 // Staged bullet for user to collect during gap analysis
@@ -187,6 +201,7 @@ export interface CompetencyDef {
   definition: string;
   proofExamples: string[];
   antiPatterns: string[];
+  weight?: 'critical' | 'important' | 'nice-to-have';
 }
 
 export interface MetricNorm {
@@ -195,6 +210,7 @@ export interface MetricNorm {
   unit: string;
   sources: string[];
   riskIfMissing: 'high' | 'medium' | 'low';
+  context?: string;
 }
 
 export interface RoleSuccessRubric {
@@ -223,6 +239,76 @@ export interface BenchmarkResumePattern {
   bulletFormula: string;
   orderingRules: string[];
   executive50PlusRules: string[];
+}
+
+// ============= NEW: Benchmark Candidate Profile Types =============
+
+export interface BenchmarkCandidateProfile {
+  topCompetencies: Array<{
+    name: string;
+    definition: string;
+    proofExamples: string[];
+    weight: 'critical' | 'important' | 'nice-to-have';
+  }>;
+  expectedProofPoints: string[];
+  typicalMetrics: Array<{
+    metric: string;
+    range: string;
+    context: string;
+  }>;
+  commonArtifacts: string[];
+  weakResumePitfalls: string[];
+}
+
+// ============= NEW: Bullet Tier Types =============
+
+export type BulletTierLevel = 'conservative' | 'strong' | 'aggressive';
+
+export interface BulletTier {
+  bullet: string;
+  emphasis: string;
+  requiresConfirmation?: boolean;
+  confirmationFields?: string[];
+}
+
+export interface BulletTiers {
+  conservative: BulletTier;
+  strong: BulletTier;
+  aggressive: BulletTier;
+}
+
+// ============= NEW: Gap Closer Strategy Types =============
+
+export interface ClosingStrategy {
+  type: 'adjacent_proof' | 'equivalent_substitution' | 'proof_extraction' | 'narrative_positioning';
+  explanation: string;
+  bulletOptions: Array<{
+    tier: BulletTierLevel;
+    bullet: string;
+    requiredConfirmations?: string[];
+  }>;
+  questions?: Array<{
+    question: string;
+    fieldKey: string;
+    type: 'text' | 'number' | 'select';
+    options?: string[];
+  }>;
+}
+
+export interface GapCloserStrategy {
+  requirementId: string;
+  gapType: GapTaxonomy;
+  strategies: ClosingStrategy[];
+}
+
+// ============= NEW: Scoring Report Types =============
+
+export interface ScoringReport {
+  fitScore: number;           // JD requirement coverage (0-100)
+  benchmarkScore: number;     // Closeness to benchmark profile (0-100)
+  credibilityScore: number;   // How defensible claims are (0-100)
+  atsScore: number;           // Keyword coverage + readability (0-100)
+  overallHireability: number; // Weighted composite
 }
 
 // ============= NEW: Inference Map Types =============
@@ -276,6 +362,12 @@ export interface FitBlueprint {
   // NEW: Rubric-first data
   roleSuccessRubric?: RoleSuccessRubric;
   benchmarkResumePattern?: BenchmarkResumePattern;
+  
+  // NEW: Benchmark candidate profile
+  benchmarkCandidateProfile?: BenchmarkCandidateProfile;
+  
+  // NEW: Gap closer strategies
+  gapCloserStrategies?: GapCloserStrategy[];
   
   // Existing fields
   evidenceInventory: EvidenceUnit[];

@@ -293,6 +293,24 @@ Return valid JSON with this exact structure:
         executiveSignals: rawBlueprint.role_success_rubric.executive_signals || []
       } : null,
       
+      // NEW: Benchmark Candidate Profile
+      benchmarkCandidateProfile: rawBlueprint.benchmark_candidate_profile ? {
+        topCompetencies: (rawBlueprint.benchmark_candidate_profile.top_competencies || []).map((c: any) => ({
+          name: c.name,
+          definition: c.definition,
+          proofExamples: c.proof_examples || [],
+          weight: c.weight || 'important'
+        })),
+        expectedProofPoints: rawBlueprint.benchmark_candidate_profile.expected_proof_points || [],
+        typicalMetrics: (rawBlueprint.benchmark_candidate_profile.typical_metrics || []).map((m: any) => ({
+          metric: m.metric,
+          range: m.range,
+          context: m.context || ''
+        })),
+        commonArtifacts: rawBlueprint.benchmark_candidate_profile.common_artifacts || [],
+        weakResumePitfalls: rawBlueprint.benchmark_candidate_profile.weak_resume_pitfalls || []
+      } : null,
+      
       // Benchmark Resume Pattern
       benchmarkResumePattern: rawBlueprint.benchmark_resume_pattern ? {
         targetTitleRules: rawBlueprint.benchmark_resume_pattern.target_title_rules || [],
@@ -323,12 +341,34 @@ Return valid JSON with this exact structure:
         competencyId: r.competency_id
       })),
       
-      // Fit Map
+      // Fit Map - Enhanced with bullet tiers
       fitMap: (rawBlueprint.fit_map || []).map((f: any) => {
         let resumeLanguage = f.resume_language || '';
         if (!resumeLanguage && f.rationale) {
           resumeLanguage = f.rationale;
         }
+        
+        // Transform bullet tiers if present
+        const bulletTiers = f.bullet_tiers ? {
+          conservative: {
+            bullet: f.bullet_tiers.conservative?.bullet || resumeLanguage,
+            emphasis: f.bullet_tiers.conservative?.emphasis || 'Evidence-backed',
+            requiresConfirmation: false,
+            confirmationFields: []
+          },
+          strong: {
+            bullet: f.bullet_tiers.strong?.bullet || resumeLanguage,
+            emphasis: f.bullet_tiers.strong?.emphasis || 'Verify details',
+            requiresConfirmation: true,
+            confirmationFields: f.bullet_tiers.strong?.confirmation_fields || []
+          },
+          aggressive: {
+            bullet: f.bullet_tiers.aggressive?.bullet || resumeLanguage,
+            emphasis: f.bullet_tiers.aggressive?.emphasis || 'Benchmark positioning',
+            requiresConfirmation: true,
+            confirmationFields: f.bullet_tiers.aggressive?.confirmation_fields || []
+          }
+        } : undefined;
         
         return {
           requirementId: f.requirement_id,
@@ -341,7 +381,8 @@ Return valid JSON with this exact structure:
           evidenceIds: f.evidence_ids || [],
           gapTaxonomy: f.gap_taxonomy || [],
           riskLevel: f.risk_level,
-          confidence: f.confidence
+          confidence: f.confidence,
+          bulletTiers
         };
       }),
       

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EvidenceTag } from './EvidenceTag';
 import { BulletOptionsPanel, BulletOption } from './BulletOptionsPanel';
+import { BulletTierSelector } from './BulletTierSelector';
 import { DisputeGapModal, DisputeResult } from './DisputeGapModal';
 import { RequirementCardProps } from './types';
 import { useOptimizerStore } from '@/stores/optimizerStore';
@@ -14,7 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Copy, Plus, Check, Lightbulb, RefreshCw, Pencil, X, 
-  FileText, AlertTriangle, Target, Sparkles, Wand2, MessageSquarePlus
+  FileText, AlertTriangle, Target, Sparkles, Wand2, MessageSquarePlus,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 
 export function RequirementCard({ entry, getRequirementById, getEvidenceById }: RequirementCardProps) {
@@ -34,6 +36,13 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
   const [selectedOption, setSelectedOption] = useState<string | undefined>();
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeResult, setDisputeResult] = useState<DisputeResult | null>(null);
+  const [showBulletTiers, setShowBulletTiers] = useState(false);
+  
+  // Check if bullet tiers are available
+  const hasBulletTiers = entry.bulletTiers && 
+    entry.bulletTiers.conservative?.bullet && 
+    entry.bulletTiers.strong?.bullet && 
+    entry.bulletTiers.aggressive?.bullet;
   
   if (!requirement) return null;
   
@@ -328,6 +337,43 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
                     <p className="text-sm text-foreground/80">{entry.bridgingStrategy}</p>
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+          
+          {/* Bullet Tiers Section - NEW: 3-tier selector */}
+          {hasBulletTiers && (
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-between h-9"
+                onClick={() => setShowBulletTiers(!showBulletTiers)}
+              >
+                <span className="flex items-center gap-2">
+                  <Wand2 className="h-4 w-4" />
+                  <span className="font-medium">3 Bullet Styles</span>
+                  <Badge variant="secondary" className="text-xs">Conservative • Strong • Aggressive</Badge>
+                </span>
+                {showBulletTiers ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+              
+              {showBulletTiers && entry.bulletTiers && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="pt-2"
+                >
+                  <BulletTierSelector
+                    tiers={entry.bulletTiers}
+                    requirementId={entry.requirementId}
+                    onSelectTier={(_tier, bullet) => {
+                      setCustomText(bullet);
+                      setShowBulletTiers(false);
+                    }}
+                  />
+                </motion.div>
               )}
             </div>
           )}

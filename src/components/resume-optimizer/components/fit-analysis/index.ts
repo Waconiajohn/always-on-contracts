@@ -10,3 +10,5 @@ export * from './EvidenceInventoryPanel';
 export * from './BulletBankPanel';
 export * from './BenchmarkThemeCard';
 export * from './EvidenceTag';
+export * from './BenchmarkCandidatePanel';
+export * from './BulletTierSelector';
