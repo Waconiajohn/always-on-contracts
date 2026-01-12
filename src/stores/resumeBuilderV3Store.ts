@@ -185,8 +185,9 @@ export const useResumeBuilderV3Store = create<ResumeBuilderV3State>()(
         standards: state.standards,
         questions: state.questions,
         interviewAnswers: state.interviewAnswers,
+        finalResume: state.finalResume, // Persist final resume to prevent loss on refresh
         lastUpdated: state.lastUpdated,
-        // Don't persist: finalResume (regenerate), isLoading, error
+        // Don't persist: isLoading, error (transient states)
       }),
     }
   )
