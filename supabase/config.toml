@@ -449,3 +449,6 @@ verify_jwt = false
 
 [functions.instant-resume-score]
 verify_jwt = false
+
+[functions.micro-edit-bullet]
+verify_jwt = false
