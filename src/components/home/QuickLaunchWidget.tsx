@@ -14,7 +14,7 @@ export const QuickLaunchWidget = () => {
   const navigate = useNavigate();
 
   const quickActions = [
-    { icon: FileText, label: "Resume", path: "/resume-optimizer", color: "text-ai-primary" },
+    { icon: FileText, label: "Resume", path: "/resume-builder", color: "text-ai-primary" },
     { icon: Search, label: "Search", path: "/agents/job-search", color: "text-ai-secondary" },
     { icon: Bot, label: "AI Coach", path: "/coaching", color: "text-ai-complete" },
     { icon: Briefcase, label: "Jobs", path: "/job-search", color: "text-ai-active" },

@@ -50,7 +50,7 @@ const commandItems: CommandItem[] = [
   { title: "API Keys", path: "/api-keys", icon: Key, keywords: ["integration", "mcp"] },
   { title: "Automation Settings", path: "/automation-settings", icon: Settings, keywords: ["configure", "preferences"] },
   { title: "Experimental Lab", path: "/experimental-lab", icon: TestTube, keywords: ["beta", "features"] },
-  { title: "Resume Optimizer", path: "/resume-optimizer", icon: FileText, keywords: ["cv", "resume"] },
+  { title: "Resume Builder", path: "/resume-builder", icon: FileText, keywords: ["cv", "resume"] },
 ];
 
 export const CommandMenu = () => {
