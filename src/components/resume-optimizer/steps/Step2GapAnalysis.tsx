@@ -23,11 +23,11 @@ import { cn } from '@/lib/utils';
 import {
   FitSummaryCard,
   FitCategorySection,
-  ATSAlignmentCard,
   EvidenceInventoryPanel,
   BulletBankPanel,
   BenchmarkCandidatePanel,
-  LiveScorePanel
+  LiveScorePanel,
+  KeywordAnalysisPanel
 } from '../components/fit-analysis';
 import { FitCategory } from '../components/fit-analysis/types';
 import { useScoreCalculator } from '../hooks/useScoreCalculator';
@@ -287,9 +287,9 @@ export function Step2GapAnalysis() {
       )}
 
 
-      {/* ATS Alignment */}
+      {/* Keyword Optimizer (enhanced ATS Alignment) */}
       {fitBlueprint?.atsAlignment && (
-        <ATSAlignmentCard atsAlignment={fitBlueprint.atsAlignment} />
+        <KeywordAnalysisPanel atsAlignment={fitBlueprint.atsAlignment} />
       )}
 
       {/* Evidence Inventory (collapsible) */}

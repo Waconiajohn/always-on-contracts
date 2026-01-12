@@ -7,6 +7,7 @@
 // Sprint 4: Hiring Manager Review Components
 // Sprint 5: Polish & Integration
 // Sprint 6: Live Resume Draft Panel
+// Sprint 7: Keyword Optimizer
 
 export * from './FitSummaryCard';
 export * from './FitCategorySection';
@@ -27,3 +28,6 @@ export * from './RubricEvaluationCard';
 export * from './FinalVerdictCard';
 export * from './ScoreProgressBadge';
 export * from './LiveResumeDraftPanel';
+export * from './KeywordCoverageScore';
+export * from './KeywordInjectionCard';
+export * from './KeywordAnalysisPanel';
