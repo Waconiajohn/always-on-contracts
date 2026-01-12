@@ -8,15 +8,6 @@ import { cn } from '@/lib/utils';
 import { EvidenceTag } from './EvidenceTag';
 import { BulletTierSelector } from './BulletTierSelector';
 
-// DisputeResult type definition (inlined after removing DisputeGapModal)
-interface DisputeResult {
-  categoryChanged: boolean;
-  newCategory?: string;
-  newWhyQualified?: string;
-  newGapExplanation?: string;
-  suggestedBullet?: string;
-}
-
 // BulletOption type definition (inlined after removing BulletOptionsPanel)
 interface BulletOption {
   id: string;
@@ -48,8 +39,6 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
   const [editText, setEditText] = useState('');
   const [bulletOptions, setBulletOptions] = useState<BulletOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | undefined>();
-  // Dispute state removed - handled in GapCloser step
-  const [disputeResult] = useState<DisputeResult | null>(null);
   const [showBulletTiers, setShowBulletTiers] = useState(false);
   
   // Check if bullet tiers are available
@@ -63,10 +52,8 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
   const displayedLanguage = customText ?? entry.resumeLanguage;
   const isStaged = stagedBullets.some(b => b.text === displayedLanguage);
   
-  // Determine effective category (may be updated by dispute)
-  const effectiveCategory = disputeResult?.categoryChanged 
-    ? disputeResult.newCategory 
-    : entry.category;
+  // Use category directly from entry
+  const effectiveCategory = entry.category;
   
   const handleCopy = async () => {
     if (!displayedLanguage) return;
@@ -261,7 +248,7 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
         
         <CardContent className="p-6 space-y-5">
           {/* Category-specific content - Neutral styling */}
-          {effectiveCategory === 'HIGHLY QUALIFIED' && (entry.whyQualified || disputeResult?.newWhyQualified) && (
+          {effectiveCategory === 'HIGHLY QUALIFIED' && entry.whyQualified && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -270,29 +257,28 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
               <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-primary mb-1">Why you're qualified:</p>
-                <p className="text-sm text-foreground/80">{disputeResult?.newWhyQualified || entry.whyQualified}</p>
+                <p className="text-sm text-foreground/80">{entry.whyQualified}</p>
               </div>
             </motion.div>
           )}
           
           {effectiveCategory === 'PARTIALLY QUALIFIED' && (
             <div className="space-y-3">
-              {(entry.whyQualified || disputeResult?.newWhyQualified) && (
+              {entry.whyQualified && (
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border">
                   <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">What you have:</p>
-                    <p className="text-sm text-foreground/80">{disputeResult?.newWhyQualified || entry.whyQualified}</p>
+                    <p className="text-sm text-foreground/80">{entry.whyQualified}</p>
                   </div>
                 </div>
               )}
-              {(entry.gapExplanation || disputeResult?.newGapExplanation) && (
+              {entry.gapExplanation && (
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border-l-4 border-l-muted-foreground/50 border border-border">
                   <AlertTriangle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground mb-1">What's missing:</p>
-                    <p className="text-sm text-foreground/80">{disputeResult?.newGapExplanation || entry.gapExplanation}</p>
-                    {/* Dispute functionality removed - use GapCloser step instead */}
+                    <p className="text-sm text-foreground/80">{entry.gapExplanation}</p>
                   </div>
                 </div>
               )}
@@ -301,13 +287,12 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
           
           {effectiveCategory === 'EXPERIENCE GAP' && (
             <div className="space-y-3">
-              {(entry.gapExplanation || disputeResult?.newGapExplanation) && (
+              {entry.gapExplanation && (
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border-l-4 border-l-muted-foreground/30 border border-border">
                   <AlertTriangle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground mb-1">Experience Gap:</p>
-                    <p className="text-sm text-foreground/80">{disputeResult?.newGapExplanation || entry.gapExplanation}</p>
-                    {/* Dispute functionality removed - use GapCloser step instead */}
+                    <p className="text-sm text-foreground/80">{entry.gapExplanation}</p>
                   </div>
                 </div>
               )}

@@ -1,4 +1,4 @@
-import { EvidenceUnit, AtomicRequirement, FitMapEntry, BenchmarkTheme, BulletBankItem, ExecutiveSummary, ATSAlignment } from '../../types';
+import { EvidenceUnit, AtomicRequirement, FitMapEntry, BulletBankItem } from '../../types';
 
 export type FitCategory = 'HIGHLY QUALIFIED' | 'PARTIALLY QUALIFIED' | 'EXPERIENCE GAP';
 
@@ -76,14 +76,6 @@ export interface FitSummaryCardProps {
   experienceGapsCount: number;
 }
 
-export interface ExecutiveSummaryCardProps {
-  executiveSummary: ExecutiveSummary;
-}
-
-export interface ATSAlignmentCardProps {
-  atsAlignment: ATSAlignment;
-}
-
 export interface EvidenceInventoryPanelProps {
   evidenceInventory: EvidenceUnit[];
   isOpen: boolean;
@@ -97,7 +89,3 @@ export interface BulletBankPanelProps {
   getEvidenceById: (id: string) => EvidenceUnit | undefined;
 }
 
-export interface BenchmarkThemeCardProps {
-  theme: BenchmarkTheme;
-  getEvidenceById: (id: string) => EvidenceUnit | undefined;
-}
