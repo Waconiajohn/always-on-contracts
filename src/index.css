@@ -320,3 +320,51 @@
   animation: progress-indeterminate 1.5s ease-in-out infinite;
   width: 25%;
 }
+
+/* Print Styles for Resume Builder */
+@media print {
+  /* Hide everything except the printable resume */
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-resume,
+  .print-resume * {
+    visibility: visible;
+  }
+  
+  .print-resume {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Page setup */
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
+  
+  /* Ensure proper text rendering */
+  .print-resume h1,
+  .print-resume h2,
+  .print-resume h3,
+  .print-resume h4 {
+    color: black !important;
+    page-break-after: avoid;
+  }
+  
+  .print-resume section {
+    page-break-inside: avoid;
+  }
+  
+  /* Hide print button and other UI elements */
+  .no-print {
+    display: none !important;
+  }
+}

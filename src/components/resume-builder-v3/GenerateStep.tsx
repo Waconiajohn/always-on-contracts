@@ -2,6 +2,7 @@
 // STEP 4: Generated Resume Display
 // =====================================================
 
+import { useRef } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +13,19 @@ import {
   CheckCircle2,
   FileText,
   Sparkles,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ScoringReport } from "./ScoringReport";
 import { BeforeAfterComparison } from "./BeforeAfterComparison";
 import { ExportOptionsV3 } from "./ExportOptionsV3";
+import { PrintableResume } from "./PrintableResume";
+import { SuccessAnimation, FadeIn, StaggerContainer, StaggerItem } from "./StepTransition";
 import { formatResumeAsText } from "./utils/formatters";
 
 export function GenerateStep() {
   const { finalResume, fitAnalysis, standards } = useResumeBuilderV3Store();
+  const printRef = useRef<HTMLDivElement>(null);
 
   if (!finalResume) return null;
 
@@ -30,67 +35,93 @@ export function GenerateStep() {
     toast.success("Resume copied to clipboard!");
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Success header */}
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 mb-4">
-          <CheckCircle2 className="h-6 w-6 text-green-600" />
-        </div>
-        <h2 className="text-xl font-semibold mb-2">Your Optimized Resume</h2>
-        <p className="text-sm text-muted-foreground">
-          Your resume has been tailored to match the job requirements
-        </p>
+    <div className="space-y-6 no-print">
+      {/* Hidden printable version */}
+      <div className="hidden print:block">
+        <PrintableResume ref={printRef} resume={finalResume} />
       </div>
 
+      {/* Success header */}
+      <SuccessAnimation>
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 mb-4">
+            <CheckCircle2 className="h-6 w-6 text-green-600" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Your Optimized Resume</h2>
+          <p className="text-sm text-muted-foreground">
+            Your resume has been tailored to match the job requirements
+          </p>
+        </div>
+      </SuccessAnimation>
+
       {/* Before/After Comparison */}
-      <BeforeAfterComparison fitAnalysis={fitAnalysis} finalResume={finalResume} />
+      <FadeIn delay={0.1}>
+        <BeforeAfterComparison fitAnalysis={fitAnalysis} finalResume={finalResume} />
+      </FadeIn>
 
       {/* Scoring Report */}
-      <ScoringReport fitAnalysis={fitAnalysis} standards={standards} finalResume={finalResume} />
+      <FadeIn delay={0.2}>
+        <ScoringReport fitAnalysis={fitAnalysis} standards={standards} finalResume={finalResume} />
+      </FadeIn>
 
       {/* Improvements made */}
-      <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 text-green-800 dark:text-green-200">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            Improvements Made ({finalResume.improvements_made.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {finalResume.improvements_made.length > 0 ? (
-            <ul className="space-y-1" role="list" aria-label="List of improvements made to your resume">
-              {finalResume.improvements_made.map((improvement, index) => (
-                <li key={index} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  {improvement}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              Your resume was already well-optimized. No major improvements were needed.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <FadeIn delay={0.3}>
+        <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-green-800 dark:text-green-200">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              Improvements Made ({finalResume.improvements_made.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {finalResume.improvements_made.length > 0 ? (
+              <StaggerContainer staggerDelay={0.05}>
+                <ul className="space-y-1" role="list" aria-label="List of improvements made to your resume">
+                  {finalResume.improvements_made.map((improvement, index) => (
+                    <StaggerItem key={index}>
+                      <li className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                        {improvement}
+                      </li>
+                    </StaggerItem>
+                  ))}
+                </ul>
+              </StaggerContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                Your resume was already well-optimized. No major improvements were needed.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </FadeIn>
 
       {/* Resume preview */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Resume Preview
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleCopyText}>
-              <Copy className="h-4 w-4 mr-1" />
-              Copy
-            </Button>
-            <ExportOptionsV3 resume={finalResume} />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <FadeIn delay={0.4}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Resume Preview
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handlePrint}>
+                <Printer className="h-4 w-4 mr-1" />
+                Print
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopyText}>
+                <Copy className="h-4 w-4 mr-1" />
+                Copy
+              </Button>
+              <ExportOptionsV3 resume={finalResume} />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
           {/* Header */}
           <div className="text-center border-b pb-4">
             <h3 className="text-2xl font-bold">{finalResume.header.name}</h3>
@@ -204,6 +235,7 @@ export function GenerateStep() {
           )}
         </CardContent>
       </Card>
+      </FadeIn>
     </div>
   );
 }

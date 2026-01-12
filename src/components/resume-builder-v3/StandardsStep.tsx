@@ -2,7 +2,7 @@
 // STEP 2: Industry Standards Comparison
 // =====================================================
 
-import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
+import { useResumeBuilderV3Store, QuestionsResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +17,8 @@ import {
   AlertCircle,
   MinusCircle,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
+import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 
 export function StandardsStep() {
   const {
@@ -35,37 +34,38 @@ export function StandardsStep() {
 
   if (!standards) return null;
 
+  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+
   // Show loading skeleton when generating questions
   if (isLoading) {
-    return <LoadingSkeletonV3 type="questions" message="Generating personalized interview questions..." />;
+    return (
+      <LoadingSkeletonV3 
+        type="questions" 
+        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Generating personalized interview questions..."} 
+      />
+    );
   }
 
   const handleContinue = async () => {
     setLoading(true);
 
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-builder-v3", {
-        body: {
-          step: "questions",
-          resumeText,
-          jobDescription,
-          fitAnalysis,
-          standards,
-        },
-      });
+    const result = await callApi<QuestionsResult>({
+      step: "questions",
+      body: {
+        resumeText,
+        jobDescription,
+        fitAnalysis,
+        standards,
+      },
+      successMessage: "Interview questions ready!",
+    });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Failed to generate questions");
-
-      setQuestions(data.data);
+    if (result) {
+      setQuestions(result);
       setStep(3);
-      toast.success("Interview questions ready!");
-    } catch (error) {
-      console.error("Questions error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to generate questions");
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
   const getStatusIcon = (status: string) => {

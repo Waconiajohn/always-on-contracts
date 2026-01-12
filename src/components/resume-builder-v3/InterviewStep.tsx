@@ -3,7 +3,7 @@
 // =====================================================
 
 import { useState } from "react";
-import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
+import { useResumeBuilderV3Store, OptimizedResume } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +26,8 @@ import {
   Loader2,
   AlertTriangle,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
+import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 
 export function InterviewStep() {
   const {
@@ -50,9 +49,16 @@ export function InterviewStep() {
 
   if (!questions) return null;
 
+  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+
   // Show loading skeleton when generating resume
   if (isLoading) {
-    return <LoadingSkeletonV3 type="generate" message="Crafting your optimized resume based on your answers..." />;
+    return (
+      <LoadingSkeletonV3 
+        type="generate" 
+        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Crafting your optimized resume based on your answers..."} 
+      />
+    );
   }
 
   const currentQuestion = questions.questions[currentQuestionIndex];
@@ -88,30 +94,24 @@ export function InterviewStep() {
   const handleGenerate = async () => {
     setLoading(true);
 
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-builder-v3", {
-        body: {
-          step: "generate_resume",
-          resumeText,
-          jobDescription,
-          fitAnalysis,
-          standards,
-          interviewAnswers,
-        },
-      });
+    const result = await callApi<OptimizedResume>({
+      step: "generate_resume",
+      body: {
+        resumeText,
+        jobDescription,
+        fitAnalysis,
+        standards,
+        interviewAnswers,
+      },
+      successMessage: "Resume generated!",
+    });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Resume generation failed");
-
-      setFinalResume(data.data);
+    if (result) {
+      setFinalResume(result);
       setStep(4);
-      toast.success("Resume generated!");
-    } catch (error) {
-      console.error("Generate error:", error);
-      toast.error(error instanceof Error ? error.message : "Generation failed");
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
   const handleSkipClick = () => {

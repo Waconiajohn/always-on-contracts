@@ -2,7 +2,7 @@
 // STEP 1B: Display Fit Analysis Results
 // =====================================================
 
-import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
+import { useResumeBuilderV3Store, StandardsResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +14,8 @@ import {
   Tag,
   Loader2
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
+import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 
 export function FitAnalysisStep() {
   const {
@@ -31,36 +30,37 @@ export function FitAnalysisStep() {
 
   if (!fitAnalysis) return null;
 
+  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+
   // Show loading skeleton when fetching standards
   if (isLoading) {
-    return <LoadingSkeletonV3 type="standards" message="Researching industry standards and benchmarks..." />;
+    return (
+      <LoadingSkeletonV3 
+        type="standards" 
+        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Researching industry standards and benchmarks..."} 
+      />
+    );
   }
 
   const handleContinue = async () => {
     setLoading(true);
 
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-builder-v3", {
-        body: {
-          step: "standards",
-          resumeText,
-          jobDescription,
-          fitAnalysis,
-        },
-      });
+    const result = await callApi<StandardsResult>({
+      step: "standards",
+      body: {
+        resumeText,
+        jobDescription,
+        fitAnalysis,
+      },
+      successMessage: "Standards analysis complete!",
+    });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Standards comparison failed");
-
-      setStandards(data.data);
+    if (result) {
+      setStandards(result);
       setStep(2);
-      toast.success("Standards analysis complete!");
-    } catch (error) {
-      console.error("Standards error:", error);
-      toast.error(error instanceof Error ? error.message : "Analysis failed");
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
   const getScoreColor = (score: number) => {

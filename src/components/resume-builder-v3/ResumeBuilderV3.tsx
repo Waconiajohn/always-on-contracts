@@ -8,14 +8,15 @@
 // 4. Generate & Review Resume
 // =====================================================
 
-import { useState, useEffect, useCallback } from "react";
-import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useResumeBuilderV3Store, Step } from "@/stores/resumeBuilderV3Store";
 import { UploadStep } from "./UploadStep";
 import { FitAnalysisStep } from "./FitAnalysisStep";
 import { StandardsStep } from "./StandardsStep";
 import { InterviewStep } from "./InterviewStep";
 import { GenerateStep } from "./GenerateStep";
 import { SessionRecoveryDialogV3 } from "./SessionRecoveryDialogV3";
+import { StepTransition } from "./StepTransition";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,8 @@ export function ResumeBuilderV3() {
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
+  const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
+  const previousStepRef = useRef<Step>(step);
 
   // Check for existing session on mount
   // Only show recovery if they have actual analysis results (not just typed text)
@@ -54,9 +57,18 @@ export function ResumeBuilderV3() {
 
   const progressValue = ((step - 1) / 3) * 100;
 
+  // Track step changes for animation direction
+  useEffect(() => {
+    if (step !== previousStepRef.current) {
+      setTransitionDirection(step > previousStepRef.current ? "forward" : "backward");
+      previousStepRef.current = step;
+    }
+  }, [step]);
+
   const handleBack = useCallback(() => {
     if (step > 1) {
-      setStep((step - 1) as 1 | 2 | 3 | 4);
+      setTransitionDirection("backward");
+      setStep((step - 1) as Step);
     }
   }, [step, setStep]);
 
@@ -183,11 +195,13 @@ export function ResumeBuilderV3() {
           role="main"
           aria-label={`Step ${step}: ${STEP_LABELS[step - 1]}`}
         >
-          {step === 1 && !fitAnalysis && <UploadStep />}
-          {step === 1 && fitAnalysis && <FitAnalysisStep />}
-          {step === 2 && <StandardsStep />}
-          {step === 3 && <InterviewStep />}
-          {step === 4 && <GenerateStep />}
+          <StepTransition step={step} direction={transitionDirection}>
+            {step === 1 && !fitAnalysis && <UploadStep />}
+            {step === 1 && fitAnalysis && <FitAnalysisStep />}
+            {step === 2 && <StandardsStep />}
+            {step === 3 && <InterviewStep />}
+            {step === 4 && <GenerateStep />}
+          </StepTransition>
         </main>
 
         {/* Keyboard shortcuts hint */}
