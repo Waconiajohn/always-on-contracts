@@ -12,6 +12,7 @@ import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle } from "l
 import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
+import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 
 const MAX_RESUME_CHARS = 15000;
 const MAX_JOB_CHARS = 10000;
@@ -128,20 +129,21 @@ export function UploadStep() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-xl font-semibold mb-2">Let's Optimize Your Resume</h2>
-        <p className="text-muted-foreground">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="text-center mb-4 sm:mb-8">
+        <h2 className="text-lg sm:text-xl font-semibold mb-2">Let's Optimize Your Resume</h2>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Paste your resume and the job description. We'll analyze the fit and help you improve it.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Resume input with dropzone */}
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Your Resume
+            <HelpTooltip content={HELP_CONTENT.resumeInput} />
           </Label>
           
           {/* Drop zone */}
@@ -173,7 +175,7 @@ export function UploadStep() {
             placeholder="Or paste your resume text here..."
             value={localResume}
             onChange={(e) => setLocalResume(e.target.value)}
-            className={`min-h-[260px] font-mono text-sm ${resumeOverLimit ? "border-destructive" : ""}`}
+            className={`min-h-[200px] sm:min-h-[260px] font-mono text-sm ${resumeOverLimit ? "border-destructive" : ""}`}
             aria-describedby="resume-char-count"
           />
           <div id="resume-char-count" className="flex items-center justify-between text-xs">
@@ -195,12 +197,13 @@ export function UploadStep() {
           <Label className="flex items-center gap-2">
             <Briefcase className="h-4 w-4" />
             Job Description
+            <HelpTooltip content={HELP_CONTENT.jobDescription} />
           </Label>
           <Textarea
             placeholder="Paste the job description here..."
             value={localJob}
             onChange={(e) => setLocalJob(e.target.value)}
-            className={`min-h-[300px] font-mono text-sm ${jobOverLimit ? "border-destructive" : ""}`}
+            className={`min-h-[200px] sm:min-h-[300px] font-mono text-sm ${jobOverLimit ? "border-destructive" : ""}`}
             aria-describedby="job-char-count"
           />
           <div id="job-char-count" className="flex items-center justify-between text-xs">

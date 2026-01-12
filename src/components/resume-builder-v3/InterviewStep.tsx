@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
+import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 
 export function InterviewStep() {
   const {
@@ -166,16 +167,16 @@ export function InterviewStep() {
 
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-xl font-semibold mb-2">Let's Fill the Gaps</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-lg sm:text-xl font-semibold mb-2">Let's Fill the Gaps</h2>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Answer a few questions to help us create the best possible resume for you.
         </p>
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <span className="text-sm text-muted-foreground">
+        <div className="mt-3 sm:mt-4 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs sm:text-sm text-muted-foreground">
             Question {currentQuestionIndex + 1} of {totalQuestions}
           </span>
-          <span className="text-sm text-muted-foreground">•</span>
-          <span className="text-sm text-green-600">
+          <span className="text-xs sm:text-sm text-muted-foreground hidden xs:inline">•</span>
+          <span className="text-xs sm:text-sm text-green-600">
             {answeredCount}/{totalQuestions} answered
           </span>
         </div>
@@ -207,18 +208,21 @@ export function InterviewStep() {
       {/* Current question */}
       {currentQuestion && (
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-4">
-              <CardTitle className="text-lg flex items-start gap-2">
+          <CardHeader className="pb-3 px-3 sm:px-6">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4">
+              <CardTitle className="text-base sm:text-lg flex items-start gap-2">
                 <MessageCircle className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" />
                 {currentQuestion.question}
               </CardTitle>
-              <Badge className={getPriorityColor(currentQuestion.priority)}>
-                {currentQuestion.priority} priority
-              </Badge>
+              <div className="flex items-center gap-2 self-start">
+                <Badge className={getPriorityColor(currentQuestion.priority)}>
+                  {currentQuestion.priority}
+                </Badge>
+                <HelpTooltip content={HELP_CONTENT.questionPriority} />
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
             <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
               <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
               <div>
@@ -255,18 +259,19 @@ export function InterviewStep() {
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-3">
         <Button
           variant="outline"
           onClick={handlePrevious}
           disabled={currentQuestionIndex === 0}
+          className="order-2 xs:order-1"
         >
           Previous
         </Button>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 order-1 xs:order-2">
           {currentQuestionIndex < totalQuestions - 1 ? (
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} className="flex-1 xs:flex-none">
               Next Question
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
@@ -274,16 +279,18 @@ export function InterviewStep() {
             <Button
               onClick={handleGenerate}
               disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700"
+              className="flex-1 xs:flex-none bg-green-600 hover:bg-green-700"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Resume...
+                  <span className="hidden xs:inline">Generating...</span>
+                  <span className="xs:hidden">...</span>
                 </>
               ) : (
                 <>
-                  Generate Resume
+                  <span className="hidden xs:inline">Generate Resume</span>
+                  <span className="xs:hidden">Generate</span>
                   <ArrowRight className="h-4 w-4 ml-1" />
                 </>
               )}
@@ -296,14 +303,15 @@ export function InterviewStep() {
       <div className="text-center">
         <Button
           variant="link"
-          className="text-muted-foreground"
+          className="text-muted-foreground text-xs sm:text-sm"
           onClick={handleSkipClick}
           disabled={isLoading}
         >
-          Skip remaining questions and generate resume
+          <span className="hidden sm:inline">Skip remaining questions and generate resume</span>
+          <span className="sm:hidden">Skip & generate</span>
           {unansweredHighPriority > 0 && (
             <span className="ml-1 text-amber-600">
-              ({unansweredHighPriority} high-priority unanswered)
+              ({unansweredHighPriority} high-priority)
             </span>
           )}
         </Button>
