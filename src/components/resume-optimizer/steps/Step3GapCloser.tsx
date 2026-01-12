@@ -6,7 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useOptimizerStore } from '@/stores/optimizerStore';
-import { GapCloserCard } from '../components/fit-analysis/GapCloserCard';
+import { GapCloserCard, LiveScorePanel } from '../components/fit-analysis';
+import { useScoreCalculator } from '../hooks/useScoreCalculator';
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -35,6 +36,14 @@ export function Step3GapCloser() {
   const jobDescription = useOptimizerStore(state => state.jobDescription);
   
   const [activeGapType, setActiveGapType] = useState<string>('all');
+  const [isScorePanelCollapsed, setIsScorePanelCollapsed] = useState(false);
+
+  // Score calculation hook
+  const scores = useScoreCalculator({
+    fitBlueprint,
+    stagedBullets,
+    confirmedFacts,
+  });
 
   // Get gap closer strategies from fit blueprint
   const gapCloserStrategies = fitBlueprint?.gapCloserStrategies || [];
@@ -124,6 +133,21 @@ export function Step3GapCloser() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Live Score Panel */}
+      {fitBlueprint && (
+        <LiveScorePanel
+          fitScore={scores.fitScore}
+          benchmarkScore={scores.benchmarkScore}
+          credibilityScore={scores.credibilityScore}
+          atsScore={scores.atsScore}
+          overallHireability={scores.overallHireability}
+          trends={scores.trends}
+          details={scores.details}
+          isCollapsed={isScorePanelCollapsed}
+          onToggleCollapse={() => setIsScorePanelCollapsed(!isScorePanelCollapsed)}
+        />
+      )}
+
       {/* Header */}
       <Card>
         <CardHeader className="pb-3">
