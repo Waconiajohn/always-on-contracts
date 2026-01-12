@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 
 export function StandardsStep() {
   const {
@@ -33,6 +34,11 @@ export function StandardsStep() {
   } = useResumeBuilderV3Store();
 
   if (!standards) return null;
+
+  // Show loading skeleton when generating questions
+  if (isLoading) {
+    return <LoadingSkeletonV3 type="questions" message="Generating personalized interview questions..." />;
+  }
 
   const handleContinue = async () => {
     setLoading(true);

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 
 export function FitAnalysisStep() {
   const {
@@ -29,6 +30,11 @@ export function FitAnalysisStep() {
   } = useResumeBuilderV3Store();
 
   if (!fitAnalysis) return null;
+
+  // Show loading skeleton when fetching standards
+  if (isLoading) {
+    return <LoadingSkeletonV3 type="standards" message="Researching industry standards and benchmarks..." />;
+  }
 
   const handleContinue = async () => {
     setLoading(true);

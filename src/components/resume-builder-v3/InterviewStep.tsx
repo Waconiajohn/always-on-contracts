@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 
 export function InterviewStep() {
   const {
@@ -48,6 +49,11 @@ export function InterviewStep() {
   const [showSkipDialog, setShowSkipDialog] = useState(false);
 
   if (!questions) return null;
+
+  // Show loading skeleton when generating resume
+  if (isLoading) {
+    return <LoadingSkeletonV3 type="generate" message="Crafting your optimized resume based on your answers..." />;
+  }
 
   const currentQuestion = questions.questions[currentQuestionIndex];
   const answeredCount = Object.keys(interviewAnswers).filter(
