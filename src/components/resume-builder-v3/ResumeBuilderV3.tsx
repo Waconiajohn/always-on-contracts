@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
-import { OptimizerErrorBoundary } from "@/components/resume-optimizer/components/OptimizerErrorBoundary";
+import { ResumeBuilderErrorBoundary } from "./components/ErrorBoundary";
 
 const STEP_LABELS = ["Analyze", "Standards", "Interview", "Generate"];
 
@@ -103,7 +103,7 @@ export function ResumeBuilderV3() {
   };
 
   return (
-    <OptimizerErrorBoundary onReset={reset}>
+    <ResumeBuilderErrorBoundary onReset={reset}>
       <div className="max-w-4xl mx-auto p-3 sm:p-6">
         {/* Session Recovery Dialog */}
         <SessionRecoveryDialogV3
@@ -212,6 +212,6 @@ export function ResumeBuilderV3() {
           </p>
         )}
       </div>
-    </OptimizerErrorBoundary>
+    </ResumeBuilderErrorBoundary>
   );
 }

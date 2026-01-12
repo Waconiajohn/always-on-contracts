@@ -4,14 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Clock, TrendingUp, Copy, Download, Trash2, Loader2, Inbox } from "lucide-react";
+import { Plus, Clock, TrendingUp, Copy, Trash2, Loader2, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ModuleGate } from "@/components/ModuleGate";
-import { ExportDialog } from "@/components/resume-optimizer/components/ExportDialog";
-import { exportResume } from "@/components/resume-optimizer/utils/exportHandler";
-import type { ExportFormat } from "@/components/resume-optimizer/components/ExportDialog";
 
 interface ResumeVersion {
   id: string;
@@ -31,9 +28,6 @@ interface ResumeVersion {
 export const MyResumes = () => {
   const [resumes, setResumes] = useState<ResumeVersion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [exportingResumeId, setExportingResumeId] = useState<string | null>(null);
-  const [showExportDialog, setShowExportDialog] = useState(false);
-  const [selectedResume, setSelectedResume] = useState<ResumeVersion | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -103,42 +97,6 @@ export const MyResumes = () => {
     } catch (error) {
       console.error('Error duplicating resume:', error);
       toast.error('Failed to duplicate resume');
-    }
-  };
-
-  const handleExportClick = (resume: ResumeVersion, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedResume(resume);
-    setShowExportDialog(true);
-  };
-
-  const handleExport = async (format: ExportFormat) => {
-    if (!selectedResume) return;
-    
-    setExportingResumeId(selectedResume.id);
-    try {
-      // Create a BenchmarkResume-compatible object from the saved content
-      const resumeData = {
-        sections: selectedResume.content?.sections || [],
-        changelog: selectedResume.content?.changelog || [],
-        resumeText: selectedResume.content?.resumeText || '',
-        followUpQuestions: []
-      };
-      
-      await exportResume(
-        format,
-        resumeData,
-        null,
-        selectedResume.version_name,
-        selectedResume.template_id || undefined
-      );
-      
-      toast.success(`Resume exported as ${format.toUpperCase()}`);
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export resume');
-    } finally {
-      setExportingResumeId(null);
     }
   };
   
@@ -254,19 +212,6 @@ export const MyResumes = () => {
                           Duplicate
                         </Button>
                         <Button 
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => handleExportClick(resume, e)}
-                          disabled={exportingResumeId === resume.id}
-                        >
-                          {exportingResumeId === resume.id ? (
-                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                          ) : (
-                            <Download className="mr-2 h-3 w-3" />
-                          )}
-                          Export
-                        </Button>
-                        <Button 
                           onClick={() => handleDelete(resume.id)} 
                           variant="ghost"
                           size="sm"
@@ -282,17 +227,6 @@ export const MyResumes = () => {
             ))}
         </div>
       </div>
-
-      {/* Export Dialog */}
-      <ExportDialog
-        open={showExportDialog}
-        onClose={() => {
-          setShowExportDialog(false);
-          setSelectedResume(null);
-        }}
-        onExport={handleExport}
-        resumeName={selectedResume?.version_name || 'Resume'}
-      />
     </div>
   );
 };
