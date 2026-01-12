@@ -166,7 +166,19 @@ Return valid JSON with this exact structure:
     "executive_signals": ["signal1", "signal2"]
   },
   "evidence_inventory": [
-    {"id": "E1", "source_role": "role at company", "text": "concise evidence", "proof_type": "strong|moderate|weak"}
+    {
+      "id": "E1",
+      "source_role": "Senior Engineer at Acme Corp",
+      "source": {
+        "job_title": "Senior Engineer",
+        "company": "Acme Corp",
+        "date_range": "2020-2023",
+        "section_type": "experience",
+        "end_year": 2023
+      },
+      "text": "concise evidence statement",
+      "proof_type": "strong|moderate|weak"
+    }
   ],
   "requirements": [
     {"id": "R1", "requirement": "requirement text", "type": "Leadership|Domain|Execution", "seniority_signal": "Director|Manager|IC"}
@@ -321,15 +333,36 @@ Return valid JSON with this exact structure:
         executive50PlusRules: rawBlueprint.benchmark_resume_pattern.executive_50plus_rules || resumePattern.executive50PlusRules
       } : resumePattern,
       
-      // Evidence Inventory
-      evidenceInventory: (rawBlueprint.evidence_inventory || []).map((e: any) => ({
-        id: e.id,
-        sourceRole: e.source_role,
-        text: e.text,
-        type: e.type || 'Story',
-        proofType: e.proof_type || e.strength,
-        strength: e.strength
-      })),
+      // Evidence Inventory - with structured source and recency
+      evidenceInventory: (rawBlueprint.evidence_inventory || []).map((e: any) => {
+        // Calculate recency status from end year
+        const endYear = e.source?.end_year;
+        let recencyStatus: 'recent' | 'dated' | 'stale' = 'dated';
+        if (endYear) {
+          const currentYear = new Date().getFullYear();
+          const yearsAgo = currentYear - endYear;
+          if (yearsAgo < 5) recencyStatus = 'recent';
+          else if (yearsAgo <= 10) recencyStatus = 'dated';
+          else recencyStatus = 'stale';
+        }
+        
+        return {
+          id: e.id,
+          sourceRole: e.source_role,
+          source: e.source ? {
+            jobTitle: e.source.job_title || '',
+            company: e.source.company || '',
+            dateRange: e.source.date_range,
+            sectionType: e.source.section_type || 'experience',
+            endYear: e.source.end_year
+          } : undefined,
+          text: e.text,
+          type: e.type || 'Story',
+          proofType: e.proof_type || e.strength,
+          strength: e.strength,
+          recencyStatus
+        };
+      }),
       
       // Requirements
       requirements: (rawBlueprint.requirements || []).map((r: any) => ({
