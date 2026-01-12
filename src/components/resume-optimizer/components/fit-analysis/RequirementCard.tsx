@@ -6,16 +6,30 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EvidenceTag } from './EvidenceTag';
-import { BulletOptionsPanel, BulletOption } from './BulletOptionsPanel';
 import { BulletTierSelector } from './BulletTierSelector';
-import { DisputeGapModal, DisputeResult } from './DisputeGapModal';
+
+// DisputeResult type definition (inlined after removing DisputeGapModal)
+interface DisputeResult {
+  categoryChanged: boolean;
+  newCategory?: string;
+  newWhyQualified?: string;
+  newGapExplanation?: string;
+  suggestedBullet?: string;
+}
+
+// BulletOption type definition (inlined after removing BulletOptionsPanel)
+interface BulletOption {
+  id: string;
+  label: string;
+  bullet: string;
+}
 import { RequirementCardProps } from './types';
 import { useOptimizerStore } from '@/stores/optimizerStore';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Copy, Plus, Check, Lightbulb, RefreshCw, Pencil, X, 
-  FileText, AlertTriangle, Target, Sparkles, Wand2, MessageSquarePlus,
+  FileText, AlertTriangle, Target, Sparkles, Wand2,
   ChevronDown, ChevronUp
 } from 'lucide-react';
 
@@ -34,8 +48,8 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
   const [editText, setEditText] = useState('');
   const [bulletOptions, setBulletOptions] = useState<BulletOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | undefined>();
-  const [showDisputeModal, setShowDisputeModal] = useState(false);
-  const [disputeResult, setDisputeResult] = useState<DisputeResult | null>(null);
+  // Dispute state removed - handled in GapCloser step
+  const [disputeResult] = useState<DisputeResult | null>(null);
   const [showBulletTiers, setShowBulletTiers] = useState(false);
   
   // Check if bullet tiers are available
@@ -199,12 +213,7 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
     setEditText('');
   };
 
-  const handleDisputeResolved = (result: DisputeResult) => {
-    setDisputeResult(result);
-    if (result.suggestedBullet) {
-      setCustomText(result.suggestedBullet);
-    }
-  };
+  // Dispute handling removed - now handled in GapCloser step
   
   // Professional neutral color scheme - only subtle left border for category
   const getCategoryBorderColor = () => {
@@ -283,16 +292,7 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground mb-1">What's missing:</p>
                     <p className="text-sm text-foreground/80">{disputeResult?.newGapExplanation || entry.gapExplanation}</p>
-                    {/* Dispute Button */}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-3 h-8 text-xs"
-                      onClick={() => setShowDisputeModal(true)}
-                    >
-                      <MessageSquarePlus className="h-3 w-3 mr-1.5" />
-                      I have this skill
-                    </Button>
+                    {/* Dispute functionality removed - use GapCloser step instead */}
                   </div>
                 </div>
               )}
@@ -307,16 +307,7 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground mb-1">Experience Gap:</p>
                     <p className="text-sm text-foreground/80">{disputeResult?.newGapExplanation || entry.gapExplanation}</p>
-                    {/* Dispute Button */}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-3 h-8 text-xs"
-                      onClick={() => setShowDisputeModal(true)}
-                    >
-                      <MessageSquarePlus className="h-3 w-3 mr-1.5" />
-                      Actually, I have this
-                    </Button>
+                    {/* Dispute functionality removed - use GapCloser step instead */}
                   </div>
                 </div>
               )}
@@ -378,14 +369,36 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
             </div>
           )}
           
-          {/* Bullet Options Panel */}
+          {/* Bullet Options - Inline display */}
           {(bulletOptions.length > 0 || isGeneratingOptions) && (
-            <BulletOptionsPanel
-              options={bulletOptions}
-              isLoading={isGeneratingOptions}
-              onSelect={handleSelectOption}
-              selectedId={selectedOption}
-            />
+            <div className="space-y-3">
+              {isGeneratingOptions ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Generating options...</span>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {bulletOptions.map((option) => (
+                    <motion.div
+                      key={option.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        "p-3 rounded-lg border cursor-pointer transition-all",
+                        selectedOption === option.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      )}
+                      onClick={() => handleSelectOption(option)}
+                    >
+                      <p className="text-xs font-medium text-muted-foreground mb-1">{option.label}</p>
+                      <p className="text-sm">{option.bullet}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           
           {/* Resume Language Box - Clean, professional */}
@@ -502,17 +515,7 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
         </CardContent>
       </Card>
 
-      {/* Dispute Modal */}
-      <DisputeGapModal
-        isOpen={showDisputeModal}
-        onClose={() => setShowDisputeModal(false)}
-        requirementId={entry.requirementId}
-        requirementText={requirement.requirement}
-        currentCategory={entry.category}
-        gapExplanation={entry.gapExplanation}
-        jobDescription={jobDescription || ''}
-        onDisputeResolved={handleDisputeResolved}
-      />
+      {/* Dispute functionality removed - now handled in GapCloser step */}
     </>
   );
 }
