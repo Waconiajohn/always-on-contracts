@@ -151,7 +151,7 @@ export function ResumeBuilderV3() {
           </div>
 
           {/* Step indicator */}
-          <div className="space-y-2">
+          <div className="space-y-2" role="navigation" aria-label="Resume builder progress">
             <div className="flex justify-between text-sm text-muted-foreground">
               {STEP_LABELS.map((label, index) => (
                 <span
@@ -163,23 +163,39 @@ export function ResumeBuilderV3() {
                       ? "text-primary/70"
                       : ""
                   }
+                  aria-current={index + 1 === step ? "step" : undefined}
                 >
                   {label}
                 </span>
               ))}
             </div>
-            <Progress value={progressValue} className="h-2" />
+            <Progress 
+              value={progressValue} 
+              className="h-2" 
+              aria-label={`Step ${step} of 4: ${STEP_LABELS[step - 1]}`}
+            />
           </div>
         </div>
 
         {/* Step content */}
-        <div className="bg-card rounded-lg border p-6">
+        <main 
+          className="bg-card rounded-lg border p-6"
+          role="main"
+          aria-label={`Step ${step}: ${STEP_LABELS[step - 1]}`}
+        >
           {step === 1 && !fitAnalysis && <UploadStep />}
           {step === 1 && fitAnalysis && <FitAnalysisStep />}
           {step === 2 && <StandardsStep />}
           {step === 3 && <InterviewStep />}
           {step === 4 && <GenerateStep />}
-        </div>
+        </main>
+
+        {/* Keyboard shortcuts hint */}
+        {step > 1 && (
+          <p className="text-xs text-muted-foreground text-center mt-4" aria-hidden="true">
+            Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Esc</kbd> to go back
+          </p>
+        )}
       </div>
     </OptimizerErrorBoundary>
   );
