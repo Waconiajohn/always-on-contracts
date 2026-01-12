@@ -8,20 +8,37 @@
 // 4. Generate & Review Resume
 // =====================================================
 
+import { useState, useEffect } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { UploadStep } from "./UploadStep";
 import { FitAnalysisStep } from "./FitAnalysisStep";
 import { StandardsStep } from "./StandardsStep";
 import { InterviewStep } from "./InterviewStep";
 import { GenerateStep } from "./GenerateStep";
+import { SessionRecoveryDialogV3 } from "./SessionRecoveryDialogV3";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
+import { OptimizerErrorBoundary } from "@/components/resume-optimizer/components/OptimizerErrorBoundary";
 
 const STEP_LABELS = ["Analyze", "Standards", "Interview", "Generate"];
 
 export function ResumeBuilderV3() {
-  const { step, fitAnalysis, reset, setStep } = useResumeBuilderV3Store();
+  const { step, fitAnalysis, reset, setStep, hasActiveSession, lastUpdated } = useResumeBuilderV3Store();
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [hasCheckedSession, setHasCheckedSession] = useState(false);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    if (!hasCheckedSession) {
+      const hasSession = hasActiveSession();
+      if (hasSession && step > 1) {
+        setShowRecoveryDialog(true);
+      }
+      setHasCheckedSession(true);
+    }
+  }, [hasCheckedSession, hasActiveSession, step]);
 
   const progressValue = ((step - 1) / 3) * 100;
 
@@ -37,58 +54,85 @@ export function ResumeBuilderV3() {
     }
   };
 
+  const handleContinueSession = () => {
+    setShowRecoveryDialog(false);
+  };
+
+  const handleStartFresh = () => {
+    reset();
+    setShowRecoveryDialog(false);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header with progress */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            {step > 1 && (
-              <Button variant="ghost" size="sm" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back
-              </Button>
-            )}
-            <h1 className="text-2xl font-bold text-foreground">Resume Builder</h1>
+    <OptimizerErrorBoundary onReset={reset}>
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Session Recovery Dialog */}
+        <SessionRecoveryDialogV3
+          open={showRecoveryDialog}
+          onContinue={handleContinueSession}
+          onStartFresh={handleStartFresh}
+        />
+
+        {/* Header with progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              {step > 1 && (
+                <Button variant="ghost" size="sm" onClick={handleBack}>
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+              )}
+              <h1 className="text-2xl font-bold text-foreground">Resume Builder</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Auto-save indicator */}
+              {lastUpdated && (
+                <Badge variant="outline" className="text-xs text-muted-foreground gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  Saved
+                </Badge>
+              )}
+              {fitAnalysis && (
+                <Button variant="outline" size="sm" onClick={handleReset}>
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Start Over
+                </Button>
+              )}
+            </div>
           </div>
-          {fitAnalysis && (
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              <RotateCcw className="h-4 w-4 mr-1" />
-              Start Over
-            </Button>
-          )}
+
+          {/* Step indicator */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              {STEP_LABELS.map((label, index) => (
+                <span
+                  key={label}
+                  className={
+                    index + 1 === step
+                      ? "text-primary font-medium"
+                      : index + 1 < step
+                      ? "text-primary/70"
+                      : ""
+                  }
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+            <Progress value={progressValue} className="h-2" />
+          </div>
         </div>
 
-        {/* Step indicator */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm text-muted-foreground">
-            {STEP_LABELS.map((label, index) => (
-              <span
-                key={label}
-                className={
-                  index + 1 === step
-                    ? "text-primary font-medium"
-                    : index + 1 < step
-                    ? "text-primary/70"
-                    : ""
-                }
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-          <Progress value={progressValue} className="h-2" />
+        {/* Step content */}
+        <div className="bg-card rounded-lg border p-6">
+          {step === 1 && !fitAnalysis && <UploadStep />}
+          {step === 1 && fitAnalysis && <FitAnalysisStep />}
+          {step === 2 && <StandardsStep />}
+          {step === 3 && <InterviewStep />}
+          {step === 4 && <GenerateStep />}
         </div>
       </div>
-
-      {/* Step content */}
-      <div className="bg-card rounded-lg border p-6">
-        {step === 1 && !fitAnalysis && <UploadStep />}
-        {step === 1 && fitAnalysis && <FitAnalysisStep />}
-        {step === 2 && <StandardsStep />}
-        {step === 3 && <InterviewStep />}
-        {step === 4 && <GenerateStep />}
-      </div>
-    </div>
+    </OptimizerErrorBoundary>
   );
 }

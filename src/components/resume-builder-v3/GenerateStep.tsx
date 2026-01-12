@@ -8,16 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  Download,
   Copy,
   CheckCircle2,
   FileText,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ScoringReport } from "./ScoringReport";
+import { BeforeAfterComparison } from "./BeforeAfterComparison";
+import { ExportOptionsV3 } from "./ExportOptionsV3";
 
 export function GenerateStep() {
-  const { finalResume, fitAnalysis } = useResumeBuilderV3Store();
+  const { finalResume, fitAnalysis, standards } = useResumeBuilderV3Store();
 
   if (!finalResume) return null;
 
@@ -78,12 +80,6 @@ export function GenerateStep() {
     return text;
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-amber-600";
-    return "text-red-600";
-  };
-
   return (
     <div className="space-y-6">
       {/* Success header */}
@@ -92,22 +88,16 @@ export function GenerateStep() {
           <CheckCircle2 className="h-6 w-6 text-green-600" />
         </div>
         <h2 className="text-xl font-semibold mb-2">Your Optimized Resume</h2>
-        <div className="flex items-center justify-center gap-4 mt-4">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Original Fit</p>
-            <p className={`text-2xl font-bold ${getScoreColor(fitAnalysis?.fit_score || 0)}`}>
-              {fitAnalysis?.fit_score || 0}%
-            </p>
-          </div>
-          <div className="text-3xl text-muted-foreground">→</div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">ATS Score</p>
-            <p className={`text-2xl font-bold ${getScoreColor(finalResume.ats_score)}`}>
-              {finalResume.ats_score}%
-            </p>
-          </div>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Your resume has been tailored to match the job requirements
+        </p>
       </div>
+
+      {/* Before/After Comparison */}
+      <BeforeAfterComparison fitAnalysis={fitAnalysis} finalResume={finalResume} />
+
+      {/* Scoring Report */}
+      <ScoringReport fitAnalysis={fitAnalysis} standards={standards} finalResume={finalResume} />
 
       {/* Improvements made */}
       <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
@@ -141,10 +131,7 @@ export function GenerateStep() {
               <Copy className="h-4 w-4 mr-1" />
               Copy
             </Button>
-            <Button size="sm">
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
+            <ExportOptionsV3 resume={finalResume} />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
