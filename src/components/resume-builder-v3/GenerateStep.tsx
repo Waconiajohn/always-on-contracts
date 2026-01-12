@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { ScoringReport } from "./ScoringReport";
 import { BeforeAfterComparison } from "./BeforeAfterComparison";
 import { ExportOptionsV3 } from "./ExportOptionsV3";
+import { formatResumeAsText } from "./utils/formatters";
 
 export function GenerateStep() {
   const { finalResume, fitAnalysis, standards } = useResumeBuilderV3Store();
@@ -27,57 +28,6 @@ export function GenerateStep() {
     const resumeText = formatResumeAsText(finalResume);
     navigator.clipboard.writeText(resumeText);
     toast.success("Resume copied to clipboard!");
-  };
-
-  const formatResumeAsText = (resume: typeof finalResume) => {
-    if (!resume) return "";
-    
-    let text = "";
-    
-    // Header
-    text += `${resume.header.name}\n`;
-    text += `${resume.header.title}\n`;
-    if (resume.header.contact) text += `${resume.header.contact}\n`;
-    text += "\n";
-    
-    // Summary
-    text += "PROFESSIONAL SUMMARY\n";
-    text += `${resume.summary}\n\n`;
-    
-    // Experience
-    text += "EXPERIENCE\n";
-    resume.experience.forEach((exp) => {
-      text += `${exp.title} | ${exp.company} | ${exp.dates}\n`;
-      exp.bullets.forEach((bullet) => {
-        text += `• ${bullet}\n`;
-      });
-      text += "\n";
-    });
-    
-    // Skills
-    text += "SKILLS\n";
-    text += resume.skills.join(" • ") + "\n\n";
-    
-    // Education
-    if (resume.education?.length) {
-      text += "EDUCATION\n";
-      resume.education.forEach((edu) => {
-        text += `${edu.degree} - ${edu.institution}`;
-        if (edu.year) text += ` (${edu.year})`;
-        text += "\n";
-      });
-      text += "\n";
-    }
-    
-    // Certifications
-    if (resume.certifications?.length) {
-      text += "CERTIFICATIONS\n";
-      resume.certifications.forEach((cert) => {
-        text += `• ${cert}\n`;
-      });
-    }
-    
-    return text;
   };
 
   return (
