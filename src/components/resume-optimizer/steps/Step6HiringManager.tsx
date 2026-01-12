@@ -23,6 +23,12 @@ import {
 import { cn } from '@/lib/utils';
 import { ExportDialog, ExportFormat } from '../components/ExportDialog';
 import { exportResume } from '../utils/exportHandler';
+import { 
+  LiveScorePanel, 
+  RubricEvaluationCard, 
+  FinalVerdictCard 
+} from '../components/fit-analysis';
+import { useScoreCalculator } from '../hooks/useScoreCalculator';
 
 const RECOMMENDATION_CONFIG: Record<string, {
   label: string;
@@ -60,7 +66,7 @@ export function Step6HiringManager() {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Zustand store - use benchmarkResume instead of resumeVersions
+  // Zustand store
   const benchmarkResume = useOptimizerStore(state => state.benchmarkResume);
   const jobDescription = useOptimizerStore(state => state.jobDescription);
   const jobTitle = useOptimizerStore(state => state.jobTitle);
@@ -68,6 +74,8 @@ export function Step6HiringManager() {
   const fitBlueprint = useOptimizerStore(state => state.fitBlueprint);
   const selectedTemplate = useOptimizerStore(state => state.selectedTemplate);
   const hiringManagerReview = useOptimizerStore(state => state.hiringManagerReview);
+  const stagedBullets = useOptimizerStore(state => state.stagedBullets);
+  const confirmedFacts = useOptimizerStore(state => state.confirmedFacts);
   const setHMReview = useOptimizerStore(state => state.setHMReview);
   const setProcessing = useOptimizerStore(state => state.setProcessing);
   const goToPrevStep = useOptimizerStore(state => state.goToPrevStep);
@@ -78,6 +86,10 @@ export function Step6HiringManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [isScorePanelCollapsed, setIsScorePanelCollapsed] = useState(true);
+  
+  // Score calculation
+  const scores = useScoreCalculator({ fitBlueprint, stagedBullets, confirmedFacts });
   
   useEffect(() => {
     if (!hiringManagerReview) {
@@ -128,7 +140,7 @@ export function Step6HiringManager() {
       
       // Map edge function response to expected format
       const review = data?.review || data;
-      const recommendation = review.would_interview ? 'yes' : 'maybe';
+      const recommendation = review.recommendation || (review.would_interview ? 'yes' : 'maybe');
       const mappedReview = {
         recommendation: recommendation as 'strong-yes' | 'yes' | 'maybe' | 'no',
         overallImpression: review.overall_impression || review.overallImpression || '',
@@ -140,7 +152,12 @@ export function Step6HiringManager() {
           severity: (g.severity === 'deal_breaker' ? 'critical' : g.severity === 'concerning' ? 'moderate' : 'minor') as 'critical' | 'moderate' | 'minor'
         })) || review.specificConcerns || [],
         areasForImprovement: review.improvement_suggestions?.map((s: any) => s.suggested_improvement || s) || review.areasForImprovement || [],
-        suggestedQuestions: review.interview_questions || review.suggestedQuestions || []
+        suggestedQuestions: review.interview_questions?.map((q: any) => 
+          typeof q === 'string' ? q : q.question
+        ) || review.suggestedQuestions || [],
+        // Enhanced fields from new API
+        rubricEvaluation: review.rubricEvaluation || null,
+        finalVerdict: review.finalVerdict || null,
       };
       setHMReview(mappedReview);
       
@@ -281,31 +298,68 @@ export function Step6HiringManager() {
     );
   }
   
-  const review = hiringManagerReview!;
+  const review = hiringManagerReview! as any;
   const recConfig = RECOMMENDATION_CONFIG[review.recommendation] || RECOMMENDATION_CONFIG['maybe'];
   
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Recommendation Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Hiring Manager Review</CardTitle>
-              <CardDescription>
-                How a hiring manager would likely perceive your resume
-              </CardDescription>
+      {/* Live Score Panel */}
+      {fitBlueprint && (
+        <LiveScorePanel
+          fitScore={scores.fitScore}
+          benchmarkScore={scores.benchmarkScore}
+          credibilityScore={scores.credibilityScore}
+          atsScore={scores.atsScore}
+          overallHireability={scores.overallHireability}
+          trends={scores.trends}
+          details={scores.details}
+          isCollapsed={isScorePanelCollapsed}
+          onToggleCollapse={() => setIsScorePanelCollapsed(!isScorePanelCollapsed)}
+        />
+      )}
+
+      {/* Final Verdict Card - if available */}
+      {review.finalVerdict && (
+        <FinalVerdictCard
+          summary={review.finalVerdict.summary}
+          topStrength={review.finalVerdict.topStrength}
+          biggestConcern={review.finalVerdict.biggestConcern}
+          interviewLikelihood={review.finalVerdict.interviewLikelihood || 50}
+          recommendation={review.recommendation}
+        />
+      )}
+
+      {/* Recommendation Card - fallback if no final verdict */}
+      {!review.finalVerdict && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Hiring Manager Review</CardTitle>
+                <CardDescription>
+                  How a hiring manager would likely perceive your resume
+                </CardDescription>
+              </div>
+              <div className={cn('flex items-center gap-2 px-4 py-2 rounded-full', recConfig.bgColor)}>
+                {recConfig.icon}
+                <span className={cn('font-semibold', recConfig.color)}>{recConfig.label}</span>
+              </div>
             </div>
-            <div className={cn('flex items-center gap-2 px-4 py-2 rounded-full', recConfig.bgColor)}>
-              {recConfig.icon}
-              <span className={cn('font-semibold', recConfig.color)}>{recConfig.label}</span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">{review.overallImpression}</p>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">{review.overallImpression}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rubric Evaluation - if available */}
+      {review.rubricEvaluation && (
+        <RubricEvaluationCard
+          competencies={review.rubricEvaluation.competenciesDemonstrated || []}
+          outcomes={review.rubricEvaluation.outcomesAddressed || []}
+          benchmarkGaps={review.rubricEvaluation.benchmarkGaps || []}
+        />
+      )}
       
       {/* Strengths */}
       {review.strengthsIdentified?.length > 0 && (
@@ -318,7 +372,7 @@ export function Step6HiringManager() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {review.strengthsIdentified.map((strength, idx) => (
+              {review.strengthsIdentified.map((strength: string, idx: number) => (
                 <li key={idx} className="text-sm flex items-start gap-2">
                   <ThumbsUp className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
                   {strength}
@@ -339,7 +393,7 @@ export function Step6HiringManager() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {review.specificConcerns.map((concern, idx) => (
+            {review.specificConcerns.map((concern: any, idx: number) => (
               <div key={idx} className="rounded-lg border p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{concern.area}</span>
@@ -376,7 +430,7 @@ export function Step6HiringManager() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {review.areasForImprovement.map((area, idx) => (
+              {review.areasForImprovement.map((area: string, idx: number) => (
                 <li key={idx} className="text-sm flex items-start gap-2">
                   <XCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
                   {area}
@@ -401,7 +455,7 @@ export function Step6HiringManager() {
           </CardHeader>
           <CardContent>
             <ol className="space-y-2 list-decimal list-inside">
-              {review.suggestedQuestions.map((question, idx) => (
+              {review.suggestedQuestions.map((question: string, idx: number) => (
                 <li key={idx} className="text-sm">{question}</li>
               ))}
             </ol>
