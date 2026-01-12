@@ -47,7 +47,7 @@ export const MODULES: Record<ModuleId, ModuleDefinition> = {
     icon: FileText,
     color: 'text-blue-500',
     pages: [
-      '/resume-builder-v8',
+      '/resume-builder',
       '/my-resumes',
       '/templates',
       '/resume-optimizer',

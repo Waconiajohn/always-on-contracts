@@ -75,7 +75,7 @@ export const mainNavItems: NavItem[] = [
   // MODULE 2: Resume & Jobs Studio
   { 
     label: 'Resume Builder', 
-    path: '/resume-builder-v8', 
+    path: '/resume-builder', 
     icon: FileText,
     module: 'resume_jobs_studio',
   },
@@ -142,7 +142,7 @@ export const moduleNavGroups = {
     { label: 'Quick Score', path: '/quick-score', icon: Zap }
   ],
   resume_jobs_studio: [
-    { label: 'Resume Builder', path: '/resume-builder-v8', icon: FileText },
+    { label: 'Resume Builder', path: '/resume-builder', icon: FileText },
     { label: 'My Resumes', path: '/my-resumes', icon: FileText },
     { label: 'Templates', path: '/templates', icon: FileText },
     { label: 'Find Jobs', path: '/job-search', icon: Search },
