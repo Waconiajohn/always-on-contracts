@@ -14,3 +14,4 @@ export * from './BenchmarkCandidatePanel';
 export * from './BulletTierSelector';
 export * from './MicroEditToolbar';
 export * from './GapCloserCard';
+export * from './LiveScorePanel';

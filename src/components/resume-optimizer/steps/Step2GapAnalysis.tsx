@@ -26,9 +26,11 @@ import {
   ATSAlignmentCard,
   EvidenceInventoryPanel,
   BulletBankPanel,
-  BenchmarkCandidatePanel
+  BenchmarkCandidatePanel,
+  LiveScorePanel
 } from '../components/fit-analysis';
 import { FitCategory } from '../components/fit-analysis/types';
+import { useScoreCalculator } from '../hooks/useScoreCalculator';
 
 export function Step2GapAnalysis() {
   const { toast } = useToast();
@@ -44,6 +46,7 @@ export function Step2GapAnalysis() {
   const addVersionHistory = useOptimizerStore(state => state.addVersionHistory);
   const stagedBullets = useOptimizerStore(state => state.stagedBullets);
   const removeStagedBullet = useOptimizerStore(state => state.removeStagedBullet);
+  const confirmedFacts = useOptimizerStore(state => state.confirmedFacts);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +57,14 @@ export function Step2GapAnalysis() {
   });
   const [showEvidence, setShowEvidence] = useState(false);
   const [showBulletBank, setShowBulletBank] = useState(true);
+  const [isScorePanelCollapsed, setIsScorePanelCollapsed] = useState(false);
+
+  // Score calculation hook
+  const scores = useScoreCalculator({
+    fitBlueprint,
+    stagedBullets,
+    confirmedFacts,
+  });
   
   useEffect(() => {
     if (!fitBlueprint && resumeText && jobDescription) {
@@ -196,6 +207,21 @@ export function Step2GapAnalysis() {
   
   return (
     <div className="max-w-5xl mx-auto space-y-8">
+      {/* Live Score Panel - NEW: Real-time scoring feedback */}
+      {fitBlueprint && (
+        <LiveScorePanel
+          fitScore={scores.fitScore}
+          benchmarkScore={scores.benchmarkScore}
+          credibilityScore={scores.credibilityScore}
+          atsScore={scores.atsScore}
+          overallHireability={scores.overallHireability}
+          trends={scores.trends}
+          details={scores.details}
+          isCollapsed={isScorePanelCollapsed}
+          onToggleCollapse={() => setIsScorePanelCollapsed(!isScorePanelCollapsed)}
+        />
+      )}
+
       {/* Benchmark Candidate Profile - NEW: Shows what a top candidate looks like */}
       {(fitBlueprint?.benchmarkCandidateProfile || fitBlueprint?.roleSuccessRubric) && (
         <BenchmarkCandidatePanel
