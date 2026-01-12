@@ -25,20 +25,21 @@ import { OptimizerErrorBoundary } from "@/components/resume-optimizer/components
 const STEP_LABELS = ["Analyze", "Standards", "Interview", "Generate"];
 
 export function ResumeBuilderV3() {
-  const { step, fitAnalysis, reset, setStep, hasActiveSession, lastUpdated } = useResumeBuilderV3Store();
+  const { step, fitAnalysis, reset, setStep, lastUpdated } = useResumeBuilderV3Store();
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
 
   // Check for existing session on mount
+  // Only show recovery if they have actual analysis results (not just typed text)
   useEffect(() => {
     if (!hasCheckedSession) {
-      const hasSession = hasActiveSession();
-      if (hasSession && step > 1) {
+      const hasRealProgress = fitAnalysis !== null || step > 1;
+      if (hasRealProgress) {
         setShowRecoveryDialog(true);
       }
       setHasCheckedSession(true);
     }
-  }, [hasCheckedSession, hasActiveSession, step]);
+  }, [hasCheckedSession, fitAnalysis, step]);
 
   const progressValue = ((step - 1) / 3) * 100;
 

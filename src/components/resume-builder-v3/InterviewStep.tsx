@@ -122,21 +122,26 @@ export function InterviewStep() {
       </div>
 
       {/* Question navigation dots */}
-      <div className="flex justify-center gap-2">
-        {questions.questions.map((q, index) => (
-          <button
-            key={q.id}
-            onClick={() => setCurrentQuestionIndex(index)}
-            className={`h-2.5 w-2.5 rounded-full transition-colors ${
-              index === currentQuestionIndex
-                ? "bg-primary"
-                : interviewAnswers[q.id]
-                ? "bg-green-500"
-                : "bg-muted-foreground/30"
-            }`}
-            title={`Question ${index + 1}`}
-          />
-        ))}
+      <div className="flex justify-center gap-2" role="navigation" aria-label="Question navigation">
+        {questions.questions.map((q, index) => {
+          const isAnswered = !!interviewAnswers[q.id];
+          const isCurrent = index === currentQuestionIndex;
+          return (
+            <button
+              key={q.id}
+              onClick={() => setCurrentQuestionIndex(index)}
+              className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                isCurrent
+                  ? "bg-primary"
+                  : isAnswered
+                  ? "bg-green-500"
+                  : "bg-muted-foreground/30"
+              }`}
+              aria-label={`Question ${index + 1}${isAnswered ? ' (answered)' : ''}${isCurrent ? ' (current)' : ''}`}
+              aria-current={isCurrent ? "step" : undefined}
+            />
+          );
+        })}
       </div>
 
       {/* Current question */}
