@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { History, Clock, RotateCcw, Eye } from 'lucide-react';
+import { History, Clock, RotateCcw, Eye, GitCompare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Sheet,
   SheetContent,
@@ -32,6 +33,7 @@ import {
 import { VersionHistoryEntry, STEP_CONFIG } from '../types';
 import { useOptimizerStore } from '@/stores/optimizerStore';
 import { format } from 'date-fns';
+import { VersionDiffViewer } from './VersionDiffViewer';
 
 interface VersionHistoryProps {
   className?: string;
@@ -40,8 +42,10 @@ interface VersionHistoryProps {
 export function VersionHistory({ className }: VersionHistoryProps) {
   const { versionHistory, restoreVersion } = useOptimizerStore();
   const [previewEntry, setPreviewEntry] = useState<VersionHistoryEntry | null>(null);
+  const [compareEntry, setCompareEntry] = useState<VersionHistoryEntry | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
+  const [previewTab, setPreviewTab] = useState<'content' | 'diff'>('content');
 
   if (versionHistory.length === 0) {
     return null;
@@ -64,8 +68,21 @@ export function VersionHistory({ className }: VersionHistoryProps) {
       restoreVersion(confirmRestoreId);
       setConfirmRestoreId(null);
       setPreviewEntry(null);
+      setCompareEntry(null);
       setIsOpen(false);
     }
+  };
+
+  const handleCompare = (entry: VersionHistoryEntry) => {
+    // Find the previous version to compare against
+    const currentIndex = versionHistory.findIndex(v => v.id === entry.id);
+    if (currentIndex > 0) {
+      setCompareEntry(versionHistory[currentIndex - 1]);
+    } else {
+      setCompareEntry(null);
+    }
+    setPreviewEntry(entry);
+    setPreviewTab('diff');
   };
 
   // Reversed for display (newest first)
@@ -90,7 +107,7 @@ export function VersionHistory({ className }: VersionHistoryProps) {
               Version History
             </SheetTitle>
             <SheetDescription>
-              View and restore previous versions of your resume
+              View, compare, and restore previous versions
             </SheetDescription>
           </SheetHeader>
           
@@ -146,11 +163,25 @@ export function VersionHistory({ className }: VersionHistoryProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setPreviewEntry(entry)}
+                            onClick={() => {
+                              setPreviewEntry(entry);
+                              setCompareEntry(null);
+                              setPreviewTab('content');
+                            }}
                           >
                             <Eye className="h-3 w-3 mr-1" />
                             Preview
                           </Button>
+                          {index < reversedHistory.length - 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCompare(entry)}
+                            >
+                              <GitCompare className="h-3 w-3 mr-1" />
+                              Compare
+                            </Button>
+                          )}
                           {index !== 0 && (
                             <Button
                               variant="ghost"
@@ -190,9 +221,9 @@ export function VersionHistory({ className }: VersionHistoryProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Preview Dialog */}
-      <Dialog open={!!previewEntry} onOpenChange={() => setPreviewEntry(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+      {/* Preview/Compare Dialog */}
+      <Dialog open={!!previewEntry} onOpenChange={() => { setPreviewEntry(null); setCompareEntry(null); }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Resume Version
@@ -201,26 +232,48 @@ export function VersionHistory({ className }: VersionHistoryProps) {
               </Badge>
             </DialogTitle>
             <DialogDescription>
-              Preview of resume version from {previewEntry?.changeDescription}
+              {previewEntry?.changeDescription}
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="h-[60vh] pr-4">
-            <div className="space-y-4">
-              {previewEntry?.resumeSnapshot && (
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium text-sm mb-2">Resume Content</h4>
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {previewEntry.resumeSnapshot.substring(0, 500)}
-                    {previewEntry.resumeSnapshot.length > 500 && '...'}
+          <Tabs value={previewTab} onValueChange={(v) => setPreviewTab(v as 'content' | 'diff')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="content" className="gap-2">
+                <Eye className="h-4 w-4" />
+                Content
+              </TabsTrigger>
+              <TabsTrigger value="diff" className="gap-2" disabled={!compareEntry}>
+                <GitCompare className="h-4 w-4" />
+                Diff {!compareEntry && '(select to compare)'}
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="content" className="mt-4">
+              <ScrollArea className="h-[50vh] pr-4">
+                {previewEntry?.resumeSnapshot && (
+                  <div className="border rounded-lg p-4">
+                    <div className="text-sm whitespace-pre-wrap font-mono">
+                      {previewEntry.resumeSnapshot}
+                    </div>
                   </div>
-                </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+            
+            <TabsContent value="diff" className="mt-4">
+              {compareEntry && previewEntry && (
+                <VersionDiffViewer
+                  oldContent={compareEntry.resumeSnapshot}
+                  newContent={previewEntry.resumeSnapshot}
+                  oldLabel={formatTime(compareEntry.timestamp)}
+                  newLabel={formatTime(previewEntry.timestamp)}
+                />
               )}
-            </div>
-          </ScrollArea>
+            </TabsContent>
+          </Tabs>
           
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setPreviewEntry(null)}>
+            <Button variant="outline" onClick={() => { setPreviewEntry(null); setCompareEntry(null); }}>
               Close
             </Button>
             <Button onClick={() => {
