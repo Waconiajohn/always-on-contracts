@@ -6,6 +6,7 @@
 // Sprint 3: Live Score Panel + Score Calculator
 // Sprint 4: Hiring Manager Review Components
 // Sprint 5: Polish & Integration
+// Sprint 6: Live Resume Draft Panel
 
 export * from './FitSummaryCard';
 export * from './FitCategorySection';
@@ -25,3 +26,4 @@ export * from './InterviewLikelihoodGauge';
 export * from './RubricEvaluationCard';
 export * from './FinalVerdictCard';
 export * from './ScoreProgressBadge';
+export * from './LiveResumeDraftPanel';
