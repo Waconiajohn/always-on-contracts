@@ -12,3 +12,5 @@ export * from './BenchmarkThemeCard';
 export * from './EvidenceTag';
 export * from './BenchmarkCandidatePanel';
 export * from './BulletTierSelector';
+export * from './MicroEditToolbar';
+export * from './GapCloserCard';

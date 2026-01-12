@@ -99,8 +99,6 @@ export function GapCloserCard({
     return editedBullets[bulletKey] || originalBullet;
   };
 
-  const currentStrategy = strategy.strategies.find(s => s.type === activeStrategy);
-
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="border-l-4 border-l-amber-400">
