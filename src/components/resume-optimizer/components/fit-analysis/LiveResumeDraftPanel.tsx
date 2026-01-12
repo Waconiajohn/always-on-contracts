@@ -22,11 +22,15 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { StagedBullet } from '../../types';
+import { OneClickImproveButton } from './OneClickImproveButton';
+import { toast } from 'sonner';
 
 interface LiveResumeDraftPanelProps {
   stagedBullets: StagedBullet[];
   onRemoveBullet: (index: number) => void;
+  onUpdateBullet?: (index: number, newText: string) => void;
   onClearAll?: () => void;
+  jobDescription?: string;
   className?: string;
 }
 
@@ -41,7 +45,9 @@ const SECTION_COLORS: Record<string, string> = {
 export const LiveResumeDraftPanel: React.FC<LiveResumeDraftPanelProps> = ({
   stagedBullets,
   onRemoveBullet,
+  onUpdateBullet,
   onClearAll,
+  jobDescription,
   className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -198,9 +204,22 @@ export const LiveResumeDraftPanel: React.FC<LiveResumeDraftPanelProps> = ({
                               >
                                 <div className="flex gap-1.5">
                                   <GripVertical className="h-3 w-3 text-muted-foreground/50 flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
-                                  <p className="flex-1 line-clamp-3 leading-relaxed">
-                                    {bullet.text}
-                                  </p>
+                                  <div className="flex-1 space-y-1.5">
+                                    <p className="line-clamp-3 leading-relaxed">
+                                      {bullet.text}
+                                    </p>
+                                    {onUpdateBullet && (
+                                      <OneClickImproveButton
+                                        bulletText={bullet.text}
+                                        jobDescription={jobDescription}
+                                        onImproved={(newBullet) => {
+                                          onUpdateBullet(bullet.originalIndex, newBullet);
+                                          toast.success('Bullet improved!');
+                                        }}
+                                        variant="inline"
+                                      />
+                                    )}
+                                  </div>
                                   <Button
                                     variant="ghost"
                                     size="sm"
