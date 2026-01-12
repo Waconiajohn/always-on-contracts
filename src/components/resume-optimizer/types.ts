@@ -98,12 +98,26 @@ export const CONFIDENCE_CONFIG: Record<ConfidenceLevel, {
 
 // ============= Pass 1: Fit Blueprint Types =============
 
+// Structured source data for evidence attribution
+export interface EvidenceSource {
+  jobTitle: string;
+  company: string;
+  dateRange?: string;        // e.g., "2018-2022"
+  sectionType: 'summary' | 'selected_skills' | 'selected_accomplishments' | 'experience' | 'education' | 'certifications';
+  endYear?: number;          // For recency calculation
+}
+
+// Recency status calculated from evidence end year
+export type RecencyStatus = 'recent' | 'dated' | 'stale';
+
 // Evidence from resume (E1, E2, E3...)
 export interface EvidenceUnit {
   id: string;           // E1, E2, etc.
   sourceRole: string;
+  source?: EvidenceSource;   // Structured source data
   text: string;
   strength: 'strong' | 'moderate' | 'weak' | 'inference';
+  recencyStatus?: RecencyStatus;  // Calculated from endYear
 }
 
 // Atomic job requirement (R1, R2, R3...)

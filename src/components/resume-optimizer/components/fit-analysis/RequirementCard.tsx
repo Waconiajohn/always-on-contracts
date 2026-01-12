@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EvidenceTag } from './EvidenceTag';
+import { SourceLabel } from './SourceLabel';
+import { RecencyPrompt } from './RecencyPrompt';
 import { BulletTierSelector } from './BulletTierSelector';
 
 // BulletOption type definition (inlined after removing BulletOptionsPanel)
@@ -484,17 +486,39 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
             <p className="text-sm text-muted-foreground">{entry.rationale}</p>
           )}
           
-          {/* Evidence Citations */}
+          {/* Evidence Citations with Source Attribution */}
           {entry.evidenceIds && entry.evidenceIds.length > 0 && (
-            <div className="flex flex-wrap gap-2 items-center pt-3 border-t">
+            <div className="space-y-2 pt-3 border-t">
               <span className="text-xs text-muted-foreground font-medium">Evidence:</span>
-              {entry.evidenceIds.map((evidenceId) => (
-                <EvidenceTag 
-                  key={evidenceId}
-                  evidenceId={evidenceId} 
-                  getEvidenceById={getEvidenceById} 
-                />
-              ))}
+              {entry.evidenceIds.map((evidenceId) => {
+                const evidence = getEvidenceById(evidenceId);
+                return (
+                  <div key={evidenceId} className="flex flex-col gap-1 pl-2 border-l-2 border-muted">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <EvidenceTag 
+                        evidenceId={evidenceId} 
+                        getEvidenceById={getEvidenceById} 
+                      />
+                      {evidence?.source && (
+                        <SourceLabel 
+                          source={evidence.source} 
+                          recencyStatus={evidence.recencyStatus}
+                          compact
+                        />
+                      )}
+                    </div>
+                    {evidence?.text && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{evidence.text}</p>
+                    )}
+                    {evidence?.recencyStatus === 'stale' && requirement && (
+                      <RecencyPrompt 
+                        requirementText={requirement.requirement}
+                        evidenceYear={evidence.source?.endYear}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

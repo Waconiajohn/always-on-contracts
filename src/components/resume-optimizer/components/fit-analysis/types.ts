@@ -1,4 +1,4 @@
-import { EvidenceUnit, AtomicRequirement, FitMapEntry, BulletBankItem } from '../../types';
+import { EvidenceUnit, AtomicRequirement, FitMapEntry } from '../../types';
 
 export type FitCategory = 'HIGHLY QUALIFIED' | 'PARTIALLY QUALIFIED' | 'EXPERIENCE GAP';
 
@@ -82,10 +82,5 @@ export interface EvidenceInventoryPanelProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export interface BulletBankPanelProps {
-  bulletBank: BulletBankItem[];
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  getEvidenceById: (id: string) => EvidenceUnit | undefined;
-}
+// BulletBankPanel has been removed - inline refinement is now handled in RequirementCard
 

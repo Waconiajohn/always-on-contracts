@@ -24,10 +24,10 @@ import {
   FitSummaryCard,
   FitCategorySection,
   EvidenceInventoryPanel,
-  BulletBankPanel,
   BenchmarkCandidatePanel,
   LiveScorePanel,
-  KeywordAnalysisPanel
+  KeywordAnalysisPanel,
+  PageExplainer
 } from '../components/fit-analysis';
 import { FitCategory } from '../components/fit-analysis/types';
 import { useScoreCalculator } from '../hooks/useScoreCalculator';
@@ -56,7 +56,6 @@ export function Step2GapAnalysis() {
     'EXPERIENCE GAP': true
   });
   const [showEvidence, setShowEvidence] = useState(false);
-  const [showBulletBank, setShowBulletBank] = useState(true);
   const [isScorePanelCollapsed, setIsScorePanelCollapsed] = useState(false);
 
   // Score calculation hook
@@ -207,7 +206,10 @@ export function Step2GapAnalysis() {
   
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Live Score Panel - NEW: Real-time scoring feedback */}
+      {/* Page Explainer - How This Works */}
+      <PageExplainer />
+
+      {/* Live Score Panel - Real-time scoring feedback */}
       {fitBlueprint && (
         <LiveScorePanel
           fitScore={scores.fitScore}
@@ -219,15 +221,6 @@ export function Step2GapAnalysis() {
           details={scores.details}
           isCollapsed={isScorePanelCollapsed}
           onToggleCollapse={() => setIsScorePanelCollapsed(!isScorePanelCollapsed)}
-        />
-      )}
-
-      {/* Benchmark Candidate Profile - NEW: Shows what a top candidate looks like */}
-      {(fitBlueprint?.benchmarkCandidateProfile || fitBlueprint?.roleSuccessRubric) && (
-        <BenchmarkCandidatePanel
-          benchmarkProfile={fitBlueprint.benchmarkCandidateProfile}
-          roleSuccessRubric={fitBlueprint.roleSuccessRubric}
-          evidenceInventory={fitBlueprint.evidenceInventory}
         />
       )}
 
@@ -276,17 +269,6 @@ export function Step2GapAnalysis() {
         </Card>
       )}
 
-      {/* AI-Generated Content Suggestions (Bullet Bank) - Promoted to top */}
-      {fitBlueprint?.bulletBank && fitBlueprint.bulletBank.length > 0 && (
-        <BulletBankPanel
-          bulletBank={fitBlueprint.bulletBank}
-          isOpen={showBulletBank}
-          onOpenChange={setShowBulletBank}
-          getEvidenceById={getEvidenceById}
-        />
-      )}
-
-
       {/* Keyword Optimizer (enhanced ATS Alignment) */}
       {fitBlueprint?.atsAlignment && (
         <KeywordAnalysisPanel atsAlignment={fitBlueprint.atsAlignment} />
@@ -301,8 +283,20 @@ export function Step2GapAnalysis() {
         />
       )}
       
-      {/* Requirement Sections */}
+      {/* Phase 1: Match the Job Description */}
       <div className="space-y-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Phase 1: Match the Job Description</h2>
+            <p className="text-sm text-muted-foreground">
+              {highlyQualified.length + partiallyQualified.length} of {fitBlueprint!.requirements.length} requirements addressed
+            </p>
+          </div>
+        </div>
+        
         <FitCategorySection
           category="HIGHLY QUALIFIED"
           entries={highlyQualified}
@@ -328,6 +322,29 @@ export function Step2GapAnalysis() {
           getEvidenceById={getEvidenceById}
         />
       </div>
+
+      {/* Phase 2: Exceed Expectations - Benchmark */}
+      {(fitBlueprint?.benchmarkCandidateProfile || fitBlueprint?.roleSuccessRubric) && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-accent/10">
+              <Lightbulb className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Phase 2: Exceed Expectations</h2>
+              <p className="text-sm text-muted-foreground">
+                You're qualified — now become the BEST candidate
+              </p>
+            </div>
+          </div>
+          
+          <BenchmarkCandidatePanel
+            benchmarkProfile={fitBlueprint.benchmarkCandidateProfile}
+            roleSuccessRubric={fitBlueprint.roleSuccessRubric}
+            evidenceInventory={fitBlueprint.evidenceInventory}
+          />
+        </div>
+      )}
       
       {/* Missing Bullet Plan Preview */}
       {fitBlueprint!.missingBulletPlan.length > 0 && (
