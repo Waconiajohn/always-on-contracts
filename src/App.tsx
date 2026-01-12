@@ -60,7 +60,6 @@ const TestingDashboard = lazy(() => import("./pages/TestingDashboard"));
 const ExperimentalLab = lazy(() => import("./pages/ExperimentalLab"));
 const ResumeDataAudit = lazy(() => import("./pages/ResumeDataAudit"));
 const QuickScore = lazy(() => import("./pages/QuickScore"));
-const ResumeOptimizerV9 = lazy(() => import("./components/resume-optimizer/ResumeOptimizerV9"));
 const ResumeBuilderV3 = lazy(() => import("./components/resume-builder-v3/ResumeBuilderV3").then(m => ({ default: m.ResumeBuilderV3 })));
 const ResumeOptimizerMarketing = lazy(() => import("./pages/ResumeOptimizerMarketing"));
 
@@ -151,17 +150,12 @@ const AppContent = () => {
             <Route path="/resume-data-audit" element={<ProtectedRoute><ResumeDataAudit /></ProtectedRoute>} />
             <Route path="/benchmark-builder" element={<Navigate to="/resume-builder" replace />} />
             <Route path="/resume-builder-v7" element={<Navigate to="/resume-builder" replace />} />
-            {/* V9 Resume Optimizer - 6-step collaborative system */}
+            {/* Legacy routes redirect to main builder */}
             <Route path="/resume-builder-v8" element={<Navigate to="/resume-builder" replace />} />
+            <Route path="/resume-builder-v9" element={<Navigate to="/resume-builder" replace />} />
+            <Route path="/resume-builder-v3" element={<Navigate to="/resume-builder" replace />} />
+            {/* Resume Builder - Primary 4-step flow */}
             <Route path="/resume-builder" element={
-              <ProtectedRoute>
-                <ModuleGate module="resume_jobs_studio">
-                  <ResumeOptimizerV9 />
-                </ModuleGate>
-              </ProtectedRoute>
-            } />
-            {/* Resume Builder V3 - New structured output agent architecture */}
-            <Route path="/resume-builder-v3" element={
               <ProtectedRoute>
                 <ModuleGate module="resume_jobs_studio">
                   <ResumeBuilderV3 />
