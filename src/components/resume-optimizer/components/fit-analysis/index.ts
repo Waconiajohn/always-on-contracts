@@ -31,3 +31,6 @@ export * from './LiveResumeDraftPanel';
 export * from './KeywordCoverageScore';
 export * from './KeywordInjectionCard';
 export * from './KeywordAnalysisPanel';
+export * from './BulletRewriteCard';
+export * from './BeforeAfterPreview';
+export * from './OneClickImproveButton';
