@@ -53,19 +53,25 @@ export function GenerateStep() {
       <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 text-green-800 dark:text-green-200">
-            <Sparkles className="h-4 w-4" />
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
             Improvements Made ({finalResume.improvements_made.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-1">
-            {finalResume.improvements_made.map((improvement, index) => (
-              <li key={index} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                {improvement}
-              </li>
-            ))}
-          </ul>
+          {finalResume.improvements_made.length > 0 ? (
+            <ul className="space-y-1" role="list" aria-label="List of improvements made to your resume">
+              {finalResume.improvements_made.map((improvement, index) => (
+                <li key={index} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  {improvement}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">
+              Your resume was already well-optimized. No major improvements were needed.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -139,13 +145,17 @@ export function GenerateStep() {
             <h4 className="font-semibold text-sm uppercase tracking-wide mb-2">
               Skills
             </h4>
-            <div className="flex flex-wrap gap-2">
-              {finalResume.skills.map((skill, index) => (
-                <Badge key={index} variant="secondary">
-                  {skill}
-                </Badge>
-              ))}
-            </div>
+            {finalResume.skills.length > 0 ? (
+              <div className="flex flex-wrap gap-2" role="list" aria-label="Skills">
+                {finalResume.skills.map((skill, index) => (
+                  <Badge key={index} variant="secondary" role="listitem">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No skills listed</p>
+            )}
           </div>
 
           {/* Education */}
