@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 
 const MAX_RESUME_CHARS = 15000;
 const MAX_JOB_CHARS = 10000;
@@ -119,6 +120,11 @@ export function UploadStep() {
     if (current > max * 0.9) return "text-amber-600";
     return "text-green-600";
   };
+
+  // Show loading skeleton when analyzing
+  if (isLoading) {
+    return <LoadingSkeletonV3 type="analysis" />;
+  }
 
   return (
     <div className="space-y-6">
