@@ -47,9 +47,6 @@ export function InterviewStep() {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
-
-  if (!questions) return null;
-
   const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
 
   // Show loading skeleton when generating resume
@@ -61,6 +58,8 @@ export function InterviewStep() {
       />
     );
   }
+
+  if (!questions) return null;
 
   const currentQuestion = questions.questions[currentQuestionIndex];
   const answeredCount = Object.keys(interviewAnswers).filter(
