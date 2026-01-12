@@ -81,8 +81,7 @@ export function UploadStep() {
     onDrop,
     accept: {
       'text/plain': ['.txt'],
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      // PDF/DOCX temporarily removed until server-side parsing is implemented
     },
     maxFiles: 1,
     disabled: isLoading || isParsingFile,

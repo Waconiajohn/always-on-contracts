@@ -30,20 +30,6 @@ export function GenerateStep() {
   const printRef = useRef<HTMLDivElement>(null);
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
 
-  // Save version to history when resume changes
-  useEffect(() => {
-    if (finalResume) {
-      const existingVersions = JSON.parse(localStorage.getItem('resume-versions') || '[]');
-      // Limit to 10 versions
-      const updatedVersions = existingVersions.slice(0, 9);
-      localStorage.setItem('resume-versions', JSON.stringify(updatedVersions));
-      setVersions(updatedVersions.map((v: any) => ({
-        ...v,
-        createdAt: new Date(v.createdAt),
-      })));
-    }
-  }, [finalResume]);
-
   // Load versions on mount
   useEffect(() => {
     const savedVersions = JSON.parse(localStorage.getItem('resume-versions') || '[]');
@@ -52,6 +38,34 @@ export function GenerateStep() {
       createdAt: new Date(v.createdAt),
     })));
   }, []);
+
+  // Auto-save version when a NEW resume is generated (not on every render)
+  useEffect(() => {
+    if (!finalResume) return;
+    
+    const existingVersions = JSON.parse(localStorage.getItem('resume-versions') || '[]');
+    
+    // Check if this resume is already saved (by comparing summary + ats_score as fingerprint)
+    const alreadySaved = existingVersions.some((v: any) => 
+      v.resume?.ats_score === finalResume.ats_score &&
+      v.resume?.summary === finalResume.summary
+    );
+    
+    if (!alreadySaved) {
+      const newVersion: ResumeVersion = {
+        id: Date.now().toString(),
+        resume: finalResume,
+        createdAt: new Date(),
+        label: `Version ${existingVersions.length + 1}`,
+      };
+      const updatedVersions = [newVersion, ...existingVersions].slice(0, 10);
+      localStorage.setItem('resume-versions', JSON.stringify(updatedVersions));
+      setVersions(updatedVersions.map((v: any) => ({
+        ...v,
+        createdAt: new Date(v.createdAt),
+      })));
+    }
+  }, [finalResume]);
 
   if (!finalResume) return null;
 

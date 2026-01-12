@@ -28,9 +28,10 @@ export function FitAnalysisStep() {
     isLoading,
   } = useResumeBuilderV3Store();
 
-  if (!fitAnalysis) return null;
-
+  // CRITICAL: All hooks must be called before any conditional returns
   const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+
+  if (!fitAnalysis) return null;
 
   // Show loading skeleton when fetching standards
   if (isLoading) {

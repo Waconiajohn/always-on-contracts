@@ -32,9 +32,10 @@ export function StandardsStep() {
     isLoading,
   } = useResumeBuilderV3Store();
 
-  if (!standards) return null;
-
+  // CRITICAL: All hooks must be called before any conditional returns
   const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+
+  if (!standards) return null;
 
   // Show loading skeleton when generating questions
   if (isLoading) {
@@ -153,56 +154,62 @@ export function StandardsStep() {
 
       {/* Keywords and Phrases */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Industry Keywords</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {standards.industry_keywords.map((keyword, index) => (
-                <Badge key={index} variant="secondary">
-                  {keyword}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {standards.industry_keywords.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Industry Keywords</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {standards.industry_keywords.map((keyword, index) => (
+                  <Badge key={index} variant="secondary">
+                    {keyword}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Power Phrases</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {standards.power_phrases.map((phrase, index) => (
-                <Badge key={index} variant="outline">
-                  {phrase}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {standards.power_phrases.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Power Phrases</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {standards.power_phrases.map((phrase, index) => (
+                  <Badge key={index} variant="outline">
+                    {phrase}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Metrics suggestions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-amber-500" />
-            Add These Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {standards.metrics_suggestions.map((suggestion, index) => (
-              <li key={index} className="flex items-center gap-2 text-sm">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                {suggestion}
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      {standards.metrics_suggestions.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-amber-500" />
+              Add These Metrics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {standards.metrics_suggestions.map((suggestion, index) => (
+                <li key={index} className="flex items-center gap-2 text-sm">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  {suggestion}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Continue button */}
       <div className="flex justify-center pt-4">

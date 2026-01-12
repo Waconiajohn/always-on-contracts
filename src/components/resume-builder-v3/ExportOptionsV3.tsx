@@ -40,8 +40,8 @@ export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
         toast.success("Resume downloaded as TXT");
       } else if (format === 'docx') {
         const data = prepareExportData(resume);
-        // Use 'executive' template (valid) or undefined for default fallback
-        await exportFormats.docxExport(data, fileName, undefined);
+        // Use 'executive' template for professional formatting
+        await exportFormats.docxExport(data, fileName, 'executive');
         toast.success("Resume downloaded as DOCX");
       } else if (format === 'pdf') {
         const data = prepareExportData(resume);

@@ -9,6 +9,7 @@
 // =====================================================
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useResumeBuilderV3Store, Step } from "@/stores/resumeBuilderV3Store";
 import { UploadStep } from "./UploadStep";
 import { FitAnalysisStep } from "./FitAnalysisStep";
@@ -33,27 +34,73 @@ import {
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 import { ResumeBuilderErrorBoundary } from "./components/ErrorBoundary";
 
+// Navigation state types from other pages
+interface NavigationState {
+  fromQuickScore?: boolean;
+  resumeText?: string;
+  jobDescription?: string;
+  savedResumeId?: string;
+  savedContent?: unknown;
+}
+
 const STEP_LABELS = ["Analyze", "Standards", "Interview", "Generate"];
 
 export function ResumeBuilderV3() {
-  const { step, fitAnalysis, reset, setStep, lastUpdated } = useResumeBuilderV3Store();
+  const location = useLocation();
+  const { 
+    step, 
+    fitAnalysis, 
+    reset, 
+    setStep, 
+    setResumeText, 
+    setJobDescription, 
+    lastUpdated 
+  } = useResumeBuilderV3Store();
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
+  const [hasHandledNavState, setHasHandledNavState] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
   const previousStepRef = useRef<Step>(step);
+
+  // Handle navigation state from other pages (QuickScore, MyResumes)
+  useEffect(() => {
+    if (hasHandledNavState) return;
+    
+    const state = location.state as NavigationState | null;
+    
+    if (state?.fromQuickScore && state.resumeText) {
+      // Coming from QuickScore - pre-fill the form
+      reset(); // Start fresh
+      setResumeText(state.resumeText);
+      if (state.jobDescription) {
+        setJobDescription(state.jobDescription);
+      }
+      // Clear the navigation state to prevent re-triggering on refresh
+      window.history.replaceState({}, document.title);
+      setHasHandledNavState(true);
+      setHasCheckedSession(true); // Skip recovery dialog since we just reset
+      return;
+    }
+    
+    if (state?.savedResumeId && state?.savedContent) {
+      // Coming from MyResumes - TODO: Hydrate store with saved content
+      window.history.replaceState({}, document.title);
+      setHasHandledNavState(true);
+    }
+  }, [location.state, hasHandledNavState, reset, setResumeText, setJobDescription]);
 
   // Check for existing session on mount
   // Only show recovery if they have actual analysis results (not just typed text)
   useEffect(() => {
-    if (!hasCheckedSession) {
+    if (!hasCheckedSession && !hasHandledNavState) {
       const hasRealProgress = fitAnalysis !== null || step > 1;
       if (hasRealProgress) {
         setShowRecoveryDialog(true);
       }
       setHasCheckedSession(true);
     }
-  }, [hasCheckedSession, fitAnalysis, step]);
+  }, [hasCheckedSession, hasHandledNavState, fitAnalysis, step]);
 
   const progressValue = ((step - 1) / 3) * 100;
 
