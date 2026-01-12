@@ -63,6 +63,13 @@ export function FitAnalysisStep() {
     return "text-red-600";
   };
 
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return "Excellent match";
+    if (score >= 60) return "Good match";
+    if (score >= 40) return "Partial match";
+    return "Needs improvement";
+  };
+
   return (
     <div className="space-y-6">
       {/* Fit Score */}
@@ -74,6 +81,11 @@ export function FitAnalysisStep() {
         <div className={`text-5xl font-bold ${getScoreColor(fitAnalysis.fit_score)}`}>
           {fitAnalysis.fit_score}%
         </div>
+        <p className="text-sm font-medium mt-1">
+          <span className={getScoreColor(fitAnalysis.fit_score)}>
+            {getScoreLabel(fitAnalysis.fit_score)}
+          </span>
+        </p>
         <p className="mt-2 text-muted-foreground max-w-lg mx-auto">
           {fitAnalysis.executive_summary}
         </p>
@@ -89,17 +101,23 @@ export function FitAnalysisStep() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {fitAnalysis.strengths.map((strength, index) => (
-              <div key={index} className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-sm">{strength.requirement}</p>
-                  <Badge variant={strength.strength_level === "strong" ? "default" : "secondary"}>
-                    {strength.strength_level}
-                  </Badge>
+            {fitAnalysis.strengths.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">
+                No strong matches identified yet. The interview step will help us find your strengths.
+              </p>
+            ) : (
+              fitAnalysis.strengths.map((strength, index) => (
+                <div key={index} className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-sm">{strength.requirement}</p>
+                    <Badge variant={strength.strength_level === "strong" ? "default" : "secondary"}>
+                      {strength.strength_level}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{strength.evidence}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{strength.evidence}</p>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
@@ -112,25 +130,32 @@ export function FitAnalysisStep() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {fitAnalysis.gaps.map((gap, index) => (
-              <div key={index} className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-sm">{gap.requirement}</p>
-                  <Badge
-                    variant={
-                      gap.severity === "critical"
-                        ? "destructive"
-                        : gap.severity === "moderate"
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {gap.severity}
-                  </Badge>
+            {fitAnalysis.gaps.length === 0 ? (
+              <p className="text-sm text-green-600 italic flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Great news! No significant gaps identified.
+              </p>
+            ) : (
+              fitAnalysis.gaps.map((gap, index) => (
+                <div key={index} className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-sm">{gap.requirement}</p>
+                    <Badge
+                      variant={
+                        gap.severity === "critical"
+                          ? "destructive"
+                          : gap.severity === "moderate"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {gap.severity}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{gap.suggestion}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{gap.suggestion}</p>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
