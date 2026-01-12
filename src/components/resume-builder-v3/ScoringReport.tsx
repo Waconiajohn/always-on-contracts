@@ -35,6 +35,14 @@ export function ScoringReport({ fitAnalysis, standards, finalResume }: ScoringRe
     return "bg-red-100 dark:bg-red-900/30";
   };
 
+  const getScoreLabel = (score: number): string => {
+    if (score >= 90) return "Excellent";
+    if (score >= 80) return "Very Good";
+    if (score >= 70) return "Good";
+    if (score >= 60) return "Fair";
+    return "Needs Work";
+  };
+
   // Calculate benchmark score from standards
   const benchmarkStats = standards?.benchmarks?.reduce(
     (acc, b) => {
@@ -64,40 +72,54 @@ export function ScoringReport({ fitAnalysis, standards, finalResume }: ScoringRe
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4" role="list" aria-label="Quality scores">
           {/* Original Fit Score */}
-          <div className={`rounded-lg p-4 ${getScoreBg(originalFitScore)} text-center`}>
+          <div 
+            className={`rounded-lg p-4 ${getScoreBg(originalFitScore)} text-center`}
+            role="listitem"
+            aria-label={`Original fit score: ${originalFitScore}%, rated ${getScoreLabel(originalFitScore)}`}
+          >
             <div className="flex items-center justify-center gap-1 mb-2">
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <Target className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <span className="text-xs font-medium text-muted-foreground">Original Fit</span>
             </div>
             <p className={`text-3xl font-bold ${getScoreColor(originalFitScore)}`}>
               {originalFitScore}%
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Job match before</p>
+            <p className="text-xs text-muted-foreground mt-1">{getScoreLabel(originalFitScore)}</p>
           </div>
 
           {/* ATS Score (After) */}
-          <div className={`rounded-lg p-4 ${getScoreBg(atsScore)} text-center relative`}>
+          <div 
+            className={`rounded-lg p-4 ${getScoreBg(atsScore)} text-center relative`}
+            role="listitem"
+            aria-label={`ATS score: ${atsScore}%, rated ${getScoreLabel(atsScore)}${improvement > 0 ? `, improved by ${improvement}%` : ''}`}
+          >
             <div className="flex items-center justify-center gap-1 mb-2">
-              <FileSearch className="h-4 w-4 text-muted-foreground" />
+              <FileSearch className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <span className="text-xs font-medium text-muted-foreground">ATS Score</span>
             </div>
             <p className={`text-3xl font-bold ${getScoreColor(atsScore)}`}>
               {atsScore}%
             </p>
-            {improvement > 0 && (
+            {improvement > 0 ? (
               <Badge variant="secondary" className="mt-1 text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
-                <TrendingUp className="h-3 w-3 mr-1" />
+                <TrendingUp className="h-3 w-3 mr-1" aria-hidden="true" />
                 +{improvement}%
               </Badge>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">{getScoreLabel(atsScore)}</p>
             )}
           </div>
 
           {/* Benchmark Score */}
-          <div className={`rounded-lg p-4 ${getScoreBg(benchmarkScore)} text-center`}>
+          <div 
+            className={`rounded-lg p-4 ${getScoreBg(benchmarkScore)} text-center`}
+            role="listitem"
+            aria-label={`Benchmark score: ${benchmarkScore}%, rated ${getScoreLabel(benchmarkScore)} for ${standards?.seniority_level || 'industry'} level`}
+          >
             <div className="flex items-center justify-center gap-1 mb-2">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <span className="text-xs font-medium text-muted-foreground">Benchmark</span>
             </div>
             <p className={`text-3xl font-bold ${getScoreColor(benchmarkScore)}`}>

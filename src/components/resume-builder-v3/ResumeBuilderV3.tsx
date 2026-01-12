@@ -8,7 +8,7 @@
 // 4. Generate & Review Resume
 // =====================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { UploadStep } from "./UploadStep";
 import { FitAnalysisStep } from "./FitAnalysisStep";
@@ -54,11 +54,23 @@ export function ResumeBuilderV3() {
 
   const progressValue = ((step - 1) / 3) * 100;
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (step > 1) {
       setStep((step - 1) as 1 | 2 | 3 | 4);
     }
-  };
+  }, [step, setStep]);
+
+  // Keyboard navigation - Escape to go back
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && step > 1 && !showRecoveryDialog && !showResetDialog) {
+        handleBack();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [step, showRecoveryDialog, showResetDialog, handleBack]);
 
   const handleResetClick = () => {
     setShowResetDialog(true);
