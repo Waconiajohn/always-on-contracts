@@ -4,14 +4,14 @@
 
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
+import { useResumeBuilderV3Store, FitAnalysisResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
+import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 
 const MAX_RESUME_CHARS = 15000;
 const MAX_JOB_CHARS = 10000;
@@ -32,6 +32,8 @@ export function UploadStep() {
   const [localResume, setLocalResume] = useState(resumeText);
   const [localJob, setLocalJob] = useState(jobDescription);
   const [isParsingFile, setIsParsingFile] = useState(false);
+  
+  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
 
   const resumeOverLimit = localResume.length > MAX_RESUME_CHARS;
   const jobOverLimit = localJob.length > MAX_JOB_CHARS;
@@ -92,26 +94,20 @@ export function UploadStep() {
     setResumeText(localResume);
     setJobDescription(localJob);
 
-    try {
-      const { data, error } = await supabase.functions.invoke("resume-builder-v3", {
-        body: {
-          step: "fit_analysis",
-          resumeText: localResume,
-          jobDescription: localJob,
-        },
-      });
+    const result = await callApi<FitAnalysisResult>({
+      step: "fit_analysis",
+      body: {
+        resumeText: localResume,
+        jobDescription: localJob,
+      },
+      successMessage: "Analysis complete!",
+    });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Analysis failed");
-
-      setFitAnalysis(data.data);
-      toast.success("Analysis complete!");
-    } catch (error) {
-      console.error("Fit analysis error:", error);
-      toast.error(error instanceof Error ? error.message : "Analysis failed");
-    } finally {
-      setLoading(false);
+    if (result) {
+      setFitAnalysis(result);
     }
+    
+    setLoading(false);
   };
 
   const getCharacterStatus = (current: number, min: number, max: number) => {
@@ -123,7 +119,12 @@ export function UploadStep() {
 
   // Show loading skeleton when analyzing
   if (isLoading) {
-    return <LoadingSkeletonV3 type="analysis" />;
+    return (
+      <LoadingSkeletonV3 
+        type="analysis" 
+        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : undefined}
+      />
+    );
   }
 
   return (
