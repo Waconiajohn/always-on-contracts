@@ -104,7 +104,7 @@ export function ResumeBuilderV3() {
 
   return (
     <OptimizerErrorBoundary onReset={reset}>
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-3 sm:p-6">
         {/* Session Recovery Dialog */}
         <SessionRecoveryDialogV3
           open={showRecoveryDialog}
@@ -134,29 +134,29 @@ export function ResumeBuilderV3() {
         </AlertDialog>
 
         {/* Header with progress */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {step > 1 && (
-                <Button variant="ghost" size="sm" onClick={handleBack}>
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Back
+                <Button variant="ghost" size="sm" onClick={handleBack} className="px-2 sm:px-3">
+                  <ArrowLeft className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Back</span>
                 </Button>
               )}
-              <h1 className="text-2xl font-bold text-foreground">Resume Builder</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Resume Builder</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               {/* Auto-save indicator */}
               {lastUpdated && (
                 <Badge variant="outline" className="text-xs text-muted-foreground gap-1">
                   <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  Saved
+                  <span className="hidden xs:inline">Saved</span>
                 </Badge>
               )}
               {fitAnalysis && (
-                <Button variant="outline" size="sm" onClick={handleResetClick}>
-                  <RotateCcw className="h-4 w-4 mr-1" />
-                  Start Over
+                <Button variant="outline" size="sm" onClick={handleResetClick} className="px-2 sm:px-3">
+                  <RotateCcw className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Start Over</span>
                 </Button>
               )}
             </div>
@@ -164,20 +164,21 @@ export function ResumeBuilderV3() {
 
           {/* Step indicator */}
           <div className="space-y-2" role="navigation" aria-label="Resume builder progress">
-            <div className="flex justify-between text-sm text-muted-foreground">
+            <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
               {STEP_LABELS.map((label, index) => (
                 <span
                   key={label}
-                  className={
+                  className={`text-center flex-1 ${
                     index + 1 === step
                       ? "text-primary font-medium"
                       : index + 1 < step
                       ? "text-primary/70"
                       : ""
-                  }
+                  }`}
                   aria-current={index + 1 === step ? "step" : undefined}
                 >
-                  {label}
+                  <span className="hidden xs:inline">{label}</span>
+                  <span className="xs:hidden">{index + 1}</span>
                 </span>
               ))}
             </div>
@@ -191,7 +192,7 @@ export function ResumeBuilderV3() {
 
         {/* Step content */}
         <main 
-          className="bg-card rounded-lg border p-6"
+          className="bg-card rounded-lg border p-4 sm:p-6"
           role="main"
           aria-label={`Step ${step}: ${STEP_LABELS[step - 1]}`}
         >

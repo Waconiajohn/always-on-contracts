@@ -2,7 +2,7 @@
 // STEP 4: Generated Resume Display
 // =====================================================
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,36 @@ import { ExportOptionsV3 } from "./ExportOptionsV3";
 import { PrintableResume } from "./PrintableResume";
 import { SuccessAnimation, FadeIn, StaggerContainer, StaggerItem } from "./StepTransition";
 import { formatResumeAsText } from "./utils/formatters";
+import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
+import { VersionHistory, ResumeVersion } from "./components/VersionHistory";
 
 export function GenerateStep() {
   const { finalResume, fitAnalysis, standards } = useResumeBuilderV3Store();
   const printRef = useRef<HTMLDivElement>(null);
+  const [versions, setVersions] = useState<ResumeVersion[]>([]);
+
+  // Save version to history when resume changes
+  useEffect(() => {
+    if (finalResume) {
+      const existingVersions = JSON.parse(localStorage.getItem('resume-versions') || '[]');
+      // Limit to 10 versions
+      const updatedVersions = existingVersions.slice(0, 9);
+      localStorage.setItem('resume-versions', JSON.stringify(updatedVersions));
+      setVersions(updatedVersions.map((v: any) => ({
+        ...v,
+        createdAt: new Date(v.createdAt),
+      })));
+    }
+  }, [finalResume]);
+
+  // Load versions on mount
+  useEffect(() => {
+    const savedVersions = JSON.parse(localStorage.getItem('resume-versions') || '[]');
+    setVersions(savedVersions.map((v: any) => ({
+      ...v,
+      createdAt: new Date(v.createdAt),
+    })));
+  }, []);
 
   if (!finalResume) return null;
 
@@ -37,6 +63,19 @@ export function GenerateStep() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSaveVersion = () => {
+    const newVersion: ResumeVersion = {
+      id: Date.now().toString(),
+      resume: finalResume,
+      createdAt: new Date(),
+      label: `Version ${versions.length + 1}`,
+    };
+    const updatedVersions = [newVersion, ...versions].slice(0, 10);
+    localStorage.setItem('resume-versions', JSON.stringify(updatedVersions));
+    setVersions(updatedVersions);
+    toast.success("Version saved to history!");
   };
 
   return (
@@ -72,19 +111,20 @@ export function GenerateStep() {
       {/* Improvements made */}
       <FadeIn delay={0.3}>
         <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 px-3 sm:px-6">
             <CardTitle className="text-sm flex items-center gap-2 text-green-800 dark:text-green-200">
               <Sparkles className="h-4 w-4" aria-hidden="true" />
               Improvements Made ({finalResume.improvements_made.length})
+              <HelpTooltip content={HELP_CONTENT.improvements} />
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             {finalResume.improvements_made.length > 0 ? (
               <StaggerContainer staggerDelay={0.05}>
                 <ul className="space-y-1" role="list" aria-label="List of improvements made to your resume">
                   {finalResume.improvements_made.map((improvement, index) => (
                     <StaggerItem key={index}>
-                      <li className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
+                      <li className="text-xs sm:text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         {improvement}
                       </li>
@@ -104,30 +144,34 @@ export function GenerateStep() {
       {/* Resume preview */}
       <FadeIn delay={0.4}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Resume Preview
             </CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="h-4 w-4 mr-1" />
-                Print
+            <div className="flex flex-wrap gap-2">
+              <VersionHistory versions={versions} currentVersion={finalResume} />
+              <Button variant="outline" size="sm" onClick={handleSaveVersion}>
+                Save Version
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
+                <Printer className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Print</span>
               </Button>
               <Button variant="outline" size="sm" onClick={handleCopyText}>
-                <Copy className="h-4 w-4 mr-1" />
-                Copy
+                <Copy className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Copy</span>
               </Button>
               <ExportOptionsV3 resume={finalResume} />
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
           {/* Header */}
           <div className="text-center border-b pb-4">
-            <h3 className="text-2xl font-bold">{finalResume.header.name}</h3>
-            <p className="text-lg text-muted-foreground">{finalResume.header.title}</p>
+            <h3 className="text-xl sm:text-2xl font-bold">{finalResume.header.name}</h3>
+            <p className="text-base sm:text-lg text-muted-foreground">{finalResume.header.title}</p>
             {finalResume.header.contact && (
-              <p className="text-sm text-muted-foreground mt-1">{finalResume.header.contact}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-all">{finalResume.header.contact}</p>
             )}
           </div>
 
