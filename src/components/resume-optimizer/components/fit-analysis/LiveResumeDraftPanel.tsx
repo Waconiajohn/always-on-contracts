@@ -243,7 +243,7 @@ export const LiveResumeDraftPanel: React.FC<LiveResumeDraftPanelProps> = ({
                       No bullets staged yet
                     </p>
                     <p className="text-xs text-muted-foreground/70 mt-1">
-                      Add bullets from gap strategies or the bullet bank
+                      Add bullets from the gap analysis or refine existing evidence
                     </p>
                   </div>
                 )}

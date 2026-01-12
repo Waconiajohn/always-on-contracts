@@ -514,6 +514,13 @@ export function RequirementCard({ entry, getRequirementById, getEvidenceById }: 
                       <RecencyPrompt 
                         requirementText={requirement.requirement}
                         evidenceYear={evidence.source?.endYear}
+                        onAddRecent={() => {
+                          // Navigate user to add recent experience for this requirement
+                          toast({
+                            title: 'Add Recent Experience',
+                            description: `To strengthen this requirement, add recent experience related to: ${requirement.requirement}`,
+                          });
+                        }}
                       />
                     )}
                   </div>

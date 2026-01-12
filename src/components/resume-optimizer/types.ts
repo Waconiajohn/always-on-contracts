@@ -168,7 +168,11 @@ export interface StagedBullet {
   requirementId?: string;
 }
 
-// Pre-generated bullets
+/**
+ * @deprecated Use fitMap.resumeLanguage instead.
+ * Kept for backwards compatibility with existing data structures.
+ * New implementations should use inline-edited bullets from FitMapEntry.
+ */
 export interface BulletBankItem {
   bullet: string;
   evidenceIds: string[];
@@ -388,6 +392,7 @@ export interface FitBlueprint {
   requirements: AtomicRequirement[];
   fitMap: FitMapEntry[];
   benchmarkThemes: BenchmarkTheme[];
+  /** @deprecated Use fitMap entries with resumeLanguage instead */
   bulletBank: BulletBankItem[];
   missingBulletPlan: MissingBulletPlan[];
   atsAlignment: ATSAlignment;
