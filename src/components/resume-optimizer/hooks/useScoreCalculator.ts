@@ -116,14 +116,14 @@ export function useScoreCalculator({
       const competencyScore =
         (competenciesMatched / Math.max(1, benchmarkProfile.topCompetencies.length)) * 40;
 
-      // Proof points coverage
+      // Proof points coverage - use fitMap refined bullets instead of legacy bulletBank
       const proofPointsCovered = benchmarkProfile.expectedProofPoints.filter(
         (pp) => {
           const ppWords = pp.toLowerCase().split(' ').slice(0, 3).join(' ');
           return (
             stagedBullets.some((b) => b.text.toLowerCase().includes(ppWords)) ||
-            fitBlueprint.bulletBank.some((bb) =>
-              bb.bullet.toLowerCase().includes(ppWords)
+            fitBlueprint.fitMap.some((entry) =>
+              entry.resumeLanguage?.toLowerCase().includes(ppWords)
             )
           );
         }
