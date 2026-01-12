@@ -11,6 +11,7 @@ import { SessionRecoveryDialog } from './components/SessionRecoveryDialog';
 import { AutoSaveIndicator } from './components/AutoSaveIndicator';
 import { VersionHistory } from './components/VersionHistory';
 import { OptimizerErrorBoundary } from './components/OptimizerErrorBoundary';
+import { LiveResumeDraftPanel } from './components/fit-analysis/LiveResumeDraftPanel';
 import { STEP_CONFIG } from './types';
 import { Loader2 } from 'lucide-react';
 import { useOptimizerStore } from '@/stores/optimizerStore';
@@ -38,6 +39,9 @@ export default function ResumeOptimizerV9() {
     processingMessage,
     resumeText,
     jobDescription,
+    stagedBullets,
+    removeStagedBullet,
+    clearStagedBullets,
     hasActiveSession, 
     clearSession, 
     setInput,
@@ -268,6 +272,15 @@ export default function ResumeOptimizerV9() {
           </AnimatePresence>
         </OptimizerErrorBoundary>
       </main>
+      
+      {/* Live Resume Draft Panel - Floating panel showing staged bullets */}
+      {isInitialized && (
+        <LiveResumeDraftPanel
+          stagedBullets={stagedBullets}
+          onRemoveBullet={removeStagedBullet}
+          onClearAll={clearStagedBullets}
+        />
+      )}
       
       {/* Processing Overlay */}
       {isProcessing && (
