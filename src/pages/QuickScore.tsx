@@ -179,7 +179,7 @@ export default function QuickScore() {
   };
 
   const handleFixResume = () => {
-    // Navigate to the V9 Resume Optimizer with the current data
+    // Navigate to the Resume Builder with the current data
     navigate('/resume-builder', {
       state: {
         fromQuickScore: true,

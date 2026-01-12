@@ -43,7 +43,7 @@ const stateConfig: Record<JourneyState, {
     description: "Keep momentum going with these actions",
     steps: [
       { label: "Find More Jobs", icon: Search, path: "/job-search", primary: true },
-      { label: "Optimize Resume", icon: FileText, path: "/resume-optimizer" },
+      { label: "Optimize Resume", icon: FileText, path: "/resume-builder" },
       { label: "Network", icon: Users, path: "/agents/networking" },
     ],
   },
