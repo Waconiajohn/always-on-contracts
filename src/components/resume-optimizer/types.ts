@@ -329,6 +329,20 @@ export interface ScoringReport {
   overallHireability: number; // Weighted composite
 }
 
+// ============= NEW: Score History Tracking =============
+
+export type ScoreSnapshotTrigger = 'initial' | 'bullet_add' | 'bullet_remove' | 'fact_confirm' | 'manual_edit';
+
+export interface ScoreSnapshot {
+  timestamp: number;
+  fitScore: number;
+  benchmarkScore: number;
+  credibilityScore: number;
+  atsScore: number;
+  overallHireability: number;
+  triggeredBy: ScoreSnapshotTrigger;
+}
+
 // ============= NEW: Inference Map Types =============
 
 export interface PlausibleInference {
@@ -530,6 +544,10 @@ export interface OptimizerState {
   // Step 5: Hiring Manager Review
   hiringManagerReview: HiringManagerReview | null;
   
+  // Score History Tracking
+  scoreHistory: ScoreSnapshot[];
+  initialScores: ScoreSnapshot | null;
+  
   // Version History
   versionHistory: VersionHistoryEntry[];
   
@@ -571,6 +589,8 @@ export const createInitialState = (): OptimizerState => ({
   benchmarkResume: null,
   selectedTemplate: undefined,
   hiringManagerReview: null,
+  scoreHistory: [],
+  initialScores: null,
   versionHistory: [],
   currentStep: 'gap-analysis',
   isProcessing: false,

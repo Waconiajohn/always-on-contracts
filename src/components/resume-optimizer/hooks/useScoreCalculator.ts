@@ -29,6 +29,13 @@ interface ScoreBreakdown {
     factsConfirmed: number;
     factsNeeded: number;
   };
+  // NEW: Baseline scores for improvement tracking
+  baselines: {
+    fitBaseline: number;
+    benchmarkBaseline: number;
+    credibilityBaseline: number;
+    atsBaseline: number;
+  };
 }
 
 const WEIGHTS = {
@@ -67,10 +74,16 @@ export function useScoreCalculator({
           factsConfirmed: 0,
           factsNeeded: 0,
         },
+        baselines: {
+          fitBaseline: 0,
+          benchmarkBaseline: 0,
+          credibilityBaseline: 0,
+          atsBaseline: 0,
+        },
       };
     }
 
-    // Calculate fit score based on requirements coverage
+    // ============= Calculate Fit Score =============
     const totalRequirements = fitBlueprint.requirements.length;
     const highlyQualified = fitBlueprint.fitMap.filter(
       (f) => f.category === 'HIGHLY QUALIFIED'
@@ -82,7 +95,7 @@ export function useScoreCalculator({
       (f) => f.category === 'EXPERIENCE GAP'
     );
 
-    // Base fit score from initial analysis
+    // Base fit score from initial analysis (this IS the baseline)
     const baseFitScore = fitBlueprint.overallFitScore || 0;
 
     // Boost for staged bullets addressing requirements
@@ -98,14 +111,17 @@ export function useScoreCalculator({
 
     const fitScore = Math.min(100, Math.round(baseFitScore + bulletBoost));
 
-    // Calculate benchmark score
+    // ============= Calculate Benchmark Score =============
     const benchmarkProfile = fitBlueprint.benchmarkCandidateProfile;
-    let benchmarkScore = 50; // Default baseline
+    
+    // Baseline benchmark score (before any user actions)
+    const baselineBenchmarkScore = 50;
+    let benchmarkScore = baselineBenchmarkScore;
 
     if (benchmarkProfile) {
+      // Calculate competency matches from staged bullets
       const competenciesMatched = benchmarkProfile.topCompetencies.filter(
         (comp) => {
-          // Check if any staged bullet or evidence supports this competency
           const compKeywords = comp.name.toLowerCase().split(' ');
           return stagedBullets.some((b) =>
             compKeywords.some((kw) => b.text.toLowerCase().includes(kw))
@@ -116,7 +132,7 @@ export function useScoreCalculator({
       const competencyScore =
         (competenciesMatched / Math.max(1, benchmarkProfile.topCompetencies.length)) * 40;
 
-      // Proof points coverage - use fitMap refined bullets instead of legacy bulletBank
+      // Proof points coverage - check against staged bullets and fitMap
       const proofPointsCovered = benchmarkProfile.expectedProofPoints.filter(
         (pp) => {
           const ppWords = pp.toLowerCase().split(' ').slice(0, 3).join(' ');
@@ -132,10 +148,10 @@ export function useScoreCalculator({
       const proofScore =
         (proofPointsCovered / Math.max(1, benchmarkProfile.expectedProofPoints.length)) * 30;
 
-      benchmarkScore = Math.min(100, Math.round(50 + competencyScore + proofScore));
+      benchmarkScore = Math.min(100, Math.round(baselineBenchmarkScore + competencyScore + proofScore));
     }
 
-    // Calculate credibility score based on confirmed facts
+    // ============= Calculate Credibility Score =============
     const proofFields = fitBlueprint.proofCollectorFields || [];
     const highPriorityFields = proofFields.filter((f) => f.priority === 'high');
     const confirmedFactKeys = Object.keys(confirmedFacts);
@@ -145,33 +161,39 @@ export function useScoreCalculator({
       highPriorityFields.some((f) => f.fieldKey === key)
     ).length;
 
-    // Base credibility from evidence strength
+    // Evidence strength score (from blueprint)
     const strongEvidence = fitBlueprint.evidenceInventory.filter(
       (e) => e.strength === 'strong'
     ).length;
     const totalEvidence = fitBlueprint.evidenceInventory.length;
     const evidenceStrengthScore = (strongEvidence / Math.max(1, totalEvidence)) * 40;
 
-    // Boost for confirmed facts
-    const factBoost = (factsConfirmed / Math.max(1, factsNeeded)) * 30;
-
-    // Penalty for inferences without confirmation
+    // Inference penalty (ADJUSTED: -2 per inference, capped at 12)
     const inferences = fitBlueprint.evidenceInventory.filter(
       (e) => e.strength === 'inference'
     ).length;
-    const inferencePenalty = Math.min(20, inferences * 3);
+    const inferencePenalty = Math.min(12, inferences * 2);
+
+    // Baseline credibility (before fact confirmation)
+    const baselineCredibilityScore = Math.round(50 + evidenceStrengthScore - inferencePenalty);
+
+    // Boost for confirmed facts
+    const factBoost = (factsConfirmed / Math.max(1, factsNeeded)) * 30;
 
     const credibilityScore = Math.min(
       100,
-      Math.round(50 + evidenceStrengthScore + factBoost - inferencePenalty)
+      Math.round(baselineCredibilityScore + factBoost)
     );
 
-    // Calculate ATS score
+    // ============= Calculate ATS Score =============
     const atsData = fitBlueprint.atsAlignment;
     const totalKeywords = atsData.topKeywords.length;
     const coveredKeywords = atsData.covered.length;
 
-    // Check if staged bullets add more keywords
+    // Baseline ATS score (just covered keywords, no staged bullets)
+    const baselineAtsScore = Math.round((coveredKeywords / Math.max(1, totalKeywords)) * 100);
+
+    // Additional keywords from staged bullets
     const additionalKeywords = atsData.missingButAddable.filter((mk) =>
       stagedBullets.some((b) =>
         b.text.toLowerCase().includes(mk.keyword.toLowerCase())
@@ -184,7 +206,7 @@ export function useScoreCalculator({
       Math.round((keywordsCovered / Math.max(1, totalKeywords)) * 100)
     );
 
-    // Calculate overall hireability
+    // ============= Calculate Overall Hireability =============
     const overallHireability = Math.round(
       fitScore * WEIGHTS.fit +
         benchmarkScore * WEIGHTS.benchmark +
@@ -192,12 +214,12 @@ export function useScoreCalculator({
         atsScore * WEIGHTS.ats
     );
 
-    // Calculate gaps addressed
+    // ============= Calculate Gaps Addressed =============
     const gapsAddressed = gaps.filter((gap) =>
       stagedBullets.some((b) => b.requirementId === gap.requirementId)
     ).length;
 
-    // Determine trends (comparing to baseline)
+    // ============= Determine Trends (actual score comparison) =============
     const getTrend = (current: number, baseline: number): 'up' | 'down' | 'stable' => {
       const diff = current - baseline;
       if (diff > 5) return 'up';
@@ -212,10 +234,11 @@ export function useScoreCalculator({
       atsScore,
       overallHireability,
       trends: {
+        // All trends now use actual baseline comparisons
         fitTrend: getTrend(fitScore, baseFitScore),
-        benchmarkTrend: stagedBullets.length > 0 ? 'up' : 'stable',
-        credibilityTrend: factsConfirmed > 0 ? 'up' : 'stable',
-        atsTrend: additionalKeywords > 0 ? 'up' : 'stable',
+        benchmarkTrend: getTrend(benchmarkScore, baselineBenchmarkScore),
+        credibilityTrend: getTrend(credibilityScore, baselineCredibilityScore),
+        atsTrend: getTrend(atsScore, baselineAtsScore),
       },
       details: {
         requirementsCovered: highlyQualified + partiallyQualified + requirementsWithBullets.size,
@@ -226,6 +249,12 @@ export function useScoreCalculator({
         totalKeywords,
         factsConfirmed,
         factsNeeded,
+      },
+      baselines: {
+        fitBaseline: baseFitScore,
+        benchmarkBaseline: baselineBenchmarkScore,
+        credibilityBaseline: baselineCredibilityScore,
+        atsBaseline: baselineAtsScore,
       },
     };
   }, [fitBlueprint, stagedBullets, confirmedFacts]);

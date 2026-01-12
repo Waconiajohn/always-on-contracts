@@ -42,6 +42,13 @@ interface ScoreDetails {
   factsNeeded: number;
 }
 
+interface ScoreImprovement {
+  category: string;
+  from: number;
+  to: number;
+  delta: number;
+}
+
 interface LiveScorePanelProps {
   fitScore: number;
   benchmarkScore: number;
@@ -50,6 +57,7 @@ interface LiveScorePanelProps {
   overallHireability: number;
   trends: ScoreTrend;
   details: ScoreDetails;
+  improvements?: ScoreImprovement[];
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -70,7 +78,8 @@ const ScoreRing = ({
   icon: Icon, 
   trend, 
   color,
-  detail 
+  detail,
+  improvement
 }: { 
   score: number; 
   label: string; 
@@ -78,11 +87,23 @@ const ScoreRing = ({
   trend: 'up' | 'down' | 'stable';
   color: string;
   detail: string;
+  improvement?: { from: number; delta: number };
 }) => {
   const getScoreColor = (s: number) => {
     if (s >= 80) return 'text-emerald-500';
     if (s >= 60) return 'text-amber-500';
     return 'text-red-500';
+  };
+
+  const getDeltaDisplay = () => {
+    if (!improvement || improvement.delta === 0) return null;
+    const sign = improvement.delta > 0 ? '+' : '';
+    const color = improvement.delta > 0 ? 'text-emerald-600' : 'text-red-600';
+    return (
+      <span className={cn("text-[10px] font-medium", color)}>
+        {sign}{improvement.delta}
+      </span>
+    );
   };
 
   return (
@@ -107,11 +128,17 @@ const ScoreRing = ({
             <div className="flex items-center gap-1">
               <Icon className="h-3 w-3 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">{label}</span>
+              {getDeltaDisplay()}
             </div>
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <p className="font-medium">{label} Score: {score}/100</p>
+          {improvement && improvement.delta !== 0 && (
+            <p className="text-xs text-muted-foreground">
+              Started at {improvement.from}, improved by {improvement.delta > 0 ? '+' : ''}{improvement.delta}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground mt-1">{detail}</p>
         </TooltipContent>
       </Tooltip>
@@ -127,9 +154,15 @@ export const LiveScorePanel: React.FC<LiveScorePanelProps> = ({
   overallHireability,
   trends,
   details,
+  improvements = [],
   isCollapsed = false,
   onToggleCollapse,
 }) => {
+  // Helper to get improvement for a category
+  const getImprovement = (category: string) => {
+    const imp = improvements.find(i => i.category === category);
+    return imp ? { from: imp.from, delta: imp.delta } : undefined;
+  };
   const getHireabilityLabel = (score: number) => {
     if (score >= 85) return { label: 'Excellent', color: 'bg-emerald-500' };
     if (score >= 70) return { label: 'Strong', color: 'bg-blue-500' };
@@ -192,7 +225,6 @@ export const LiveScorePanel: React.FC<LiveScorePanelProps> = ({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Score breakdown */}
               <div className="grid grid-cols-4 gap-2 mb-4">
                 <ScoreRing
                   score={fitScore}
@@ -201,6 +233,7 @@ export const LiveScorePanel: React.FC<LiveScorePanelProps> = ({
                   trend={trends.fitTrend}
                   color="border-blue-300"
                   detail={`${details.requirementsCovered}/${details.totalRequirements} requirements covered`}
+                  improvement={getImprovement('Fit')}
                 />
                 <ScoreRing
                   score={benchmarkScore}
@@ -209,6 +242,7 @@ export const LiveScorePanel: React.FC<LiveScorePanelProps> = ({
                   trend={trends.benchmarkTrend}
                   color="border-purple-300"
                   detail="Alignment with ideal candidate profile"
+                  improvement={getImprovement('Benchmark')}
                 />
                 <ScoreRing
                   score={credibilityScore}
@@ -217,6 +251,7 @@ export const LiveScorePanel: React.FC<LiveScorePanelProps> = ({
                   trend={trends.credibilityTrend}
                   color="border-emerald-300"
                   detail={`${details.factsConfirmed}/${details.factsNeeded} facts confirmed`}
+                  improvement={getImprovement('Credibility')}
                 />
                 <ScoreRing
                   score={atsScore}
@@ -225,6 +260,7 @@ export const LiveScorePanel: React.FC<LiveScorePanelProps> = ({
                   trend={trends.atsTrend}
                   color="border-amber-300"
                   detail={`${details.keywordsCovered}/${details.totalKeywords} keywords matched`}
+                  improvement={getImprovement('ATS')}
                 />
               </div>
 

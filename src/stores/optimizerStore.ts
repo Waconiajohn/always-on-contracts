@@ -13,6 +13,7 @@ import {
   ConfirmedFacts,
   Executive50PlusPreferences,
   ResumeMode,
+  ScoreSnapshot,
   createInitialState,
   STEP_ORDER
 } from '@/components/resume-optimizer/types';
@@ -66,6 +67,11 @@ interface OptimizerStore extends OptimizerState {
   
   // Version History
   addVersionHistory: (entry: Omit<VersionHistoryEntry, 'id' | 'timestamp'>) => void;
+  
+  // Score History
+  setInitialScores: (scores: Omit<ScoreSnapshot, 'timestamp' | 'triggeredBy'>) => void;
+  addScoreSnapshot: (scores: Omit<ScoreSnapshot, 'timestamp'>) => void;
+  getScoreImprovement: () => { category: string; from: number; to: number; delta: number }[];
   
   // Reset
   reset: () => void;
@@ -260,6 +266,51 @@ export const useOptimizerStore = create<OptimizerStore>()(
         };
       }),
       
+      // Score History
+      setInitialScores: (scores) => set(state => {
+        // Only set initial scores once
+        if (state.initialScores) return state;
+        const snapshot: ScoreSnapshot = {
+          ...scores,
+          timestamp: Date.now(),
+          triggeredBy: 'initial'
+        };
+        return {
+          initialScores: snapshot,
+          scoreHistory: [snapshot],
+          lastSaved: Date.now()
+        };
+      }),
+      
+      addScoreSnapshot: (scores) => set(state => {
+        const snapshot: ScoreSnapshot = {
+          ...scores,
+          timestamp: Date.now()
+        };
+        // Keep last 50 snapshots
+        const trimmedHistory = state.scoreHistory.length >= 50
+          ? [...state.scoreHistory.slice(-49), snapshot]
+          : [...state.scoreHistory, snapshot];
+        return {
+          scoreHistory: trimmedHistory,
+          lastSaved: Date.now()
+        };
+      }),
+      
+      getScoreImprovement: () => {
+        const state = get();
+        const { initialScores, scoreHistory } = state;
+        if (!initialScores || scoreHistory.length < 2) return [];
+        
+        const latest = scoreHistory[scoreHistory.length - 1];
+        return [
+          { category: 'Fit', from: initialScores.fitScore, to: latest.fitScore, delta: latest.fitScore - initialScores.fitScore },
+          { category: 'Benchmark', from: initialScores.benchmarkScore, to: latest.benchmarkScore, delta: latest.benchmarkScore - initialScores.benchmarkScore },
+          { category: 'Credibility', from: initialScores.credibilityScore, to: latest.credibilityScore, delta: latest.credibilityScore - initialScores.credibilityScore },
+          { category: 'ATS', from: initialScores.atsScore, to: latest.atsScore, delta: latest.atsScore - initialScores.atsScore },
+        ];
+      },
+      
       reset: () => set({
         ...createInitialState(),
         sessionId: null,
@@ -369,6 +420,8 @@ export const useOptimizerStore = create<OptimizerStore>()(
         benchmarkResume: state.benchmarkResume,
         selectedTemplate: state.selectedTemplate,
         hiringManagerReview: state.hiringManagerReview,
+        scoreHistory: state.scoreHistory,
+        initialScores: state.initialScores,
         versionHistory: state.versionHistory,
         currentStep: state.currentStep,
         sessionId: state.sessionId,
