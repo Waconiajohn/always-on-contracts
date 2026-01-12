@@ -115,27 +115,33 @@ export function StandardsStep() {
           <CardTitle className="text-lg">How You Compare</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {standards.benchmarks.map((benchmark, index) => (
-            <div
-              key={index}
-              className="p-4 bg-muted/50 rounded-lg flex items-start gap-3"
-            >
-              {getStatusIcon(benchmark.candidate_status)}
-              <div className="flex-1">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="font-medium">{benchmark.benchmark}</p>
-                  {getStatusBadge(benchmark.candidate_status)}
+          {standards.benchmarks.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              No benchmarks available for this role. We'll use general best practices.
+            </p>
+          ) : (
+            standards.benchmarks.map((benchmark, index) => (
+              <div
+                key={index}
+                className="p-4 bg-muted/50 rounded-lg flex items-start gap-3"
+              >
+                {getStatusIcon(benchmark.candidate_status)}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="font-medium">{benchmark.benchmark}</p>
+                    {getStatusBadge(benchmark.candidate_status)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{benchmark.evidence}</p>
+                  {benchmark.recommendation && (
+                    <p className="text-sm text-primary mt-2 flex items-start gap-1">
+                      <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      {benchmark.recommendation}
+                    </p>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">{benchmark.evidence}</p>
-                {benchmark.recommendation && (
-                  <p className="text-sm text-primary mt-2 flex items-start gap-1">
-                    <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    {benchmark.recommendation}
-                  </p>
-                )}
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
 
