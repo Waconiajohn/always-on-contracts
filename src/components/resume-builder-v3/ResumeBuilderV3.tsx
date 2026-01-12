@@ -19,6 +19,16 @@ import { SessionRecoveryDialogV3 } from "./SessionRecoveryDialogV3";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 import { OptimizerErrorBoundary } from "@/components/resume-optimizer/components/OptimizerErrorBoundary";
 
@@ -27,6 +37,7 @@ const STEP_LABELS = ["Analyze", "Standards", "Interview", "Generate"];
 export function ResumeBuilderV3() {
   const { step, fitAnalysis, reset, setStep, lastUpdated } = useResumeBuilderV3Store();
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
 
   // Check for existing session on mount
@@ -49,10 +60,13 @@ export function ResumeBuilderV3() {
     }
   };
 
-  const handleReset = () => {
-    if (confirm("Start over? This will clear all your progress.")) {
-      reset();
-    }
+  const handleResetClick = () => {
+    setShowResetDialog(true);
+  };
+
+  const handleResetConfirm = () => {
+    reset();
+    setShowResetDialog(false);
   };
 
   const handleContinueSession = () => {
@@ -73,6 +87,27 @@ export function ResumeBuilderV3() {
           onContinue={handleContinueSession}
           onStartFresh={handleStartFresh}
         />
+
+        {/* Reset Confirmation Dialog */}
+        <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Start Over?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will clear all your progress including your resume text, job description, and any answers you've provided. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleResetConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, Start Over
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Header with progress */}
         <div className="mb-8">
@@ -95,7 +130,7 @@ export function ResumeBuilderV3() {
                 </Badge>
               )}
               {fitAnalysis && (
-                <Button variant="outline" size="sm" onClick={handleReset}>
+                <Button variant="outline" size="sm" onClick={handleResetClick}>
                   <RotateCcw className="h-4 w-4 mr-1" />
                   Start Over
                 </Button>

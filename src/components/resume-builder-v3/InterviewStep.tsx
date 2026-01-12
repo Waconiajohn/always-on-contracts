@@ -9,11 +9,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowRight,
   MessageCircle,
   Lightbulb,
   Check,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,13 +45,21 @@ export function InterviewStep() {
   } = useResumeBuilderV3Store();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
 
   if (!questions) return null;
 
   const currentQuestion = questions.questions[currentQuestionIndex];
-  const answeredCount = Object.keys(interviewAnswers).length;
+  const answeredCount = Object.keys(interviewAnswers).filter(
+    (key) => interviewAnswers[key]?.trim().length > 0
+  ).length;
   const totalQuestions = questions.questions.length;
   const currentAnswer = interviewAnswers[currentQuestion?.id] || "";
+
+  // Count unanswered high-priority questions
+  const unansweredHighPriority = questions.questions.filter(
+    (q) => q.priority === "high" && !interviewAnswers[q.id]?.trim()
+  ).length;
 
   const handleAnswerChange = (answer: string) => {
     if (currentQuestion) {
@@ -89,14 +108,27 @@ export function InterviewStep() {
     }
   };
 
+  const handleSkipClick = () => {
+    if (unansweredHighPriority > 0) {
+      setShowSkipDialog(true);
+    } else {
+      handleGenerate();
+    }
+  };
+
+  const handleSkipConfirm = () => {
+    setShowSkipDialog(false);
+    handleGenerate();
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
       case "medium":
-        return "bg-amber-100 text-amber-800";
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
       case "low":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       default:
         return "";
     }
@@ -104,6 +136,28 @@ export function InterviewStep() {
 
   return (
     <div className="space-y-6">
+      {/* Skip Confirmation Dialog */}
+      <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Skip Remaining Questions?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You have <strong>{unansweredHighPriority} high-priority question{unansweredHighPriority !== 1 ? 's' : ''}</strong> unanswered. 
+              These questions help address key gaps in your resume. Skipping them may result in a less optimized resume.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back to Questions</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSkipConfirm}>
+              Generate Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="text-center">
         <h2 className="text-xl font-semibold mb-2">Let's Fill the Gaps</h2>
@@ -116,7 +170,7 @@ export function InterviewStep() {
           </span>
           <span className="text-sm text-muted-foreground">•</span>
           <span className="text-sm text-green-600">
-            {answeredCount} answered
+            {answeredCount}/{totalQuestions} answered
           </span>
         </div>
       </div>
@@ -124,7 +178,7 @@ export function InterviewStep() {
       {/* Question navigation dots */}
       <div className="flex justify-center gap-2" role="navigation" aria-label="Question navigation">
         {questions.questions.map((q, index) => {
-          const isAnswered = !!interviewAnswers[q.id];
+          const isAnswered = !!interviewAnswers[q.id]?.trim();
           const isCurrent = index === currentQuestionIndex;
           return (
             <button
@@ -184,7 +238,7 @@ export function InterviewStep() {
               className="min-h-[120px]"
             />
 
-            {currentAnswer && (
+            {currentAnswer.trim() && (
               <div className="flex items-center gap-1 text-sm text-green-600">
                 <Check className="h-4 w-4" />
                 Answer saved
@@ -237,10 +291,15 @@ export function InterviewStep() {
         <Button
           variant="link"
           className="text-muted-foreground"
-          onClick={handleGenerate}
+          onClick={handleSkipClick}
           disabled={isLoading}
         >
           Skip remaining questions and generate resume
+          {unansweredHighPriority > 0 && (
+            <span className="ml-1 text-amber-600">
+              ({unansweredHighPriority} high-priority unanswered)
+            </span>
+          )}
         </Button>
       </div>
     </div>
