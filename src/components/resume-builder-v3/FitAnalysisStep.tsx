@@ -29,7 +29,7 @@ export function FitAnalysisStep() {
   } = useResumeBuilderV3Store();
 
   // CRITICAL: All hooks must be called before any conditional returns
-  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
+  const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
 
   if (!fitAnalysis) return null;
 
@@ -38,7 +38,7 @@ export function FitAnalysisStep() {
     return (
       <LoadingSkeletonV3 
         type="standards" 
-        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Researching industry standards and benchmarks..."} 
+        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Researching industry standards and benchmarks..."} 
         onCancel={() => {
           cancel();
           setLoading(false);
@@ -83,8 +83,8 @@ export function FitAnalysisStep() {
 
   return (
     <div className="space-y-6">
-      {/* Fit Score */}
-      <div className="text-center">
+      {/* Fit Score - with aria-live for screen readers */}
+      <div className="text-center" aria-live="polite" aria-atomic="true">
         <div className="inline-flex items-center gap-2 mb-2">
           <TrendingUp className="h-5 w-5 text-primary" />
           <span className="text-sm font-medium text-muted-foreground">Fit Score</span>

@@ -2,7 +2,7 @@
 // VERSION HISTORY - Compare resume versions
 // =====================================================
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { OptimizedResume } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -419,15 +419,18 @@ interface SkillsListProps {
 }
 
 function SkillsList({ title, skills, otherSkills }: SkillsListProps) {
+  // Use Set for O(1) lookup instead of O(n) includes check
+  const otherSkillsSet = useMemo(() => new Set(otherSkills), [otherSkills]);
+  
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground">{title}</p>
       <div className="flex flex-wrap gap-1">
-        {skills.slice(0, MAX_SKILLS_DISPLAY).map((skill, index) => {
-          const isNew = !otherSkills.includes(skill);
+        {skills.slice(0, MAX_SKILLS_DISPLAY).map((skill) => {
+          const isNew = !otherSkillsSet.has(skill);
           return (
             <Badge
-              key={index}
+              key={skill}
               variant="secondary"
               className={cn("text-xs", isNew && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300")}
             >

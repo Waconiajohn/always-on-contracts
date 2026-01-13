@@ -19,3 +19,11 @@ export const RETRY_CONFIG = {
   INITIAL_DELAY_MS: 1500,
   MAX_DELAY_MS: 8000,
 } as const;
+
+// Step labels for navigation (single source of truth)
+export const STEP_LABELS: Record<number, string> = {
+  1: "Upload & Analyze",
+  2: "Industry Standards",
+  3: "Interview",
+  4: "Generate Resume",
+};
