@@ -18,13 +18,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { History, ArrowLeftRight, Check, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface ResumeVersion {
-  id: string;
-  resume: OptimizedResume;
-  createdAt: Date;
-  label: string;
-}
+// Import shared type - no local duplication
+import type { ResumeVersion } from "@/types/resume-builder-v3";
 
 // Validation function for version data
 const isValidVersion = (v: unknown): v is ResumeVersion => {

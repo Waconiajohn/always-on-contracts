@@ -325,6 +325,29 @@ const VALID_STEPS: Step[] = ["fit_analysis", "standards", "questions", "generate
 // DEBUG mode - set DEBUG=true in environment to enable verbose logging
 const DEBUG = Deno.env.get("DEBUG") === "true";
 
+// XSS sanitization for AI-generated content
+function sanitizeOutput(obj: unknown): unknown {
+  if (typeof obj === 'string') {
+    return obj
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeOutput);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeOutput(value);
+    }
+    return sanitized;
+  }
+  return obj;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -401,7 +424,10 @@ serve(async (req) => {
         throw new Error(`Unknown step: ${step}`);
     }
 
-    return new Response(JSON.stringify({ success: true, data: result }), {
+    // Sanitize AI output to prevent XSS
+    const sanitizedResult = sanitizeOutput(result);
+
+    return new Response(JSON.stringify({ success: true, data: sanitizedResult }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

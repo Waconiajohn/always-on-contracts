@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 import { ResumeBuilderErrorBoundary } from "./components/ErrorBoundary";
+import { StepErrorBoundary } from "./components/StepErrorBoundary";
+import { SESSION_RECOVERY_MIN_CHARS } from "./constants";
 
 // Navigation state types from other pages
 interface NavigationState {
@@ -102,7 +104,7 @@ export function ResumeBuilderV3() {
       const hasRealProgress = 
         fitAnalysis !== null || 
         step > 1 ||
-        (resumeText.length > 100 && jobDescription.length > 50);
+        (resumeText.length > SESSION_RECOVERY_MIN_CHARS && jobDescription.length > 50);
         
       if (hasRealProgress) {
         setShowRecoveryDialog(true);
@@ -253,11 +255,21 @@ export function ResumeBuilderV3() {
           aria-label={`Step ${step}: ${STEP_LABELS[step - 1]}`}
         >
           <StepTransition step={step} direction={transitionDirection}>
-            {step === 1 && !fitAnalysis && <UploadStep />}
-            {step === 1 && fitAnalysis && <FitAnalysisStep />}
-            {step === 2 && <StandardsStep />}
-            {step === 3 && <InterviewStep />}
-            {step === 4 && <GenerateStep />}
+            {step === 1 && !fitAnalysis && (
+              <StepErrorBoundary stepName="Upload"><UploadStep /></StepErrorBoundary>
+            )}
+            {step === 1 && fitAnalysis && (
+              <StepErrorBoundary stepName="Fit Analysis"><FitAnalysisStep /></StepErrorBoundary>
+            )}
+            {step === 2 && (
+              <StepErrorBoundary stepName="Standards"><StandardsStep /></StepErrorBoundary>
+            )}
+            {step === 3 && (
+              <StepErrorBoundary stepName="Interview"><InterviewStep /></StepErrorBoundary>
+            )}
+            {step === 4 && (
+              <StepErrorBoundary stepName="Generate"><GenerateStep /></StepErrorBoundary>
+            )}
           </StepTransition>
         </main>
 
