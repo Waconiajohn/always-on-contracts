@@ -118,6 +118,19 @@ export interface ResumeV3Session {
   finalResume?: OptimizedResume;
 }
 
+/**
+ * Bullet edit action types
+ */
+export type BulletEditActionType = "strengthen" | "add_metrics" | "regenerate";
+
+/**
+ * Bullet edit result from AI
+ */
+export interface BulletEditResult {
+  improvedBullet: string;
+  changes: string;
+}
+
 // Shared constants for validation
 export const RESUME_LIMITS = {
   MAX_RESUME_CHARS: 15000,

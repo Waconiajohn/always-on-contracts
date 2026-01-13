@@ -2,7 +2,7 @@
 // STEP 4: Generated Resume Display
 // =====================================================
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +25,10 @@ import { SuccessAnimation, FadeIn, StaggerContainer, StaggerItem } from "./StepT
 import { formatResumeAsText } from "./utils/formatters";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
+import { BulletEditor } from "./components/BulletEditor";
 import { MAX_VERSION_HISTORY } from "./constants";
 import { logger } from "@/lib/logger";
-import type { ResumeVersion } from "@/types/resume-builder-v3";
+import type { ResumeVersion, OptimizedResume } from "@/types/resume-builder-v3";
 
 // Helper functions for safe localStorage access
 const safeGetVersions = (): ResumeVersion[] => {
@@ -80,10 +81,36 @@ const createFingerprintSync = (resume: Record<string, unknown>): string => {
 };
 
 export function GenerateStep() {
-  const { finalResume, fitAnalysis, standards } = useResumeBuilderV3Store();
+  const { finalResume, fitAnalysis, standards, jobDescription, setFinalResume } = useResumeBuilderV3Store();
   const printRef = useRef<HTMLDivElement>(null);
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Handler for bullet updates from BulletEditor
+  const handleBulletUpdate = useCallback((experienceIndex: number, bulletIndex: number, newBullet: string) => {
+    if (!finalResume) return;
+    
+    const updatedExperience = finalResume.experience.map((exp, expIdx) => {
+      if (expIdx !== experienceIndex) return exp;
+      return {
+        ...exp,
+        bullets: exp.bullets.map((b, bIdx) => 
+          bIdx === bulletIndex ? newBullet : b
+        ),
+      };
+    });
+    
+    const updatedResume: OptimizedResume = {
+      ...finalResume,
+      experience: updatedExperience,
+      improvements_made: [
+        ...finalResume.improvements_made,
+        `Refined bullet point in ${finalResume.experience[experienceIndex]?.title || 'experience'}`,
+      ],
+    };
+    
+    setFinalResume(updatedResume);
+  }, [finalResume, setFinalResume]);
   
   // Track saved fingerprints to prevent race conditions
   const savedFingerprintRef = useRef<string | null>(null);
@@ -336,12 +363,16 @@ export function GenerateStep() {
                     </div>
                     <p className="text-sm text-muted-foreground">{exp.dates}</p>
                   </div>
-                  <ul className="mt-2 space-y-1">
+                  <ul className="mt-2 space-y-2">
                     {exp.bullets.map((bullet, bIndex) => (
-                      <li key={`bullet-${bIndex}-${bullet.substring(0, 20).replace(/\s/g, '')}`} className="text-sm flex items-start gap-2">
-                        <span className="text-muted-foreground">•</span>
-                        {bullet}
-                      </li>
+                      <BulletEditor
+                        key={`bullet-${index}-${bIndex}-${bullet.substring(0, 20).replace(/\s/g, '')}`}
+                        bullet={bullet}
+                        experienceIndex={index}
+                        bulletIndex={bIndex}
+                        jobDescription={jobDescription}
+                        onBulletUpdate={handleBulletUpdate}
+                      />
                     ))}
                   </ul>
                 </div>
