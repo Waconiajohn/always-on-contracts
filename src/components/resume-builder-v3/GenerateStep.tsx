@@ -88,9 +88,12 @@ export function GenerateStep() {
   // Track saved fingerprints to prevent race conditions
   const savedFingerprintRef = useRef<string | null>(null);
 
-  // Load versions on mount
+  // Load versions on mount and cleanup ref on unmount
   useEffect(() => {
     setVersions(safeGetVersions());
+    return () => {
+      savedFingerprintRef.current = null;
+    };
   }, []);
 
   // Auto-save version when a NEW resume is generated (not on every render)
@@ -375,8 +378,8 @@ export function GenerateStep() {
                   Education
                 </h4>
                 <div className="space-y-2">
-                  {finalResume.education.map((edu) => (
-                    <div key={`${edu.institution}-${edu.degree}`} className="flex items-start justify-between">
+                  {finalResume.education.map((edu, index) => (
+                    <div key={`edu-${index}-${edu.institution}-${edu.degree}`} className="flex items-start justify-between">
                       <div>
                         <p className="font-medium text-sm">{edu.degree}</p>
                         <p className="text-sm text-muted-foreground">{edu.institution}</p>
