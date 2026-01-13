@@ -41,6 +41,33 @@ interface RequestBody {
   interviewAnswers?: Record<string, string>;
 }
 
+// Fetch timeout wrapper
+const FETCH_TIMEOUT_MS = 90000; // 90 seconds
+
+async function fetchWithTimeout(
+  url: string, 
+  options: RequestInit, 
+  timeoutMs: number = FETCH_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs / 1000} seconds`);
+    }
+    throw error;
+  }
+}
+
 async function callAI(
   apiKey: string,
   model: string,
@@ -52,7 +79,7 @@ async function callAI(
   if (DEBUG) console.log(`🤖 Calling AI for ${functionName} with model ${model}`);
   const startTime = Date.now();
 
-  const response = await fetch(LOVABLE_AI_GATEWAY, {
+  const response = await fetchWithTimeout(LOVABLE_AI_GATEWAY, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -190,7 +217,14 @@ Your questions should:
 4. Be conversational and easy to answer
 5. Focus on information that will directly improve the resume
 
-Generate 3-7 targeted questions prioritized by impact.`;
+Generate 3-7 targeted questions prioritized by impact.
+
+IMPORTANT: Each question MUST have a unique, deterministic ID. Use the format: q_[category]_[number]
+- For gap-related questions: q_gap_1, q_gap_2, etc.
+- For benchmark questions: q_bench_1, q_bench_2, etc.  
+- For metrics questions: q_metric_1, q_metric_2, etc.
+- For keyword questions: q_keyword_1, q_keyword_2, etc.
+Never generate random or UUID-style IDs.`;
 
   const userPrompt = `Generate interview questions to fill resume gaps and enhance strengths.
 

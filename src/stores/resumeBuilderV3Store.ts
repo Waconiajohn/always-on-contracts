@@ -8,78 +8,26 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-// Types matching the edge function schemas
-export interface FitAnalysisResult {
-  fit_score: number;
-  executive_summary: string;
-  strengths: Array<{
-    requirement: string;
-    evidence: string;
-    strength_level: "strong" | "moderate";
-  }>;
-  gaps: Array<{
-    requirement: string;
-    severity: "critical" | "moderate" | "minor";
-    suggestion: string;
-  }>;
-  keywords_found: string[];
-  keywords_missing: string[];
-}
+// Import types from single source of truth
+import type {
+  FitAnalysisResult,
+  StandardsResult,
+  QuestionsResult,
+  OptimizedResume,
+  Step,
+} from "@/types/resume-builder-v3";
 
-export interface StandardsResult {
-  industry: string;
-  profession: string;
-  seniority_level: "entry" | "mid" | "senior" | "lead" | "executive";
-  benchmarks: Array<{
-    benchmark: string;
-    candidate_status: "exceeds" | "meets" | "below";
-    evidence: string;
-    recommendation?: string;
-  }>;
-  industry_keywords: string[];
-  power_phrases: string[];
-  metrics_suggestions: string[];
-}
+// Re-export types for backward compatibility
+export type {
+  FitAnalysisResult,
+  StandardsResult,
+  QuestionsResult,
+  OptimizedResume,
+  Step,
+} from "@/types/resume-builder-v3";
 
-export interface InterviewQuestion {
-  id: string;
-  question: string;
-  purpose: string;
-  gap_addressed: string;
-  example_answer?: string;
-  priority: "high" | "medium" | "low";
-}
-
-export interface QuestionsResult {
-  questions: InterviewQuestion[];
-  total_questions: number;
-}
-
-export interface OptimizedResume {
-  header: {
-    name: string;
-    title: string;
-    contact?: string;
-  };
-  summary: string;
-  experience: Array<{
-    company: string;
-    title: string;
-    dates: string;
-    bullets: string[];
-  }>;
-  skills: string[];
-  education?: Array<{
-    institution: string;
-    degree: string;
-    year?: string;
-  }>;
-  certifications?: string[];
-  ats_score: number;
-  improvements_made: string[];
-}
-
-export type Step = 1 | 2 | 3 | 4;
+// Re-export InterviewQuestion separately (it's used in other places)
+export type { InterviewQuestion } from "@/types/resume-builder-v3";
 
 interface ResumeBuilderV3State {
   // Current step

@@ -4,14 +4,16 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, X } from "lucide-react";
 
 interface LoadingSkeletonV3Props {
   type: "analysis" | "standards" | "questions" | "generate";
   message?: string;
+  onCancel?: () => void;
 }
 
-export function LoadingSkeletonV3({ type, message }: LoadingSkeletonV3Props) {
+export function LoadingSkeletonV3({ type, message, onCancel }: LoadingSkeletonV3Props) {
   const defaultMessages = {
     analysis: "Analyzing your resume against the job description...",
     standards: "Researching industry standards and benchmarks...",
@@ -32,6 +34,18 @@ export function LoadingSkeletonV3({ type, message }: LoadingSkeletonV3Props) {
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           {displayMessage}
         </p>
+        {onCancel && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            className="mt-4 text-muted-foreground hover:text-foreground"
+            aria-label="Cancel operation"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Cancel
+          </Button>
+        )}
       </div>
 
       {/* Skeleton content based on type */}

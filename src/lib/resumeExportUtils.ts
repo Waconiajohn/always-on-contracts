@@ -8,13 +8,18 @@ import { TechnicalDocxGenerator } from './docx/technicalTemplate';
 import { FunctionalDocxGenerator } from './docx/functionalTemplate';
 import { HybridDocxGenerator } from './docx/hybridTemplate';
 
+// Debug mode for export logging
+const EXPORT_DEBUG = import.meta.env.DEV;
+
 export const exportFormats = {
   async standardPDF(htmlContent: string, fileName: string) {
-    console.log('[EXPORT] standardPDF called with:', {
-      fileName,
-      contentLength: htmlContent?.length || 0,
-      hasContent: !!htmlContent && htmlContent.trim().length > 0
-    });
+    if (EXPORT_DEBUG) {
+      console.log('[EXPORT] standardPDF called with:', {
+        fileName,
+        contentLength: htmlContent?.length || 0,
+        hasContent: !!htmlContent && htmlContent.trim().length > 0
+      });
+    }
 
     if (!htmlContent || htmlContent.trim().length === 0) {
       throw new Error('Cannot export: Resume content is empty. Please generate your resume sections first.');
@@ -116,20 +121,22 @@ export const exportFormats = {
   },
 
   async generateDOCX(structuredData: any, fileName: string, templateId?: string) {
-    console.log('[EXPORT] generateDOCX called with:', {
-      templateId,
-      name: structuredData.name,
-      sectionsCount: structuredData.sections?.length || 0,
-      sections: structuredData.sections?.map((s: any) => ({
-        title: s.title,
-        type: s.type,
-        hasContent: !!s.content,
-        contentLength: s.content?.length || 0,
-        hasBullets: !!s.bullets,
-        bulletsCount: s.bullets?.length || 0,
-        bulletsSample: s.bullets?.[0]?.substring(0, 50)
-      }))
-    });
+    if (EXPORT_DEBUG) {
+      console.log('[EXPORT] generateDOCX called with:', {
+        templateId,
+        name: structuredData.name,
+        sectionsCount: structuredData.sections?.length || 0,
+        sections: structuredData.sections?.map((s: any) => ({
+          title: s.title,
+          type: s.type,
+          hasContent: !!s.content,
+          contentLength: s.content?.length || 0,
+          hasBullets: !!s.bullets,
+          bulletsCount: s.bullets?.length || 0,
+          bulletsSample: s.bullets?.[0]?.substring(0, 50)
+        }))
+      });
+    }
 
     const resumeData = {
       header: {
@@ -147,31 +154,31 @@ export const exportFormats = {
       let doc;
       
       if (templateId === 'executive') {
-        console.log('[EXPORT] Using Executive generator');
+        if (EXPORT_DEBUG) console.log('[EXPORT] Using Executive generator');
         const generator = new ExecutiveDocxGenerator(resumeData);
         doc = generator.generate();
       } else if (templateId === 'technical') {
-        console.log('[EXPORT] Using Technical generator');
+        if (EXPORT_DEBUG) console.log('[EXPORT] Using Technical generator');
         const generator = new TechnicalDocxGenerator(resumeData);
         doc = generator.generate();
       } else if (templateId === 'functional') {
-        console.log('[EXPORT] Using Functional generator');
+        if (EXPORT_DEBUG) console.log('[EXPORT] Using Functional generator');
         const generator = new FunctionalDocxGenerator(resumeData);
         doc = generator.generate();
       } else if (templateId === 'hybrid') {
-        console.log('[EXPORT] Using Hybrid generator');
+        if (EXPORT_DEBUG) console.log('[EXPORT] Using Hybrid generator');
         const generator = new HybridDocxGenerator(resumeData);
         doc = generator.generate();
       }
 
       if (doc) {
-        console.log('[EXPORT] Template generator succeeded, creating blob');
+        if (EXPORT_DEBUG) console.log('[EXPORT] Template generator succeeded, creating blob');
         const blob = await Packer.toBlob(doc);
         saveAs(blob, `${fileName}.docx`);
         return;
       }
     } catch (error) {
-      console.error(`[EXPORT] ${templateId} generation failed, falling back to standard:`, error);
+      if (EXPORT_DEBUG) console.error(`[EXPORT] ${templateId} generation failed, falling back to standard:`, error);
     }
 
     // Helper to decode HTML entities
@@ -384,20 +391,22 @@ export const exportFormats = {
 
   // Alias for generateDOCX with validation
   async docxExport(structuredData: any, fileName: string, templateId?: string) {
-    console.log('[EXPORT] docxExport called with:', {
-      fileName,
-      templateId,
-      hasSections: !!structuredData?.sections,
-      sectionsCount: structuredData?.sections?.length || 0,
-      sectionsDetail: structuredData?.sections?.map((s: any) => ({
-        type: s.type,
-        heading: s.heading,
-        hasBullets: !!s.bullets,
-        bulletsCount: s.bullets?.length || 0,
-        hasParagraph: !!s.paragraph,
-        firstBullet: s.bullets?.[0]?.substring(0, 50) || 'N/A'
-      }))
-    });
+    if (EXPORT_DEBUG) {
+      console.log('[EXPORT] docxExport called with:', {
+        fileName,
+        templateId,
+        hasSections: !!structuredData?.sections,
+        sectionsCount: structuredData?.sections?.length || 0,
+        sectionsDetail: structuredData?.sections?.map((s: any) => ({
+          type: s.type,
+          heading: s.heading,
+          hasBullets: !!s.bullets,
+          bulletsCount: s.bullets?.length || 0,
+          hasParagraph: !!s.paragraph,
+          firstBullet: s.bullets?.[0]?.substring(0, 50) || 'N/A'
+        }))
+      });
+    }
 
     if (!structuredData || !structuredData.sections || structuredData.sections.length === 0) {
       throw new Error('Cannot export: Resume data is empty. Please generate your resume sections first.');
@@ -409,11 +418,11 @@ export const exportFormats = {
     );
 
     if (!hasAnyContent) {
-      console.error('[EXPORT] No content found in sections:', structuredData.sections);
+      if (EXPORT_DEBUG) console.error('[EXPORT] No content found in sections:', structuredData.sections);
       throw new Error('Cannot export: Resume sections have no content. Please generate content for your sections first.');
     }
 
-    console.log('[EXPORT] Validation passed, generating DOCX...');
+    if (EXPORT_DEBUG) console.log('[EXPORT] Validation passed, generating DOCX...');
     return this.generateDOCX(structuredData, fileName, templateId);
   },
 

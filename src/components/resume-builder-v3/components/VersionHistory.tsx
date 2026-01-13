@@ -26,6 +26,42 @@ export interface ResumeVersion {
   label: string;
 }
 
+// Validation function for version data
+const isValidVersion = (v: unknown): v is ResumeVersion => {
+  if (!v || typeof v !== 'object') return false;
+  const version = v as Record<string, unknown>;
+  
+  return (
+    typeof version.id === 'string' &&
+    typeof version.label === 'string' &&
+    version.resume !== null &&
+    typeof version.resume === 'object' &&
+    typeof (version.resume as Record<string, unknown>).ats_score === 'number' &&
+    Array.isArray((version.resume as Record<string, unknown>).skills) &&
+    Array.isArray((version.resume as Record<string, unknown>).experience)
+  );
+};
+
+// Safe version parsing with validation - exported for use in GenerateStep
+export const safeParseVersions = (saved: string | null): ResumeVersion[] => {
+  if (!saved) return [];
+  
+  try {
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    
+    return parsed
+      .filter(isValidVersion)
+      .map((v) => ({
+        ...v,
+        createdAt: new Date(v.createdAt),
+      }));
+  } catch {
+    console.error("Failed to parse version history");
+    return [];
+  }
+};
+
 interface VersionHistoryProps {
   versions: ResumeVersion[];
   currentVersion: OptimizedResume | null;

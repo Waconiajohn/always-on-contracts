@@ -90,17 +90,26 @@ export function ResumeBuilderV3() {
     }
   }, [location.state, hasHandledNavState, reset, setResumeText, setJobDescription]);
 
+  // Get resumeText and jobDescription from store
+  const resumeText = useResumeBuilderV3Store((state) => state.resumeText);
+  const jobDescription = useResumeBuilderV3Store((state) => state.jobDescription);
+
   // Check for existing session on mount
-  // Only show recovery if they have actual analysis results (not just typed text)
+  // Show recovery if they have analysis results, or substantial typed text
   useEffect(() => {
     if (!hasCheckedSession && !hasHandledNavState) {
-      const hasRealProgress = fitAnalysis !== null || step > 1;
+      // Recover if: analysis exists OR step > 1 OR both fields have substantial content
+      const hasRealProgress = 
+        fitAnalysis !== null || 
+        step > 1 ||
+        (resumeText.length > 100 && jobDescription.length > 50);
+        
       if (hasRealProgress) {
         setShowRecoveryDialog(true);
       }
       setHasCheckedSession(true);
     }
-  }, [hasCheckedSession, hasHandledNavState, fitAnalysis, step]);
+  }, [hasCheckedSession, hasHandledNavState, fitAnalysis, step, resumeText.length, jobDescription.length]);
 
   const progressValue = ((step - 1) / 3) * 100;
 

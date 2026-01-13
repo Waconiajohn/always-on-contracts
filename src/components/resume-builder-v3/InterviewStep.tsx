@@ -47,7 +47,7 @@ export function InterviewStep() {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
-  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+  // Note: destructure cancel below after loading check for proper hook ordering
 
   // Check for null/empty questions FIRST (before loading check)
   if (!questions || !questions.questions || questions.questions.length === 0) {
@@ -67,12 +67,18 @@ export function InterviewStep() {
     );
   }
 
+  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
+
   // Show loading skeleton when generating resume
   if (isLoading) {
     return (
       <LoadingSkeletonV3 
         type="generate" 
         message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Crafting your optimized resume based on your answers..."} 
+        onCancel={() => {
+          cancel();
+          setLoading(false);
+        }}
       />
     );
   }
