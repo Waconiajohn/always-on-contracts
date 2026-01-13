@@ -49,7 +49,7 @@ async function callAI(
   schema: any,
   functionName: string
 ): Promise<any> {
-  console.log(`🤖 Calling AI for ${functionName} with model ${model}`);
+  if (DEBUG) console.log(`🤖 Calling AI for ${functionName} with model ${model}`);
   const startTime = Date.now();
 
   const response = await fetch(LOVABLE_AI_GATEWAY, {
@@ -93,7 +93,7 @@ async function callAI(
 
   const data = await response.json();
   const duration = Date.now() - startTime;
-  console.log(`✅ ${functionName} completed in ${duration}ms`);
+  if (DEBUG) console.log(`✅ ${functionName} completed in ${duration}ms`);
 
   // Extract tool call result
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
@@ -288,6 +288,7 @@ Generate a complete, optimized resume that:
 const MAX_RESUME_LENGTH = 25000;
 const MAX_JOB_LENGTH = 20000;
 const VALID_STEPS: Step[] = ["fit_analysis", "standards", "questions", "generate_resume"];
+// DEBUG mode - set DEBUG=true in environment to enable verbose logging
 const DEBUG = Deno.env.get("DEBUG") === "true";
 
 serve(async (req) => {

@@ -89,10 +89,10 @@ export function BeforeAfterComparison({ fitAnalysis, finalResume }: BeforeAfterC
               </div>
               
               <div className="flex justify-between items-center text-sm">
-                <span>Keywords Added</span>
+                <span>Keywords Targeted</span>
                 <Badge 
                   className="font-mono bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                  aria-label={`${keywordsMissing} keywords added`}
+                  aria-label={`${keywordsMissing} keywords targeted for inclusion`}
                 >
                   <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
                   {keywordsMissing}
@@ -116,7 +116,7 @@ export function BeforeAfterComparison({ fitAnalysis, finalResume }: BeforeAfterC
         {/* Keywords Added List */}
         {fitAnalysis.keywords_missing.length > 0 && (
           <div className="mt-4 pt-4 border-t">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Keywords Added</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Keywords Targeted for Inclusion</p>
             <div className="flex flex-wrap gap-1">
               {fitAnalysis.keywords_missing.slice(0, 8).map((keyword, index) => (
                 <Badge key={index} variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">

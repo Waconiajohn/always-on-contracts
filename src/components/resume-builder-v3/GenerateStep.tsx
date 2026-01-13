@@ -102,10 +102,44 @@ export function GenerateStep() {
 
   if (!finalResume) return null;
 
-  const handleCopyText = () => {
+  const handleCopyText = async () => {
     const resumeText = formatResumeAsText(finalResume);
-    navigator.clipboard.writeText(resumeText);
-    toast.success("Resume copied to clipboard!");
+    
+    // Use clipboard API with fallback for older browsers
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(resumeText);
+        toast.success("Resume copied to clipboard!");
+      } catch {
+        fallbackCopyToClipboard(resumeText);
+      }
+    } else {
+      fallbackCopyToClipboard(resumeText);
+    }
+  };
+
+  const fallbackCopyToClipboard = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand("copy");
+      if (successful) {
+        toast.success("Resume copied to clipboard!");
+      } else {
+        toast.error("Failed to copy. Please select and copy manually.");
+      }
+    } catch {
+      toast.error("Copy not supported. Please select and copy manually.");
+    } finally {
+      document.body.removeChild(textArea);
+    }
   };
 
   const handlePrint = () => {
