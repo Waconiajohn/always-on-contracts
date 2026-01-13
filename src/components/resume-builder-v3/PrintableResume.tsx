@@ -13,40 +13,63 @@ interface PrintableResumeProps {
 
 export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
   ({ resume }, ref) => {
+    // Using inline styles for print to ensure consistent output regardless of theme
     return (
       <div
         ref={ref}
-        className="print-resume bg-white text-black p-8 max-w-[8.5in] mx-auto"
+        className="print-resume p-8 max-w-[8.5in] mx-auto"
         style={{
           fontFamily: "'Georgia', 'Times New Roman', serif",
           fontSize: "11pt",
           lineHeight: "1.4",
+          backgroundColor: "#ffffff",
+          color: "#000000",
         }}
       >
         {/* Header */}
-        <header className="text-center border-b-2 border-black pb-4 mb-4">
-          <h1 className="text-2xl font-bold uppercase tracking-wide mb-1">
+        <header 
+          className="text-center pb-4 mb-4"
+          style={{ borderBottom: "2px solid #000000" }}
+        >
+          <h1 
+            className="text-2xl font-bold uppercase tracking-wide mb-1"
+            style={{ color: "#000000" }}
+          >
             {resume.header.name}
           </h1>
-          <p className="text-base font-medium text-gray-700">
+          <p 
+            className="text-base font-medium"
+            style={{ color: "#374151" }}
+          >
             {resume.header.title}
           </p>
           {resume.header.contact && (
-            <p className="text-sm text-gray-600 mt-1">{resume.header.contact}</p>
+            <p 
+              className="text-sm mt-1"
+              style={{ color: "#4b5563" }}
+            >
+              {resume.header.contact}
+            </p>
           )}
         </header>
 
         {/* Professional Summary */}
         <section className="mb-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-400 pb-1 mb-2">
+          <h2 
+            className="text-sm font-bold uppercase tracking-wider pb-1 mb-2"
+            style={{ borderBottom: "1px solid #9ca3af", color: "#000000" }}
+          >
             Professional Summary
           </h2>
-          <p className="text-sm leading-relaxed">{resume.summary}</p>
+          <p className="text-sm leading-relaxed" style={{ color: "#000000" }}>{resume.summary}</p>
         </section>
 
         {/* Experience */}
         <section className="mb-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-400 pb-1 mb-2">
+          <h2 
+            className="text-sm font-bold uppercase tracking-wider pb-1 mb-2"
+            style={{ borderBottom: "1px solid #9ca3af", color: "#000000" }}
+          >
             Professional Experience
           </h2>
           <div className="space-y-3">
@@ -54,14 +77,14 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
               <div key={index}>
                 <div className="flex justify-between items-baseline">
                   <div>
-                    <span className="font-bold">{exp.title}</span>
-                    <span className="text-gray-600"> | {exp.company}</span>
+                    <span className="font-bold" style={{ color: "#000000" }}>{exp.title}</span>
+                    <span style={{ color: "#4b5563" }}> | {exp.company}</span>
                   </div>
-                  <span className="text-sm text-gray-600">{exp.dates}</span>
+                  <span className="text-sm" style={{ color: "#4b5563" }}>{exp.dates}</span>
                 </div>
                 <ul className="mt-1 ml-4 space-y-0.5">
                   {exp.bullets.map((bullet, bIndex) => (
-                    <li key={bIndex} className="text-sm list-disc ml-2">
+                    <li key={bIndex} className="text-sm list-disc ml-2" style={{ color: "#000000" }}>
                       {bullet}
                     </li>
                   ))}
@@ -74,27 +97,33 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
         {/* Skills */}
         {resume.skills.length > 0 && (
           <section className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-400 pb-1 mb-2">
+            <h2 
+              className="text-sm font-bold uppercase tracking-wider pb-1 mb-2"
+              style={{ borderBottom: "1px solid #9ca3af", color: "#000000" }}
+            >
               Technical Skills
             </h2>
-            <p className="text-sm">{resume.skills.join(" • ")}</p>
+            <p className="text-sm" style={{ color: "#000000" }}>{resume.skills.join(" • ")}</p>
           </section>
         )}
 
         {/* Education */}
         {resume.education && resume.education.length > 0 && (
           <section className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-400 pb-1 mb-2">
+            <h2 
+              className="text-sm font-bold uppercase tracking-wider pb-1 mb-2"
+              style={{ borderBottom: "1px solid #9ca3af", color: "#000000" }}
+            >
               Education
             </h2>
             <div className="space-y-1">
               {resume.education.map((edu, index) => (
                 <div key={index} className="flex justify-between">
                   <div>
-                    <span className="font-medium">{edu.degree}</span>
-                    <span className="text-gray-600"> — {edu.institution}</span>
+                    <span className="font-medium" style={{ color: "#000000" }}>{edu.degree}</span>
+                    <span style={{ color: "#4b5563" }}> — {edu.institution}</span>
                   </div>
-                  {edu.year && <span className="text-sm text-gray-600">{edu.year}</span>}
+                  {edu.year && <span className="text-sm" style={{ color: "#4b5563" }}>{edu.year}</span>}
                 </div>
               ))}
             </div>
@@ -104,12 +133,15 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
         {/* Certifications */}
         {resume.certifications && resume.certifications.length > 0 && (
           <section>
-            <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-400 pb-1 mb-2">
+            <h2 
+              className="text-sm font-bold uppercase tracking-wider pb-1 mb-2"
+              style={{ borderBottom: "1px solid #9ca3af", color: "#000000" }}
+            >
               Certifications
             </h2>
             <ul className="text-sm space-y-0.5">
               {resume.certifications.map((cert, index) => (
-                <li key={index} className="list-disc ml-6">
+                <li key={index} className="list-disc ml-6" style={{ color: "#000000" }}>
                   {cert}
                 </li>
               ))}

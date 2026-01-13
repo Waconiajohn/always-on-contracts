@@ -237,8 +237,8 @@ export const exportFormats = {
 
     // Add sections with proper formatting
     (cleanedData.sections || []).forEach((section: any) => {
-      const isExperienceSection = section.title.toLowerCase().includes('experience');
-      const isSkillsSection = section.title.toLowerCase().includes('skill');
+      const isExperienceSection = section.title.toLowerCase().includes('experience') || section.type === 'experience';
+      const isSkillsSection = section.title.toLowerCase().includes('skill') || section.type === 'skills';
 
       // Section heading
       children.push(
@@ -251,7 +251,6 @@ export const exportFormats = {
       );
 
       // Handle paragraph content (e.g., Summary) - but skip for Experience sections
-      // as they use bullets for job entries
       if (section.content && !isExperienceSection) {
         children.push(
           new Paragraph({
@@ -261,21 +260,51 @@ export const exportFormats = {
         );
       }
 
-      // Handle bullet points
-      if (section.bullets && Array.isArray(section.bullets) && section.bullets.length > 0) {
+      // Handle structured experience entries (new format from formatters.ts)
+      if (isExperienceSection && section.entries && Array.isArray(section.entries)) {
+        section.entries.forEach((exp: { title: string; company: string; dates: string; bullets: string[] }) => {
+          // Job title
+          children.push(new Paragraph({
+            text: exp.title,
+            heading: HeadingLevel.HEADING_3,
+            spacing: { before: 180, after: 60 }
+          }));
+          
+          // Company and dates
+          children.push(new Paragraph({
+            children: [
+              new TextRun({ text: exp.company, italics: true }),
+              new TextRun({ text: ` | ${exp.dates}` })
+            ],
+            spacing: { after: 60 }
+          }));
+          
+          // Bullets
+          if (exp.bullets && Array.isArray(exp.bullets)) {
+            exp.bullets.forEach((bullet: string) => {
+              const cleanBullet = formatResumeContent(bullet);
+              if (cleanBullet) {
+                children.push(new Paragraph({
+                  text: cleanBullet,
+                  bullet: { level: 0 },
+                  spacing: { after: 60 }
+                }));
+              }
+            });
+          }
+        });
+      }
+      // Handle legacy bullet format for experience
+      else if (section.bullets && Array.isArray(section.bullets) && section.bullets.length > 0) {
         if (isExperienceSection) {
-          // Parse experience bullets which may contain job entries
+          // Parse experience bullets which may contain job entries (legacy format)
           let currentJob: { title?: string; company?: string; bullets: string[] } | null = null;
 
           section.bullets.forEach((bullet: string) => {
-            // Clean HTML entities and markdown from bullet
             const cleanedBullet = formatResumeContent(bullet);
-            
-            // Check if this is a job title (contains pipe separator for company|dates)
             const jobTitleMatch = cleanedBullet.match(/^(.+?)\s*[|–]\s*(.+?)(?:\s*\(([^)]+)\))?$/);
             
             if (jobTitleMatch && !cleanedBullet.startsWith('-') && !cleanedBullet.startsWith('•')) {
-              // Flush previous job if exists
               if (currentJob && currentJob.bullets.length > 0) {
                 const job = currentJob;
                 if (job.title) {
@@ -300,7 +329,6 @@ export const exportFormats = {
                 });
               }
 
-              // Start new job - parse title and company/dates
               const [, jobTitle, companyInfo] = jobTitleMatch;
               currentJob = {
                 title: jobTitle.trim(),
@@ -308,13 +336,11 @@ export const exportFormats = {
                 bullets: []
               };
             } else {
-              // This is a bullet point
               const bulletText = cleanedBullet.replace(/^[-•#]\s*/, '').trim();
               if (bulletText) {
                 if (currentJob) {
                   currentJob.bullets.push(bulletText);
                 } else {
-                  // No job context, add as standalone bullet
                   children.push(new Paragraph({
                     text: formatResumeContent(bulletText),
                     bullet: { level: 0 },
@@ -325,7 +351,6 @@ export const exportFormats = {
             }
           });
 
-          // Flush last job if exists
           if (currentJob) {
             const job: { title?: string; company?: string; bullets: string[] } = currentJob;
             if (job.bullets.length > 0) {
@@ -352,7 +377,6 @@ export const exportFormats = {
             }
           }
         } else if (isSkillsSection) {
-          // Format skills in a more compact way, clean HTML entities
           const skillsText = section.bullets
             .map((b: string) => formatResumeContent(b.replace(/^[-•]\s*/, '').trim()))
             .filter(Boolean)
@@ -363,7 +387,6 @@ export const exportFormats = {
             spacing: { after: 120 }
           }));
         } else {
-          // Regular bullets for other sections
           section.bullets.forEach((bullet: string) => {
             const cleanBullet = bullet.replace(/^[-•]\s*/, '').trim();
             if (cleanBullet) {

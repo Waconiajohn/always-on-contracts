@@ -59,17 +59,31 @@ export function formatResumeAsText(resume: OptimizedResume): string {
 }
 
 /**
- * Prepares resume data for DOCX/PDF export
+ * Experience entry structure for export
+ */
+export interface ExperienceEntry {
+  title: string;
+  company: string;
+  dates: string;
+  bullets: string[];
+}
+
+/**
+ * Export section with proper typing
+ */
+export interface ExportSection {
+  title: string;
+  type: "summary" | "experience" | "skills" | "education" | "certifications";
+  content: string;
+  bullets: string[];
+  paragraph?: string;
+  entries?: ExperienceEntry[]; // Structured experience data
+}
+
+/**
+ * Prepares resume data for DOCX/PDF export with proper structure
  */
 export function prepareExportData(resume: OptimizedResume) {
-  interface ExportSection {
-    title: string;
-    type: string;
-    content: string;
-    bullets: string[];
-    paragraph?: string;
-  }
-
   const sections: ExportSection[] = [
     {
       title: "Professional Summary",
@@ -82,10 +96,13 @@ export function prepareExportData(resume: OptimizedResume) {
       title: "Experience",
       type: "experience",
       content: "",
-      bullets: resume.experience.flatMap(exp => [
-        `${exp.title} | ${exp.company} | ${exp.dates}`,
-        ...exp.bullets.map(b => `• ${b}`)
-      ]),
+      bullets: [], // Keep empty for backwards compatibility
+      entries: resume.experience.map(exp => ({
+        title: exp.title,
+        company: exp.company,
+        dates: exp.dates,
+        bullets: exp.bullets,
+      })),
     },
     {
       title: "Skills",
@@ -130,18 +147,46 @@ export function prepareExportData(resume: OptimizedResume) {
   };
 }
 
+// PDF export colors - using fixed colors for consistent PDF output
+const PDF_COLORS = {
+  primary: "#7c3aed",
+  text: "#1f2937",
+  textMuted: "#64748b",
+  border: "#e5e7eb",
+};
+
 /**
- * Generates HTML for PDF export
+ * Generates HTML for PDF export with fixed colors (no CSS variables)
  */
 export function generateResumeHTML(data: ReturnType<typeof prepareExportData>): string {
   const sectionsHTML = data.sections.map((section) => {
-    const content = section.bullets?.length 
-      ? `<ul>${section.bullets.map((b: string) => `<li>${b}</li>`).join('')}</ul>`
-      : `<p>${section.content || ''}</p>`;
+    let content: string;
+    
+    // Handle experience section with structured entries
+    if (section.type === "experience" && section.entries?.length) {
+      content = section.entries.map(exp => `
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+            <div>
+              <strong style="color: ${PDF_COLORS.text};">${exp.title}</strong>
+              <span style="color: ${PDF_COLORS.textMuted};"> | ${exp.company}</span>
+            </div>
+            <span style="color: ${PDF_COLORS.textMuted}; font-size: 14px;">${exp.dates}</span>
+          </div>
+          <ul style="margin-left: 16px; margin-top: 8px;">
+            ${exp.bullets.map(b => `<li style="margin-bottom: 4px;">${b}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('');
+    } else if (section.bullets?.length) {
+      content = `<ul>${section.bullets.map((b: string) => `<li>${b}</li>`).join('')}</ul>`;
+    } else {
+      content = `<p>${section.content || ''}</p>`;
+    }
     
     return `
       <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: hsl(var(--primary)); border-bottom: 1px solid hsl(var(--border)); padding-bottom: 8px; margin-bottom: 12px;">${section.title}</h2>
+        <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${PDF_COLORS.primary}; border-bottom: 1px solid ${PDF_COLORS.border}; padding-bottom: 8px; margin-bottom: 12px;">${section.title}</h2>
         ${content}
       </section>
     `;
@@ -164,7 +209,7 @@ export function generateResumeHTML(data: ReturnType<typeof prepareExportData>): 
         body { 
           font-family: 'Inter', 'Segoe UI', sans-serif;
           line-height: 1.6;
-          color: #333;
+          color: ${PDF_COLORS.text};
           max-width: 800px;
           margin: 0 auto;
           padding: 40px 20px;
@@ -173,11 +218,11 @@ export function generateResumeHTML(data: ReturnType<typeof prepareExportData>): 
           text-align: center;
           margin-bottom: 30px;
           padding-bottom: 20px;
-          border-bottom: 2px solid #7c3aed;
+          border-bottom: 2px solid ${PDF_COLORS.primary};
         }
-        h1 { font-size: 28px; color: #7c3aed; margin-bottom: 8px; }
-        .headline { color: #64748b; font-size: 16px; }
-        .contact { margin-top: 10px; color: #64748b; font-size: 14px; }
+        h1 { font-size: 28px; color: ${PDF_COLORS.primary}; margin-bottom: 8px; }
+        .headline { color: ${PDF_COLORS.textMuted}; font-size: 16px; }
+        .contact { margin-top: 10px; color: ${PDF_COLORS.textMuted}; font-size: 14px; }
         ul { list-style-position: inside; padding-left: 0; }
         li { margin-bottom: 8px; padding-left: 16px; text-indent: -16px; }
         p { margin-bottom: 12px; }

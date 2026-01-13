@@ -39,6 +39,10 @@ export function FitAnalysisStep() {
       <LoadingSkeletonV3 
         type="standards" 
         message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Researching industry standards and benchmarks..."} 
+        onCancel={() => {
+          // Cancel needs to be accessed from store or passed through
+          setLoading(false);
+        }}
       />
     );
   }

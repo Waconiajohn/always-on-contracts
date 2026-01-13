@@ -47,10 +47,15 @@ export function InterviewStep() {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
-  // Note: destructure cancel below after loading check for proper hook ordering
+  
+  // CRITICAL: All hooks must be called before any conditional returns (React Rules of Hooks)
+  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
 
-  // Check for null/empty questions FIRST (before loading check)
-  if (!questions || !questions.questions || questions.questions.length === 0) {
+  // Computed values for empty questions state
+  const hasNoQuestions = !questions || !questions.questions || questions.questions.length === 0;
+
+  // Handle empty questions case after all hooks are called
+  if (hasNoQuestions) {
     return (
       <div className="text-center py-12 space-y-4">
         <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
@@ -66,8 +71,6 @@ export function InterviewStep() {
       </div>
     );
   }
-
-  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
 
   // Show loading skeleton when generating resume
   if (isLoading) {
