@@ -2,7 +2,8 @@
 // RESUME BUILDER V3 - STRUCTURED OUTPUT SCHEMAS
 // =====================================================
 // Strict JSON schemas for guaranteed structured outputs
-// Used with OpenAI/Gemini tool calling for reliable parsing
+// Used with AI tool calling for reliable parsing
+// NOTE: Type definitions are in src/types/resume-builder-v3.ts (single source of truth)
 // =====================================================
 
 /**
@@ -146,7 +147,7 @@ export const QUESTIONS_SCHEMA = {
         items: {
           type: "object",
           properties: {
-            id: { type: "string", description: "Unique question identifier" },
+            id: { type: "string", description: "Unique question identifier using format q_[category]_[number]" },
             question: { type: "string", description: "The question to ask" },
             purpose: { type: "string", description: "Why this question helps the resume" },
             gap_addressed: { type: "string", description: "Which gap or enhancement this addresses" },
@@ -243,87 +244,4 @@ export const RESUME_SCHEMA = {
     required: ["header", "summary", "experience", "skills", "ats_score", "improvements_made"],
     additionalProperties: false
   }
-};
-
-// Type exports for TypeScript
-export type FitAnalysisResult = {
-  fit_score: number;
-  executive_summary: string;
-  strengths: Array<{
-    requirement: string;
-    evidence: string;
-    strength_level: "strong" | "moderate";
-  }>;
-  gaps: Array<{
-    requirement: string;
-    severity: "critical" | "moderate" | "minor";
-    suggestion: string;
-  }>;
-  keywords_found: string[];
-  keywords_missing: string[];
-};
-
-export type StandardsResult = {
-  industry: string;
-  profession: string;
-  seniority_level: "entry" | "mid" | "senior" | "lead" | "executive";
-  benchmarks: Array<{
-    benchmark: string;
-    candidate_status: "exceeds" | "meets" | "below";
-    evidence: string;
-    recommendation?: string;
-  }>;
-  industry_keywords: string[];
-  power_phrases: string[];
-  metrics_suggestions: string[];
-};
-
-export type InterviewQuestion = {
-  id: string;
-  question: string;
-  purpose: string;
-  gap_addressed: string;
-  example_answer?: string;
-  priority: "high" | "medium" | "low";
-};
-
-export type QuestionsResult = {
-  questions: InterviewQuestion[];
-  total_questions: number;
-};
-
-export type OptimizedResume = {
-  header: {
-    name: string;
-    title: string;
-    contact?: string;
-  };
-  summary: string;
-  experience: Array<{
-    company: string;
-    title: string;
-    dates: string;
-    bullets: string[];
-  }>;
-  skills: string[];
-  education?: Array<{
-    institution: string;
-    degree: string;
-    year?: string;
-  }>;
-  certifications?: string[];
-  ats_score: number;
-  improvements_made: string[];
-};
-
-// Full session state type
-export type ResumeV3Session = {
-  step: 1 | 2 | 3 | 4;
-  resumeText: string;
-  jobDescription: string;
-  fitAnalysis?: FitAnalysisResult;
-  standards?: StandardsResult;
-  questions?: QuestionsResult;
-  interviewAnswers?: Record<string, string>;
-  finalResume?: OptimizedResume;
 };

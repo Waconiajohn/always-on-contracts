@@ -33,7 +33,7 @@ export function StandardsStep() {
   } = useResumeBuilderV3Store();
 
   // CRITICAL: All hooks must be called before any conditional returns
-  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
 
   if (!standards) return null;
 
@@ -43,6 +43,10 @@ export function StandardsStep() {
       <LoadingSkeletonV3 
         type="questions" 
         message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Generating personalized interview questions..."} 
+        onCancel={() => {
+          cancel();
+          setLoading(false);
+        }}
       />
     );
   }
