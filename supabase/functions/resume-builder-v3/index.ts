@@ -427,6 +427,13 @@ serve(async (req) => {
         if (!fitAnalysis || !standards) {
           throw new Error("Previous analysis required for resume generation");
         }
+        // Validate required fields from previous steps
+        if (!Array.isArray(fitAnalysis.strengths) || !Array.isArray(fitAnalysis.keywords_found)) {
+          throw new Error("Invalid fit analysis data structure: strengths and keywords_found must be arrays");
+        }
+        if (!standards.industry || !standards.profession || !Array.isArray(standards.power_phrases)) {
+          throw new Error("Invalid standards data structure: industry, profession required and power_phrases must be array");
+        }
         // Validate and sanitize interview answer keys
         const sanitizedAnswers: Record<string, string> = {};
         if (interviewAnswers && typeof interviewAnswers === 'object') {

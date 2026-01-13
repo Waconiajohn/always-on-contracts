@@ -56,8 +56,14 @@ export function InterviewStep() {
   // Debounce timer ref for store updates
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Sync local answer when question changes
+  // Sync local answer when question changes and clear pending timer
   useEffect(() => {
+    // Clear any pending debounce timer when question changes
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    
     const currentQuestion = questions?.questions?.[currentQuestionIndex];
     if (currentQuestion) {
       setLocalAnswer(interviewAnswers[currentQuestion.id] || "");

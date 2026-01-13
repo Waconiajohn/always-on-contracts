@@ -2,13 +2,16 @@
 // API CALL HOOK WITH RETRY LOGIC
 // =====================================================
 
-import { useCallback } from "react";
+import { useCallback, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRetryWithBackoff } from "./useRetryWithBackoff";
 import { logger } from "@/lib/logger";
 import { validateApiResponse } from "../utils/validators";
 import { RETRY_CONFIG } from "../constants";
+
+// Rate limit cooldown period (30 seconds)
+const RATE_LIMIT_COOLDOWN_MS = 30000;
 
 type Step = "fit_analysis" | "standards" | "questions" | "generate_resume";
 
@@ -20,6 +23,9 @@ interface ApiCallOptions {
 }
 
 export function useResumeBuilderApi() {
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
+  const rateLimitRef = useRef<number | null>(null);
+  
   const { executeWithRetry, isRetrying, currentAttempt, cancel } = useRetryWithBackoff({
     maxAttempts: RETRY_CONFIG.MAX_ATTEMPTS,
     initialDelayMs: RETRY_CONFIG.INITIAL_DELAY_MS,
@@ -32,6 +38,14 @@ export function useResumeBuilderApi() {
   const callApi = useCallback(
     async <T>(options: ApiCallOptions): Promise<T | null> => {
       const { step, body, onSuccess, successMessage } = options;
+
+      // Check rate limit cooldown
+      const currentRateLimit = rateLimitRef.current;
+      if (currentRateLimit && Date.now() < currentRateLimit) {
+        const waitSeconds = Math.ceil((currentRateLimit - Date.now()) / 1000);
+        toast.warning(`Rate limited. Please wait ${waitSeconds} seconds.`);
+        return null;
+      }
 
       try {
         const result = await executeWithRetry<T>(async (signal) => {
@@ -56,8 +70,12 @@ export function useResumeBuilderApi() {
 
           if (error) {
             // Check for specific error types that should not retry
-            if (error.message?.includes("rate limit")) {
-              throw new Error("Rate limit exceeded. Please wait a moment before trying again.");
+            if (error.message?.includes("rate limit") || error.message?.includes("429")) {
+              // Set rate limit cooldown
+              const cooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+              rateLimitRef.current = cooldownUntil;
+              setRateLimitedUntil(cooldownUntil);
+              throw new Error("Rate limit exceeded. Please wait 30 seconds before trying again.");
             }
             throw error;
           }
@@ -110,5 +128,6 @@ export function useResumeBuilderApi() {
     isRetrying,
     currentAttempt,
     maxAttempts: RETRY_CONFIG.MAX_ATTEMPTS,
+    rateLimitedUntil,
   };
 }

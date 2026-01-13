@@ -140,14 +140,14 @@ export function VersionHistory({ versions, currentVersion }: VersionHistoryProps
       });
     }
 
-    // Compare summary length
-    const summaryDiff = v2.summary.length - v1.summary.length;
-    if (Math.abs(summaryDiff) > 20) {
+    // Compare summary content (not just length)
+    if (v1.summary !== v2.summary) {
+      const lengthDiff = Math.abs(v2.summary.length - v1.summary.length);
       differences.push({
-        field: "Summary Length",
-        before: `${v1.summary.length} chars`,
-        after: `${v2.summary.length} chars`,
-        improved: true, // Neutral - neither is necessarily better
+        field: "Summary",
+        before: lengthDiff > 20 ? `${v1.summary.length} chars` : "Modified",
+        after: lengthDiff > 20 ? `${v2.summary.length} chars` : "Updated",
+        improved: true, // Content changed - mark as improved (neutral)
       });
     }
 

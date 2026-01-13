@@ -349,8 +349,8 @@ export function GenerateStep() {
             </h4>
             {finalResume.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2" role="list" aria-label="Skills">
-                {finalResume.skills.map((skill, index) => (
-                  <Badge key={index} variant="secondary" role="listitem">
+                {finalResume.skills.map((skill) => (
+                  <Badge key={skill} variant="secondary" role="listitem">
                     {skill}
                   </Badge>
                 ))}
@@ -369,8 +369,8 @@ export function GenerateStep() {
                   Education
                 </h4>
                 <div className="space-y-2">
-                  {finalResume.education.map((edu, index) => (
-                    <div key={index} className="flex items-start justify-between">
+                  {finalResume.education.map((edu) => (
+                    <div key={`${edu.institution}-${edu.degree}`} className="flex items-start justify-between">
                       <div>
                         <p className="font-medium text-sm">{edu.degree}</p>
                         <p className="text-sm text-muted-foreground">{edu.institution}</p>
@@ -394,8 +394,8 @@ export function GenerateStep() {
                   Certifications
                 </h4>
                 <ul className="space-y-1">
-                  {finalResume.certifications.map((cert, index) => (
-                    <li key={index} className="text-sm flex items-start gap-2">
+                  {finalResume.certifications.map((cert) => (
+                    <li key={cert} className="text-sm flex items-start gap-2">
                       <span className="text-muted-foreground">•</span>
                       {cert}
                     </li>
