@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { OptimizedResume } from "@/stores/resumeBuilderV3Store";
 import { exportFormats } from "@/lib/resumeExportUtils";
 import { formatResumeAsText, prepareExportData, generateResumeHTML } from "./utils/formatters";
+import { EXPORT_TIMEOUT_MS } from "./constants";
 
 interface ExportOptionsV3Props {
   resume: OptimizedResume;
@@ -62,12 +63,12 @@ export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
       } else if (format === 'docx') {
         const data = prepareExportData(resume);
         // Use 'executive' template for professional formatting with timeout
-        await withTimeout(exportFormats.docxExport(data, fileName, 'executive'), 30000);
+        await withTimeout(exportFormats.docxExport(data, fileName, 'executive'), EXPORT_TIMEOUT_MS);
         toast.success("Resume downloaded as DOCX");
       } else if (format === 'pdf') {
         const data = prepareExportData(resume);
         const html = generateResumeHTML(data);
-        await withTimeout(exportFormats.standardPDF(html, fileName), 30000);
+        await withTimeout(exportFormats.standardPDF(html, fileName), EXPORT_TIMEOUT_MS);
         toast.success("Resume downloaded as PDF");
       }
     } catch (error) {

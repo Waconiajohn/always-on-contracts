@@ -20,6 +20,9 @@ export const RETRY_CONFIG = {
   MAX_DELAY_MS: 8000,
 } as const;
 
+// Export timeout (30 seconds)
+export const EXPORT_TIMEOUT_MS = 30000;
+
 // Step labels for navigation (single source of truth)
 export const STEP_LABELS: Record<number, string> = {
   1: "Upload & Analyze",

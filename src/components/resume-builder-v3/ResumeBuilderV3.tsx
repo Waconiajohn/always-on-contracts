@@ -8,9 +8,18 @@
 // 4. Generate & Review Resume
 // =====================================================
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import { useLocation } from "react-router-dom";
 import { useResumeBuilderV3Store, Step } from "@/stores/resumeBuilderV3Store";
+
+// Hook to wait for store hydration before checking session
+const useStoreHydration = () => {
+  return useSyncExternalStore(
+    (callback) => useResumeBuilderV3Store.persist.onFinishHydration(callback),
+    () => useResumeBuilderV3Store.persist.hasHydrated(),
+    () => false // SSR fallback
+  );
+};
 import { UploadStep } from "./UploadStep";
 import { FitAnalysisStep } from "./FitAnalysisStep";
 import { StandardsStep } from "./StandardsStep";
@@ -52,6 +61,7 @@ const STEP_DISPLAY_LABELS = [STEP_LABELS[1], STEP_LABELS[2], STEP_LABELS[3], STE
 
 export function ResumeBuilderV3() {
   const location = useLocation();
+  const isHydrated = useStoreHydration();
   const { 
     step, 
     fitAnalysis, 
@@ -99,22 +109,23 @@ export function ResumeBuilderV3() {
   const resumeText = useResumeBuilderV3Store((state) => state.resumeText);
   const jobDescription = useResumeBuilderV3Store((state) => state.jobDescription);
 
-  // Check for existing session on mount
+  // Check for existing session on mount - ONLY after store is hydrated
   // Show recovery if they have analysis results, or substantial typed text
   useEffect(() => {
-    if (!hasCheckedSession && !hasHandledNavState) {
-      // Recover if: analysis exists OR step > 1 OR both fields have substantial content
-      const hasRealProgress = 
-        fitAnalysis !== null || 
-        step > 1 ||
-        (resumeText.length > SESSION_RECOVERY_MIN_CHARS && jobDescription.length > SESSION_RECOVERY_MIN_JOB_CHARS);
-        
-      if (hasRealProgress) {
-        setShowRecoveryDialog(true);
-      }
-      setHasCheckedSession(true);
+    // Wait for hydration before checking session to avoid race condition
+    if (!isHydrated || hasCheckedSession || hasHandledNavState) return;
+    
+    // Recover if: analysis exists OR step > 1 OR both fields have substantial content
+    const hasRealProgress = 
+      fitAnalysis !== null || 
+      step > 1 ||
+      (resumeText.length > SESSION_RECOVERY_MIN_CHARS && jobDescription.length > SESSION_RECOVERY_MIN_JOB_CHARS);
+      
+    if (hasRealProgress) {
+      setShowRecoveryDialog(true);
     }
-  }, [hasCheckedSession, hasHandledNavState, fitAnalysis, step, resumeText.length, jobDescription.length]);
+    setHasCheckedSession(true);
+  }, [isHydrated, hasCheckedSession, hasHandledNavState, fitAnalysis, step, resumeText.length, jobDescription.length]);
 
   const progressValue = ((step - 1) / 3) * 100;
 
@@ -256,22 +267,23 @@ export function ResumeBuilderV3() {
           className="bg-card rounded-lg border p-4 sm:p-6"
           role="main"
           aria-label={`Step ${step}: ${STEP_LABELS[step]}`}
+          aria-busy={!isHydrated}
         >
           <StepTransition step={step} direction={transitionDirection}>
             {step === 1 && !fitAnalysis && (
-              <StepErrorBoundary stepName="Upload"><UploadStep /></StepErrorBoundary>
+              <StepErrorBoundary key={`upload-${step}`} stepName="Upload"><UploadStep /></StepErrorBoundary>
             )}
             {step === 1 && fitAnalysis && (
-              <StepErrorBoundary stepName="Fit Analysis"><FitAnalysisStep /></StepErrorBoundary>
+              <StepErrorBoundary key={`fit-${step}`} stepName="Fit Analysis"><FitAnalysisStep /></StepErrorBoundary>
             )}
             {step === 2 && (
-              <StepErrorBoundary stepName="Standards"><StandardsStep /></StepErrorBoundary>
+              <StepErrorBoundary key={`standards-${step}`} stepName="Standards"><StandardsStep /></StepErrorBoundary>
             )}
             {step === 3 && (
-              <StepErrorBoundary stepName="Interview"><InterviewStep /></StepErrorBoundary>
+              <StepErrorBoundary key={`interview-${step}`} stepName="Interview"><InterviewStep /></StepErrorBoundary>
             )}
             {step === 4 && (
-              <StepErrorBoundary stepName="Generate"><GenerateStep /></StepErrorBoundary>
+              <StepErrorBoundary key={`generate-${step}`} stepName="Generate"><GenerateStep /></StepErrorBoundary>
             )}
           </StepTransition>
         </main>
