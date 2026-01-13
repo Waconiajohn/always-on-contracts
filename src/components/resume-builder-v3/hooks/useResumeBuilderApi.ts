@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRetryWithBackoff } from "./useRetryWithBackoff";
+import { logger } from "@/lib/logger";
 
 type Step = "fit_analysis" | "standards" | "questions" | "generate_resume";
 
@@ -22,7 +23,7 @@ export function useResumeBuilderApi() {
     initialDelayMs: 1500,
     maxDelayMs: 8000,
     onRetry: (attempt, error) => {
-      console.log(`Resume Builder API retry attempt ${attempt}:`, error.message);
+      logger.debug(`Resume Builder API retry attempt ${attempt}:`, { error: error.message });
     },
   });
 

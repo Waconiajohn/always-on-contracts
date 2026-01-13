@@ -14,6 +14,7 @@ import {
   FileText,
   Sparkles,
   Printer,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ScoringReport } from "./ScoringReport";
@@ -25,30 +26,64 @@ import { formatResumeAsText } from "./utils/formatters";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { VersionHistory, ResumeVersion } from "./components/VersionHistory";
 
+// Helper functions for safe localStorage access
+const safeGetVersions = (): ResumeVersion[] => {
+  try {
+    const saved = localStorage.getItem('resume-versions');
+    if (!saved) return [];
+    return JSON.parse(saved).map((v: any) => ({
+      ...v,
+      createdAt: new Date(v.createdAt),
+    }));
+  } catch {
+    console.error("Failed to read version history from localStorage");
+    return [];
+  }
+};
+
+const safeSaveVersions = (versions: ResumeVersion[]): boolean => {
+  try {
+    localStorage.setItem('resume-versions', JSON.stringify(versions));
+    return true;
+  } catch (error) {
+    console.error("Failed to save version history to localStorage:", error);
+    return false;
+  }
+};
+
+// Create a content fingerprint for duplicate detection
+const createFingerprint = (resume: any): string => {
+  const content = JSON.stringify({
+    summary: resume.summary?.substring(0, 100) || '',
+    skillsCount: resume.skills?.length || 0,
+    experienceCount: resume.experience?.length || 0,
+    atsScore: resume.ats_score || 0,
+    firstBullet: resume.experience?.[0]?.bullets?.[0]?.substring(0, 50) || '',
+  });
+  return btoa(content).substring(0, 32);
+};
+
 export function GenerateStep() {
   const { finalResume, fitAnalysis, standards } = useResumeBuilderV3Store();
   const printRef = useRef<HTMLDivElement>(null);
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load versions on mount
   useEffect(() => {
-    const savedVersions = JSON.parse(localStorage.getItem('resume-versions') || '[]');
-    setVersions(savedVersions.map((v: any) => ({
-      ...v,
-      createdAt: new Date(v.createdAt),
-    })));
+    setVersions(safeGetVersions());
   }, []);
 
   // Auto-save version when a NEW resume is generated (not on every render)
   useEffect(() => {
     if (!finalResume) return;
     
-    const existingVersions = JSON.parse(localStorage.getItem('resume-versions') || '[]');
+    const existingVersions = safeGetVersions();
+    const newFingerprint = createFingerprint(finalResume);
     
-    // Check if this resume is already saved (by comparing summary + ats_score as fingerprint)
-    const alreadySaved = existingVersions.some((v: any) => 
-      v.resume?.ats_score === finalResume.ats_score &&
-      v.resume?.summary === finalResume.summary
+    // Check if this resume is already saved using robust fingerprint
+    const alreadySaved = existingVersions.some((v) => 
+      createFingerprint(v.resume) === newFingerprint
     );
     
     if (!alreadySaved) {
@@ -59,11 +94,9 @@ export function GenerateStep() {
         label: `Version ${existingVersions.length + 1}`,
       };
       const updatedVersions = [newVersion, ...existingVersions].slice(0, 10);
-      localStorage.setItem('resume-versions', JSON.stringify(updatedVersions));
-      setVersions(updatedVersions.map((v: any) => ({
-        ...v,
-        createdAt: new Date(v.createdAt),
-      })));
+      if (safeSaveVersions(updatedVersions)) {
+        setVersions(updatedVersions);
+      }
     }
   }, [finalResume]);
 
@@ -79,17 +112,30 @@ export function GenerateStep() {
     window.print();
   };
 
-  const handleSaveVersion = () => {
-    const newVersion: ResumeVersion = {
-      id: Date.now().toString(),
-      resume: finalResume,
-      createdAt: new Date(),
-      label: `Version ${versions.length + 1}`,
-    };
-    const updatedVersions = [newVersion, ...versions].slice(0, 10);
-    localStorage.setItem('resume-versions', JSON.stringify(updatedVersions));
-    setVersions(updatedVersions);
-    toast.success("Version saved to history!");
+  const handleSaveVersion = async () => {
+    if (isSaving || !finalResume) return;
+    setIsSaving(true);
+    
+    try {
+      const newVersion: ResumeVersion = {
+        id: Date.now().toString(),
+        resume: finalResume,
+        createdAt: new Date(),
+        label: `Version ${versions.length + 1}`,
+      };
+      const updatedVersions = [newVersion, ...versions].slice(0, 10);
+      
+      if (safeSaveVersions(updatedVersions)) {
+        setVersions(updatedVersions);
+        toast.success("Version saved to history!");
+      } else {
+        toast.error("Failed to save version. Storage may be full.");
+      }
+    } catch (error) {
+      toast.error("Failed to save version");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -165,8 +211,8 @@ export function GenerateStep() {
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <VersionHistory versions={versions} currentVersion={finalResume} />
-              <Button variant="outline" size="sm" onClick={handleSaveVersion}>
-                Save Version
+              <Button variant="outline" size="sm" onClick={handleSaveVersion} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Version"}
               </Button>
               <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
                 <Printer className="h-4 w-4 sm:mr-1" />

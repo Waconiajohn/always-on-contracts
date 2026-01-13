@@ -284,6 +284,12 @@ Generate a complete, optimized resume that:
 // =====================================================
 // MAIN HANDLER
 // =====================================================
+// Input validation constants
+const MAX_RESUME_LENGTH = 25000;
+const MAX_JOB_LENGTH = 20000;
+const VALID_STEPS: Step[] = ["fit_analysis", "standards", "questions", "generate_resume"];
+const DEBUG = Deno.env.get("DEBUG") === "true";
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -299,7 +305,28 @@ serve(async (req) => {
     const body: RequestBody = await req.json();
     const { step, resumeText, jobDescription, fitAnalysis, standards, questions, interviewAnswers } = body;
 
-    console.log(`📋 Resume Builder V3 - Step: ${step}`);
+    // Input validation
+    if (!step || typeof step !== "string" || !VALID_STEPS.includes(step)) {
+      throw new Error(`Invalid step. Must be one of: ${VALID_STEPS.join(", ")}`);
+    }
+    
+    if (!resumeText || typeof resumeText !== "string") {
+      throw new Error("Resume text is required");
+    }
+    
+    if (resumeText.length > MAX_RESUME_LENGTH) {
+      throw new Error(`Resume text exceeds maximum length of ${MAX_RESUME_LENGTH} characters`);
+    }
+    
+    if (!jobDescription || typeof jobDescription !== "string") {
+      throw new Error("Job description is required");
+    }
+    
+    if (jobDescription.length > MAX_JOB_LENGTH) {
+      throw new Error(`Job description exceeds maximum length of ${MAX_JOB_LENGTH} characters`);
+    }
+
+    if (DEBUG) console.log(`📋 Resume Builder V3 - Step: ${step}`);
 
     let result;
     switch (step) {
