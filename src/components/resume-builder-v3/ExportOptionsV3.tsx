@@ -20,12 +20,21 @@ interface ExportOptionsV3Props {
   resume: OptimizedResume;
 }
 
+// Sanitize filename by removing special characters and limiting length
+const sanitizeFilename = (name: string): string => {
+  return name
+    .replace(/[^a-zA-Z0-9\s-]/g, '') // Remove special chars
+    .replace(/\s+/g, '-')            // Spaces to dashes
+    .replace(/-+/g, '-')             // Collapse multiple dashes
+    .substring(0, 100);              // Limit length
+};
+
 export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
   const handleExport = async (format: 'txt' | 'docx' | 'pdf') => {
     setIsExporting(format);
-    const fileName = `${resume.header.name.replace(/\s+/g, '-')}-Resume`;
+    const fileName = sanitizeFilename(`${resume.header.name}-Resume`);
 
     try {
       if (format === 'txt') {

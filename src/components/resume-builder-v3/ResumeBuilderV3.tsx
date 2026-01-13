@@ -34,7 +34,7 @@ import {
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 import { ResumeBuilderErrorBoundary } from "./components/ErrorBoundary";
 import { StepErrorBoundary } from "./components/StepErrorBoundary";
-import { SESSION_RECOVERY_MIN_CHARS, SESSION_RECOVERY_MIN_JOB_CHARS } from "./constants";
+import { SESSION_RECOVERY_MIN_CHARS, SESSION_RECOVERY_MIN_JOB_CHARS, STEP_LABELS } from "./constants";
 
 // Navigation state types from other pages
 interface NavigationState {
@@ -45,7 +45,10 @@ interface NavigationState {
   savedContent?: unknown;
 }
 
-const STEP_LABELS = ["Analyze", "Standards", "Interview", "Generate"];
+// Map step numbers to display labels
+const STEP_DISPLAY_LABELS = [STEP_LABELS[1], STEP_LABELS[2], STEP_LABELS[3], STEP_LABELS[4]].map(label => 
+  label.split(' ')[0] // Just use first word for brevity in progress bar
+);
 
 export function ResumeBuilderV3() {
   const location = useLocation();
@@ -223,7 +226,7 @@ export function ResumeBuilderV3() {
           {/* Step indicator */}
           <div className="space-y-2" role="navigation" aria-label="Resume builder progress">
             <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
-              {STEP_LABELS.map((label, index) => (
+              {STEP_DISPLAY_LABELS.map((label, index) => (
                 <span
                   key={label}
                   className={`text-center flex-1 ${
@@ -243,7 +246,7 @@ export function ResumeBuilderV3() {
             <Progress 
               value={progressValue} 
               className="h-2" 
-              aria-label={`Step ${step} of 4: ${STEP_LABELS[step - 1]}`}
+              aria-label={`Step ${step} of 4: ${STEP_LABELS[step]}`}
             />
           </div>
         </div>
@@ -252,7 +255,7 @@ export function ResumeBuilderV3() {
         <main 
           className="bg-card rounded-lg border p-4 sm:p-6"
           role="main"
-          aria-label={`Step ${step}: ${STEP_LABELS[step - 1]}`}
+          aria-label={`Step ${step}: ${STEP_LABELS[step]}`}
         >
           <StepTransition step={step} direction={transitionDirection}>
             {step === 1 && !fitAnalysis && (

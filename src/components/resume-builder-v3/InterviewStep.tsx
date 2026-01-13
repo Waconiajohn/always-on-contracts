@@ -50,7 +50,7 @@ export function InterviewStep() {
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   
   // CRITICAL: All hooks must be called before any conditional returns (React Rules of Hooks)
-  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
+  const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
 
   // Computed values for empty questions state
   const hasNoQuestions = !questions || !questions.questions || questions.questions.length === 0;
@@ -78,7 +78,7 @@ export function InterviewStep() {
     return (
       <LoadingSkeletonV3 
         type="generate" 
-        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Crafting your optimized resume based on your answers..."} 
+        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Crafting your optimized resume based on your answers..."} 
         onCancel={() => {
           cancel();
           setLoading(false);

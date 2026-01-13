@@ -179,6 +179,9 @@ export const exportFormats = {
       }
     } catch (error) {
       if (EXPORT_DEBUG) console.error(`[EXPORT] ${templateId} generation failed, falling back to standard:`, error);
+      // Import toast dynamically to avoid circular dependencies
+      const { toast } = await import('sonner');
+      toast.info("Using standard format instead of template");
     }
 
     // Helper to decode HTML entities

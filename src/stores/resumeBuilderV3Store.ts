@@ -137,6 +137,18 @@ export const useResumeBuilderV3Store = create<ResumeBuilderV3State>()(
         lastUpdated: state.lastUpdated,
         // Don't persist: isLoading, error (transient states)
       }),
+      // Handle storage errors gracefully (e.g., quota exceeded)
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate resume-builder-v3 store:', error);
+          // Clear corrupted data to prevent persistent failures
+          try {
+            localStorage.removeItem('resume-builder-v3');
+          } catch {
+            // Ignore if we can't clear
+          }
+        }
+      },
     }
   )
 );

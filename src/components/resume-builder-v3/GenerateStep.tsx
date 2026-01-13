@@ -26,6 +26,7 @@ import { formatResumeAsText } from "./utils/formatters";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
 import { MAX_VERSION_HISTORY } from "./constants";
+import { logger } from "@/lib/logger";
 import type { ResumeVersion } from "@/types/resume-builder-v3";
 
 // Helper functions for safe localStorage access
@@ -41,27 +42,29 @@ const safeSaveVersions = (versions: ResumeVersion[]): boolean => {
   } catch (error) {
     // Try with fewer versions if storage is full
     if (error instanceof Error && error.name === 'QuotaExceededError' && versions.length > 1) {
-      console.warn("Storage full, trying to save fewer versions");
+      logger.warn("Storage full, trying to save fewer versions");
       return safeSaveVersions(versions.slice(0, -1));
     }
-    console.error("Failed to save version history to localStorage:", error);
+    logger.error("Failed to save version history to localStorage:", error);
     return false;
   }
 };
 
 // Create a robust content fingerprint for duplicate detection
+// Uses full base64 without truncation to avoid collisions
 const createFingerprintSync = (resume: Record<string, unknown>): string => {
   const content = JSON.stringify({
-    summary: (resume.summary as string)?.substring(0, 100) || '',
-    skillsCount: (resume.skills as unknown[])?.length || 0,
-    experienceCount: (resume.experience as unknown[])?.length || 0,
+    summary: (resume.summary as string) || '',
+    skillsHash: ((resume.skills as string[]) || []).sort().join('|'),
+    experienceHash: ((resume.experience as Array<{ title?: string; company?: string; bullets?: string[] }>) || [])
+      .map(e => `${e.title || ''}:${e.company || ''}:${e.bullets?.length || 0}`)
+      .join('|'),
     atsScore: resume.ats_score || 0,
-    firstBullet: ((resume.experience as Array<{ bullets?: string[] }>)?.[0]?.bullets?.[0])?.substring(0, 50) || '',
-    // Add more unique identifiers
     headerName: (resume.header as { name?: string })?.name || '',
     improvementsCount: (resume.improvements_made as unknown[])?.length || 0,
   });
-  return btoa(content).substring(0, 48);
+  // Use full base64 without truncating for reliable fingerprinting
+  return btoa(encodeURIComponent(content));
 };
 
 export function GenerateStep() {
@@ -69,6 +72,9 @@ export function GenerateStep() {
   const printRef = useRef<HTMLDivElement>(null);
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Track saved fingerprints to prevent race conditions
+  const savedFingerprintRef = useRef<string | null>(null);
 
   // Load versions on mount
   useEffect(() => {
@@ -79,8 +85,12 @@ export function GenerateStep() {
   useEffect(() => {
     if (!finalResume) return;
     
-    const existingVersions = safeGetVersions();
     const newFingerprint = createFingerprintSync(finalResume as unknown as Record<string, unknown>);
+    
+    // Skip if this exact resume was already saved in this session (prevents race condition)
+    if (savedFingerprintRef.current === newFingerprint) return;
+    
+    const existingVersions = safeGetVersions();
     
     // Check if this resume is already saved using robust fingerprint
     const alreadySaved = existingVersions.some((v) => 
@@ -97,7 +107,11 @@ export function GenerateStep() {
       const updatedVersions = [newVersion, ...existingVersions].slice(0, MAX_VERSION_HISTORY);
       if (safeSaveVersions(updatedVersions)) {
         setVersions(updatedVersions);
+        savedFingerprintRef.current = newFingerprint;
       }
+    } else {
+      // Mark as saved even if it existed to prevent re-checks
+      savedFingerprintRef.current = newFingerprint;
     }
   }, [finalResume]);
 

@@ -105,8 +105,16 @@ export class ResumeBuilderErrorBoundary extends Component<
                     variant="ghost"
                     size="sm"
                     className="text-xs text-muted-foreground"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`Error ID: ${this.state.errorId}\nMessage: ${this.state.error?.message}`);
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(`Error ID: ${this.state.errorId}\nMessage: ${this.state.error?.message}`);
+                        // Dynamic import to work with class component
+                        const { toast } = await import('sonner');
+                        toast.success("Error ID copied to clipboard");
+                      } catch {
+                        const { toast } = await import('sonner');
+                        toast.error("Failed to copy to clipboard");
+                      }
                     }}
                   >
                     <Bug className="h-3 w-3 mr-1" />

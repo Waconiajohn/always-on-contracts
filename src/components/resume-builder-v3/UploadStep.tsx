@@ -30,7 +30,7 @@ export function UploadStep() {
   } = useResumeBuilderV3Store();
 
   // CRITICAL: All hooks must be called before any conditional returns
-  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
+  const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
 
   const [localResume, setLocalResume] = useState(resumeText);
   const [localJob, setLocalJob] = useState(jobDescription);
@@ -122,7 +122,7 @@ export function UploadStep() {
     return (
       <LoadingSkeletonV3 
         type="analysis" 
-        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : undefined}
+        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : undefined}
         onCancel={() => {
           cancel();
           setLoading(false);

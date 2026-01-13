@@ -14,19 +14,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useResumeBuilderV3Store } from "@/stores/resumeBuilderV3Store";
 import { Clock, FileText, RotateCcw } from "lucide-react";
+import { STEP_LABELS } from "./constants";
 
 interface SessionRecoveryDialogV3Props {
   open: boolean;
   onContinue: () => void;
   onStartFresh: () => void;
 }
-
-const STEP_LABELS: Record<number, string> = {
-  1: "Upload & Analyze",
-  2: "Industry Standards",
-  3: "Interview",
-  4: "Generate Resume",
-};
 
 export function SessionRecoveryDialogV3({
   open,

@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRetryWithBackoff } from "./useRetryWithBackoff";
 import { logger } from "@/lib/logger";
+import { validateApiResponse } from "../utils/validators";
+import { RETRY_CONFIG } from "../constants";
 
 type Step = "fit_analysis" | "standards" | "questions" | "generate_resume";
 
@@ -19,9 +21,9 @@ interface ApiCallOptions {
 
 export function useResumeBuilderApi() {
   const { executeWithRetry, isRetrying, currentAttempt, cancel } = useRetryWithBackoff({
-    maxAttempts: 3,
-    initialDelayMs: 1500,
-    maxDelayMs: 8000,
+    maxAttempts: RETRY_CONFIG.MAX_ATTEMPTS,
+    initialDelayMs: RETRY_CONFIG.INITIAL_DELAY_MS,
+    maxDelayMs: RETRY_CONFIG.MAX_DELAY_MS,
     onRetry: (attempt, error) => {
       logger.debug(`Resume Builder API retry attempt ${attempt}:`, { error: error.message });
     },
@@ -33,11 +35,21 @@ export function useResumeBuilderApi() {
 
       try {
         const result = await executeWithRetry<T>(async (signal) => {
-          const { data, error } = await supabase.functions.invoke("resume-builder-v3", {
+          // Create a promise that rejects on abort
+          const abortPromise = new Promise<never>((_, reject) => {
+            signal.addEventListener('abort', () => {
+              reject(new Error("Operation cancelled"));
+            });
+          });
+
+          // Race between the API call and abort signal
+          const apiPromise = supabase.functions.invoke("resume-builder-v3", {
             body: { step, ...body },
           });
 
-          // Check if aborted
+          const { data, error } = await Promise.race([apiPromise, abortPromise.then(() => ({ data: null, error: new Error("Operation cancelled") }))]);
+
+          // Check if aborted after call completes
           if (signal.aborted) {
             throw new Error("Operation cancelled");
           }
@@ -54,7 +66,9 @@ export function useResumeBuilderApi() {
             throw new Error(data.error || `${step} failed`);
           }
 
-          return data.data as T;
+          // Validate response against expected schema
+          const validatedData = validateApiResponse<T>(step, data.data);
+          return validatedData;
         });
 
         if (successMessage) {
@@ -93,5 +107,6 @@ export function useResumeBuilderApi() {
     cancel,
     isRetrying,
     currentAttempt,
+    maxAttempts: RETRY_CONFIG.MAX_ATTEMPTS,
   };
 }
