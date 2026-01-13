@@ -33,6 +33,13 @@ export class StepErrorBoundary extends Component<
     return { hasError: true, error };
   }
 
+  componentDidUpdate(prevProps: StepErrorBoundaryProps) {
+    // Reset error state when step changes
+    if (prevProps.stepName !== this.props.stepName && this.state.hasError) {
+      this.setState({ hasError: false, error: null, errorId: null });
+    }
+  }
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Store error for debugging and get error ID
     const errorId = storeError(error, errorInfo.componentStack || undefined);
