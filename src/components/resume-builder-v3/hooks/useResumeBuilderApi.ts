@@ -87,11 +87,13 @@ export function useResumeBuilderApi() {
         if (message.includes("cancelled")) {
           toast.info("Operation cancelled");
         } else {
+          // Clone options to prevent stale closure in retry
+          const retryOptions = { ...options };
           toast.error(message, {
             description: "Please try again or contact support if the issue persists.",
             action: {
               label: "Retry",
-              onClick: () => callApi(options),
+              onClick: () => callApi(retryOptions),
             },
           });
         }

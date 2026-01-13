@@ -2,7 +2,7 @@
 // STEP 3: Candidate Interview
 // =====================================================
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useResumeBuilderV3Store, OptimizedResume } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,9 +48,30 @@ export function InterviewStep() {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
+  const [localAnswer, setLocalAnswer] = useState("");
   
   // CRITICAL: All hooks must be called before any conditional returns (React Rules of Hooks)
   const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
+  
+  // Debounce timer ref for store updates
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Sync local answer when question changes
+  useEffect(() => {
+    const currentQuestion = questions?.questions?.[currentQuestionIndex];
+    if (currentQuestion) {
+      setLocalAnswer(interviewAnswers[currentQuestion.id] || "");
+    }
+  }, [currentQuestionIndex, questions?.questions, interviewAnswers]);
+  
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Computed values for empty questions state
   const hasNoQuestions = !questions || !questions.questions || questions.questions.length === 0;
@@ -92,18 +113,28 @@ export function InterviewStep() {
     (key) => interviewAnswers[key]?.trim().length > 0
   ).length;
   const totalQuestions = questions.questions.length;
-  const currentAnswer = interviewAnswers[currentQuestion?.id] || "";
 
   // Count unanswered high-priority questions
   const unansweredHighPriority = questions.questions.filter(
     (q) => q.priority === "high" && !interviewAnswers[q.id]?.trim()
   ).length;
 
-  const handleAnswerChange = (answer: string) => {
+  // Debounced answer handler - updates local state immediately, debounces store update
+  const handleAnswerChange = useCallback((answer: string) => {
+    setLocalAnswer(answer);
+    
     if (currentQuestion) {
-      setInterviewAnswer(currentQuestion.id, answer);
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      
+      // Debounce store update by 300ms
+      debounceTimerRef.current = setTimeout(() => {
+        setInterviewAnswer(currentQuestion.id, answer);
+      }, 300);
     }
-  };
+  }, [currentQuestion, setInterviewAnswer]);
 
   const handleNext = () => {
     if (currentQuestionIndex < totalQuestions - 1) {
@@ -285,7 +316,7 @@ export function InterviewStep() {
             <div className="space-y-1">
               <Textarea
                 placeholder="Type your answer here... Be specific with numbers and details!"
-                value={currentAnswer}
+                value={localAnswer}
                 onChange={(e) => {
                   // Enforce character limit
                   if (e.target.value.length <= MAX_ANSWER_LENGTH) {
@@ -296,10 +327,10 @@ export function InterviewStep() {
                 maxLength={MAX_ANSWER_LENGTH}
               />
               <div className="flex items-center justify-between text-xs">
-                <span className={currentAnswer.length > MAX_ANSWER_LENGTH * 0.9 ? "text-amber-600" : "text-muted-foreground"}>
-                  {currentAnswer.length}/{MAX_ANSWER_LENGTH} characters
+                <span className={localAnswer.length > MAX_ANSWER_LENGTH * 0.9 ? "text-amber-600" : "text-muted-foreground"}>
+                  {localAnswer.length}/{MAX_ANSWER_LENGTH} characters
                 </span>
-                {currentAnswer.trim() && (
+                {localAnswer.trim() && (
                   <div className="flex items-center gap-1 text-green-600">
                     <Check className="h-3 w-3" />
                     Saved

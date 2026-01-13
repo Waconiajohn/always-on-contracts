@@ -416,6 +416,10 @@ serve(async (req) => {
         if (!fitAnalysis || !standards) {
           throw new Error("Fit analysis and standards required for questions");
         }
+        // Validate previous step data structure
+        if (!Array.isArray(fitAnalysis.gaps) || !Array.isArray(standards.benchmarks)) {
+          throw new Error("Invalid previous step data structure: gaps and benchmarks must be arrays");
+        }
         result = await runInterviewQuestions(apiKey, resumeText, jobDescription, fitAnalysis, standards);
         break;
 

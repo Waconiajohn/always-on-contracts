@@ -2,7 +2,7 @@
 // STEP 1A: Upload Resume & Job Description
 // =====================================================
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { useResumeBuilderV3Store, FitAnalysisResult } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
+import { logger } from "@/lib/logger";
 
 import { RESUME_LIMITS } from "@/types/resume-builder-v3";
 
@@ -34,6 +35,16 @@ export function UploadStep() {
 
   const [localResume, setLocalResume] = useState(resumeText);
   const [localJob, setLocalJob] = useState(jobDescription);
+
+  // Sync local state with store when store updates (handles session recovery)
+  useEffect(() => {
+    if (resumeText && !localResume) {
+      setLocalResume(resumeText);
+    }
+    if (jobDescription && !localJob) {
+      setLocalJob(jobDescription);
+    }
+  }, [resumeText, jobDescription, localResume, localJob]);
   const [isParsingFile, setIsParsingFile] = useState(false);
 
   const resumeOverLimit = localResume.length > MAX_RESUME_CHARS;
@@ -70,7 +81,7 @@ export function UploadStep() {
         toast.info("For best results, please copy and paste your resume text directly. PDF/DOCX parsing coming soon!");
       }
     } catch (error) {
-      console.error("File parsing error:", error);
+      logger.error("File parsing error:", error);
       toast.error("Failed to read file. Please paste your resume text instead.");
     } finally {
       setIsParsingFile(false);

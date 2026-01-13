@@ -81,7 +81,7 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
           </h2>
           <div className="space-y-3">
             {resume.experience.map((exp, index) => (
-              <div key={index} className="experience-item">
+              <div key={`exp-${index}-${exp.company}`} className="experience-item">
                 <div className="flex justify-between items-baseline">
                   <div>
                     <span className="font-bold" style={{ color: "#000000" }}>{exp.title}</span>
@@ -91,7 +91,7 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
                 </div>
                 <ul className="mt-1 ml-4 space-y-0.5">
                   {exp.bullets.map((bullet, bIndex) => (
-                    <li key={bIndex} className="text-sm list-disc ml-2" style={{ color: "#000000" }}>
+                    <li key={`bullet-${bIndex}-${bullet.substring(0, 20).replace(/\s/g, '')}`} className="text-sm list-disc ml-2" style={{ color: "#000000" }}>
                       {bullet}
                     </li>
                   ))}

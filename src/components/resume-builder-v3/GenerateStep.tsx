@@ -31,8 +31,13 @@ import type { ResumeVersion } from "@/types/resume-builder-v3";
 
 // Helper functions for safe localStorage access
 const safeGetVersions = (): ResumeVersion[] => {
-  const saved = localStorage.getItem('resume-versions');
-  return safeParseVersions(saved);
+  try {
+    const saved = localStorage.getItem('resume-versions');
+    return safeParseVersions(saved);
+  } catch (error) {
+    logger.error("Failed to read version history from localStorage:", error);
+    return [];
+  }
 };
 
 const safeSaveVersions = (versions: ResumeVersion[]): boolean => {
@@ -99,12 +104,17 @@ export function GenerateStep() {
     );
     
     if (!alreadySaved) {
-      // Use crypto.randomUUID for unique IDs instead of timestamp
+      // Calculate next version number based on max existing, not array length
+      const maxVersionNum = existingVersions.reduce((max, v) => {
+        const match = v.label.match(/Version (\d+)/);
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+      }, 0);
+      
       const newVersion: ResumeVersion = {
         id: crypto.randomUUID(),
         resume: finalResume,
         createdAt: new Date(),
-        label: `Version ${existingVersions.length + 1}`,
+        label: `Version ${maxVersionNum + 1}`,
       };
       const updatedVersions = [newVersion, ...existingVersions].slice(0, MAX_VERSION_HISTORY);
       if (safeSaveVersions(updatedVersions)) {
@@ -168,12 +178,17 @@ export function GenerateStep() {
     setIsSaving(true);
     
     try {
-      // Use crypto.randomUUID for unique IDs instead of timestamp
+      // Calculate next version number based on max existing, not array length
+      const maxVersionNum = versions.reduce((max, v) => {
+        const match = v.label.match(/Version (\d+)/);
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+      }, 0);
+      
       const newVersion: ResumeVersion = {
         id: crypto.randomUUID(),
         resume: finalResume,
         createdAt: new Date(),
-        label: `Version ${versions.length + 1}`,
+        label: `Version ${maxVersionNum + 1}`,
       };
       const updatedVersions = [newVersion, ...versions].slice(0, MAX_VERSION_HISTORY);
       
@@ -304,7 +319,7 @@ export function GenerateStep() {
             </h4>
             <div className="space-y-4">
               {finalResume.experience.map((exp, index) => (
-                <div key={index}>
+                <div key={`exp-${index}-${exp.company}`}>
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">{exp.title}</p>
@@ -314,7 +329,7 @@ export function GenerateStep() {
                   </div>
                   <ul className="mt-2 space-y-1">
                     {exp.bullets.map((bullet, bIndex) => (
-                      <li key={bIndex} className="text-sm flex items-start gap-2">
+                      <li key={`bullet-${bIndex}-${bullet.substring(0, 20).replace(/\s/g, '')}`} className="text-sm flex items-start gap-2">
                         <span className="text-muted-foreground">•</span>
                         {bullet}
                       </li>
