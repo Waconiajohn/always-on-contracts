@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { FitAnalysisResult, OptimizedResume } from "@/stores/resumeBuilderV3Store";
+import { MAX_KEYWORDS_DISPLAY } from "./constants";
 
 interface BeforeAfterComparisonProps {
   fitAnalysis: FitAnalysisResult | null;
@@ -118,14 +119,14 @@ export function BeforeAfterComparison({ fitAnalysis, finalResume }: BeforeAfterC
           <div className="mt-4 pt-4 border-t">
             <p className="text-xs font-medium text-muted-foreground mb-2">Keywords Targeted for Inclusion</p>
             <div className="flex flex-wrap gap-1">
-              {fitAnalysis.keywords_missing.slice(0, 8).map((keyword, index) => (
+              {fitAnalysis.keywords_missing.slice(0, MAX_KEYWORDS_DISPLAY).map((keyword, index) => (
                 <Badge key={index} variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
                   + {keyword}
                 </Badge>
               ))}
-              {fitAnalysis.keywords_missing.length > 8 && (
+              {fitAnalysis.keywords_missing.length > MAX_KEYWORDS_DISPLAY && (
                 <Badge variant="secondary" className="text-xs">
-                  +{fitAnalysis.keywords_missing.length - 8} more
+                  +{fitAnalysis.keywords_missing.length - MAX_KEYWORDS_DISPLAY} more
                 </Badge>
               )}
             </div>

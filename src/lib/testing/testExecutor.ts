@@ -7,30 +7,61 @@ export class TestExecutor {
   private testRunId?: string;
   private dataGenerator?: TestDataGenerator;
   private consoleLogs: string[] = [];
+  private readonly MAX_CONSOLE_LOGS = 1000;
+  
+  // Store original console methods to restore later
+  private originalConsole: {
+    log: typeof console.log;
+    error: typeof console.error;
+    warn: typeof console.warn;
+  };
 
   constructor() {
+    // Store originals before overriding
+    this.originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+    };
     this.setupConsoleCapture();
   }
 
   private setupConsoleCapture() {
-    const originalLog = console.log;
-    const originalError = console.error;
-    const originalWarn = console.warn;
-
     console.log = (...args) => {
-      this.consoleLogs.push(`[LOG] ${args.join(' ')}`);
-      originalLog.apply(console, args);
+      if (this.consoleLogs.length < this.MAX_CONSOLE_LOGS) {
+        this.consoleLogs.push(`[LOG] ${args.join(' ')}`);
+      }
+      this.originalConsole.log.apply(console, args);
     };
 
     console.error = (...args) => {
-      this.consoleLogs.push(`[ERROR] ${args.join(' ')}`);
-      originalError.apply(console, args);
+      if (this.consoleLogs.length < this.MAX_CONSOLE_LOGS) {
+        this.consoleLogs.push(`[ERROR] ${args.join(' ')}`);
+      }
+      this.originalConsole.error.apply(console, args);
     };
 
     console.warn = (...args) => {
-      this.consoleLogs.push(`[WARN] ${args.join(' ')}`);
-      originalWarn.apply(console, args);
+      if (this.consoleLogs.length < this.MAX_CONSOLE_LOGS) {
+        this.consoleLogs.push(`[WARN] ${args.join(' ')}`);
+      }
+      this.originalConsole.warn.apply(console, args);
     };
+  }
+
+  private restoreConsole() {
+    console.log = this.originalConsole.log;
+    console.error = this.originalConsole.error;
+    console.warn = this.originalConsole.warn;
+  }
+
+  /**
+   * Clean up resources and restore console methods.
+   * Call this when the TestExecutor is no longer needed.
+   */
+  destroy() {
+    this.restoreConsole();
+    this.consoleLogs = [];
   }
 
   async executeSuite(
@@ -70,39 +101,44 @@ export class TestExecutor {
       suiteName: suite.name,
     };
 
-    for (const test of suite.tests) {
-      if (!config.continueOnFailure && results.failedTests > 0) {
-        results.skippedTests++;
-        await this.recordTestResult(test, {
-          passed: false,
-          duration: 0,
-          error: 'Skipped due to previous failure',
-        });
-        continue;
-      }
+    try {
+      for (const test of suite.tests) {
+        if (!config.continueOnFailure && results.failedTests > 0) {
+          results.skippedTests++;
+          await this.recordTestResult(test, {
+            passed: false,
+            duration: 0,
+            error: 'Skipped due to previous failure',
+          });
+          continue;
+        }
 
-      logger.info(`Executing test: ${test.name}`);
-      const testResult = await this.executeTest(test, config);
-      
-      if (testResult.passed) {
-        results.passedTests++;
-      } else {
-        results.failedTests++;
-      }
+        logger.info(`Executing test: ${test.name}`);
+        const testResult = await this.executeTest(test, config);
+        
+        if (testResult.passed) {
+          results.passedTests++;
+        } else {
+          results.failedTests++;
+        }
 
-      await this.recordTestResult(test, testResult);
+        await this.recordTestResult(test, testResult);
 
-      if (test.cleanup && config.cleanup !== false) {
-        try {
-          await test.cleanup();
-        } catch (error) {
-          logger.error(`Cleanup failed for test ${test.id}:`, error);
+        if (test.cleanup && config.cleanup !== false) {
+          try {
+            await test.cleanup();
+          } catch (error) {
+            logger.error(`Cleanup failed for test ${test.id}:`, error);
+          }
         }
       }
-    }
 
-    if (this.dataGenerator && config.cleanup !== false) {
-      await this.dataGenerator.cleanup();
+      if (this.dataGenerator && config.cleanup !== false) {
+        await this.dataGenerator.cleanup();
+      }
+    } finally {
+      // Always restore console on suite completion
+      this.restoreConsole();
     }
 
     const duration = Date.now() - startTime;

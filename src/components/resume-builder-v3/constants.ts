@@ -10,6 +10,9 @@ export const SESSION_RECOVERY_MIN_JOB_CHARS = 50;
 export const MAX_VERSION_HISTORY = 10;
 export const MAX_SKILLS_DISPLAY = 10;
 
+// Display limits
+export const MAX_KEYWORDS_DISPLAY = 8;
+
 // Input limits
 export const MAX_ANSWER_LENGTH = 2000;
 
@@ -22,6 +25,13 @@ export const RETRY_CONFIG = {
 
 // Export timeout (30 seconds)
 export const EXPORT_TIMEOUT_MS = 30000;
+
+// Benchmark scoring weights
+export const BENCHMARK_WEIGHTS = {
+  EXCEEDS: 100,
+  MEETS: 70,
+  BELOW: 30,
+} as const;
 
 // Step labels for navigation (single source of truth)
 export const STEP_LABELS: Record<number, string> = {

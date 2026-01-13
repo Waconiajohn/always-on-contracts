@@ -2,7 +2,7 @@
 // EXPORT OPTIONS - V3 Resume Export
 // =====================================================
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -43,6 +43,7 @@ const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => 
 export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const handleExport = async (format: 'txt' | 'docx' | 'pdf') => {
     setIsOpen(false); // Close dropdown immediately
@@ -78,13 +79,15 @@ export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
       toast.error(errorMessage);
     } finally {
       setIsExporting(null);
+      // Return focus to trigger button for accessibility
+      triggerRef.current?.focus();
     }
   };
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button size="sm" disabled={!!isExporting}>
+        <Button ref={triggerRef} size="sm" disabled={!!isExporting}>
           {isExporting ? (
             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
           ) : (

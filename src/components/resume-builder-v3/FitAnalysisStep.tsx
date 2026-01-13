@@ -36,14 +36,16 @@ export function FitAnalysisStep() {
   // Show loading skeleton when fetching standards
   if (isLoading) {
     return (
-      <LoadingSkeletonV3 
-        type="standards" 
-        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Researching industry standards and benchmarks..."} 
-        onCancel={() => {
-          cancel();
-          setLoading(false);
-        }}
-      />
+      <div aria-busy="true" aria-label="Loading industry standards">
+        <LoadingSkeletonV3 
+          type="standards" 
+          message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Researching industry standards and benchmarks..."} 
+          onCancel={() => {
+            cancel();
+            setLoading(false);
+          }}
+        />
+      </div>
     );
   }
 

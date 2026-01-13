@@ -125,7 +125,7 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
             </h2>
             <div className="space-y-1">
               {resume.education.map((edu, index) => (
-                <div key={index} className="flex justify-between">
+                <div key={`edu-${index}-${edu.institution}-${edu.degree}`} className="flex justify-between">
                   <div>
                     <span className="font-medium" style={{ color: "#000000" }}>{edu.degree}</span>
                     <span style={{ color: "#4b5563" }}> — {edu.institution}</span>
@@ -148,7 +148,7 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
             </h2>
             <ul className="text-sm space-y-0.5">
               {resume.certifications.map((cert, index) => (
-                <li key={index} className="list-disc ml-6" style={{ color: "#000000" }}>
+                <li key={`cert-${index}-${cert}`} className="list-disc ml-6" style={{ color: "#000000" }}>
                   {cert}
                 </li>
               ))}

@@ -421,6 +421,17 @@ serve(async (req) => {
           throw new Error("Invalid previous step data structure: gaps and benchmarks must be arrays");
         }
         result = await runInterviewQuestions(apiKey, resumeText, jobDescription, fitAnalysis, standards);
+        
+        // Validate questions response structure
+        if (!result || !Array.isArray(result.questions)) {
+          throw new Error("Invalid questions response: questions must be an array");
+        }
+        // Validate each question has required fields
+        for (const q of result.questions) {
+          if (!q.id || typeof q.id !== 'string' || !q.question || typeof q.question !== 'string') {
+            throw new Error("Invalid question structure: each question must have id and question fields");
+          }
+        }
         break;
 
       case "generate_resume":
