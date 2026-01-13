@@ -49,6 +49,11 @@ export function InterviewStep() {
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
 
+  // Check for null/empty questions FIRST (before loading check)
+  if (!questions || !questions.questions || questions.questions.length === 0) {
+    return null;
+  }
+
   // Show loading skeleton when generating resume
   if (isLoading) {
     return (
@@ -58,8 +63,6 @@ export function InterviewStep() {
       />
     );
   }
-
-  if (!questions) return null;
 
   const currentQuestion = questions.questions[currentQuestionIndex];
   const answeredCount = Object.keys(interviewAnswers).filter(
@@ -190,7 +193,7 @@ export function InterviewStep() {
             <button
               key={q.id}
               onClick={() => setCurrentQuestionIndex(index)}
-              className={`h-2.5 w-2.5 rounded-full transition-colors ${
+              className={`h-2.5 w-2.5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                 isCurrent
                   ? "bg-primary"
                   : isAnswered
