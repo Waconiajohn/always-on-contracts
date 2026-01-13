@@ -154,15 +154,19 @@ export function VersionHistory({ versions, currentVersion }: VersionHistoryProps
     return differences;
   };
 
-  // Memoize formatDate to prevent recreation on every render
-  const formatDate = useCallback((date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
+  // Memoize DateTimeFormat instance to prevent recreation on every render
+  const dateFormatter = useMemo(() => 
+    new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date);
-  }, []);
+    }), 
+  []);
+  
+  const formatDate = useCallback((date: Date) => {
+    return dateFormatter.format(date);
+  }, [dateFormatter]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -271,7 +275,7 @@ function VersionCard({
       )}
       onClick={compareMode ? onSelect : undefined}
       role={compareMode ? "button" : undefined}
-      tabIndex={compareMode ? 0 : undefined}
+      tabIndex={compareMode ? 0 : -1}
       onKeyDown={
         compareMode
           ? (e) => {
@@ -455,3 +459,8 @@ function SkillsList({ title, skills, otherSkills }: SkillsListProps) {
     </div>
   );
 }
+
+// Add displayName for better debugging
+SkillsList.displayName = 'SkillsList';
+CompareView.displayName = 'CompareView';
+VersionCard.displayName = 'VersionCard';

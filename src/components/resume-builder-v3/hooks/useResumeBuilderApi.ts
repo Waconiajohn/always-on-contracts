@@ -2,7 +2,7 @@
 // API CALL HOOK WITH RETRY LOGIC
 // =====================================================
 
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRetryWithBackoff } from "./useRetryWithBackoff";
@@ -25,6 +25,13 @@ interface ApiCallOptions {
 export function useResumeBuilderApi() {
   const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const rateLimitRef = useRef<number | null>(null);
+  
+  // Clear rate limit state on unmount to prevent stale state across sessions
+  useEffect(() => {
+    return () => {
+      rateLimitRef.current = null;
+    };
+  }, []);
   
   const { executeWithRetry, isRetrying, currentAttempt, cancel } = useRetryWithBackoff({
     maxAttempts: RETRY_CONFIG.MAX_ATTEMPTS,

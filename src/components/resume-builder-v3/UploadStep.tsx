@@ -131,14 +131,16 @@ export function UploadStep() {
   // Show loading skeleton when analyzing
   if (isLoading) {
     return (
-      <LoadingSkeletonV3 
-        type="analysis" 
-        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : undefined}
-        onCancel={() => {
-          cancel();
-          setLoading(false);
-        }}
-      />
+      <div aria-busy="true" aria-label="Analyzing your resume">
+        <LoadingSkeletonV3 
+          type="analysis" 
+          message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : undefined}
+          onCancel={() => {
+            cancel();
+            setLoading(false);
+          }}
+        />
+      </div>
     );
   }
 

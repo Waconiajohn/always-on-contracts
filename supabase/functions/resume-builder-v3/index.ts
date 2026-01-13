@@ -21,6 +21,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// DEBUG mode - set DEBUG=true in environment to enable verbose logging
+const DEBUG = Deno.env.get("DEBUG") === "true";
+
 // Models configuration
 const LOVABLE_AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODELS = {
@@ -335,8 +338,6 @@ Generate a complete, optimized resume that:
 const MAX_RESUME_LENGTH = 25000;
 const MAX_JOB_LENGTH = 20000;
 const VALID_STEPS: Step[] = ["fit_analysis", "standards", "questions", "generate_resume"];
-// DEBUG mode - set DEBUG=true in environment to enable verbose logging
-const DEBUG = Deno.env.get("DEBUG") === "true";
 
 // Content validation (NOT XSS sanitization - that's done on the display layer)
 // This ensures no script tags or event handlers are in the AI output
