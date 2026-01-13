@@ -48,9 +48,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminPromptManager = lazy(() => import("./pages/AdminPromptManager"));
 const UserRoleManagement = lazy(() => import("./pages/UserRoleManagement"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
-const V3VaultDashboard = lazy(() => import("./components/career-vault/dashboard/V3VaultDashboard").then(m => ({ default: m.V3VaultDashboard })));
-const CareerIntelligenceLibrary = lazy(() => import("./pages/CareerIntelligenceLibrary"));
-const VaultAdminTools = lazy(() => import("./pages/VaultAdminTools"));
+const MasterResume = lazy(() => import("./pages/MasterResume"));
 const LearningCenter = lazy(() => import("./pages/LearningCenter"));
 const ResearchHub = lazy(() => import("./pages/ResearchHub"));
 const ReferralProgram = lazy(() => import("./pages/ReferralProgram"));
@@ -131,10 +129,12 @@ const AppContent = () => {
             <Route path="/admin-prompt-manager" element={<ProtectedRoute><AdminRoute><AdminPromptManager /></AdminRoute></ProtectedRoute>} />
             <Route path="/admin/user-roles" element={<ProtectedRoute><AdminRoute><UserRoleManagement /></AdminRoute></ProtectedRoute>} />
             <Route path="/admin-setup" element={<ProtectedRoute><AdminSetup /></ProtectedRoute>} />
-            <Route path="/vault-admin" element={<ProtectedRoute><VaultAdminTools /></ProtectedRoute>} />
-            <Route path="/career-vault" element={<ProtectedRoute><V3VaultDashboard /></ProtectedRoute>} />
-            <Route path="/career-intelligence" element={<ProtectedRoute><CareerIntelligenceLibrary /></ProtectedRoute>} />
-            <Route path="/career-vault-onboarding" element={<Navigate to="/career-vault" replace />} />
+            <Route path="/master-resume" element={<ProtectedRoute><MasterResume /></ProtectedRoute>} />
+            {/* Legacy vault redirects */}
+            <Route path="/career-vault" element={<Navigate to="/master-resume" replace />} />
+            <Route path="/career-intelligence" element={<Navigate to="/master-resume" replace />} />
+            <Route path="/vault-admin" element={<Navigate to="/master-resume" replace />} />
+            <Route path="/career-vault-onboarding" element={<Navigate to="/master-resume" replace />} />
             {/* Legacy redirects */}
             <Route path="/career-tools" element={<Navigate to="/home" replace />} />
             <Route path="/command-center" element={<Navigate to="/home" replace />} />
