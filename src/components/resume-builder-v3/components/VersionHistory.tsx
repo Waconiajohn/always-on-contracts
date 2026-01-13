@@ -18,8 +18,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { History, ArrowLeftRight, Check, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-// Import shared type - no local duplication
+// Import shared type and constants - no local duplication
 import type { ResumeVersion } from "@/types/resume-builder-v3";
+import { MAX_SKILLS_DISPLAY } from "../constants";
 
 // Validation function for version data
 const isValidVersion = (v: unknown): v is ResumeVersion => {
@@ -422,7 +423,7 @@ function SkillsList({ title, skills, otherSkills }: SkillsListProps) {
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground">{title}</p>
       <div className="flex flex-wrap gap-1">
-        {skills.slice(0, 10).map((skill, index) => {
+        {skills.slice(0, MAX_SKILLS_DISPLAY).map((skill, index) => {
           const isNew = !otherSkills.includes(skill);
           return (
             <Badge
@@ -435,9 +436,9 @@ function SkillsList({ title, skills, otherSkills }: SkillsListProps) {
             </Badge>
           );
         })}
-        {skills.length > 10 && (
+        {skills.length > MAX_SKILLS_DISPLAY && (
           <Badge variant="secondary" className="text-xs">
-            +{skills.length - 10} more
+            +{skills.length - MAX_SKILLS_DISPLAY} more
           </Badge>
         )}
       </div>

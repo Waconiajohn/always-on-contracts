@@ -3,9 +3,10 @@
 // =====================================================
 
 import { Component, ErrorInfo, ReactNode } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { AlertTriangle, RotateCcw, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -15,6 +16,28 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorId: string | null;
+}
+
+// Store errors for debugging (max 10)
+const errorLog: Array<{ id: string; error: Error; timestamp: Date; componentStack?: string }> = [];
+const MAX_ERROR_LOG = 10;
+
+function storeError(error: Error, componentStack?: string): string {
+  const errorId = `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  errorLog.unshift({ id: errorId, error, timestamp: new Date(), componentStack });
+  if (errorLog.length > MAX_ERROR_LOG) {
+    errorLog.pop();
+  }
+  // Persist to localStorage for debugging
+  try {
+    localStorage.setItem('resume-builder-errors', JSON.stringify(
+      errorLog.map(e => ({ id: e.id, message: e.error.message, timestamp: e.timestamp.toISOString() }))
+    ));
+  } catch {
+    // Ignore storage errors
+  }
+  return errorId;
 }
 
 export class ResumeBuilderErrorBoundary extends Component<
@@ -23,15 +46,17 @@ export class ResumeBuilderErrorBoundary extends Component<
 > {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorId: null };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Resume Builder Error:", error, errorInfo);
+    const errorId = storeError(error, errorInfo.componentStack ?? undefined);
+    this.setState({ errorId });
+    logger.error("Resume Builder Error:", { error: error.message, errorId, componentStack: errorInfo.componentStack });
   }
 
   handleReset = () => {
@@ -64,7 +89,7 @@ export class ResumeBuilderErrorBoundary extends Component<
                 </div>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <Button onClick={this.handleReset} className="gap-2">
                   <RotateCcw className="h-4 w-4" />
                   Try Again
@@ -75,6 +100,19 @@ export class ResumeBuilderErrorBoundary extends Component<
                 >
                   Reload Page
                 </Button>
+                {this.state.errorId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`Error ID: ${this.state.errorId}\nMessage: ${this.state.error?.message}`);
+                    }}
+                  >
+                    <Bug className="h-3 w-3 mr-1" />
+                    Copy Error ID
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

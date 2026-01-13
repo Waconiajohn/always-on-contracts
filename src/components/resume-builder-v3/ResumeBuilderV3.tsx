@@ -34,7 +34,7 @@ import {
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 import { ResumeBuilderErrorBoundary } from "./components/ErrorBoundary";
 import { StepErrorBoundary } from "./components/StepErrorBoundary";
-import { SESSION_RECOVERY_MIN_CHARS } from "./constants";
+import { SESSION_RECOVERY_MIN_CHARS, SESSION_RECOVERY_MIN_JOB_CHARS } from "./constants";
 
 // Navigation state types from other pages
 interface NavigationState {
@@ -104,7 +104,7 @@ export function ResumeBuilderV3() {
       const hasRealProgress = 
         fitAnalysis !== null || 
         step > 1 ||
-        (resumeText.length > SESSION_RECOVERY_MIN_CHARS && jobDescription.length > 50);
+        (resumeText.length > SESSION_RECOVERY_MIN_CHARS && jobDescription.length > SESSION_RECOVERY_MIN_JOB_CHARS);
         
       if (hasRealProgress) {
         setShowRecoveryDialog(true);

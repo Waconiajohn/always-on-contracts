@@ -39,6 +39,11 @@ const safeSaveVersions = (versions: ResumeVersion[]): boolean => {
     localStorage.setItem('resume-versions', JSON.stringify(versions));
     return true;
   } catch (error) {
+    // Try with fewer versions if storage is full
+    if (error instanceof Error && error.name === 'QuotaExceededError' && versions.length > 1) {
+      console.warn("Storage full, trying to save fewer versions");
+      return safeSaveVersions(versions.slice(0, -1));
+    }
     console.error("Failed to save version history to localStorage:", error);
     return false;
   }

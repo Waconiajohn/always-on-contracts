@@ -2,8 +2,9 @@
 // RETRY WITH EXPONENTIAL BACKOFF HOOK
 // =====================================================
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface RetryConfig {
   maxAttempts?: number;
@@ -35,6 +36,18 @@ export function useRetryWithBackoff(config: RetryConfig = {}) {
   });
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Track latest error in ref to avoid stale closure
+  const lastErrorRef = useRef<Error | null>(null);
+
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const calculateDelay = useCallback(
     (attempt: number) => {
@@ -61,6 +74,7 @@ export function useRetryWithBackoff(config: RetryConfig = {}) {
       const signal = abortControllerRef.current.signal;
 
       setState({ isRetrying: false, attempt: 0, lastError: null });
+      lastErrorRef.current = null;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
@@ -70,6 +84,7 @@ export function useRetryWithBackoff(config: RetryConfig = {}) {
 
           // Success - reset state
           setState({ isRetrying: false, attempt: 0, lastError: null });
+          lastErrorRef.current = null;
           return result;
         } catch (error) {
           if (signal.aborted) {
@@ -78,6 +93,7 @@ export function useRetryWithBackoff(config: RetryConfig = {}) {
 
           const err = error instanceof Error ? error : new Error(String(error));
           setState((prev) => ({ ...prev, lastError: err }));
+          lastErrorRef.current = err;
 
           // Check if we should retry
           if (attempt < maxAttempts) {
@@ -99,8 +115,8 @@ export function useRetryWithBackoff(config: RetryConfig = {}) {
         }
       }
 
-      // Should never reach here, but TypeScript needs this
-      throw state.lastError || new Error("All retry attempts failed");
+      // Use ref to avoid stale closure issue
+      throw lastErrorRef.current || new Error("All retry attempts failed");
     },
     [maxAttempts, calculateDelay, onRetry]
   );
@@ -111,6 +127,8 @@ export function useRetryWithBackoff(config: RetryConfig = {}) {
       abortControllerRef.current = null;
     }
     setState({ isRetrying: false, attempt: 0, lastError: null });
+    lastErrorRef.current = null;
+    logger.debug("Retry operation cancelled");
   }, []);
 
   return {

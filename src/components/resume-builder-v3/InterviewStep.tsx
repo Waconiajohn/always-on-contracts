@@ -29,6 +29,7 @@ import {
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
+import { MAX_ANSWER_LENGTH } from "./constants";
 
 export function InterviewStep() {
   const {
@@ -265,19 +266,31 @@ export function InterviewStep() {
               </div>
             )}
 
-            <Textarea
-              placeholder="Type your answer here... Be specific with numbers and details!"
-              value={currentAnswer}
-              onChange={(e) => handleAnswerChange(e.target.value)}
-              className="min-h-[120px]"
-            />
-
-            {currentAnswer.trim() && (
-              <div className="flex items-center gap-1 text-sm text-green-600">
-                <Check className="h-4 w-4" />
-                Answer saved
+            <div className="space-y-1">
+              <Textarea
+                placeholder="Type your answer here... Be specific with numbers and details!"
+                value={currentAnswer}
+                onChange={(e) => {
+                  // Enforce character limit
+                  if (e.target.value.length <= MAX_ANSWER_LENGTH) {
+                    handleAnswerChange(e.target.value);
+                  }
+                }}
+                className="min-h-[120px]"
+                maxLength={MAX_ANSWER_LENGTH}
+              />
+              <div className="flex items-center justify-between text-xs">
+                <span className={currentAnswer.length > MAX_ANSWER_LENGTH * 0.9 ? "text-amber-600" : "text-muted-foreground"}>
+                  {currentAnswer.length}/{MAX_ANSWER_LENGTH} characters
+                </span>
+                {currentAnswer.trim() && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <Check className="h-3 w-3" />
+                    Saved
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       )}

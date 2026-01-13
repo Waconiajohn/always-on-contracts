@@ -120,13 +120,26 @@ async function callAI(
 
   const data = await response.json();
   const duration = Date.now() - startTime;
+  
+  // Telemetry logging
+  console.log(`📊 Telemetry: ${JSON.stringify({
+    function: functionName,
+    model,
+    duration_ms: duration,
+    success: true,
+    tokens: data.usage || null,
+  })}`);
+  
   if (DEBUG) console.log(`✅ ${functionName} completed in ${duration}ms`);
 
   // Extract tool call result
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall) {
     console.error("❌ No tool call in response:", JSON.stringify(data, null, 2));
-    throw new Error("AI did not return structured output");
+    throw new Error(
+      "The AI service returned an unexpected format. This usually resolves on retry. " +
+      "If the issue persists, try simplifying your resume text."
+    );
   }
 
   try {
@@ -325,25 +338,25 @@ const VALID_STEPS: Step[] = ["fit_analysis", "standards", "questions", "generate
 // DEBUG mode - set DEBUG=true in environment to enable verbose logging
 const DEBUG = Deno.env.get("DEBUG") === "true";
 
-// XSS sanitization for AI-generated content
-function sanitizeOutput(obj: unknown): unknown {
+// Content validation (NOT XSS sanitization - that's done on the display layer)
+// This ensures no script tags or event handlers are in the AI output
+function validateAndCleanOutput(obj: unknown): unknown {
   if (typeof obj === 'string') {
+    // Remove any script tags and event handlers that somehow got through
     return obj
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;');
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/javascript:/gi, '');
   }
   if (Array.isArray(obj)) {
-    return obj.map(sanitizeOutput);
+    return obj.map(validateAndCleanOutput);
   }
   if (obj !== null && typeof obj === 'object') {
-    const sanitized: Record<string, unknown> = {};
+    const cleaned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeOutput(value);
+      cleaned[key] = validateAndCleanOutput(value);
     }
-    return sanitized;
+    return cleaned;
   }
   return obj;
 }
@@ -424,10 +437,10 @@ serve(async (req) => {
         throw new Error(`Unknown step: ${step}`);
     }
 
-    // Sanitize AI output to prevent XSS
-    const sanitizedResult = sanitizeOutput(result);
+    // Validate and clean AI output (removes script tags, not HTML entity encoding)
+    const cleanedResult = validateAndCleanOutput(result);
 
-    return new Response(JSON.stringify({ success: true, data: sanitizedResult }), {
+    return new Response(JSON.stringify({ success: true, data: cleanedResult }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

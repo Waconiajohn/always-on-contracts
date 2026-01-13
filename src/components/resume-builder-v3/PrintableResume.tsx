@@ -26,6 +26,13 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
           color: "#000000",
         }}
       >
+        {/* Print-specific CSS for page breaks */}
+        <style>{`
+          @media print {
+            .print-resume section { page-break-inside: avoid; }
+            .print-resume .experience-item { page-break-inside: avoid; }
+          }
+        `}</style>
         {/* Header */}
         <header 
           className="text-center pb-4 mb-4"
@@ -74,7 +81,7 @@ export const PrintableResume = forwardRef<HTMLDivElement, PrintableResumeProps>(
           </h2>
           <div className="space-y-3">
             {resume.experience.map((exp, index) => (
-              <div key={index}>
+              <div key={index} className="experience-item">
                 <div className="flex justify-between items-baseline">
                   <div>
                     <span className="font-bold" style={{ color: "#000000" }}>{exp.title}</span>
