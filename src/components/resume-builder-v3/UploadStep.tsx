@@ -29,11 +29,12 @@ export function UploadStep() {
     isLoading,
   } = useResumeBuilderV3Store();
 
+  // CRITICAL: All hooks must be called before any conditional returns
+  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
+
   const [localResume, setLocalResume] = useState(resumeText);
   const [localJob, setLocalJob] = useState(jobDescription);
   const [isParsingFile, setIsParsingFile] = useState(false);
-  
-  // Note: cancel is destructured below after loading check for proper hook ordering
 
   const resumeOverLimit = localResume.length > MAX_RESUME_CHARS;
   const jobOverLimit = localJob.length > MAX_JOB_CHARS;
@@ -115,8 +116,6 @@ export function UploadStep() {
     if (current > max * 0.9) return "text-amber-600";
     return "text-green-600";
   };
-
-  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
 
   // Show loading skeleton when analyzing
   if (isLoading) {

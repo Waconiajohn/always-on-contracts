@@ -29,7 +29,7 @@ export function FitAnalysisStep() {
   } = useResumeBuilderV3Store();
 
   // CRITICAL: All hooks must be called before any conditional returns
-  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
 
   if (!fitAnalysis) return null;
 
@@ -40,7 +40,7 @@ export function FitAnalysisStep() {
         type="standards" 
         message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : "Researching industry standards and benchmarks..."} 
         onCancel={() => {
-          // Cancel needs to be accessed from store or passed through
+          cancel();
           setLoading(false);
         }}
       />

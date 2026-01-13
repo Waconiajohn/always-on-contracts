@@ -25,6 +25,7 @@ import { SuccessAnimation, FadeIn, StaggerContainer, StaggerItem } from "./StepT
 import { formatResumeAsText } from "./utils/formatters";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
+import { MAX_VERSION_HISTORY } from "./constants";
 import type { ResumeVersion } from "@/types/resume-builder-v3";
 
 // Helper functions for safe localStorage access
@@ -88,7 +89,7 @@ export function GenerateStep() {
         createdAt: new Date(),
         label: `Version ${existingVersions.length + 1}`,
       };
-      const updatedVersions = [newVersion, ...existingVersions].slice(0, 10);
+      const updatedVersions = [newVersion, ...existingVersions].slice(0, MAX_VERSION_HISTORY);
       if (safeSaveVersions(updatedVersions)) {
         setVersions(updatedVersions);
       }
@@ -152,7 +153,7 @@ export function GenerateStep() {
         createdAt: new Date(),
         label: `Version ${versions.length + 1}`,
       };
-      const updatedVersions = [newVersion, ...versions].slice(0, 10);
+      const updatedVersions = [newVersion, ...versions].slice(0, MAX_VERSION_HISTORY);
       
       if (safeSaveVersions(updatedVersions)) {
         setVersions(updatedVersions);
