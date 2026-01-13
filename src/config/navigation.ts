@@ -1,6 +1,5 @@
 import {
   Home,
-  Package,
   Search,
   FileText,
   Linkedin,
@@ -91,11 +90,11 @@ export const mainNavItems: NavItem[] = [
     icon: Briefcase,
     module: 'resume_jobs_studio',
   },
-  // MODULE 3: Career Vault
+  // MODULE 3: Master Resume (replaced Career Vault)
   {
-    label: 'Career Vault',
-    path: '/career-vault',
-    icon: Package,
+    label: 'Master Resume',
+    path: '/master-resume',
+    icon: FileText,
     module: 'career_vault',
   },
   // MODULE 4: LinkedIn Pro
@@ -149,7 +148,7 @@ export const moduleNavGroups = {
     { label: 'My Applications', path: '/active-applications', icon: Briefcase },
   ],
   career_vault: [
-    { label: 'Career Vault', path: '/career-vault', icon: Package },
+    { label: 'Master Resume', path: '/master-resume', icon: FileText },
     { label: 'AI Coach', path: '/coaching', icon: Brain },
   ],
   linkedin_pro: [
@@ -165,7 +164,7 @@ export const moduleNavGroups = {
 
 export const profileDropdownItems: ProfileItem[] = [
   { label: 'Quick Score', path: '/quick-score', icon: Zap },
-  { label: 'Career Vault', path: '/career-vault', icon: Package },
+  { label: 'Master Resume', path: '/master-resume', icon: FileText },
   { type: 'separator' },
   { label: 'Financial Planning', path: '/agents/financial-planning', icon: DollarSign },
   { label: 'AI Coach', path: '/coaching', icon: Brain },

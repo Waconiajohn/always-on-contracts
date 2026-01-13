@@ -2344,6 +2344,83 @@ export type Database = {
         }
         Relationships: []
       }
+      master_resume: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          last_enriched_at: string | null
+          structured_data: Json | null
+          updated_at: string
+          user_id: string
+          version: number
+          word_count: number | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          last_enriched_at?: string | null
+          structured_data?: Json | null
+          updated_at?: string
+          user_id: string
+          version?: number
+          word_count?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          last_enriched_at?: string | null
+          structured_data?: Json | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+          word_count?: number | null
+        }
+        Relationships: []
+      }
+      master_resume_history: {
+        Row: {
+          change_summary: string | null
+          content: string
+          created_at: string
+          id: string
+          master_resume_id: string
+          structured_data: Json | null
+          user_id: string
+          version: number
+        }
+        Insert: {
+          change_summary?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          master_resume_id: string
+          structured_data?: Json | null
+          user_id: string
+          version: number
+        }
+        Update: {
+          change_summary?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          master_resume_id?: string
+          structured_data?: Json | null
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_resume_history_master_resume_id_fkey"
+            columns: ["master_resume_id"]
+            isOneToOne: false
+            referencedRelation: "master_resume"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_access: {
         Row: {
           access_type: string
