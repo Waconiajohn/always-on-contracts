@@ -85,11 +85,12 @@ Return JSON: { "role": "...", "industry": "...", "level": "..." }`;
     }
 
     // STEP 2: Comprehensive structured gap analysis
-    const systemPrompt = `You are an expert resume analyst. Your task is to perform a STRUCTURED COMPARISON between a resume and job description.
+    // Using a more concise prompt to prevent truncation
+    const systemPrompt = `You are an expert resume analyst. Analyze the resume against the job description and return ONLY valid JSON.
 
-CRITICAL: Analyze BOTH documents thoroughly and produce a detailed comparison in the exact format below.
+IMPORTANT: Keep your response concise. Limit arrays to 5 items max.
 
-Return ONLY valid JSON with this EXACT structure:
+Return this EXACT JSON structure:
 {
   "scores": {
     "jdMatch": { "score": 0-100, "weight": 60 },
@@ -99,91 +100,50 @@ Return ONLY valid JSON with this EXACT structure:
   },
   "breakdown": {
     "jdMatch": {
-      "matchedKeywords": [{ "keyword": "Python", "priority": "critical" }],
-      "missingKeywords": [{ "keyword": "AWS", "priority": "critical", "prevalence": "87% of jobs" }],
-      "skillsMatch": 75,
-      "experienceMatch": 80
+      "matchedKeywords": [{"keyword": "string", "priority": "critical|high|medium"}],
+      "missingKeywords": [{"keyword": "string", "priority": "critical|high|medium", "prevalence": "string"}],
+      "skillsMatch": 0-100,
+      "experienceMatch": 0-100
     },
     "industryBenchmark": {
-      "roleStandards": ["Standard 1"],
-      "meetingStandards": ["What they meet"],
-      "belowStandards": ["What they're missing"],
-      "competitiveRank": "Top 30%"
+      "roleStandards": ["string"],
+      "meetingStandards": ["string"],
+      "belowStandards": ["string"],
+      "competitiveRank": "string"
     },
     "atsCompliance": {
-      "headerIssues": ["Issue 1"],
-      "formatIssues": ["Issue 1"],
-      "keywordPlacement": "good"
+      "headerIssues": ["string"],
+      "formatIssues": ["string"],
+      "keywordPlacement": "good|poor|unknown"
     },
     "humanVoice": {
-      "aiProbability": 25,
-      "concerns": ["Concern 1"],
-      "humanElements": ["Element 1"]
+      "aiProbability": 0-100,
+      "concerns": ["string"],
+      "humanElements": ["string"]
     }
   },
   "gapAnalysis": {
-    "fullMatches": [
-      {
-        "requirement": "8+ years in product management",
-        "evidence": "15+ years in product leadership across SaaS, RegTech, AI/ML"
-      }
-    ],
-    "partialMatches": [
-      {
-        "requirement": "LLMs, RAG, vector DBs",
-        "currentStatus": "AI/ML mentioned broadly, no technical depth",
-        "recommendation": "Add specific technical terms from JD"
-      }
-    ],
-    "missingRequirements": [
-      {
-        "requirement": "STEM degree",
-        "workaround": "Address with technical certifications or emphasize technical skills"
-      }
-    ],
-    "overqualifications": [
-      {
-        "experience": "VP and Director experience (15+ years)",
-        "recommendation": "Emphasize as strategic asset"
-      }
-    ],
-    "irrelevantContent": [
-      {
-        "content": "Early career marketing roles",
-        "recommendation": "Compress or reframe"
-      }
-    ],
-    "gapSummary": [
-      "AI architecture detail",
-      "STEM education"
-    ]
+    "fullMatches": [{"requirement": "string", "evidence": "string"}],
+    "partialMatches": [{"requirement": "string", "currentStatus": "string", "recommendation": "string"}],
+    "missingRequirements": [{"requirement": "string", "workaround": "string"}],
+    "overqualifications": [{"experience": "string", "recommendation": "string"}],
+    "irrelevantContent": [{"content": "string", "recommendation": "string"}],
+    "gapSummary": ["string"]
   },
-  "quickWins": [
-    "Add specific AI/ML technical terms",
-    "Quantify team sizes"
-  ]
+  "quickWins": ["string"]
 }
 
-ANALYSIS GUIDELINES:
-1. fullMatches: Requirements from JD that resume CLEARLY demonstrates with evidence
-2. partialMatches: Resume shows related experience but needs enhancement
-3. missingRequirements: JD requirements not present - provide workaround strategies
-4. overqualifications: Experience exceeding requirements - frame as value-add
-5. irrelevantContent: Resume content not relevant - suggest compression
-6. gapSummary: 3-6 bullet points summarizing key gaps
-7. quickWins: 2-4 easy changes that can be made immediately`;
+Keep arrays SHORT (max 5 items). Be concise.`;
 
-    const userPrompt = `ROLE: ${detectedRole}
-INDUSTRY: ${detectedIndustry}
-LEVEL: ${detectedLevel}
+    const userPrompt = `ROLE: ${detectedRole} | INDUSTRY: ${detectedIndustry} | LEVEL: ${detectedLevel}
 
-=== JOB DESCRIPTION ===
-${jobDescription}
+JOB DESCRIPTION:
+${jobDescription.substring(0, 3000)}
 
-=== RESUME ===
-${resumeText}
+RESUME:
+${resumeText.substring(0, 4000)}
 
-Analyze comprehensively and provide structured comparison.`;
+Analyze and return JSON. Keep arrays to 5 items max.`;
 
     const { response, metrics } = await callLovableAI({
       messages: [
@@ -191,8 +151,8 @@ Analyze comprehensively and provide structured comparison.`;
         { role: 'user', content: userPrompt }
       ],
       model: LOVABLE_AI_MODELS.DEFAULT,
-      temperature: 0.2,
-      max_tokens: 8000, // Increased from 4000 to prevent truncation
+      temperature: 0.1,
+      max_tokens: 4000,
       response_format: { type: 'json_object' }
     }, 'instant-resume-score');
 
