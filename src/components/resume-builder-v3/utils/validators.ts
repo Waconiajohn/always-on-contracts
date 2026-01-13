@@ -9,6 +9,7 @@ import type {
   QuestionsResult,
   OptimizedResume,
 } from "@/types/resume-builder-v3";
+import { logger } from "@/lib/logger";
 
 // Schema definitions for API response validation
 const StrengthSchema = z.object({
@@ -97,7 +98,7 @@ const OptimizedResumeSchema = z.object({
 export function validateFitAnalysis(data: unknown): FitAnalysisResult {
   const result = FitAnalysisSchema.safeParse(data);
   if (!result.success) {
-    console.error("[Validation] FitAnalysis validation failed:", result.error.format());
+    logger.error("[Validation] FitAnalysis validation failed:", result.error.format());
     throw new Error(`Invalid fit analysis response: ${result.error.issues[0]?.message || "Unknown error"}`);
   }
   return result.data as FitAnalysisResult;
@@ -106,7 +107,7 @@ export function validateFitAnalysis(data: unknown): FitAnalysisResult {
 export function validateStandards(data: unknown): StandardsResult {
   const result = StandardsSchema.safeParse(data);
   if (!result.success) {
-    console.error("[Validation] Standards validation failed:", result.error.format());
+    logger.error("[Validation] Standards validation failed:", result.error.format());
     throw new Error(`Invalid standards response: ${result.error.issues[0]?.message || "Unknown error"}`);
   }
   return result.data as StandardsResult;
@@ -115,7 +116,7 @@ export function validateStandards(data: unknown): StandardsResult {
 export function validateQuestions(data: unknown): QuestionsResult {
   const result = QuestionsSchema.safeParse(data);
   if (!result.success) {
-    console.error("[Validation] Questions validation failed:", result.error.format());
+    logger.error("[Validation] Questions validation failed:", result.error.format());
     throw new Error(`Invalid questions response: ${result.error.issues[0]?.message || "Unknown error"}`);
   }
   return result.data as QuestionsResult;
@@ -124,7 +125,7 @@ export function validateQuestions(data: unknown): QuestionsResult {
 export function validateOptimizedResume(data: unknown): OptimizedResume {
   const result = OptimizedResumeSchema.safeParse(data);
   if (!result.success) {
-    console.error("[Validation] OptimizedResume validation failed:", result.error.format());
+    logger.error("[Validation] OptimizedResume validation failed:", result.error.format());
     throw new Error(`Invalid resume response: ${result.error.issues[0]?.message || "Unknown error"}`);
   }
   return result.data as OptimizedResume;
@@ -143,7 +144,7 @@ const validatorMap: Record<Step, (data: unknown) => unknown> = {
 export function validateApiResponse<T>(step: Step, data: unknown): T {
   const validator = validatorMap[step];
   if (!validator) {
-    console.warn(`[Validation] No validator for step: ${step}`);
+    logger.warn(`[Validation] No validator for step: ${step}`);
     return data as T;
   }
   return validator(data) as T;

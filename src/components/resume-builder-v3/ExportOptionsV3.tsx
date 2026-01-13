@@ -29,10 +29,22 @@ const sanitizeFilename = (name: string): string => {
     .substring(0, 100);              // Limit length
 };
 
+// Timeout wrapper for export operations
+const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error("Export timed out")), timeoutMs)
+    )
+  ]);
+};
+
 export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleExport = async (format: 'txt' | 'docx' | 'pdf') => {
+    setIsOpen(false); // Close dropdown immediately
     setIsExporting(format);
     const fileName = sanitizeFilename(`${resume.header.name}-Resume`);
 
@@ -49,25 +61,27 @@ export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
         toast.success("Resume downloaded as TXT");
       } else if (format === 'docx') {
         const data = prepareExportData(resume);
-        // Use 'executive' template for professional formatting
-        await exportFormats.docxExport(data, fileName, 'executive');
+        // Use 'executive' template for professional formatting with timeout
+        await withTimeout(exportFormats.docxExport(data, fileName, 'executive'), 30000);
         toast.success("Resume downloaded as DOCX");
       } else if (format === 'pdf') {
         const data = prepareExportData(resume);
         const html = generateResumeHTML(data);
-        await exportFormats.standardPDF(html, fileName);
+        await withTimeout(exportFormats.standardPDF(html, fileName), 30000);
         toast.success("Resume downloaded as PDF");
       }
     } catch (error) {
-      console.error(`Export ${format} failed:`, error);
-      toast.error(`Failed to export as ${format.toUpperCase()}`);
+      const errorMessage = error instanceof Error && error.message === "Export timed out" 
+        ? "Export timed out. Please try again." 
+        : `Failed to export as ${format.toUpperCase()}`;
+      toast.error(errorMessage);
     } finally {
       setIsExporting(null);
     }
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button size="sm" disabled={!!isExporting}>
           {isExporting ? (
