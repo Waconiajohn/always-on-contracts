@@ -49,10 +49,10 @@ export function UploadStep() {
     const file = acceptedFiles[0];
     if (!file) return;
 
-    // Check file type
-    const validTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    // Check file type - only .txt is currently supported
+    const validTypes = ['text/plain'];
     if (!validTypes.includes(file.type) && !file.name.endsWith('.txt')) {
-      toast.error("Please upload a .txt, .pdf, or .docx file");
+      toast.error("Please upload a .txt file");
       return;
     }
 

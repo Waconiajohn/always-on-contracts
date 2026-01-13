@@ -51,7 +51,20 @@ export function InterviewStep() {
 
   // Check for null/empty questions FIRST (before loading check)
   if (!questions || !questions.questions || questions.questions.length === 0) {
-    return null;
+    return (
+      <div className="text-center py-12 space-y-4">
+        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
+          <AlertTriangle className="h-6 w-6 text-amber-600" />
+        </div>
+        <h2 className="text-lg font-semibold">No Interview Questions</h2>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          We couldn't generate interview questions. This might happen if your resume already matches the job description well, or there was an issue with the analysis.
+        </p>
+        <Button variant="outline" onClick={() => setStep(2)}>
+          Go Back to Analysis
+        </Button>
+      </div>
+    );
   }
 
   // Show loading skeleton when generating resume
