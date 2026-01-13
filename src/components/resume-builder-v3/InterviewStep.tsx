@@ -117,8 +117,11 @@ export function InterviewStep() {
   }
 
   const currentQuestion = questions.questions[currentQuestionIndex];
+  
+  // Validate answer keys match question IDs to prevent unexpected keys
+  const validQuestionIds = new Set(questions.questions.map(q => q.id));
   const answeredCount = Object.keys(interviewAnswers).filter(
-    (key) => interviewAnswers[key]?.trim().length > 0
+    (key) => validQuestionIds.has(key) && interviewAnswers[key]?.trim().length > 0
   ).length;
   const totalQuestions = questions.questions.length;
 

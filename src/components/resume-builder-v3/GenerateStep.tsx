@@ -70,7 +70,13 @@ const createFingerprintSync = (resume: Record<string, unknown>): string => {
     improvementsCount: (resume.improvements_made as unknown[])?.length || 0,
   });
   // Use full base64 without truncating for reliable fingerprinting
-  return btoa(encodeURIComponent(content));
+  // Wrap in try-catch as btoa can throw on certain Unicode characters
+  try {
+    return btoa(unescape(encodeURIComponent(content)));
+  } catch {
+    // Fallback to hash of stringified content length + timestamp
+    return `fallback-${content.length}-${Date.now()}`;
+  }
 };
 
 export function GenerateStep() {
@@ -249,8 +255,8 @@ export function GenerateStep() {
             {finalResume.improvements_made.length > 0 ? (
               <StaggerContainer staggerDelay={0.05}>
                 <ul className="space-y-1" role="list" aria-label="List of improvements made to your resume">
-                  {finalResume.improvements_made.map((improvement, index) => (
-                    <StaggerItem key={index}>
+                {finalResume.improvements_made.map((improvement, index) => (
+                    <StaggerItem key={`improvement-${index}-${improvement.substring(0, 20).replace(/\s/g, '')}`}>
                       <li className="text-xs sm:text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         {improvement}
@@ -349,8 +355,8 @@ export function GenerateStep() {
             </h4>
             {finalResume.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2" role="list" aria-label="Skills">
-                {finalResume.skills.map((skill) => (
-                  <Badge key={skill} variant="secondary" role="listitem">
+                {finalResume.skills.map((skill, index) => (
+                  <Badge key={`skill-${index}-${skill}`} variant="secondary" role="listitem">
                     {skill}
                   </Badge>
                 ))}

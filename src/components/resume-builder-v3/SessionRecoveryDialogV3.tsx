@@ -31,7 +31,7 @@ export function SessionRecoveryDialogV3({
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent>
+      <AlertDialogContent onEscapeKeyDown={() => onStartFresh()}>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
