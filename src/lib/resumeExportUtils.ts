@@ -487,9 +487,24 @@ async function htmlToPDF(container: HTMLElement, options: any = {}): Promise<jsP
   
   const pdf = new jsPDF('p', 'mm', 'a4');
   const imgData = canvas.toDataURL('image/png');
-  const imgWidth = 210;
+  const imgWidth = 210; // A4 width in mm
+  const pageHeight = 297; // A4 height in mm
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
   
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+  let position = 0;
+  let heightLeft = imgHeight;
+  
+  // First page
+  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+  
+  // Add additional pages if content exceeds one page
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+  
   return pdf;
 }

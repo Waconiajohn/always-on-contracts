@@ -2,7 +2,7 @@
 // VERSION HISTORY - Compare resume versions
 // =====================================================
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { OptimizedResume } from "@/stores/resumeBuilderV3Store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { History, ArrowLeftRight, Check, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 // Import shared type and constants - no local duplication
 import type { ResumeVersion } from "@/types/resume-builder-v3";
 import { MAX_SKILLS_DISPLAY } from "../constants";
@@ -50,10 +51,15 @@ export const safeParseVersions = (saved: string | null): ResumeVersion[] => {
       .filter(isValidVersion)
       .map((v) => ({
         ...v,
-        createdAt: new Date(v.createdAt),
-      }));
-  } catch {
-    console.error("Failed to parse version history");
+        // Handle Date objects that may already be Date or string
+        createdAt: v.createdAt instanceof Date 
+          ? v.createdAt 
+          : new Date(v.createdAt),
+      }))
+      // Filter out versions with invalid dates
+      .filter(v => !isNaN(v.createdAt.getTime()));
+  } catch (error) {
+    logger.error("Failed to parse version history", error);
     return [];
   }
 };
@@ -148,14 +154,15 @@ export function VersionHistory({ versions, currentVersion }: VersionHistoryProps
     return differences;
   };
 
-  const formatDate = (date: Date) => {
+  // Memoize formatDate to prevent recreation on every render
+  const formatDate = useCallback((date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     }).format(date);
-  };
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -360,9 +367,9 @@ function CompareView({ versions, getDifferences }: CompareViewProps) {
         <h4 className="font-medium text-sm">Differences Found</h4>
 
         {differences.length > 0 ? (
-          differences.map((diff, index) => (
+          differences.map((diff) => (
             <div
-              key={index}
+              key={`diff-${diff.field}`}
               className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
             >
               <span className="text-sm font-medium">{diff.field}</span>

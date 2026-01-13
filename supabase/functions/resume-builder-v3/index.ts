@@ -423,13 +423,24 @@ serve(async (req) => {
         if (!fitAnalysis || !standards) {
           throw new Error("Previous analysis required for resume generation");
         }
+        // Validate and sanitize interview answer keys
+        const sanitizedAnswers: Record<string, string> = {};
+        if (interviewAnswers && typeof interviewAnswers === 'object') {
+          for (const [key, value] of Object.entries(interviewAnswers)) {
+            // Validate key format and length
+            if (typeof key === 'string' && key.length < 100 && typeof value === 'string') {
+              // Limit answer length to prevent abuse
+              sanitizedAnswers[key] = value.substring(0, 5000);
+            }
+          }
+        }
         result = await runGenerateResume(
           apiKey,
           resumeText,
           jobDescription,
           fitAnalysis,
           standards,
-          interviewAnswers || {}
+          sanitizedAnswers
         );
         break;
 

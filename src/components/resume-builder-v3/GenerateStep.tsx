@@ -51,14 +51,15 @@ const safeSaveVersions = (versions: ResumeVersion[]): boolean => {
 };
 
 // Create a robust content fingerprint for duplicate detection
-// Uses full base64 without truncation to avoid collisions
+// Includes actual bullet content (not just count) to avoid collisions
 const createFingerprintSync = (resume: Record<string, unknown>): string => {
   const content = JSON.stringify({
     summary: (resume.summary as string) || '',
     skillsHash: ((resume.skills as string[]) || []).sort().join('|'),
+    // Include actual bullet content, not just count, to prevent collision
     experienceHash: ((resume.experience as Array<{ title?: string; company?: string; bullets?: string[] }>) || [])
-      .map(e => `${e.title || ''}:${e.company || ''}:${e.bullets?.length || 0}`)
-      .join('|'),
+      .map(e => `${e.title || ''}:${e.company || ''}:${(e.bullets || []).join(';;')}`)
+      .join('||'),
     atsScore: resume.ats_score || 0,
     headerName: (resume.header as { name?: string })?.name || '',
     improvementsCount: (resume.improvements_made as unknown[])?.length || 0,
@@ -98,8 +99,9 @@ export function GenerateStep() {
     );
     
     if (!alreadySaved) {
+      // Use crypto.randomUUID for unique IDs instead of timestamp
       const newVersion: ResumeVersion = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         resume: finalResume,
         createdAt: new Date(),
         label: `Version ${existingVersions.length + 1}`,
@@ -166,8 +168,9 @@ export function GenerateStep() {
     setIsSaving(true);
     
     try {
+      // Use crypto.randomUUID for unique IDs instead of timestamp
       const newVersion: ResumeVersion = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         resume: finalResume,
         createdAt: new Date(),
         label: `Version ${versions.length + 1}`,

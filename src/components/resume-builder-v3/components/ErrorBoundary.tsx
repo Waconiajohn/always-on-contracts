@@ -23,7 +23,7 @@ interface ErrorBoundaryState {
 const errorLog: Array<{ id: string; error: Error; timestamp: Date; componentStack?: string }> = [];
 const MAX_ERROR_LOG = 10;
 
-function storeError(error: Error, componentStack?: string): string {
+export function storeError(error: Error, componentStack?: string): string {
   const errorId = `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   errorLog.unshift({ id: errorId, error, timestamp: new Date(), componentStack });
   if (errorLog.length > MAX_ERROR_LOG) {
