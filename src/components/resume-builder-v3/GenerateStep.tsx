@@ -24,21 +24,13 @@ import { PrintableResume } from "./PrintableResume";
 import { SuccessAnimation, FadeIn, StaggerContainer, StaggerItem } from "./StepTransition";
 import { formatResumeAsText } from "./utils/formatters";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
-import { VersionHistory, ResumeVersion } from "./components/VersionHistory";
+import { VersionHistory, safeParseVersions } from "./components/VersionHistory";
+import type { ResumeVersion } from "@/types/resume-builder-v3";
 
 // Helper functions for safe localStorage access
 const safeGetVersions = (): ResumeVersion[] => {
-  try {
-    const saved = localStorage.getItem('resume-versions');
-    if (!saved) return [];
-    return JSON.parse(saved).map((v: any) => ({
-      ...v,
-      createdAt: new Date(v.createdAt),
-    }));
-  } catch {
-    console.error("Failed to read version history from localStorage");
-    return [];
-  }
+  const saved = localStorage.getItem('resume-versions');
+  return safeParseVersions(saved);
 };
 
 const safeSaveVersions = (versions: ResumeVersion[]): boolean => {
@@ -51,16 +43,19 @@ const safeSaveVersions = (versions: ResumeVersion[]): boolean => {
   }
 };
 
-// Create a content fingerprint for duplicate detection
-const createFingerprint = (resume: any): string => {
+// Create a robust content fingerprint for duplicate detection
+const createFingerprintSync = (resume: Record<string, unknown>): string => {
   const content = JSON.stringify({
-    summary: resume.summary?.substring(0, 100) || '',
-    skillsCount: resume.skills?.length || 0,
-    experienceCount: resume.experience?.length || 0,
+    summary: (resume.summary as string)?.substring(0, 100) || '',
+    skillsCount: (resume.skills as unknown[])?.length || 0,
+    experienceCount: (resume.experience as unknown[])?.length || 0,
     atsScore: resume.ats_score || 0,
-    firstBullet: resume.experience?.[0]?.bullets?.[0]?.substring(0, 50) || '',
+    firstBullet: ((resume.experience as Array<{ bullets?: string[] }>)?.[0]?.bullets?.[0])?.substring(0, 50) || '',
+    // Add more unique identifiers
+    headerName: (resume.header as { name?: string })?.name || '',
+    improvementsCount: (resume.improvements_made as unknown[])?.length || 0,
   });
-  return btoa(content).substring(0, 32);
+  return btoa(content).substring(0, 48);
 };
 
 export function GenerateStep() {
@@ -79,11 +74,11 @@ export function GenerateStep() {
     if (!finalResume) return;
     
     const existingVersions = safeGetVersions();
-    const newFingerprint = createFingerprint(finalResume);
+    const newFingerprint = createFingerprintSync(finalResume as unknown as Record<string, unknown>);
     
     // Check if this resume is already saved using robust fingerprint
     const alreadySaved = existingVersions.some((v) => 
-      createFingerprint(v.resume) === newFingerprint
+      createFingerprintSync(v.resume as unknown as Record<string, unknown>) === newFingerprint
     );
     
     if (!alreadySaved) {

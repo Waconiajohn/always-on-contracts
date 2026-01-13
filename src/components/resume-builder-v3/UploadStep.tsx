@@ -14,10 +14,9 @@ import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 
-const MAX_RESUME_CHARS = 15000;
-const MAX_JOB_CHARS = 10000;
-const MIN_RESUME_CHARS = 100;
-const MIN_JOB_CHARS = 50;
+import { RESUME_LIMITS } from "@/types/resume-builder-v3";
+
+const { MAX_RESUME_CHARS, MAX_JOB_CHARS, MIN_RESUME_CHARS, MIN_JOB_CHARS } = RESUME_LIMITS;
 
 export function UploadStep() {
   const {
@@ -34,7 +33,7 @@ export function UploadStep() {
   const [localJob, setLocalJob] = useState(jobDescription);
   const [isParsingFile, setIsParsingFile] = useState(false);
   
-  const { callApi, isRetrying, currentAttempt } = useResumeBuilderApi();
+  // Note: cancel is destructured below after loading check for proper hook ordering
 
   const resumeOverLimit = localResume.length > MAX_RESUME_CHARS;
   const jobOverLimit = localJob.length > MAX_JOB_CHARS;
@@ -117,12 +116,18 @@ export function UploadStep() {
     return "text-green-600";
   };
 
+  const { callApi, isRetrying, currentAttempt, cancel } = useResumeBuilderApi();
+
   // Show loading skeleton when analyzing
   if (isLoading) {
     return (
       <LoadingSkeletonV3 
         type="analysis" 
         message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/3)` : undefined}
+        onCancel={() => {
+          cancel();
+          setLoading(false);
+        }}
       />
     );
   }

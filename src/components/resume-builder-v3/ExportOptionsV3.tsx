@@ -70,16 +70,28 @@ export function ExportOptionsV3({ resume }: ExportOptionsV3Props) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleExport('txt')} disabled={!!isExporting}>
-          <FileText className="h-4 w-4 mr-2" />
+        <DropdownMenuItem 
+          onClick={() => handleExport('txt')} 
+          disabled={!!isExporting}
+          aria-label="Download resume as plain text file"
+        >
+          <FileText className="h-4 w-4 mr-2" aria-hidden="true" />
           Plain Text (.txt)
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport('docx')} disabled={!!isExporting}>
-          <FileType className="h-4 w-4 mr-2" />
+        <DropdownMenuItem 
+          onClick={() => handleExport('docx')} 
+          disabled={!!isExporting}
+          aria-label="Download resume as Word document"
+        >
+          <FileType className="h-4 w-4 mr-2" aria-hidden="true" />
           Word Document (.docx)
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport('pdf')} disabled={!!isExporting}>
-          <File className="h-4 w-4 mr-2" />
+        <DropdownMenuItem 
+          onClick={() => handleExport('pdf')} 
+          disabled={!!isExporting}
+          aria-label="Download resume as PDF document"
+        >
+          <File className="h-4 w-4 mr-2" aria-hidden="true" />
           PDF Document (.pdf)
         </DropdownMenuItem>
       </DropdownMenuContent>
