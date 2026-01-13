@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Briefcase } from "lucide-react";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 
+// Auth page component
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
