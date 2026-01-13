@@ -117,8 +117,24 @@ export function InterviewStep() {
     }
   };
 
+  // Sanitize interview answers to prevent prompt injection
+  const sanitizeAnswer = (answer: string): string => {
+    return answer
+      .replace(/\[INST\]/gi, '')
+      .replace(/\[\/INST\]/gi, '')
+      .replace(/<<SYS>>/gi, '')
+      .replace(/<\|.*?\|>/gi, '')
+      .replace(/```/g, '')
+      .trim();
+  };
+
   const handleGenerate = async () => {
     setLoading(true);
+
+    // Sanitize all answers before sending to AI
+    const sanitizedAnswers = Object.fromEntries(
+      Object.entries(interviewAnswers).map(([key, value]) => [key, sanitizeAnswer(value)])
+    );
 
     const result = await callApi<OptimizedResume>({
       step: "generate_resume",
@@ -127,7 +143,7 @@ export function InterviewStep() {
         jobDescription,
         fitAnalysis,
         standards,
-        interviewAnswers,
+        interviewAnswers: sanitizedAnswers,
       },
       successMessage: "Resume generated!",
     });

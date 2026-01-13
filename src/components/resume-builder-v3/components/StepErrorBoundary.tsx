@@ -6,6 +6,7 @@ import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { storeError } from "./ErrorBoundary";
 
 interface StepErrorBoundaryProps {
   children: ReactNode;
@@ -16,6 +17,7 @@ interface StepErrorBoundaryProps {
 interface StepErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorId: string | null;
 }
 
 export class StepErrorBoundary extends Component<
@@ -24,19 +26,21 @@ export class StepErrorBoundary extends Component<
 > {
   constructor(props: StepErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorId: null };
   }
 
-  static getDerivedStateFromError(error: Error): StepErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<StepErrorBoundaryState> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error(`Error in ${this.props.stepName}:`, error, errorInfo);
+    // Store error for debugging and get error ID
+    const errorId = storeError(error, errorInfo.componentStack || undefined);
+    this.setState({ errorId });
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, errorId: null });
     this.props.onRetry?.();
   };
 
@@ -59,6 +63,12 @@ export class StepErrorBoundary extends Component<
               <div className="p-2 bg-muted rounded text-xs font-mono text-destructive">
                 {this.state.error.message}
               </div>
+            )}
+
+            {this.state.errorId && (
+              <p className="text-xs text-muted-foreground">
+                Error ID: {this.state.errorId}
+              </p>
             )}
 
             <Button size="sm" onClick={this.handleRetry} className="gap-2">

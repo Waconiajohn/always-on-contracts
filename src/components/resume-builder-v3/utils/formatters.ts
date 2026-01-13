@@ -156,6 +156,15 @@ const PDF_COLORS = {
 };
 
 /**
+ * Escapes HTML entities to prevent XSS in generated HTML
+ */
+export function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
  * Generates HTML for PDF export with fixed colors (no CSS variables)
  */
 export function generateResumeHTML(data: ReturnType<typeof prepareExportData>): string {
@@ -168,25 +177,25 @@ export function generateResumeHTML(data: ReturnType<typeof prepareExportData>): 
         <div style="margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
             <div>
-              <strong style="color: ${PDF_COLORS.text};">${exp.title}</strong>
-              <span style="color: ${PDF_COLORS.textMuted};"> | ${exp.company}</span>
+              <strong style="color: ${PDF_COLORS.text};">${escapeHtml(exp.title)}</strong>
+              <span style="color: ${PDF_COLORS.textMuted};"> | ${escapeHtml(exp.company)}</span>
             </div>
-            <span style="color: ${PDF_COLORS.textMuted}; font-size: 14px;">${exp.dates}</span>
+            <span style="color: ${PDF_COLORS.textMuted}; font-size: 14px;">${escapeHtml(exp.dates)}</span>
           </div>
           <ul style="margin-left: 16px; margin-top: 8px;">
-            ${exp.bullets.map(b => `<li style="margin-bottom: 4px;">${b}</li>`).join('')}
+            ${exp.bullets.map(b => `<li style="margin-bottom: 4px;">${escapeHtml(b)}</li>`).join('')}
           </ul>
         </div>
       `).join('');
     } else if (section.bullets?.length) {
-      content = `<ul>${section.bullets.map((b: string) => `<li>${b}</li>`).join('')}</ul>`;
+      content = `<ul>${section.bullets.map((b: string) => `<li>${escapeHtml(b)}</li>`).join('')}</ul>`;
     } else {
-      content = `<p>${section.content || ''}</p>`;
+      content = `<p>${escapeHtml(section.content || '')}</p>`;
     }
     
     return `
       <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${PDF_COLORS.primary}; border-bottom: 1px solid ${PDF_COLORS.border}; padding-bottom: 8px; margin-bottom: 12px;">${section.title}</h2>
+        <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${PDF_COLORS.primary}; border-bottom: 1px solid ${PDF_COLORS.border}; padding-bottom: 8px; margin-bottom: 12px;">${escapeHtml(section.title)}</h2>
         ${content}
       </section>
     `;
@@ -196,7 +205,7 @@ export function generateResumeHTML(data: ReturnType<typeof prepareExportData>): 
     data.contact?.email,
     data.contact?.phone,
     data.contact?.location
-  ].filter(Boolean);
+  ].filter(Boolean).map(p => escapeHtml(p as string));
 
   return `
     <!DOCTYPE html>
@@ -230,8 +239,8 @@ export function generateResumeHTML(data: ReturnType<typeof prepareExportData>): 
     </head>
     <body>
       <header>
-        <h1>${data.name}</h1>
-        ${data.contact?.headline ? `<p class="headline">${data.contact.headline}</p>` : ''}
+        <h1>${escapeHtml(data.name)}</h1>
+        ${data.contact?.headline ? `<p class="headline">${escapeHtml(data.contact.headline)}</p>` : ''}
         ${contactParts.length > 0 ? `<p class="contact">${contactParts.join(' | ')}</p>` : ''}
       </header>
       <main>${sectionsHTML}</main>
