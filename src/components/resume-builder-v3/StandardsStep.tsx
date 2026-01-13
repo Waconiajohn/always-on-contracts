@@ -40,14 +40,16 @@ export function StandardsStep() {
   // Show loading skeleton when generating questions
   if (isLoading) {
     return (
-      <LoadingSkeletonV3 
-        type="questions" 
-        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Generating personalized interview questions..."} 
-        onCancel={() => {
-          cancel();
-          setLoading(false);
-        }}
-      />
+      <div aria-busy="true" aria-label="Generating interview questions">
+        <LoadingSkeletonV3 
+          type="questions" 
+          message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Generating personalized interview questions..."} 
+          onCancel={() => {
+            cancel();
+            setLoading(false);
+          }}
+        />
+      </div>
     );
   }
 

@@ -7,6 +7,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { logger } from "@/lib/logger";
 
 // Import types from single source of truth
 import type {
@@ -88,7 +89,8 @@ export const useResumeBuilderV3Store = create<ResumeBuilderV3State>()(
       
       setResumeText: (text) => set({ resumeText: text, lastUpdated: Date.now() }),
       setJobDescription: (text) => set({ jobDescription: text, lastUpdated: Date.now() }),
-      setStep: (step) => set({ step, lastUpdated: Date.now() }),
+      // Reset loading and error on step change to prevent stale states
+      setStep: (step) => set({ step, lastUpdated: Date.now(), isLoading: false, error: null }),
       setFitAnalysis: (result) => set({ fitAnalysis: result, lastUpdated: Date.now() }),
       setStandards: (result) => set({ standards: result, lastUpdated: Date.now() }),
       setQuestions: (result) => set({ questions: result, lastUpdated: Date.now() }),
@@ -140,7 +142,7 @@ export const useResumeBuilderV3Store = create<ResumeBuilderV3State>()(
       // Handle storage errors gracefully (e.g., quota exceeded)
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
-          console.error('Failed to rehydrate resume-builder-v3 store:', error);
+          logger.error('Failed to rehydrate resume-builder-v3 store:', error);
           // Clear corrupted data to prevent persistent failures
           try {
             localStorage.removeItem('resume-builder-v3');

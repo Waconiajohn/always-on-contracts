@@ -394,8 +394,8 @@ export function GenerateStep() {
                   Certifications
                 </h4>
                 <ul className="space-y-1">
-                  {finalResume.certifications.map((cert) => (
-                    <li key={cert} className="text-sm flex items-start gap-2">
+                  {finalResume.certifications.map((cert, index) => (
+                    <li key={`cert-${index}-${cert}`} className="text-sm flex items-start gap-2">
                       <span className="text-muted-foreground">•</span>
                       {cert}
                     </li>

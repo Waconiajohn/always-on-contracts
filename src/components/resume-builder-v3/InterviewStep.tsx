@@ -103,14 +103,16 @@ export function InterviewStep() {
   // Show loading skeleton when generating resume
   if (isLoading) {
     return (
-      <LoadingSkeletonV3 
-        type="generate" 
-        message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Crafting your optimized resume based on your answers..."} 
-        onCancel={() => {
-          cancel();
-          setLoading(false);
-        }}
-      />
+      <div aria-busy="true" aria-label="Generating your optimized resume">
+        <LoadingSkeletonV3 
+          type="generate" 
+          message={isRetrying ? `Retrying... (Attempt ${currentAttempt}/${maxAttempts})` : "Crafting your optimized resume based on your answers..."} 
+          onCancel={() => {
+            cancel();
+            setLoading(false);
+          }}
+        />
+      </div>
     );
   }
 

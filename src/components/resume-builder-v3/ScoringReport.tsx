@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { FitAnalysisResult, StandardsResult, OptimizedResume } from "@/stores/resumeBuilderV3Store";
+import { BENCHMARK_WEIGHTS } from "./constants";
 
 interface ScoringReportProps {
   fitAnalysis: FitAnalysisResult | null;
@@ -56,7 +57,11 @@ export function ScoringReport({ fitAnalysis, standards, finalResume }: ScoringRe
 
   const totalBenchmarks = benchmarkStats.exceeds + benchmarkStats.meets + benchmarkStats.below;
   const benchmarkScore = totalBenchmarks > 0 
-    ? Math.round(((benchmarkStats.exceeds * 100) + (benchmarkStats.meets * 70) + (benchmarkStats.below * 30)) / totalBenchmarks)
+    ? Math.round((
+        (benchmarkStats.exceeds * BENCHMARK_WEIGHTS.EXCEEDS) + 
+        (benchmarkStats.meets * BENCHMARK_WEIGHTS.MEETS) + 
+        (benchmarkStats.below * BENCHMARK_WEIGHTS.BELOW)
+      ) / totalBenchmarks)
     : 0;
 
   const originalFitScore = fitAnalysis?.fit_score || 0;
