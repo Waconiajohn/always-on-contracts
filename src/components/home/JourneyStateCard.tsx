@@ -7,14 +7,14 @@ import type { JourneyState } from "@/hooks/useJourneyState";
 
 interface JourneyStateCardProps {
   state: JourneyState;
-  vaultCompletion: number;
+  resumeCompletion: number;
   activeApplications: number;
   upcomingInterviews: number;
 }
 
 export const JourneyStateCard = ({ 
   state, 
-  vaultCompletion, 
+  resumeCompletion, 
   activeApplications,
   upcomingInterviews 
 }: JourneyStateCardProps) => {
@@ -30,12 +30,12 @@ export const JourneyStateCard = ({
             </div>
           </div>
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-2xl font-semibold mb-2">Build Your Career Vault</h2>
+            <h2 className="text-2xl font-semibold mb-2">Build Your Master Resume</h2>
             <p className="text-muted-foreground mb-4">
               Create your AI-powered career intelligence system in 15 minutes. 
               Unlock all features and start landing opportunities faster.
             </p>
-            <Button size="lg" onClick={() => navigate('/career-vault')}>
+            <Button size="lg" onClick={() => navigate('/master-resume')}>
               Start Building
             </Button>
           </div>
@@ -50,7 +50,7 @@ export const JourneyStateCard = ({
               </div>
             </div>
             <p className="text-sm font-semibold">Step 1: Build</p>
-            <p className="text-xs text-muted-foreground mt-1">Career Vault Interview</p>
+            <p className="text-xs text-muted-foreground mt-1">Master Resume</p>
           </div>
           <div className="text-center opacity-60">
             <div className="flex justify-center mb-2">
@@ -83,14 +83,14 @@ export const JourneyStateCard = ({
             <TrendingUp className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold">Career Vault Progress</h3>
-            <p className="text-sm text-muted-foreground">Keep going! You're {vaultCompletion}% complete</p>
+            <h3 className="text-lg font-semibold">Master Resume Progress</h3>
+            <p className="text-sm text-muted-foreground">Keep going! You're {resumeCompletion}% complete</p>
           </div>
         </div>
-        <Progress value={vaultCompletion} className="h-3 mb-4" />
+        <Progress value={resumeCompletion} className="h-3 mb-4" />
         <div className="flex gap-2 mb-6">
-          <Button onClick={() => navigate('/career-vault')}>
-            Continue Interview
+          <Button onClick={() => navigate('/master-resume')}>
+            Continue Building
           </Button>
           <Button variant="outline" onClick={() => navigate('/ai-agents')}>
             Preview Features
@@ -106,7 +106,7 @@ export const JourneyStateCard = ({
               </div>
             </div>
             <p className="text-sm font-semibold">Step 1: Build</p>
-            <p className="text-xs text-primary mt-1">{vaultCompletion}% Complete</p>
+            <p className="text-xs text-primary mt-1">{resumeCompletion}% Complete</p>
           </div>
           <div className="text-center opacity-60">
             <div className="flex justify-center mb-2">

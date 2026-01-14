@@ -20,7 +20,7 @@ interface JourneyPhaseSectionProps {
   subtitle: string;
   cards: LaunchpadCardData[];
   status: 'active' | 'unlocked' | 'locked';
-  vaultCompletion: number;
+  resumeCompletion: number;
 }
 
 export const JourneyPhaseSection = ({
@@ -28,7 +28,7 @@ export const JourneyPhaseSection = ({
   subtitle,
   cards,
   status,
-  vaultCompletion,
+  resumeCompletion,
 }: JourneyPhaseSectionProps) => {
   const isActive = status === 'active';
   const isLocked = status === 'locked';
@@ -66,7 +66,7 @@ export const JourneyPhaseSection = ({
             key={card.id}
             {...card}
             variant={isActive ? 'active' : isLocked ? 'preview' : 'unlocked'}
-            vaultCompletion={vaultCompletion}
+            resumeCompletion={resumeCompletion}
           />
         ))}
       </div>
