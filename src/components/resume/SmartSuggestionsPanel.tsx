@@ -19,16 +19,16 @@ interface SmartSuggestionsPanelProps {
   isLoading?: boolean;
 }
 
-export function SmartVaultPanel({ vaultSuggestions, onUseItem, isLoading }: SmartVaultPanelProps) {
+export function SmartSuggestionsPanel({ suggestions, onUseItem, isLoading }: SmartSuggestionsPanelProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopy = (item: VaultItem) => {
+  const handleCopy = (item: ResumeItem) => {
     navigator.clipboard.writeText(item.content);
     setCopiedId(item.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const getTypeColor = (type: VaultItem['type']) => {
+  const getTypeColor = (type: ResumeItem['type']) => {
     switch (type) {
       case 'power_phrase':
         return 'bg-primary/10 text-primary';
@@ -43,8 +43,8 @@ export function SmartVaultPanel({ vaultSuggestions, onUseItem, isLoading }: Smar
     }
   };
 
-  const getTypeLabel = (type: VaultItem['type']) => {
-    const labels = {
+  const getTypeLabel = (type: ResumeItem['type']) => {
+    const labels: Record<ResumeItem['type'], string> = {
       'power_phrase': 'Key Achievement',
       'skill': 'Technical Skill',
       'competency': 'Soft Skill',
@@ -58,10 +58,10 @@ export function SmartVaultPanel({ vaultSuggestions, onUseItem, isLoading }: Smar
       <CardHeader>
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <CardTitle>Smart Vault Suggestions</CardTitle>
+          <CardTitle>Smart Suggestions</CardTitle>
         </div>
         <CardDescription>
-          AI-matched content from your Career Vault
+          AI-matched content from your Master Resume
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -74,16 +74,16 @@ export function SmartVaultPanel({ vaultSuggestions, onUseItem, isLoading }: Smar
               </div>
             ))}
           </div>
-        ) : vaultSuggestions.length === 0 ? (
+        ) : suggestions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>No vault content available yet.</p>
-            <p className="text-sm mt-1">Build your Career Vault to get smart suggestions.</p>
+            <p>No suggestions available yet.</p>
+            <p className="text-sm mt-1">Build your Master Resume to get smart suggestions.</p>
           </div>
         ) : (
           <ScrollArea className="h-[500px] pr-4">
             <div className="space-y-4">
-              {vaultSuggestions.map((item) => (
+              {suggestions.map((item) => (
                 <div
                   key={item.id}
                   className={`border rounded-lg p-4 space-y-3 transition-all ${
