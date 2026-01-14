@@ -5,27 +5,27 @@ import { ArrowRight, CheckCircle2, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface NextStepHeroProps {
-  vaultCompletion: number;
+  resumeCompletion: number;
 }
 
-export const NextStepHero = ({ vaultCompletion }: NextStepHeroProps) => {
+export const NextStepHero = ({ resumeCompletion }: NextStepHeroProps) => {
   const navigate = useNavigate();
 
   const getNextStep = () => {
-    if (vaultCompletion < 100) {
+    if (resumeCompletion < 100) {
       return {
-        title: "Complete Your Career Vault",
-        description: "Your Career Vault is the foundation of everything. Complete it to unlock powerful job search tools.",
+        title: "Complete Your Master Resume",
+        description: "Your Master Resume is the foundation of everything. Complete it to unlock powerful job search tools.",
         action: "Continue Building",
-        path: "/career-vault",
-        progress: vaultCompletion,
+        path: "/master-resume",
+        progress: resumeCompletion,
         icon: Target,
       };
     }
 
     return {
       title: "Start Your Job Search",
-      description: "Your Career Vault is complete! Now use it to find perfectly matched opportunities.",
+      description: "Your Master Resume is complete! Now use it to find perfectly matched opportunities.",
       action: "Search Jobs",
       path: "/job-search",
       progress: 100,

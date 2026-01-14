@@ -32,7 +32,7 @@ const UnifiedHomeContent = () => {
   const isPlatinum = subscription?.tier === 'concierge_elite';
   const [explorationModal, setExplorationModal] = useState<{ isOpen: boolean; feature: string; description: string } | null>(null);
 
-  const showVaultCTA = userContext.vaultCompletion < 30;
+  const showResumeCTA = userContext.resumeCompletion < 30;
 
   if (userContext.loading || scoreLoading || progressLoading || interviewLoading) {
     return (
@@ -44,7 +44,7 @@ const UnifiedHomeContent = () => {
 
   // Get today's priority action (now based on Score → Build → Apply flow)
   const todaysPriority = getNextActionPrompt(
-    userContext.vaultCompletion,
+    userContext.resumeCompletion,
     []
   );
 
@@ -87,7 +87,7 @@ const UnifiedHomeContent = () => {
         {/* 1. Hero - Updated messaging */}
         <V3HomeHero 
           userName={userContext.userName}
-          vaultCompletion={userContext.vaultCompletion}
+          resumeCompletion={userContext.resumeCompletion}
           todaysPriority={todaysPriority}
         />
 
@@ -116,10 +116,10 @@ const UnifiedHomeContent = () => {
         </div>
 
         {/* 4. Micro Wins - Motivational progress indicators */}
-        <V3MicroWins vaultCompletion={userContext.vaultCompletion} />
+        <V3MicroWins resumeCompletion={userContext.resumeCompletion} />
 
-        {/* 5. Vault CTA - Show when vault completion is low */}
-        {showVaultCTA && (
+        {/* 5. Master Resume CTA - Show when completion is low */}
+        {showResumeCTA && (
           <Card className="border-primary/30 bg-primary/5">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
@@ -129,7 +129,7 @@ const UnifiedHomeContent = () => {
                 <div>
                   <CardTitle className="text-lg">Unlock Your Full Potential</CardTitle>
                   <CardDescription>
-                    Complete your Career Vault to unlock AI-powered features
+                    Complete your Master Resume to unlock AI-powered features
                   </CardDescription>
                 </div>
               </div>
@@ -137,13 +137,13 @@ const UnifiedHomeContent = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">Career Vault Progress</span>
-                  <span className="text-muted-foreground">{userContext.vaultCompletion}%</span>
+                  <span className="font-medium">Master Resume Progress</span>
+                  <span className="text-muted-foreground">{userContext.resumeCompletion}%</span>
                 </div>
-                <Progress value={userContext.vaultCompletion} className="h-2" />
+                <Progress value={userContext.resumeCompletion} className="h-2" />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => navigate('/career-vault')}>
+                <Button onClick={() => navigate('/master-resume')}>
                   Continue Setup
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -152,7 +152,7 @@ const UnifiedHomeContent = () => {
                   onClick={() => setExplorationModal({
                     isOpen: true,
                     feature: "AI-Powered Features",
-                    description: "Complete your Career Vault to unlock personalized job matching, intelligent resume optimization, and interview preparation tailored to your unique experience."
+                    description: "Complete your Master Resume to unlock personalized job matching, intelligent resume optimization, and interview preparation tailored to your unique experience."
                   })}
                 >
                   Learn More
@@ -162,15 +162,15 @@ const UnifiedHomeContent = () => {
           </Card>
         )}
 
-        {/* 6. Career Vault - Now secondary, collapsible */}
-        {!showVaultCTA && (
+        {/* 6. Master Resume - Now secondary, collapsible */}
+        {!showResumeCTA && (
           <Card className="bg-muted/30">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <CardTitle className="text-base">Career Vault</CardTitle>
+                    <CardTitle className="text-base">Master Resume</CardTitle>
                     <CardDescription className="text-xs">
                       Your achievement library — evidence for your must-interview resumes
                     </CardDescription>
@@ -179,9 +179,9 @@ const UnifiedHomeContent = () => {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => navigate('/career-vault')}
+                  onClick={() => navigate('/master-resume')}
                 >
-                  Manage Vault
+                  Manage Resume
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
@@ -191,7 +191,7 @@ const UnifiedHomeContent = () => {
                 <div className="flex gap-6">
                   <div>
                     <p className="text-muted-foreground">Completion</p>
-                    <p className="font-medium">{userContext.vaultCompletion}%</p>
+                    <p className="font-medium">{userContext.resumeCompletion}%</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Sections</p>
@@ -200,13 +200,13 @@ const UnifiedHomeContent = () => {
                   <div>
                     <p className="text-muted-foreground">Status</p>
                     <p className="font-medium text-amber-500">
-                      {userContext.vaultCompletion < 50 ? 'Building' : 
-                       userContext.vaultCompletion < 80 ? 'Expanding' : 'Complete'}
+                      {userContext.resumeCompletion < 50 ? 'Building' : 
+                       userContext.resumeCompletion < 80 ? 'Expanding' : 'Complete'}
                     </p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  The vault provides evidence for your resumes. Build it as you go.
+                  The Master Resume provides evidence for your resumes. Build it as you go.
                 </p>
               </div>
             </CardContent>
@@ -222,7 +222,7 @@ const UnifiedHomeContent = () => {
           onClose={() => setExplorationModal(null)}
           featureName={explorationModal.feature}
           featureDescription={explorationModal.description}
-          vaultCompletion={userContext.vaultCompletion}
+          resumeCompletion={userContext.resumeCompletion}
         />
       )}
     </ContentLayout>

@@ -5,11 +5,11 @@ import { Upload, X, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ResumeGateBannerProps {
-  vaultCompletion?: number;
+  resumeCompletion?: number;
   onDismiss?: () => void;
 }
 
-export const ResumeGateBanner = ({ vaultCompletion = 0, onDismiss }: ResumeGateBannerProps) => {
+export const ResumeGateBanner = ({ resumeCompletion = 0, onDismiss }: ResumeGateBannerProps) => {
   const [isDismissed, setIsDismissed] = useState(false);
   const navigate = useNavigate();
 
@@ -38,17 +38,17 @@ export const ResumeGateBanner = ({ vaultCompletion = 0, onDismiss }: ResumeGateB
         <p className="text-sm">
           Upload your resume to unlock full functionality across all features. This allows our AI to personalize job matches, optimize your applications, and provide intelligent recommendations.
         </p>
-        {vaultCompletion > 0 && (
+        {resumeCompletion > 0 && (
           <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
             <Sparkles className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-primary" />
             <span>
-              Pro tip: The more complete your Career Vault ({vaultCompletion}% complete), the better results you'll get across all features.
+              Pro tip: The more complete your Master Resume ({resumeCompletion}% complete), the better results you'll get across all features.
             </span>
           </div>
         )}
-        <Button onClick={() => navigate('/career-vault')} size="sm" className="mt-2">
+        <Button onClick={() => navigate('/master-resume')} size="sm" className="mt-2">
           <Upload className="mr-2 h-4 w-4" />
-          Go to Career Vault
+          Go to Master Resume
         </Button>
       </AlertDescription>
     </Alert>

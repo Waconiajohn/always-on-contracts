@@ -13,17 +13,17 @@ interface MicroWin {
 }
 
 interface V3MicroWinsProps {
-  vaultCompletion: number;
+  resumeCompletion: number;
 }
 
-export function V3MicroWins({ vaultCompletion }: V3MicroWinsProps) {
+export function V3MicroWins({ resumeCompletion }: V3MicroWinsProps) {
   const navigate = useNavigate();
 
   // Generate context-aware micro-wins
   const getMicroWins = (): MicroWin[] => {
     const wins: MicroWin[] = [];
 
-    if (vaultCompletion < 50) {
+    if (resumeCompletion < 50) {
       wins.push({
         id: 'add-skills',
         action: 'Add 3 more skills to reach competitive tier',

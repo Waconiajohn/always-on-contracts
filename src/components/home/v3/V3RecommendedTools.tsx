@@ -13,20 +13,20 @@ interface Tool {
   icon: any;
   path: string;
   isPrimary?: boolean;
-  requiredVault: number;
+  requiredCompletion: number;
   aiModels: string[];
-  vaultDeps: string;
+  resumeDeps: string;
   successMetric: string;
 }
 
 interface V3RecommendedToolsProps {
-  vaultCompletion: number;
+  resumeCompletion: number;
   activeApplications: number;
   upcomingInterviews: number;
 }
 
 export function V3RecommendedTools({
-  vaultCompletion,
+  resumeCompletion,
   activeApplications,
   upcomingInterviews
 }: V3RecommendedToolsProps) {
@@ -39,35 +39,35 @@ export function V3RecommendedTools({
       description: 'See what hiring teams actually see—get must-interview status',
       icon: Sparkles,
       path: '/quick-score',
-      isPrimary: vaultCompletion < 30,
-      requiredVault: 0,
+      isPrimary: resumeCompletion < 30,
+      requiredCompletion: 0,
       aiModels: ['Gemini 2.5 Flash', 'GPT-5'],
-      vaultDeps: 'No vault required - instant analysis of any resume',
+      resumeDeps: 'No resume required - instant analysis of any resume',
       successMetric: 'Know if you\'re "qualified" or "must-interview" in 90 seconds'
     },
     {
       id: 'interview-prep',
       title: 'Interview Prep',
-      description: 'AI-powered practice with your vault data',
+      description: 'AI-powered practice with your profile data',
       icon: Sparkles,
       path: '/interview-prep',
       isPrimary: upcomingInterviews > 0,
-      requiredVault: 40,
+      requiredCompletion: 40,
       aiModels: ['Gemini 3.0 Pro', 'GPT-5'],
-      vaultDeps: 'Work Experience (40%+), Leadership (20%+)',
-      successMetric: 'Users who prep with vault data are 2.5x more likely to get offers'
+      resumeDeps: 'Work Experience (40%+), Leadership (20%+)',
+      successMetric: 'Users who prep with profile data are 2.5x more likely to get offers'
     },
     {
-      id: 'career-vault',
-      title: 'Career Vault',
+      id: 'master-resume',
+      title: 'Master Resume',
       description: 'Build your career intelligence foundation',
       icon: Briefcase,
-      path: '/career-vault',
-      isPrimary: vaultCompletion < 60,
-      requiredVault: 0,
+      path: '/master-resume',
+      isPrimary: resumeCompletion < 60,
+      requiredCompletion: 0,
       aiModels: ['Gemini 3.0 Pro', 'Gemini 2.5 Flash'],
-      vaultDeps: 'No requirements - builds your vault',
-      successMetric: '60%+ vault completion unlocks all AI features'
+      resumeDeps: 'No requirements - builds your profile',
+      successMetric: '60%+ completion unlocks all AI features'
     },
     {
       id: 'resume-builder',
@@ -75,45 +75,45 @@ export function V3RecommendedTools({
       description: 'Extract value, align to reality, translate to hiring language',
       icon: FileText,
       path: '/resume-builder',
-      isPrimary: vaultCompletion >= 60 && activeApplications === 0,
-      requiredVault: 50,
+      isPrimary: resumeCompletion >= 60 && activeApplications === 0,
+      requiredCompletion: 50,
       aiModels: ['GPT-5', 'Gemini 2.5 Flash'],
-      vaultDeps: 'Work Experience (50%+), Skills (40%+)',
+      resumeDeps: 'Work Experience (50%+), Skills (40%+)',
       successMetric: 'Must-interview resumes get 45% more callbacks—we don\'t fabricate, we better represent'
     },
     {
       id: 'job-search',
       title: 'Job Search',
-      description: 'AI-matched opportunities based on your vault',
+      description: 'AI-matched opportunities based on your profile',
       icon: Search,
       path: '/job-search',
-      requiredVault: 60,
+      requiredCompletion: 60,
       aiModels: ['GPT-5'],
-      vaultDeps: 'Work Experience (60%+), Skills (50%+)',
+      resumeDeps: 'Work Experience (60%+), Skills (50%+)',
       successMetric: 'AI matching increases relevance by 80%'
     },
     {
       id: 'linkedin',
       title: 'LinkedIn Optimization',
-      description: 'Transform your profile with vault insights',
+      description: 'Transform your profile with Master Resume insights',
       icon: User,
       path: '/linkedin',
-      requiredVault: 70,
+      requiredCompletion: 70,
       aiModels: ['Gemini 3.0 Pro'],
-      vaultDeps: 'Complete vault recommended',
+      resumeDeps: 'Complete profile recommended',
       successMetric: 'Optimized profiles get 3x more recruiter views'
     }
   ];
 
   // Determine primary tool
-  const primaryTool = allTools.find(t => t.isPrimary) || allTools.find(t => vaultCompletion >= t.requiredVault) || allTools[1];
+  const primaryTool = allTools.find(t => t.isPrimary) || allTools.find(t => resumeCompletion >= t.requiredCompletion) || allTools[1];
   
   // Secondary tools (exclude primary, show max 3)
   const secondaryTools = allTools
     .filter(t => t.id !== primaryTool.id)
     .slice(0, 3);
 
-  const isUnlocked = (tool: Tool) => vaultCompletion >= tool.requiredVault;
+  const isUnlocked = (tool: Tool) => resumeCompletion >= tool.requiredCompletion;
 
   return (
     <CollapsibleSection
@@ -141,8 +141,8 @@ export function V3RecommendedTools({
             
             <div className="space-y-2 text-sm mb-4">
               <div className="flex items-start gap-2">
-                <span className="font-medium text-foreground min-w-[120px]">Vault Data Used:</span>
-                <span className="text-muted-foreground">{primaryTool.vaultDeps}</span>
+                <span className="font-medium text-foreground min-w-[120px]">Data Used:</span>
+                <span className="text-muted-foreground">{primaryTool.resumeDeps}</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="font-medium text-foreground min-w-[120px]">Success Rate:</span>
@@ -160,7 +160,7 @@ export function V3RecommendedTools({
               ) : (
                 <>
                   <Lock className="h-4 w-4 mr-2" />
-                  Unlock at {primaryTool.requiredVault}% vault
+                  Unlock at {primaryTool.requiredCompletion}% completion
                 </>
               )}
             </Button>
@@ -200,7 +200,7 @@ export function V3RecommendedTools({
 
               {!unlocked && (
                 <p className="text-xs text-muted-foreground">
-                  Unlock at {tool.requiredVault}% vault completion
+                  Unlock at {tool.requiredCompletion}% completion
                 </p>
               )}
             </div>

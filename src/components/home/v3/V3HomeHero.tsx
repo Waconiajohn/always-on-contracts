@@ -8,23 +8,23 @@ import { Info, Sparkles } from "lucide-react";
 
 interface V3HomeHeroProps {
   userName: string;
-  vaultCompletion: number;
+  resumeCompletion: number;
   todaysPriority: string;
 }
 
 export function V3HomeHero({
   userName,
-  vaultCompletion,
+  resumeCompletion,
   todaysPriority
 }: V3HomeHeroProps) {
   const navigate = useNavigate();
-  const strengthLevel = getStrengthLevel(vaultCompletion);
+  const strengthLevel = getStrengthLevel(resumeCompletion);
   
   // Calculate quality breakdown (mock data - would come from useUserContext)
   const qualityBreakdown = {
-    gold: Math.round(vaultCompletion * 0.3),
-    silver: Math.round(vaultCompletion * 0.5),
-    bronze: Math.round(vaultCompletion * 0.2)
+    gold: Math.round(resumeCompletion * 0.3),
+    silver: Math.round(resumeCompletion * 0.5),
+    bronze: Math.round(resumeCompletion * 0.2)
   };
 
   return (

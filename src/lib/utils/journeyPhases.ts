@@ -4,7 +4,7 @@ export interface PhaseConfig {
   id: JourneyPhase;
   title: string;
   subtitle: string;
-  requiredVaultCompletion: number;
+  requiredResumeCompletion: number;
   featureIds: string[];
 }
 
@@ -13,14 +13,14 @@ export const JOURNEY_PHASES: PhaseConfig[] = [
     id: 'foundation',
     title: 'Build Your Career Intelligence',
     subtitle: 'Create a powerful foundation for your job search',
-    requiredVaultCompletion: 0,
-    featureIds: ['career-vault', 'resume-builder'],
+    requiredResumeCompletion: 0,
+    featureIds: ['master-resume', 'resume-builder'],
   },
   {
     id: 'job-search',
     title: 'Find & Land Your Next Role',
     subtitle: 'Apply your career intelligence to land opportunities',
-    requiredVaultCompletion: 100,
+    requiredResumeCompletion: 100,
     featureIds: [
       'job-search',
       'applications',
@@ -33,7 +33,7 @@ export const JOURNEY_PHASES: PhaseConfig[] = [
     id: 'growth',
     title: 'Accelerate Your Career',
     subtitle: 'Maximize your impact and earnings',
-    requiredVaultCompletion: 100,
+    requiredResumeCompletion: 100,
     featureIds: [
       'salary-negotiation',
       'career-pathing',
@@ -44,19 +44,19 @@ export const JOURNEY_PHASES: PhaseConfig[] = [
   },
 ];
 
-export function getCurrentPhase(vaultCompletion: number): JourneyPhase {
-  if (vaultCompletion < 100) return 'foundation';
-  // Default to job-search once vault is complete
+export function getCurrentPhase(resumeCompletion: number): JourneyPhase {
+  if (resumeCompletion < 100) return 'foundation';
+  // Default to job-search once resume is complete
   return 'job-search';
 }
 
 export function getPhaseStatus(
   phase: PhaseConfig,
-  currentVaultCompletion: number
+  currentResumeCompletion: number
 ): 'active' | 'unlocked' | 'locked' {
-  if (currentVaultCompletion < phase.requiredVaultCompletion) return 'locked';
+  if (currentResumeCompletion < phase.requiredResumeCompletion) return 'locked';
   
-  const currentPhaseId = getCurrentPhase(currentVaultCompletion);
+  const currentPhaseId = getCurrentPhase(currentResumeCompletion);
   if (currentPhaseId === phase.id) return 'active';
   
   return 'unlocked';

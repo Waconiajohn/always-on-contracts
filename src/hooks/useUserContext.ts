@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface UserContext {
   userId: string | null;
   userName: string;
-  vaultCompletion: number;
+  resumeCompletion: number;
   activeApplications: number;
   upcomingInterviews: number;
   offers: number;
@@ -15,7 +15,7 @@ export function useUserContext(): UserContext {
   const [context, setContext] = useState<UserContext>({
     userId: null,
     userName: "",
-    vaultCompletion: 0,
+    resumeCompletion: 0,
     activeApplications: 0,
     upcomingInterviews: 0,
     offers: 0,
@@ -37,7 +37,7 @@ export function useUserContext(): UserContext {
       // 1. User Profile
       const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || "Professional";
 
-      // 2. Vault Stats
+      // 2. Resume Stats (from career_vault table)
       const { data: vault } = await supabase
         .from('career_vault')
         .select('review_completion_percentage')
@@ -84,7 +84,7 @@ export function useUserContext(): UserContext {
       setContext({
         userId: user.id,
         userName,
-        vaultCompletion: vault?.review_completion_percentage || 0,
+        resumeCompletion: vault?.review_completion_percentage || 0,
         activeApplications: activeAppsCount,
         upcomingInterviews: interviewsCount,
         offers: offersCount,

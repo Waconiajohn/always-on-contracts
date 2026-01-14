@@ -9,7 +9,7 @@ interface ExplorationModalProps {
   onClose: () => void;
   featureName: string;
   featureDescription: string;
-  vaultCompletion: number;
+  resumeCompletion: number;
 }
 
 export const ExplorationModal = ({
@@ -17,13 +17,13 @@ export const ExplorationModal = ({
   onClose,
   featureName,
   featureDescription,
-  vaultCompletion
+  resumeCompletion
 }: ExplorationModalProps) => {
   const navigate = useNavigate();
 
   const handleContinueSetup = () => {
     onClose();
-    navigate('/career-vault');
+    navigate('/master-resume');
   };
 
   return (

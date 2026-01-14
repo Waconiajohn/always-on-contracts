@@ -4,15 +4,15 @@ import { useResumeGate } from '@/hooks/useResumeGate';
 
 interface FeaturePageWrapperProps {
   children: ReactNode;
-  showVaultReminder?: boolean;
-  vaultReminderContext?: 'resume-builder' | 'job-search' | 'interview-prep' | 'linkedin' | 'general';
-  vaultReminderVariant?: 'default' | 'compact' | 'inline';
+  showResumeReminder?: boolean;
+  resumeReminderContext?: 'resume-builder' | 'job-search' | 'interview-prep' | 'linkedin' | 'general';
+  resumeReminderVariant?: 'default' | 'compact' | 'inline';
 }
 
 export const FeaturePageWrapper = ({ 
   children, 
 }: FeaturePageWrapperProps) => {
-  const { hasResume, vaultCompletion, isLoading } = useResumeGate();
+  const { hasResume, resumeCompletion, isLoading } = useResumeGate();
 
   if (isLoading) {
     return <div className="container mx-auto p-6">{children}</div>;
@@ -21,7 +21,7 @@ export const FeaturePageWrapper = ({
   return (
     <div className="container mx-auto p-6">
       {!hasResume && (
-        <ResumeGateBanner vaultCompletion={vaultCompletion} />
+        <ResumeGateBanner resumeCompletion={resumeCompletion} />
       )}
       
       {children}
