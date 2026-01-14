@@ -19,7 +19,7 @@ import { HumanWritingAnalyzer } from "@/components/linkedin/HumanWritingAnalyzer
 import { QualityCheckModal } from "@/components/linkedin/QualityCheckModal";
 import { SeriesDashboard } from "@/components/linkedin/SeriesDashboard";
 import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
-import { VaultContentTracker } from "@/components/linkedin/VaultContentTracker";
+// VaultContentTracker removed - will be reimplemented with Master Resume
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ModuleGate } from "@/components/ModuleGate";
 
@@ -661,7 +661,7 @@ function LinkedInBloggingAgentContent() {
             </CardContent>
           </Card>
 
-          <VaultContentTracker />
+          {/* VaultContentTracker removed - will be reimplemented with Master Resume */}
         </TabsContent>
       </Tabs>
         </div>

@@ -24,8 +24,8 @@ export interface EventMetadata {
   industry?: string;
 
   // Generation results
-  vault_items_used?: number;
-  vault_strength?: number;
+  resume_items_used?: number;
+  resume_strength?: number;
   generation_time_ms?: number;
 
   // User choices
@@ -115,8 +115,8 @@ export const trackVersionSelection = async (
   version: 'ideal' | 'personalized' | 'custom',
   context: {
     section_type: string;
-    vault_items_used: number;
-    vault_strength?: number;
+    resume_items_used: number;
+    resume_strength?: number;
     ats_match_score?: number;
   }
 ): Promise<void> => {
@@ -134,7 +134,7 @@ export const trackSectionComplete = async (
   metadata: {
     edited: boolean;
     content_length: number;
-    vault_items_used: number;
+    resume_items_used: number;
   }
 ): Promise<void> => {
   await trackGenerationEvent('section_completed', {
@@ -161,16 +161,16 @@ export const trackResumeExport = async (
 };
 
 /**
- * Calculate vault strength score
- * Returns 0-100 based on quality of Career Vault data
+ * Calculate resume strength score
+ * Returns 0-100 based on quality of Master Resume data
  */
-export const calculateVaultStrength = (vaultItems: any[]): number => {
-  if (vaultItems.length === 0) return 0;
+export const calculateResumeStrength = (resumeItems: any[]): number => {
+  if (resumeItems.length === 0) return 0;
 
   let score = 0;
   let maxScore = 0;
 
-  vaultItems.forEach(item => {
+  resumeItems.forEach((item: any) => {
     // Each item can contribute up to 10 points
     maxScore += 10;
 
