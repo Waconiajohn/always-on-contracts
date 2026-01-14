@@ -38,7 +38,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { requirement, vaultMatches, matchStatus, jobContext } = await req.json();
+    const { requirement, resumeMatches, matchStatus, jobContext } = await req.json();
 
     console.log("Generating clarifying questions for:", { requirement, matchStatus });
 
@@ -58,7 +58,7 @@ serve(async (req) => {
 
 REQUIREMENT: ${requirement}
 MATCH STATUS: ${matchStatus}
-VAULT MATCHES: ${JSON.stringify(vaultMatches)}
+RESUME MATCHES: ${JSON.stringify(resumeMatches)}
 JOB CONTEXT: ${JSON.stringify(jobContext)}
 
 Generate 2-4 multiple choice questions to help the user provide context for this requirement.

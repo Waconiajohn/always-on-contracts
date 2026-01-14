@@ -22,7 +22,7 @@ const StarStorySchema = z.object({
   }),
   industry: z.string(),
   timeframe: z.string(),
-  vaultSourced: z.string().optional()
+  resumeSourced: z.string().optional()
 });
 
 const corsHeaders = {
@@ -62,7 +62,7 @@ serve(async (req) => {
       hasRawStory: !!rawStory 
     });
 
-    // Fetch Career Vault intelligence
+    // Fetch Master Resume intelligence
     const { data: vaultRecord } = await supabase
       .from('career_vault')
       .select('id')
@@ -106,7 +106,7 @@ serve(async (req) => {
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
     if (intelligence) {
-      logger.info('Career Vault loaded', {
+      logger.info('Master Resume loaded', {
         projects: intelligence.counts.projects,
         businessImpacts: intelligence.counts.businessImpacts,
         leadershipEvidence: intelligence.counts.leadershipExamples
@@ -130,8 +130,8 @@ ${resumeMilestones.slice(0, 10).map((m: any) =>
 `
       : '';
 
-    // Build Career Vault context
-    let vaultContext = '';
+    // Build Master Resume context
+    let resumeContext = '';
     if (intelligence) {
       const projects = intelligence.projects.map((p: any) => 
         `- ${p.project_name}: ${p.role || 'Your role'} | ${p.outcome || p.impact || 'outcome'} | Duration: ${p.duration || 'timeframe'}`
@@ -149,8 +149,8 @@ ${resumeMilestones.slice(0, 10).map((m: any) =>
         `"${p.phrase}"`
       ).join(', ');
 
-      vaultContext = `
-CAREER VAULT INTELLIGENCE (Ground Your Story in Real Achievements):
+      resumeContext = `
+MASTER RESUME INTELLIGENCE (Ground Your Story in Real Achievements):
 
 ${workHistoryContext}
 ${milestonesContext}
@@ -168,13 +168,13 @@ POWER PHRASES TO USE (${intelligence.counts.powerPhrases} proven):
 ${powerPhrases}
 
 **STORY GENERATION MANDATE:**
-1. If user's input mentions a project/initiative, check if it matches Career Vault projects - use verified details
+1. If user's input mentions a project/initiative, check if it matches Master Resume projects - use verified details
 2. Always incorporate quantified metrics from Business Impacts - these are REAL numbers, not estimates
 3. Reference leadership evidence for team/stakeholder aspects
 4. Use power phrases naturally in the narrative
 5. Maintain consistency with verified career data
 
-AVOID: Generic placeholders or estimated metrics when Career Vault has verified data
+AVOID: Generic placeholders or estimated metrics when Master Resume has verified data
 `;
     }
 
@@ -186,17 +186,17 @@ AVOID: Generic placeholders or estimated metrics when Career Vault has verified 
 USER'S RAW INPUT:
 "${rawStory}"
 
-${vaultContext}
+${resumeContext}
 
 TASK: Transform this into a compelling STAR method story that demonstrates executive presence and impact.
 
 ${intelligence ? `
-**CRITICAL: Leverage Career Vault Intelligence:**
-- If the input relates to any project in the Career Vault, use verified details (role, outcome, duration)
+**CRITICAL: Leverage Master Resume Intelligence:**
+- If the input relates to any project in the Master Resume, use verified details (role, outcome, duration)
 - Use exact quantified metrics from Business Impacts (don't estimate)
 - Reference leadership evidence for team size and stakeholder management
 - Incorporate power phrases naturally
-- Ensure all metrics are grounded in verified Career Vault data
+- Ensure all metrics are grounded in verified Master Resume data
 ` : ''}
 
 STAR FRAMEWORK - STRICT STRUCTURE:
@@ -204,37 +204,37 @@ STAR FRAMEWORK - STRICT STRUCTURE:
 ✅ SITUATION (1-2 sentences, ~20-30 words)
 PURPOSE: Set stage with just enough context
 INCLUDE: Where, when, scale, stakes
-${intelligence ? 'USE: Career Vault project context if applicable' : ''}
+${intelligence ? 'USE: Master Resume project context if applicable' : ''}
 AVOID: Excessive background, rambling setup
 EXAMPLE: "In Q3 2023, our SaaS platform faced 40% customer churn, threatening $2M in annual revenue and team morale."
 
 ✅ TASK (1-2 sentences, ~20-30 words)  
 PURPOSE: Define YOUR specific responsibility
 INCLUDE: Your role, what was assigned to you, success criteria
-${intelligence ? 'USE: Career Vault project role if available' : ''}
+${intelligence ? 'USE: Master Resume project role if available' : ''}
 AVOID: Team goals without your ownership, vague objectives
 EXAMPLE: "As Product Lead, I was tasked with identifying root causes and implementing a retention strategy within 8 weeks."
 
 ✅ ACTION (2-3 sentences, ~50-70 words)
 PURPOSE: Showcase your skills, decisions, and leadership
 INCLUDE: Specific steps YOU took, skills used, challenges overcome
-${intelligence ? 'USE: Leadership evidence from Career Vault (team size, stakeholder types), power phrases' : ''}
+${intelligence ? 'USE: Leadership evidence from Master Resume (team size, stakeholder types), power phrases' : ''}
 AVOID: "We did" language (use "I led", "I analyzed", "I implemented"), vague actions
 EXAMPLE: "I conducted 25 customer interviews to identify pain points, then led a cross-functional team to redesign onboarding. I implemented a proactive customer success program with weekly check-ins and personalized training. When engineering pushback delayed features, I negotiated phased rollout to maintain momentum."
 
 ✅ RESULT (1-2 sentences, ~30-40 words)
 PURPOSE: Prove measurable impact
 INCLUDE: Specific metrics, percentages, dollar amounts, timelines
-${intelligence ? 'USE: Exact metrics from Career Vault Business Impacts - these are VERIFIED numbers' : ''}
+${intelligence ? 'USE: Exact metrics from Master Resume Business Impacts - these are VERIFIED numbers' : ''}
 AVOID: Soft outcomes ("everyone was happy"), unmeasured claims
 EXAMPLE: "Churn dropped to 12% within 3 months, saving $1.5M annually. Customer satisfaction scores rose from 6.8 to 8.9/10, and the program became company standard."
 
 ENHANCEMENT RULES:
-1. QUANTIFY EVERYTHING: Add numbers, percentages, dollar values, timeframes ${intelligence ? '(prioritize Career Vault verified metrics)' : ''}
+1. QUANTIFY EVERYTHING: Add numbers, percentages, dollar values, timeframes ${intelligence ? '(prioritize Master Resume verified metrics)' : ''}
 2. USE ACTION VERBS: Led, designed, implemented, negotiated, analyzed (not "helped", "worked on")
 3. SHOW OWNERSHIP: Emphasize "I" over "we" for interview impact
 4. DEMONSTRATE SKILLS: Weave in relevant technical/soft skills naturally
-5. PROVE IMPACT: Results must be concrete and measurable ${intelligence ? '(use Career Vault data)' : ''}
+5. PROVE IMPACT: Results must be concrete and measurable ${intelligence ? '(use Master Resume data)' : ''}
 
 COMMON PITFALLS TO AVOID:
 ❌ Vague outcomes: "It went well" → ✅ "Increased revenue by 23%"
@@ -242,7 +242,7 @@ COMMON PITFALLS TO AVOID:
 ❌ No metrics: "Improved performance" → ✅ "Reduced load time from 3s to 800ms"
 ❌ Weak actions: "Helped with" → ✅ "Spearheaded initiative that"
 ❌ Long-winded setup: Keep Situation tight, focus on Action/Result
-${intelligence ? '❌ Generic metrics when Career Vault has verified data' : ''}
+${intelligence ? '❌ Generic metrics when Master Resume has verified data' : ''}
 
 CRITICAL: Return ONLY this exact JSON structure, nothing else:
 {
@@ -257,7 +257,7 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
     "secondaryMetrics": ["array of strings - Additional quantifiable results"]
   },
   "industry": "string - Industry context",
-  "timeframe": "string - Duration or time period"${intelligence ? ',\n  "vaultSourced": "string (optional) - Brief note on which Career Vault data was used"' : ''}
+  "timeframe": "string - Duration or time period"${intelligence ? ',\n  "resumeSourced": "string (optional) - Brief note on which Master Resume data was used"' : ''}
 }`;
     } else if (action === 'refine') {
       prompt = `ROLE: You are an executive interview coach refining a STAR story for maximum interview impact.
@@ -265,37 +265,37 @@ CRITICAL: Return ONLY this exact JSON structure, nothing else:
 CURRENT STAR STORY:
 "${rawStory}"
 
-${vaultContext}
+${resumeContext}
 
 REFINEMENT GOALS:
 1. SITUATION: Compress to essential context (20-30 words max)
    - Remove fluff, keep scale/stakes
    - Make it immediately clear why this mattered
-   ${intelligence ? '- Add verified context from Career Vault projects if missing' : ''}
+   ${intelligence ? '- Add verified context from Master Resume projects if missing' : ''}
 
 2. TASK: Sharpen YOUR ownership (20-30 words max)
    - Convert "we were asked" → "I was responsible for"
    - Make success criteria explicit
-   ${intelligence ? '- Use Career Vault project role if available' : ''}
+   ${intelligence ? '- Use Master Resume project role if available' : ''}
 
 3. ACTION: Add specificity and leadership (50-70 words)
    - Replace vague verbs with strong action verbs
    - Quantify where possible (team size, timeline, resources)
    - Show decision-making and obstacle handling
    - Emphasize "I" over "we"
-   ${intelligence ? '- Add leadership evidence from Career Vault (team size, stakeholder types)' : ''}
+   ${intelligence ? '- Add leadership evidence from Master Resume (team size, stakeholder types)' : ''}
    ${intelligence ? '- Incorporate power phrases naturally' : ''}
 
 4. RESULT: Maximize measurable impact (30-40 words)
    - Add hard metrics if missing
    - Show before/after comparison
    - Include secondary benefits if relevant
-   ${intelligence ? '- Use verified metrics from Career Vault Business Impacts' : ''}
+   ${intelligence ? '- Use verified metrics from Master Resume Business Impacts' : ''}
 
 ${intelligence ? `
-**Career Vault Enhancement Strategy:**
-- Check if this story relates to Career Vault projects - add verified details
-- Replace estimated metrics with Career Vault verified data
+**Master Resume Enhancement Strategy:**
+- Check if this story relates to Master Resume projects - add verified details
+- Replace estimated metrics with Master Resume verified data
 - Add leadership evidence specifics (team sizes, stakeholder types)
 - Incorporate power phrases for stronger language
 ` : ''}
@@ -307,7 +307,7 @@ QUALITY CHECKLIST:
 ✅ Word count within guidelines for each section
 ✅ Story flows naturally but hits all STAR beats
 ✅ Demonstrates skills relevant to target role
-${intelligence ? '✅ Uses Career Vault verified data where available' : ''}
+${intelligence ? '✅ Uses Master Resume verified data where available' : ''}
 
 Return the same JSON structure with refined content.`;
     }
@@ -318,7 +318,7 @@ Return the same JSON structure with refined content.`;
         messages: [
           { 
             role: 'system', 
-            content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Return ONLY valid JSON, no additional text or explanations. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Career Vault intelligence to ground stories in verified achievements.' : ''}` 
+            content: `You are an executive interview coach who transforms career achievements into compelling STAR method stories. Return ONLY valid JSON, no additional text or explanations. Focus on quantifiable impact, executive presence, and clear ownership. ${intelligence ? 'Leverage Master Resume intelligence to ground stories in verified achievements.' : ''}` 
           },
           { role: 'user', content: prompt }
         ],
@@ -374,13 +374,13 @@ Return the same JSON structure with refined content.`;
     logger.info('STAR story generated successfully', {
       latencyMs: Date.now() - startTime,
       action,
-      hasVaultData: !!intelligence
+      hasResumeData: !!intelligence
     });
 
     return new Response(
       JSON.stringify({ 
         starStory,
-        vaultUsed: !!intelligence
+        resumeUsed: !!intelligence
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

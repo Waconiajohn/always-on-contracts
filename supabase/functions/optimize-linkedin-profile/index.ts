@@ -122,9 +122,9 @@ serve(async (req) => {
       researchContext = "",
     } = parsed.data;
 
-    // ---- Build Career Vault / Resume fact-check context ----
+    // ---- Build Master Resume / Resume fact-check context ----
 
-    // 1) Career Vault: power phrases, key achievements, etc.
+    // 1) Master Resume: power phrases, key achievements, etc.
     const { data: vaultData } = await supabase
       .from("career_vault")
       .select(
@@ -179,20 +179,20 @@ serve(async (req) => {
     });
 
     const factCheckContext = `
-FACT-CHECK AGAINST CAREER VAULT & RESUME
+FACT-CHECK AGAINST MASTER RESUME & CAREER DATA
 Known Employers: ${knownEmployers.join(", ") || "None on record"}
 Known Roles: ${knownRoles.join(", ") || "None on record"}
 
 CRITICAL FACTUALITY RULES:
 - Only reference employers, roles, and achievements that appear in:
   • Known Employers / Known Roles above, OR
-  • Explicit text inside the Career Vault power phrases or analysis summary.
+  • Explicit text inside the Master Resume power phrases or analysis summary.
 - If you introduce a company or role that is NOT in those lists or texts, you MUST:
-  • Add a warning to that section: "⚠️ Verify: [Company/Role] not found in your career vault."
+  • Add a warning to that section: "⚠️ Verify: [Company/Role] not found in your Master Resume."
 `;
 
-    const vaultContext = `
-CAREER VAULT SUMMARY:
+    const resumeDataContext = `
+MASTER RESUME SUMMARY:
 ${vaultSummary || "(No extended summary on record)"}
 
 TOP POWER PHRASES / ACHIEVEMENTS:
@@ -217,7 +217,7 @@ ${researchContext}`
 Your goal:
 - Rewrite the user's LinkedIn headline and About section
 - Make them highly relevant for the TARGET ROLE in the TARGET INDUSTRY
-- Use verified facts from the user's Career Vault and canonical resume
+- Use verified facts from the user's Master Resume and canonical resume
 - Surface explicit ATS keywords and avoid hallucinations.
 
 TARGET ROLE: ${targetRole}
@@ -225,7 +225,7 @@ TARGET INDUSTRY: ${industry}
 
 ${keywordContext}
 
-${vaultContext}
+${resumeDataContext}
 
 ${factCheckContext}
 ${researchSection}
@@ -317,7 +317,7 @@ ${currentAbout || "None provided."}
     const result = {
       ...extracted.data,
       metadata: {
-        usedVaultSummary: !!vaultSummary,
+        usedResumeSummary: !!vaultSummary,
         employerCount: knownEmployers.length,
         roleCount: knownRoles.length,
       },
