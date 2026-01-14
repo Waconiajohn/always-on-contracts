@@ -35,7 +35,7 @@ const TargetProfileSchema = z.object({
 
 const CandidateProfileSchema = z.object({
   headline: z.string().optional(),
-  careerVaultSummary: z.string().optional(),
+  resumeSummary: z.string().optional(),
   relevantAchievements: z.array(z.string()).optional(),
 });
 
@@ -153,7 +153,7 @@ TARGET PERSON:
 
 CANDIDATE (SENDER) PROFILE:
 - Headline: ${candidateProfile.headline || "(not provided)"}
-- Career Vault Summary: ${candidateProfile.careerVaultSummary || "Professional with relevant experience"}
+- Professional Summary: ${candidateProfile.resumeSummary || "Professional with relevant experience"}
 
 RELEVANT ACHIEVEMENTS:
 ${(candidateProfile.relevantAchievements || [])

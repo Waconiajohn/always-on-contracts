@@ -36,7 +36,7 @@ const WordRangeSchema = z.object({
 const RequestSchema = z.object({
   seriesMetadata: SeriesMetadataSchema,
   outline: z.array(OutlineItemSchema).min(1).max(16),
-  careerVaultSummaryShort: z.string().optional().default(""),
+  resumeSummaryShort: z.string().optional().default(""),
   allowedWordRange: WordRangeSchema.optional(),
 });
 
@@ -47,7 +47,7 @@ const SeriesPostSchema = z.object({
   hook: z.string(),
   cta: z.string(),
   wordCount: z.number(),
-  vaultExamplesUsed: z.array(z.string()).optional(),
+  resumeExamplesUsed: z.array(z.string()).optional(),
 });
 
 type OutlineItem = z.infer<typeof OutlineItemSchema>;
@@ -93,7 +93,7 @@ serve(async (req) => {
     const {
       seriesMetadata,
       outline,
-      careerVaultSummaryShort,
+      resumeSummaryShort,
       allowedWordRange,
     } = parsed.data;
 
@@ -144,10 +144,10 @@ STRUCTURE FOR EACH POST:
 3. CTA (Call to Action)
    - End each post with a specific invitation: question, reflection, or next step.
 
-CAREER VAULT CONTEXT (USER BACKGROUND):
-${careerVaultSummaryShort || "Professional with measurable achievements and experience in their domain."}
+PROFESSIONAL BACKGROUND (USER CONTEXT):
+${resumeSummaryShort || "Professional with measurable achievements and experience in their domain."}
 
-Use the Career Vault context to add credibility:
+Use this background context to add credibility:
 - e.g., "In one transformation we led, cycle time dropped 35%..." (you can paraphrase or generalize if needed).
 
 Return only a JSON array of posts, where each post has:
@@ -159,7 +159,7 @@ Return only a JSON array of posts, where each post has:
     "hook": "First 1–2 lines from the body",
     "cta": "An engagement-driving call to action",
     "wordCount": number,
-    "vaultExamplesUsed": ["optional list of examples you drew on"]
+    "resumeExamplesUsed": ["optional list of examples you drew on"]
   }
 ]
 `;
@@ -176,7 +176,7 @@ For each part:
 - Use the title and focus statement as your north star.
 - Keep each post between ${wordMin}-${wordMax} words.
 - Include a clear hook and explicit CTA.
-- Use specific, believable examples that match the Career Vault context.
+- Use specific, believable examples that match the user's professional background.
 
 PARTS:
 ${batch

@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 interface OnboardingStatus {
   hasResume: boolean;
   hasCompletedInterview: boolean;
-  hasReviewedVault: boolean;
+  hasReviewedResume: boolean;
   isOnboardingComplete: boolean;
   loading: boolean;
-  vaultCompletionPercentage: number;
-  vaultStrengthScore: number;
+  resumeCompletionPercentage: number;
+  resumeStrengthScore: number;
   totalIntelligenceCount: number;
   completionMilestone: 'none' | 'basic' | 'intermediate' | 'advanced' | 'elite';
 }
@@ -17,11 +17,11 @@ export const useOnboarding = () => {
   const [status, setStatus] = useState<OnboardingStatus>({
     hasResume: false,
     hasCompletedInterview: false,
-    hasReviewedVault: false,
+    hasReviewedResume: false,
     isOnboardingComplete: false,
     loading: true,
-    vaultCompletionPercentage: 0,
-    vaultStrengthScore: 0,
+    resumeCompletionPercentage: 0,
+    resumeStrengthScore: 0,
     totalIntelligenceCount: 0,
     completionMilestone: 'none',
   });
@@ -65,23 +65,23 @@ export const useOnboarding = () => {
         hasCompletedInterview = (count || 0) >= 10;
       }
 
-      // Check for career vault review (assuming they've accessed it)
-      const hasReviewedVault = localStorage.getItem(`vault_reviewed_${user.id}`) === "true";
+      // Check for resume review (assuming they've accessed it)
+      const hasReviewedResume = localStorage.getItem(`resume_reviewed_${user.id}`) === "true";
       
-      // Get vault completion metrics
+      // Get resume completion metrics
       // Use review_completion_percentage for actual user review progress
-      const vaultCompletionPercentage = vault?.review_completion_percentage || 0;
-      const vaultStrengthScore = vault?.overall_strength_score || 0;
+      const resumeCompletionPercentage = vault?.review_completion_percentage || 0;
+      const resumeStrengthScore = vault?.overall_strength_score || 0;
       
       // Calculate total intelligence (would need to query actual tables for accurate count)
       const totalIntelligenceCount = 0; // Placeholder
       
       // Determine completion milestone
       let completionMilestone: OnboardingStatus['completionMilestone'] = 'none';
-      if (vaultCompletionPercentage >= 100) completionMilestone = 'elite';
-      else if (vaultCompletionPercentage >= 75) completionMilestone = 'advanced';
-      else if (vaultCompletionPercentage >= 50) completionMilestone = 'intermediate';
-      else if (vaultCompletionPercentage >= 25) completionMilestone = 'basic';
+      if (resumeCompletionPercentage >= 100) completionMilestone = 'elite';
+      else if (resumeCompletionPercentage >= 75) completionMilestone = 'advanced';
+      else if (resumeCompletionPercentage >= 50) completionMilestone = 'intermediate';
+      else if (resumeCompletionPercentage >= 25) completionMilestone = 'basic';
       
       // Simple onboarding completion check based on key milestones
       const isOnboardingComplete = hasResume && hasCompletedInterview;
@@ -89,11 +89,11 @@ export const useOnboarding = () => {
       setStatus({
         hasResume,
         hasCompletedInterview,
-        hasReviewedVault,
+        hasReviewedResume,
         isOnboardingComplete,
         loading: false,
-        vaultCompletionPercentage,
-        vaultStrengthScore,
+        resumeCompletionPercentage,
+        resumeStrengthScore,
         totalIntelligenceCount,
         completionMilestone,
       });
@@ -111,11 +111,11 @@ export const useOnboarding = () => {
     }
   };
 
-  const markVaultReviewed = () => {
+  const markResumeReviewed = () => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        localStorage.setItem(`vault_reviewed_${user.id}`, "true");
-        setStatus(prev => ({ ...prev, hasReviewedVault: true }));
+        localStorage.setItem(`resume_reviewed_${user.id}`, "true");
+        setStatus(prev => ({ ...prev, hasReviewedResume: true }));
       }
     });
   };
@@ -123,7 +123,7 @@ export const useOnboarding = () => {
   return {
     ...status,
     markOnboardingComplete,
-    markVaultReviewed,
+    markResumeReviewed,
     refresh: checkOnboardingStatus,
   };
 };
