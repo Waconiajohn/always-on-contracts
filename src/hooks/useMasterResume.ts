@@ -35,11 +35,14 @@ export function useMasterResume() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+
       const { data, error } = await supabase
         .from("master_resume")
         .insert({
           user_id: user.id,
           content,
+          word_count: wordCount,
           structured_data: {},
         })
         .select()
@@ -135,6 +138,38 @@ export function useMasterResume() {
     },
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: async (historyItem: MasterResumeHistory): Promise<MasterResume> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("master_resume")
+        .update({ 
+          content: historyItem.content,
+          structured_data: JSON.parse(JSON.stringify(historyItem.structured_data || {}))
+        })
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return {
+        ...data,
+        structured_data: (data.structured_data || {}) as StructuredResumeData
+      };
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["master-resume"] });
+      queryClient.invalidateQueries({ queryKey: ["master-resume-history"] });
+      toast.success(`Restored to Version ${variables.version}`);
+    },
+    onError: (error) => {
+      console.error("Error restoring master resume:", error);
+      toast.error("Failed to restore version");
+    },
+  });
+
   return {
     masterResume,
     isLoading,
@@ -142,9 +177,11 @@ export function useMasterResume() {
     createMasterResume: createMutation.mutate,
     updateMasterResume: updateMutation.mutate,
     enrichMasterResume: enrichMutation.mutate,
+    restoreVersion: restoreMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isEnriching: enrichMutation.isPending,
+    isRestoring: restoreMutation.isPending,
   };
 }
 

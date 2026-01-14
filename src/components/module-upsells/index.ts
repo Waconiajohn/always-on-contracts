@@ -1,4 +1,4 @@
 export { ResumeJobsUpsell } from './ResumeJobsUpsell';
-export { CareerVaultUpsell } from './CareerVaultUpsell';
+export { MasterResumeUpsell } from './MasterResumeUpsell';
 export { LinkedInProUpsell } from './LinkedInProUpsell';
 export { InterviewMasteryUpsell } from './InterviewMasteryUpsell';

@@ -10,7 +10,7 @@ import {
 export type ModuleId = 
   | 'quick_score' 
   | 'resume_jobs_studio' 
-  | 'career_vault' 
+  | 'master_resume' 
   | 'linkedin_pro' 
   | 'interview_mastery';
 
@@ -66,23 +66,22 @@ export const MODULES: Record<ModuleId, ModuleDefinition> = {
     ],
     price: 29,
   },
-  career_vault: {
-    id: 'career_vault',
-    name: 'Career Vault',
-    description: 'Long-term career intelligence repository',
+  master_resume: {
+    id: 'master_resume',
+    name: 'Master Resume',
+    description: 'Your comprehensive career document that grows over time',
     icon: Package,
     color: 'text-purple-500',
     pages: [
-      '/career-vault',
+      '/master-resume',
       '/coaching',
     ],
     features: [
-      'Career vault dashboard',
+      'Master resume management',
       'AI career coaching',
-      'STAR story builder',
-      'WhyMe builder',
-      'Skills & competencies tracking',
-      'Power phrases library',
+      'Version history',
+      'Resume enrichment',
+      'Structured data parsing',
     ],
     price: 29,
   },
@@ -147,9 +146,9 @@ export type SubscriptionTier = 'free' | 'career_starter' | 'always_ready' | 'con
 
 export const TIER_MODULES: Record<SubscriptionTier, ModuleId[]> = {
   free: ['quick_score'],
-  career_starter: ['quick_score', 'resume_jobs_studio', 'career_vault'],
-  always_ready: ['quick_score', 'resume_jobs_studio', 'career_vault', 'linkedin_pro', 'interview_mastery'],
-  concierge_elite: ['quick_score', 'resume_jobs_studio', 'career_vault', 'linkedin_pro', 'interview_mastery'],
+  career_starter: ['quick_score', 'resume_jobs_studio', 'master_resume'],
+  always_ready: ['quick_score', 'resume_jobs_studio', 'master_resume', 'linkedin_pro', 'interview_mastery'],
+  concierge_elite: ['quick_score', 'resume_jobs_studio', 'master_resume', 'linkedin_pro', 'interview_mastery'],
 };
 
 // Get all modules a tier has access to
