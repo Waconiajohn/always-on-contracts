@@ -43,12 +43,12 @@ export function V3HomeHero({
           <div>
             <p className="text-sm text-muted-foreground mb-2">Your Progress</p>
             <div className="flex items-baseline gap-3 mb-3">
-              <span className="text-5xl font-bold">{Math.round(vaultCompletion)}%</span>
+              <span className="text-5xl font-bold">{Math.round(resumeCompletion)}%</span>
               <Badge variant="outline" className={`text-base ${strengthLevel.textColor}`}>
                 {strengthLevel.level}
               </Badge>
             </div>
-            <Progress value={vaultCompletion} className="h-3 mb-3" />
+            <Progress value={resumeCompletion} className="h-3 mb-3" />
             
             <div className="flex items-center gap-4 text-sm mt-3">
               <div className="flex items-center gap-2">

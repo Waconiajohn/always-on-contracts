@@ -45,9 +45,9 @@ export const ExplorationModal = ({
           <div className="bg-muted/50 p-4 rounded-lg space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">Career Vault Progress</span>
-              <span className="text-muted-foreground">{vaultCompletion}%</span>
+              <span className="text-muted-foreground">{resumeCompletion}%</span>
             </div>
-            <Progress value={vaultCompletion} className="h-2" />
+            <Progress value={resumeCompletion} className="h-2" />
             <p className="text-sm text-muted-foreground">
               Complete your Career Vault to unlock all features
             </p>
