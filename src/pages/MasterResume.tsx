@@ -144,6 +144,7 @@ const MasterResumeContent = () => {
       <MasterResumeHistory 
         history={history || []} 
         isLoading={isLoadingHistory}
+        currentContent={masterResume?.content}
         onRestore={restoreVersion}
         isRestoring={isRestoring}
       />

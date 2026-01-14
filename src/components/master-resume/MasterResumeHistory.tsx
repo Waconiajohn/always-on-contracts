@@ -2,10 +2,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { History, Clock, FileText, ChevronRight, RotateCcw, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { History, Clock, FileText, ChevronRight, RotateCcw, Loader2, GitCompare } from "lucide-react";
 import { MasterResumeHistory as HistoryType } from "@/types/master-resume";
 import { formatDistanceToNow, format } from "date-fns";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,15 +14,48 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { diffLines, Change } from "diff";
 
 interface MasterResumeHistoryProps {
   history: HistoryType[];
   isLoading: boolean;
+  currentContent?: string;
   onRestore?: (historyItem: HistoryType) => void;
   isRestoring?: boolean;
 }
 
-export const MasterResumeHistory = ({ history, isLoading, onRestore, isRestoring }: MasterResumeHistoryProps) => {
+const DiffView = ({ oldContent, newContent }: { oldContent: string; newContent: string }) => {
+  const changes = useMemo(() => diffLines(oldContent, newContent), [oldContent, newContent]);
+  
+  return (
+    <div className="font-mono text-sm space-y-0.5">
+      {changes.map((change: Change, index: number) => {
+        const bgColor = change.added 
+          ? "bg-green-500/20 border-l-2 border-green-500" 
+          : change.removed 
+            ? "bg-red-500/20 border-l-2 border-red-500" 
+            : "bg-muted";
+        
+        return (
+          <div key={index} className={`px-3 py-1 ${bgColor}`}>
+            <span className="text-muted-foreground mr-2">
+              {change.added ? "+" : change.removed ? "-" : " "}
+            </span>
+            <span className="whitespace-pre-wrap">{change.value}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+export const MasterResumeHistory = ({ 
+  history, 
+  isLoading, 
+  currentContent = "",
+  onRestore, 
+  isRestoring 
+}: MasterResumeHistoryProps) => {
   const [selectedVersion, setSelectedVersion] = useState<HistoryType | null>(null);
 
   if (isLoading) {
@@ -49,6 +83,17 @@ export const MasterResumeHistory = ({ history, isLoading, onRestore, isRestoring
       </Card>
     );
   }
+
+  // Get content to compare against (next version in history or current)
+  const getCompareContent = (version: HistoryType): string => {
+    const versionIndex = history.findIndex(h => h.id === version.id);
+    if (versionIndex === 0) {
+      // Most recent history version - compare to current content
+      return currentContent;
+    }
+    // Compare to the version that came after this one
+    return history[versionIndex - 1]?.content || currentContent;
+  };
 
   return (
     <>
@@ -89,7 +134,7 @@ export const MasterResumeHistory = ({ history, isLoading, onRestore, isRestoring
       </Card>
 
       <Dialog open={!!selectedVersion} onOpenChange={() => setSelectedVersion(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
@@ -99,11 +144,44 @@ export const MasterResumeHistory = ({ history, isLoading, onRestore, isRestoring
               </span>
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="h-[500px] mt-4">
-            <div className="whitespace-pre-wrap font-mono text-sm p-4 bg-muted rounded-lg">
-              {selectedVersion?.content}
-            </div>
-          </ScrollArea>
+          
+          <Tabs defaultValue="content" className="mt-2">
+            <TabsList>
+              <TabsTrigger value="content" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Full Content
+              </TabsTrigger>
+              <TabsTrigger value="diff" className="gap-2">
+                <GitCompare className="h-4 w-4" />
+                Changes
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="content">
+              <ScrollArea className="h-[450px] mt-2">
+                <div className="whitespace-pre-wrap font-mono text-sm p-4 bg-muted rounded-lg">
+                  {selectedVersion?.content}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+            
+            <TabsContent value="diff">
+              <ScrollArea className="h-[450px] mt-2">
+                <div className="rounded-lg overflow-hidden border">
+                  {selectedVersion && (
+                    <DiffView 
+                      oldContent={selectedVersion.content} 
+                      newContent={getCompareContent(selectedVersion)} 
+                    />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Showing changes from this version to the next version
+                </p>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+
           {onRestore && selectedVersion && (
             <DialogFooter className="mt-4">
               <Button
