@@ -8,12 +8,14 @@ import { useResumeBuilderV3Store, FitAnalysisResult } from "@/stores/resumeBuild
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, Sparkles, FileText, Briefcase, Upload, AlertTriangle, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingSkeletonV3 } from "./LoadingSkeletonV3";
 import { useResumeBuilderApi } from "./hooks/useResumeBuilderApi";
 import { HelpTooltip, HELP_CONTENT } from "./components/HelpTooltip";
 import { logger } from "@/lib/logger";
+import { useMasterResume } from "@/hooks/useMasterResume";
 
 import { RESUME_LIMITS } from "@/types/resume-builder-v3";
 
@@ -32,9 +34,11 @@ export function UploadStep() {
 
   // CRITICAL: All hooks must be called before any conditional returns
   const { callApi, isRetrying, currentAttempt, cancel, maxAttempts } = useResumeBuilderApi();
+  const { masterResume, isLoading: isMasterLoading } = useMasterResume();
 
   const [localResume, setLocalResume] = useState(resumeText);
   const [localJob, setLocalJob] = useState(jobDescription);
+  const [useMasterResumeToggle, setUseMasterResumeToggle] = useState(false);
 
   // Sync local state with store when store updates (handles session recovery)
   useEffect(() => {
@@ -45,6 +49,18 @@ export function UploadStep() {
       setLocalJob(jobDescription);
     }
   }, [resumeText, jobDescription, localResume, localJob]);
+
+  // Handle toggle for using Master Resume
+  const handleUseMasterResumeToggle = useCallback((checked: boolean) => {
+    setUseMasterResumeToggle(checked);
+    if (checked && masterResume?.content) {
+      setLocalResume(masterResume.content);
+      toast.success("Master Resume loaded!");
+    } else if (!checked && masterResume?.content && localResume === masterResume.content) {
+      setLocalResume("");
+    }
+  }, [masterResume?.content, localResume]);
+
   const [isParsingFile, setIsParsingFile] = useState(false);
 
   const resumeOverLimit = localResume.length > MAX_RESUME_CHARS;
@@ -156,11 +172,32 @@ export function UploadStep() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Resume input with dropzone */}
         <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Your Resume
-            <HelpTooltip content={HELP_CONTENT.resumeInput} />
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Your Resume
+              <HelpTooltip content={HELP_CONTENT.resumeInput} />
+            </Label>
+            
+            {/* Master Resume Toggle */}
+            {masterResume && (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="use-master-resume"
+                  checked={useMasterResumeToggle}
+                  onCheckedChange={handleUseMasterResumeToggle}
+                  disabled={isMasterLoading}
+                />
+                <Label 
+                  htmlFor="use-master-resume" 
+                  className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1"
+                >
+                  <BookOpen className="h-3 w-3" />
+                  Use Master Resume
+                </Label>
+              </div>
+            )}
+          </div>
           
           {/* Drop zone */}
           <div
