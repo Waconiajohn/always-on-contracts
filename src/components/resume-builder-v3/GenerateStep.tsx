@@ -29,6 +29,10 @@ import { BulletEditor } from "./components/BulletEditor";
 import { MAX_VERSION_HISTORY } from "./constants";
 import { logger } from "@/lib/logger";
 import type { ResumeVersion, OptimizedResume } from "@/types/resume-builder-v3";
+import { EnrichmentPrompt } from "@/components/master-resume/EnrichmentPrompt";
+import { useMasterResume } from "@/hooks/useMasterResume";
+import { useEnrichment } from "@/hooks/useEnrichment";
+import type { EnrichmentSuggestion } from "@/types/master-resume";
 
 // Helper functions for safe localStorage access
 const safeGetVersions = (): ResumeVersion[] => {
@@ -86,6 +90,12 @@ export function GenerateStep() {
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Master Resume enrichment
+  const { masterResume, enrichMasterResume, isEnriching } = useMasterResume();
+  const { suggestions, generateSuggestions, formatSuggestionsForEnrichment, clearSuggestions } = useEnrichment();
+  const [showEnrichmentPrompt, setShowEnrichmentPrompt] = useState(false);
+  const hasShownEnrichmentRef = useRef(false);
+  
   // Handler for bullet updates from BulletEditor
   const handleBulletUpdate = useCallback((experienceIndex: number, bulletIndex: number, newBullet: string) => {
     if (!finalResume) return;
@@ -120,8 +130,36 @@ export function GenerateStep() {
     setVersions(safeGetVersions());
     return () => {
       savedFingerprintRef.current = null;
+      hasShownEnrichmentRef.current = false;
     };
   }, []);
+  
+  // Check for enrichment opportunities when resume is generated
+  useEffect(() => {
+    if (!finalResume || !masterResume?.content || hasShownEnrichmentRef.current) return;
+    
+    const newSuggestions = generateSuggestions(finalResume, masterResume.content);
+    if (newSuggestions.length > 0) {
+      // Delay showing the prompt to let the user see their resume first
+      const timer = setTimeout(() => {
+        setShowEnrichmentPrompt(true);
+        hasShownEnrichmentRef.current = true;
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [finalResume, masterResume?.content, generateSuggestions]);
+  
+  const handleAddEnrichments = useCallback((items: EnrichmentSuggestion[]) => {
+    const content = formatSuggestionsForEnrichment(items);
+    enrichMasterResume(content);
+    setShowEnrichmentPrompt(false);
+    clearSuggestions();
+  }, [formatSuggestionsForEnrichment, enrichMasterResume, clearSuggestions]);
+  
+  const handleSkipEnrichment = useCallback(() => {
+    setShowEnrichmentPrompt(false);
+    clearSuggestions();
+  }, [clearSuggestions]);
 
   // Auto-save version when a NEW resume is generated (not on every render)
   useEffect(() => {
@@ -447,6 +485,16 @@ export function GenerateStep() {
         </CardContent>
       </Card>
       </FadeIn>
+      
+      {/* Enrichment Prompt Dialog */}
+      <EnrichmentPrompt
+        open={showEnrichmentPrompt}
+        onOpenChange={setShowEnrichmentPrompt}
+        suggestions={suggestions}
+        onAddSelected={handleAddEnrichments}
+        onSkip={handleSkipEnrichment}
+        isAdding={isEnriching}
+      />
     </div>
   );
 }
