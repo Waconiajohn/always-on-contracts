@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 import { ResumeGateBanner } from './ResumeGateBanner';
-import { VaultCompletenessReminder } from './VaultCompletenessReminder';
 import { useResumeGate } from '@/hooks/useResumeGate';
 
 interface FeaturePageWrapperProps {
@@ -12,9 +11,6 @@ interface FeaturePageWrapperProps {
 
 export const FeaturePageWrapper = ({ 
   children, 
-  showVaultReminder = true,
-  vaultReminderContext = 'general',
-  vaultReminderVariant = 'compact'
 }: FeaturePageWrapperProps) => {
   const { hasResume, vaultCompletion, isLoading } = useResumeGate();
 
@@ -26,15 +22,6 @@ export const FeaturePageWrapper = ({
     <div className="container mx-auto p-6">
       {!hasResume && (
         <ResumeGateBanner vaultCompletion={vaultCompletion} />
-      )}
-      
-      {hasResume && showVaultReminder && (
-        <VaultCompletenessReminder 
-          vaultCompletion={vaultCompletion}
-          variant={vaultReminderVariant}
-          context={vaultReminderContext}
-          className="mb-6"
-        />
       )}
       
       {children}

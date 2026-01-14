@@ -76,7 +76,7 @@ export function V3HomeHero({
               {todaysPriority}
             </div>
             <Button
-              onClick={() => navigate('/career-vault')}
+              onClick={() => navigate('/master-resume')}
               className="w-full md:w-auto"
             >
               <Sparkles className="h-4 w-4 mr-2" />

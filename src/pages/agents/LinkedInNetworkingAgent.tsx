@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
-import { trackVaultTelemetry } from '@/lib/services/vaultTracking';
+// Vault tracking removed - will be reimplemented with Master Resume
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ModuleGate } from "@/components/ModuleGate";
 
@@ -112,12 +112,8 @@ function LinkedInNetworkingAgentContent() {
 
       setMessages(data.messages);
       
-      // Track telemetry
-      trackVaultTelemetry({
-        featureName: 'linkedin_networking',
-        action: 'networking_message_sent',
-        metadata: { scenario, variantsGenerated: data.messages.length }
-      });
+      // Telemetry tracking removed - will be reimplemented with Master Resume
+      console.log('LinkedIn networking telemetry:', { scenario, variantsGenerated: data.messages.length });
 
       toast({
         title: "Messages generated!",

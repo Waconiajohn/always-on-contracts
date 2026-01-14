@@ -19,7 +19,7 @@ export function V3JobSearchHero({
       
       <p className="text-base max-w-3xl leading-relaxed text-muted-foreground">
         Search thousands of jobs from multiple sources with intelligent filtering. 
-        Our AI matches your Career Vault profile to relevant opportunities and 
+        Our AI matches your Master Resume profile to relevant opportunities and 
         generates tailored resumes for each application.
       </p>
       

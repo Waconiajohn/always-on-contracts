@@ -75,8 +75,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 }
 
-// Specialized Error Boundary for Career Vault features
-export function CareerVaultErrorBoundary({ children }: { children: React.ReactNode }) {
+// Generic Error Boundary wrapper for features
+export function FeatureErrorBoundary({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
       {children}

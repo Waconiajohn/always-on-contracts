@@ -27,15 +27,15 @@ export function V3IntelligenceStatus({
     if (vaultCompletion < 30) {
       return {
         phase: "Building Foundation",
-        description: "Focus on completing your Career Vault to unlock AI-powered features",
+        description: "Focus on completing your Master Resume to unlock AI-powered features",
         icon: Target,
         color: "text-orange-500",
         confidence: 92
       };
     } else if (vaultCompletion < 60) {
       return {
-        phase: "Vault Strengthening",
-        description: "Your vault is taking shape. Keep adding quality items to improve AI insights",
+        phase: "Resume Strengthening",
+        description: "Your resume is taking shape. Keep adding quality items to improve AI insights",
         icon: TrendingUp,
         color: "text-blue-500",
         confidence: 88
@@ -43,7 +43,7 @@ export function V3IntelligenceStatus({
     } else if (activeApplications === 0 && upcomingInterviews === 0) {
       return {
         phase: "Ready to Launch",
-        description: "Your vault is strong. Start exploring job opportunities",
+        description: "Your resume is strong. Start exploring job opportunities",
         icon: Sparkles,
         color: "text-green-500",
         confidence: 95
@@ -51,7 +51,7 @@ export function V3IntelligenceStatus({
     } else {
       return {
         phase: "Active Job Search",
-        description: "Vault-powered applications in progress",
+        description: "Resume-powered applications in progress",
         icon: Brain,
         color: "text-purple-500",
         confidence: 97
@@ -78,7 +78,7 @@ export function V3IntelligenceStatus({
       <Alert className="mb-6 border-primary/20 bg-primary/5">
         <Info className="h-4 w-4 text-primary" />
         <AlertDescription className="text-sm">
-          <span className="font-medium">Must-Interview Status:</span> Higher vault strength = better extraction of hidden value, stronger alignment to market needs, clearer translation into hiring manager language. We don't fabricate—we better represent what you've actually accomplished.
+          <span className="font-medium">Must-Interview Status:</span> Higher resume strength = better extraction of hidden value, stronger alignment to market needs, clearer translation into hiring manager language. We don't fabricate—we better represent what you've actually accomplished.
         </AlertDescription>
       </Alert>
 
@@ -117,7 +117,7 @@ export function V3IntelligenceStatus({
 
             <details className="text-sm">
               <summary className="cursor-pointer text-primary hover:text-primary/80 font-medium">
-                What vault data we used
+                What resume data we used
               </summary>
               <div className="mt-2 space-y-1 text-muted-foreground ml-4">
                 <div>• Work Experience ({Math.min(8, Math.round(vaultCompletion / 10))} positions)</div>
@@ -180,7 +180,7 @@ export function V3IntelligenceStatus({
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => navigate('/career-vault')}
+                  onClick={() => navigate('/master-resume')}
                 >
                   Enhance {Math.max(1, Math.round((80 - vaultCompletion) / 5))} items to reach Exceptional tier
                 </Button>
@@ -188,7 +188,7 @@ export function V3IntelligenceStatus({
             )}
 
             <div className="pt-3 border-t border-border text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Must-Interview Benchmark:</span> 80%+ vault completion = 3x more interviews. Stronger extraction, better alignment, clearer translation.
+              <span className="font-medium text-foreground">Must-Interview Benchmark:</span> 80%+ resume completion = 3x more interviews. Stronger extraction, better alignment, clearer translation.
             </div>
           </div>
         </div>

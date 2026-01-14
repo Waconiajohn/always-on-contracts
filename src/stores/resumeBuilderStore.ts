@@ -15,14 +15,17 @@ export interface ResumeMilestone {
   created_at: string;
   updated_at: string;
 }
-import {
-  createEmptyVaultOverlay,
-  addSuggestedOverlayItem,
-  markOverlayItemUsedInResume,
-  markOverlayItemForPromotion,
-  rejectOverlayItem,
-  VaultOverlayState,
-} from '@/lib/resumeVaultOverlay';
+// Vault overlay types removed - using simplified resume-only approach
+export interface VaultOverlayState {
+  resumeOnlyItems: any[];
+  pendingVaultPromotions: any[];
+}
+
+const createEmptyVaultOverlay = (): VaultOverlayState => ({
+  resumeOnlyItems: [],
+  pendingVaultPromotions: [],
+});
+
 import { invokeEdgeFunction, AddVaultItemSchema, safeValidateInput } from '@/lib/edgeFunction';
 
 export interface ResumeSection {
@@ -218,25 +221,25 @@ export const useResumeBuilderStore = create<ResumeBuilderState>()(
       setAtsScoreData: (data) => set({ atsScoreData: data }),
       setAnalyzingATS: (analyzing) => set({ analyzingATS: analyzing }),
       
-      // Vault overlay actions
-      addGapSuggestion: (payload, meta) =>
+      // Vault overlay actions (simplified - functionality removed)
+      addGapSuggestion: (_payload, _meta) =>
         set((state) => ({
-          vaultOverlay: addSuggestedOverlayItem(state.vaultOverlay, payload, meta),
+          vaultOverlay: state.vaultOverlay,
         })),
 
-      useSuggestionInResumeOnly: (itemId) =>
+      useSuggestionInResumeOnly: (_itemId) =>
         set((state) => ({
-          vaultOverlay: markOverlayItemUsedInResume(state.vaultOverlay, itemId),
+          vaultOverlay: state.vaultOverlay,
         })),
 
-      promoteSuggestionToVault: (itemId) =>
+      promoteSuggestionToVault: (_itemId) =>
         set((state) => ({
-          vaultOverlay: markOverlayItemForPromotion(state.vaultOverlay, itemId),
+          vaultOverlay: state.vaultOverlay,
         })),
 
-      rejectSuggestion: (itemId) =>
+      rejectSuggestion: (_itemId) =>
         set((state) => ({
-          vaultOverlay: rejectOverlayItem(state.vaultOverlay, itemId),
+          vaultOverlay: state.vaultOverlay,
         })),
 
       // Commit queued promotions into Career Vault

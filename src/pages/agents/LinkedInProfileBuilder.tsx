@@ -14,7 +14,7 @@ import { SkillsTagInput } from "@/components/linkedin/SkillsTagInput";
 import { ProfileProgressTracker } from "@/components/linkedin/ProfileProgressTracker";
 import { RecruiterSearchSimulator } from "@/components/linkedin/RecruiterSearchSimulator";
 import { ProfileSectionCompare } from "@/components/linkedin/ProfileSectionCompare";
-import { trackVaultTelemetry } from '@/lib/services/vaultTracking';
+// Vault tracking removed - will be reimplemented with Master Resume
 import { 
   safeValidateInput, 
   invokeEdgeFunction, 
@@ -327,11 +327,8 @@ function LinkedInProfileBuilderContent() {
                 setCurrentHeadline(text);
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
-                  trackVaultTelemetry({
-                    featureName: 'linkedin_profile',
-                    action: 'profile_section_accepted',
-                    metadata: { contentType: 'headline', characterLength: text.length }
-                  });
+                  // Telemetry tracking removed - will be reimplemented with Master Resume
+                  console.log('LinkedIn profile telemetry:', { contentType: 'headline', characterLength: text.length });
                 }
                 toast({ title: "Headline accepted", description: "Applied to your profile" });
               }}
@@ -350,11 +347,8 @@ function LinkedInProfileBuilderContent() {
                 setCurrentAbout(text);
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
-                  trackVaultTelemetry({
-                    featureName: 'linkedin_profile',
-                    action: 'profile_section_accepted',
-                    metadata: { contentType: 'about', characterLength: text.length }
-                  });
+                  // Telemetry tracking removed - will be reimplemented with Master Resume
+                  console.log('LinkedIn profile telemetry:', { contentType: 'about', characterLength: text.length });
                 }
                 toast({ title: "About section accepted", description: "Applied to your profile" });
               }}
