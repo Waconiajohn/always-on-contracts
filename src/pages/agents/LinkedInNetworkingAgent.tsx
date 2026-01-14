@@ -96,7 +96,7 @@ function LinkedInNetworkingAgentContent() {
           },
           candidateProfile: {
             headline: `${analysis?.current_role || 'Professional'} with ${analysis?.years_of_experience || 5}+ years experience`,
-            careerVaultSummary: analysis?.career_summary || 'Professional background',
+            resumeSummary: analysis?.career_summary || 'Professional background',
             relevantAchievements: topAchievements
           },
           constraints: {

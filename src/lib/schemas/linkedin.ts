@@ -59,7 +59,7 @@ export const LinkedInProfileDraftSchema = z.object({
   // metadata is optional and added by backend
   metadata: z
     .object({
-      usedVaultSummary: z.boolean().optional(),
+      usedResumeSummary: z.boolean().optional(),
       employerCount: z.number().optional(),
       roleCount: z.number().optional(),
     })
@@ -118,7 +118,7 @@ export type AllowedWordRange = z.infer<typeof AllowedWordRangeSchema>;
 export const GenerateSeriesPostsRequestSchema = z.object({
   seriesMetadata: SeriesMetadataSchema,
   outline: z.array(OutlineItemSchema).min(1).max(16),
-  careerVaultSummaryShort: z.string().optional(),
+  resumeSummaryShort: z.string().optional(),
   allowedWordRange: AllowedWordRangeSchema.optional(),
 });
 
@@ -134,7 +134,7 @@ export const LinkedInSeriesPostSchema = z.object({
   hook: z.string().min(5),
   cta: z.string().min(5),
   wordCount: z.number(),
-  vaultExamplesUsed: z.array(z.string()).optional(),
+  resumeExamplesUsed: z.array(z.string()).optional(),
 });
 
 export type LinkedInSeriesPost = z.infer<typeof LinkedInSeriesPostSchema>;
@@ -172,7 +172,7 @@ export type TargetProfile = z.infer<typeof TargetProfileSchema>;
 
 export const CandidateProfileSchema = z.object({
   headline: z.string().optional(),
-  careerVaultSummary: z.string().optional(),
+  resumeSummary: z.string().optional(),
   relevantAchievements: z.array(z.string()).optional(),
 });
 
