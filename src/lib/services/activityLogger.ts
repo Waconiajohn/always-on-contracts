@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
-type ActivityType = 'resume' | 'application' | 'match' | 'interview' | 'profile' | 'vault';
+type ActivityType = 'resume' | 'application' | 'match' | 'interview' | 'profile' | 'master_resume';
 
 /**
  * Logs user activity to track engagement and populate activity feed
@@ -77,13 +77,13 @@ export const activityLogger = {
       logActivity('profile', `Added ${count} new skill${count !== 1 ? 's' : ''} to profile`),
   },
   
-  vault: {
+  masterResume: {
     completed: () => 
-      logActivity('vault', 'Career Vault completed at 100%'),
+      logActivity('master_resume', 'Master Resume completed at 100%'),
     progressUpdate: (percentage: number) => 
-      logActivity('vault', `Career Vault progress: ${percentage}%`),
+      logActivity('master_resume', `Master Resume progress: ${percentage}%`),
     skillsConfirmed: (count: number) => 
-      logActivity('vault', `Confirmed ${count} skill${count !== 1 ? 's' : ''} in vault`),
+      logActivity('master_resume', `Confirmed ${count} skill${count !== 1 ? 's' : ''} in Master Resume`),
   },
 
   resumeBuilder: {
@@ -98,16 +98,16 @@ export const activityLogger = {
         was_edited: edited,
         content_length: contentLength
       }),
-    versionSelected: (versionType: 'ideal' | 'personalized', sectionType: string, vaultStrength: number) =>
+    versionSelected: (versionType: 'ideal' | 'personalized', sectionType: string, resumeStrength: number) =>
       logActivity('resume', `Selected ${versionType} version for ${sectionType}`, {
         version_type: versionType,
         section_type: sectionType,
-        vault_strength: vaultStrength
+        resume_strength: resumeStrength
       }),
-    resumeCompleted: (totalSections: number, vaultItemsUsed: number) =>
+    resumeCompleted: (totalSections: number, resumeItemsUsed: number) =>
       logActivity('resume', `Resume completed with ${totalSections} sections`, {
         total_sections: totalSections,
-        vault_items_used: vaultItemsUsed
+        resume_items_used: resumeItemsUsed
       }),
   },
 };

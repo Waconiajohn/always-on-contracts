@@ -142,7 +142,7 @@ function LinkedInNetworkingAgentContent() {
       <div>
         <h1 className="text-3xl font-bold mb-2">LinkedIn Networking Agent</h1>
         <p className="text-muted-foreground">
-          Generate personalized connection requests and networking messages powered by your Career Vault
+          Generate personalized connection requests and networking messages powered by your Master Resume
         </p>
       </div>
 

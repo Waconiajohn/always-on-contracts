@@ -15,7 +15,7 @@ import { V3MicroWins } from "@/components/home/v3/V3MicroWins";
 import { V3ScoreStatusCard } from "@/components/home/v3/V3ScoreStatusCard";
 import { V3QuickActionsCard } from "@/components/home/v3/V3QuickActionsCard";
 import { ExplorationModal } from "@/components/ExplorationModal";
-import { getNextActionPrompt } from "@/lib/utils/vaultQualitativeHelpers";
+import { getNextActionPrompt } from "@/lib/utils/resumeQualityHelpers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";

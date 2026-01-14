@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, Copy, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
-interface VaultItem {
+interface ResumeItem {
   id: string;
   type: 'power_phrase' | 'skill' | 'competency' | 'achievement';
   content: string;
@@ -13,9 +13,9 @@ interface VaultItem {
   used: boolean;
 }
 
-interface SmartVaultPanelProps {
-  vaultSuggestions: VaultItem[];
-  onUseItem: (item: VaultItem) => void;
+interface SmartSuggestionsPanelProps {
+  suggestions: ResumeItem[];
+  onUseItem: (item: ResumeItem) => void;
   isLoading?: boolean;
 }
 
