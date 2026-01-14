@@ -19,7 +19,7 @@ import { HumanWritingAnalyzer } from "@/components/linkedin/HumanWritingAnalyzer
 import { QualityCheckModal } from "@/components/linkedin/QualityCheckModal";
 import { SeriesDashboard } from "@/components/linkedin/SeriesDashboard";
 import { CharacterCounter } from "@/components/linkedin/CharacterCounter";
-// VaultContentTracker removed - will be reimplemented with Master Resume
+// ContentTracker removed - will be reimplemented with Master Resume
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ModuleGate } from "@/components/ModuleGate";
 
@@ -37,7 +37,7 @@ function LinkedInBloggingAgentContent() {
   const [_editingDraft, _setEditingDraft] = useState<string | null>(null);
   const [showQualityCheck, setShowQualityCheck] = useState(false);
   const [editingContent, setEditingContent] = useState("");
-  const [vaultTopics, setVaultTopics] = useState<any[]>([]);
+  const [resumeTopics, setResumeTopics] = useState<any[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(false);
   const { toast } = useToast();
   const { drafts, loading: draftsLoading, deleteDraft, updateDraft, fetchDrafts } = useLinkedInDrafts();
@@ -222,7 +222,7 @@ function LinkedInBloggingAgentContent() {
     await updateDraft(id, { status: 'published' });
   };
 
-  const handleLoadVaultTopics = async () => {
+  const handleLoadResumeTopics = async () => {
     setLoadingTopics(true);
     try {
       // TODO: Implement topic suggestions from master resume
@@ -230,7 +230,7 @@ function LinkedInBloggingAgentContent() {
         title: "Coming soon",
         description: "Topic suggestions from your Master Resume will be available soon",
       });
-      setVaultTopics([]);
+      setResumeTopics([]);
     } catch (error: any) {
       console.error('Error loading topics:', error);
       toast({
@@ -243,7 +243,7 @@ function LinkedInBloggingAgentContent() {
     }
   };
 
-  const handleUseVaultTopic = (topicSuggestion: any) => {
+  const handleUseResumeTopic = (topicSuggestion: any) => {
     setTopic(topicSuggestion.topic);
     setPostType(topicSuggestion.angle === 'how-to' || topicSuggestion.angle === 'lessons-learned' ? 'thought-leadership' : 'personal-story');
     toast({
@@ -288,9 +288,9 @@ function LinkedInBloggingAgentContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {vaultTopics.length === 0 ? (
+              {resumeTopics.length === 0 ? (
                 <Button
-                  onClick={handleLoadVaultTopics}
+                  onClick={handleLoadResumeTopics}
                   disabled={loadingTopics}
                   className="w-full"
                 >
@@ -302,27 +302,27 @@ function LinkedInBloggingAgentContent() {
                 </Button>
               ) : (
                 <div className="space-y-3">
-                  {vaultTopics.map((topic, idx) => (
+                  {resumeTopics.map((topicItem: any, idx: number) => (
                     <div key={idx} className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-sm mb-1">{topic.topic}</h4>
-                          <p className="text-sm text-muted-foreground italic mb-2">"{topic.hook}"</p>
+                          <h4 className="font-semibold text-sm mb-1">{topicItem.topic}</h4>
+                          <p className="text-sm text-muted-foreground italic mb-2">"{topicItem.hook}"</p>
                           <div className="flex gap-2 flex-wrap">
-                            <Badge variant="outline">{topic.angle}</Badge>
+                            <Badge variant="outline">{topicItem.angle}</Badge>
                             <Badge
-                              className={topic.estimatedEngagement === 'high' ? 'bg-green-500' : topic.estimatedEngagement === 'medium' ? 'bg-yellow-500' : 'bg-gray-500'}
+                              className={topicItem.estimatedEngagement === 'high' ? 'bg-green-500' : topicItem.estimatedEngagement === 'medium' ? 'bg-yellow-500' : 'bg-gray-500'}
                             >
-                              {topic.estimatedEngagement} engagement
+                              {topicItem.estimatedEngagement} engagement
                             </Badge>
                           </div>
-                          {topic.reasoning && (
-                            <p className="text-xs text-muted-foreground mt-2">💡 {topic.reasoning}</p>
+                          {topicItem.reasoning && (
+                            <p className="text-xs text-muted-foreground mt-2">💡 {topicItem.reasoning}</p>
                           )}
                         </div>
                         <Button
                           size="sm"
-                          onClick={() => handleUseVaultTopic(topic)}
+                          onClick={() => handleUseResumeTopic(topicItem)}
                         >
                           Use Topic
                         </Button>
@@ -332,7 +332,7 @@ function LinkedInBloggingAgentContent() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setVaultTopics([])}
+                    onClick={() => setResumeTopics([])}
                     className="w-full"
                   >
                     Load New Topics

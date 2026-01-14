@@ -33,9 +33,6 @@ verify_jwt = true
 [functions.daily-job-matcher]
 verify_jwt = false
 
-[functions.auto-populate-vault]
-verify_jwt = true
-
 [functions.generate-series-outline]
 verify_jwt = true
 
@@ -90,9 +87,6 @@ verify_jwt = true
 [functions.generate-achievements]
 verify_jwt = true
 
-[functions.suggest-linkedin-topics-from-vault]
-verify_jwt = true
-
 [functions.generate-interview-question]
 verify_jwt = true
 
@@ -142,12 +136,6 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.update-strong-answer]
-verify_jwt = true
-
-[functions.get-vault-data]
-verify_jwt = true
-
-[functions.add-vault-item]
 verify_jwt = true
 
 [functions.generate-linkedin-post]
@@ -210,13 +198,7 @@ verify_jwt = true
 [functions.perplexity-research]
 verify_jwt = true
 
-[functions.enhance-vault-item]
-verify_jwt = true
-
 [functions.suggest-hidden-strengths]
-verify_jwt = true
-
-[functions.batch-enhance-items]
 verify_jwt = true
 
 [functions.generate-gap-roadmap]
@@ -243,9 +225,6 @@ verify_jwt = true
 [functions.parse-resume-milestones]
 verify_jwt = true
 
-[functions.verify-vault-with-perplexity]
-verify_jwt = true
-
 [functions.update-interview-completion]
 verify_jwt = true
 
@@ -253,9 +232,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.analyze-competitive-position]
-verify_jwt = true
-
-[functions.assess-vault-quality]
 verify_jwt = true
 
 [functions.generate-boolean-search]
@@ -300,7 +276,7 @@ verify_jwt = true
 [functions.analyze-job-requirements]
 verify_jwt = true
 
-[functions.match-vault-to-requirements]
+[functions.match-requirements-to-bullets]
 verify_jwt = true
 
 [functions.generate-cover-letter]
@@ -339,9 +315,6 @@ verify_jwt = true
 [functions.submit-micro-answers]
 verify_jwt = true
 
-[functions.generate-vault-recommendations]
-verify_jwt = true
-
 [functions.conduct-industry-research]
 verify_jwt = true
 
@@ -366,12 +339,6 @@ verify_jwt = true
 [functions.research-industry-standards]
 verify_jwt = true
 
-[functions.auto-populate-vault-v2]
-verify_jwt = true
-
-[functions.extract-vault-intangibles]
-verify_jwt = true
-
 [functions.process-review-actions]
 verify_jwt = true
 
@@ -384,25 +351,7 @@ verify_jwt = true
 [functions.generate-completion-benchmark]
 verify_jwt = true
 
-[functions.search-vault-advanced]
-verify_jwt = true
-
-[functions.bulk-vault-operations]
-verify_jwt = true
-
-[functions.export-vault]
-verify_jwt = true
-
 [functions.detect-role-and-industry]
-verify_jwt = true
-
-[functions.auto-populate-vault-v3]
-verify_jwt = true
-
-[functions.vault-cleanup]
-verify_jwt = true
-
-[functions.career-vault-chat]
 verify_jwt = true
 
 [functions.generate-roadmap-suggestions]
@@ -412,9 +361,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.enhance-with-keywords]
-verify_jwt = true
-
-[functions.match-requirements-to-bullets]
 verify_jwt = true
 
 [functions.migrate-evidence-to-position]
