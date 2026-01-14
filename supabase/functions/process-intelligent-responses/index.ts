@@ -30,13 +30,13 @@ serve(async (req) => {
       .eq('id', vaultId)
       .single();
 
-    // Use AI to parse responses into structured vault items
-    const prompt = `Parse these user responses into structured career vault items. Extract power phrases, skills, competencies, and soft skills.
+    // Use AI to parse responses into structured resume items
+    const prompt = `Parse these user responses into structured Master Resume items. Extract power phrases, skills, competencies, and soft skills.
 
 **User Responses**: ${JSON.stringify(responses)}
 **Industry Context**: ${JSON.stringify(industryStandards).substring(0, 500)}
 
-Generate vault items as JSON:
+Generate resume items as JSON:
 {
   "powerPhrases": [
     { "category": "Achievement", "phrase": "Led $2M budget optimization", "metrics": {"amount": 2000000}, "confidence": 0.9 }
@@ -52,7 +52,6 @@ Generate vault items as JSON:
   ]
 }`;
 
-    const { response, metrics } = await callLovableAI({
       messages: [
         { role: 'system', content: 'You are an expert at extracting career intelligence. Return valid JSON only.' },
         { role: 'user', content: prompt }
@@ -151,7 +150,7 @@ Generate vault items as JSON:
       items_created: newItemsCreated
     });
 
-    console.log('[PROCESS RESPONSES] Created', newItemsCreated, 'new vault items');
+    console.log('[PROCESS RESPONSES] Created', newItemsCreated, 'new resume items');
 
     return new Response(
       JSON.stringify({

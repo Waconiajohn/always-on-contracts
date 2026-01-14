@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const rolesText = target_roles?.join(', ') || 'Not specified';
     const industriesText = target_industries?.join(', ') || 'Not specified';
 
-    // Fetch Career Vault for context-aware skill extraction
+    // Fetch Master Resume for context-aware skill extraction
     const { data: intelligenceData, error: intelligenceError } = await supabase.functions.invoke(
       'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     const intelligence = intelligenceError ? null : intelligenceData?.intelligence;
     
-    let vaultContext = '';
+    let resumeDataContext = '';
     if (intelligence && intelligence.technicalDepth && intelligence.projects && intelligence.businessImpacts) {
       const existingSkills = intelligence.technicalDepth.map((t: any) => 
         `${t.skill_name} (${t.proficiency_level}, verified)`
@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
         b.context || b.metric_type
       ).join('; ');
 
-      vaultContext = `
-CAREER VAULT INTELLIGENCE (Use for skill verification):
+      resumeDataContext = `
+MASTER RESUME INTELLIGENCE (Use for skill verification):
 CONFIRMED SKILLS (${intelligence.counts.technicalSkills}): ${existingSkills}
 
 PROJECT TECHNOLOGIES:
@@ -70,8 +70,8 @@ ACHIEVEMENT CONTEXTS:
 ${achievementContext}
 
 **EXTRACTION MANDATE:**
-- Cross-reference skills against confirmed Career Vault skills
-- If a skill matches Career Vault data, mark it as verified and increase confidence
+- Cross-reference skills against confirmed Master Resume skills
+- If a skill matches Master Resume data, mark it as verified and increase confidence
 - Consider skills demonstrated in projects even if not explicitly listed
 - Look for skills implied by quantified achievements
 `;
@@ -89,21 +89,21 @@ ${resume_text}
 TARGET ROLES: ${rolesText}
 TARGET INDUSTRIES: ${industriesText}
 
-${vaultContext}
+${resumeDataContext}
 
 Generate three categories with HIERARCHICAL DEPTH:
 
 1. CORE SKILLS (from resume): Skills explicitly mentioned or clearly demonstrated
-   - Mark as "resume_verified" if confirmed in Career Vault
+   - Mark as "resume_verified" if confirmed in Master Resume
    - Organize by skill hierarchy: Expert > Advanced > Intermediate > Basic
 
 2. INFERRED SKILLS (likely has): Skills implied by roles/achievements but not explicitly stated
-   - Verify against projects and achievements from Career Vault
+   - Verify against projects and achievements from Master Resume
    - Only include if there's concrete evidence (not assumptions)
 
 3. GROWTH SKILLS (needs for target roles): Required skills with gaps
    - Check against target role requirements
-   - Exclude skills already confirmed in Career Vault
+   - Exclude skills already confirmed in Master Resume
 
 For each skill, provide:
 - skill_name: Clear, specific skill name (use industry-standard terminology)
@@ -139,9 +139,9 @@ Return ONLY a JSON array of skill objects. Example:
 ]
 
 CRITICAL REQUIREMENTS:
-1. Verify skills against Career Vault - mark matching skills as "resume_verified"
+1. Verify skills against Master Resume - mark matching skills as "resume_verified"
 2. Organize by skill_hierarchy (expert to learning)
-3. Include evidence array with specific examples from resume or Career Vault
+3. Include evidence array with specific examples from resume or Master Resume
 4. Cross-reference skills against projects and achievements
 5. Use industry-specific terminology and skill taxonomy
 
@@ -198,7 +198,7 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
 
     console.log('[ANALYZE-RESUME] AI generated', skillTaxonomy.length, 'skills');
 
-    // Fetch Career Vault intelligence for skill verification
+    // Fetch Master Resume intelligence for skill verification
     const { data: verificationData, error: verificationError } = await supabase.functions.invoke(
       'get-vault-intelligence',
       { headers: { Authorization: authHeader } }
@@ -207,35 +207,35 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
     const verificationIntelligence = verificationError ? null : verificationData?.intelligence;
     
     if (verificationIntelligence && verificationIntelligence.technicalDepth && verificationIntelligence.projects && verificationIntelligence.businessImpacts) {
-      console.log('[ANALYZE-RESUME] Career Vault loaded for verification:', {
+      console.log('[ANALYZE-RESUME] Master Resume loaded for verification:', {
         confirmedSkills: verificationIntelligence.counts.technicalSkills,
         projects: verificationIntelligence.counts.projects,
         businessImpacts: verificationIntelligence.counts.businessImpacts
       });
 
-      // Verify skills against Career Vault data
+      // Verify skills against Master Resume data
       const confirmedSkillNames = verificationIntelligence.technicalDepth.map((t: any) => t.skill_name.toLowerCase());
       const projectSkills = verificationIntelligence.projects.flatMap((p: any) => 
         (p.technologies_used || []).map((t: string) => t.toLowerCase())
       );
       
-      // Enhance skills with Career Vault validation
+      // Enhance skills with Master Resume validation
       skillTaxonomy.forEach((skill: any) => {
         const skillLower = skill.skill_name.toLowerCase();
         
-        // Check if skill is confirmed in Career Vault
+        // Check if skill is confirmed in Master Resume
         if (confirmedSkillNames.includes(skillLower)) {
-          const vaultSkill = verificationIntelligence.technicalDepth.find(
+          const resumeSkill = verificationIntelligence.technicalDepth.find(
             (t: any) => t.skill_name.toLowerCase() === skillLower
           );
           
           skill.confidence_score = Math.max(skill.confidence_score, 95);
           skill.source = 'resume_verified';
-          skill.verification_note = `Confirmed in Career Vault (${vaultSkill?.proficiency_level || 'validated'})`;
+          skill.verification_note = `Confirmed in Master Resume (${resumeSkill?.proficiency_level || 'validated'})`;
           
           // Add years of experience if available
-          if (vaultSkill?.years_experience) {
-            skill.years_experience = vaultSkill.years_experience;
+          if (resumeSkill?.years_experience) {
+            skill.years_experience = resumeSkill.years_experience;
           }
         }
         
@@ -266,7 +266,7 @@ Aim for 25-30 total skills with hierarchical organization and evidence-based val
         }
       });
       
-      console.log('[ANALYZE-RESUME] Skills verified against Career Vault');
+      console.log('[ANALYZE-RESUME] Skills verified against Master Resume');
     }
 
     console.log('[ANALYZE-RESUME] Now verifying with AI...');
@@ -359,8 +359,8 @@ Be concise but specific.`;
         skills_count: skillTaxonomy.length,
         verified: !!verification_result,
         verification_summary: verification_result ? 'Skills verified with current market data' : 'Verification skipped',
-        vault_enhanced: !!intelligence,
-        vault_verified_count: skillTaxonomy.filter((s: any) => s.source === 'resume_verified').length,
+        resume_enhanced: !!intelligence,
+        resume_verified_count: skillTaxonomy.filter((s: any) => s.source === 'resume_verified').length,
         breakdown: {
         resume: skillTaxonomy.filter((s: any) => s.source === 'resume' || s.source === 'resume_verified').length,
         inferred: skillTaxonomy.filter((s: any) => s.source === 'inferred').length,

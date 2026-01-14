@@ -333,7 +333,7 @@ export const GenerateGapSolutionsSchema = z.object({
 
 export const GenerateRequirementQuestionsSchema = z.object({
   requirement: z.string().min(5, 'Requirement too short'),
-  vaultMatches: z.array(z.any()),
+  resumeMatches: z.array(z.any()),
   matchStatus: z.string(),
   jobContext: z.any()
 });
@@ -342,7 +342,7 @@ export const GenerateRequirementOptionsSchema = z.object({
   requirement: z.string().min(5, 'Requirement too short'),
   requirementSource: z.string(),
   requirementPriority: z.string(),
-  vaultMatches: z.array(z.any()),
+  resumeMatches: z.array(z.any()),
   answers: z.record(z.any()),
   voiceContext: z.string(),
   jobContext: z.any(),
@@ -350,8 +350,8 @@ export const GenerateRequirementOptionsSchema = z.object({
   atsKeywords: z.array(z.string())
 });
 
-export const AddVaultItemSchema = z.object({
-  vaultId: z.string().uuid('Invalid vault ID'),
+export const AddResumeItemSchema = z.object({
+  resumeId: z.string().uuid('Invalid resume ID'),
   category: z.string().min(1, 'Category is required'),
   itemData: z.record(z.any())
 });

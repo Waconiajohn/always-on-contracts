@@ -76,7 +76,7 @@ export interface ResumeSection {
   aiImprovedContent?: string;
   gapsAddressed: string[];
   atsKeywordsUsed: string[];
-  vaultItemsUsed: string[];
+  resumeItemsUsed: string[];
 }
 
 export interface HiringManagerFeedback {

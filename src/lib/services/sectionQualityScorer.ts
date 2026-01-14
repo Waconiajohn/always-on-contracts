@@ -21,7 +21,7 @@ interface QualityScoreResult {
 interface ScoringInput {
   content: string;
   jobAnalysis: any;
-  vaultMatches?: any[];
+  resumeMatches?: any[];
   atsKeywords?: {
     critical: string[];
     important: string[];
