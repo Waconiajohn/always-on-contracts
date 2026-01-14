@@ -152,7 +152,7 @@ ${jobSummaries}
       // Fail gracefully and proceed with internal knowledge
     }
 
-    const vaultContext = {
+    const resumeContext = {
       target_roles: vault.target_roles,
       target_industries: vault.target_industries,
       power_phrases_count: powerPhrases?.length || 0,
@@ -165,7 +165,7 @@ ${jobSummaries}
       sample_skills: transferableSkills?.slice(0, 10).map(s => s.stated_skill) || [],
     };
 
-    const systemPrompt = `You are a career benchmarking expert. Generate a personalized benchmark standard for this professional based on their target role, career level, and current vault data.
+    const systemPrompt = `You are a career benchmarking expert. Generate a personalized benchmark standard for this professional based on their target role, career level, and current Master Resume data.
 
 CRITICAL RULES:
 1. Benchmarks must be achievable but challenging (aim for 85/100 as "ready for market")
@@ -191,26 +191,26 @@ ROLE CATEGORIES:
 - Creative (Design, Marketing): Portfolio + measurable impact
 - Operations: Process improvement, efficiency metrics`;
 
-    const userPrompt = `Analyze this vault and generate a benchmark:
+    const userPrompt = `Analyze this Master Resume and generate a benchmark:
 
 Target Role: ${targetRole}
 Target Industries: ${vault.target_industries?.join(', ') || 'Not specified'}
 
 ${marketContext}
 
-Current Vault Data:
-- Power Phrases (quantified achievements): ${vaultContext.power_phrases_count}
-- Skills: ${vaultContext.skills_count}
-- Soft Skills: ${vaultContext.soft_skills_count}
-- Leadership Philosophy: ${vaultContext.leadership_count}
-- Executive Presence: ${vaultContext.executive_presence_count}
-- Professional Resources: ${vaultContext.professional_resources_count}
+Current Master Resume Data:
+- Power Phrases (quantified achievements): ${resumeContext.power_phrases_count}
+- Skills: ${resumeContext.skills_count}
+- Soft Skills: ${resumeContext.soft_skills_count}
+- Leadership Philosophy: ${resumeContext.leadership_count}
+- Executive Presence: ${resumeContext.executive_presence_count}
+- Professional Resources: ${resumeContext.professional_resources_count}
 
 Sample Achievements:
-${vaultContext.sample_achievements.join('\n')}
+${resumeContext.sample_achievements.join('\n')}
 
 Sample Skills:
-${vaultContext.sample_skills.join(', ')}
+${resumeContext.sample_skills.join(', ')}
 
 Generate a BenchmarkStandard JSON object with personalized targets, current status, gap analysis, and actionable recommendations.`;
 

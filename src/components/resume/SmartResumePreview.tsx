@@ -35,7 +35,7 @@ interface ResumeSection {
   title: string;
   content: any;
   order: number;
-  vaultItemsUsed?: string[];
+  resumeItemsUsed?: string[];
 }
 
 interface ContactInfo {
@@ -258,9 +258,9 @@ function ResumeDocument({
                 </div>
               )}
 
-              {section.vaultItemsUsed && section.vaultItemsUsed.length > 0 && (
+              {section.resumeItemsUsed && section.resumeItemsUsed.length > 0 && (
                 <div className="mt-3 text-xs text-gray-500">
-                  ✓ {section.vaultItemsUsed.length} vault item{section.vaultItemsUsed.length !== 1 ? 's' : ''} used
+                  ✓ {section.resumeItemsUsed.length} resume item{section.resumeItemsUsed.length !== 1 ? 's' : ''} used
                 </div>
               )}
             </div>
