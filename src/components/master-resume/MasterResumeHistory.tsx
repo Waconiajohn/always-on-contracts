@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { History, Clock, FileText, ChevronRight } from "lucide-react";
+import { History, Clock, FileText, ChevronRight, RotateCcw, Loader2 } from "lucide-react";
 import { MasterResumeHistory as HistoryType } from "@/types/master-resume";
 import { formatDistanceToNow, format } from "date-fns";
 import { useState } from "react";
@@ -10,14 +11,17 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 
 interface MasterResumeHistoryProps {
   history: HistoryType[];
   isLoading: boolean;
+  onRestore?: (historyItem: HistoryType) => void;
+  isRestoring?: boolean;
 }
 
-export const MasterResumeHistory = ({ history, isLoading }: MasterResumeHistoryProps) => {
+export const MasterResumeHistory = ({ history, isLoading, onRestore, isRestoring }: MasterResumeHistoryProps) => {
   const [selectedVersion, setSelectedVersion] = useState<HistoryType | null>(null);
 
   if (isLoading) {
@@ -100,6 +104,35 @@ export const MasterResumeHistory = ({ history, isLoading }: MasterResumeHistoryP
               {selectedVersion?.content}
             </div>
           </ScrollArea>
+          {onRestore && selectedVersion && (
+            <DialogFooter className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedVersion(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  onRestore(selectedVersion);
+                  setSelectedVersion(null);
+                }}
+                disabled={isRestoring}
+              >
+                {isRestoring ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Restoring...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Restore This Version
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </>

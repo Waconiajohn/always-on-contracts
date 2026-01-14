@@ -6,7 +6,7 @@ import { ModuleId, TIER_MODULES, getModulesForTier } from "@/config/modules";
 export interface ModuleAccessState {
   quick_score: boolean;
   resume_jobs_studio: boolean;
-  career_vault: boolean;
+  master_resume: boolean;
   linkedin_pro: boolean;
   interview_mastery: boolean;
 }
@@ -22,7 +22,7 @@ interface UseModuleAccessReturn {
 const DEFAULT_ACCESS: ModuleAccessState = {
   quick_score: true, // Always free
   resume_jobs_studio: false,
-  career_vault: false,
+  master_resume: false,
   linkedin_pro: false,
   interview_mastery: false,
 };
@@ -72,7 +72,7 @@ export function useModuleAccess(): UseModuleAccessReturn {
       const accessState: ModuleAccessState = {
         quick_score: true, // Always free
         resume_jobs_studio: tierModules.includes('resume_jobs_studio'),
-        career_vault: tierModules.includes('career_vault'),
+        master_resume: tierModules.includes('master_resume'),
         linkedin_pro: tierModules.includes('linkedin_pro'),
         interview_mastery: tierModules.includes('interview_mastery'),
       };

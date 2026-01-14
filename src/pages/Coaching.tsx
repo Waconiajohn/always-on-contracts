@@ -238,7 +238,7 @@ const CoachingContent = () => {
 export default function Coaching() {
   return (
     <ProtectedRoute>
-      <ModuleGate module="career_vault">
+      <ModuleGate module="master_resume">
         <CoachingContent />
       </ModuleGate>
     </ProtectedRoute>

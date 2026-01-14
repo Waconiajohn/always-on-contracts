@@ -19,8 +19,10 @@ const MasterResumeContent = () => {
     isLoading, 
     createMasterResume, 
     updateMasterResume,
+    restoreVersion,
     isCreating,
-    isUpdating 
+    isUpdating,
+    isRestoring
   } = useMasterResume();
   
   const { history, isLoading: isLoadingHistory } = useMasterResumeHistory();
@@ -141,7 +143,9 @@ const MasterResumeContent = () => {
 
       <MasterResumeHistory 
         history={history || []} 
-        isLoading={isLoadingHistory} 
+        isLoading={isLoadingHistory}
+        onRestore={restoreVersion}
+        isRestoring={isRestoring}
       />
     </div>
   );

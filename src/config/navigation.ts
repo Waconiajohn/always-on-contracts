@@ -52,7 +52,7 @@ export interface ProfileItem {
 // ==========================================
 // Module 1: Quick Score (FREE)
 // Module 2: Resume & Jobs Studio
-// Module 3: Career Vault  
+// Module 3: Master Resume  
 // Module 4: LinkedIn Pro
 // Module 5: Interview Mastery
 // ==========================================
@@ -90,12 +90,12 @@ export const mainNavItems: NavItem[] = [
     icon: Briefcase,
     module: 'resume_jobs_studio',
   },
-  // MODULE 3: Master Resume (replaced Career Vault)
+  // MODULE 3: Master Resume
   {
     label: 'Master Resume',
     path: '/master-resume',
     icon: FileText,
-    module: 'career_vault',
+    module: 'master_resume',
   },
   // MODULE 4: LinkedIn Pro
   {
@@ -125,7 +125,7 @@ export const mainNavItems: NavItem[] = [
     dropdown: [
       { label: 'My Resumes', path: '/my-resumes', icon: FileText, module: 'resume_jobs_studio' },
       { label: 'Resume Templates', path: '/templates', icon: FileText, module: 'resume_jobs_studio' },
-      { label: 'AI Coach', path: '/coaching', icon: Brain, module: 'career_vault' },
+      { label: 'AI Coach', path: '/coaching', icon: Brain, module: 'master_resume' },
       { label: 'Agencies', path: '/agencies', icon: Building2 },
       { label: 'Learning Center', path: '/learning-center', icon: BookOpen },
       { label: 'Profile Settings', path: '/profile', icon: User },
@@ -147,7 +147,7 @@ export const moduleNavGroups = {
     { label: 'Find Jobs', path: '/job-search', icon: Search },
     { label: 'My Applications', path: '/active-applications', icon: Briefcase },
   ],
-  career_vault: [
+  master_resume: [
     { label: 'Master Resume', path: '/master-resume', icon: FileText },
     { label: 'AI Coach', path: '/coaching', icon: Brain },
   ],
